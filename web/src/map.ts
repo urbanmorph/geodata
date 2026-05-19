@@ -2,22 +2,23 @@
 import maplibregl, { Map as MlMap } from 'maplibre-gl';
 import { Protocol, PMTiles } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
+import { overlayLoader, VERBS_MAP } from './loading';
+import { getCatalog } from './catalog';
+import { escapeHtml } from './util';
 
-type Catalog = {
-  layers: Array<{
-    id: string;
-    level: string;
-    source: string;
-    rows: number | null;
-    parquet?: { url: string; bytes: number } | null;
-    pmtiles?: { url: string; bytes: number } | null;
-    geojson?: { url: string; bytes: number } | null;
-    notes?: string;
-  }>;
+type Layer = {
+  id: string;
+  level: string;
+  source: string;
+  rows: number | null;
+  parquet?: { url: string; bytes: number } | null;
+  pmtiles?: { url: string; bytes: number } | null;
+  geojson?: { url: string; bytes: number } | null;
+  notes?: string;
 };
 
-let catalog: Catalog | null = null;
 let map: MlMap | null = null;
+let filterAbort: AbortController | null = null;
 
 // Register the pmtiles:// protocol with MapLibre. Idempotent.
 const protocol = new Protocol();
@@ -51,16 +52,9 @@ const BASE_STYLE: maplibregl.StyleSpecification = {
 
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
 
-async function loadCatalog(): Promise<Catalog> {
-  if (catalog) return catalog;
-  const resp = await fetch('/catalog.json');
-  catalog = (await resp.json()) as Catalog;
-  return catalog;
-}
-
 export async function openLayer(layerId: string, opts: { titleEl: HTMLElement }) {
-  const cat = await loadCatalog();
-  const layer = cat.layers.find((l) => l.id === layerId);
+  const cat = (await getCatalog()) as { layers?: Layer[] };
+  const layer = cat.layers?.find((l) => l.id === layerId);
   if (!layer) {
     opts.titleEl.textContent = `unknown layer: ${layerId}`;
     return;
@@ -75,7 +69,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     map.remove();
     map = null;
   }
-  const loader = showLoader(container);
+  const loader = overlayLoader(container, VERBS_MAP);
   map = new maplibregl.Map({
     container,
     style: BASE_STYLE,
@@ -99,7 +93,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   });
 }
 
-async function attachData(layer: Catalog['layers'][number]) {
+async function attachData(layer: Layer) {
   if (!map) return;
 
   if (layer.pmtiles?.url) {
@@ -154,69 +148,39 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     },
   });
 
-  // Hover-popup
+  // Hover-popup. HTML rebuild is memoised by feature id so dense panning over
+  // dense layers (villages: 584k features) doesn't re-stringify on every mousemove.
   const popup = new maplibregl.Popup({
     closeButton: false,
     closeOnClick: false,
     maxWidth: '320px',
     className: 'geo-popup',
   });
+  let popupId: string | number | undefined;
   map.on('mousemove', 'fill', (e) => {
     map!.getCanvas().style.cursor = 'pointer';
     const f = e.features?.[0];
     if (!f) return;
-    const rows = Object.entries(f.properties || {})
-      .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
-      .slice(0, 10)
-      .map(
-        ([k, v]) =>
-          `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`
-      )
-      .join('');
-    popup.setLngLat(e.lngLat).setHTML(rows).addTo(map!);
+    const fid = (f.id as string | number | undefined) ?? f.properties?.OBJECTID ?? f.properties?.vil_lgd;
+    if (fid !== popupId) {
+      const rows = Object.entries(f.properties || {})
+        .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
+        .slice(0, 10)
+        .map(
+          ([k, v]) =>
+            `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`
+        )
+        .join('');
+      popup.setHTML(rows);
+      popupId = fid;
+    }
+    popup.setLngLat(e.lngLat).addTo(map!);
   });
   map.on('mouseleave', 'fill', () => {
     map!.getCanvas().style.cursor = '';
     popup.remove();
+    popupId = undefined;
   });
-}
-
-function escapeHtml(s: string) {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
-}
-
-const LOADER_VERBS = [
-  'Triangulating polygons…',
-  'Plotting boundaries…',
-  'Surveying terrain…',
-  'Drawing meridians…',
-  'Tessellating tiles…',
-  'Decoding vector layers…',
-  'Stitching coastlines…',
-  'Resolving projections…',
-  'Charting villages…',
-  'Geolocating features…',
-];
-
-function showLoader(container: HTMLElement) {
-  // Pick a starting verb at random, then cycle every 1.4s for variety.
-  let i = Math.floor(Math.random() * LOADER_VERBS.length);
-  const root = document.createElement('div');
-  root.className = 'map-loader';
-  root.innerHTML = `<div class="map-loader__ring" aria-hidden="true"></div><div class="map-loader__verb" role="status" aria-live="polite">${LOADER_VERBS[i]}</div>`;
-  container.appendChild(root);
-  const verbEl = root.querySelector('.map-loader__verb') as HTMLElement;
-  const timer = window.setInterval(() => {
-    i = (i + 1) % LOADER_VERBS.length;
-    verbEl.textContent = LOADER_VERBS[i];
-  }, 1400);
-  return {
-    dismiss() {
-      clearInterval(timer);
-      root.classList.add('fade');
-      setTimeout(() => root.remove(), 240);
-    },
-  };
 }
 
 export function closeLayer() {
@@ -224,48 +188,51 @@ export function closeLayer() {
     map.remove();
     map = null;
   }
+  filterAbort?.abort();
+  filterAbort = null;
   const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
-  if (btn) btn.style.display = 'none';
+  if (btn) btn.classList.remove('shown');
   document.querySelector('.filter-panel')?.remove();
 }
 
-async function wireFilterButton(layer: Catalog['layers'][number]) {
+async function wireFilterButton(layer: Layer) {
   const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
   if (!btn) return;
-  // Remove any previous listener by cloning the node — simplest reset.
-  const fresh = btn.cloneNode(true) as HTMLButtonElement;
-  btn.replaceWith(fresh);
+  filterAbort?.abort();
+  filterAbort = new AbortController();
+  const signal = filterAbort.signal;
 
   // Only LGD parquet layers carry the code chain that powers state-filtering.
   const filterable = !!layer.parquet?.url && layer.source === 'LGD';
   if (!filterable) {
-    fresh.style.display = 'none';
+    btn.classList.remove('shown');
     document.querySelector('.filter-panel')?.remove();
     return;
   }
-  fresh.style.display = '';
-  fresh.textContent = 'Filter & export';
+  btn.classList.add('shown');
+  btn.textContent = 'Filter & export';
+  btn.disabled = false;
 
-  fresh.addEventListener('click', async () => {
-    if (document.querySelector('.filter-panel')) return;
-    fresh.disabled = true;
-    fresh.textContent = 'Loading…';
-    try {
-      const { mountFilterPanel } = await import('./filter');
-      mountFilterPanel(
-        layer,
-        document.getElementById('map')!,
-        () => {
-          fresh.disabled = false;
-          fresh.textContent = 'Filter & export';
-        },
-      );
-      fresh.disabled = false;
-      fresh.textContent = 'Filter & export';
-    } catch (e) {
-      console.error('filter panel failed to load', e);
-      fresh.disabled = false;
-      fresh.textContent = 'Filter & export';
-    }
-  });
+  btn.addEventListener(
+    'click',
+    async () => {
+      if (document.querySelector('.filter-panel')) return;
+      btn.disabled = true;
+      btn.textContent = 'Loading…';
+      try {
+        const { mountFilterPanel } = await import('./filter');
+        if (signal.aborted) return;
+        mountFilterPanel(layer, document.getElementById('map')!, () => {
+          btn.disabled = false;
+          btn.textContent = 'Filter & export';
+        });
+      } catch (e) {
+        console.error('filter panel failed to load', e);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Filter & export';
+      }
+    },
+    { signal },
+  );
 }

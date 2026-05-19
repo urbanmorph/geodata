@@ -1,6 +1,16 @@
-// v2 filter panel: slice a remote parquet by attribute (state today; district next).
-// Lazy-loaded on first "Filter & export" click — DuckDB-WASM only initialises here.
-import { query, exportFilteredParquet, schemaOf } from './db';
+// v2 filter panel: slice a remote parquet by attribute.
+// Lazy-loaded on first "Filter & export" click. DuckDB-WASM only initialises
+// when the user actually picks a state — the dropdown itself is instant
+// because catalog.json carries the pre-baked state list.
+import { exportFilteredParquet } from './db';
+import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT } from './loading';
+import { getCatalog } from './catalog';
+import { escapeHtml } from './util';
+
+// All LGD parquets carry a state-code column. DuckDB folds unquoted identifiers
+// to lowercase, so this matches both `state_lgd` and `State_LGD` without a
+// separate schema probe (which would add a round-trip on the cold start).
+const STATE_COL = 'state_lgd';
 
 type Layer = {
   id: string;
@@ -9,31 +19,8 @@ type Layer = {
   source: string;
 };
 
-type State = { code: number; name: string };
-
-// The states parquet URL — fixed reference, populates the dropdown for every filterable layer.
-const STATES_PARQUET = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.parquet';
-
-let stateListCache: Promise<State[]> | null = null;
-function getStates(): Promise<State[]> {
-  if (stateListCache) return stateListCache;
-  stateListCache = query<{ State_LGD: number; stname: string }>(
-    `SELECT State_LGD, stname FROM '${STATES_PARQUET}' WHERE State_LGD IS NOT NULL ORDER BY stname`,
-  ).then((rows) => rows.map((r) => ({ code: r.State_LGD, name: r.stname })));
-  return stateListCache;
-}
-
-/** Whether a layer can be filtered. Only LGD parquet layers carry the code chain. */
-export function isFilterable(layer: Layer): boolean {
-  return !!layer.parquet?.url && layer.source === 'LGD';
-}
-
-/** Detect the state column name (parquets use both `State_LGD` and `state_lgd`). */
-function pickColumn(cols: Array<{ name: string }>, candidates: string[]): string | null {
-  for (const c of cols) {
-    if (candidates.some((cand) => cand.toLowerCase() === c.name.toLowerCase())) return c.name;
-  }
-  return null;
+function toTitleCase(s: string): string {
+  return s.toLowerCase().replace(/(^|\s|&|-)([a-z])/g, (_m, p, l) => p + l.toUpperCase());
 }
 
 export function mountFilterPanel(layer: Layer, container: HTMLElement, onClose: () => void): void {
@@ -76,46 +63,44 @@ export function mountFilterPanel(layer: Layer, container: HTMLElement, onClose: 
     onClose();
   });
 
-  let stateColumn: string | null = null;
-  let stateCount = 0;
   const parquetUrl = layer.parquet!.url;
+  let counts: Record<string, number> = {};
 
-  // Probe schema + populate states in parallel.
-  Promise.all([schemaOf(parquetUrl), getStates()])
-    .then(([cols, states]) => {
-      stateColumn = pickColumn(cols, ['state_lgd', 'State_LGD']);
-      if (!stateColumn) {
-        summary.innerHTML = `<span class="filter-panel__err">This layer has no state code column — filtering not available.</span>`;
-        return;
-      }
+  // Populate the dropdown + load prebaked counts from catalog.json. Both are
+  // instant: no DuckDB needed for either the list or the row counts. DuckDB
+  // is deferred to the Download click, when the user has committed to wait.
+  getCatalog()
+    .then((c) => {
+      counts = c.state_counts?.[layer.id] || {};
+      const states = c.states || [];
       stateSelect.innerHTML =
-        `<option value="">All states (${states.length})</option>` +
-        states.map((s) => `<option value="${s.code}">${escapeHtml(s.name)}</option>`).join('');
+        `<option value="">— pick a state —</option>` +
+        states
+          .map((s) => `<option value="${s.code}">${escapeHtml(toTitleCase(s.name))}</option>`)
+          .join('');
     })
     .catch((e) => {
-      summary.innerHTML = `<span class="filter-panel__err">Failed to load: ${escapeHtml(String(e.message || e))}</span>`;
+      summary.innerHTML = `<span class="filter-panel__err">Failed to load states: ${escapeHtml(String(e.message || e))}</span>`;
     });
 
-  stateSelect.addEventListener('change', async () => {
+  stateSelect.addEventListener('change', () => {
     const code = stateSelect.value;
     if (!code) {
       summary.innerHTML = `<span class="filter-panel__muted">Pick a state to enable export.</span>`;
       exportBtn.disabled = true;
       return;
     }
-    summary.innerHTML = `<span class="filter-panel__muted">Counting rows…</span>`;
-    exportBtn.disabled = true;
-    try {
-      const rows = await query<{ n: number }>(
-        `SELECT COUNT(*)::INTEGER AS n FROM '${parquetUrl}' WHERE ${stateColumn} = ${Number(code)}`,
-      );
-      stateCount = Number(rows[0]?.n ?? 0);
-      summary.innerHTML = `<span><strong>${stateCount.toLocaleString('en-IN')}</strong> rows match.</span>`;
-      exportBtn.disabled = stateCount === 0;
-    } catch (e) {
-      summary.innerHTML = `<span class="filter-panel__err">Query failed: ${escapeHtml(String((e as Error).message))}</span>`;
+    const n = counts[code] ?? 0;
+    if (n === 0) {
+      summary.innerHTML = `<span class="filter-panel__muted">No rows for this state in this layer.</span>`;
+      exportBtn.disabled = true;
+      return;
     }
+    summary.innerHTML = `<span><strong>${n.toLocaleString('en-IN')}</strong> rows match.</span>`;
+    exportBtn.disabled = false;
   });
+
+  let engineWarm = false;
 
   exportBtn.addEventListener('click', async () => {
     const code = stateSelect.value;
@@ -125,10 +110,14 @@ export function mountFilterPanel(layer: Layer, container: HTMLElement, onClose: 
     const filename = `${layer.id}__${stateName}.parquet`;
     exportBtn.disabled = true;
     exportBtn.textContent = 'Exporting…';
-    status.textContent = 'Streaming parquet pages from R2…';
+    // First export bears the DuckDB cold start; switch verbs after engine warms.
+    const exportLoader = inlineLoader(status, engineWarm ? VERBS_EXPORT : VERBS_ENGINE);
+    const engineWarmTimer = !engineWarm
+      ? window.setTimeout(() => exportLoader.setVerbs(VERBS_EXPORT), 8000)
+      : undefined;
     try {
       const blob = await exportFilteredParquet(
-        `SELECT * FROM '${parquetUrl}' WHERE ${stateColumn} = ${Number(code)}`,
+        `SELECT * FROM '${parquetUrl}' WHERE ${STATE_COL} = ${Number(code)}`,
         filename.replace('.parquet', ''),
       );
       const url = URL.createObjectURL(blob);
@@ -139,19 +128,19 @@ export function mountFilterPanel(layer: Layer, container: HTMLElement, onClose: 
       a.click();
       a.remove();
       setTimeout(() => URL.revokeObjectURL(url), 30000);
-      status.innerHTML = `<span class="filter-panel__ok">Downloaded ${filename} (${formatSize(blob.size)}).</span>`;
-      exportBtn.textContent = 'Download filtered parquet';
-      exportBtn.disabled = false;
+      clearTimeout(engineWarmTimer);
+      exportLoader.dismiss();
+      engineWarm = true;
+      status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(filename)} (${formatSize(blob.size)}).</span>`;
     } catch (e) {
+      clearTimeout(engineWarmTimer);
+      exportLoader.dismiss();
       status.innerHTML = `<span class="filter-panel__err">Export failed: ${escapeHtml(String((e as Error).message))}</span>`;
+    } finally {
       exportBtn.textContent = 'Download filtered parquet';
       exportBtn.disabled = false;
     }
   });
-}
-
-function escapeHtml(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] as string));
 }
 
 function formatSize(n: number): string {

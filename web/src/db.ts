@@ -53,13 +53,3 @@ export async function exportFilteredParquet(selectSql: string, basename: string)
   }
 }
 
-/**
- * Probe a remote parquet's schema. Returns column names + types.
- * Cheap: DuckDB only reads the parquet footer (a few KB).
- */
-export async function schemaOf(parquetUrl: string): Promise<Array<{ name: string; type: string }>> {
-  const rows = await query<{ column_name: string; column_type: string }>(
-    `DESCRIBE SELECT * FROM '${parquetUrl}' LIMIT 0`,
-  );
-  return rows.map((r) => ({ name: r.column_name, type: r.column_type }));
-}

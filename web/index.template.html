@@ -8,6 +8,10 @@
     <meta name="description" content="Open-source visualiser for India admin boundaries — states, districts, sub-districts, blocks, villages. View on a map, download as parquet or geojson." />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗺%3C/text%3E%3C/svg%3E" />
     <link rel="preconnect" href="https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev" crossorigin />
+    <link rel="preconnect" href="https://tile.openstreetmap.org" crossorigin />
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
       :root {
         --fg: #111;
@@ -141,6 +145,7 @@
         border-radius: 6px; cursor: pointer; color: var(--fg); font: inherit;
       }
       #map-overlay button.filter-toggle { display: none; }
+      #map-overlay button.filter-toggle.shown { display: inline-block; }
       #map-overlay button.filter-toggle:hover { border-color: var(--accent); color: var(--accent); }
 
       /* Filter panel (v2 — DuckDB-WASM in-browser slicing) */
@@ -218,6 +223,18 @@
         letter-spacing: .02em;
       }
       @keyframes ml-spin { to { transform: rotate(360deg); } }
+      /* Inline loader (used in filter panel rows / button status) */
+      .il { display: inline-flex; align-items: center; gap: 8px; }
+      .il__ring {
+        display: inline-block;
+        width: 13px; height: 13px;
+        border: 1.5px solid color-mix(in srgb, var(--fg) 18%, transparent);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: ml-spin 0.85s linear infinite;
+        flex-shrink: 0;
+      }
+      .il__verb { color: var(--muted); font-size: 13px; }
 
       /* Hover popup styling */
       .geo-popup .maplibregl-popup-content {
@@ -269,6 +286,7 @@
       <div id="map"><div id="map-loading">loading map…</div></div>
     </div>
 
+    <!-- CATALOG_INLINE -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

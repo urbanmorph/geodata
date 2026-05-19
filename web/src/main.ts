@@ -1,27 +1,26 @@
-// Tiny entry: hash-based map routing. No framework, no filters.
+// Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
 const mapCloseBtn = document.getElementById('map-close') as HTMLButtonElement;
 
-let mapModule: typeof import('./map') | null = null;
+// Dynamic imports are cached by the loader, so we don't need our own cache.
+const loadMap = () => import('./map');
 
 async function showMap(layerId: string) {
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
-  if (!mapModule) {
-    mapModule = await import('./map');
-  }
-  await mapModule.openLayer(layerId, { titleEl: mapTitle });
+  const m = await loadMap();
+  await m.openLayer(layerId, { titleEl: mapTitle });
 }
 
-function hideMap() {
+async function hideMap() {
   overlay.classList.remove('open');
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
-  mapModule?.closeLayer();
+  (await loadMap()).closeLayer();
   if (location.hash.startsWith('#view/')) {
     history.replaceState(null, '', location.pathname + location.search);
   }
@@ -42,3 +41,14 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('hashchange', handleHash);
 handleHash();
+
+// Hover/touchstart prefetch: warm the map chunk as soon as the user signals
+// intent. Dynamic import() dedupes — fires once across all event sources.
+const prefetch = () => {
+  loadMap();
+};
+for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href^="#view/"]')) {
+  a.addEventListener('mouseenter', prefetch, { once: true, passive: true });
+  a.addEventListener('touchstart', prefetch, { once: true, passive: true });
+  a.addEventListener('focus', prefetch, { once: true });
+}

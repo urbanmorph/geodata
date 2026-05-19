@@ -1,14 +1,51 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
+import { execSync } from 'node:child_process';
+import { resolve } from 'node:path';
+
+// Re-run prerender.mjs whenever index.template.html or catalog.json changes.
+// Vite's HMR then reloads index.html automatically.
+function prerenderPlugin(): Plugin {
+  const run = () => {
+    try {
+      execSync('node scripts/prerender.mjs', { stdio: 'inherit' });
+    } catch (e) {
+      console.error('[prerender] failed:', (e as Error).message);
+    }
+  };
+  return {
+    name: 'geodata-prerender',
+    configureServer(server) {
+      run(); // initial build
+      const watched = [
+        resolve(server.config.root, 'index.template.html'),
+        resolve(server.config.root, '..', 'catalog.json'),
+      ];
+      watched.forEach((f) => server.watcher.add(f));
+      server.watcher.on('change', (file) => {
+        if (watched.some((w) => file === w)) {
+          console.log('[prerender] regenerating (change in', file.split('/').pop(), ')');
+          run();
+          server.ws.send({ type: 'full-reload' });
+        }
+      });
+    },
+  };
+}
 
 export default defineConfig({
+  plugins: [prerenderPlugin()],
   build: {
     target: 'es2022',
     cssCodeSplit: true,
     rollupOptions: {
       output: {
-        // map code in its own chunk so the catalog page loads zero JS to render
         manualChunks(id) {
-          if (id.includes('maplibre-gl') || id.includes('pmtiles')) return 'map';
+          // Shared between map + filter; pulling it into its own chunk avoids
+          // dragging the map-vendor static import in via the filter side.
+          if (id.includes('src/loading')) return 'loader';
+          if (id.includes('src/util') || id.includes('src/catalog')) return 'shared';
+          // Heavy map deps as a separate vendor chunk for clean cache lifetime.
+          if (id.includes('maplibre-gl') || id.includes('pmtiles')) return 'map-vendor';
         },
       },
     },

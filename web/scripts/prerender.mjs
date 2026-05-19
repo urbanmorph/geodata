@@ -151,12 +151,17 @@ const publisherLink = publisher
   ? `<a href="${esc(publisher.url)}" target="_blank" rel="noopener">${esc(publisher.name)}</a>`
   : '';
 
+// Inline the full catalog so map + filter open with zero network roundtrips.
+// Catalog is small (~20 KB raw, ~5 KB additional gz) — worth it.
+const inlineCatalog = JSON.stringify(catalog);
+
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const out = tmpl
   .replace('<!-- LEVEL_CARDS -->', cards)
   .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
   .replace('<!-- ATTR_LINKS -->', attrLinks)
-  .replace('<!-- PUBLISHER -->', publisherLink);
+  .replace('<!-- PUBLISHER -->', publisherLink)
+  .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog.replace(/</g, '\\u003c')}</script>`);
 
 await writeFile(resolve(WEB, 'index.html'), out);
-console.log(`prerendered ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} level cards`);
+console.log(`prerendered ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} level cards (+ inline catalog ${inlineCatalog.length} B)`);

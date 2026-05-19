@@ -80,6 +80,51 @@ def size_of(p: Path) -> int | None:
         return None
 
 
+def build_state_list():
+    """Pre-extract the 36 states from LGD_States.parquet so the viewer's filter
+    dropdown can populate instantly (no DuckDB init needed just for the list)."""
+    import duckdb
+    src = SRC / 'LGD_States.parquet'
+    if not src.exists():
+        return []
+    con = duckdb.connect()
+    rows = con.execute(
+        f"SELECT CAST(State_LGD AS INTEGER) AS code, STNAME AS name "
+        f"FROM '{src}' WHERE State_LGD IS NOT NULL AND STNAME IS NOT NULL "
+        f"ORDER BY STNAME"
+    ).fetchall()
+    return [{'code': c, 'name': n} for c, n in rows]
+
+
+def build_state_counts():
+    """Pre-compute (layer_id, state_code) -> row_count for every LGD parquet that
+    carries a state code. Avoids a slow COUNT(*) over HTTP in the browser — the
+    villages parquet alone is 452 MB and would require a full scan otherwise."""
+    import duckdb
+    layer_files = {
+        'lgd_states':       (SRC / 'LGD_States.parquet',       'State_LGD'),
+        'lgd_districts':    (SRC / 'LGD_Districts.parquet',    'state_lgd'),
+        'lgd_subdistricts': (SRC / 'LGD_Subdistricts.parquet', 'state_lgd'),
+        'lgd_blocks':       (SRC / 'LGD_Blocks.parquet',       'state_lgd'),
+        'lgd_villages':     (SRC / 'LGD_Villages.parquet',     'state_lgd'),
+    }
+    con = duckdb.connect()
+    out = {}
+    for layer_id, (src, col) in layer_files.items():
+        if not src.exists():
+            continue
+        try:
+            rows = con.execute(
+                f"SELECT CAST({col} AS INTEGER) AS code, COUNT(*) AS n "
+                f"FROM '{src}' WHERE {col} IS NOT NULL GROUP BY 1"
+            ).fetchall()
+            out[layer_id] = {int(code): int(n) for code, n in rows}
+            print(f'  state_counts[{layer_id}]: {len(out[layer_id])} states, {sum(out[layer_id].values()):,} total rows')
+        except Exception as e:
+            print(f'  state_counts[{layer_id}]: failed — {e}')
+    return out
+
+
 def build():
     layers = []
 
@@ -152,6 +197,8 @@ def build():
         'levels': LEVELS,
         'layers': layers,
         'state_extracts': state_extracts,
+        'states': build_state_list(),
+        'state_counts': build_state_counts(),
         'attribution': ATTR | {'_publisher': PUBLISHER},
         'licence_summary': {
             'states_districts': LIC_STATE_DIST,

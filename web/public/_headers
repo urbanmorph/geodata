@@ -1,0 +1,18 @@
+# Hashed Vite assets — safe to cache forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Catalog data — fresh-ish, but allow stale-while-revalidate so repeat visits feel instant.
+/catalog.json
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+# Favicon embedded in HTML; no separate file. Keep the rule cheap and broad.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# HTML — always revalidate to pick up new asset hashes.
+/
+  Cache-Control: public, max-age=0, must-revalidate
+/index.html
+  Cache-Control: public, max-age=0, must-revalidate
