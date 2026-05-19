@@ -67,6 +67,8 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   }
   opts.titleEl.textContent = `${layer.level} · ${layer.source} · ${layer.rows?.toLocaleString('en-IN') ?? '—'} rows`;
 
+  await wireFilterButton(layer);
+
   const container = document.getElementById('map')!;
   container.innerHTML = '';
   if (map) {
@@ -222,4 +224,48 @@ export function closeLayer() {
     map.remove();
     map = null;
   }
+  const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
+  if (btn) btn.style.display = 'none';
+  document.querySelector('.filter-panel')?.remove();
+}
+
+async function wireFilterButton(layer: Catalog['layers'][number]) {
+  const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
+  if (!btn) return;
+  // Remove any previous listener by cloning the node — simplest reset.
+  const fresh = btn.cloneNode(true) as HTMLButtonElement;
+  btn.replaceWith(fresh);
+
+  // Only LGD parquet layers carry the code chain that powers state-filtering.
+  const filterable = !!layer.parquet?.url && layer.source === 'LGD';
+  if (!filterable) {
+    fresh.style.display = 'none';
+    document.querySelector('.filter-panel')?.remove();
+    return;
+  }
+  fresh.style.display = '';
+  fresh.textContent = 'Filter & export';
+
+  fresh.addEventListener('click', async () => {
+    if (document.querySelector('.filter-panel')) return;
+    fresh.disabled = true;
+    fresh.textContent = 'Loading…';
+    try {
+      const { mountFilterPanel } = await import('./filter');
+      mountFilterPanel(
+        layer,
+        document.getElementById('map')!,
+        () => {
+          fresh.disabled = false;
+          fresh.textContent = 'Filter & export';
+        },
+      );
+      fresh.disabled = false;
+      fresh.textContent = 'Filter & export';
+    } catch (e) {
+      console.error('filter panel failed to load', e);
+      fresh.disabled = false;
+      fresh.textContent = 'Filter & export';
+    }
+  });
 }

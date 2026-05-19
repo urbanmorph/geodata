@@ -133,12 +133,64 @@
         display: none; flex-direction: column;
       }
       #map-overlay.open { display: flex; }
-      #map-overlay header.map-bar { padding: 12px 16px; border-bottom: 1px solid var(--line); margin: 0; display: flex; align-items: center; justify-content: space-between; }
-      #map-overlay .map-title { font-weight: 500; }
-      #map-overlay button.close {
+      #map-overlay header.map-bar { padding: 12px 16px; border-bottom: 1px solid var(--line); margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      #map-overlay .map-title { font-weight: 500; flex: 1; }
+      #map-overlay button.close,
+      #map-overlay button.filter-toggle {
         background: transparent; border: 1px solid var(--line); padding: 4px 12px;
         border-radius: 6px; cursor: pointer; color: var(--fg); font: inherit;
       }
+      #map-overlay button.filter-toggle { display: none; }
+      #map-overlay button.filter-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+      /* Filter panel (v2 — DuckDB-WASM in-browser slicing) */
+      .filter-panel {
+        position: absolute;
+        top: 0; right: 0; bottom: 0;
+        width: min(360px, 90vw);
+        background: var(--bg);
+        border-left: 1px solid var(--line);
+        display: flex;
+        flex-direction: column;
+        z-index: 6;
+        box-shadow: -8px 0 24px rgba(0,0,0,0.06);
+        animation: filter-slide 180ms ease;
+      }
+      @keyframes filter-slide { from { transform: translateX(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+      .filter-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+      .filter-panel__title { font-weight: 600; font-size: 14px; }
+      .filter-panel__close { background: transparent; border: none; font-size: 22px; line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
+      .filter-panel__close:hover { color: var(--fg); }
+      .filter-panel__body { padding: 18px; display: flex; flex-direction: column; gap: 16px; flex: 1; overflow-y: auto; }
+      .filter-panel__field { display: flex; flex-direction: column; gap: 6px; }
+      .filter-panel__label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+      .filter-panel__select {
+        font: 14px ui-sans-serif, system-ui, sans-serif;
+        padding: 8px 10px;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        background: var(--bg);
+        color: var(--fg);
+      }
+      .filter-panel__row { font-size: 13px; padding: 10px 12px; background: var(--card-bg); border-radius: 6px; }
+      .filter-panel__muted { color: var(--muted); }
+      .filter-panel__err { color: #b91c1c; }
+      .filter-panel__ok { color: #166534; }
+      .filter-panel__actions { display: flex; flex-direction: column; gap: 8px; }
+      .filter-panel__btn {
+        padding: 10px 14px;
+        background: var(--fg);
+        color: var(--bg);
+        border: none;
+        border-radius: 6px;
+        font: 500 14px/1 ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+        transition: background 120ms ease;
+      }
+      .filter-panel__btn:hover:not(:disabled) { background: var(--accent); }
+      .filter-panel__btn:disabled { background: var(--line); color: var(--muted); cursor: not-allowed; }
+      .filter-panel__hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
+      .filter-panel__status { font-size: 13px; min-height: 18px; }
       #map { flex: 1; background: var(--bg); position: relative; }
       #map-loading { color: var(--muted); padding: 16px; }
       .map-loader {
@@ -211,6 +263,7 @@
     <div id="map-overlay" aria-hidden="true">
       <header class="map-bar">
         <span class="map-title" id="map-title">map</span>
+        <button class="filter-toggle" id="map-filter" aria-label="Open filter and export">Filter &amp; export</button>
         <button class="close" id="map-close" aria-label="Close map">esc</button>
       </header>
       <div id="map"><div id="map-loading">loading map…</div></div>
