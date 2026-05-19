@@ -1,26 +1,23 @@
-// Lazy DuckDB-WASM wrapper. Initialised on first query — adds ~2 MB to the bundle.
-// Used by v2 filter/export to slice remote parquet via HTTP range requests.
+// Lazy DuckDB-WASM wrapper. Initialised on first query.
+// WASM blobs are fetched from JsDelivr CDN (Cloudflare Pages has a 25 MiB per-file
+// cap; DuckDB's eh blob is ~34 MiB) — only the JS shim is bundled with our site.
 import * as duckdb from '@duckdb/duckdb-wasm';
-import duckdb_wasm from '@duckdb/duckdb-wasm/dist/duckdb-mvp.wasm?url';
-import mvp_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-mvp.worker.js?url';
-import duckdb_wasm_eh from '@duckdb/duckdb-wasm/dist/duckdb-eh.wasm?url';
-import eh_worker from '@duckdb/duckdb-wasm/dist/duckdb-browser-eh.worker.js?url';
-
-const BUNDLES: duckdb.DuckDBBundles = {
-  mvp: { mainModule: duckdb_wasm, mainWorker: mvp_worker },
-  eh: { mainModule: duckdb_wasm_eh, mainWorker: eh_worker },
-};
 
 let dbPromise: Promise<duckdb.AsyncDuckDB> | null = null;
 
 export function getDb(): Promise<duckdb.AsyncDuckDB> {
   if (dbPromise) return dbPromise;
   dbPromise = (async () => {
-    const bundle = await duckdb.selectBundle(BUNDLES);
-    const worker = new Worker(bundle.mainWorker!, { type: 'module' });
+    const bundle = await duckdb.selectBundle(duckdb.getJsDelivrBundles());
+    // The worker has to be served same-origin, so wrap the CDN URL in a Blob.
+    const workerUrl = URL.createObjectURL(
+      new Blob([`importScripts("${bundle.mainWorker!}");`], { type: 'text/javascript' }),
+    );
+    const worker = new Worker(workerUrl);
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     const db = new duckdb.AsyncDuckDB(logger, worker);
     await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    URL.revokeObjectURL(workerUrl);
     return db;
   })();
   return dbPromise;
