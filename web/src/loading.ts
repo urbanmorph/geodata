@@ -47,6 +47,24 @@ export const VERBS_EXPORT = [
   'Sealing the blob…',
 ];
 
+export const VERBS_GEOJSON = [
+  'Filtering rows in your browser…',
+  'Loading geospatial helpers…',
+  'Decoding WKB geometries…',
+  'Serialising features…',
+  'Stitching the FeatureCollection…',
+  'Sealing the blob…',
+];
+
+export const VERBS_KML = [
+  'Filtering rows in your browser…',
+  'Loading geospatial helpers…',
+  'Translating to Google Earth…',
+  'Wrapping placemarks…',
+  'Encoding XML…',
+  'Sealing the KML envelope…',
+];
+
 import { escapeHtml } from './util';
 
 type Handle = { dismiss: () => void; setVerbs: (v: string[]) => void };

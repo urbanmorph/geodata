@@ -213,6 +213,14 @@ async function wireFilterButton(layer: Layer) {
   btn.textContent = 'Filter & export';
   btn.disabled = false;
 
+  // B2: prefetch the filter chunk during idle time so the click feels instant.
+  // Dynamic import dedupes — when the click fires, the chunk is already cached.
+  const idle: (cb: () => void) => void =
+    'requestIdleCallback' in window
+      ? (cb) => (window as unknown as { requestIdleCallback: (c: () => void, o: { timeout: number }) => void }).requestIdleCallback(cb, { timeout: 4000 })
+      : (cb) => setTimeout(cb, 1500);
+  idle(() => import('./filter'));
+
   btn.addEventListener(
     'click',
     async () => {
@@ -222,9 +230,13 @@ async function wireFilterButton(layer: Layer) {
       try {
         const { mountFilterPanel } = await import('./filter');
         if (signal.aborted) return;
-        mountFilterPanel(layer, document.getElementById('map')!, () => {
-          btn.disabled = false;
-          btn.textContent = 'Filter & export';
+        mountFilterPanel(layer, document.getElementById('map')!, {
+          onClose: () => {
+            btn.disabled = false;
+            btn.textContent = 'Filter & export';
+            applyStateFilter(null, null);
+          },
+          onStateChange: applyStateFilter,
         });
       } catch (e) {
         console.error('filter panel failed to load', e);
@@ -235,4 +247,36 @@ async function wireFilterButton(layer: Layer) {
     },
     { signal },
   );
+}
+
+// Filter the active layer to a single state and fly the camera to its bounds.
+// Property name varies by parquet (state_lgd vs State_LGD) so we match either.
+function applyStateFilter(
+  code: number | null,
+  bounds: [number, number, number, number] | null,
+): void {
+  if (!map) return;
+  const filter =
+    code == null
+      ? null
+      : ['any', ['==', ['get', 'state_lgd'], code], ['==', ['get', 'State_LGD'], code]];
+  for (const id of ['fill', 'line']) {
+    if (map.getLayer(id)) map.setFilter(id, filter as maplibregl.FilterSpecification);
+  }
+  // The filter panel overlays the right side of the viewport; compensate so
+  // fitBounds centres the geometry in the *visible* area, not the full canvas.
+  const panel = document.querySelector<HTMLElement>('.filter-panel');
+  const panelWidth = panel ? panel.getBoundingClientRect().width : 0;
+  const padding = { top: 40, bottom: 40, left: 40, right: 40 + panelWidth };
+  if (bounds) {
+    map.fitBounds(
+      [
+        [bounds[0], bounds[1]],
+        [bounds[2], bounds[3]],
+      ],
+      { padding, duration: 600 },
+    );
+  } else {
+    map.fitBounds(INDIA_BOUNDS, { padding, duration: 600 });
+  }
 }

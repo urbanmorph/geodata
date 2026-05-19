@@ -11,6 +11,9 @@ dist/
 web/index.html
 web/public/catalog.json
 
+# Local dev tool, not for prod
+web/public/verify.html
+
 # Env
 .env
 .env.local

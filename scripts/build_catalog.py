@@ -96,6 +96,35 @@ def build_state_list():
     return [{'code': c, 'name': n} for c, n in rows]
 
 
+def build_state_bounds():
+    """Pre-compute per-state bounding box [minLon, minLat, maxLon, maxLat] so the
+    viewer can fitBounds() on the map when a user picks a state, without
+    loading any spatial library at runtime."""
+    import duckdb
+    src = SRC / 'LGD_States.parquet'
+    if not src.exists():
+        return {}
+    con = duckdb.connect()
+    con.execute("INSTALL spatial; LOAD spatial")
+    try:
+        rows = con.execute(
+            f"SELECT CAST(State_LGD AS INTEGER) AS code, "
+            f"MIN(ST_XMin(geometry)) AS minx, "
+            f"MIN(ST_YMin(geometry)) AS miny, "
+            f"MAX(ST_XMax(geometry)) AS maxx, "
+            f"MAX(ST_YMax(geometry)) AS maxy "
+            f"FROM '{src}' WHERE State_LGD IS NOT NULL "
+            f"GROUP BY State_LGD"
+        ).fetchall()
+        out = {int(code): [round(minx, 4), round(miny, 4), round(maxx, 4), round(maxy, 4)]
+               for code, minx, miny, maxx, maxy in rows}
+        print(f'  state_bounds: {len(out)} states')
+        return out
+    except Exception as e:
+        print(f'  state_bounds: failed — {e}')
+        return {}
+
+
 def build_state_counts():
     """Pre-compute (layer_id, state_code) -> row_count for every LGD parquet that
     carries a state code. Avoids a slow COUNT(*) over HTTP in the browser — the
@@ -199,6 +228,7 @@ def build():
         'state_extracts': state_extracts,
         'states': build_state_list(),
         'state_counts': build_state_counts(),
+        'state_bounds': build_state_bounds(),
         'attribution': ATTR | {'_publisher': PUBLISHER},
         'licence_summary': {
             'states_districts': LIC_STATE_DIST,

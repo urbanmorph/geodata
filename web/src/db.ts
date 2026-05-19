@@ -53,3 +53,239 @@ export async function exportFilteredParquet(selectSql: string, basename: string)
   }
 }
 
+/** Query rows from a parquet — geometry column comes back as WKB bytes.
+ *  We parse WKB → GeoJSON in JS rather than relying on the DuckDB spatial
+ *  extension, which is fragile to install in WASM and threw cryptic errors
+ *  on real data. */
+async function fetchFeatures(
+  parquetUrl: string,
+  whereClause: string,
+): Promise<Array<{ geometry: unknown; properties: Record<string, unknown> }>> {
+  const db = await getDb();
+  const conn = await db.connect();
+  try {
+    const where = whereClause ? `WHERE ${whereClause}` : '';
+    const sql = `SELECT * FROM '${parquetUrl}' ${where}`;
+    let result;
+    try {
+      result = await conn.query(sql);
+    } catch (e) {
+      throw new Error(`query failed: ${(e as Error).message}`);
+    }
+    const out: Array<{ geometry: unknown; properties: Record<string, unknown> }> = [];
+    for (const row of result.toArray()) {
+      const obj = row.toJSON() as Record<string, unknown>;
+      const raw = obj.geometry;
+      delete obj.geometry;
+      // Coerce BigInts so JSON.stringify doesn't throw.
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        if (typeof v === 'bigint') obj[k] = Number(v);
+      }
+      const wkb = toUint8Array(raw);
+      if (!wkb) continue;
+      let geometry: unknown;
+      try {
+        geometry = parseWKB(wkb);
+      } catch {
+        continue; // skip malformed geometries instead of killing the export
+      }
+      out.push({ geometry, properties: obj });
+    }
+    return out;
+  } finally {
+    await conn.close();
+  }
+}
+
+function toUint8Array(v: unknown): Uint8Array | null {
+  if (!v) return null;
+  if (v instanceof Uint8Array) return v;
+  // Arrow may surface BLOB as a typed array via different paths
+  if (ArrayBuffer.isView(v)) return new Uint8Array((v as ArrayBufferView).buffer, (v as ArrayBufferView).byteOffset, (v as ArrayBufferView).byteLength);
+  if (v instanceof ArrayBuffer) return new Uint8Array(v);
+  return null;
+}
+
+// ----- WKB → GeoJSON parser (ISO WKB, the format DuckDB uses for geometry blobs) -----
+
+type GeomOut =
+  | { type: 'Point'; coordinates: [number, number] }
+  | { type: 'LineString'; coordinates: [number, number][] }
+  | { type: 'Polygon'; coordinates: [number, number][][] }
+  | { type: 'MultiPoint'; coordinates: [number, number][] }
+  | { type: 'MultiLineString'; coordinates: [number, number][][] }
+  | { type: 'MultiPolygon'; coordinates: [number, number][][][] }
+  | { type: 'GeometryCollection'; geometries: GeomOut[] };
+
+function parseWKB(buf: Uint8Array): GeomOut {
+  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
+  let p = 0;
+  function readGeom(): GeomOut {
+    const le = dv.getUint8(p) === 1; p += 1;
+    const typeWithFlags = dv.getUint32(p, le); p += 4;
+    // Strip ISO 3D / SRID flags — we keep XY only.
+    const t = typeWithFlags & 0xff;
+    const hasZ = (typeWithFlags & 0x80000000) !== 0 || ((typeWithFlags & 0xffff) >= 1000 && (typeWithFlags & 0xffff) < 2000);
+    const hasM = (typeWithFlags & 0x40000000) !== 0 || ((typeWithFlags & 0xffff) >= 2000 && (typeWithFlags & 0xffff) < 3000);
+    const ptStride = 2 + (hasZ ? 1 : 0) + (hasM ? 1 : 0);
+    function pt(): [number, number] {
+      const x = dv.getFloat64(p, le); p += 8;
+      const y = dv.getFloat64(p, le); p += 8;
+      p += 8 * (ptStride - 2); // skip Z/M doubles
+      return [x, y];
+    }
+    function line(): [number, number][] {
+      const n = dv.getUint32(p, le); p += 4;
+      const out: [number, number][] = [];
+      for (let i = 0; i < n; i++) out.push(pt());
+      return out;
+    }
+    function poly(): [number, number][][] {
+      const rn = dv.getUint32(p, le); p += 4;
+      const rings: [number, number][][] = [];
+      for (let r = 0; r < rn; r++) rings.push(line());
+      return rings;
+    }
+    switch (t) {
+      case 1: return { type: 'Point', coordinates: pt() };
+      case 2: return { type: 'LineString', coordinates: line() };
+      case 3: return { type: 'Polygon', coordinates: poly() };
+      case 4: {
+        const n = dv.getUint32(p, le); p += 4;
+        const coords: [number, number][] = [];
+        for (let i = 0; i < n; i++) coords.push((readGeom() as { coordinates: [number, number] }).coordinates);
+        return { type: 'MultiPoint', coordinates: coords };
+      }
+      case 5: {
+        const n = dv.getUint32(p, le); p += 4;
+        const lines: [number, number][][] = [];
+        for (let i = 0; i < n; i++) lines.push((readGeom() as { coordinates: [number, number][] }).coordinates);
+        return { type: 'MultiLineString', coordinates: lines };
+      }
+      case 6: {
+        const n = dv.getUint32(p, le); p += 4;
+        const polys: [number, number][][][] = [];
+        for (let i = 0; i < n; i++) polys.push((readGeom() as { coordinates: [number, number][][] }).coordinates);
+        return { type: 'MultiPolygon', coordinates: polys };
+      }
+      case 7: {
+        const n = dv.getUint32(p, le); p += 4;
+        const geoms: GeomOut[] = [];
+        for (let i = 0; i < n; i++) geoms.push(readGeom());
+        return { type: 'GeometryCollection', geometries: geoms };
+      }
+      default:
+        throw new Error('unsupported WKB type ' + t);
+    }
+  }
+  return readGeom();
+}
+
+export async function exportFilteredGeoJSON(
+  parquetUrl: string,
+  whereClause: string,
+): Promise<Blob> {
+  const feats = await fetchFeatures(parquetUrl, whereClause);
+  const fc = {
+    type: 'FeatureCollection',
+    features: feats.map((f) => ({ type: 'Feature', geometry: f.geometry, properties: f.properties })),
+  };
+  return new Blob([JSON.stringify(fc)], { type: 'application/geo+json' });
+}
+
+export async function exportFilteredKML(
+  parquetUrl: string,
+  whereClause: string,
+  layerName: string,
+): Promise<Blob> {
+  const feats = await fetchFeatures(parquetUrl, whereClause);
+  const kml = geoJSONFeaturesToKML(feats, layerName);
+  return new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
+}
+
+// --- inline GeoJSON → KML conversion (avoids a dep; handles Polygon/MultiPolygon/Point) ---
+
+const NAME_KEYS = ['vname', 'sdtname', 'dtname', 'stname', 'STNAME', 'NAME', 'name'];
+
+function escXml(s: string): string {
+  return s
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+}
+
+function geoJSONFeaturesToKML(
+  feats: Array<{ geometry: unknown; properties: Record<string, unknown> }>,
+  layerName: string,
+): string {
+  const placemarks = feats
+    .map((f) => {
+      const name = NAME_KEYS.map((k) => f.properties?.[k]).find((v) => v != null) ?? '';
+      const extData = Object.entries(f.properties)
+        .filter(([, v]) => v != null && v !== '')
+        .map(
+          ([k, v]) => `<Data name="${escXml(k)}"><value>${escXml(String(v))}</value></Data>`,
+        )
+        .join('');
+      const geom = geometryToKML(f.geometry);
+      return `<Placemark><name>${escXml(String(name))}</name><ExtendedData>${extData}</ExtendedData>${geom}</Placemark>`;
+    })
+    .join('');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+<Document><name>${escXml(layerName)}</name>${placemarks}</Document>
+</kml>`;
+}
+
+type Geom =
+  | { type: 'Point'; coordinates: [number, number] }
+  | { type: 'LineString'; coordinates: [number, number][] }
+  | { type: 'Polygon'; coordinates: [number, number][][] }
+  | { type: 'MultiPolygon'; coordinates: [number, number][][][] }
+  | { type: 'MultiLineString'; coordinates: [number, number][][] }
+  | { type: 'GeometryCollection'; geometries: Geom[] };
+
+function coordPair(c: [number, number]): string {
+  return `${c[0]},${c[1]}`;
+}
+
+function ring(r: [number, number][]): string {
+  return `<LinearRing><coordinates>${r.map(coordPair).join(' ')}</coordinates></LinearRing>`;
+}
+
+function polygon(p: [number, number][][]): string {
+  const [outer, ...inners] = p;
+  return `<Polygon><outerBoundaryIs>${ring(outer)}</outerBoundaryIs>${inners
+    .map((i) => `<innerBoundaryIs>${ring(i)}</innerBoundaryIs>`)
+    .join('')}</Polygon>`;
+}
+
+function geometryToKML(g: unknown): string {
+  if (!g || typeof g !== 'object' || !('type' in g)) return '';
+  const geom = g as Geom;
+  switch (geom.type) {
+    case 'Point':
+      return `<Point><coordinates>${coordPair(geom.coordinates)}</coordinates></Point>`;
+    case 'LineString':
+      return `<LineString><coordinates>${geom.coordinates.map(coordPair).join(' ')}</coordinates></LineString>`;
+    case 'Polygon':
+      return polygon(geom.coordinates);
+    case 'MultiPolygon':
+      return `<MultiGeometry>${geom.coordinates.map(polygon).join('')}</MultiGeometry>`;
+    case 'MultiLineString':
+      return `<MultiGeometry>${geom.coordinates
+        .map(
+          (line) =>
+            `<LineString><coordinates>${line.map(coordPair).join(' ')}</coordinates></LineString>`,
+        )
+        .join('')}</MultiGeometry>`;
+    case 'GeometryCollection':
+      return `<MultiGeometry>${geom.geometries.map(geometryToKML).join('')}</MultiGeometry>`;
+    default:
+      return '';
+  }
+}
+
