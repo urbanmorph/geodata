@@ -1,7 +1,8 @@
 #!/bin/bash
-# Pull India admin-boundary parquets from yashveeeeeeer/india-geodata
+# Pull India admin-boundary parquets and PMTiles from yashveeeeeeer/india-geodata
 # (https://github.com/yashveeeeeeer/india-geodata, CC-BY-4.0).
-# Output lands in sources/india-geodata/.
+# All files dropped flat into sources/india-geodata/ for compatibility with
+# scripts/extract_per_state.py.
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="$HERE/../sources/india-geodata"
@@ -10,7 +11,9 @@ cd "$OUT"
 
 BASE="https://github.com/yashveeeeeeer/india-geodata/releases/download"
 
+# Each entry is the upstream release path; we save the basename locally.
 PATHS=(
+  # Parquets (canonical, downloadable)
   "admin/states/LGD_States.parquet"
   "admin/states/SOI_States.parquet"
   "admin/states/bhuvan_states.parquet"
@@ -24,10 +27,17 @@ PATHS=(
   "admin/blocks/PMGSY_Blocks.parquet"
   "admin/villages/LGD_Villages.parquet"
   "admin/villages/SOI_VILLAGE_POINT.parquet"
-  # uncomment if you need cross-source village polygons (large):
+
+  # PMTiles (vector tiles for the viewer)
+  "admin/states/LGD_States.pmtiles"
+  "admin/districts/LGD_Districts.pmtiles"
+  "admin/subdistricts/LGD_Subdistricts.pmtiles"
+  "admin/blocks/LGD_Blocks.pmtiles"
+  "admin/villages/LGD_Villages.pmtiles"
+
+  # large optional:
   # "admin/villages/SOI_villages.parquet"          # 602 MB
   # "admin/villages/bhuvan_villages.parquet"       # 792 MB
-  # uncomment for panchayats:
   # "admin/panchayats/LGD_panchayats.parquet"      # 368 MB
   # "admin/panchayats/bhuvan_panchayats.parquet"   # 629 MB
 )
@@ -39,6 +49,6 @@ for p in "${PATHS[@]}"; do
     continue
   fi
   echo "fetch $name"
-  curl -sL --max-time 600 -o "$name" "$BASE/$p"
+  curl -sL --max-time 1200 -o "$name.tmp" "$BASE/$p" && mv "$name.tmp" "$name"
   ls -lh "$name" | awk '{print "  size:", $5}'
 done

@@ -1,0 +1,552 @@
+{
+  "version": 1,
+  "generated": "2026-05-19T09:05:47.514048+00:00",
+  "country": "IN",
+  "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
+  "levels": {
+    "state": {
+      "order": 1,
+      "plural": "states"
+    },
+    "district": {
+      "order": 2,
+      "plural": "districts"
+    },
+    "subdistrict": {
+      "order": 3,
+      "plural": "subdistricts"
+    },
+    "block": {
+      "order": 4,
+      "plural": "blocks"
+    },
+    "village": {
+      "order": 5,
+      "plural": "villages"
+    }
+  },
+  "layers": [
+    {
+      "id": "lgd_states",
+      "level": "state",
+      "source": "LGD",
+      "rows": 36,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.parquet",
+        "bytes": 7365957
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.pmtiles",
+        "bytes": 3520986
+      },
+      "licence": "CC0-1.0 / CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Authoritative LGD source. Full code chain."
+    },
+    {
+      "id": "soi_states",
+      "level": "state",
+      "source": "SOI",
+      "rows": 40,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.parquet",
+        "bytes": 10780243
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0 / CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "Survey of India",
+          "url": "https://surveyofindia.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Survey of India derivative."
+    },
+    {
+      "id": "bhuvan_states",
+      "level": "state",
+      "source": "Bhuvan",
+      "rows": 37,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.parquet",
+        "bytes": 2242493
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0 / CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "NRSC/ISRO Bhuvan",
+          "url": "https://bhuvanpanchayat.nrsc.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "NRSC/ISRO Bhuvan. Own codes, not LGD."
+    },
+    {
+      "id": "lgd_districts",
+      "level": "district",
+      "source": "LGD",
+      "rows": 785,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.parquet",
+        "bytes": 22178335
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.pmtiles",
+        "bytes": 12690364
+      },
+      "licence": "CC0-1.0 / CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Authoritative. Joins to states via state_lgd."
+    },
+    {
+      "id": "soi_districts",
+      "level": "district",
+      "source": "SOI",
+      "rows": 742,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.parquet",
+        "bytes": 28691382
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0 / CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "Survey of India",
+          "url": "https://surveyofindia.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "SoI derivative. Partial LGD codes."
+    },
+    {
+      "id": "bhuvan_districts",
+      "level": "district",
+      "source": "Bhuvan",
+      "rows": 663,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.parquet",
+        "bytes": 37180992
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0 / CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "NRSC/ISRO Bhuvan",
+          "url": "https://bhuvanpanchayat.nrsc.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Bhuvan. Under-counts vs LGD in some states."
+    },
+    {
+      "id": "lgd_subdistricts",
+      "level": "subdistrict",
+      "source": "LGD",
+      "rows": 6471,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.parquet",
+        "bytes": 65955060
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.pmtiles",
+        "bytes": 34118385
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Authoritative."
+    },
+    {
+      "id": "soi_subdistricts",
+      "level": "subdistrict",
+      "source": "SOI",
+      "rows": 4723,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.parquet",
+        "bytes": 56835970
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Survey of India",
+          "url": "https://surveyofindia.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "SoI tehsils. Partial codes."
+    },
+    {
+      "id": "lgd_blocks",
+      "level": "block",
+      "source": "LGD",
+      "rows": 7146,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.parquet",
+        "bytes": 69148863
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.pmtiles",
+        "bytes": 36758638
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Authoritative. Full code chain."
+    },
+    {
+      "id": "bhuvan_blocks",
+      "level": "block",
+      "source": "Bhuvan",
+      "rows": 6393,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.parquet",
+        "bytes": 97298502
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "NRSC/ISRO Bhuvan",
+          "url": "https://bhuvanpanchayat.nrsc.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Bhuvan. Predates recent re-divisions in several states."
+    },
+    {
+      "id": "pmgsy_blocks",
+      "level": "block",
+      "source": "PMGSY",
+      "rows": 6637,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/PMGSY_Blocks.parquet",
+        "bytes": 126995132
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "PMGSY (Rural Roads)",
+          "url": "https://omms.nic.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "PMGSY rural roads blocks. IDs only \u2014 no names."
+    },
+    {
+      "id": "lgd_villages",
+      "level": "village",
+      "source": "LGD",
+      "rows": 584615,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.parquet",
+        "bytes": 474332457
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.pmtiles",
+        "bytes": 269837981
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "Authoritative. 584k polygons. Use vector tiles to render."
+    },
+    {
+      "id": "soi_village_points",
+      "level": "village",
+      "source": "SOI",
+      "rows": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.parquet",
+        "bytes": 26718248
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Survey of India",
+          "url": "https://surveyofindia.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "notes": "SoI village centroids (point geometry)."
+    },
+    {
+      "id": "gb_adm1",
+      "level": "state",
+      "source": "geoBoundaries",
+      "rows": 36,
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.geojson",
+        "bytes": 46170854
+      },
+      "parquet": null,
+      "pmtiles": null,
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "geoBoundaries",
+          "url": "https://www.geoboundaries.org/"
+        },
+        "publisher": null
+      },
+      "notes": "name-only"
+    },
+    {
+      "id": "gb_adm2",
+      "level": "district",
+      "source": "geoBoundaries",
+      "rows": 735,
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.geojson",
+        "bytes": 48317735
+      },
+      "parquet": null,
+      "pmtiles": null,
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "geoBoundaries",
+          "url": "https://www.geoboundaries.org/"
+        },
+        "publisher": null
+      },
+      "notes": "name-only"
+    },
+    {
+      "id": "gb_adm3",
+      "level": "subdistrict",
+      "source": "geoBoundaries",
+      "rows": 6824,
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.geojson",
+        "bytes": 106291594
+      },
+      "parquet": null,
+      "pmtiles": null,
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "geoBoundaries",
+          "url": "https://www.geoboundaries.org/"
+        },
+        "publisher": null
+      },
+      "notes": "name-only"
+    },
+    {
+      "id": "gb_adm4",
+      "level": "block",
+      "source": "geoBoundaries",
+      "rows": 7143,
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.geojson",
+        "bytes": 110364589
+      },
+      "parquet": null,
+      "pmtiles": null,
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "geoBoundaries",
+          "url": "https://www.geoboundaries.org/"
+        },
+        "publisher": null
+      },
+      "notes": "mislabeled in upstream \u2014 block-equivalent, not village"
+    }
+  ],
+  "state_extracts": [
+    {
+      "state": "cg",
+      "level": "block",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/blocks/lgd_blocks_cg.geojson",
+      "bytes": 18783427
+    },
+    {
+      "state": "jh",
+      "level": "block",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/blocks/lgd_blocks_jh.geojson",
+      "bytes": 16509782
+    },
+    {
+      "state": "od",
+      "level": "block",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/blocks/lgd_blocks_od.geojson",
+      "bytes": 28587366
+    },
+    {
+      "state": "cg",
+      "level": "district",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/districts/lgd_districts_cg.geojson",
+      "bytes": 8192011
+    },
+    {
+      "state": "jh",
+      "level": "district",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/districts/lgd_districts_jh.geojson",
+      "bytes": 5786274
+    },
+    {
+      "state": "od",
+      "level": "district",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/districts/lgd_districts_od.geojson",
+      "bytes": 9003093
+    },
+    {
+      "state": "cg",
+      "level": "state",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/states/lgd_states_cg.geojson",
+      "bytes": 1913099
+    },
+    {
+      "state": "jh",
+      "level": "state",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/states/lgd_states_jh.geojson",
+      "bytes": 1852569
+    },
+    {
+      "state": "od",
+      "level": "state",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/states/lgd_states_od.geojson",
+      "bytes": 2177513
+    },
+    {
+      "state": "cg",
+      "level": "subdistrict",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/subdistricts/lgd_subdistricts_cg.geojson",
+      "bytes": 19853635
+    },
+    {
+      "state": "jh",
+      "level": "subdistrict",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/subdistricts/lgd_subdistricts_jh.geojson",
+      "bytes": 16663037
+    },
+    {
+      "state": "od",
+      "level": "subdistrict",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/subdistricts/lgd_subdistricts_od.geojson",
+      "bytes": 31653113
+    },
+    {
+      "state": "cg",
+      "level": "village",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/villages/lgd_villages_cg.geojson",
+      "bytes": 165878088
+    },
+    {
+      "state": "jh",
+      "level": "village",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/villages/lgd_villages_jh.geojson",
+      "bytes": 132270810
+    },
+    {
+      "state": "od",
+      "level": "village",
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/villages/lgd_villages_od.geojson",
+      "bytes": 252422119
+    }
+  ],
+  "attribution": {
+    "LGD": {
+      "name": "Local Government Directory",
+      "url": "https://lgdirectory.gov.in/"
+    },
+    "SOI": {
+      "name": "Survey of India",
+      "url": "https://surveyofindia.gov.in/"
+    },
+    "Bhuvan": {
+      "name": "NRSC/ISRO Bhuvan",
+      "url": "https://bhuvanpanchayat.nrsc.gov.in/"
+    },
+    "PMGSY": {
+      "name": "PMGSY (Rural Roads)",
+      "url": "https://omms.nic.in/"
+    },
+    "geoBoundaries": {
+      "name": "geoBoundaries",
+      "url": "https://www.geoboundaries.org/"
+    },
+    "_publisher": {
+      "name": "yashveeeeeeer/india-geodata",
+      "url": "https://github.com/yashveeeeeeer/india-geodata"
+    }
+  },
+  "licence_summary": {
+    "states_districts": "CC0-1.0 / CC-BY-4.0",
+    "subdistricts_blocks_villages": "CC0-1.0",
+    "geoBoundaries": "CC-BY-4.0",
+    "note": "Per yashveeeeeeer/india-geodata. CC0-1.0 is public domain; CC-BY-4.0 requires attribution. When in doubt, attribute."
+  }
+}

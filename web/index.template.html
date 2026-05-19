@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>geodata · India admin boundaries</title>
+    <meta name="description" content="Open-source visualiser for India admin boundaries — states, districts, sub-districts, blocks, villages. View on a map, download as parquet or geojson." />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗺%3C/text%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev" crossorigin />
+    <style>
+      :root {
+        --fg: #111;
+        --muted: #6b7280;
+        --bg: #fff;
+        --card-bg: #fafafa;
+        --line: #e5e7eb;
+        --accent: #0a58ca;
+        --row-hover: #f3f4f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --fg: #f0f0f0;
+          --muted: #9ca3af;
+          --bg: #0b0b0d;
+          --card-bg: #15151a;
+          --line: #26262d;
+          --accent: #4da3ff;
+          --row-hover: #1c1c22;
+        }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+      body {
+        font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 56px 24px 80px;
+      }
+      header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
+      h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+      h1 .muted { color: var(--muted); font-weight: 400; }
+      header.top nav a { color: var(--muted); text-decoration: none; margin-left: 14px; font-size: 14px; }
+      header.top nav a:hover { color: var(--fg); }
+      .lede { color: var(--muted); margin: 0 0 36px; max-width: 640px; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+
+      .levels { display: flex; flex-direction: column; gap: 4px; }
+
+      .row {
+        padding: 18px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .row:last-child { border-bottom: none; }
+      .row__head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .row__title {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -.005em;
+        color: var(--fg);
+      }
+      .row__meta { color: var(--muted); font-size: 13px; }
+      .row__meta .dot { color: var(--line); margin: 0 6px; }
+      .row__meta .lic { font-size: 12px; }
+      .row__desc { color: var(--muted); font-size: 13px; margin: 0 0 10px; max-width: 640px; line-height: 1.5; }
+      .row__actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .btn-primary {
+        display: inline-block;
+        padding: 7px 14px;
+        background: var(--fg);
+        color: var(--bg);
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 13px;
+        text-decoration: none;
+        transition: background 140ms ease;
+        white-space: nowrap;
+      }
+      .btn-primary:hover { background: var(--accent); color: #fff; text-decoration: none; }
+      .btn-primary.disabled { background: transparent; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
+
+      .dl-inline { display: inline-flex; gap: 10px; align-items: baseline; font-size: 13px; color: var(--muted); }
+      .dl-inline a { color: var(--fg); }
+      .dl-inline .size { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; margin-left: 2px; }
+      .dl-inline .dot { color: var(--line); }
+
+      details.alt { margin-top: 10px; font-size: 12px; }
+      details.alt > summary {
+        list-style: none;
+        cursor: pointer;
+        color: var(--muted);
+        user-select: none;
+        padding: 2px 0;
+      }
+      details.alt > summary::-webkit-details-marker { display: none; }
+      details.alt > summary::before { content: "⤳ "; opacity: .6; }
+      details.alt[open] > summary::before { content: "⤴ "; }
+      .alt__list { margin-top: 8px; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; font-size: 12px; }
+      .alt__row { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+      .alt__row .src { font-weight: 500; color: var(--fg); min-width: 80px; }
+      .alt__row .meta { color: var(--muted); }
+      .alt__row .links { color: var(--muted); }
+      .alt__row .links a { color: var(--fg); }
+      .alt__row .links .dot { color: var(--line); margin: 0 4px; }
+
+      footer { margin-top: 56px; color: var(--muted); font-size: 12px; line-height: 1.7; }
+      footer p { margin: 6px 0; }
+      footer a { color: var(--muted); text-decoration: underline; }
+      code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+
+      @media (max-width: 640px) {
+        body { padding: 32px 16px 60px; }
+        h1 { font-size: 19px; }
+        .card { padding: 20px; border-radius: 12px; }
+        .card__count { font-size: 28px; }
+      }
+
+      /* Map overlay */
+      #map-overlay {
+        position: fixed; inset: 0; background: var(--bg); z-index: 10;
+        display: none; flex-direction: column;
+      }
+      #map-overlay.open { display: flex; }
+      #map-overlay header.map-bar { padding: 12px 16px; border-bottom: 1px solid var(--line); margin: 0; display: flex; align-items: center; justify-content: space-between; }
+      #map-overlay .map-title { font-weight: 500; }
+      #map-overlay button.close {
+        background: transparent; border: 1px solid var(--line); padding: 4px 12px;
+        border-radius: 6px; cursor: pointer; color: var(--fg); font: inherit;
+      }
+      #map { flex: 1; background: var(--bg); position: relative; }
+      #map-loading { color: var(--muted); padding: 16px; }
+      .map-loader {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 14px;
+        backdrop-filter: blur(1px);
+        background: color-mix(in srgb, var(--bg) 70%, transparent);
+        pointer-events: none;
+        z-index: 5;
+        transition: opacity 220ms ease;
+      }
+      .map-loader.fade { opacity: 0; }
+      .map-loader__ring {
+        width: 28px; height: 28px;
+        border: 2px solid color-mix(in srgb, var(--fg) 18%, transparent);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: ml-spin 0.85s linear infinite;
+      }
+      .map-loader__verb {
+        font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+        color: var(--muted);
+        letter-spacing: .02em;
+      }
+      @keyframes ml-spin { to { transform: rotate(360deg); } }
+
+      /* Hover popup styling */
+      .geo-popup .maplibregl-popup-content {
+        padding: 10px 12px;
+        border-radius: 8px;
+        background: #ffffff;
+        color: #111;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        font: 12px/1.35 ui-sans-serif, system-ui, sans-serif;
+      }
+      .geo-popup .maplibregl-popup-tip { border-top-color: #ffffff; border-bottom-color: #ffffff; }
+      .geo-popup__row { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; padding: 2px 0; }
+      .geo-popup__k { color: #6b7280; font-size: 11px; text-transform: lowercase; letter-spacing: .02em; white-space: nowrap; }
+      .geo-popup__v { color: #111; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; word-break: break-word; }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <h1>geodata <span class="muted">· India admin boundaries</span></h1>
+      <nav>
+        <a href="https://github.com/urbanmorph/geodata">github</a>
+        <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">data report</a>
+      </nav>
+    </header>
+    <p class="lede">
+      Pan-India admin polygons from state to village — view on an interactive map, download as parquet or geojson.
+      Primary source is LGD (the authoritative government directory); alternative sources are listed under each level.
+    </p>
+    <div class="levels">
+      <!-- LEVEL_CARDS -->
+    </div>
+
+    <footer>
+      <p><strong>Data sources:</strong> <!-- ATTR_LINKS --></p>
+      <p><strong>Republished by:</strong> <!-- PUBLISHER --></p>
+      <p>
+        <strong>Licences:</strong> states + districts are <code>CC0-1.0 / CC-BY-4.0</code>; sub-districts, blocks and villages are <code>CC0-1.0</code>; geoBoundaries is <code>CC-BY-4.0</code>.
+        Always join on LGD codes, never on names — see <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">REPORT.md</a>.
+      </p>
+      <p>Generated <!-- GENERATED -->. Code: MIT. Built by <a href="https://urbanmorph.com">urbanmorph</a>.</p>
+    </footer>
+
+    <div id="map-overlay" aria-hidden="true">
+      <header class="map-bar">
+        <span class="map-title" id="map-title">map</span>
+        <button class="close" id="map-close" aria-label="Close map">esc</button>
+      </header>
+      <div id="map"><div id="map-loading">loading map…</div></div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
