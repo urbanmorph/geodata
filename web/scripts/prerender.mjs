@@ -4,6 +4,7 @@ import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execSync } from 'node:child_process';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '..');
@@ -331,16 +332,103 @@ const chips = [
 // (with just admin layers today, the chip row would be noise).
 const chipsHtml = activeCats.length > 1 ? chips.join('') : '';
 
+// Community submissions: query D1 (local by default; --remote in prod build
+// once that's wired). Silently empty on failure so a missing wrangler /
+// missing DB doesn't break the build.
+const COMMUNITY_FROM = process.env.COMMUNITY_FROM || 'local'; // local | remote
+function fetchCommunitySubmissions() {
+  try {
+    const out = execSync(
+      `npx --yes wrangler d1 execute geodata-submissions --${COMMUNITY_FROM} --json --command "${
+        'SELECT s.id, s.name, s.description, s.category, s.attribution, s.is_original, ' +
+        's.format, s.bytes, s.feature_count, s.r2_key, s.created_at, ' +
+        "COALESCE(SUM(CASE WHEN r.vote = 1 THEN 1 ELSE 0 END), 0) AS up_count, " +
+        "COALESCE(SUM(CASE WHEN r.vote = -1 THEN 1 ELSE 0 END), 0) AS down_count " +
+        'FROM submissions s LEFT JOIN submission_ratings r ON r.submission_id = s.id ' +
+        "WHERE s.status='accepted' GROUP BY s.id ORDER BY s.created_at DESC LIMIT 200"
+      }"`,
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+    );
+    const data = JSON.parse(out);
+    return (data?.[0]?.results || []).map((r) => ({
+      ...r,
+      up_count: Number(r.up_count) || 0,
+      down_count: Number(r.down_count) || 0,
+      score: (Number(r.up_count) || 0) - (Number(r.down_count) || 0),
+    }));
+  } catch {
+    return [];
+  }
+}
+const community = fetchCommunitySubmissions();
+
+function renderCommunityCard(s) {
+  const score = s.score;
+  const dataAttrs = [
+    `data-id="${esc(s.id)}"`,
+    `data-score="${score}"`,
+    `data-created="${esc(s.created_at)}"`,
+  ].join(' ');
+  const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
+  return `<article class="comm-card" ${dataAttrs}>
+    <div class="comm-card__head">
+      <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge">community</span></div>
+      <div class="comm-card__score" title="up ${s.up_count} · down ${s.down_count}">
+        <span class="up">▲ ${s.up_count}</span> · <span class="down">▼ ${s.down_count}</span>
+      </div>
+    </div>
+    ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
+    <div class="comm-card__meta">${esc(s.category || 'other')} · ${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit}</div>
+  </article>`;
+}
+
+const communityHtml = community.length
+  ? `<section class="community-section">
+      <h2>Community submissions <span style="color:var(--muted);font-weight:400">· ${community.length}</span></h2>
+      <p class="lede-line">Open-licensed contributions from anyone — verify provenance via the source link on each card.</p>
+      <div class="sort-toggle" role="tablist">
+        <button class="active" data-sort="recent" type="button">Recent</button>
+        <button data-sort="popular" type="button">Popular</button>
+      </div>
+      <div class="comm-grid" id="community-grid">
+        ${community.map(renderCommunityCard).join('\n')}
+      </div>
+    </section>
+    <script>
+      (() => {
+        const grid = document.getElementById('community-grid');
+        const buttons = document.querySelectorAll('.sort-toggle button');
+        if (!grid || !buttons.length) return;
+        const cards = Array.from(grid.children);
+        const sortBy = (mode) => {
+          const sorted = cards.slice().sort((a, b) => {
+            if (mode === 'popular') {
+              const d = Number(b.dataset.score) - Number(a.dataset.score);
+              if (d !== 0) return d;
+            }
+            return b.dataset.created.localeCompare(a.dataset.created);
+          });
+          grid.replaceChildren(...sorted);
+        };
+        buttons.forEach((btn) => btn.addEventListener('click', () => {
+          buttons.forEach((b) => b.classList.toggle('active', b === btn));
+          sortBy(btn.dataset.sort);
+        }));
+      })();
+    </script>`
+  : '';
+
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const out = tmpl
   .replace('<!-- LEVEL_CARDS -->', cards)
+  .replace('<!-- COMMUNITY_SECTION -->', communityHtml)
   .replace('<!-- CATEGORY_CHIPS -->', chipsHtml)
   .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
   .replace('<!-- SEO_HEAD -->', homeSeo)
   .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog.replace(/</g, '\\u003c')}</script>`);
 
 await writeFile(resolve(WEB, 'index.html'), out);
-console.log(`prerendered ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} level cards (+ inline catalog ${inlineCatalog.length} B)`);
+console.log(`prerendered home — ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated, ${community.length} community`);
 
 // Helper: prerender a page that just needs an SEO head.
 async function renderPage(name, seoOpts, extra = {}) {

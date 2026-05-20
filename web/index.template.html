@@ -50,6 +50,26 @@
       a:hover { text-decoration: underline; }
 
       .catalog-controls { margin: 8px 0 16px; }
+      .community-section { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+      .community-section h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; }
+      .community-section .lede-line { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+      .sort-toggle { display: inline-flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px; margin-bottom: 14px; }
+      .sort-toggle button { background: transparent; border: 0; padding: 6px 12px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; border-radius: 4px; }
+      .sort-toggle button.active { background: var(--bg); color: var(--fg); font-weight: 500; }
+      .comm-grid { display: grid; gap: 12px; }
+      .comm-card { background: var(--card-bg); border-left: 3px solid var(--warn); padding: 14px 16px; border-radius: 6px; }
+      .comm-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      .comm-card__title { font-weight: 600; font-size: 15px; }
+      .comm-card__title a { color: inherit; text-decoration: none; }
+      .comm-card__title a:hover { color: var(--accent); }
+      .comm-card__title .badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px; border-radius: 3px; background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); margin-left: 6px; }
+      .comm-card__score { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: 13px; }
+      .comm-card__score .up { color: var(--accent); }
+      .comm-card__score .down { color: #d23434; }
+      .comm-card__desc { color: var(--muted); font-size: 13px; margin: 6px 0 8px; }
+      .comm-card__meta { color: var(--muted); font-size: 12px; }
+      .comm-card__meta a { color: var(--muted); }
+      .comm-empty { color: var(--muted); font-size: 13px; padding: 14px 0; }
       .catalog-search {
         width: 100%;
         font: 14px ui-sans-serif, system-ui, sans-serif;
@@ -435,6 +455,8 @@
     <div class="levels" id="catalog-grid">
       <!-- LEVEL_CARDS -->
     </div>
+
+    <!-- COMMUNITY_SECTION -->
 
     <footer>
       <p>

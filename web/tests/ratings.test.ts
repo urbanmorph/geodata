@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { recordRating, countRatings } from '../functions/lib/ratings';
+import { recordVote, countVotes, getMyVote } from '../functions/lib/ratings';
 
-type Row = { submission_id: string; ip_hash: string; created_at: string };
+type Row = { submission_id: string; ip_hash: string; created_at: string; vote: 1 | -1 };
 
 function fakeD1() {
   const rows = new Map<string, Row>();
+  const key = (s: string, i: string) => `${s}|${i}`;
   return {
     rows,
     prepare(sql: string) {
@@ -15,21 +16,31 @@ function fakeD1() {
           return this;
         },
         async run() {
-          if (/INSERT OR IGNORE INTO submission_ratings/.test(sql)) {
-            const [submission_id, ip_hash, created_at] = args as [string, string, string];
-            const key = `${submission_id}|${ip_hash}`;
-            const existed = rows.has(key);
-            if (!existed) rows.set(key, { submission_id, ip_hash, created_at });
-            return { success: true, meta: { changes: existed ? 0 : 1 } };
+          if (/INSERT OR REPLACE INTO submission_ratings/.test(sql)) {
+            const [submission_id, ip_hash, created_at, vote] = args as [string, string, string, 1 | -1];
+            rows.set(key(submission_id, ip_hash), { submission_id, ip_hash, created_at, vote });
+          } else if (/DELETE FROM submission_ratings/.test(sql)) {
+            const [submission_id, ip_hash] = args as [string, string];
+            rows.delete(key(submission_id, ip_hash));
           }
-          return { success: true, meta: { changes: 0 } };
+          return { success: true };
         },
         async first() {
-          if (/SELECT COUNT\(\*\) .* FROM submission_ratings WHERE submission_id/.test(sql)) {
+          if (/SELECT vote FROM submission_ratings WHERE submission_id/.test(sql)) {
+            const [submission_id, ip_hash] = args as [string, string];
+            const r = rows.get(key(submission_id, ip_hash));
+            return r ? { vote: r.vote } : null;
+          }
+          if (/SELECT[\s\S]*FROM submission_ratings WHERE submission_id =/.test(sql)) {
             const [submission_id] = args as [string];
-            let n = 0;
-            for (const r of rows.values()) if (r.submission_id === submission_id) n++;
-            return { c: n };
+            let up = 0;
+            let down = 0;
+            for (const r of rows.values()) {
+              if (r.submission_id !== submission_id) continue;
+              if (r.vote === 1) up++;
+              else if (r.vote === -1) down++;
+            }
+            return { up, down };
           }
           return null;
         },
@@ -38,53 +49,80 @@ function fakeD1() {
   };
 }
 
-describe('recordRating', () => {
-  it('records a new rating and returns count=1', async () => {
+describe('recordVote', () => {
+  it('records a first upvote', async () => {
     const db = fakeD1();
-    const r = await recordRating(db as never, 'sub1', 'iphash1');
-    expect(r.alreadyRated).toBe(false);
-    expect(r.count).toBe(1);
-    expect(db.rows.size).toBe(1);
+    const r = await recordVote(db as never, 'sub1', 'A', 1);
+    expect(r).toEqual({ up: 1, down: 0, score: 1, myVote: 1 });
   });
 
-  it('returns alreadyRated=true on a repeat from the same IP', async () => {
+  it('records a first downvote', async () => {
     const db = fakeD1();
-    await recordRating(db as never, 'sub1', 'iphash1');
-    const r = await recordRating(db as never, 'sub1', 'iphash1');
-    expect(r.alreadyRated).toBe(true);
-    expect(r.count).toBe(1);
-    expect(db.rows.size).toBe(1);
+    const r = await recordVote(db as never, 'sub1', 'A', -1);
+    expect(r).toEqual({ up: 0, down: 1, score: -1, myVote: -1 });
   });
 
-  it('counts distinct IPs as separate ratings', async () => {
+  it('switches up → down for the same IP', async () => {
     const db = fakeD1();
-    await recordRating(db as never, 'sub1', 'A');
-    const r2 = await recordRating(db as never, 'sub1', 'B');
-    const r3 = await recordRating(db as never, 'sub1', 'C');
-    expect(r2.count).toBe(2);
-    expect(r3.count).toBe(3);
+    await recordVote(db as never, 'sub1', 'A', 1);
+    const r = await recordVote(db as never, 'sub1', 'A', -1);
+    expect(r).toEqual({ up: 0, down: 1, score: -1, myVote: -1 });
   });
 
-  it('keeps ratings scoped to the submission', async () => {
+  it('clears the vote when vote=0', async () => {
     const db = fakeD1();
-    await recordRating(db as never, 'sub1', 'A');
-    await recordRating(db as never, 'sub2', 'A');
-    const r = await recordRating(db as never, 'sub1', 'B');
-    expect(r.count).toBe(2);
+    await recordVote(db as never, 'sub1', 'A', 1);
+    const r = await recordVote(db as never, 'sub1', 'A', 0);
+    expect(r).toEqual({ up: 0, down: 0, score: 0, myVote: 0 });
+  });
+
+  it('aggregates votes from distinct IPs', async () => {
+    const db = fakeD1();
+    await recordVote(db as never, 'sub1', 'A', 1);
+    await recordVote(db as never, 'sub1', 'B', 1);
+    const r = await recordVote(db as never, 'sub1', 'C', -1);
+    expect(r).toEqual({ up: 2, down: 1, score: 1, myVote: -1 });
+  });
+
+  it('scopes counts to the submission', async () => {
+    const db = fakeD1();
+    await recordVote(db as never, 'sub1', 'A', 1);
+    await recordVote(db as never, 'sub2', 'A', 1);
+    expect((await recordVote(db as never, 'sub1', 'B', 1)).score).toBe(2);
+    expect((await recordVote(db as never, 'sub2', 'B', -1)).score).toBe(0);
   });
 });
 
-describe('countRatings', () => {
-  it('returns 0 for a submission with no ratings', async () => {
+describe('countVotes', () => {
+  it('returns zeros for a submission with no votes', async () => {
     const db = fakeD1();
-    expect(await countRatings(db as never, 'nope')).toBe(0);
+    expect(await countVotes(db as never, 'nope')).toEqual({ up: 0, down: 0, score: 0 });
   });
 
-  it('returns the current count', async () => {
+  it('returns up/down/score after votes', async () => {
     const db = fakeD1();
-    await recordRating(db as never, 'sub1', 'A');
-    await recordRating(db as never, 'sub1', 'B');
-    await recordRating(db as never, 'sub1', 'B'); // dup
-    expect(await countRatings(db as never, 'sub1')).toBe(2);
+    await recordVote(db as never, 'sub1', 'A', 1);
+    await recordVote(db as never, 'sub1', 'B', 1);
+    await recordVote(db as never, 'sub1', 'C', -1);
+    expect(await countVotes(db as never, 'sub1')).toEqual({ up: 2, down: 1, score: 1 });
+  });
+});
+
+describe('getMyVote', () => {
+  it('returns 0 when the IP has not voted', async () => {
+    const db = fakeD1();
+    expect(await getMyVote(db as never, 'sub1', 'A')).toBe(0);
+  });
+
+  it('returns 1 for an upvoter', async () => {
+    const db = fakeD1();
+    await recordVote(db as never, 'sub1', 'A', 1);
+    expect(await getMyVote(db as never, 'sub1', 'A')).toBe(1);
+  });
+
+  it('returns -1 for a downvoter', async () => {
+    const db = fakeD1();
+    await recordVote(db as never, 'sub1', 'A', -1);
+    expect(await getMyVote(db as never, 'sub1', 'A')).toBe(-1);
   });
 });

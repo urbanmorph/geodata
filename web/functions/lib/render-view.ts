@@ -56,13 +56,17 @@ export type RenderOpts = {
   submission: SubmissionView;
   origin: string;
   ratingsCount: number;
+  /** Deprecated: kept so the test suite + edge handler still build during
+   *  the up/down vote rollout. The view JS fetches the actual myVote
+   *  state from /api/c/:id/rate on page load. */
   alreadyRated: boolean;
   embed?: boolean;
   now?: Date;
 };
 
 export function renderViewPage(opts: RenderOpts): string {
-  const { submission: s, origin, ratingsCount, alreadyRated, embed, now } = opts;
+  const { submission: s, origin, ratingsCount, embed, now } = opts;
+  void opts.alreadyRated;
   const r2Url = `${R2_BASE}/${s.r2_key}`;
   const verifyUrl = `${origin}/verify?url=${encodeURIComponent(r2Url)}`;
   const canonical = `${origin}/c/${s.id}`;
@@ -156,6 +160,12 @@ export function renderViewPage(opts: RenderOpts): string {
       a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
       a.btn:hover, button.btn:hover { border-color: var(--accent); }
       button.btn:disabled { opacity: .55; cursor: default; border-color: var(--line); }
+      .vote-group { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; background: var(--bg); }
+      .vote { background: transparent; border: 0; padding: 4px 6px; font: inherit; cursor: pointer; color: var(--muted); border-radius: 4px; line-height: 1; }
+      .vote:hover { color: var(--fg); background: var(--card-bg); }
+      .vote[aria-pressed=true].vote-up { color: var(--accent); }
+      .vote[aria-pressed=true].vote-down { color: #d23434; }
+      .vote-score { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 18px; text-align: center; }
       footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
         font-size: 12px; color: var(--muted); line-height: 1.6; }
       footer a { color: var(--muted); text-decoration: underline; }
@@ -189,9 +199,11 @@ export function renderViewPage(opts: RenderOpts): string {
     <div class="actions">
       <a class="btn primary" href="${esc(verifyUrl)}">View on map →</a>
       <a class="btn" href="${esc(r2Url)}" download="${esc(filename)}">Download <code>.${esc(s.format)}</code></a>
-      <button class="btn" id="rate-btn"${alreadyRated ? ' disabled' : ''} data-rated="${alreadyRated ? '1' : '0'}">
-        👍 <span class="label">${alreadyRated ? 'Rated useful' : 'Useful'}</span> <span id="rate-count">${ratingsCount}</span>
-      </button>
+      <div class="vote-group" role="group" aria-label="vote on this submission">
+        <button class="vote vote-up" id="vote-up" type="button" aria-pressed="false" aria-label="upvote">▲</button>
+        <span class="vote-score" id="vote-score">${ratingsCount}</span>
+        <button class="vote vote-down" id="vote-down" type="button" aria-pressed="false" aria-label="downvote">▼</button>
+      </div>
     </div>
 
     <footer>
@@ -203,20 +215,35 @@ export function renderViewPage(opts: RenderOpts): string {
     <script>
       (() => {
         const id = document.body.dataset.submissionId;
-        const btn = document.getElementById('rate-btn');
-        const count = document.getElementById('rate-count');
-        if (!btn || !count) return;
-        btn.addEventListener('click', async () => {
-          if (btn.disabled) return;
-          btn.disabled = true;
+        const upBtn = document.getElementById('vote-up');
+        const downBtn = document.getElementById('vote-down');
+        const score = document.getElementById('vote-score');
+        if (!upBtn || !downBtn || !score) return;
+
+        let myVote = 0;
+        const apply = (s) => {
+          score.textContent = String(s.score);
+          myVote = s.myVote;
+          upBtn.setAttribute('aria-pressed', s.myVote === 1 ? 'true' : 'false');
+          downBtn.setAttribute('aria-pressed', s.myVote === -1 ? 'true' : 'false');
+        };
+
+        fetch('/api/c/' + id + '/rate').then(r => r.ok ? r.json() : null).then(s => s && apply(s)).catch(() => {});
+
+        const send = async (vote) => {
+          upBtn.disabled = true; downBtn.disabled = true;
           try {
-            const r = await fetch('/api/c/' + id + '/rate', { method: 'POST' });
-            if (!r.ok) { btn.disabled = false; return; }
-            const body = await r.json();
-            if (body && typeof body.count === 'number') count.textContent = body.count;
-            btn.querySelector('.label').textContent = 'Rated useful';
-          } catch { btn.disabled = false; }
-        });
+            const r = await fetch('/api/c/' + id + '/rate', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json' },
+              body: JSON.stringify({ vote }),
+            });
+            if (r.ok) apply(await r.json());
+          } catch {}
+          upBtn.disabled = false; downBtn.disabled = false;
+        };
+        upBtn.addEventListener('click', () => send(myVote === 1 ? 0 : 1));
+        downBtn.addEventListener('click', () => send(myVote === -1 ? 0 : -1));
       })();
     </script>
   </body>

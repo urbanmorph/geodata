@@ -66,16 +66,11 @@ describe('renderViewPage', () => {
     expect(html).toContain(encodeURIComponent('https://'));
   });
 
-  it('renders thumbs-up button with count', () => {
+  it('renders up + down buttons with the current score', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 42, alreadyRated: false });
-    expect(html).toMatch(/id="rate-btn"/);
-    expect(html).toContain('Useful');
-    expect(html).toContain('42');
-  });
-
-  it('shows already-rated state when alreadyRated=true', () => {
-    const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 1, alreadyRated: true });
-    expect(html).toMatch(/id="rate-btn"[^>]*disabled/);
+    expect(html).toMatch(/id="vote-up"/);
+    expect(html).toMatch(/id="vote-down"/);
+    expect(html).toMatch(/id="vote-score">42</);
   });
 
   it('escapes HTML in name / description / attribution', () => {

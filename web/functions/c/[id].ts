@@ -3,7 +3,7 @@
 // Cached at the edge for 5 minutes; client-side JS handles the rating POST.
 
 import { getSubmissionForView } from '../lib/submissions';
-import { countRatings } from '../lib/ratings';
+import { countVotes } from '../lib/ratings';
 import { renderViewPage } from '../lib/render-view';
 import type { Env as MiddlewareEnv } from '../api/_middleware';
 
@@ -22,10 +22,11 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
     });
   }
 
-  const [submission, ratingsCount] = await Promise.all([
+  const [submission, tally] = await Promise.all([
     getSubmissionForView(ctx.env.DB, id),
-    countRatings(ctx.env.DB, id),
+    countVotes(ctx.env.DB, id),
   ]);
+  const ratingsCount = tally.score;
 
   if (!submission) {
     return new Response(NOT_FOUND_HTML, {
