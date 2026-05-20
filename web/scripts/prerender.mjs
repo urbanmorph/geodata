@@ -27,6 +27,50 @@ function fmtBytes(n) {
 const fmtRows = (n) => (n == null ? '—' : n.toLocaleString('en-IN'));
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
+// Build-time mirror of web/src/seo.ts. Both produce the same head block;
+// keep them in sync. Edge runtimes use the TS version.
+const ORIGIN = 'https://geodata-3ij.pages.dev';
+
+// Canonical-URL form of a licence id, used in schema.org Dataset.license.
+function licenseUrl(id) {
+  const map = {
+    'CC0-1.0':       'https://creativecommons.org/publicdomain/zero/1.0/',
+    'CC-BY-4.0':     'https://creativecommons.org/licenses/by/4.0/',
+    'CC-BY-SA-4.0':  'https://creativecommons.org/licenses/by-sa/4.0/',
+    'ODbL-1.0':      'https://opendatacommons.org/licenses/odbl/1-0/',
+    'ODC-PDDL-1.0':  'https://opendatacommons.org/licenses/pddl/1-0/',
+    'GODL-India':    'https://data.gov.in/government-open-data-license-india',
+  };
+  if (!id) return undefined;
+  // dual e.g. "CC0-1.0 / CC-BY-4.0" — pick the most permissive.
+  const first = id.split('/')[0].trim();
+  return map[first] || undefined;
+}
+function seoHead(o) {
+  const title = `${o.title} · geodata`;
+  const image = o.image || ORIGIN + '/og-default.png';
+  const type = o.type || 'website';
+  const ld = o.structuredData
+    ? `<script type="application/ld+json">${JSON.stringify(o.structuredData).replace(/</g, '\\u003c')}</script>`
+    : '';
+  return [
+    `<title>${esc(title)}</title>`,
+    `<meta name="description" content="${esc(o.description)}" />`,
+    `<link rel="canonical" href="${esc(o.url)}" />`,
+    `<meta property="og:type" content="${type}" />`,
+    `<meta property="og:title" content="${esc(title)}" />`,
+    `<meta property="og:description" content="${esc(o.description)}" />`,
+    `<meta property="og:url" content="${esc(o.url)}" />`,
+    `<meta property="og:image" content="${esc(image)}" />`,
+    `<meta property="og:site_name" content="geodata" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:title" content="${esc(title)}" />`,
+    `<meta name="twitter:description" content="${esc(o.description)}" />`,
+    `<meta name="twitter:image" content="${esc(image)}" />`,
+    ld,
+  ].filter(Boolean).join('\n    ');
+}
+
 // Per-level descriptions and unit labels — plain English, not table-speak.
 const LEVEL_META = {
   state: {
@@ -97,7 +141,7 @@ function renderRow(level, layersForLevel) {
   // can eyeball count + provenance differences against the alt sources.
   const altSection = others.length
     ? `<details class="alt">
-        <summary>compare sources: LGD${others.length ? ' · ' + others.map((o) => esc(o.source)).join(' · ') : ''}</summary>
+        <summary>compare sources: LGD · ${others.map((o) => esc(o.source)).join(' · ')}</summary>
         <div class="alt__list">
           ${[primary, ...others]
             .map((o, i) => {
@@ -157,9 +201,50 @@ const publisherLink = publisher
   ? `<a href="${esc(publisher.url)}" target="_blank" rel="noopener">${esc(publisher.name)}</a>`
   : '';
 
-// Inline the full catalog so map + filter open with zero network roundtrips.
-// Catalog is small (~20 KB raw, ~5 KB additional gz) — worth it.
-const inlineCatalog = JSON.stringify(catalog);
+// Inline the SMALL parts of the catalog so map + filter open with zero
+// network roundtrips for the common case. The extracts manifest (~60 KB,
+// 405 entries) is only needed when the user clicks a format download
+// button — that lazy-fetches the full catalog.
+const inlineCatalogObj = { ...catalog };
+delete inlineCatalogObj.extracts;
+delete inlineCatalogObj.state_extracts;
+const inlineCatalog = JSON.stringify(inlineCatalogObj);
+
+// SEO head for the home page (+ JSON-LD Dataset for each curated layer)
+const homeSeo = seoHead({
+  title: 'India admin boundaries · view, slice, download',
+  description:
+    'Open-source visualiser for India admin boundaries — state, district, sub-district, block, village. View on a map, slice by state, download as Parquet, GeoJSON or KML. No signup, no API key.',
+  url: ORIGIN + '/',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'WebSite',
+        name: 'geodata',
+        url: ORIGIN + '/',
+        description: 'Open-source visualiser for India admin boundaries',
+      },
+      ...catalog.layers
+        .filter((l) => l.source === 'LGD' && (l.parquet?.url || l.pmtiles?.url))
+        .map((l) => ({
+          '@type': 'Dataset',
+          name: `${LEVEL_META[l.level]?.label ?? l.id} (LGD)`,
+          description: LEVEL_META[l.level]?.description ?? l.notes ?? '',
+          url: ORIGIN + '/#' + l.level,
+          license: licenseUrl(l.licence),
+          creator: l.attribution?.primary
+            ? { '@type': 'Organization', name: l.attribution.primary.name, url: l.attribution.primary.url }
+            : undefined,
+          distribution: [
+            l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
+            l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
+          ].filter(Boolean),
+          spatialCoverage: { '@type': 'Place', name: 'India' },
+        })),
+    ],
+  },
+});
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const out = tmpl
@@ -167,7 +252,49 @@ const out = tmpl
   .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
   .replace('<!-- ATTR_LINKS -->', attrLinks)
   .replace('<!-- PUBLISHER -->', publisherLink)
+  .replace('<!-- SEO_HEAD -->', homeSeo)
   .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog.replace(/</g, '\\u003c')}</script>`);
 
 await writeFile(resolve(WEB, 'index.html'), out);
 console.log(`prerendered ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} level cards (+ inline catalog ${inlineCatalog.length} B)`);
+
+// /about page — same shell, dedicated content. Lives at /about (CF Pages strips .html).
+const aboutTmplPath = resolve(WEB, 'about.template.html');
+if (existsSync(aboutTmplPath)) {
+  const aboutTmpl = await readFile(aboutTmplPath, 'utf8');
+  const aboutSeo = seoHead({
+    title: 'About',
+    description: 'geodata is an open-source visualiser for India\'s geo data. View, slice and contribute admin-boundary and community-submitted layers — no signup, no API key, no tracking.',
+    url: ORIGIN + '/about',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'AboutPage',
+      name: 'About geodata',
+      url: ORIGIN + '/about',
+    },
+  });
+  const aboutOut = aboutTmpl
+    .replace('<!-- SEO_HEAD -->', aboutSeo)
+    .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
+    .replace('<!-- ATTR_LINKS -->', attrLinks);
+  await writeFile(resolve(WEB, 'about.html'), aboutOut);
+  console.log(`prerendered /about`);
+}
+
+// Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
+const sitemapUrls = [
+  { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
+  { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
+  { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.6' },
+  { loc: ORIGIN + '/submit', changefreq: 'monthly', priority: '0.6' },
+];
+const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${sitemapUrls.map((u) => `  <url>
+    <loc>${u.loc}</loc>
+    <changefreq>${u.changefreq}</changefreq>
+    <priority>${u.priority}</priority>
+  </url>`).join('\n')}
+</urlset>`;
+await writeFile(resolve(WEB, 'public', 'sitemap.xml'), sitemapXml);
+console.log(`wrote sitemap.xml (${sitemapUrls.length} static URLs)`);

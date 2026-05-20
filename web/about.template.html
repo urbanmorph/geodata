@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗺%3C/text%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      :root {
+        --fg: #111; --muted: #6b7280; --bg: #fff; --card-bg: #fafafa;
+        --line: #e5e7eb; --accent: #0a58ca; --row-hover: #f3f4f6;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --fg: #f0f0f0; --muted: #9ca3af; --bg: #0b0b0d; --card-bg: #15151a;
+          --line: #26262d; --accent: #4da3ff; --row-hover: #1c1c22; }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+      body {
+        font: 15px/1.6 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        max-width: 720px; margin: 0 auto; padding: 48px 24px 80px;
+      }
+      header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 28px; }
+      h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
+      h1 .muted { color: var(--muted); font-weight: 400; }
+      header.top nav a { color: var(--muted); text-decoration: none; margin-left: 14px; font-size: 14px; }
+      header.top nav a:hover { color: var(--fg); }
+      header.top nav a.active { color: var(--fg); font-weight: 500; }
+      .hero {
+        font-size: 28px; font-weight: 600; letter-spacing: -.02em; line-height: 1.25;
+        margin: 16px 0 12px; max-width: 580px;
+      }
+      .lede { color: var(--muted); font-size: 16px; margin: 0 0 36px; max-width: 600px; }
+      h2 { font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 36px 0 12px; }
+      ul { margin: 0; padding-left: 0; list-style: none; }
+      li { padding: 6px 0; position: relative; padding-left: 18px; }
+      li::before { content: "›"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+      li strong { font-weight: 600; color: var(--fg); }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+      .source-grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 12px 0; }
+      .source-grid .name { font-weight: 500; }
+      .source-grid .meta { color: var(--muted); font-size: 14px; }
+      .source-grid .meta code { font-size: 11px; }
+      footer { margin-top: 56px; color: var(--muted); font-size: 12px; line-height: 1.7; border-top: 1px solid var(--line); padding-top: 20px; }
+      footer a { color: var(--muted); text-decoration: underline; }
+      @media (max-width: 640px) {
+        body { padding: 32px 16px 60px; }
+        .hero { font-size: 22px; }
+        h1 { font-size: 19px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <h1><a href="/" style="color:inherit;text-decoration:none">geodata</a> <span class="muted">· India admin boundaries</span></h1>
+      <nav>
+        <a href="/" >catalog</a>
+        <a href="/about" class="active">about</a>
+        <a href="https://github.com/urbanmorph/geodata">github</a>
+      </nav>
+    </header>
+
+    <h2 style="text-transform:none;font-size:13px;letter-spacing:.04em;color:var(--accent);margin-top:8px">geodata</h2>
+    <p class="hero">Open-source visualiser for India's geo data.</p>
+    <p class="lede">
+      Find, view, slice and contribute India's official admin-boundary datasets — and
+      community-contributed geo layers — without an account, without an API key, without
+      a single SQL query.
+    </p>
+
+    <h2>Who is it for</h2>
+    <ul>
+      <li><strong>Journalists</strong> — pull a state's district boundaries in ten seconds for a story map.</li>
+      <li><strong>Researchers</strong> — slice 584,615 village polygons by state, export as GeoJSON or Parquet.</li>
+      <li><strong>Civic technologists</strong> — share city-scale infrastructure datasets (bike lanes, parks, polling booths) with attribution and download.</li>
+      <li><strong>Educators</strong> — render any of India's 7,146 community-development blocks on a map for a classroom demo.</li>
+      <li><strong>App developers</strong> — direct PMTiles URLs, no rate limits, no API key.</li>
+    </ul>
+
+    <h2>What you can do today</h2>
+    <ul>
+      <li>View every admin level from <strong>state</strong> down to <strong>village</strong> on a map.</li>
+      <li>Filter any LGD-coded layer by state and instant-download as <strong>Parquet</strong>, <strong>GeoJSON</strong>, or <strong>KML</strong> (Google Earth ready).</li>
+      <li>Cross-compare <strong>LGD</strong>, <strong>SOI</strong>, <strong>Bhuvan</strong> and <strong>geoBoundaries</strong> side by side.</li>
+      <li>Submit your own geo content under an <strong>open licence</strong>, get a shareable URL plus admin token in seconds, no signup. <em>(coming in v3.1)</em></li>
+      <li>Verify drag-dropped files in your browser before sharing. <em>(coming in v3.0)</em></li>
+    </ul>
+
+    <h2>How it works</h2>
+    <p>
+      Static site on Cloudflare Pages · data on R2 · in-browser <code>DuckDB-WASM</code> for slicing ·
+      <code>MapLibre</code> + <code>PMTiles</code> for rendering · Pages Functions + D1 SQLite for the
+      contribution flow. Code on GitHub. No tracking, no third-party analytics, no fingerprinting.
+    </p>
+
+    <h2>Where the curated data comes from</h2>
+    <div class="source-grid">
+      <span class="name"><a href="https://lgdirectory.gov.in/" target="_blank" rel="noopener">LGD</a></span>
+      <span class="meta">Local Government Directory — authoritative, with full code chain. <code>CC0-1.0</code> / <code>CC-BY-4.0</code></span>
+      <span class="name"><a href="https://surveyofindia.gov.in/" target="_blank" rel="noopener">SOI</a></span>
+      <span class="meta">Survey of India open-data series, community-republished. <code>CC0-1.0</code></span>
+      <span class="name"><a href="https://bhuvanpanchayat.nrsc.gov.in/" target="_blank" rel="noopener">Bhuvan</a></span>
+      <span class="meta">NRSC/ISRO Bhuvan panchayat portal. <code>CC0-1.0</code></span>
+      <span class="name"><a href="https://omms.nic.in/" target="_blank" rel="noopener">PMGSY</a></span>
+      <span class="meta">Pradhan Mantri Gram Sadak Yojana — rural roads, blocks. <code>CC0-1.0</code></span>
+      <span class="name"><a href="https://www.geoboundaries.org/" target="_blank" rel="noopener">geoBoundaries</a></span>
+      <span class="meta">Independent cross-check, name-only attributes. <code>CC-BY-4.0</code></span>
+    </div>
+    <p style="color:var(--muted);font-size:13px">
+      Re-publication pipeline by <a href="https://github.com/yashveeeeeeer/india-geodata" target="_blank" rel="noopener">yashveeeeeeer/india-geodata</a>.
+      See <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">REPORT.md</a> for full provenance and caveats.
+    </p>
+
+    <h2>Roadmap</h2>
+    <ul>
+      <li>Side-by-side compare of curated sources.</li>
+      <li>Custom <code>WHERE</code> / attribute filter.</li>
+      <li>Panchayat + habitation layers from upstream.</li>
+      <li>Shapefile (.zip) support in <a href="/verify">/verify</a>.</li>
+    </ul>
+
+    <h2>Open source</h2>
+    <p>
+      Code: <a href="https://github.com/urbanmorph/geodata">github.com/urbanmorph/geodata</a> · MIT.<br />
+      Data: each layer carries its own open licence — see the per-card line on the
+      <a href="/">catalog</a>.
+    </p>
+
+    <footer>
+      <p>Generated <!-- GENERATED -->. Built by <a href="https://urbanmorph.com">urbanmorph</a>.</p>
+      <p><strong>Data sources:</strong> <!-- ATTR_LINKS --></p>
+    </footer>
+  </body>
+</html>

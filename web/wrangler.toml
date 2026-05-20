@@ -1,0 +1,21 @@
+name = "geodata"
+compatibility_date = "2026-05-20"
+pages_build_output_dir = "./dist"
+
+# D1: anonymous-token submissions + tokens + rate-limits + counters
+[[d1_databases]]
+binding = "DB"
+database_name = "geodata-submissions"
+database_id = "c7c0c69e-02aa-482c-ac9a-541b36f21cc4"
+
+# R2: write community-submitted files here (existing bucket).
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "geodata-data"
+
+# Secrets (set via `wrangler pages secret put` — never commit values):
+# - TURNSTILE_SECRET — Cloudflare Turnstile secret key
+
+# Local dev fallback for the Turnstile site key — overridden in production via env.
+[vars]
+PUBLIC_TURNSTILE_SITEKEY = ""

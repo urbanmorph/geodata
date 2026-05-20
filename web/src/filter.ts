@@ -4,7 +4,7 @@
 // because catalog.json carries the pre-baked state list.
 import { exportFilteredParquet, exportFilteredGeoJSON, exportFilteredKML, getDb } from './db';
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML } from './loading';
-import { getCatalog } from './catalog';
+import { getCatalog, getFullCatalog } from './catalog';
 import { escapeHtml } from './util';
 
 // All LGD parquets carry a state-code column. DuckDB folds unquoted identifiers
@@ -107,12 +107,7 @@ export function mountFilterPanel(
   getCatalog()
     .then((c) => {
       counts = c.state_counts?.[layer.id] || {};
-      bounds = (c.state_bounds || {}) as Record<string, [number, number, number, number]>;
-      // Pre-baked extracts are indexed by singular level name (district / village / …).
-      extracts =
-        ((c.extracts as Record<string, Record<string, Record<string, { url: string; bytes: number }>>>)?.[
-          layer.level
-        ] || {}) as typeof extracts;
+      bounds = c.state_bounds || {};
       const states = c.states || [];
       stateSelect.innerHTML =
         `<option value="">— pick a state —</option>` +
@@ -123,6 +118,14 @@ export function mountFilterPanel(
     .catch((e) => {
       summary.innerHTML = `<span class="filter-panel__err">Failed to load states: ${escapeHtml(String(e.message || e))}</span>`;
     });
+
+  // Kick off the full-catalog fetch in parallel so the extracts manifest is
+  // ready (cached) by the time the user clicks a download button.
+  getFullCatalog()
+    .then((c) => {
+      extracts = c.extracts?.[layer.level] || {};
+    })
+    .catch(() => {});
 
   stateSelect.addEventListener('change', () => {
     const code = stateSelect.value;
