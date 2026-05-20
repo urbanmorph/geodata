@@ -1,0 +1,37 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: tests + build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: install
+        run: npm ci
+
+      - name: vitest
+        run: npm test
+
+      - name: build
+        # COMMUNITY_FROM defaults to 'local' — without secrets the prerender's
+        # remote D1 query would fail; that's fine, it silently falls through
+        # to an empty community section. This step verifies the build itself.
+        env:
+          TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY || '1x00000000000000000000AA' }}
+        run: npm run build
