@@ -271,9 +271,9 @@ const inlineCatalog = JSON.stringify(inlineCatalogObj);
 
 // SEO head for the home page (+ JSON-LD Dataset for each curated layer)
 const homeSeo = seoHead({
-  title: 'India admin boundaries · view, slice, download',
+  title: "India's open atlas · view, verify, contribute",
   description:
-    'Open-source visualiser for India admin boundaries — state, district, sub-district, block, village. View on a map, slice by state, download as Parquet, GeoJSON or KML. No signup, no API key.',
+    "India's official admin boundaries from state to village — view on a map, slice by state, download as Parquet, GeoJSON or KML. Drop your own file to verify, or contribute a new layer under an open licence. No signup, no API key, no tracking.",
   url: ORIGIN + '/',
   structuredData: {
     '@context': 'https://schema.org',
@@ -282,7 +282,8 @@ const homeSeo = seoHead({
         '@type': 'WebSite',
         name: 'geodata',
         url: ORIGIN + '/',
-        description: 'Open-source visualiser for India admin boundaries',
+        description:
+          "Open catalog, verifier and contribution flow for India's geo data — admin boundaries plus community layers.",
       },
       ...catalog.layers
         .filter((l) => l.source === 'LGD' && (l.parquet?.url || l.pmtiles?.url))
@@ -356,7 +357,8 @@ async function renderPage(name, seoOpts, extra = {}) {
 
 await renderPage('about', {
   title: 'About',
-  description: 'geodata is an open-source visualiser for India\'s geo data. View, slice and contribute admin-boundary and community-submitted layers — no signup, no API key, no tracking.',
+  description:
+    "geodata combines a visual catalog, a drag-drop verifier, and an anonymous contribution flow for India's geo data — admin boundaries from state to village, plus community-submitted layers under open licences. No signup, no API key, no tracking.",
   url: ORIGIN + '/about',
   structuredData: {
     '@context': 'https://schema.org',

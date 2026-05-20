@@ -57,7 +57,7 @@
   </head>
   <body>
     <header class="top">
-      <h1><a href="/" style="color:inherit;text-decoration:none">geodata</a> <span class="muted">· India admin boundaries</span></h1>
+      <h1><a href="/" style="color:inherit;text-decoration:none">geodata</a> <span class="muted">· India's open atlas</span></h1>
       <nav>
         <a href="/" >catalog</a>
         <a href="/about" class="active">about</a>
@@ -71,6 +71,36 @@
       Find, view, slice and contribute India's official admin-boundary datasets — and
       community-contributed geo layers — without an account, without an API key, without
       a single SQL query.
+    </p>
+
+    <h2>What makes this different</h2>
+    <p>
+      India has plenty of geo data. The hard part has always been finding it, validating it,
+      and adding to it.
+    </p>
+    <p>
+      The official portals lock data behind logins, restrict derivatives, or require Windows
+      plugins. The community efforts — <a href="https://github.com/datameet/maps" target="_blank" rel="noopener">DataMeet</a>,
+      the dozens of GitHub scrapes — sit in repos with no preview, no validation, no way for
+      anyone else to add. The drag-and-drop viewers (<a href="https://geojson.io" target="_blank" rel="noopener">geojson.io</a>,
+      <a href="https://kepler.gl" target="_blank" rel="noopener">Kepler</a>,
+      the late <a href="https://macwright.com/2023/11/13/placemark" target="_blank" rel="noopener">Placemark</a>)
+      handle a single file at a time and choke past about 8,000 features. None of them
+      combine catalog, viewer, validator, and contribution flow under one roof — and none of
+      them do it for India specifically.
+    </p>
+    <p>geodata is that combination:</p>
+    <ul>
+      <li><strong>A visual catalog</strong> — every state, district, subdistrict, block and village under LGD codes, with side-by-side comparison of SOI, Bhuvan and geoBoundaries. Each layer renders on a map and downloads as Parquet, GeoJSON or KML.</li>
+      <li><strong>A drag-drop verifier</strong> — drop any file (GeoJSON, KML, KMZ, Parquet, up to 500 MB) and the browser tells you what's wrong before it leaves your machine. Wrong CRS, broken geometries, features outside India — flagged inline.</li>
+      <li><strong>Anonymous contribution</strong> — submit your own layer with no signup, no email, no API key. The site returns an admin token (saved to your browser, downloaded as a backup <code>.txt</code>) that you keep forever. Auto-moderation handles licence, attribution and validity server-side. Open licences only. <em>(coming in v3.1)</em></li>
+      <li><strong>Mixed catalog</strong> — accepted submissions appear in the main catalog within a build cycle, badged <code>[community]</code>, sortable by recency or thumbs-up rating. Curated and community layers share the same view and download surface. <em>(coming in v3.2)</em></li>
+    </ul>
+    <p>
+      Everything is open: the <a href="https://github.com/urbanmorph/geodata">code</a> under MIT,
+      curated data under each upstream's open licence (CC0-1.0, CC-BY-4.0, GODL-India),
+      community submissions under whichever open licence the contributor picks. No login,
+      no tracking cookies, no third-party analytics.
     </p>
 
     <h2>Who is it for</h2>
@@ -87,8 +117,8 @@
       <li>View every admin level from <strong>state</strong> down to <strong>village</strong> on a map.</li>
       <li>Filter any LGD-coded layer by state and instant-download as <strong>Parquet</strong>, <strong>GeoJSON</strong>, or <strong>KML</strong> (Google Earth ready).</li>
       <li>Cross-compare <strong>LGD</strong>, <strong>SOI</strong>, <strong>Bhuvan</strong> and <strong>geoBoundaries</strong> side by side.</li>
+      <li><a href="/verify">Verify</a> drag-dropped files in your browser before sharing — GeoJSON, KML, KMZ or Parquet, up to 500 MB.</li>
       <li>Submit your own geo content under an <strong>open licence</strong>, get a shareable URL plus admin token in seconds, no signup. <em>(coming in v3.1)</em></li>
-      <li>Verify drag-dropped files in your browser before sharing. <em>(coming in v3.0)</em></li>
     </ul>
 
     <h2>How it works</h2>
