@@ -200,11 +200,35 @@ function ensureTurnstile(): void {
 }
 
 function updateSubmitEnabled(): void {
-  submitBtn.disabled = !(selectedFile && selectedFC && selectedFormat && turnstileToken && form.checkValidity());
+  const fileOk = !!(selectedFile && selectedFC && selectedFormat);
+  const captchaOk = !!turnstileToken;
+  const formOk = form.checkValidity();
+  submitBtn.disabled = !(fileOk && captchaOk && formOk);
+  // Surface the reason inline so users aren't guessing why submit is grey.
+  if (submitBtn.disabled) {
+    statusEl.classList.remove('err');
+    if (!fileOk) statusEl.textContent = 'drop a file above first';
+    else if (!formOk) statusEl.textContent = 'fill in the required fields (marked *)';
+    else if (!captchaOk) statusEl.textContent = 'waiting on captcha…';
+  } else {
+    statusEl.textContent = '';
+  }
 }
 
 form.addEventListener('input', updateSubmitEnabled);
 form.addEventListener('change', updateSubmitEnabled);
+
+// Normalize the source URL: people type "example.com" or "www.example.com";
+// HTML5 type=url demands a protocol. Prepend https:// on blur so the form
+// becomes valid without lecturing the user.
+const sourceUrlEl = document.getElementById('f-src') as HTMLInputElement;
+sourceUrlEl.addEventListener('blur', () => {
+  const v = sourceUrlEl.value.trim();
+  if (v && !/^https?:\/\//i.test(v) && /\./.test(v)) {
+    sourceUrlEl.value = `https://${v}`;
+    updateSubmitEnabled();
+  }
+});
 
 // ---------- submit ----------
 form.addEventListener('submit', async (e) => {
