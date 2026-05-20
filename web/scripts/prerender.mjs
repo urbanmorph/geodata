@@ -25,6 +25,26 @@ function fmtBytes(n) {
   return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
 }
 const fmtRows = (n) => (n == null ? '—' : n.toLocaleString('en-IN'));
+
+// Human-readable "X ago" — coarse buckets, no library needed.
+function relativeTime(iso) {
+  if (!iso) return '';
+  const days = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
+  if (days < 1) return 'updated today';
+  if (days < 7) return `updated ${days}d ago`;
+  if (days < 30) return `updated ${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `updated ${Math.floor(days / 30)}mo ago`;
+  const years = Math.floor(days / 365);
+  const months = Math.floor((days % 365) / 30);
+  return months > 0 ? `updated ${years}y ${months}mo ago` : `updated ${years}y ago`;
+}
+
+// Anything older than this is highlighted as stale on the card.
+const STALE_DAYS = 180;
+function isStale(iso) {
+  if (!iso) return false;
+  return (Date.now() - new Date(iso).getTime()) / 86400000 > STALE_DAYS;
+}
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Build-time mirror of web/src/seo.ts. Both produce the same head block;
@@ -118,7 +138,7 @@ function renderRow(level, layersForLevel) {
   const meta = LEVEL_META[level];
   if (!meta) return '';
   const primary = pickPrimary(layersForLevel);
-  const others = layersForLevel.filter((l) => l !== primary);
+  const hasOthers = layersForLevel.length > 1;
 
   const viewable = !!(primary.pmtiles?.url || primary.geojson?.url);
   // Only LGD layers carry the code chain that powers the in-viewer state filter.
@@ -137,15 +157,15 @@ function renderRow(level, layersForLevel) {
         .join('')}</span>`
     : '';
 
-  // Include the LGD primary as the first row of the comparison so the user
-  // can eyeball count + provenance differences against the alt sources.
-  const altSection = others.length
+  // Iterate the full layer list (primary stays in its natural slot) and tag
+  // the primary row inline so we don't rebuild the array.
+  const altSection = hasOthers
     ? `<details class="alt">
-        <summary>compare sources: LGD · ${others.map((o) => esc(o.source)).join(' · ')}</summary>
+        <summary>compare sources: ${layersForLevel.map((o) => esc(o.source)).join(' · ')}</summary>
         <div class="alt__list">
-          ${[primary, ...others]
-            .map((o, i) => {
-              const isPrimary = i === 0;
+          ${layersForLevel
+            .map((o) => {
+              const isPrimary = o === primary;
               const dl = downloadLinks(o);
               const links = dl
                 .map((d) => `<a href="${esc(d.url)}" download>${esc(d.fmt)}</a>`)
@@ -167,12 +187,33 @@ function renderRow(level, layersForLevel) {
     ? `<p class="row__viewer-hint">↳ Inside the viewer: slice by state · instant download as <strong>GeoJSON</strong> (QGIS, web) or <strong>KML</strong> (Google Earth & Maps)</p>`
     : '';
 
-  return `<section class="row" id="${esc(level)}">
+  const freshnessSpan = primary.fetched_at
+    ? `<span class="row__freshness${isStale(primary.fetched_at) ? ' stale' : ''}" title="${esc(primary.fetched_at)}">${relativeTime(primary.fetched_at)}</span>`
+    : '';
+  const sourceText = primary.attribution?.primary
+    ? `Source: <a href="${esc(primary.attribution.primary.url)}" target="_blank" rel="noopener">${esc(primary.attribution.primary.name)}</a>`
+    : '';
+  const sourceLine =
+    sourceText || freshnessSpan
+      ? `<p class="row__source">${sourceText}${sourceText && freshnessSpan ? ' <span class="dot">·</span> ' : ''}${freshnessSpan}</p>`
+      : '';
+
+  const dataAttrs = [
+    `data-id="${esc(primary.id)}"`,
+    `data-level="${esc(level)}"`,
+    `data-category="${esc(primary.category || 'administrative')}"`,
+    `data-provenance="${esc(primary.provenance || 'curated')}"`,
+    `data-source="${esc(primary.source)}"`,
+    `data-search="${esc((meta.label + ' ' + meta.description + ' ' + (primary.attribution?.primary?.name || '') + ' ' + (primary.notes || '')).toLowerCase())}"`,
+  ].join(' ');
+
+  return `<section class="row row--curated" id="${esc(level)}" ${dataAttrs}>
       <div class="row__head">
-        <span class="row__title">${esc(meta.label)}</span>
+        <span class="row__title">${esc(meta.label)} <span class="badge badge--curated" title="Curated by urbanmorph from LGD">curated</span></span>
         <span class="row__meta">${fmtRows(primary.rows)} ${esc(meta.unit)}<span class="dot">·</span>${lic}</span>
       </div>
       <p class="row__desc">${esc(meta.description)}</p>
+      ${sourceLine}
       <div class="row__actions">
         ${viewBtn}
         ${dlInline}
@@ -191,15 +232,12 @@ const cards = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length)
   .map((lvl) => renderRow(lvl, byLevel[lvl]))
   .join('\n');
 
-// Attribution footer
+// Attribution links — used by the /about page footer only (the home page
+// now shows per-card source links instead of a global dump).
 const attrLinks = Object.entries(catalog.attribution || {})
   .filter(([k]) => !k.startsWith('_'))
   .map(([, val]) => `<a href="${esc(val.url)}" target="_blank" rel="noopener">${esc(val.name)}</a>`)
   .join(' · ');
-const publisher = catalog.attribution?._publisher;
-const publisherLink = publisher
-  ? `<a href="${esc(publisher.url)}" target="_blank" rel="noopener">${esc(publisher.name)}</a>`
-  : '';
 
 // Inline the SMALL parts of the catalog so map + filter open with zero
 // network roundtrips for the common case. The extracts manifest (~60 KB,
@@ -246,12 +284,36 @@ const homeSeo = seoHead({
   },
 });
 
+// Category chips: count layers per category, render an "All" chip + one per
+// non-empty category. Hide chip row entirely when only one category is in play.
+// Categories not declared in catalog.categories fall through to 'other'.
+const knownCats = new Set(Object.keys(catalog.categories || {}));
+const categoryCounts = {};
+for (const l of catalog.layers || []) {
+  const cat = l.category && knownCats.has(l.category) ? l.category : 'other';
+  if (l.category && !knownCats.has(l.category)) {
+    console.warn(`[prerender] layer ${l.id} has unknown category "${l.category}" — bucketing as "other"`);
+  }
+  categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+}
+const totalLayers = (catalog.layers || []).length;
+const activeCats = Object.entries(catalog.categories || {})
+  .filter(([id]) => categoryCounts[id]);
+const chips = [
+  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
+  ...activeCats.map(
+    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
+  ),
+];
+// Only render chips when there's more than one category to switch between
+// (with just admin layers today, the chip row would be noise).
+const chipsHtml = activeCats.length > 1 ? chips.join('') : '';
+
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const out = tmpl
   .replace('<!-- LEVEL_CARDS -->', cards)
+  .replace('<!-- CATEGORY_CHIPS -->', chipsHtml)
   .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
-  .replace('<!-- ATTR_LINKS -->', attrLinks)
-  .replace('<!-- PUBLISHER -->', publisherLink)
   .replace('<!-- SEO_HEAD -->', homeSeo)
   .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog.replace(/</g, '\\u003c')}</script>`);
 

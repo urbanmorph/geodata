@@ -43,6 +43,22 @@ PUBLISHER = {
     'url': 'https://github.com/yashveeeeeeer/india-geodata',
 }
 
+# Where to re-fetch each upstream file from. Path under the release base URL.
+# Kept here so the source registry travels with the catalog and a single
+# `scripts/refresh.sh` can drive re-pulls without grepping shell scripts.
+UPSTREAM_BASE = 'https://github.com/yashveeeeeeer/india-geodata/releases/download'
+UPSTREAM_GEOBOUNDARIES = 'https://github.com/wmgeolab/geoBoundaries/raw/9469f09'  # pinned commit
+
+# yashveeeeeeer's 15 categories grouped to 6 for the home-page filter chips.
+CATEGORIES = {
+    'administrative': 'Administrative',
+    'people': 'People & places',
+    'environment': 'Environment',
+    'infrastructure': 'Infrastructure',
+    'health-edu': 'Health & education',
+    'other': 'Other',
+}
+
 # (id, level, source, parquet, pmtiles, rows, licence, notes)
 LAYERS = [
     ('lgd_states',         'state',       'LGD',    'LGD_States.parquet',         'LGD_States.pmtiles',         36,      LIC_STATE_DIST, 'Authoritative LGD source. Full code chain.'),
@@ -76,6 +92,17 @@ GEOBOUNDARIES = [
 def size_of(p: Path) -> int | None:
     try:
         return p.stat().st_size
+    except FileNotFoundError:
+        return None
+
+
+def mtime_of(p: Path) -> str | None:
+    """ISO-8601 timestamp of when our local copy was last fetched/written.
+    Approximates upstream freshness — good enough until we wire in
+    upstream release-date metadata."""
+    try:
+        from datetime import datetime, timezone
+        return datetime.fromtimestamp(p.stat().st_mtime, tz=timezone.utc).isoformat()
     except FileNotFoundError:
         return None
 
@@ -203,17 +230,23 @@ def build():
     for id_, level, source, parquet, pmtiles, rows, licence, notes in LAYERS:
         parquet_path = SRC / parquet
         pmtiles_path = SRC / pmtiles if pmtiles else None
+        # Approximation: file mtime of our local copy. Reflects when we last
+        # ran scripts/fetch.sh against upstream — not the upstream publish date.
+        fetched_at = mtime_of(parquet_path) or (mtime_of(pmtiles_path) if pmtiles_path else None)
+        plural = LEVELS[level]['plural']
         layers.append({
             'id': id_,
             'level': level,
             'source': source,
             'rows': rows,
             'parquet': {
-                'url': f'{R2}/admin/{LEVELS[level]["plural"]}/{parquet}',
+                'url': f'{R2}/admin/{plural}/{parquet}',
+                'upstream_url': f'{UPSTREAM_BASE}/admin/{plural}/{parquet}',
                 'bytes': size_of(parquet_path),
             },
             'pmtiles': {
-                'url': f'{R2}/admin/{LEVELS[level]["plural"]}/{pmtiles}',
+                'url': f'{R2}/admin/{plural}/{pmtiles}',
+                'upstream_url': f'{UPSTREAM_BASE}/admin/{plural}/{pmtiles}',
                 'bytes': size_of(pmtiles_path),
             } if pmtiles_path else None,
             'licence': licence,
@@ -221,11 +254,16 @@ def build():
                 'primary': ATTR[source],
                 'publisher': PUBLISHER,
             },
+            'category': 'administrative',
+            'provenance': 'curated',
+            'fetched_at': fetched_at,
             'notes': notes,
         })
 
     for id_, level, name, rows, notes in GEOBOUNDARIES:
         path = GB / name
+        # geoBoundaries upstream uses ADM<N> level names: IND_ADM1.geojson etc.
+        adm = name.replace('IND_', '').replace('.geojson', '').lower()
         layers.append({
             'id': id_,
             'level': level,
@@ -233,6 +271,7 @@ def build():
             'rows': rows,
             'geojson': {
                 'url': f'{R2}/geoboundaries/{name}',
+                'upstream_url': f'{UPSTREAM_GEOBOUNDARIES}/releaseData/gbOpen/IND/{adm.upper()}/geoBoundaries-IND-{adm.upper()}.geojson',
                 'bytes': size_of(path),
             },
             'parquet': None,
@@ -242,6 +281,9 @@ def build():
                 'primary': ATTR['geoBoundaries'],
                 'publisher': None,
             },
+            'category': 'administrative',
+            'provenance': 'curated',
+            'fetched_at': mtime_of(path),
             'notes': notes,
         })
 
@@ -250,13 +292,14 @@ def build():
     for level_dir in sorted(DATA.glob('*')):
         if not level_dir.is_dir():
             continue
+        plural_to_singular = {v['plural']: k for k, v in LEVELS.items()}
         for gj in sorted(level_dir.glob('*.geojson')):
             stem = gj.stem
             parts = stem.split('_')
             state = parts[-1]
             state_extracts.append({
                 'state': state,
-                'level': level_dir.name.rstrip('s') if level_dir.name != 'subdistricts' else 'subdistrict',
+                'level': plural_to_singular.get(level_dir.name, level_dir.name),
                 'url': f'{R2}/boundaries/{level_dir.name}/{gj.name}',
                 'bytes': size_of(gj),
             })
@@ -269,6 +312,7 @@ def build():
         'levels': LEVELS,
         'layers': layers,
         'state_extracts': state_extracts,
+        'categories': CATEGORIES,
         'states': build_state_list(),
         'state_counts': build_state_counts(),
         'state_bounds': build_state_bounds(),

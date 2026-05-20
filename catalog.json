@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-19T17:08:04.013492+00:00",
+  "generated": "2026-05-20T06:27:06.951670+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -33,10 +33,12 @@
       "rows": 36,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/LGD_States.parquet",
         "bytes": 7365957
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/LGD_States.pmtiles",
         "bytes": 3520986
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
@@ -50,6 +52,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:56:35.410177+00:00",
       "notes": "Authoritative LGD source. Full code chain."
     },
     {
@@ -59,6 +64,7 @@
       "rows": 40,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/SOI_States.parquet",
         "bytes": 10780243
       },
       "pmtiles": null,
@@ -73,6 +79,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:56:42.332872+00:00",
       "notes": "Survey of India derivative."
     },
     {
@@ -82,6 +91,7 @@
       "rows": 37,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/bhuvan_states.parquet",
         "bytes": 2242493
       },
       "pmtiles": null,
@@ -96,6 +106,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:56:44.032499+00:00",
       "notes": "NRSC/ISRO Bhuvan. Own codes, not LGD."
     },
     {
@@ -105,10 +118,12 @@
       "rows": 785,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/LGD_Districts.parquet",
         "bytes": 22178335
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/LGD_Districts.pmtiles",
         "bytes": 12690364
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
@@ -122,6 +137,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:56:49.392838+00:00",
       "notes": "Authoritative. Joins to states via state_lgd."
     },
     {
@@ -131,6 +149,7 @@
       "rows": 742,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/SOI_Districts.parquet",
         "bytes": 28691382
       },
       "pmtiles": null,
@@ -145,6 +164,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:57:02.013181+00:00",
       "notes": "SoI derivative. Partial LGD codes."
     },
     {
@@ -154,6 +176,7 @@
       "rows": 663,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/bhuvan_districts.parquet",
         "bytes": 37180992
       },
       "pmtiles": null,
@@ -168,6 +191,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:57:11.522025+00:00",
       "notes": "Bhuvan. Under-counts vs LGD in some states."
     },
     {
@@ -177,10 +203,12 @@
       "rows": 6471,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/LGD_Subdistricts.parquet",
         "bytes": 65955060
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/LGD_Subdistricts.pmtiles",
         "bytes": 34118385
       },
       "licence": "CC0-1.0",
@@ -194,6 +222,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:57:28.791492+00:00",
       "notes": "Authoritative."
     },
     {
@@ -203,6 +234,7 @@
       "rows": 4723,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/SOI_Subdistricts.parquet",
         "bytes": 56835970
       },
       "pmtiles": null,
@@ -217,6 +249,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:57:43.888281+00:00",
       "notes": "SoI tehsils. Partial codes."
     },
     {
@@ -226,10 +261,12 @@
       "rows": 7146,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/LGD_Blocks.parquet",
         "bytes": 69148863
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/LGD_Blocks.pmtiles",
         "bytes": 36758638
       },
       "licence": "CC0-1.0",
@@ -243,6 +280,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:58:07.316028+00:00",
       "notes": "Authoritative. Full code chain."
     },
     {
@@ -252,6 +292,7 @@
       "rows": 6393,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/bhuvan_blocks.parquet",
         "bytes": 97298502
       },
       "pmtiles": null,
@@ -266,6 +307,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:58:47.442152+00:00",
       "notes": "Bhuvan. Predates recent re-divisions in several states."
     },
     {
@@ -275,6 +319,7 @@
       "rows": 6637,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/PMGSY_Blocks.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/PMGSY_Blocks.parquet",
         "bytes": 126995132
       },
       "pmtiles": null,
@@ -289,6 +334,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:59:50.956824+00:00",
       "notes": "PMGSY rural roads blocks. IDs only \u2014 no names."
     },
     {
@@ -298,10 +346,12 @@
       "rows": 584615,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/LGD_Villages.parquet",
         "bytes": 474332457
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/LGD_Villages.pmtiles",
         "bytes": 269837981
       },
       "licence": "CC0-1.0",
@@ -315,6 +365,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-04-26T13:08:10.529947+00:00",
       "notes": "Authoritative. 584k polygons. Use vector tiles to render."
     },
     {
@@ -324,6 +377,7 @@
       "rows": null,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/SOI_VILLAGE_POINT.parquet",
         "bytes": 26718248
       },
       "pmtiles": null,
@@ -338,6 +392,9 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-04-26T13:01:32.132923+00:00",
       "notes": "SoI village centroids (point geometry)."
     },
     {
@@ -347,6 +404,7 @@
       "rows": 36,
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.geojson",
+        "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM1/geoBoundaries-IND-ADM1.geojson",
         "bytes": 46170854
       },
       "parquet": null,
@@ -359,6 +417,9 @@
         },
         "publisher": null
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:51:25.765499+00:00",
       "notes": "name-only"
     },
     {
@@ -368,6 +429,7 @@
       "rows": 735,
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.geojson",
+        "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM2/geoBoundaries-IND-ADM2.geojson",
         "bytes": 48317735
       },
       "parquet": null,
@@ -380,6 +442,9 @@
         },
         "publisher": null
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:49:05.585534+00:00",
       "notes": "name-only"
     },
     {
@@ -389,6 +454,7 @@
       "rows": 6824,
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.geojson",
+        "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM3/geoBoundaries-IND-ADM3.geojson",
         "bytes": 106291594
       },
       "parquet": null,
@@ -401,6 +467,9 @@
         },
         "publisher": null
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:49:41.513654+00:00",
       "notes": "name-only"
     },
     {
@@ -410,6 +479,7 @@
       "rows": 7143,
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.geojson",
+        "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM4/geoBoundaries-IND-ADM4.geojson",
         "bytes": 110364589
       },
       "parquet": null,
@@ -422,6 +492,9 @@
         },
         "publisher": null
       },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-19T07:50:55.916651+00:00",
       "notes": "mislabeled in upstream \u2014 block-equivalent, not village"
     }
   ],
@@ -517,6 +590,14 @@
       "bytes": 252422119
     }
   ],
+  "categories": {
+    "administrative": "Administrative",
+    "people": "People & places",
+    "environment": "Environment",
+    "infrastructure": "Infrastructure",
+    "health-edu": "Health & education",
+    "other": "Other"
+  },
   "states": [
     {
       "code": 35,

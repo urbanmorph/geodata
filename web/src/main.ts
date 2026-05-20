@@ -52,3 +52,42 @@ for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href
   a.addEventListener('touchstart', prefetch, { once: true, passive: true });
   a.addEventListener('focus', prefetch, { once: true });
 }
+
+// Catalog search + category filter (home page only).
+// Operates on pre-rendered cards via data-* attributes; show/hide via class.
+const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
+const grid = document.getElementById('catalog-grid');
+const emptyMsg = document.getElementById('catalog-empty');
+if (searchInput && grid) {
+  const cards = Array.from(grid.querySelectorAll<HTMLElement>('.row'));
+  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.catalog-chip'));
+  let activeCat = 'all';
+  let query = '';
+
+  const apply = () => {
+    let visible = 0;
+    for (const card of cards) {
+      const cat = card.dataset.category || '';
+      const hay = card.dataset.search || '';
+      const catOk = activeCat === 'all' || cat === activeCat;
+      const qOk = !query || hay.includes(query);
+      const show = catOk && qOk;
+      card.classList.toggle('hidden', !show);
+      if (show) visible++;
+    }
+    if (emptyMsg) emptyMsg.hidden = visible > 0;
+  };
+
+  searchInput.addEventListener('input', () => {
+    query = searchInput.value.trim().toLowerCase();
+    apply();
+  });
+  for (const chip of chips) {
+    chip.addEventListener('click', () => {
+      if (chip.dataset.count === '0') return;
+      chips.forEach((c) => c.classList.toggle('active', c === chip));
+      activeCat = chip.dataset.cat || 'all';
+      apply();
+    });
+  }
+}

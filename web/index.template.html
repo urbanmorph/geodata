@@ -49,7 +49,50 @@
       a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
 
-      .levels { display: flex; flex-direction: column; gap: 4px; }
+      .catalog-controls { margin: 8px 0 16px; }
+      .catalog-search {
+        width: 100%;
+        font: 14px ui-sans-serif, system-ui, sans-serif;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: var(--bg);
+        color: var(--fg);
+        transition: border-color 140ms ease;
+      }
+      .catalog-search:focus {
+        outline: none;
+        border-color: var(--accent);
+      }
+      .catalog-chips {
+        display: flex;
+        gap: 6px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+      }
+      .catalog-chip {
+        font: 12px ui-sans-serif, system-ui, sans-serif;
+        padding: 4px 11px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        transition: all 120ms ease;
+        white-space: nowrap;
+      }
+      .catalog-chip:hover { color: var(--fg); border-color: var(--fg); }
+      .catalog-chip.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+      .catalog-chip[data-count="0"] { opacity: .4; cursor: not-allowed; }
+      .catalog-chip .count { color: inherit; opacity: .65; margin-left: 4px; font-variant-numeric: tabular-nums; }
+      .catalog-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
+
+      .levels {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
+        gap: 0 32px;
+      }
+      .row.hidden { display: none; }
 
       .row {
         padding: 18px 0;
@@ -72,7 +115,29 @@
       .row__meta { color: var(--muted); font-size: 13px; }
       .row__meta .dot { color: var(--line); margin: 0 6px; }
       .row__meta .lic { font-size: 12px; }
-      .row__desc { color: var(--muted); font-size: 13px; margin: 0 0 10px; max-width: 640px; line-height: 1.5; }
+      .row__desc { color: var(--muted); font-size: 13px; margin: 0 0 6px; max-width: 640px; line-height: 1.5; }
+      .row__source { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+      .row__source a { color: var(--fg); }
+      .row__source .dot { color: var(--line); }
+      .row__freshness { font-variant-numeric: tabular-nums; cursor: help; }
+      .row__freshness.stale { color: #d97706; }
+      .badge {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 500;
+        letter-spacing: .04em;
+        text-transform: uppercase;
+        padding: 1px 6px;
+        border-radius: 999px;
+        margin-left: 4px;
+        vertical-align: middle;
+        line-height: 1.4;
+      }
+      .badge--curated { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
+      .badge--community { background: color-mix(in srgb, #d97706 22%, transparent); color: #d97706; }
+      @media (prefers-color-scheme: dark) {
+        .badge--community { color: #f59e0b; }
+      }
       .row__actions {
         display: flex;
         align-items: center;
@@ -339,18 +404,32 @@
       Pan-India admin polygons from state to village — view on an interactive map, download as parquet or geojson.
       Primary source is LGD (the authoritative government directory); alternative sources are listed under each level.
     </p>
-    <div class="levels">
+
+    <div class="catalog-controls">
+      <input
+        type="search"
+        id="catalog-search"
+        class="catalog-search"
+        placeholder="Search layers, sources, descriptions…"
+        aria-label="Search layers"
+        autocomplete="off"
+      />
+      <div class="catalog-chips" role="toolbar" aria-label="Filter">
+        <!-- CATEGORY_CHIPS -->
+      </div>
+      <p class="catalog-empty" id="catalog-empty" hidden>No layers match.</p>
+    </div>
+
+    <div class="levels" id="catalog-grid">
       <!-- LEVEL_CARDS -->
     </div>
 
     <footer>
-      <p><strong>Data sources:</strong> <!-- ATTR_LINKS --></p>
-      <p><strong>Republished by:</strong> <!-- PUBLISHER --></p>
       <p>
-        <strong>Licences:</strong> states + districts are <code>CC0-1.0 / CC-BY-4.0</code>; sub-districts, blocks and villages are <code>CC0-1.0</code>; geoBoundaries is <code>CC-BY-4.0</code>.
-        Always join on LGD codes, never on names — see <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">REPORT.md</a>.
+        Each layer above carries its primary source link and licence inline. Open licences only.
+        <a href="/about">about</a> · <a href="https://github.com/urbanmorph/geodata">github</a> · <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">data report</a>
       </p>
-      <p>Generated <!-- GENERATED -->. Code: MIT. Built by <a href="https://urbanmorph.com">urbanmorph</a>.</p>
+      <p>Code: MIT · built by <a href="https://urbanmorph.com">urbanmorph</a> · generated <!-- GENERATED -->.</p>
     </footer>
 
     <div id="map-overlay" aria-hidden="true">
