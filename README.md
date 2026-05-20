@@ -1,8 +1,10 @@
-# geodata
+# bharatlas
 
-Lightweight, open-source visualiser for India admin boundaries — state, district, sub-district, block, village. Pick a layer, view it on a map, download the parquet.
+[![ci](https://github.com/urbanmorph/geodata/actions/workflows/ci.yml/badge.svg)](https://github.com/urbanmorph/geodata/actions/workflows/ci.yml)
 
-**Live**: https://geodata.pages.dev (soon)
+Lightweight, open-source visualiser + contribution flow for India's geo data — state, district, sub-district, block, village admin boundaries, plus community-submitted layers under open licences.
+
+**Live**: https://bharatlas.com
 
 ## What's in this repo
 
