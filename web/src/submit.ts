@@ -1,7 +1,8 @@
 // /submit — drag-drop a GeoJSON, validate in-browser, fill metadata,
 // solve Turnstile, POST multipart to /api/submit, show admin token once.
 
-import { normaliseFC, validate, type Report } from './validate';
+import { validate, type FC, type Report } from './validate';
+import { fileToFC, type Format } from './parse-geo';
 
 type SuccessPayload = {
   id: string;
@@ -22,7 +23,8 @@ const successEl = document.getElementById('success')!;
 const captchaEl = document.getElementById('captcha') as HTMLDivElement;
 
 let selectedFile: File | null = null;
-let selectedFC: ReturnType<typeof normaliseFC> | null = null;
+let selectedFC: FC | null = null;
+let selectedFormat: Format | null = null;
 let turnstileToken: string | null = null;
 let turnstileWidgetId: string | number | null = null;
 
@@ -52,6 +54,7 @@ fileInput.addEventListener('change', () => {
 async function handleFile(file: File): Promise<void> {
   selectedFile = file;
   selectedFC = null;
+  selectedFormat = null;
   hideForm();
   hideSuccess();
 
@@ -60,35 +63,36 @@ async function handleFile(file: File): Promise<void> {
     return;
   }
 
-  const ext = file.name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
-  if (ext !== 'geojson' && ext !== 'json') {
-    renderReport([
-      { k: `Only GeoJSON / JSON accepted on /submit right now`, level: 'err' },
-      { k: 'KML, KMZ, Parquet are coming — meanwhile try /verify locally', level: 'warn' },
-    ]);
-    return;
-  }
-
   renderReport([{ k: 'parsing…', level: 'ok' }]);
 
+  let fc: FC;
+  let format: Format;
   let rawJson: unknown;
   try {
-    rawJson = JSON.parse(await file.text());
+    const parsed = await fileToFC(file, {
+      onPhase: (p) => {
+        const label = p === 'unzipping' ? 'unzipping…' : p === 'duckdb' ? 'loading DuckDB…' : 'parsing…';
+        renderReport([{ k: label, level: 'ok' }]);
+      },
+    });
+    fc = parsed.fc;
+    format = parsed.format;
+    // Capture raw JSON for CRS detection — only meaningful for GeoJSON.
+    if (format === 'geojson' || format === 'json') {
+      try {
+        rawJson = JSON.parse(await file.text());
+      } catch {
+        rawJson = undefined;
+      }
+    }
   } catch (e) {
-    renderReport([{ k: `not valid JSON — ${(e as Error).message}`, level: 'err' }]);
-    return;
-  }
-
-  let fc: ReturnType<typeof normaliseFC>;
-  try {
-    fc = normaliseFC(rawJson);
-  } catch (e) {
-    renderReport([{ k: `not a GeoJSON FeatureCollection — ${(e as Error).message}`, level: 'err' }]);
+    renderReport([{ k: (e as Error).message, level: 'err' }]);
     return;
   }
 
   const r = validate(fc, rawJson);
   selectedFC = fc;
+  selectedFormat = format;
 
   const rows = buildReport(file, r);
   renderReport(rows);
@@ -194,7 +198,7 @@ function ensureTurnstile(): void {
 }
 
 function updateSubmitEnabled(): void {
-  submitBtn.disabled = !(selectedFile && selectedFC && turnstileToken && form.checkValidity());
+  submitBtn.disabled = !(selectedFile && selectedFC && selectedFormat && turnstileToken && form.checkValidity());
 }
 
 form.addEventListener('input', updateSubmitEnabled);
@@ -212,6 +216,13 @@ form.addEventListener('submit', async (e) => {
   const fd = new FormData(form);
   fd.set('file', selectedFile, selectedFile.name);
   fd.set('turnstile_token', turnstileToken);
+  // For non-GeoJSON formats (KML / KMZ / Parquet) the server can't easily
+  // re-parse, so we ship the client-parsed FeatureCollection alongside.
+  // Server still hashes the raw bytes for storage + dedupe.
+  if (selectedFC && selectedFormat && selectedFormat !== 'geojson' && selectedFormat !== 'json') {
+    fd.set('fc_json', new Blob([JSON.stringify(selectedFC)], { type: 'application/json' }));
+    fd.set('format', selectedFormat);
+  }
 
   let resp: Response;
   try {

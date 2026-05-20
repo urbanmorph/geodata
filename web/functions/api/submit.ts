@@ -1,9 +1,10 @@
-// POST /api/submit — accept a GeoJSON file + metadata, run server-side
+// POST /api/submit — accept a geo file + metadata, run server-side
 // moderation, write to R2 + D1, return share URL + admin token (shown once).
 //
-// v3.1.0 scope: GeoJSON / JSON only. KML/KMZ/Parquet submission deferred
-// (server bundle would need togeojson / jszip / duckdb — too heavy for now).
-// /verify still supports all four; /submit narrows the on-ramp.
+// Format strategy: the browser parses with src/parse-geo.ts and POSTs both
+// the raw file (for storage + content hash) and the resulting FeatureCollection
+// as `fc_json` for non-trivial formats. For GeoJSON/JSON the file IS the FC
+// so the server parses it natively and `fc_json` is ignored.
 
 import type { Env as MiddlewareEnv } from './_middleware';
 import { validateSubmission } from '../lib/validate-server';
@@ -32,6 +33,14 @@ const codeForReason = (reason: string): number => {
   return 400;
 };
 
+const contentTypeFor = (ext: string): string => {
+  if (ext === 'geojson' || ext === 'json') return 'application/geo+json';
+  if (ext === 'kml') return 'application/vnd.google-earth.kml+xml';
+  if (ext === 'kmz') return 'application/vnd.google-earth.kmz';
+  if (ext === 'parquet') return 'application/x-parquet';
+  return 'application/octet-stream';
+};
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   let form: FormData;
   try {
@@ -53,9 +62,10 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   const filename = sanitizeFilename(file.name);
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
-  if (ext !== 'geojson' && ext !== 'json') {
+  const ALLOWED = new Set(['geojson', 'json', 'kml', 'kmz', 'parquet']);
+  if (!ALLOWED.has(ext)) {
     return j(415, {
-      error: 'submit accepts GeoJSON / JSON only right now — KML, KMZ and Parquet are coming. Use /verify to preview those formats locally.',
+      error: `unsupported file extension .${ext} — accepts: ${[...ALLOWED].join(', ')}`,
     });
   }
 
@@ -65,10 +75,20 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   let rawJson: unknown;
   let fc: ReturnType<typeof normaliseFC>;
   try {
-    rawJson = JSON.parse(new TextDecoder().decode(bytes));
-    fc = normaliseFC(rawJson);
+    if (ext === 'geojson' || ext === 'json') {
+      rawJson = JSON.parse(new TextDecoder().decode(bytes));
+      fc = normaliseFC(rawJson);
+    } else {
+      // Browser parsed it; trust the FC the client sent.
+      const fcField = form.get('fc_json');
+      const fcText =
+        fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
+      if (!fcText) return j(400, { error: 'missing fc_json for non-GeoJSON upload' });
+      rawJson = JSON.parse(fcText);
+      fc = normaliseFC(rawJson);
+    }
   } catch (e) {
-    return j(400, { error: 'file is not valid GeoJSON', detail: (e as Error).message });
+    return j(400, { error: 'failed to parse FeatureCollection', detail: (e as Error).message });
   }
 
   const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
@@ -110,7 +130,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     await Promise.all([
       ctx.env.R2.put(r2Key, bytes, {
         httpMetadata: {
-          contentType: 'application/geo+json',
+          contentType: contentTypeFor(ext),
           contentDisposition: `attachment; filename="${filename}"`,
         },
       }),

@@ -145,8 +145,8 @@
 
     <label id="drop" for="file">
       <strong>Drop a file or click to choose</strong>
-      <span class="hint">GeoJSON · up to 500 MB · open licences only</span>
-      <input type="file" id="file" accept=".geojson,.json" />
+      <span class="hint">GeoJSON · KML · KMZ · Parquet · up to 500 MB · open licences only</span>
+      <input type="file" id="file" accept=".geojson,.json,.kml,.kmz,.parquet" />
     </label>
 
     <div id="report" aria-live="polite"></div>
@@ -231,8 +231,8 @@
     </section>
 
     <div class="helper">
-      <strong>v3.1.0 scope:</strong> <code>.geojson</code> / <code>.json</code> only.
-      KML / KMZ submission is coming. Until then, use <a href="/verify">/verify</a> to preview those formats locally.<br />
+      <strong>Accepts:</strong> <code>.geojson</code> · <code>.json</code> · <code>.kml</code> · <code>.kmz</code> · <code>.parquet</code><br />
+      Files are parsed in your browser before upload — no server-side processing.<br />
       Rate limit: 5 submissions per hour, 20 per day, per IP.
     </div>
 
