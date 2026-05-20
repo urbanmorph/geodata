@@ -103,8 +103,10 @@ async function handleFile(file: File): Promise<void> {
   ensureTurnstile();
 }
 
-function buildReport(file: File, r: Report): Array<{ k: string; level: 'ok' | 'warn' | 'err'; v?: string }> {
-  const rows: Array<{ k: string; level: 'ok' | 'warn' | 'err'; v?: string }> = [];
+type Row = { k: string; v?: string; level: 'ok' | 'warn' | 'err' };
+
+function buildReport(file: File, r: Report): Row[] {
+  const rows: Row[] = [];
   const totalValid = r.count - r.invalid;
   const ratio = r.count > 0 ? totalValid / r.count : 0;
 
@@ -142,7 +144,7 @@ function okCRS(s: string): boolean {
   return /CRS84|EPSG::?4326|EPSG:4326/i.test(s);
 }
 
-function renderReport(rows: Array<{ k: string; v?: string; level: 'ok' | 'warn' | 'err' }>): void {
+function renderReport(rows: Row[]): void {
   reportEl.classList.add('show');
   reportEl.innerHTML = rows
     .map((r) => `<div class="row ${r.level}"><span class="k">${esc(r.k)}</span><span class="v">${esc(r.v || '')}</span></div>`)

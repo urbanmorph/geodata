@@ -40,27 +40,26 @@ export async function checkRateLimit(
     return { ok: true };
   }
 
+  const tMs = t.getTime();
   let hourStart = new Date(cur.hour_window_start).getTime();
   let hourCount = cur.hour_count;
   let dayStart = new Date(cur.day_window_start).getTime();
   let dayCount = cur.day_count;
 
-  if (t.getTime() - hourStart >= HOUR_MS) {
-    hourStart = t.getTime();
+  if (tMs - hourStart >= HOUR_MS) {
+    hourStart = tMs;
     hourCount = 0;
   }
-  if (t.getTime() - dayStart >= DAY_MS) {
-    dayStart = t.getTime();
+  if (tMs - dayStart >= DAY_MS) {
+    dayStart = tMs;
     dayCount = 0;
   }
 
   if (hourCount >= HOUR_LIMIT) {
-    const retryAfter = Math.max(1, Math.ceil((hourStart + HOUR_MS - t.getTime()) / 1000));
-    return { ok: false, retryAfter };
+    return { ok: false, retryAfter: Math.max(1, Math.ceil((hourStart + HOUR_MS - tMs) / 1000)) };
   }
   if (dayCount >= DAY_LIMIT) {
-    const retryAfter = Math.max(1, Math.ceil((dayStart + DAY_MS - t.getTime()) / 1000));
-    return { ok: false, retryAfter };
+    return { ok: false, retryAfter: Math.max(1, Math.ceil((dayStart + DAY_MS - tMs) / 1000)) };
   }
 
   hourCount++;

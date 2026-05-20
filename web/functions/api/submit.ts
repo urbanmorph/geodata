@@ -52,13 +52,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const file = form.get('file');
   if (!(file instanceof File)) return j(400, { error: 'missing file' });
 
-  const turnstileToken = (form.get('turnstile_token') as string) || '';
-  const name = ((form.get('name') as string) || '').trim();
-  const description = ((form.get('description') as string) || '').trim() || null;
-  const category = ((form.get('category') as string) || '').trim();
-  const license = ((form.get('license') as string) || '').trim();
-  const attribution = ((form.get('attribution') as string) || '').trim();
-  const sourceUrl = ((form.get('source_url') as string) || '').trim();
+  const f = (k: string) => ((form.get(k) as string) || '').trim();
+  const turnstileToken = f('turnstile_token');
+  const name = f('name');
+  const description = f('description') || null;
+  const category = f('category');
+  const license = f('license');
+  const attribution = f('attribution');
+  const sourceUrl = f('source_url');
 
   const filename = sanitizeFilename(file.name);
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';

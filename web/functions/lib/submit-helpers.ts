@@ -48,6 +48,5 @@ export async function ipHashFor(
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
     'unknown';
   const material = `${ip}|${todayUTC(now)}|${salt}`;
-  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(material));
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return sha256Hex(new TextEncoder().encode(material).buffer as ArrayBuffer);
 }
