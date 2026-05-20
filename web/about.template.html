@@ -135,6 +135,26 @@
       <a href="/">catalog</a>.
     </p>
 
+    <h2 style="text-transform:none;letter-spacing:0;color:var(--fg);font-size:var(--fs-xl);margin-top:var(--sp-7)">Built by</h2>
+    <div class="built-by">
+      <a href="https://urbanmorph.com" rel="noopener" aria-label="Urban Morph">
+        <img src="https://github.com/urbanmorph.png?size=160" alt="Urban Morph" width="80" height="80" loading="lazy" />
+      </a>
+      <div class="built-by__text">
+        <p><a href="https://linkedin.com/in/sathyasankaran" target="_blank" rel="noopener">Sathya Sankaran</a> · <a href="https://linkedin.com/in/sathyasankaran" target="_blank" rel="noopener">LinkedIn</a></p>
+        <p style="color:var(--muted)">Source on <a href="https://github.com/urbanmorph/geodata" target="_blank" rel="noopener">GitHub</a>. Drop a ⭐ if you find it useful.</p>
+      </div>
+    </div>
+    <style>
+      .built-by { display: flex; align-items: center; gap: var(--sp-4); margin: var(--sp-4) 0 var(--sp-6); }
+      .built-by img { border-radius: 50%; flex-shrink: 0; }
+      .built-by__text p { margin: 0 0 4px; }
+      .built-by__text p:last-child { margin-bottom: 0; }
+      @media (max-width: 480px) {
+        .built-by { flex-direction: column; align-items: flex-start; }
+      }
+    </style>
+
     <!-- FOOTER -->
     <div class="attr-block" style="margin-top:var(--sp-5);color:var(--muted);font-size:var(--fs-sm);line-height:1.6">
       <strong>Data sources:</strong> <!-- ATTR_LINKS -->
