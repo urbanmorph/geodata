@@ -49,12 +49,17 @@ PUBLISHER = {
 UPSTREAM_BASE = 'https://github.com/yashveeeeeeer/india-geodata/releases/download'
 UPSTREAM_GEOBOUNDARIES = 'https://github.com/wmgeolab/geoBoundaries/raw/9469f09'  # pinned commit
 
-# yashveeeeeeer's 15 categories grouped to 6 for the home-page filter chips.
+# Categories drive the home-page filter chips and the /submit dropdown.
+# Order here is the order the chips render in. Keep in sync with
+# web/submit.template.html and the /about page copy.
 CATEGORIES = {
     'administrative': 'Administrative',
     'people': 'People & places',
     'environment': 'Environment',
-    'infrastructure': 'Infrastructure',
+    'agriculture': 'Agriculture & land use',
+    'transport': 'Transport & mobility',
+    'infrastructure': 'Infrastructure & utilities',
+    'culture': 'Culture & heritage',
     'health-edu': 'Health & education',
     'other': 'Other',
 }
