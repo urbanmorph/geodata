@@ -152,6 +152,50 @@ def build_state_bounds():
         return {}
 
 
+def fetch_download_counts():
+    """Read download_counts from the live D1 via wrangler. Failures (offline,
+    unauthenticated build env) silently return an empty list — the home
+    page just renders without count badges."""
+    import json as _json
+    import subprocess
+    web_root = ROOT / 'web'
+    if not (web_root / 'wrangler.toml').exists():
+        return {}
+    try:
+        out = subprocess.run(
+            ['npx', '--yes', 'wrangler@latest', 'd1', 'execute',
+             'geodata-submissions', '--remote',
+             '--command', 'SELECT layer_id, state_code, format, count FROM download_counts',
+             '--json'],
+            cwd=str(web_root),
+            capture_output=True, text=True, timeout=30,
+        )
+    except Exception as e:
+        print(f'  download_counts: skipped — {e}')
+        return {}
+    if out.returncode != 0:
+        # Don't error the build — counts are nice-to-have.
+        return {}
+    try:
+        # wrangler --json wraps the result in [{ results: [...] }, ...]
+        parsed = _json.loads(out.stdout)
+        rows = parsed[0]['results'] if isinstance(parsed, list) else parsed.get('results', [])
+    except Exception:
+        return {}
+    counts = {}
+    for r in rows:
+        layer = r.get('layer_id')
+        state = r.get('state_code') or ''
+        fmt = r.get('format')
+        n = int(r.get('count') or 0)
+        if not (layer and fmt):
+            continue
+        counts.setdefault(layer, {}).setdefault(state, {})[fmt] = n
+    total = sum(sum(s.values()) for layer in counts.values() for s in layer.values())
+    print(f'  download_counts: {len(rows)} rows, {total:,} total')
+    return counts
+
+
 def build_extracts():
     """Scan data/extracts/ and produce a manifest keyed by singular level name
     so the viewer can look up URLs by (layer.level, state_code, format) and
@@ -317,6 +361,7 @@ def build():
         'state_counts': build_state_counts(),
         'state_bounds': build_state_bounds(),
         'extracts': build_extracts(),
+        'download_counts': fetch_download_counts(),
         'attribution': ATTR | {'_publisher': PUBLISHER},
         'licence_summary': {
             'states_districts': LIC_STATE_DIST,

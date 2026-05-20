@@ -1,7 +1,10 @@
 // GET /api/dl/<r2-key…>  — bumps a D1 counter then 302-redirects to R2.
-// Skeleton — counter increment lands in checkpoint #28.
+// The counter increment is fire-and-forget via waitUntil so the redirect
+// is never blocked on D1.
 
 import type { Env } from '../_middleware';
+import { classifyKey } from '../../lib/r2-keys';
+import { incrementDownload } from '../../lib/counters';
 
 type Params = { path: string[] };
 
@@ -11,6 +14,11 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];
   const key = segs.join('/');
   if (!key) return new Response('missing key', { status: 400 });
-  // TODO #28: increment download_counts(layer_id, state_code, format) here.
+  const cls = classifyKey(key);
+  if (cls) {
+    ctx.waitUntil(
+      incrementDownload(ctx.env.DB, cls.layer_id, cls.state_code, cls.format).catch(() => {}),
+    );
+  }
   return Response.redirect(`${R2_BASE}/${key}`, 302);
 };

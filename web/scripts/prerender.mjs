@@ -25,6 +25,13 @@ function fmtBytes(n) {
   return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
 }
 const fmtRows = (n) => (n == null ? '—' : n.toLocaleString('en-IN'));
+// Compact count formatter — "1,234" gets noisy in line; short forms scan.
+function fmtCount(n) {
+  if (n < 1000) return String(n);
+  if (n < 10000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+  if (n < 1_000_000) return Math.round(n / 1000) + 'k';
+  return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+}
 
 // Human-readable "X ago" — coarse buckets, no library needed.
 function relativeTime(iso) {
@@ -126,11 +133,25 @@ function pickPrimary(layers) {
   return layers.find((l) => l.source === 'LGD') || layers[0];
 }
 
+// Map an R2 public URL to the /api/dl/<path> route so every click hits the
+// counter Pages Function. PMTiles bypasses (Range-fetched by MapLibre).
+function dlUrl(r2Url, fmt) {
+  if (!r2Url) return r2Url;
+  if (fmt === 'pmtiles') return r2Url;
+  const m = r2Url.match(/^https?:\/\/[^/]+\/(.+)$/);
+  return m ? `/api/dl/${m[1]}` : r2Url;
+}
+
+function countFor(layer, fmt) {
+  const cnt = catalog.download_counts?.[layer.id]?.['']?.[fmt];
+  return typeof cnt === 'number' && cnt > 0 ? cnt : 0;
+}
+
 function downloadLinks(layer) {
   const items = [];
-  if (layer.parquet?.url) items.push({ fmt: 'parquet', url: layer.parquet.url, size: layer.parquet.bytes });
-  if (layer.pmtiles?.url) items.push({ fmt: 'pmtiles', url: layer.pmtiles.url, size: layer.pmtiles.bytes });
-  if (layer.geojson?.url) items.push({ fmt: 'geojson', url: layer.geojson.url, size: layer.geojson.bytes });
+  if (layer.parquet?.url) items.push({ fmt: 'parquet', url: dlUrl(layer.parquet.url, 'parquet'), size: layer.parquet.bytes, count: countFor(layer, 'parquet') });
+  if (layer.pmtiles?.url) items.push({ fmt: 'pmtiles', url: dlUrl(layer.pmtiles.url, 'pmtiles'), size: layer.pmtiles.bytes, count: countFor(layer, 'pmtiles') });
+  if (layer.geojson?.url) items.push({ fmt: 'geojson', url: dlUrl(layer.geojson.url, 'geojson'), size: layer.geojson.bytes, count: countFor(layer, 'geojson') });
   return items;
 }
 
@@ -152,7 +173,7 @@ function renderRow(level, layersForLevel) {
     ? `<span class="dl-inline">${downloads
         .map(
           (d, i) =>
-            `${i > 0 ? '<span class="dot">·</span>' : ''}<a href="${esc(d.url)}" download>${esc(d.fmt)}</a><span class="size">${fmtBytes(d.size)}</span>`
+            `${i > 0 ? '<span class="dot">·</span>' : ''}<a href="${esc(d.url)}" download>${esc(d.fmt)}</a><span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${d.count.toLocaleString('en-IN')} downloads">${fmtCount(d.count)}</span>` : ''}`
         )
         .join('')}</span>`
     : '';
