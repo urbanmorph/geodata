@@ -122,11 +122,11 @@ export function renderViewPage(opts: RenderOpts): string {
     <style>
       :root {
         --fg: #111; --muted: #6b7280; --bg: #fff; --card-bg: #fafafa;
-        --line: #e5e7eb; --accent: #0a58ca; --ok: #166534;
+        --line: #e5e7eb; --accent: #0a58ca; --accent-fill: #0a58ca; --ok: #166534;
       }
       @media (prefers-color-scheme: dark) {
         :root { --fg: #f0f0f0; --muted: #9ca3af; --bg: #0b0b0d; --card-bg: #15151a;
-          --line: #26262d; --accent: #4da3ff; --ok: #3fb96b; }
+          --line: #26262d; --accent: #4da3ff; --accent-fill: #1d63c9; --ok: #3fb96b; }
       }
       * { box-sizing: border-box; }
       html, body { margin: 0; background: var(--bg); color: var(--fg); }
@@ -153,7 +153,7 @@ export function renderViewPage(opts: RenderOpts): string {
         font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
         border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-decoration: none;
       }
-      a.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+      a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
       a.btn:hover, button.btn:hover { border-color: var(--accent); }
       button.btn:disabled { opacity: .55; cursor: default; border-color: var(--line); }
       footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);

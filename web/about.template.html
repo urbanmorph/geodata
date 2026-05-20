@@ -39,8 +39,10 @@
       li { padding: 6px 0; position: relative; padding-left: 18px; }
       li::before { content: "›"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
       li strong { font-weight: 600; color: var(--fg); }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
+      a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+      a:hover { text-decoration: none; }
+      header.top h1 a, header.top nav a, .source-grid .name a { text-decoration: none; }
+      header.top h1 a:hover, header.top nav a:hover, .source-grid .name a:hover { text-decoration: underline; }
       code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
       .source-grid { display: grid; grid-template-columns: max-content 1fr; gap: 8px 14px; margin: 12px 0; }
       .source-grid .name { font-weight: 500; }
