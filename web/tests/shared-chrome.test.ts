@@ -32,10 +32,10 @@ describe('TOKENS', () => {
 });
 
 describe('renderNav', () => {
-  it('emits the bharatlas wordmark with the accented suffix', () => {
+  it('emits the bharatlas wordmark with the "atlas" suffix accented (semantic root)', () => {
     const html = renderNav('catalog');
     expect(html).toContain('<a class="site-brand"');
-    expect(html).toContain('bharat<span class="mark-accent">las</span>');
+    expect(html).toContain('bhar<span class="mark-accent">atlas</span>');
     expect(html).toContain("India's open atlas");
   });
 

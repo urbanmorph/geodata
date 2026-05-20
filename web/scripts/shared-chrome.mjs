@@ -77,7 +77,7 @@ export const NAV_LINKS = [
 
 export function renderNav(activeKey) {
   return `<header class="site-header">
-      <a class="site-brand" href="/">bharat<span class="mark-accent">las</span><span class="tagline">India's open atlas</span></a>
+      <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">India's open atlas</span></a>
       <nav class="site-nav">
         ${NAV_LINKS.map(
           (l) =>

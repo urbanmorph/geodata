@@ -101,7 +101,7 @@ export function renderViewPage(opts: RenderOpts): string {
   const header = embed
     ? ''
     : `<header class="site-header">
-      <a class="site-brand" href="/">bharat<span class="mark-accent">las</span><span class="tagline">· ${esc(s.name)}</span></a>
+      <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">· ${esc(s.name)}</span></a>
       <nav class="site-nav">
         <a href="/">catalog</a>
         <a href="/verify">verify</a>
