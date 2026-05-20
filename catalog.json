@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-19T13:43:13.100420+00:00",
+  "generated": "2026-05-19T17:08:04.013492+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -1063,6 +1063,1906 @@
       73.2182,
       20.7714
     ]
+  },
+  "extracts": {
+    "block": {
+      "1": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/01/blocks_jk.geojson",
+          "bytes": 3907224
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/01/blocks_jk.kml",
+          "bytes": 3231241
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/01/blocks_jk.parquet",
+          "bytes": 1183116
+        }
+      },
+      "2": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/02/blocks_hp.geojson",
+          "bytes": 4222104
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/02/blocks_hp.kml",
+          "bytes": 3359558
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/02/blocks_hp.parquet",
+          "bytes": 1407938
+        }
+      },
+      "3": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/03/blocks_pb.geojson",
+          "bytes": 6473034
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/03/blocks_pb.kml",
+          "bytes": 5167754
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/03/blocks_pb.parquet",
+          "bytes": 2181703
+        }
+      },
+      "4": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/04/blocks_ch.geojson",
+          "bytes": 33301
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/04/blocks_ch.kml",
+          "bytes": 26790
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/04/blocks_ch.parquet",
+          "bytes": 19098
+        }
+      },
+      "5": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/05/blocks_uk.geojson",
+          "bytes": 4179757
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/05/blocks_uk.kml",
+          "bytes": 3336452
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/05/blocks_uk.parquet",
+          "bytes": 1408419
+        }
+      },
+      "6": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/06/blocks_hr.geojson",
+          "bytes": 5361946
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/06/blocks_hr.kml",
+          "bytes": 4290160
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/06/blocks_hr.parquet",
+          "bytes": 1855323
+        }
+      },
+      "7": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/07/blocks_dl.geojson",
+          "bytes": 741194
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/07/blocks_dl.kml",
+          "bytes": 588436
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/07/blocks_dl.parquet",
+          "bytes": 280124
+        }
+      },
+      "8": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/08/blocks_rj.geojson",
+          "bytes": 17255698
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/08/blocks_rj.kml",
+          "bytes": 13743107
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/08/blocks_rj.parquet",
+          "bytes": 5871863
+        }
+      },
+      "9": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/09/blocks_up.geojson",
+          "bytes": 33183674
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/09/blocks_up.kml",
+          "bytes": 26519357
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/09/blocks_up.parquet",
+          "bytes": 10999551
+        }
+      },
+      "10": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/10/blocks_br.geojson",
+          "bytes": 12387181
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/10/blocks_br.kml",
+          "bytes": 10039801
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/10/blocks_br.parquet",
+          "bytes": 4022294
+        }
+      },
+      "11": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/11/blocks_sk.geojson",
+          "bytes": 860865
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/11/blocks_sk.kml",
+          "bytes": 689270
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/11/blocks_sk.parquet",
+          "bytes": 298908
+        }
+      },
+      "12": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/12/blocks_ar.geojson",
+          "bytes": 1434988
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/12/blocks_ar.kml",
+          "bytes": 1201308
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/12/blocks_ar.parquet",
+          "bytes": 520688
+        }
+      },
+      "13": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/13/blocks_nl.geojson",
+          "bytes": 6549477
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/13/blocks_nl.kml",
+          "bytes": 5179715
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/13/blocks_nl.parquet",
+          "bytes": 2156948
+        }
+      },
+      "14": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/14/blocks_mn.geojson",
+          "bytes": 2896368
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/14/blocks_mn.kml",
+          "bytes": 2294378
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/14/blocks_mn.parquet",
+          "bytes": 973928
+        }
+      },
+      "15": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/15/blocks_mz.geojson",
+          "bytes": 2974062
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/15/blocks_mz.kml",
+          "bytes": 2347497
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/15/blocks_mz.parquet",
+          "bytes": 1103660
+        }
+      },
+      "16": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/16/blocks_tr.geojson",
+          "bytes": 2773309
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/16/blocks_tr.kml",
+          "bytes": 2209672
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/16/blocks_tr.parquet",
+          "bytes": 1109276
+        }
+      },
+      "17": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/17/blocks_ml.geojson",
+          "bytes": 1524018
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/17/blocks_ml.kml",
+          "bytes": 1218656
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/17/blocks_ml.parquet",
+          "bytes": 651548
+        }
+      },
+      "18": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/18/blocks_as.geojson",
+          "bytes": 8419424
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/18/blocks_as.kml",
+          "bytes": 6745184
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/18/blocks_as.parquet",
+          "bytes": 2936049
+        }
+      },
+      "19": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/19/blocks_wb.geojson",
+          "bytes": 14244148
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/19/blocks_wb.kml",
+          "bytes": 11381986
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/19/blocks_wb.parquet",
+          "bytes": 5182558
+        }
+      },
+      "20": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/20/blocks_jh.geojson",
+          "bytes": 7727452
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/20/blocks_jh.kml",
+          "bytes": 6220516
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/20/blocks_jh.parquet",
+          "bytes": 2575327
+        }
+      },
+      "21": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/21/blocks_od.geojson",
+          "bytes": 13349788
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/21/blocks_od.kml",
+          "bytes": 10663379
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/21/blocks_od.parquet",
+          "bytes": 4556390
+        }
+      },
+      "22": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/22/blocks_cg.geojson",
+          "bytes": 8759207
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/22/blocks_cg.kml",
+          "bytes": 6957007
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/22/blocks_cg.parquet",
+          "bytes": 3111233
+        }
+      },
+      "23": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/23/blocks_mp.geojson",
+          "bytes": 25178751
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/23/blocks_mp.kml",
+          "bytes": 19935134
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/23/blocks_mp.parquet",
+          "bytes": 8960898
+        }
+      },
+      "24": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/24/blocks_gj.geojson",
+          "bytes": 14889202
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/24/blocks_gj.kml",
+          "bytes": 11835089
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/24/blocks_gj.parquet",
+          "bytes": 5221424
+        }
+      },
+      "27": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/27/blocks_mh.geojson",
+          "bytes": 34639466
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/27/blocks_mh.kml",
+          "bytes": 27385631
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/27/blocks_mh.parquet",
+          "bytes": 12081496
+        }
+      },
+      "28": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/28/blocks_ap.geojson",
+          "bytes": 16943906
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/28/blocks_ap.kml",
+          "bytes": 13695724
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/28/blocks_ap.parquet",
+          "bytes": 5560749
+        }
+      },
+      "29": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/29/blocks_ka.geojson",
+          "bytes": 10227089
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/29/blocks_ka.kml",
+          "bytes": 8162817
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/29/blocks_ka.parquet",
+          "bytes": 3497582
+        }
+      },
+      "30": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/30/blocks_ga.geojson",
+          "bytes": 602458
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/30/blocks_ga.kml",
+          "bytes": 479900
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/30/blocks_ga.parquet",
+          "bytes": 223665
+        }
+      },
+      "31": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/31/blocks_ld.geojson",
+          "bytes": 51844
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/31/blocks_ld.kml",
+          "bytes": 48543
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/31/blocks_ld.parquet",
+          "bytes": 27686
+        }
+      },
+      "32": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/32/blocks_kl.geojson",
+          "bytes": 5470085
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/32/blocks_kl.kml",
+          "bytes": 4362124
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/32/blocks_kl.parquet",
+          "bytes": 1822627
+        }
+      },
+      "33": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/33/blocks_tn.geojson",
+          "bytes": 14900271
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/33/blocks_tn.kml",
+          "bytes": 11900780
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/33/blocks_tn.parquet",
+          "bytes": 5043075
+        }
+      },
+      "34": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/34/blocks_py.geojson",
+          "bytes": 202705
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/34/blocks_py.kml",
+          "bytes": 165074
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/34/blocks_py.parquet",
+          "bytes": 97105
+        }
+      },
+      "35": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/35/blocks_an.geojson",
+          "bytes": 4410563
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/35/blocks_an.kml",
+          "bytes": 3518261
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/35/blocks_an.parquet",
+          "bytes": 2136728
+        }
+      },
+      "36": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/36/blocks_tg.geojson",
+          "bytes": 10910521
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/36/blocks_tg.kml",
+          "bytes": 8912229
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/36/blocks_tg.parquet",
+          "bytes": 3425330
+        }
+      },
+      "37": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/37/blocks_la.geojson",
+          "bytes": 502556
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/37/blocks_la.kml",
+          "bytes": 407065
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/37/blocks_la.parquet",
+          "bytes": 254526
+        }
+      },
+      "38": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/38/blocks_dh.geojson",
+          "bytes": 111149
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/38/blocks_dh.kml",
+          "bytes": 89487
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/blocks/38/blocks_dh.parquet",
+          "bytes": 59009
+        }
+      }
+    },
+    "district": {
+      "1": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/01/districts_jk.geojson",
+          "bytes": 1193454
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/01/districts_jk.kml",
+          "bytes": 949826
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/01/districts_jk.parquet",
+          "bytes": 390561
+        }
+      },
+      "2": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/02/districts_hp.geojson",
+          "bytes": 1515466
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/02/districts_hp.kml",
+          "bytes": 1195986
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/02/districts_hp.parquet",
+          "bytes": 598613
+        }
+      },
+      "3": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/03/districts_pb.geojson",
+          "bytes": 2143056
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/03/districts_pb.kml",
+          "bytes": 1695227
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/03/districts_pb.parquet",
+          "bytes": 798847
+        }
+      },
+      "4": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/04/districts_ch.geojson",
+          "bytes": 20964
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/04/districts_ch.kml",
+          "bytes": 17154
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/04/districts_ch.parquet",
+          "bytes": 12691
+        }
+      },
+      "5": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/05/districts_uk.geojson",
+          "bytes": 1496548
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/05/districts_uk.kml",
+          "bytes": 1181726
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/05/districts_uk.parquet",
+          "bytes": 582580
+        }
+      },
+      "6": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/06/districts_hr.geojson",
+          "bytes": 1713368
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/06/districts_hr.kml",
+          "bytes": 1357688
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/06/districts_hr.parquet",
+          "bytes": 715794
+        }
+      },
+      "7": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/07/districts_dl.geojson",
+          "bytes": 272992
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/07/districts_dl.kml",
+          "bytes": 221323
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/07/districts_dl.parquet",
+          "bytes": 95273
+        }
+      },
+      "8": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/08/districts_rj.geojson",
+          "bytes": 6575287
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/08/districts_rj.kml",
+          "bytes": 5187852
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/08/districts_rj.parquet",
+          "bytes": 2445578
+        }
+      },
+      "9": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/09/districts_up.geojson",
+          "bytes": 9373411
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/09/districts_up.kml",
+          "bytes": 7397075
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/09/districts_up.parquet",
+          "bytes": 3529019
+        }
+      },
+      "10": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/10/districts_br.geojson",
+          "bytes": 3883138
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/10/districts_br.kml",
+          "bytes": 3069307
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/10/districts_br.parquet",
+          "bytes": 1380460
+        }
+      },
+      "11": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/11/districts_sk.geojson",
+          "bytes": 273080
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/11/districts_sk.kml",
+          "bytes": 218007
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/11/districts_sk.parquet",
+          "bytes": 113811
+        }
+      },
+      "12": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/12/districts_ar.geojson",
+          "bytes": 1068020
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/12/districts_ar.kml",
+          "bytes": 854145
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/12/districts_ar.parquet",
+          "bytes": 408159
+        }
+      },
+      "13": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/13/districts_nl.geojson",
+          "bytes": 1342512
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/13/districts_nl.kml",
+          "bytes": 1062810
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/13/districts_nl.parquet",
+          "bytes": 502195
+        }
+      },
+      "14": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/14/districts_mn.geojson",
+          "bytes": 969630
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/14/districts_mn.kml",
+          "bytes": 770442
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/14/districts_mn.parquet",
+          "bytes": 336331
+        }
+      },
+      "15": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/15/districts_mz.geojson",
+          "bytes": 1490044
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/15/districts_mz.kml",
+          "bytes": 1175508
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/15/districts_mz.parquet",
+          "bytes": 619113
+        }
+      },
+      "16": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/16/districts_tr.geojson",
+          "bytes": 861020
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/16/districts_tr.kml",
+          "bytes": 680228
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/16/districts_tr.parquet",
+          "bytes": 390180
+        }
+      },
+      "17": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/17/districts_ml.geojson",
+          "bytes": 974190
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/17/districts_ml.kml",
+          "bytes": 771626
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/17/districts_ml.parquet",
+          "bytes": 400585
+        }
+      },
+      "18": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/18/districts_as.geojson",
+          "bytes": 3574283
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/18/districts_as.kml",
+          "bytes": 2825033
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/18/districts_as.parquet",
+          "bytes": 1339608
+        }
+      },
+      "19": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/19/districts_wb.geojson",
+          "bytes": 3952250
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/19/districts_wb.kml",
+          "bytes": 3117412
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/19/districts_wb.parquet",
+          "bytes": 1718912
+        }
+      },
+      "20": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/20/districts_jh.geojson",
+          "bytes": 2693828
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/20/districts_jh.kml",
+          "bytes": 2128234
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/20/districts_jh.parquet",
+          "bytes": 1049304
+        }
+      },
+      "21": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/21/districts_od.geojson",
+          "bytes": 4189793
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/21/districts_od.kml",
+          "bytes": 3306261
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/21/districts_od.parquet",
+          "bytes": 1631731
+        }
+      },
+      "22": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/22/districts_cg.geojson",
+          "bytes": 3813793
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/22/districts_cg.kml",
+          "bytes": 3012192
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/22/districts_cg.parquet",
+          "bytes": 1415554
+        }
+      },
+      "23": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/23/districts_mp.geojson",
+          "bytes": 8851739
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/23/districts_mp.kml",
+          "bytes": 6976228
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/23/districts_mp.parquet",
+          "bytes": 3601523
+        }
+      },
+      "24": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/24/districts_gj.geojson",
+          "bytes": 4987870
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/24/districts_gj.kml",
+          "bytes": 3936945
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/24/districts_gj.parquet",
+          "bytes": 1991914
+        }
+      },
+      "27": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/27/districts_mh.geojson",
+          "bytes": 6488682
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/27/districts_mh.kml",
+          "bytes": 5112002
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/27/districts_mh.parquet",
+          "bytes": 2621986
+        }
+      },
+      "28": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/28/districts_ap.geojson",
+          "bytes": 3690486
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/28/districts_ap.kml",
+          "bytes": 2909295
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/28/districts_ap.parquet",
+          "bytes": 1477713
+        }
+      },
+      "29": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/29/districts_ka.geojson",
+          "bytes": 3847128
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/29/districts_ka.kml",
+          "bytes": 3038138
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/29/districts_ka.parquet",
+          "bytes": 1491596
+        }
+      },
+      "30": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/30/districts_ga.geojson",
+          "bytes": 178395
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/30/districts_ga.kml",
+          "bytes": 141454
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/30/districts_ga.parquet",
+          "bytes": 79528
+        }
+      },
+      "31": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/31/districts_ld.geojson",
+          "bytes": 40103
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/31/districts_ld.kml",
+          "bytes": 34737
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/31/districts_ld.parquet",
+          "bytes": 22789
+        }
+      },
+      "32": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/32/districts_kl.geojson",
+          "bytes": 1411477
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/32/districts_kl.kml",
+          "bytes": 1110564
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/32/districts_kl.parquet",
+          "bytes": 598573
+        }
+      },
+      "33": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/33/districts_tn.geojson",
+          "bytes": 4461377
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/33/districts_tn.kml",
+          "bytes": 3525218
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/33/districts_tn.parquet",
+          "bytes": 1667780
+        }
+      },
+      "34": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/34/districts_py.geojson",
+          "bytes": 140240
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/34/districts_py.kml",
+          "bytes": 114669
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/34/districts_py.parquet",
+          "bytes": 71762
+        }
+      },
+      "35": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/35/districts_an.geojson",
+          "bytes": 2610570
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/35/districts_an.kml",
+          "bytes": 2105131
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/35/districts_an.parquet",
+          "bytes": 1285499
+        }
+      },
+      "36": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/36/districts_tg.geojson",
+          "bytes": 2501464
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/36/districts_tg.kml",
+          "bytes": 1982468
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/36/districts_tg.parquet",
+          "bytes": 912385
+        }
+      },
+      "37": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/37/districts_la.geojson",
+          "bytes": 415815
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/37/districts_la.kml",
+          "bytes": 327330
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/37/districts_la.parquet",
+          "bytes": 172251
+        }
+      },
+      "38": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/38/districts_dh.geojson",
+          "bytes": 79902
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/38/districts_dh.kml",
+          "bytes": 65091
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/districts/38/districts_dh.parquet",
+          "bytes": 43199
+        }
+      }
+    },
+    "subdistrict": {
+      "1": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/01/subdistricts_jk.geojson",
+          "bytes": 2107736
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/01/subdistricts_jk.kml",
+          "bytes": 1698024
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/01/subdistricts_jk.parquet",
+          "bytes": 668516
+        }
+      },
+      "2": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/02/subdistricts_hp.geojson",
+          "bytes": 5505560
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/02/subdistricts_hp.kml",
+          "bytes": 4401372
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/02/subdistricts_hp.parquet",
+          "bytes": 1791863
+        }
+      },
+      "3": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/03/subdistricts_pb.geojson",
+          "bytes": 5030650
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/03/subdistricts_pb.kml",
+          "bytes": 3993711
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/03/subdistricts_pb.parquet",
+          "bytes": 1764867
+        }
+      },
+      "4": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/04/subdistricts_ch.geojson",
+          "bytes": 33323
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/04/subdistricts_ch.kml",
+          "bytes": 26784
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/04/subdistricts_ch.parquet",
+          "bytes": 19238
+        }
+      },
+      "5": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/05/subdistricts_uk.geojson",
+          "bytes": 3614906
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/05/subdistricts_uk.kml",
+          "bytes": 2884487
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/05/subdistricts_uk.parquet",
+          "bytes": 1214240
+        }
+      },
+      "6": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/06/subdistricts_hr.geojson",
+          "bytes": 3880391
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/06/subdistricts_hr.kml",
+          "bytes": 3093591
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/06/subdistricts_hr.parquet",
+          "bytes": 1400649
+        }
+      },
+      "7": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/07/subdistricts_dl.geojson",
+          "bytes": 1381189
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/07/subdistricts_dl.kml",
+          "bytes": 1102401
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/07/subdistricts_dl.parquet",
+          "bytes": 491306
+        }
+      },
+      "8": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/08/subdistricts_rj.geojson",
+          "bytes": 16170550
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/08/subdistricts_rj.kml",
+          "bytes": 12861904
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/08/subdistricts_rj.parquet",
+          "bytes": 5541201
+        }
+      },
+      "9": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/09/subdistricts_up.geojson",
+          "bytes": 21782644
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/09/subdistricts_up.kml",
+          "bytes": 17277619
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/09/subdistricts_up.parquet",
+          "bytes": 7645197
+        }
+      },
+      "10": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/10/subdistricts_br.geojson",
+          "bytes": 12391767
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/10/subdistricts_br.kml",
+          "bytes": 10029494
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/10/subdistricts_br.parquet",
+          "bytes": 4020249
+        }
+      },
+      "11": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/11/subdistricts_sk.geojson",
+          "bytes": 617451
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/11/subdistricts_sk.kml",
+          "bytes": 489387
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/11/subdistricts_sk.parquet",
+          "bytes": 237392
+        }
+      },
+      "12": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/12/subdistricts_ar.geojson",
+          "bytes": 1506507
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/12/subdistricts_ar.kml",
+          "bytes": 1288144
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/12/subdistricts_ar.parquet",
+          "bytes": 535157
+        }
+      },
+      "13": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/13/subdistricts_nl.geojson",
+          "bytes": 6423154
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/13/subdistricts_nl.kml",
+          "bytes": 5106018
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/13/subdistricts_nl.parquet",
+          "bytes": 2103834
+        }
+      },
+      "14": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/14/subdistricts_mn.geojson",
+          "bytes": 2937847
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/14/subdistricts_mn.kml",
+          "bytes": 2325992
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/14/subdistricts_mn.parquet",
+          "bytes": 1008043
+        }
+      },
+      "15": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/15/subdistricts_mz.geojson",
+          "bytes": 2974517
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/15/subdistricts_mz.kml",
+          "bytes": 2347261
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/15/subdistricts_mz.parquet",
+          "bytes": 1103755
+        }
+      },
+      "16": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/16/subdistricts_tr.geojson",
+          "bytes": 2207122
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/16/subdistricts_tr.kml",
+          "bytes": 1742804
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/16/subdistricts_tr.parquet",
+          "bytes": 936152
+        }
+      },
+      "17": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/17/subdistricts_ml.geojson",
+          "bytes": 1524016
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/17/subdistricts_ml.kml",
+          "bytes": 1217705
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/17/subdistricts_ml.parquet",
+          "bytes": 648917
+        }
+      },
+      "18": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/18/subdistricts_as.geojson",
+          "bytes": 7651037
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/18/subdistricts_as.kml",
+          "bytes": 6107122
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/18/subdistricts_as.parquet",
+          "bytes": 2680141
+        }
+      },
+      "19": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/19/subdistricts_wb.geojson",
+          "bytes": 14485953
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/19/subdistricts_wb.kml",
+          "bytes": 11598601
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/19/subdistricts_wb.parquet",
+          "bytes": 5266915
+        }
+      },
+      "20": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/20/subdistricts_jh.geojson",
+          "bytes": 7801799
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/20/subdistricts_jh.kml",
+          "bytes": 6290141
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/20/subdistricts_jh.parquet",
+          "bytes": 2596703
+        }
+      },
+      "21": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/21/subdistricts_od.geojson",
+          "bytes": 14811321
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/21/subdistricts_od.kml",
+          "bytes": 11921215
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/21/subdistricts_od.parquet",
+          "bytes": 5021961
+        }
+      },
+      "22": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/22/subdistricts_cg.geojson",
+          "bytes": 9261619
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/22/subdistricts_cg.kml",
+          "bytes": 7362190
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/22/subdistricts_cg.parquet",
+          "bytes": 3248683
+        }
+      },
+      "23": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/23/subdistricts_mp.geojson",
+          "bytes": 27494568
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/23/subdistricts_mp.kml",
+          "bytes": 21803436
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/23/subdistricts_mp.parquet",
+          "bytes": 9619574
+        }
+      },
+      "24": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/24/subdistricts_gj.geojson",
+          "bytes": 14850087
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/24/subdistricts_gj.kml",
+          "bytes": 11809064
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/24/subdistricts_gj.parquet",
+          "bytes": 5212067
+        }
+      },
+      "27": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/27/subdistricts_mh.geojson",
+          "bytes": 35181327
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/27/subdistricts_mh.kml",
+          "bytes": 27832744
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/27/subdistricts_mh.parquet",
+          "bytes": 12293125
+        }
+      },
+      "28": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/28/subdistricts_ap.geojson",
+          "bytes": 16972369
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/28/subdistricts_ap.kml",
+          "bytes": 13731941
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/28/subdistricts_ap.parquet",
+          "bytes": 5567110
+        }
+      },
+      "29": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/29/subdistricts_ka.geojson",
+          "bytes": 10230346
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/29/subdistricts_ka.kml",
+          "bytes": 8157279
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/29/subdistricts_ka.parquet",
+          "bytes": 3497617
+        }
+      },
+      "30": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/30/subdistricts_ga.geojson",
+          "bytes": 602677
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/30/subdistricts_ga.kml",
+          "bytes": 479738
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/30/subdistricts_ga.parquet",
+          "bytes": 223814
+        }
+      },
+      "31": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/31/subdistricts_ld.geojson",
+          "bytes": 52020
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/31/subdistricts_ld.kml",
+          "bytes": 48439
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/31/subdistricts_ld.parquet",
+          "bytes": 27914
+        }
+      },
+      "32": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/32/subdistricts_kl.geojson",
+          "bytes": 4099787
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/32/subdistricts_kl.kml",
+          "bytes": 3245789
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/32/subdistricts_kl.parquet",
+          "bytes": 1417773
+        }
+      },
+      "33": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/33/subdistricts_tn.geojson",
+          "bytes": 13338038
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/33/subdistricts_tn.kml",
+          "bytes": 10629993
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/33/subdistricts_tn.parquet",
+          "bytes": 4552523
+        }
+      },
+      "34": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/34/subdistricts_py.geojson",
+          "bytes": 210645
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/34/subdistricts_py.kml",
+          "bytes": 172026
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/34/subdistricts_py.parquet",
+          "bytes": 101579
+        }
+      },
+      "35": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/35/subdistricts_an.geojson",
+          "bytes": 4410713
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/35/subdistricts_an.kml",
+          "bytes": 3518159
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/35/subdistricts_an.parquet",
+          "bytes": 2137024
+        }
+      },
+      "36": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/36/subdistricts_tg.geojson",
+          "bytes": 10929987
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/36/subdistricts_tg.kml",
+          "bytes": 8933532
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/36/subdistricts_tg.parquet",
+          "bytes": 3431151
+        }
+      },
+      "37": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/37/subdistricts_la.geojson",
+          "bytes": 495899
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/37/subdistricts_la.kml",
+          "bytes": 393352
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/37/subdistricts_la.parquet",
+          "bytes": 242320
+        }
+      },
+      "38": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/38/subdistricts_dh.geojson",
+          "bytes": 111208
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/38/subdistricts_dh.kml",
+          "bytes": 89472
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/subdistricts/38/subdistricts_dh.parquet",
+          "bytes": 59134
+        }
+      }
+    },
+    "village": {
+      "3": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/03/villages_pb.geojson",
+          "bytes": 43455563
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/03/villages_pb.kml",
+          "bytes": 43600181
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/03/villages_pb.parquet",
+          "bytes": 11062317
+        }
+      },
+      "4": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/04/villages_ch.geojson",
+          "bytes": 70251
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/04/villages_ch.kml",
+          "bytes": 71183
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/04/villages_ch.parquet",
+          "bytes": 28803
+        }
+      },
+      "5": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/05/villages_uk.geojson",
+          "bytes": 45194486
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/05/villages_uk.kml",
+          "bytes": 48964229
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/05/villages_uk.parquet",
+          "bytes": 11105474
+        }
+      },
+      "6": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/06/villages_hr.geojson",
+          "bytes": 28447443
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/06/villages_hr.kml",
+          "bytes": 27627931
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/06/villages_hr.parquet",
+          "bytes": 7584178
+        }
+      },
+      "7": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/07/villages_dl.geojson",
+          "bytes": 6517882
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/07/villages_dl.kml",
+          "bytes": 5374148
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/07/villages_dl.parquet",
+          "bytes": 1926831
+        }
+      },
+      "8": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/08/villages_rj.geojson",
+          "bytes": 137366017
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/08/villages_rj.kml",
+          "bytes": 138512333
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/08/villages_rj.parquet",
+          "bytes": 34953631
+        }
+      },
+      "9": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/09/villages_up.geojson",
+          "bytes": 257340404
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/09/villages_up.kml",
+          "bytes": 281053652
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/09/villages_up.parquet",
+          "bytes": 60645904
+        }
+      },
+      "10": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/10/villages_br.geojson",
+          "bytes": 88609129
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/10/villages_br.kml",
+          "bytes": 103465623
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/10/villages_br.parquet",
+          "bytes": 19746189
+        }
+      },
+      "16": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/16/villages_tr.geojson",
+          "bytes": 7290313
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/16/villages_tr.kml",
+          "bytes": 6326573
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/16/villages_tr.parquet",
+          "bytes": 2319669
+        }
+      },
+      "18": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/18/villages_as.geojson",
+          "bytes": 44960196
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/18/villages_as.kml",
+          "bytes": 51479278
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/18/villages_as.parquet",
+          "bytes": 10273993
+        }
+      },
+      "19": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/19/villages_wb.geojson",
+          "bytes": 117295578
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/19/villages_wb.kml",
+          "bytes": 123993659
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/19/villages_wb.parquet",
+          "bytes": 28840808
+        }
+      },
+      "20": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/20/villages_jh.geojson",
+          "bytes": 71248870
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/20/villages_jh.kml",
+          "bytes": 81630509
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/20/villages_jh.parquet",
+          "bytes": 16019578
+        }
+      },
+      "21": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/21/villages_od.geojson",
+          "bytes": 132938445
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/21/villages_od.kml",
+          "bytes": 145359456
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/21/villages_od.parquet",
+          "bytes": 31577403
+        }
+      },
+      "22": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/22/villages_cg.geojson",
+          "bytes": 83264810
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/22/villages_cg.kml",
+          "bytes": 82184346
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/22/villages_cg.parquet",
+          "bytes": 22047662
+        }
+      },
+      "23": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/23/villages_mp.geojson",
+          "bytes": 220527057
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/23/villages_mp.kml",
+          "bytes": 210082044
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/23/villages_mp.parquet",
+          "bytes": 60294869
+        }
+      },
+      "24": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/24/villages_gj.geojson",
+          "bytes": 111341248
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/24/villages_gj.kml",
+          "bytes": 101950957
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/24/villages_gj.parquet",
+          "bytes": 30929648
+        }
+      },
+      "27": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/27/villages_mh.geojson",
+          "bytes": 390061925
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/27/villages_mh.kml",
+          "bytes": 343610799
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/27/villages_mh.parquet",
+          "bytes": 110337213
+        }
+      },
+      "28": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/28/villages_ap.geojson",
+          "bytes": 59443912
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/28/villages_ap.kml",
+          "bytes": 58045362
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/28/villages_ap.parquet",
+          "bytes": 15759451
+        }
+      },
+      "29": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/29/villages_ka.geojson",
+          "bytes": 77060868
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/29/villages_ka.kml",
+          "bytes": 82860380
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/29/villages_ka.parquet",
+          "bytes": 18250440
+        }
+      },
+      "30": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/30/villages_ga.geojson",
+          "bytes": 2553093
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/30/villages_ga.kml",
+          "bytes": 2299448
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/30/villages_ga.parquet",
+          "bytes": 740952
+        }
+      },
+      "31": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/31/villages_ld.geojson",
+          "bytes": 63876
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/31/villages_ld.kml",
+          "bytes": 70034
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/31/villages_ld.parquet",
+          "bytes": 29574
+        }
+      },
+      "32": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/32/villages_kl.geojson",
+          "bytes": 13727858
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/32/villages_kl.kml",
+          "bytes": 11980233
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/32/villages_kl.parquet",
+          "bytes": 4101495
+        }
+      },
+      "33": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/33/villages_tn.geojson",
+          "bytes": 72493443
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/33/villages_tn.kml",
+          "bytes": 70759971
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/33/villages_tn.parquet",
+          "bytes": 19201783
+        }
+      },
+      "34": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/34/villages_py.geojson",
+          "bytes": 432073
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/34/villages_py.kml",
+          "bytes": 434643
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/34/villages_py.parquet",
+          "bytes": 142952
+        }
+      },
+      "35": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/35/villages_an.geojson",
+          "bytes": 7154635
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/35/villages_an.kml",
+          "bytes": 6148226
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/35/villages_an.parquet",
+          "bytes": 2959884
+        }
+      },
+      "36": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/36/villages_tg.geojson",
+          "bytes": 39027286
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/36/villages_tg.kml",
+          "bytes": 38964949
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/36/villages_tg.parquet",
+          "bytes": 10150698
+        }
+      },
+      "38": {
+        "geojson": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/38/villages_dh.geojson",
+          "bytes": 370680
+        },
+        "kml": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/38/villages_dh.kml",
+          "bytes": 357914
+        },
+        "parquet": {
+          "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/extracts/villages/38/villages_dh.parquet",
+          "bytes": 119054
+        }
+      }
+    }
   },
   "attribution": {
     "LGD": {

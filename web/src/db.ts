@@ -206,7 +206,16 @@ export async function exportFilteredKML(
 
 // --- inline GeoJSON → KML conversion (avoids a dep; handles Polygon/MultiPolygon/Point) ---
 
-const NAME_KEYS = ['vname', 'sdtname', 'dtname', 'stname', 'STNAME', 'NAME', 'name'];
+// Try most-specific first (village name) so a feature's KML <name> matches
+// the level you're looking at, not its parent.
+const NAME_KEYS = [
+  'vilname11', 'vilnam_soi', 'vname',     // village
+  'blkname11', 'blkname', 'block_name',   // block
+  'sdtname', 'subdt_name',                // sub-district
+  'dtname',                                // district
+  'stname', 'STNAME',                     // state
+  'NAME', 'name',                          // generic fallback
+];
 
 function escXml(s: string): string {
   return s

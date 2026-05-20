@@ -29,10 +29,40 @@ if not (ACCOUNT_ID and ACCESS_KEY and SECRET_KEY):
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
 
-# Files that exceed wrangler's 300 MiB single-PUT cap
-LARGE = [
-    ('admin/villages/LGD_Villages.parquet', SRC / 'LGD_Villages.parquet'),
-]
+WRANGLER_CAP = 300 * 1024 * 1024  # bytes
+
+
+def collect_large() -> list[tuple[str, Path]]:
+    """Auto-discover every local file > 300 MiB that lives under a directory
+    we mirror to R2, and return (remote_key, local_path) pairs."""
+    out: list[tuple[str, Path]] = []
+    # admin/<level>/<file> — sources/india-geodata flat dir → admin/<level>/...
+    for p in SRC.glob('*'):
+        if not p.is_file():
+            continue
+        if p.stat().st_size <= WRANGLER_CAP:
+            continue
+        stem = p.stem
+        level = {
+            'LGD_States': 'states', 'SOI_States': 'states', 'bhuvan_states': 'states',
+            'LGD_Districts': 'districts', 'SOI_Districts': 'districts', 'bhuvan_districts': 'districts',
+            'LGD_Subdistricts': 'subdistricts', 'SOI_Subdistricts': 'subdistricts',
+            'LGD_Blocks': 'blocks', 'bhuvan_blocks': 'blocks', 'PMGSY_Blocks': 'blocks',
+            'LGD_Villages': 'villages', 'SOI_VILLAGE_POINT': 'villages',
+        }.get(stem, 'misc')
+        out.append((f'admin/{level}/{p.name}', p))
+    # data/extracts/<level>/<NN>/<file>  →  extracts/<level>/<NN>/<file>
+    for p in (ROOT / 'data' / 'extracts').rglob('*'):
+        if not p.is_file():
+            continue
+        if p.stat().st_size <= WRANGLER_CAP:
+            continue
+        rel = p.relative_to(ROOT / 'data')
+        out.append((str(rel), p))
+    return out
+
+
+LARGE = collect_large()
 
 s3 = boto3.client(
     's3',

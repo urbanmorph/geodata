@@ -77,6 +77,8 @@ function renderRow(level, layersForLevel) {
   const others = layersForLevel.filter((l) => l !== primary);
 
   const viewable = !!(primary.pmtiles?.url || primary.geojson?.url);
+  // Only LGD layers carry the code chain that powers the in-viewer state filter.
+  const filterable = viewable && primary.source === 'LGD';
   const viewBtn = viewable
     ? `<a href="#view/${esc(primary.id)}" class="btn-primary">View map →</a>`
     : `<span class="btn-primary disabled" title="No map for this layer">no map</span>`;
@@ -91,24 +93,23 @@ function renderRow(level, layersForLevel) {
         .join('')}</span>`
     : '';
 
+  // Include the LGD primary as the first row of the comparison so the user
+  // can eyeball count + provenance differences against the alt sources.
   const altSection = others.length
     ? `<details class="alt">
-        <summary>alt sources: ${others.map((o) => esc(o.source)).join(' · ')}</summary>
+        <summary>compare sources: LGD${others.length ? ' · ' + others.map((o) => esc(o.source)).join(' · ') : ''}</summary>
         <div class="alt__list">
-          ${others
-            .map((o) => {
+          ${[primary, ...others]
+            .map((o, i) => {
+              const isPrimary = i === 0;
               const dl = downloadLinks(o);
-              const viewable = !!(o.pmtiles?.url || o.geojson?.url);
-              const links = [
-                viewable ? `<a href="#view/${esc(o.id)}">view</a>` : '',
-                ...dl.map((d) => `<a href="${esc(d.url)}" download>${esc(d.fmt)}</a>`),
-              ]
-                .filter(Boolean)
+              const links = dl
+                .map((d) => `<a href="${esc(d.url)}" download>${esc(d.fmt)}</a>`)
                 .join('<span class="dot">·</span>');
-              return `<div class="alt__row">
-                <span class="src">${esc(o.source)}</span>
+              return `<div class="alt__row${isPrimary ? ' alt__row--primary' : ''}">
+                <span class="src">${esc(o.source)}${isPrimary ? ' <span class="tag">primary</span>' : ''}</span>
                 <span class="meta">${fmtRows(o.rows)} rows · ${esc(o.notes || '')}</span>
-                <span class="links">${links}</span>
+                <span class="links">${links || '<span class="muted">—</span>'}</span>
               </div>`;
             })
             .join('')}
@@ -117,6 +118,10 @@ function renderRow(level, layersForLevel) {
     : '';
 
   const lic = primary.licence ? `<span class="lic"><code>${esc(primary.licence)}</code></span>` : '';
+
+  const viewerHint = filterable
+    ? `<p class="row__viewer-hint">↳ Inside the viewer: slice by state · instant download as <strong>GeoJSON</strong> (QGIS, web) or <strong>KML</strong> (Google Earth & Maps)</p>`
+    : '';
 
   return `<section class="row" id="${esc(level)}">
       <div class="row__head">
@@ -128,6 +133,7 @@ function renderRow(level, layersForLevel) {
         ${viewBtn}
         ${dlInline}
       </div>
+      ${viewerHint}
       ${altSection}
     </section>`;
 }

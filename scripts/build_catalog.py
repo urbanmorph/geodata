@@ -125,6 +125,49 @@ def build_state_bounds():
         return {}
 
 
+def build_extracts():
+    """Scan data/extracts/ and produce a manifest keyed by singular level name
+    so the viewer can look up URLs by (layer.level, state_code, format) and
+    skip DuckDB entirely when a pre-baked file exists."""
+    EXT = ROOT / 'data' / 'extracts'
+    if not EXT.exists():
+        return {}
+    # Reverse map: directory uses plural ("districts"), catalog uses singular ("district").
+    plural_to_singular = {v['plural']: k for k, v in LEVELS.items()}
+    out: dict = {}
+    for level_dir in sorted(EXT.iterdir()):
+        if not level_dir.is_dir():
+            continue
+        plural = level_dir.name
+        singular = plural_to_singular.get(plural, plural)
+        out[singular] = {}
+        for state_dir in sorted(level_dir.iterdir()):
+            if not state_dir.is_dir():
+                continue
+            try:
+                code = int(state_dir.name)
+            except ValueError:
+                continue
+            files = {}
+            for f in sorted(state_dir.iterdir()):
+                if not f.is_file():
+                    continue
+                fmt = f.suffix.lstrip('.').lower()
+                if fmt not in ('parquet', 'geojson', 'kml'):
+                    continue
+                files[fmt] = {
+                    'url': f'{R2}/extracts/{plural}/{state_dir.name}/{f.name}',
+                    'bytes': f.stat().st_size,
+                }
+            if files:
+                out[singular][code] = files
+        if not out[singular]:
+            del out[singular]
+    total = sum(len(s) * 3 for s in out.values())
+    print(f'  extracts: {sum(len(s) for s in out.values())} states across {len(out)} levels ({total} files indexed)')
+    return out
+
+
 def build_state_counts():
     """Pre-compute (layer_id, state_code) -> row_count for every LGD parquet that
     carries a state code. Avoids a slow COUNT(*) over HTTP in the browser — the
@@ -229,6 +272,7 @@ def build():
         'states': build_state_list(),
         'state_counts': build_state_counts(),
         'state_bounds': build_state_bounds(),
+        'extracts': build_extracts(),
         'attribution': ATTR | {'_publisher': PUBLISHER},
         'licence_summary': {
             'states_districts': LIC_STATE_DIST,

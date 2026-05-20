@@ -94,9 +94,18 @@ for f in "$ROOT"/sources/geoboundaries/*.geojson; do
   put "$f" "geoboundaries/$(basename "$f")"
 done
 
-echo "→ uploading per-state geojson extracts"
+echo "→ uploading per-state geojson extracts (legacy CG/JH/OD)"
 for f in "$ROOT"/data/boundaries/*/*.geojson; do
   [ -e "$f" ] || continue
+  rel="${f#$ROOT/data/}"
+  put "$f" "$rel"
+done
+
+echo "→ uploading pre-baked per-state extracts (all 36 states × 4 levels × 3 formats)"
+for f in "$ROOT"/data/extracts/*/*/*.*; do
+  [ -e "$f" ] || continue
+  # local: data/extracts/<level>/<NN>/<level>_<abbr>.<fmt>
+  # remote: extracts/<level>/<NN>/<level>_<abbr>.<fmt>
   rel="${f#$ROOT/data/}"
   put "$f" "$rel"
 done

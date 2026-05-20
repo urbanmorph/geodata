@@ -92,6 +92,9 @@ export function mountFilterPanel(
   const parquetUrl = layer.parquet!.url;
   let counts: Record<string, number> = {};
   let bounds: Record<string, [number, number, number, number]> = {};
+  // Pre-baked per-state files, keyed by state_code → format → { url, bytes }.
+  // When present, the format buttons short-circuit DuckDB entirely.
+  let extracts: Record<string, Record<string, { url: string; bytes: number }>> = {};
 
   // B1: warm DuckDB-WASM in the background while the user reads the dropdown.
   // The cold start (~5-10 s) overlaps with reading time so the Download click
@@ -105,6 +108,11 @@ export function mountFilterPanel(
     .then((c) => {
       counts = c.state_counts?.[layer.id] || {};
       bounds = (c.state_bounds || {}) as Record<string, [number, number, number, number]>;
+      // Pre-baked extracts are indexed by singular level name (district / village / …).
+      extracts =
+        ((c.extracts as Record<string, Record<string, Record<string, { url: string; bytes: number }>>>)?.[
+          layer.level
+        ] || {}) as typeof extracts;
       const states = c.states || [];
       stateSelect.innerHTML =
         `<option value="">— pick a state —</option>` +
@@ -148,6 +156,21 @@ export function mountFilterPanel(
         (stateSelect.options[stateSelect.selectedIndex]?.text || '').toLowerCase().replace(/\s+/g, '_') ||
         `s${code}`;
       const filename = `${layer.id}__${stateName}.${fmt}`;
+
+      // Pre-bake path: skip DuckDB entirely if R2 already has the file.
+      const bake = extracts[code]?.[fmt];
+      if (bake?.url) {
+        const a = document.createElement('a');
+        a.href = bake.url;
+        a.download = filename;
+        a.rel = 'noopener';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(filename)} (${formatSize(bake.bytes)}, pre-baked).</span>`;
+        return;
+      }
+
       const where = `${STATE_COL} = ${Number(code)}`;
       const select = `SELECT * FROM '${parquetUrl}' WHERE ${where}`;
       const formatVerbs = fmt === 'geojson' ? VERBS_GEOJSON : fmt === 'kml' ? VERBS_KML : VERBS_EXPORT;
