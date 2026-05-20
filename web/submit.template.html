@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗺%3C/text%3E%3C/svg%3E" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      :root {
+        --fg: #111; --muted: #6b7280; --bg: #fff; --card-bg: #fafafa;
+        --line: #e5e7eb; --accent: #0a58ca; --ok: #166534; --warn: #d97706; --err: #b91c1c;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root { --fg: #f0f0f0; --muted: #9ca3af; --bg: #0b0b0d; --card-bg: #15151a;
+          --line: #26262d; --accent: #4da3ff; --ok: #3fb96b; --warn: #f59e0b; --err: #ef4444; }
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: var(--bg); color: var(--fg); }
+      body {
+        font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        max-width: 680px; margin: 0 auto; padding: 32px 24px 80px;
+      }
+      header.top {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: 12px; margin-bottom: 24px;
+      }
+      header.top h1 { font-size: 18px; font-weight: 600; margin: 0; }
+      header.top h1 .muted { color: var(--muted); font-weight: 400; margin-left: 6px; }
+      header.top a { color: var(--muted); text-decoration: none; font-size: 14px; }
+      header.top a:hover { color: var(--fg); }
+
+      #drop {
+        border: 2px dashed var(--line); border-radius: 12px; padding: 44px 24px;
+        text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+        background: var(--card-bg);
+      }
+      #drop:hover, #drop.dragover {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+      }
+      #drop strong { font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px; }
+      #drop .hint { color: var(--muted); font-size: 13px; }
+      #drop input[type=file] { display: none; }
+
+      #report { margin: 20px 0 0; display: none; }
+      #report.show { display: block; }
+      #report .row {
+        display: flex; gap: 10px; padding: 6px 0; font-size: 13px;
+        border-bottom: 1px solid var(--line);
+      }
+      #report .row:last-child { border-bottom: 0; }
+      #report .row.ok::before { content: "✓"; color: var(--ok); width: 16px; font-weight: 700; }
+      #report .row.warn::before { content: "⚠"; color: var(--warn); width: 16px; font-weight: 700; }
+      #report .row.err::before { content: "✗"; color: var(--err); width: 16px; font-weight: 700; }
+      #report .row .k { flex: 1; }
+      #report .row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+      form { margin: 28px 0 0; display: none; }
+      form.show { display: block; }
+      .field { margin-bottom: 16px; }
+      .field label {
+        display: block; font-weight: 500; font-size: 13px; margin-bottom: 4px;
+      }
+      .field label .req { color: var(--err); margin-left: 2px; }
+      .field .hint { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.4; }
+      .field input, .field textarea, .field select {
+        width: 100%; padding: 8px 10px; font: inherit; font-size: 14px;
+        background: var(--bg); color: var(--fg);
+        border: 1px solid var(--line); border-radius: 6px;
+      }
+      .field input:focus, .field textarea:focus, .field select:focus {
+        outline: none; border-color: var(--accent);
+      }
+      .field textarea { resize: vertical; min-height: 60px; }
+      .legal {
+        font-size: 12px; color: var(--muted); line-height: 1.5;
+        background: var(--card-bg); padding: 10px 12px; border-radius: 6px;
+        border-left: 3px solid var(--accent); margin: 16px 0;
+      }
+      #captcha { margin: 16px 0; min-height: 65px; }
+
+      button.primary {
+        background: var(--accent); color: #fff; border: 0;
+        padding: 10px 20px; border-radius: 6px; font: inherit; font-weight: 500; font-size: 14px;
+        cursor: pointer;
+      }
+      button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.secondary {
+        background: transparent; color: var(--fg); border: 1px solid var(--line);
+        padding: 8px 14px; border-radius: 6px; font: inherit; font-size: 13px;
+        cursor: pointer;
+      }
+
+      #submit-status { margin-top: 12px; color: var(--muted); font-size: 13px; min-height: 18px; }
+      #submit-status.err { color: var(--err); }
+
+      #success { display: none; }
+      #success.show { display: block; }
+      #success h2 {
+        font-size: 18px; margin: 0 0 4px; color: var(--ok);
+      }
+      #success .ok-line { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+      #success .warn {
+        background: color-mix(in srgb, var(--warn) 12%, var(--card-bg));
+        border-left: 3px solid var(--warn);
+        padding: 14px 16px; border-radius: 6px; margin: 16px 0;
+      }
+      #success .warn strong { color: var(--warn); }
+      #success .token {
+        font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+        padding: 10px 12px; word-break: break-all; margin: 10px 0;
+      }
+      #success .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 24px; }
+      #success a.cta {
+        display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+        padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px;
+      }
+      #success a.cta:hover { opacity: 0.92; }
+
+      .helper {
+        margin-top: 32px; padding-top: 16px; border-top: 1px dashed var(--line);
+        font-size: 12px; color: var(--muted); line-height: 1.6;
+      }
+      .helper code {
+        font: 11px ui-monospace, SFMono-Regular, monospace;
+        background: var(--card-bg); padding: 1px 4px; border-radius: 3px;
+      }
+
+      @media (max-width: 640px) {
+        body { padding: 24px 16px 60px; }
+        #drop { padding: 32px 16px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="top">
+      <h1><a href="/" style="color:inherit;text-decoration:none">geodata</a> <span class="muted">· submit</span></h1>
+      <a href="/">← back</a>
+    </header>
+
+    <label id="drop" for="file">
+      <strong>Drop a file or click to choose</strong>
+      <span class="hint">GeoJSON · up to 500 MB · open licences only</span>
+      <input type="file" id="file" accept=".geojson,.json" />
+    </label>
+
+    <div id="report" aria-live="polite"></div>
+
+    <form id="meta" novalidate>
+      <div class="field">
+        <label for="f-name">Name <span class="req">*</span></label>
+        <input id="f-name" name="name" maxlength="120" required placeholder="Bangalore bike lanes" />
+        <div class="hint">A short title — shown on the catalog card and view page.</div>
+      </div>
+
+      <div class="field">
+        <label for="f-desc">Description</label>
+        <textarea id="f-desc" name="description" maxlength="500" placeholder="What does this layer contain? Where did it come from?"></textarea>
+      </div>
+
+      <div class="field">
+        <label for="f-cat">Category <span class="req">*</span></label>
+        <select id="f-cat" name="category" required>
+          <option value="">— pick one —</option>
+          <option value="administrative">Administrative boundaries</option>
+          <option value="people">People &amp; demographics</option>
+          <option value="environment">Environment &amp; nature</option>
+          <option value="infrastructure">Infrastructure &amp; mobility</option>
+          <option value="health-edu">Health &amp; education</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="f-lic">Licence <span class="req">*</span></label>
+        <select id="f-lic" name="license" required>
+          <option value="">— pick one —</option>
+          <option value="CC0-1.0">CC0 1.0 — Public Domain Dedication</option>
+          <option value="CC-BY-4.0">CC BY 4.0 — Attribution</option>
+          <option value="CC-BY-SA-4.0">CC BY-SA 4.0 — Attribution-ShareAlike</option>
+          <option value="ODbL-1.0">ODbL 1.0 — Open Database License</option>
+          <option value="ODC-PDDL-1.0">ODC PDDL — Public Domain Dedication</option>
+          <option value="GODL-India">Government Open Data Licence — India</option>
+        </select>
+        <div class="hint">Only open licences are accepted — your file must be redistributable.</div>
+      </div>
+
+      <div class="field">
+        <label for="f-attr">Attribution <span class="req">*</span></label>
+        <input id="f-attr" name="attribution" minlength="3" maxlength="200" required placeholder="e.g. BBMP Open Data Portal" />
+        <div class="hint">Credit line shown on every card and the view page (3–200 chars).</div>
+      </div>
+
+      <div class="field">
+        <label for="f-src">Source URL <span class="req">*</span></label>
+        <input id="f-src" name="source_url" type="url" required placeholder="https://example.gov.in/dataset" />
+        <div class="hint">The page where this data was originally published.</div>
+      </div>
+
+      <p class="legal">
+        By submitting you confirm you have the right to share this content under the selected
+        open licence. Copyrighted or proprietary data is not accepted.
+      </p>
+
+      <div id="captcha" data-sitekey="<!-- TURNSTILE_SITEKEY -->"></div>
+
+      <button type="submit" class="primary" id="submit-btn" disabled>Submit →</button>
+      <div id="submit-status"></div>
+    </form>
+
+    <section id="success" aria-live="polite">
+      <h2>✓ Your submission is live</h2>
+      <p class="ok-line" id="success-url"></p>
+
+      <div class="warn">
+        <strong>Admin token — shown once. Save it.</strong>
+        <div class="token" id="success-token"></div>
+        <div class="actions">
+          <button type="button" class="secondary" id="copy-token">Copy token</button>
+          <button type="button" class="secondary" id="download-token">Download as .txt</button>
+        </div>
+        <div class="hint">Lose this and you can't edit or delete your submission.</div>
+      </div>
+
+      <a href="#" class="cta" id="goto-submission">Take me to my submission →</a>
+    </section>
+
+    <div class="helper">
+      <strong>v3.1.0 scope:</strong> <code>.geojson</code> / <code>.json</code> only.
+      KML / KMZ submission is coming. Until then, use <a href="/verify">/verify</a> to preview those formats locally.<br />
+      Rate limit: 5 submissions per hour, 20 per day, per IP.
+    </div>
+
+    <script type="module" src="/src/submit.ts"></script>
+  </body>
+</html>

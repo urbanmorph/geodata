@@ -382,12 +382,35 @@ await renderPage('verify', {
   },
 });
 
+// Turnstile site key — Cloudflare's test key (always passes) when no env override.
+// In production, set TURNSTILE_SITEKEY in the deploy environment.
+const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY || '1x00000000000000000000AA';
+
+await renderPage(
+  'submit',
+  {
+    title: 'Submit · contribute a geo layer',
+    description:
+      "Submit your own geo content to India's open atlas under an open licence — no signup, no email. Get a shareable URL and admin token in seconds.",
+    url: ORIGIN + '/submit',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'geodata · submit',
+      url: ORIGIN + '/submit',
+      applicationCategory: 'UtilityApplication',
+      operatingSystem: 'Web',
+    },
+  },
+  { TURNSTILE_SITEKEY },
+);
+
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.7' },
-  // /submit is added when v3.1 ships.
+  { loc: ORIGIN + '/submit', changefreq: 'monthly', priority: '0.6' },
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
