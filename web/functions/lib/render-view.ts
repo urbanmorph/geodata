@@ -242,8 +242,10 @@ export function renderViewPage(opts: RenderOpts): string {
           } catch {}
           upBtn.disabled = false; downBtn.disabled = false;
         };
-        upBtn.addEventListener('click', () => send(myVote === 1 ? 0 : 1));
-        downBtn.addEventListener('click', () => send(myVote === -1 ? 0 : -1));
+        // Cancel-on-opposite: if you've already voted (either way), clicking
+        // any button clears your vote. Click again to set the new direction.
+        upBtn.addEventListener('click', () => send(myVote === 0 ? 1 : 0));
+        downBtn.addEventListener('click', () => send(myVote === 0 ? -1 : 0));
       })();
     </script>
   </body>

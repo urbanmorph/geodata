@@ -400,7 +400,30 @@ const communityHtml = community.length
         const buttons = document.querySelectorAll('.sort-toggle button');
         if (!grid || !buttons.length) return;
         const cards = Array.from(grid.children);
-        const sortBy = (mode) => {
+
+        // Live-hydrate scores so votes from /c/<id> show up without waiting
+        // for the next prerender. Falls through silently on failure — the
+        // prerendered scores remain visible.
+        fetch('/api/community/scores').then(r => r.ok ? r.json() : null).then(rows => {
+          if (!Array.isArray(rows)) return;
+          const byId = Object.fromEntries(rows.map(s => [s.id, s]));
+          for (const card of cards) {
+            const id = card.dataset.id;
+            const s = byId[id];
+            if (!s) continue;
+            const up = Number(s.up) || 0, down = Number(s.down) || 0;
+            card.dataset.score = String(up - down);
+            const upEl = card.querySelector('.comm-card__score .up');
+            const downEl = card.querySelector('.comm-card__score .down');
+            if (upEl) upEl.textContent = '▲ ' + up;
+            if (downEl) downEl.textContent = '▼ ' + down;
+          }
+          // re-apply current sort
+          const active = document.querySelector('.sort-toggle button.active');
+          sortBy(active?.dataset.sort || 'recent');
+        }).catch(() => {});
+
+        function sortBy(mode) {
           const sorted = cards.slice().sort((a, b) => {
             if (mode === 'popular') {
               const d = Number(b.dataset.score) - Number(a.dataset.score);
@@ -409,7 +432,7 @@ const communityHtml = community.length
             return b.dataset.created.localeCompare(a.dataset.created);
           });
           grid.replaceChildren(...sorted);
-        };
+        }
         buttons.forEach((btn) => btn.addEventListener('click', () => {
           buttons.forEach((b) => b.classList.toggle('active', b === btn));
           sortBy(btn.dataset.sort);
