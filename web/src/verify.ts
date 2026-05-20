@@ -10,11 +10,11 @@
 // URL state: /verify?url=https://... fetches a CORS-permissive remote
 // and renders it. Shareable preview link.
 
-import maplibregl, { Map as MlMap } from 'maplibre-gl';
+import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { kml as kmlToGeoJSON } from '@tmcw/togeojson';
 import { escapeHtml } from './util';
-import { validate, normaliseFC, type FC, type Report } from './validate';
+import { validate, normaliseFC, INDIA_BBOX, type FC, type Report } from './validate';
 import {
   inlineLoader,
   VERBS_VERIFY,
