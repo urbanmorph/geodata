@@ -126,7 +126,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="${esc(s.name)}" />
     <meta name="twitter:description" content="${esc(description)}" />
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗺%3C/text%3E%3C/svg%3E" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
     <style>
       /* Edge-rendered — inlines the same tokens as scripts/shared-chrome.mjs.
