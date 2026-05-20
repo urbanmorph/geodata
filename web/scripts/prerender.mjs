@@ -79,7 +79,7 @@ function licenseUrl(id) {
   return map[first] || undefined;
 }
 function seoHead(o) {
-  const title = `${o.title} · geodata`;
+  const title = `${o.title} · bharatlas`;
   const image = o.image || ORIGIN + '/og-default.png';
   const type = o.type || 'website';
   const ld = o.structuredData
@@ -479,7 +479,7 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
 await renderPage('about', {
   title: 'About',
   description:
-    "geodata combines a visual catalog, a drag-drop verifier, and an anonymous contribution flow for India's geo data — admin boundaries from state to village, plus community-submitted layers under open licences. No signup, no API key, no tracking.",
+    "Bharatlas — a visual catalog, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences. No signup, no API key, no tracking.",
   url: ORIGIN + '/about',
   structuredData: {
     '@context': 'https://schema.org',
@@ -491,7 +491,7 @@ await renderPage('about', {
 
 await renderPage('verify', {
   title: 'Verify · drop a geo file',
-  description: 'Drag-drop a GeoJSON, KML, KMZ or Parquet file to render it on a map and check CRS, geometry validity, properties — all in your browser, nothing uploaded.',
+  description: 'Drag-drop a GeoJSON, KML, KMZ, GPX, TCX or Parquet file to render it on a map and check CRS, geometry validity, properties — all in your browser, nothing uploaded.',
   url: ORIGIN + '/verify',
   structuredData: {
     '@context': 'https://schema.org',
