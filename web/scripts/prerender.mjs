@@ -5,6 +5,7 @@ import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
+import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '..');
@@ -58,6 +59,9 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 // Build-time mirror of web/src/seo.ts. Both produce the same head block;
 // keep them in sync. Edge runtimes use the TS version.
 const ORIGIN = 'https://bharatlas.com';
+
+// TOKENS, renderNav, FOOTER imported from ./shared-chrome.mjs above
+// (extracted so vitest can test the pure helpers).
 
 // Canonical-URL form of a licence id, used in schema.org Dataset.license.
 function licenseUrl(id) {
@@ -448,19 +452,25 @@ const out = tmpl
   .replace('<!-- CATEGORY_CHIPS -->', chipsHtml)
   .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
   .replace('<!-- SEO_HEAD -->', homeSeo)
+  .replace('<!-- TOKENS -->', TOKENS)
+  .replace('<!-- NAV -->', renderNav('catalog'))
+  .replace('<!-- FOOTER -->', FOOTER)
   .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog.replace(/</g, '\\u003c')}</script>`);
 
 await writeFile(resolve(WEB, 'index.html'), out);
 console.log(`prerendered home — ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated, ${community.length} community`);
 
 // Helper: prerender a page that just needs an SEO head.
-async function renderPage(name, seoOpts, extra = {}) {
+async function renderPage(name, seoOpts, extra = {}, navKey = name) {
   const path = resolve(WEB, `${name}.template.html`);
   if (!existsSync(path)) return;
   const tmpl = await readFile(path, 'utf8');
   let out = tmpl
     .replace('<!-- SEO_HEAD -->', seoHead(seoOpts))
-    .replace('<!-- GENERATED -->', esc(catalog.generated || ''));
+    .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
+    .replace('<!-- TOKENS -->', TOKENS)
+    .replace('<!-- NAV -->', renderNav(navKey))
+    .replace('<!-- FOOTER -->', FOOTER);
   for (const [k, v] of Object.entries(extra)) out = out.replace(`<!-- ${k} -->`, v);
   await writeFile(resolve(WEB, `${name}.html`), out);
   console.log(`prerendered /${name}`);

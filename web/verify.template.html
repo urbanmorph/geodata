@@ -9,34 +9,23 @@
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
-      :root {
-        --fg: #111; --muted: #6b7280; --bg: #fff; --card-bg: #fafafa;
-        --line: #e5e7eb; --accent: #0a58ca; --ok: #166534; --warn: #d97706; --err: #b91c1c;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root { --fg: #f0f0f0; --muted: #9ca3af; --bg: #0b0b0d; --card-bg: #15151a;
-          --line: #26262d; --accent: #4da3ff; --ok: #3fb96b; --warn: #f59e0b; --err: #ef4444; }
-      }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); font: 14px/1.5 ui-sans-serif, system-ui, sans-serif; }
+      <!-- TOKENS -->
+      :root { --card-bg: var(--bg-card); }
+      html, body { height: 100%; }
       body { display: grid; grid-template-rows: auto 1fr; height: 100vh; }
-      header.top {
-        padding: 12px 18px; border-bottom: 1px solid var(--line);
-        display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+      .verify-header {
+        padding: var(--sp-3) var(--sp-4); border-bottom: 1px solid var(--line);
+        display: flex; align-items: center; justify-content: space-between; gap: var(--sp-3); flex-wrap: wrap;
       }
-      header.top h1 { font-size: 14px; font-weight: 600; margin: 0; }
-      header.top .muted { color: var(--muted); font-weight: 400; margin-left: 6px; }
-      header.top .controls { display: flex; align-items: center; gap: 10px; }
-      header.top a { color: var(--muted); text-decoration: none; font-size: 13px; }
-      header.top a:hover { color: var(--fg); }
-      header.top a.btn {
-        padding: 6px 12px; border: 1px solid var(--accent); border-radius: 6px;
-        color: var(--accent); font-weight: 500;
-      }
-      header.top a.btn:hover { background: var(--accent); color: #fff; }
+      .verify-header .brand { font-size: var(--fs-base); font-weight: 600; color: var(--fg); text-decoration: none; }
+      .verify-header .brand .mark-accent { color: var(--accent); }
+      .verify-header .brand .muted { color: var(--muted); font-weight: 400; margin-left: 6px; }
+      .verify-header .controls { display: flex; align-items: center; gap: var(--sp-3); }
+      .verify-header a { color: var(--muted); text-decoration: none; font-size: var(--fs-md); }
+      .verify-header a:hover { color: var(--fg); }
       input[type=file] {
-        font: 13px ui-sans-serif, system-ui, sans-serif;
-        padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px;
+        font: var(--fs-md) ui-sans-serif, system-ui, sans-serif;
+        padding: 5px 8px; border: 1px solid var(--line); border-radius: var(--radius-md);
         background: var(--bg); color: var(--fg); cursor: pointer;
       }
       main { display: grid; grid-template-columns: 1fr min(360px, 32%); min-height: 0; }
@@ -75,8 +64,8 @@
     </style>
   </head>
   <body>
-    <header class="top">
-      <h1><a href="/" style="color:inherit;text-decoration:none">geodata</a> <span class="muted">· verify</span></h1>
+    <header class="verify-header">
+      <a class="brand" href="/">bharat<span class="mark-accent">las</span><span class="muted">· verify</span></a>
       <div class="controls">
         <input type="file" id="file" accept=".geojson,.json,.kml,.kmz,.gpx,.tcx,.parquet" aria-label="Choose a geo file to verify" />
         <a href="/">← back</a>

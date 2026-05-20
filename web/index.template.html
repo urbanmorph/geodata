@@ -12,42 +12,10 @@
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
-      :root {
-        --fg: #111;
-        --muted: #6b7280;
-        --bg: #fff;
-        --card-bg: #fafafa;
-        --line: #e5e7eb;
-        --accent: #0a58ca;
-        --row-hover: #f3f4f6;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root {
-          --fg: #f0f0f0;
-          --muted: #9ca3af;
-          --bg: #0b0b0d;
-          --card-bg: #15151a;
-          --line: #26262d;
-          --accent: #4da3ff;
-          --row-hover: #1c1c22;
-        }
-      }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
-      body {
-        font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-        max-width: 880px;
-        margin: 0 auto;
-        padding: 56px 24px 80px;
-      }
-      header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 8px; }
-      h1 { font-size: 22px; font-weight: 600; margin: 0; letter-spacing: -.01em; }
-      h1 .muted { color: var(--muted); font-weight: 400; }
-      header.top nav a { color: var(--muted); text-decoration: none; margin-left: 14px; font-size: 14px; }
-      header.top nav a:hover { color: var(--fg); }
-      .lede { color: var(--muted); margin: 0 0 36px; max-width: 640px; }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
+      <!-- TOKENS -->
+      :root { --card-bg: var(--bg-card); --row-hover: var(--bg-card); }
+      body { max-width: 880px; margin: 0 auto; padding: 48px 24px 64px; }
+      .lede { color: var(--muted); margin: 0 0 var(--sp-7); max-width: 640px; font-size: var(--fs-base); }
 
       .catalog-controls { margin: 8px 0 16px; }
       .community-section { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
@@ -422,15 +390,7 @@
     </style>
   </head>
   <body>
-    <header class="top">
-      <h1>geodata <span class="muted">· India's open atlas</span></h1>
-      <nav>
-        <a href="/verify">verify</a>
-        <a href="/submit">submit</a>
-        <a href="/about">about</a>
-        <a href="https://github.com/urbanmorph/geodata">github</a>
-      </nav>
-    </header>
+    <!-- NAV -->
     <p class="lede">
       India's official admin boundaries from state to village. View on a map, download as Parquet, GeoJSON, or KML.
       Drop your own file to <a href="/verify">verify</a>, or contribute a new layer under an open licence.
@@ -458,13 +418,7 @@
 
     <!-- COMMUNITY_SECTION -->
 
-    <footer>
-      <p>
-        Each layer above carries its primary source link and licence inline. Open licences only.
-        <a href="/about">about</a> · <a href="https://github.com/urbanmorph/geodata">github</a> · <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">data report</a>
-      </p>
-      <p>Code: MIT · built by <a href="https://urbanmorph.com">urbanmorph</a> · generated <!-- GENERATED -->.</p>
-    </footer>
+    <!-- FOOTER -->
 
     <div id="map-overlay" aria-hidden="true">
       <header class="map-bar">

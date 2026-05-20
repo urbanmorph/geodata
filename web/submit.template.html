@@ -9,28 +9,9 @@
     <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
-      :root {
-        --fg: #111; --muted: #6b7280; --bg: #fff; --card-bg: #fafafa;
-        --line: #e5e7eb; --accent: #0a58ca; --ok: #166534; --warn: #d97706; --err: #b91c1c;
-      }
-      @media (prefers-color-scheme: dark) {
-        :root { --fg: #f0f0f0; --muted: #9ca3af; --bg: #0b0b0d; --card-bg: #15151a;
-          --line: #26262d; --accent: #4da3ff; --ok: #3fb96b; --warn: #f59e0b; --err: #ef4444; }
-      }
-      * { box-sizing: border-box; }
-      html, body { margin: 0; background: var(--bg); color: var(--fg); }
-      body {
-        font: 15px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-        max-width: 680px; margin: 0 auto; padding: 32px 24px 80px;
-      }
-      header.top {
-        display: flex; align-items: baseline; justify-content: space-between;
-        gap: 12px; margin-bottom: 24px;
-      }
-      header.top h1 { font-size: 18px; font-weight: 600; margin: 0; }
-      header.top h1 .muted { color: var(--muted); font-weight: 400; margin-left: 6px; }
-      header.top a { color: var(--muted); text-decoration: none; font-size: 14px; }
-      header.top a:hover { color: var(--fg); }
+      <!-- TOKENS -->
+      :root { --card-bg: var(--bg-card); }
+      body { max-width: 680px; margin: 0 auto; padding: 32px 24px 80px; }
 
       #drop {
         display: block;
@@ -147,10 +128,7 @@
     </style>
   </head>
   <body>
-    <header class="top">
-      <h1><a href="/" style="color:inherit;text-decoration:none">geodata</a> <span class="muted">· submit</span></h1>
-      <a href="/">← back</a>
-    </header>
+    <!-- NAV -->
 
     <label id="drop" for="file">
       <strong>Drop a file or click to choose</strong>
@@ -255,6 +233,8 @@
       Files are parsed in your browser before upload — no server-side processing.<br />
       Rate limit: 5 submissions per hour, 20 per day, per IP.
     </div>
+
+    <!-- FOOTER -->
 
     <script type="module" src="/src/submit.ts"></script>
   </body>

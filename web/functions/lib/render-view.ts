@@ -100,9 +100,14 @@ export function renderViewPage(opts: RenderOpts): string {
 
   const header = embed
     ? ''
-    : `<header>
-      <h1><a href="/">geodata</a><span> · ${esc(s.name)}</span></h1>
-      <nav><a href="/">catalog</a> · <a href="/about">about</a></nav>
+    : `<header class="site-header">
+      <a class="site-brand" href="/">bharat<span class="mark-accent">las</span><span class="tagline">· ${esc(s.name)}</span></a>
+      <nav class="site-nav">
+        <a href="/">catalog</a>
+        <a href="/verify">verify</a>
+        <a href="/submit">submit</a>
+        <a href="/about">about</a>
+      </nav>
     </header>`;
 
   return `<!doctype html>
@@ -124,51 +129,71 @@ export function renderViewPage(opts: RenderOpts): string {
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🗺%3C/text%3E%3C/svg%3E" />
     <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
     <style>
+      /* Edge-rendered — inlines the same tokens as scripts/shared-chrome.mjs.
+         Keep in sync with that file. Vitest does NOT cover this string —
+         the prerendered surfaces own the canonical tokens; this is a copy. */
       :root {
-        --fg: #111; --muted: #6b7280; --bg: #fff; --card-bg: #fafafa;
-        --line: #e5e7eb; --accent: #0a58ca; --accent-fill: #0a58ca; --ok: #166534;
+        --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px;
+        --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px;
+        --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+        --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
+        --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
+        --bg: #ffffff; --bg-card: #f5f5f5;
+        --fg: #0a0a0a; --muted: #6b7280; --line: #e5e7eb;
+        --accent: #6366f1; --accent-strong: #4f46e5;
+        --accent-fill: #6366f1; --ok: #16a34a;
       }
       @media (prefers-color-scheme: dark) {
-        :root { --fg: #f0f0f0; --muted: #9ca3af; --bg: #0b0b0d; --card-bg: #15151a;
-          --line: #26262d; --accent: #4da3ff; --accent-fill: #1d63c9; --ok: #3fb96b; }
+        :root { --bg: #0a0a0a; --bg-card: #1a1a1f;
+          --fg: #ededed; --muted: #9ca3af; --line: #262626;
+          --accent: #818cf8; --accent-strong: #6366f1;
+          --accent-fill: #6366f1; --ok: #4ade80; }
       }
-      * { box-sizing: border-box; }
+      *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; background: var(--bg); color: var(--fg); }
-      body { font: 15px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+      body { font: var(--fs-base)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;
         max-width: 720px; margin: 0 auto; padding: 28px 24px 64px; }
-      header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 28px; gap: 16px; flex-wrap: wrap; }
-      header h1 { font-size: 18px; font-weight: 600; margin: 0; }
-      header h1 a { color: inherit; text-decoration: none; }
-      header h1 span { color: var(--muted); font-weight: 400; }
-      header nav a { color: var(--muted); text-decoration: none; font-size: 14px; }
-      header nav a:hover { color: var(--fg); }
-      .badge { display: inline-block; font-size: 11px; font-weight: 600;
-        padding: 2px 6px; border-radius: 3px; letter-spacing: .04em; text-transform: uppercase;
+      a:focus-visible, button:focus-visible {
+        outline: 2px solid var(--accent-strong) !important;
+        outline-offset: 2px !important; border-radius: var(--radius-sm);
+      }
+      .site-header {
+        display: flex; align-items: baseline; justify-content: space-between;
+        gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
+      }
+      .site-brand { font-size: var(--fs-lg); font-weight: 600; letter-spacing: -.01em; color: var(--fg); text-decoration: none; }
+      .site-brand .mark-accent { color: var(--accent); }
+      .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
+      .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+      .site-nav a { color: var(--muted); text-decoration: none; font-size: var(--fs-base); padding: 4px 0; }
+      .site-nav a:hover { color: var(--fg); }
+      .badge { display: inline-block; font-size: var(--fs-xs); font-weight: 600;
+        padding: 2px 6px; border-radius: var(--radius-sm); letter-spacing: .04em; text-transform: uppercase;
         background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
-      h2 { font-size: 22px; line-height: 1.2; margin: 4px 0 8px; }
-      .desc { color: var(--muted); margin: 0 0 24px; }
-      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px 14px; margin: 16px 0 24px; font-size: 14px; }
+      h2 { font-size: var(--fs-2xl); line-height: 1.2; margin: 4px 0 var(--sp-2); }
+      .desc { color: var(--muted); margin: 0 0 var(--sp-6); }
+      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px var(--sp-4); margin: var(--sp-4) 0 var(--sp-6); font-size: var(--fs-base); }
       .kv dt { color: var(--muted); }
       .kv dd { margin: 0; }
-      .kv code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
-      .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 24px 0; }
+      .kv code { font: var(--fs-sm) ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin: var(--sp-6) 0; }
       a.btn, button.btn {
-        display: inline-block; padding: 9px 16px; border-radius: 6px;
-        font: inherit; font-size: 14px; font-weight: 500; cursor: pointer;
+        display: inline-block; padding: 9px 16px; border-radius: var(--radius-md);
+        font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer;
         border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-decoration: none;
       }
       a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
       a.btn:hover, button.btn:hover { border-color: var(--accent); }
       button.btn:disabled { opacity: .55; cursor: default; border-color: var(--line); }
-      .vote-group { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; background: var(--bg); }
-      .vote { background: transparent; border: 0; padding: 4px 6px; font: inherit; cursor: pointer; color: var(--muted); border-radius: 4px; line-height: 1; }
-      .vote:hover { color: var(--fg); background: var(--card-bg); }
+      .vote-group { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 2px 6px; background: var(--bg); }
+      .vote { background: transparent; border: 0; padding: 4px 6px; font: inherit; cursor: pointer; color: var(--muted); border-radius: var(--radius-sm); line-height: 1; }
+      .vote:hover { color: var(--fg); background: var(--bg-card); }
       .vote[aria-pressed=true].vote-up { color: var(--accent); }
-      .vote[aria-pressed=true].vote-down { color: #d23434; }
+      .vote[aria-pressed=true].vote-down { color: #ef4444; }
       .vote-score { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 18px; text-align: center; }
-      footer { margin-top: 40px; padding-top: 16px; border-top: 1px solid var(--line);
-        font-size: 12px; color: var(--muted); line-height: 1.6; }
-      footer a { color: var(--muted); text-decoration: underline; }
+      .site-footer { margin-top: var(--sp-8); padding-top: var(--sp-5); border-top: 1px solid var(--line);
+        font-size: var(--fs-sm); color: var(--muted); line-height: 1.6; }
+      .site-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
     </style>
   </head>
   <body data-submission-id="${esc(s.id)}">
@@ -206,7 +231,7 @@ export function renderViewPage(opts: RenderOpts): string {
       </div>
     </div>
 
-    <footer>
+    <footer class="site-footer">
       <p>Anyone can submit a layer at <a href="/submit">/submit</a> — open licences only.
       All community submissions are auto-moderated; the platform doesn't vouch for accuracy.
       Verify provenance via the source link above.</p>
