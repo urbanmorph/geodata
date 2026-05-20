@@ -18,6 +18,7 @@
     "pmtiles": "^3.2.1"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260520.1",
     "typescript": "^5.6.3",
     "vite": "^5.4.10",
     "vitest": "^2.1.9"
