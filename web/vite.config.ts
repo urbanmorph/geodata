@@ -37,12 +37,14 @@ function prerenderPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [prerenderPlugin()],
-  // Proxy /api/* to a background `wrangler pages dev` on 8788 so the dev-server
-  // form submits hit the real Pages Functions (D1, R2, Turnstile) instead of
-  // 404-ing. Start wrangler with: `wrangler pages dev dist/ --port=8788`.
+  // Proxy paths that aren't served by Vite to a background `wrangler pages dev`
+  // on 8788. /api/* are Pages Functions (D1, R2, Turnstile). /c/<id> is the
+  // edge-rendered view page. Start wrangler with:
+  //   wrangler pages dev dist/ --port=8788
   server: {
     proxy: {
       '/api': 'http://localhost:8788',
+      '/c': 'http://localhost:8788',
     },
   },
   build: {
