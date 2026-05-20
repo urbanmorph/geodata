@@ -3,6 +3,7 @@
 
 import { validate, type FC, type Report } from './validate';
 import { fileToFC, type Format } from './parse-geo';
+import { popHandoff } from './handoff';
 
 type SuccessPayload = {
   id: string;
@@ -49,6 +50,20 @@ fileInput.addEventListener('change', () => {
   const f = fileInput.files?.[0];
   if (f) handleFile(f);
 });
+
+// If the user came here via the "Submit this →" CTA on /verify, the file
+// was stashed in IndexedDB; pick it up and skip the drop zone.
+(async () => {
+  try {
+    const handed = await popHandoff();
+    if (handed) {
+      drop.style.display = 'none';
+      await handleFile(handed);
+    }
+  } catch {
+    /* hand-off optional — ignore failures */
+  }
+})();
 
 // ---------- validate locally ----------
 async function handleFile(file: File): Promise<void> {

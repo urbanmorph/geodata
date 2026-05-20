@@ -22,6 +22,7 @@ import {
   VERBS_VERIFY_PARQUET,
   VERBS_VERIFY_FETCH,
 } from './loading';
+import { stashForSubmit } from './handoff';
 const BASE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
@@ -188,15 +189,22 @@ async function handle(file: File) {
     const { fc, format } = await fileToFC(file, loader);
     const report = validate(fc, raw);
     loader.dismiss();
-    sidebar.innerHTML = renderReport(report, format, file);
+    const errsBlock = report.invalid > 0 || (report.crs && !/(4326|CRS84)/i.test(report.crs));
+    sidebar.innerHTML = renderReport(report, format, file) +
+      (errsBlock
+        ? ''
+        : `<div class="cta-row" style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)">
+             <button id="submit-this" type="button" style="background:var(--accent);color:#fff;border:0;padding:8px 14px;border-radius:6px;font:inherit;font-weight:500;cursor:pointer">Submit this to the catalog →</button>
+           </div>`);
     renderOnMap(fc, report.bbox);
-    // Submit CTA stays hidden until /submit ships in v3.1. Stash the file
-    // so the future Submit page can pick it up without re-upload.
-    try {
-      (window as unknown as { __verifiedFile?: File }).__verifiedFile = file;
-    } catch {
-      /* ignore */
-    }
+    document.getElementById('submit-this')?.addEventListener('click', async () => {
+      try {
+        await stashForSubmit(file);
+        window.location.href = '/submit';
+      } catch (err) {
+        sidebar.insertAdjacentHTML('beforeend', `<div class="error">hand-off failed: ${escapeHtml((err as Error).message)}</div>`);
+      }
+    });
   } catch (e) {
     loader.dismiss();
     sidebar.innerHTML = `<div class="error">${escapeHtml((e as Error).message)}</div>`;
