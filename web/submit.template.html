@@ -67,12 +67,14 @@
       }
       .field label .req { color: var(--err); margin-left: 2px; }
       .field .hint { color: var(--muted); font-size: 12px; margin-top: 4px; line-height: 1.4; }
-      .field input, .field textarea, .field select {
+      .field input:not([type=radio]):not([type=checkbox]),
+      .field textarea, .field select {
         width: 100%; padding: 8px 10px; font: inherit; font-size: 14px;
         background: var(--bg); color: var(--fg);
         border: 1px solid var(--line); border-radius: 6px;
       }
-      .field input:focus, .field textarea:focus, .field select:focus {
+      .field input:not([type=radio]):not([type=checkbox]):focus,
+      .field textarea:focus, .field select:focus {
         outline: none; border-color: var(--accent);
       }
       .field textarea { resize: vertical; min-height: 60px; }

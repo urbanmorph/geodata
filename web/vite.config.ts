@@ -37,6 +37,14 @@ function prerenderPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [prerenderPlugin()],
+  // Proxy /api/* to a background `wrangler pages dev` on 8788 so the dev-server
+  // form submits hit the real Pages Functions (D1, R2, Turnstile) instead of
+  // 404-ing. Start wrangler with: `wrangler pages dev dist/ --port=8788`.
+  server: {
+    proxy: {
+      '/api': 'http://localhost:8788',
+    },
+  },
   build: {
     target: 'es2022',
     cssCodeSplit: true,
