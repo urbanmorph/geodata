@@ -57,7 +57,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&l
 
 // Build-time mirror of web/src/seo.ts. Both produce the same head block;
 // keep them in sync. Edge runtimes use the TS version.
-const ORIGIN = 'https://geodata-3ij.pages.dev';
+const ORIGIN = 'https://bharatlas.com';
 
 // Canonical-URL form of a licence id, used in schema.org Dataset.license.
 function licenseUrl(id) {
