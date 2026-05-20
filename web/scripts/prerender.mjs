@@ -320,35 +320,51 @@ const out = tmpl
 await writeFile(resolve(WEB, 'index.html'), out);
 console.log(`prerendered ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} level cards (+ inline catalog ${inlineCatalog.length} B)`);
 
-// /about page — same shell, dedicated content. Lives at /about (CF Pages strips .html).
-const aboutTmplPath = resolve(WEB, 'about.template.html');
-if (existsSync(aboutTmplPath)) {
-  const aboutTmpl = await readFile(aboutTmplPath, 'utf8');
-  const aboutSeo = seoHead({
-    title: 'About',
-    description: 'geodata is an open-source visualiser for India\'s geo data. View, slice and contribute admin-boundary and community-submitted layers — no signup, no API key, no tracking.',
-    url: ORIGIN + '/about',
-    structuredData: {
-      '@context': 'https://schema.org',
-      '@type': 'AboutPage',
-      name: 'About geodata',
-      url: ORIGIN + '/about',
-    },
-  });
-  const aboutOut = aboutTmpl
-    .replace('<!-- SEO_HEAD -->', aboutSeo)
-    .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
-    .replace('<!-- ATTR_LINKS -->', attrLinks);
-  await writeFile(resolve(WEB, 'about.html'), aboutOut);
-  console.log(`prerendered /about`);
+// Helper: prerender a page that just needs an SEO head.
+async function renderPage(name, seoOpts, extra = {}) {
+  const path = resolve(WEB, `${name}.template.html`);
+  if (!existsSync(path)) return;
+  const tmpl = await readFile(path, 'utf8');
+  let out = tmpl
+    .replace('<!-- SEO_HEAD -->', seoHead(seoOpts))
+    .replace('<!-- GENERATED -->', esc(catalog.generated || ''));
+  for (const [k, v] of Object.entries(extra)) out = out.replace(`<!-- ${k} -->`, v);
+  await writeFile(resolve(WEB, `${name}.html`), out);
+  console.log(`prerendered /${name}`);
 }
+
+await renderPage('about', {
+  title: 'About',
+  description: 'geodata is an open-source visualiser for India\'s geo data. View, slice and contribute admin-boundary and community-submitted layers — no signup, no API key, no tracking.',
+  url: ORIGIN + '/about',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    name: 'About geodata',
+    url: ORIGIN + '/about',
+  },
+}, { ATTR_LINKS: attrLinks });
+
+await renderPage('verify', {
+  title: 'Verify · drop a geo file',
+  description: 'Drag-drop a GeoJSON, KML, KMZ or Parquet file to render it on a map and check CRS, geometry validity, properties — all in your browser, nothing uploaded.',
+  url: ORIGIN + '/verify',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@type': 'WebApplication',
+    name: 'geodata · verify',
+    url: ORIGIN + '/verify',
+    applicationCategory: 'UtilityApplication',
+    operatingSystem: 'Web',
+  },
+});
 
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
-  { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.6' },
-  { loc: ORIGIN + '/submit', changefreq: 'monthly', priority: '0.6' },
+  { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.7' },
+  // /submit is added when v3.1 ships.
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

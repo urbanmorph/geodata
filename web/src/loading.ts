@@ -65,6 +65,34 @@ export const VERBS_KML = [
   'Sealing the KML envelope…',
 ];
 
+export const VERBS_VERIFY = [
+  'Reading the file…',
+  'Parsing geometries…',
+  'Counting features…',
+  'Checking the CRS…',
+  'Sniffing properties…',
+  'Putting features on the map…',
+];
+
+export const VERBS_VERIFY_KMZ = [
+  'Unzipping the KMZ…',
+  'Locating the KML inside…',
+  'Parsing the KML…',
+];
+
+export const VERBS_VERIFY_PARQUET = [
+  'Booting the SQL engine…',
+  'Streaming parquet pages…',
+  'Decoding WKB geometries…',
+  'Building the feature list…',
+];
+
+export const VERBS_VERIFY_FETCH = [
+  'Resolving the URL…',
+  'Streaming bytes from the host…',
+  'Reading the response…',
+];
+
 import { escapeHtml } from './util';
 
 type Handle = { dismiss: () => void; setVerbs: (v: string[]) => void };

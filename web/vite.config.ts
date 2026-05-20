@@ -19,6 +19,7 @@ function prerenderPlugin(): Plugin {
       const watched = [
         resolve(server.config.root, 'index.template.html'),
         resolve(server.config.root, 'about.template.html'),
+        resolve(server.config.root, 'verify.template.html'),
         resolve(server.config.root, '..', 'catalog.json'),
       ];
       watched.forEach((f) => server.watcher.add(f));
@@ -42,6 +43,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         about: resolve(__dirname, 'about.html'),
+        verify: resolve(__dirname, 'verify.html'),
       },
       output: {
         manualChunks(id) {

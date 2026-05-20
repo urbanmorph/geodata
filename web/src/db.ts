@@ -118,16 +118,25 @@ type GeomOut =
   | { type: 'MultiPolygon'; coordinates: [number, number][][][] }
   | { type: 'GeometryCollection'; geometries: GeomOut[] };
 
-function parseWKB(buf: Uint8Array): GeomOut {
+export function parseWKB(buf: Uint8Array): GeomOut {
   const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   let p = 0;
   function readGeom(): GeomOut {
     const le = dv.getUint8(p) === 1; p += 1;
     const typeWithFlags = dv.getUint32(p, le); p += 4;
-    // Strip ISO 3D / SRID flags — we keep XY only.
-    const t = typeWithFlags & 0xff;
-    const hasZ = (typeWithFlags & 0x80000000) !== 0 || ((typeWithFlags & 0xffff) >= 1000 && (typeWithFlags & 0xffff) < 2000);
-    const hasM = (typeWithFlags & 0x40000000) !== 0 || ((typeWithFlags & 0xffff) >= 2000 && (typeWithFlags & 0xffff) < 3000);
+    // Strip Z/M flags. Two encodings in the wild:
+    //   ISO WKB:  base type + 1000*Z + 2000*M + 3000*ZM    (e.g. 1001 = Point Z)
+    //   EWKB:     base type | 0x80000000 (Z) | 0x40000000 (M) | 0x20000000 (SRID)
+    const isEWKB = (typeWithFlags & 0xE0000000) !== 0;
+    const t = isEWKB ? typeWithFlags & 0x0fff : typeWithFlags % 1000 || typeWithFlags;
+    const hasZ = isEWKB
+      ? (typeWithFlags & 0x80000000) !== 0
+      : ((typeWithFlags % 4000) >= 1000 && (typeWithFlags % 4000) < 2000) || typeWithFlags >= 3000;
+    const hasM = isEWKB
+      ? (typeWithFlags & 0x40000000) !== 0
+      : ((typeWithFlags % 4000) >= 2000 && (typeWithFlags % 4000) < 3000) || typeWithFlags >= 3000;
+    const hasSRID = isEWKB && (typeWithFlags & 0x20000000) !== 0;
+    if (hasSRID) p += 4; // skip the SRID int
     const ptStride = 2 + (hasZ ? 1 : 0) + (hasM ? 1 : 0);
     function pt(): [number, number] {
       const x = dv.getFloat64(p, le); p += 8;

@@ -48,6 +48,22 @@ remote_size_of() {
 
 WRANGLER_CAP=$((300 * 1024 * 1024))  # 300 MiB
 
+# Cross-origin links to pub-*.r2.dev ignore the HTML `download` attribute,
+# so we set Content-Disposition: attachment + a sensible Content-Type on
+# every upload. PMTiles is the exception — MapLibre fetches it via Range
+# from the browser, attachment would break the renderer.
+content_type_for() {
+  case "$1" in
+    *.parquet) echo 'application/vnd.apache.parquet' ;;
+    *.geojson) echo 'application/geo+json' ;;
+    *.kml)     echo 'application/vnd.google-earth.kml+xml' ;;
+    *.kmz)     echo 'application/vnd.google-earth.kmz' ;;
+    *.pmtiles) echo 'application/vnd.pmtiles' ;;
+    *.json)    echo 'application/json' ;;
+    *)         echo 'application/octet-stream' ;;
+  esac
+}
+
 put() {
   local local_path="$1" remote_key="$2"
   [ -f "$local_path" ] || { echo "  miss $local_path — skip"; return; }
@@ -63,7 +79,16 @@ put() {
     return
   fi
   printf "  put  %-60s (%s bytes)\n" "$remote_key" "$local_size"
-  $WRANGLER r2 object put "$BUCKET/$remote_key" --file="$local_path" --remote >/dev/null || \
+  local ct fname disp_flag
+  ct=$(content_type_for "$remote_key")
+  fname=$(basename "$remote_key")
+  disp_flag=""
+  case "$remote_key" in
+    *.pmtiles) : ;;
+    *)         disp_flag="--content-disposition=attachment; filename=\"$fname\"" ;;
+  esac
+  $WRANGLER r2 object put "$BUCKET/$remote_key" --file="$local_path" --remote \
+    --content-type="$ct" $disp_flag >/dev/null || \
     printf "  FAIL %-60s\n" "$remote_key"
 }
 

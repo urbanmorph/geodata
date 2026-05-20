@@ -5,16 +5,21 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "node scripts/prerender.mjs && vite build",
-    "preview": "vite preview"
+    "build": "vitest run && node scripts/prerender.mjs && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@duckdb/duckdb-wasm": "^1.33.1-dev45.0",
+    "@tmcw/togeojson": "^5.8.1",
+    "jszip": "^3.10.1",
     "maplibre-gl": "^4.7.1",
     "pmtiles": "^3.2.1"
   },
   "devDependencies": {
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
   }
 }
