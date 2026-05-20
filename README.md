@@ -1,70 +1,107 @@
 # bharatlas
 
 [![ci](https://github.com/urbanmorph/geodata/actions/workflows/ci.yml/badge.svg)](https://github.com/urbanmorph/geodata/actions/workflows/ci.yml)
+[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#status)
 
-Lightweight, open-source visualiser + contribution flow for India's geo data — state, district, sub-district, block, village admin boundaries, plus community-submitted layers under open licences.
+A visual catalog, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences.
 
 **Live**: https://bharatlas.com
+
+```
+catalog          → state · district · subdistrict · block · village (LGD-coded)
+verify           → drop GeoJSON · KML · KMZ · GPX · TCX · Parquet → render + validate
+submit           → contribute under an open licence · anonymous · admin-token model
+view (/c/<id>)   → public page per submission, ▲/▼ vote, JSON-LD indexed
+```
 
 ## What's in this repo
 
 | Path | Contents |
 |---|---|
-| `web/` | Vanilla TypeScript + Vite viewer. Static, hosted on Cloudflare Pages. |
+| `web/` | Vanilla TypeScript + Vite viewer + Cloudflare Pages Functions (`web/functions/`). |
+| `web/migrations/` | D1 SQL migrations: submissions, tokens, ratings, votes, originals. |
+| `web/tests/` | vitest unit tests for pure functions (validators, tokens, view rendering, votes). |
 | `scripts/fetch.sh` | Pulls parquets + PMTiles from [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) releases. |
 | `scripts/extract_per_state.py` | Slices pan-India parquets into per-state GeoJSON via DuckDB-spatial. |
-| `scripts/upload_r2.sh` | Mirrors `sources/` + `data/` to the Cloudflare R2 bucket. |
-| `catalog.json` | Dataset index used by the viewer. Single source of truth. |
-| `REPORT.md` | Coverage report + provenance + caveats for every layer. |
+| `scripts/upload_r2.sh` | Mirrors `sources/` + `data/` to Cloudflare R2. |
+| `scripts/admin/cleanup_submission.sh` | Delete community submissions by name pattern (R2 + D1). |
+| `catalog.json` | Curated-layer index used by the viewer. Single source of truth. |
+| `REPORT.md` | Coverage + provenance + caveats per curated layer. |
 
-Large data files (`sources/`, `data/`) are **not in git** — they live in R2 (`geodata-data` bucket, urbanmorph account). See `scripts/fetch.sh` to rebuild locally.
-
-## Layers
-
-13 admin layers across three providers — LGD (authoritative), SOI, Bhuvan — plus geoBoundaries as a cross-check. Full provenance and caveats in [REPORT.md](./REPORT.md).
-
-LGD codes are the join key. Never join on names.
+Large data files (`sources/`, `data/`) are not in git — they live in R2. See `scripts/fetch.sh` to rebuild locally.
 
 ## Stack
 
-- **Frontend**: vanilla TypeScript, Vite, MapLibre GL JS, PMTiles. Zero framework runtime.
-- **Storage**: Cloudflare R2 for parquets + PMTiles. Zero egress fees.
-- **Hosting**: Cloudflare Pages (static).
-- **Data pipeline**: DuckDB + `spatial` extension.
+| Layer | Tech |
+|---|---|
+| Frontend | Vanilla TypeScript, Vite, MapLibre GL JS, PMTiles, DuckDB-WASM (lazy) |
+| Static hosting | Cloudflare Pages |
+| Edge functions | Cloudflare Pages Functions (`web/functions/`) — submit, vote, sitemap, edge-rendered `/c/<id>` |
+| Storage | Cloudflare R2 (open data, no egress) |
+| Submissions DB | Cloudflare D1 (SQLite at the edge) |
+| Anti-abuse | Cloudflare Turnstile + per-IP rate limits |
+| CI/CD | GitHub Actions — tests + build + auto-deploy on push to `main` |
 
 ## Develop
 
 ```bash
-# pull data (large — ~1.3 GB)
-bash scripts/fetch.sh
-
-# per-state geojson extracts (optional)
-python3 scripts/extract_per_state.py
-
-# viewer
-cd web && npm install && npm run dev
+# clone + viewer-only dev (no submissions, no D1)
+git clone git@github.com:urbanmorph/geodata.git
+cd geodata/web
+npm install
+npm run dev    # http://localhost:5173
+npm test       # 167 vitest tests
 ```
 
-## Deploy
+For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.
+
+## Contributing
+
+1. Branch off `main`: `git checkout -b feat/short-name`
+2. Write a test first if you're adding logic to `web/functions/lib/*`. Pure functions are tested via vitest in `web/tests/`.
+3. Make sure `npm test` and `npm run build` both pass.
+4. Open a PR against `main`. CI runs tests + build automatically.
+5. The maintainer reviews and merges. Merge to main = auto-deploy.
+
+Commit messages: short subject, body explains *why* not *what*. Examples in `git log`.
+
+## Tests
 
 ```bash
-cd web && npm run build
-wrangler pages deploy ./dist --project-name=geodata
+cd web && npm test
 ```
+
+167 tests across validators, token generation, vote tally, render-view HTML, etc. See [`web/tests/`](./web/tests/).
 
 ## Roadmap
 
-- [x] v1 — viewer + parquet downloads
-- [ ] v2 — in-browser slicing (DuckDB-WASM): filter by bbox / polygon, export
-- [ ] v3 — user submissions: drag-drop verify (client-only) + submit for inclusion (moderated)
-- [ ] v4 — side-by-side LGD vs SOI vs Bhuvan compare
+- [x] v1 — pan-India admin layers, parquet + PMTiles downloads
+- [x] v2 — DuckDB-WASM filter & export per state
+- [x] v3 — submission flow: drag-drop verify, anonymous token, auto-moderation, /c/[id] view page, mixed catalog, votes
+- [ ] v4 — public API + MCP server + Claude Code plugin
+
+## Security
+
+Report vulnerabilities to **sathya@urbanmorph.com** instead of opening a public issue. Acknowledgement within 72 hours.
 
 ## Licence
 
-Code: MIT. Data: see each layer's `licence` field in `catalog.json` (LGD upstream is CC-BY-4.0).
+Code: [MIT](./LICENSE). Data: each layer carries its own open licence — see the per-card line on the [catalog](https://bharatlas.com/). Curated data is sourced under CC0-1.0 / CC-BY-4.0 / GODL-India depending on provider.
+
+## Use of data
+
+The platform doesn't warrant accuracy or fitness for any purpose. Boundaries shown are for reference, not legal authority — refer to LGD, SOI, Bhuvan or the state revenue department for official use. Community submissions are auto-moderated, not editorially curated; verify provenance via the source link on each card. See [/about → Use of data](https://bharatlas.com/about#use-of-data).
 
 ## Credits
 
-- [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream parquet + PMTiles publisher
-- [LGD](https://lgdirectory.gov.in/), [SOI](https://surveyofindia.gov.in/), [Bhuvan](https://bhuvan.nrsc.gov.in/) — primary sources
-- [geoBoundaries](https://www.geoboundaries.org/) — cross-check
+- [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream parquet + PMTiles publisher.
+- [LGD](https://lgdirectory.gov.in/), [SOI](https://surveyofindia.gov.in/), [Bhuvan](https://bhuvan.nrsc.gov.in/) — primary government sources.
+- [geoBoundaries](https://www.geoboundaries.org/) — independent cross-check.
+- [mdshare](https://mdshare.dev/) — the anonymous-token contribution pattern lineage.
+
+Built by [Urban Morph](https://urbanmorph.com) · [@sathyasankaran](https://linkedin.com/in/sathyasankaran). Drop a ⭐ if you find it useful.
+
+## Status
+
+**Alpha.** The submission flow is live and accepting contributions, but the schema and API may change before v4. Community submissions are permanent under the open licence the contributor selected.
