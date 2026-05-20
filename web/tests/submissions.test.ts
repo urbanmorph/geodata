@@ -3,6 +3,7 @@ import {
   insertSubmission,
   insertToken,
   findDuplicateByHash,
+  getSubmissionForView,
   type SubmissionRow,
 } from '../functions/lib/submissions';
 
@@ -128,6 +129,11 @@ function fakeD1() {
             }
             return null;
           }
+          if (/SELECT id, created_at[\s\S]*FROM submissions WHERE id =/.test(sql)) {
+            const [id] = args as [string];
+            const s = subs.get(id);
+            return s && s.status === 'accepted' ? s : null;
+          }
           return null;
         },
       };
@@ -229,5 +235,26 @@ describe('findDuplicateByHash', () => {
     await insertSubmission(db as never, { ...baseRow(), id: 'sub1', status: 'rejected' });
     const match = await findDuplicateByHash(db as never, 'a'.repeat(64));
     expect(match).toBeNull();
+  });
+});
+
+describe('getSubmissionForView', () => {
+  it('returns the row for an accepted submission', async () => {
+    const db = fakeD1();
+    await insertSubmission(db as never, { ...baseRow(), id: 'sub1' });
+    const r = await getSubmissionForView(db as never, 'sub1');
+    expect(r?.name).toBe('Mumbai bike lanes');
+    expect(r?.r2_key).toBe('community/abc1234567/file.geojson');
+  });
+
+  it('returns null for a rejected / retracted submission', async () => {
+    const db = fakeD1();
+    await insertSubmission(db as never, { ...baseRow(), id: 'sub1', status: 'rejected' });
+    expect(await getSubmissionForView(db as never, 'sub1')).toBeNull();
+  });
+
+  it('returns null for an unknown id', async () => {
+    const db = fakeD1();
+    expect(await getSubmissionForView(db as never, 'missing')).toBeNull();
   });
 });

@@ -93,3 +93,36 @@ export async function findDuplicateByHash(
     .first()) as { id: string } | null;
   return row?.id ?? null;
 }
+
+export type SubmissionView = {
+  id: string;
+  created_at: string;
+  updated_at: string | null;
+  status: 'accepted';
+  name: string;
+  description: string | null;
+  category: string;
+  license: string;
+  attribution: string;
+  source_url: string;
+  format: string;
+  bytes: number;
+  feature_count: number | null;
+  geometry_types: string | null;
+  r2_key: string;
+};
+
+export async function getSubmissionForView(
+  db: RunnableD1,
+  id: string,
+): Promise<SubmissionView | null> {
+  const row = (await db
+    .prepare(
+      `SELECT id, created_at, updated_at, status, name, description, category, license,
+              attribution, source_url, format, bytes, feature_count, geometry_types, r2_key
+       FROM submissions WHERE id = ? AND status = 'accepted' LIMIT 1`,
+    )
+    .bind(id)
+    .first()) as SubmissionView | null;
+  return row ?? null;
+}
