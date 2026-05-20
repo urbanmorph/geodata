@@ -220,6 +220,58 @@
       .filter-panel__btn:disabled { background: transparent; color: var(--muted); border-color: var(--line); cursor: not-allowed; opacity: .55; }
       .filter-panel__hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
       .filter-panel__status { font-size: 13px; min-height: 18px; }
+
+      /* ───── Mobile (narrow) ───── */
+      @media (max-width: 640px) {
+        /* Filter panel becomes a bottom sheet */
+        .filter-panel {
+          top: auto; left: 0; right: 0; bottom: 0;
+          width: 100%; height: 62vh;
+          border-left: none;
+          border-top: 1px solid var(--line);
+          border-top-left-radius: 14px;
+          border-top-right-radius: 14px;
+          box-shadow: 0 -8px 24px rgba(0,0,0,0.10);
+          animation: filter-slide-up 220ms ease;
+        }
+        @keyframes filter-slide-up { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+        .filter-panel__head {
+          position: relative;
+          padding-top: 18px;
+        }
+        /* Drag-handle affordance */
+        .filter-panel__head::before {
+          content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+          width: 36px; height: 4px; border-radius: 999px; background: var(--line);
+        }
+        /* Three download buttons in a row */
+        .filter-panel__actions {
+          display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px;
+        }
+        .filter-panel__btn {
+          flex-direction: column;
+          align-items: center;
+          gap: 2px;
+          padding: 10px 6px;
+          min-height: 56px;
+        }
+        .filter-panel__btn .muted { font-size: 10px; }
+
+        /* Bigger touch targets in map header */
+        #map-overlay button.close,
+        #map-overlay button.filter-toggle,
+        .filter-panel__close { min-height: 38px; padding-left: 14px; padding-right: 14px; }
+        /* Trim the verbose map title on narrow screens */
+        #map-overlay .map-title {
+          font-size: 12px;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+      }
+
+      /* Touch / no-hover devices: kill the hover popup (it'd flash on tap) */
+      @media (hover: none) {
+        .geo-popup--hover { display: none; }
+      }
       #map { flex: 1; background: var(--bg); position: relative; }
       #map-loading { color: var(--muted); padding: 16px; }
       .map-loader {

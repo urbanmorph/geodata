@@ -154,8 +154,27 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     closeButton: false,
     closeOnClick: false,
     maxWidth: '320px',
-    className: 'geo-popup',
+    className: 'geo-popup geo-popup--hover',
   });
+  // Sticky popup on tap/click — keeps content visible on touch devices.
+  // The hover popup above stays on devices with a real pointer.
+  const tapPopup = new maplibregl.Popup({
+    closeButton: true,
+    closeOnClick: true,
+    maxWidth: '320px',
+    className: 'geo-popup geo-popup--tap',
+  });
+  function buildRows(props: Record<string, unknown> | null | undefined): string {
+    return Object.entries(props || {})
+      .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
+      .slice(0, 10)
+      .map(
+        ([k, v]) =>
+          `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`
+      )
+      .join('');
+  }
+
   let popupId: string | number | undefined;
   map.on('mousemove', 'fill', (e) => {
     map!.getCanvas().style.cursor = 'pointer';
@@ -163,15 +182,7 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     if (!f) return;
     const fid = (f.id as string | number | undefined) ?? f.properties?.OBJECTID ?? f.properties?.vil_lgd;
     if (fid !== popupId) {
-      const rows = Object.entries(f.properties || {})
-        .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
-        .slice(0, 10)
-        .map(
-          ([k, v]) =>
-            `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`
-        )
-        .join('');
-      popup.setHTML(rows);
+      popup.setHTML(buildRows(f.properties));
       popupId = fid;
     }
     popup.setLngLat(e.lngLat).addTo(map!);
@@ -180,6 +191,13 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     map!.getCanvas().style.cursor = '';
     popup.remove();
     popupId = undefined;
+  });
+
+  map.on('click', 'fill', (e) => {
+    const f = e.features?.[0];
+    if (!f) return;
+    popup.remove();
+    tapPopup.setLngLat(e.lngLat).setHTML(buildRows(f.properties)).addTo(map!);
   });
 }
 
@@ -249,6 +267,23 @@ async function wireFilterButton(layer: Layer) {
   );
 }
 
+// Read the filter panel's bounding box and produce a fitBounds padding
+// object so the map fits inside the *uncovered* portion of the viewport.
+function panelAwarePadding(): { top: number; bottom: number; left: number; right: number } {
+  const base = 20;
+  const panel = document.querySelector<HTMLElement>('.filter-panel');
+  if (!panel) return { top: base, bottom: base, left: base, right: base };
+  const r = panel.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  // Bottom sheet: panel is at the bottom and spans most of the viewport width.
+  if (r.bottom >= vh - 1 && r.width >= vw * 0.7) {
+    return { top: base, bottom: base + r.height, left: base, right: base };
+  }
+  // Default: right rail.
+  return { top: base, bottom: base, left: base, right: base + r.width };
+}
+
 // Filter the active layer to a single state and fly the camera to its bounds.
 // Property name varies by parquet (state_lgd vs State_LGD) so we match either.
 function applyStateFilter(
@@ -263,11 +298,9 @@ function applyStateFilter(
   for (const id of ['fill', 'line']) {
     if (map.getLayer(id)) map.setFilter(id, filter as maplibregl.FilterSpecification);
   }
-  // The filter panel overlays the right side of the viewport; compensate so
-  // fitBounds centres the geometry in the *visible* area, not the full canvas.
-  const panel = document.querySelector<HTMLElement>('.filter-panel');
-  const panelWidth = panel ? panel.getBoundingClientRect().width : 0;
-  const padding = { top: 40, bottom: 40, left: 40, right: 40 + panelWidth };
+  // Compute padding from the actual panel rect so fitBounds centres in the
+  // visible area regardless of layout (right-rail desktop, bottom-sheet mobile).
+  const padding = panelAwarePadding();
   if (bounds) {
     map.fitBounds(
       [
