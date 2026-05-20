@@ -49,6 +49,7 @@ function fakeD1() {
               license,
               attribution,
               source_url,
+              is_original,
               format,
               bytes,
               feature_count,
@@ -67,6 +68,7 @@ function fakeD1() {
               string,
               string,
               string,
+              0 | 1,
               string,
               number,
               number | null,
@@ -86,6 +88,7 @@ function fakeD1() {
               license,
               attribution,
               source_url,
+              is_original,
               format,
               bytes,
               feature_count,
@@ -150,6 +153,7 @@ const baseRow = (): SubmissionRow => ({
   license: 'CC-BY-4.0',
   attribution: 'BBMP Open Data Portal',
   source_url: 'https://example.com/data',
+  is_original: 0,
   format: 'geojson',
   bytes: 1024,
   feature_count: 234,
@@ -245,6 +249,15 @@ describe('getSubmissionForView', () => {
     const r = await getSubmissionForView(db as never, 'sub1');
     expect(r?.name).toBe('Mumbai bike lanes');
     expect(r?.r2_key).toBe('community/abc1234567/file.geojson');
+    expect(r?.is_original).toBe(0);
+  });
+
+  it('preserves is_original=1 round-trip', async () => {
+    const db = fakeD1();
+    await insertSubmission(db as never, { ...baseRow(), id: 'sub1', is_original: 1, source_url: 'Hand-digitized in QGIS' });
+    const r = await getSubmissionForView(db as never, 'sub1');
+    expect(r?.is_original).toBe(1);
+    expect(r?.source_url).toBe('Hand-digitized in QGIS');
   });
 
   it('returns null for a rejected / retracted submission', async () => {

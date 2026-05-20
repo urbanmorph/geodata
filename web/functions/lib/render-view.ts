@@ -169,10 +169,15 @@ export function renderViewPage(opts: RenderOpts): string {
     <p class="desc">${esc(description)}</p>
 
     <dl class="kv">
-      <dt>Source</dt>
+      ${s.is_original
+        ? `<dt>Type</dt>
+      <dd>Original work by ${esc(s.attribution)}</dd>${s.source_url ? `
+      <dt>Method</dt>
+      <dd>${esc(s.source_url)}</dd>` : ''}`
+        : `<dt>Source</dt>
       <dd><a href="${esc(s.source_url)}" rel="noopener" target="_blank">${esc(s.source_url)}</a></dd>
       <dt>Attribution</dt>
-      <dd>${esc(s.attribution)}</dd>
+      <dd>${esc(s.attribution)}</dd>`}
       <dt>Licence</dt>
       <dd><a href="${esc(licenseUrl)}" rel="noopener" target="_blank"><code>${esc(s.license)}</code></a></dd>
       <dt>Format</dt>

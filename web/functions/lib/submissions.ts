@@ -11,7 +11,9 @@ export type SubmissionRow = {
   category: string;
   license: string;
   attribution: string;
+  /** http(s) URL when is_original=0; free-text 'method' description when 1. */
   source_url: string;
+  is_original: 0 | 1;
   format: string;
   bytes: number;
   feature_count: number | null;
@@ -26,9 +28,9 @@ export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Prom
   await db
     .prepare(
       `INSERT INTO submissions
-       (id, created_at, status, name, description, category, license, attribution, source_url,
+       (id, created_at, status, name, description, category, license, attribution, source_url, is_original,
         format, bytes, feature_count, geometry_types, content_hash, ip_hash, validation_report, r2_key)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
@@ -40,6 +42,7 @@ export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Prom
       row.license,
       row.attribution,
       row.source_url,
+      row.is_original,
       row.format,
       row.bytes,
       row.feature_count,
@@ -105,6 +108,7 @@ export type SubmissionView = {
   license: string;
   attribution: string;
   source_url: string;
+  is_original: 0 | 1;
   format: string;
   bytes: number;
   feature_count: number | null;
@@ -119,7 +123,7 @@ export async function getSubmissionForView(
   const row = (await db
     .prepare(
       `SELECT id, created_at, updated_at, status, name, description, category, license,
-              attribution, source_url, format, bytes, feature_count, geometry_types, r2_key
+              attribution, source_url, is_original, format, bytes, feature_count, geometry_types, r2_key
        FROM submissions WHERE id = ? AND status = 'accepted' LIMIT 1`,
     )
     .bind(id)

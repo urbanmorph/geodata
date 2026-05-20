@@ -233,14 +233,41 @@ function updateSubmitEnabled(): void {
 form.addEventListener('input', updateSubmitEnabled);
 form.addEventListener('change', updateSubmitEnabled);
 
+// Provenance toggle: switch the Source URL field between strict URL mode
+// (republished) and free-text 'Method' mode (original creator).
+const srcInput = document.getElementById('f-src') as HTMLInputElement;
+const srcLabel = document.getElementById('src-label')!;
+const srcHint = document.getElementById('src-hint')!;
+const srcReq = document.getElementById('src-req')!;
+function applyProvenanceMode(): void {
+  const original = (form.querySelector('input[name="is_original"]:checked') as HTMLInputElement)?.value === '1';
+  if (original) {
+    srcLabel.textContent = 'Method';
+    srcHint.textContent = 'How was this created? e.g. "Hand-digitized in QGIS, Aug 2025" — optional.';
+    srcInput.type = 'text';
+    srcInput.required = false;
+    srcInput.placeholder = 'Hand-digitized in QGIS, GPS traces, …';
+    srcReq.style.display = 'none';
+  } else {
+    srcLabel.textContent = 'Source URL';
+    srcHint.textContent = 'The page where this data was originally published.';
+    srcInput.type = 'url';
+    srcInput.required = true;
+    srcInput.placeholder = 'https://example.gov.in/dataset';
+    srcReq.style.display = '';
+  }
+  updateSubmitEnabled();
+}
+form.querySelectorAll('input[name="is_original"]').forEach((el) => el.addEventListener('change', applyProvenanceMode));
+
 // Normalize the source URL: people type "example.com" or "www.example.com";
 // HTML5 type=url demands a protocol. Prepend https:// on blur so the form
 // becomes valid without lecturing the user.
-const sourceUrlEl = document.getElementById('f-src') as HTMLInputElement;
-sourceUrlEl.addEventListener('blur', () => {
-  const v = sourceUrlEl.value.trim();
+srcInput.addEventListener('blur', () => {
+  if (srcInput.type !== 'url') return;
+  const v = srcInput.value.trim();
   if (v && !/^https?:\/\//i.test(v) && /\./.test(v)) {
-    sourceUrlEl.value = `https://${v}`;
+    srcInput.value = `https://${v}`;
     updateSubmitEnabled();
   }
 });

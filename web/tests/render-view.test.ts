@@ -14,6 +14,7 @@ function row(over: Partial<SubmissionView> = {}): SubmissionView {
     license: 'CC-BY-4.0',
     attribution: 'BBMP Open Data Portal',
     source_url: 'https://example.gov.in/data',
+    is_original: 0,
     format: 'geojson',
     bytes: 1024,
     feature_count: 234,
@@ -103,6 +104,29 @@ describe('renderViewPage', () => {
       embed: true,
     });
     expect(html).not.toContain('<header');
+  });
+
+  it('shows "Original work by …" instead of a Source row when is_original=1', () => {
+    const html = renderViewPage({
+      submission: row({ is_original: 1, attribution: 'Jane Surveyor', source_url: '' }),
+      origin: ORIGIN,
+      ratingsCount: 0,
+      alreadyRated: false,
+    });
+    expect(html).toContain('Original work by');
+    expect(html).toContain('Jane Surveyor');
+    // No source-URL row, no anchor tag pointing at example.gov.in.
+    expect(html).not.toContain('example.gov.in');
+  });
+
+  it('shows a Method row when is_original=1 and source_url has text', () => {
+    const html = renderViewPage({
+      submission: row({ is_original: 1, source_url: 'Hand-digitized in QGIS, Aug 2025' }),
+      origin: ORIGIN,
+      ratingsCount: 0,
+      alreadyRated: false,
+    });
+    expect(html).toMatch(/Method[\s\S]+Hand-digitized in QGIS/);
   });
 
   it('renders feature_count + bytes + format', () => {

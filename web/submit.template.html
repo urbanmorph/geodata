@@ -200,9 +200,21 @@
       </div>
 
       <div class="field">
-        <label for="f-src">Source URL <span class="req">*</span></label>
+        <label>Provenance <span class="req">*</span></label>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:4px">
+          <label style="font-weight:400;display:flex;gap:8px;align-items:center;cursor:pointer">
+            <input type="radio" name="is_original" value="0" checked /> Republished from a public source
+          </label>
+          <label style="font-weight:400;display:flex;gap:8px;align-items:center;cursor:pointer">
+            <input type="radio" name="is_original" value="1" /> Original work (I created this — hand-drawn, surveyed, compiled)
+          </label>
+        </div>
+      </div>
+
+      <div class="field" id="src-field">
+        <label for="f-src"><span id="src-label">Source URL</span> <span class="req" id="src-req">*</span></label>
         <input id="f-src" name="source_url" type="url" required placeholder="https://example.gov.in/dataset" />
-        <div class="hint">The page where this data was originally published.</div>
+        <div class="hint" id="src-hint">The page where this data was originally published.</div>
       </div>
 
       <p class="legal">

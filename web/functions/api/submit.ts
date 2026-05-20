@@ -62,6 +62,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const license = f('license');
   const attribution = f('attribution');
   const sourceUrl = f('source_url');
+  const isOriginal = f('is_original') === '1';
 
   const filename = sanitizeFilename(file.name);
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
@@ -111,6 +112,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       license,
       attribution,
       sourceUrl,
+      isOriginal,
     },
     {
       verifyCaptcha: (t) => verifyTurnstile(t, ctx.env.TURNSTILE_SECRET || ''),
@@ -146,6 +148,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         license,
         attribution,
         source_url: sourceUrl,
+        is_original: isOriginal ? 1 : 0,
         format: ext,
         bytes: file.size,
         feature_count: fc.features.length,

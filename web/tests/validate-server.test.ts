@@ -24,6 +24,7 @@ function input(overrides: Partial<SubmissionInput> = {}): SubmissionInput {
     license: 'CC-BY-4.0',
     attribution: 'BBMP Open Data Portal',
     sourceUrl: 'https://example.com/data',
+    isOriginal: false,
     ...overrides,
   };
 }
@@ -135,6 +136,44 @@ describe('validateSubmission — hard reject gates', () => {
     const r = await validateSubmission(input({ filename: 'bad\x00name.geojson' }), deps());
     expect(r.accept).toBe(false);
     if (!r.accept) expect(r.reason).toMatch(/filename/i);
+  });
+});
+
+describe('validateSubmission — original-creator path', () => {
+  it('accepts an original-creator submission with no source URL', async () => {
+    const r = await validateSubmission(input({ isOriginal: true, sourceUrl: '' }), deps());
+    expect(r.accept).toBe(true);
+  });
+
+  it('accepts a free-text "method" string when original', async () => {
+    const r = await validateSubmission(
+      input({ isOriginal: true, sourceUrl: 'Hand-digitized in QGIS, Aug 2025' }),
+      deps(),
+    );
+    expect(r.accept).toBe(true);
+  });
+
+  it('still rejects when not original and source URL is missing', async () => {
+    const r = await validateSubmission(input({ isOriginal: false, sourceUrl: '' }), deps());
+    expect(r.accept).toBe(false);
+    if (!r.accept) expect(r.reason).toMatch(/source/i);
+  });
+
+  it('still rejects when not original and source URL is non-http', async () => {
+    const r = await validateSubmission(
+      input({ isOriginal: false, sourceUrl: 'javascript:alert(1)' }),
+      deps(),
+    );
+    expect(r.accept).toBe(false);
+  });
+
+  it('rejects an over-long method string', async () => {
+    const r = await validateSubmission(
+      input({ isOriginal: true, sourceUrl: 'x'.repeat(600) }),
+      deps(),
+    );
+    expect(r.accept).toBe(false);
+    if (!r.accept) expect(r.reason).toMatch(/method/i);
   });
 });
 

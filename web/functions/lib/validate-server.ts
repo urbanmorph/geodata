@@ -18,7 +18,10 @@ export type SubmissionInput = {
   category: string;
   license: string;
   attribution: string;
+  /** When isOriginal=false, sourceUrl must be http/https. When true, free
+   *  text 'method' string (optional, ≤500 chars). */
   sourceUrl: string;
+  isOriginal: boolean;
 };
 
 export type GateResult = {
@@ -135,18 +138,27 @@ export async function validateSubmission(
   }
   report.attribution = { ok: true };
 
-  let sourceOk = false;
-  try {
-    const u = new URL(input.sourceUrl);
-    sourceOk = u.protocol === 'http:' || u.protocol === 'https:';
-  } catch {
-    sourceOk = false;
+  if (input.isOriginal) {
+    // Original work: sourceUrl is free-text 'method'. Optional, length-capped.
+    if (input.sourceUrl && input.sourceUrl.length > 500) {
+      report.sourceUrl = { ok: false };
+      return reject(report, 'sourceUrl', 'method description too long (max 500 chars)');
+    }
+    report.sourceUrl = { ok: true, info: { mode: 'original' } };
+  } else {
+    let sourceOk = false;
+    try {
+      const u = new URL(input.sourceUrl);
+      sourceOk = u.protocol === 'http:' || u.protocol === 'https:';
+    } catch {
+      sourceOk = false;
+    }
+    if (!sourceOk) {
+      report.sourceUrl = { ok: false };
+      return reject(report, 'sourceUrl', 'source URL invalid');
+    }
+    report.sourceUrl = { ok: true };
   }
-  if (!sourceOk) {
-    report.sourceUrl = { ok: false };
-    return reject(report, 'sourceUrl', 'source URL invalid');
-  }
-  report.sourceUrl = { ok: true };
 
   const declared = detectCRS(input.rawJson);
   if (declared && !OK_CRS.has(declared)) {
