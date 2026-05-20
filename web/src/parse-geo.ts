@@ -2,10 +2,10 @@
 // Lazy-loads heavy deps (JSZip for KMZ, DuckDB for Parquet) so the cost
 // only lands when a user actually drops that format.
 
-import { kml as kmlToGeoJSON } from '@tmcw/togeojson';
+import { kml as kmlToGeoJSON, gpx as gpxToGeoJSON, tcx as tcxToGeoJSON } from '@tmcw/togeojson';
 import { normaliseFC, type FC } from './validate';
 
-export type Format = 'geojson' | 'json' | 'kml' | 'kmz' | 'parquet';
+export type Format = 'geojson' | 'json' | 'kml' | 'kmz' | 'gpx' | 'tcx' | 'parquet';
 
 export type ParsePhase = 'parsing' | 'unzipping' | 'duckdb';
 export type ParseOpts = { onPhase?: (p: ParsePhase) => void };
@@ -23,6 +23,18 @@ export async function fileToFC(file: File, opts: ParseOpts = {}): Promise<{ fc: 
     opts.onPhase?.('parsing');
     const xml = new DOMParser().parseFromString(await file.text(), 'text/xml');
     return { fc: kmlToGeoJSON(xml) as FC, format: 'kml' };
+  }
+
+  if (name.endsWith('.gpx')) {
+    opts.onPhase?.('parsing');
+    const xml = new DOMParser().parseFromString(await file.text(), 'text/xml');
+    return { fc: gpxToGeoJSON(xml) as FC, format: 'gpx' };
+  }
+
+  if (name.endsWith('.tcx')) {
+    opts.onPhase?.('parsing');
+    const xml = new DOMParser().parseFromString(await file.text(), 'text/xml');
+    return { fc: tcxToGeoJSON(xml) as FC, format: 'tcx' };
   }
 
   if (name.endsWith('.kmz')) {
@@ -64,5 +76,5 @@ export async function fileToFC(file: File, opts: ParseOpts = {}): Promise<{ fc: 
     }
   }
 
-  throw new Error('Unsupported file type. Accepts: .geojson, .json, .kml, .kmz, .parquet');
+  throw new Error('Unsupported file type. Accepts: .geojson, .json, .kml, .kmz, .gpx, .tcx, .parquet');
 }

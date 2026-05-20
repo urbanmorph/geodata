@@ -37,6 +37,8 @@ const contentTypeFor = (ext: string): string => {
   if (ext === 'geojson' || ext === 'json') return 'application/geo+json';
   if (ext === 'kml') return 'application/vnd.google-earth.kml+xml';
   if (ext === 'kmz') return 'application/vnd.google-earth.kmz';
+  if (ext === 'gpx') return 'application/gpx+xml';
+  if (ext === 'tcx') return 'application/vnd.garmin.tcx+xml';
   if (ext === 'parquet') return 'application/x-parquet';
   return 'application/octet-stream';
 };
@@ -63,7 +65,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   const filename = sanitizeFilename(file.name);
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
-  const ALLOWED = new Set(['geojson', 'json', 'kml', 'kmz', 'parquet']);
+  const ALLOWED = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
   if (!ALLOWED.has(ext)) {
     return j(415, {
       error: `unsupported file extension .${ext} — accepts: ${[...ALLOWED].join(', ')}`,

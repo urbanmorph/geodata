@@ -41,7 +41,7 @@ export type ValidationDeps = {
 };
 
 const MAX_BYTES = 500 * 1024 * 1024;
-const VALID_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'kmz', 'parquet']);
+const VALID_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
 const MIN_NAME = 3;
 const MAX_NAME = 120;
 const MIN_ATTRIB = 3;
