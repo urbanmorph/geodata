@@ -547,7 +547,7 @@ function renderCategorySection(cat) {
         ${rowsHtml}
         ${commHtml}
       </div>
-      <a href="/verify" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
+      <a href="/preview?category=${esc(cat)}" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
     </section>`;
 }
 
@@ -605,36 +605,22 @@ await renderPage('about', {
   },
 }, { ATTR_LINKS: attrLinks });
 
-await renderPage('verify', {
-  title: 'Verify · drop a geo file',
-  description: 'Drag-drop a GeoJSON, KML, KMZ, GPX, TCX or Parquet file to render it on a map and check CRS, geometry validity, properties — all in your browser, nothing uploaded.',
-  url: ORIGIN + '/verify',
-  structuredData: {
-    '@context': 'https://schema.org',
-    '@type': 'WebApplication',
-    name: 'geodata · verify',
-    url: ORIGIN + '/verify',
-    applicationCategory: 'UtilityApplication',
-    operatingSystem: 'Web',
-  },
-});
-
 // Turnstile site key — Cloudflare's test key (always passes) when no env override.
 // In production, set TURNSTILE_SITEKEY in the deploy environment.
 const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY || '1x00000000000000000000AA';
 
 await renderPage(
-  'submit',
+  'preview',
   {
-    title: 'Submit · contribute a geo layer',
+    title: 'Preview · view, verify, or publish a geo file',
     description:
-      "Submit your own geo content to India's open atlas under an open licence — no signup, no email. Get a shareable URL and admin token in seconds.",
-    url: ORIGIN + '/submit',
+      "Drop a GeoJSON, KML, KMZ, GPX or Parquet file to render it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence — no signup, no email.",
+    url: ORIGIN + '/preview',
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',
-      name: 'geodata · submit',
-      url: ORIGIN + '/submit',
+      name: 'geodata · preview',
+      url: ORIGIN + '/preview',
       applicationCategory: 'UtilityApplication',
       operatingSystem: 'Web',
     },
@@ -646,8 +632,7 @@ await renderPage(
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
-  { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.7' },
-  { loc: ORIGIN + '/submit', changefreq: 'monthly', priority: '0.6' },
+  { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

@@ -19,8 +19,7 @@ function prerenderPlugin(): Plugin {
       const watched = [
         resolve(server.config.root, 'index.template.html'),
         resolve(server.config.root, 'about.template.html'),
-        resolve(server.config.root, 'verify.template.html'),
-        resolve(server.config.root, 'submit.template.html'),
+        resolve(server.config.root, 'preview.template.html'),
         resolve(server.config.root, '..', 'catalog.json'),
       ];
       watched.forEach((f) => server.watcher.add(f));
@@ -41,10 +40,14 @@ export default defineConfig({
   // on 8788. /api/* are Pages Functions (D1, R2, Turnstile). /c/<id> is the
   // edge-rendered view page. Start wrangler with:
   //   wrangler pages dev dist/ --port=8788
+  //
+  // IMPORTANT: prefix patterns are MATCHED BY STRING.startsWith — '/c' alone
+  // catches '/contribute', '/catalog', etc. Anchor with a trailing slash and
+  // use a regex if needed.
   server: {
     proxy: {
       '/api': 'http://localhost:8788',
-      '/c': 'http://localhost:8788',
+      '^/c/.+': 'http://localhost:8788',
     },
   },
   build: {
@@ -54,8 +57,7 @@ export default defineConfig({
       input: {
         main: resolve(__dirname, 'index.html'),
         about: resolve(__dirname, 'about.html'),
-        verify: resolve(__dirname, 'verify.html'),
-        submit: resolve(__dirname, 'submit.html'),
+        preview: resolve(__dirname, 'preview.html'),
       },
       output: {
         manualChunks(id) {

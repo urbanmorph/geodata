@@ -70,7 +70,7 @@ const after = await page.evaluate(() => {
 });
 log('  state:', after);
 
-if (after.url.endsWith('/verify')) {
+if (after.url.endsWith('/preview')) {
   log('--- step 4: on /verify, wait for handle() to fire ---');
   await page.waitForTimeout(3000);
   const verifyState = await page.evaluate(() => ({

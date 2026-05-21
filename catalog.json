@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-21T10:38:39.682110+00:00",
+  "generated": "2026-05-21T14:19:21.399402+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -535,33 +535,6 @@
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:31:17.416707+00:00",
       "notes": "State legislative assembly constituencies. Polygons keyed by ST_CODE."
-    },
-    {
-      "id": "datagov_pincodes",
-      "level": "pincode",
-      "source": "data.gov.in",
-      "rows": null,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
-        "bytes": 19819662
-      },
-      "pmtiles": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "Open Government Data (India)",
-          "url": "https://data.gov.in/"
-        },
-        "publisher": {
-          "name": "yashveeeeeeer/india-geodata",
-          "url": "https://github.com/yashveeeeeeer/india-geodata"
-        }
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": "2026-05-21T10:31:23.647145+00:00",
-      "notes": "Pincode polygons from data.gov.in. Polygon download only \u2014 no PMTiles yet."
     },
     {
       "id": "gs_wildlife",

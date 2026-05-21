@@ -106,8 +106,9 @@ LAYERS = [
     ('lgd_parliament',     'parliament_constituency', 'LGD', 'LGD_Parliament_Constituencies.parquet', 'LGD_Parliament_Constituencies.pmtiles', 543,  LIC_BELOW, 'Lok Sabha constituencies — 543 polygons covering the entire country. Latest delimitation.'),
     ('lgd_assembly',       'assembly_constituency',   'LGD', 'LGD_Assembly_Constituencies.parquet',   'LGD_Assembly_Constituencies.pmtiles',   None, LIC_BELOW, 'State legislative assembly constituencies. Polygons keyed by ST_CODE.'),
 
-    # Postal
-    ('datagov_pincodes',   'pincode',     'data.gov.in', 'Datagov_Pincode_Boundaries.parquet', None,             None,    LIC_BELOW, 'Pincode polygons from data.gov.in. Polygon download only — no PMTiles yet.'),
+    # Postal — pincodes deferred: data.gov.in ships only parquet, no PMTiles,
+    # so the "View map" button reads "no map" and the row looks broken on the
+    # home page. Re-add once we generate vector tiles for the 19k polygons.
 
     # Environment
     ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', None, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
