@@ -26,6 +26,7 @@ PATHS=(
   "admin/blocks/bhuvan_blocks.parquet"
   "admin/blocks/PMGSY_Blocks.parquet"
   "admin/habitations/PMGSY_Masterdata.csv"
+  "admin/panchayats/LGD_panchayats.parquet"
   "admin/villages/LGD_Villages.parquet"
   "admin/villages/SOI_VILLAGE_POINT.parquet"
 
@@ -34,13 +35,13 @@ PATHS=(
   "admin/districts/LGD_Districts.pmtiles"
   "admin/subdistricts/LGD_Subdistricts.pmtiles"
   "admin/blocks/LGD_Blocks.pmtiles"
+  "admin/panchayats/LGD_Panchayats.pmtiles"
   "admin/villages/LGD_Villages.pmtiles"
 
   # large optional:
   # "admin/villages/SOI_villages.parquet"          # 602 MB
   # "admin/villages/bhuvan_villages.parquet"       # 792 MB
-  # "admin/panchayats/LGD_panchayats.parquet"      # 368 MB
-  # "admin/panchayats/bhuvan_panchayats.parquet"   # 629 MB
+  # "admin/panchayats/bhuvan_panchayats.parquet"   # 629 MB — 2nd source for panchayats; LGD is authoritative
 )
 
 for p in "${PATHS[@]}"; do

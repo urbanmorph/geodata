@@ -125,13 +125,18 @@ const LEVEL_META = {
     unit: 'community-development blocks',
     description: 'Community-development blocks. The administrative unit that groups villages.',
   },
+  panchayat: {
+    label: 'Gram Panchayats',
+    unit: 'gram panchayats',
+    description: 'Village-level local governance units. The constitutional tier below block, above village. 319k polygons.',
+  },
   village: {
     label: 'Villages',
     unit: 'villages',
     description: 'Every revenue village in India. The finest admin polygon — 584k of them.',
   },
 };
-const LEVEL_ORDER = ['state', 'district', 'subdistrict', 'block', 'village'];
+const LEVEL_ORDER = ['state', 'district', 'subdistrict', 'block', 'panchayat', 'village'];
 
 // Pick the primary layer for each level. LGD is canonical wherever it exists.
 function pickPrimary(layers) {

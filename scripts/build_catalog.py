@@ -20,7 +20,8 @@ LEVELS = {
     'district':    {'order': 2, 'plural': 'districts'},
     'subdistrict': {'order': 3, 'plural': 'subdistricts'},
     'block':       {'order': 4, 'plural': 'blocks'},
-    'village':     {'order': 5, 'plural': 'villages'},
+    'panchayat':   {'order': 5, 'plural': 'panchayats'},
+    'village':     {'order': 6, 'plural': 'villages'},
 }
 
 # Licences per upstream (yashveeeeeeer/india-geodata): states/districts are
@@ -80,6 +81,8 @@ LAYERS = [
     ('lgd_blocks',         'block',       'LGD',    'LGD_Blocks.parquet',         'LGD_Blocks.pmtiles',         7146,    LIC_BELOW,      'Authoritative. Full code chain.'),
     ('bhuvan_blocks',      'block',       'Bhuvan', 'bhuvan_blocks.parquet',      None,                          6393,    LIC_BELOW,      'Bhuvan. Predates recent re-divisions in several states.'),
     ('pmgsy_blocks',       'block',       'PMGSY',  'PMGSY_Blocks.parquet',       None,                          6637,    LIC_BELOW,      'PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage).'),
+
+    ('lgd_panchayats',     'panchayat',   'LGD',    'LGD_panchayats.parquet',     'LGD_Panchayats.pmtiles',     319287,  LIC_BELOW,      'Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom.'),
 
     ('lgd_villages',       'village',     'LGD',    'LGD_Villages.parquet',       'LGD_Villages.pmtiles',       584615,  LIC_BELOW,      'Authoritative. 584k polygons. Use vector tiles to render.'),
     ('soi_village_points', 'village',     'SOI',    'SOI_VILLAGE_POINT.parquet',  None,                          None,    LIC_BELOW,      'SoI village centroids (point geometry).'),
