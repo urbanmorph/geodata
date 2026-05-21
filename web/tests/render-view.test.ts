@@ -42,7 +42,8 @@ describe('renderViewPage', () => {
   it('emits OG + Twitter meta tags', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
     expect(html).toMatch(/property="og:title" content="Mumbai bike lanes"/);
-    expect(html).toMatch(/name="twitter:card" content="summary"/);
+    // summary_large_image gives a hero card layout in Twitter/Slack/etc.
+    expect(html).toMatch(/name="twitter:card" content="summary_large_image"/);
   });
 
   it('emits a Dataset JSON-LD block with the right shape', () => {
@@ -137,5 +138,21 @@ describe('renderViewPage', () => {
     expect(html).toContain('234');
     expect(html).toContain('MB');
     expect(html).toContain('geojson');
+  });
+});
+
+describe('renderViewPage — OG/Twitter image meta (v4.0.1 fix)', () => {
+  it('emits og:image pointing at the bharatlas social card', () => {
+    // Pre-fix the view page had og:title + og:description but NO og:image —
+    // so shared submission links rendered with no hero in Slack/Twitter/etc.
+    // Default to /og-default.png until per-submission rendering lands.
+    const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
+    expect(html).toMatch(/<meta property="og:image" content="https:\/\/bharatlas\.com\/og-default\.png"/);
+    expect(html).toMatch(/<meta name="twitter:image" content="https:\/\/bharatlas\.com\/og-default\.png"/);
+  });
+
+  it('uses twitter:card=summary_large_image (hero card, not thumbnail)', () => {
+    const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
+    expect(html).toMatch(/<meta name="twitter:card" content="summary_large_image"/);
   });
 });
