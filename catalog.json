@@ -1,28 +1,74 @@
 {
   "version": 1,
-  "generated": "2026-05-20T08:45:57.098467+00:00",
+  "generated": "2026-05-21T10:38:39.682110+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
     "state": {
       "order": 1,
-      "plural": "states"
+      "plural": "states",
+      "path": "admin/states",
+      "category": "administrative"
     },
     "district": {
       "order": 2,
-      "plural": "districts"
+      "plural": "districts",
+      "path": "admin/districts",
+      "category": "administrative"
     },
     "subdistrict": {
       "order": 3,
-      "plural": "subdistricts"
+      "plural": "subdistricts",
+      "path": "admin/subdistricts",
+      "category": "administrative"
     },
     "block": {
       "order": 4,
-      "plural": "blocks"
+      "plural": "blocks",
+      "path": "admin/blocks",
+      "category": "administrative"
+    },
+    "panchayat": {
+      "order": 5,
+      "plural": "panchayats",
+      "path": "admin/panchayats",
+      "category": "administrative"
     },
     "village": {
-      "order": 5,
-      "plural": "villages"
+      "order": 6,
+      "plural": "villages",
+      "path": "admin/villages",
+      "category": "administrative"
+    },
+    "parliament_constituency": {
+      "order": 10,
+      "plural": "parliament constituencies",
+      "path": "electoral/constituencies",
+      "category": "people"
+    },
+    "assembly_constituency": {
+      "order": 11,
+      "plural": "assembly constituencies",
+      "path": "electoral/constituencies",
+      "category": "people"
+    },
+    "pincode": {
+      "order": 20,
+      "plural": "pin codes",
+      "path": "postal/boundaries",
+      "category": "infrastructure"
+    },
+    "wildlife": {
+      "order": 30,
+      "plural": "wildlife sanctuaries + national parks",
+      "path": "environment/forests",
+      "category": "environment"
+    },
+    "eco_zone": {
+      "order": 31,
+      "plural": "eco-sensitive zones",
+      "path": "environment/forests",
+      "category": "environment"
     }
   },
   "layers": [
@@ -320,7 +366,7 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/PMGSY_Blocks.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/PMGSY_Blocks.parquet",
-        "bytes": 126995132
+        "bytes": 182298315
       },
       "pmtiles": null,
       "licence": "CC0-1.0",
@@ -336,8 +382,39 @@
       },
       "category": "administrative",
       "provenance": "curated",
-      "fetched_at": "2026-05-19T07:59:50.956824+00:00",
-      "notes": "PMGSY rural roads blocks. IDs only \u2014 no names."
+      "fetched_at": "2026-05-21T10:07:38.268872+00:00",
+      "notes": "PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage)."
+    },
+    {
+      "id": "lgd_panchayats",
+      "level": "panchayat",
+      "source": "LGD",
+      "rows": 319287,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/panchayats/LGD_panchayats.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/panchayats/LGD_panchayats.parquet",
+        "bytes": 368147580
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/panchayats/LGD_Panchayats.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/panchayats/LGD_Panchayats.pmtiles",
+        "bytes": 189994168
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-21T10:12:19.703241+00:00",
+      "notes": "Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom."
     },
     {
       "id": "lgd_villages",
@@ -396,6 +473,157 @@
       "provenance": "curated",
       "fetched_at": "2026-04-26T13:01:32.132923+00:00",
       "notes": "SoI village centroids (point geometry)."
+    },
+    {
+      "id": "lgd_parliament",
+      "level": "parliament_constituency",
+      "source": "LGD",
+      "rows": 543,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Parliament_Constituencies.parquet",
+        "bytes": 21059109
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Parliament_Constituencies.pmtiles",
+        "bytes": 10788391
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "people",
+      "provenance": "curated",
+      "fetched_at": "2026-05-21T10:31:10.501660+00:00",
+      "notes": "Lok Sabha constituencies \u2014 543 polygons covering the entire country. Latest delimitation."
+    },
+    {
+      "id": "lgd_assembly",
+      "level": "assembly_constituency",
+      "source": "LGD",
+      "rows": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Assembly_Constituencies.parquet",
+        "bytes": 39602105
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Assembly_Constituencies.pmtiles",
+        "bytes": 24419884
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Local Government Directory",
+          "url": "https://lgdirectory.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "people",
+      "provenance": "curated",
+      "fetched_at": "2026-05-21T10:31:17.416707+00:00",
+      "notes": "State legislative assembly constituencies. Polygons keyed by ST_CODE."
+    },
+    {
+      "id": "datagov_pincodes",
+      "level": "pincode",
+      "source": "data.gov.in",
+      "rows": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
+        "bytes": 19819662
+      },
+      "pmtiles": null,
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Open Government Data (India)",
+          "url": "https://data.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": "2026-05-21T10:31:23.647145+00:00",
+      "notes": "Pincode polygons from data.gov.in. Polygon download only \u2014 no PMTiles yet."
+    },
+    {
+      "id": "gs_wildlife",
+      "level": "wildlife",
+      "source": "GatiShakti",
+      "rows": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet",
+        "bytes": 21065283
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles",
+        "bytes": 9352459
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "PM GatiShakti",
+          "url": "https://gis.pmgatishakti.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "fetched_at": "2026-05-21T10:31:25.155789+00:00",
+      "notes": "Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal."
+    },
+    {
+      "id": "bm_eco_zones",
+      "level": "eco_zone",
+      "source": "Bharatmaps",
+      "rows": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet",
+        "bytes": 2220376
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles",
+        "bytes": 1102704
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bharatmaps (NIC)",
+          "url": "https://bharatmaps.gov.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "fetched_at": "2026-05-21T10:31:28.506039+00:00",
+      "notes": "Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps."
     },
     {
       "id": "gb_adm1",
@@ -594,7 +822,10 @@
     "administrative": "Administrative",
     "people": "People & places",
     "environment": "Environment",
-    "infrastructure": "Infrastructure",
+    "agriculture": "Agriculture & land use",
+    "transport": "Transport & mobility",
+    "infrastructure": "Infrastructure & utilities",
+    "culture": "Culture & heritage",
     "health-edu": "Health & education",
     "other": "Other"
   },
@@ -3066,6 +3297,18 @@
     "geoBoundaries": {
       "name": "geoBoundaries",
       "url": "https://www.geoboundaries.org/"
+    },
+    "data.gov.in": {
+      "name": "Open Government Data (India)",
+      "url": "https://data.gov.in/"
+    },
+    "GatiShakti": {
+      "name": "PM GatiShakti",
+      "url": "https://gis.pmgatishakti.gov.in/"
+    },
+    "Bharatmaps": {
+      "name": "Bharatmaps (NIC)",
+      "url": "https://bharatmaps.gov.in/"
     },
     "_publisher": {
       "name": "yashveeeeeeer/india-geodata",

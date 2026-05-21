@@ -17,12 +17,14 @@ import { escapeHtml } from './util';
 import { validate, normaliseFC, INDIA_BBOX, type FC, type Report } from './validate';
 import {
   inlineLoader,
+  overlayLoader,
   VERBS_VERIFY,
   VERBS_VERIFY_KMZ,
   VERBS_VERIFY_PARQUET,
   VERBS_VERIFY_FETCH,
+  VERBS_VERIFY_RENDER,
 } from './loading';
-import { stashForSubmit } from './handoff';
+import { stashForSubmit, popHandoff } from './handoff';
 const BASE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
@@ -180,15 +182,17 @@ function renderOnMap(fc: FC, bbox: Report['bbox']) {
 async function handle(file: File) {
   dropEl.classList.remove('dragover');
   sidebar.innerHTML = '';
-  const loader = inlineLoader(sidebar, VERBS_VERIFY);
+  const sideLoader = inlineLoader(sidebar, VERBS_VERIFY);
+  const mapEl = document.getElementById('map')!;
+  let mapLoader: ReturnType<typeof overlayLoader> | null = null;
   try {
     const raw =
       file.size < 20_000_000 && /\.(json|geojson)$/i.test(file.name)
         ? JSON.parse(await file.text())
         : undefined;
-    const { fc, format } = await fileToFC(file, loader);
+    const { fc, format } = await fileToFC(file, sideLoader);
     const report = validate(fc, raw);
-    loader.dismiss();
+    sideLoader.dismiss();
     const errsBlock = report.invalid > 0 || (report.crs && !/(4326|CRS84)/i.test(report.crs));
     sidebar.innerHTML = renderReport(report, format, file) +
       (errsBlock
@@ -196,6 +200,23 @@ async function handle(file: File) {
         : `<div class="cta-row" style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)">
              <button id="submit-this" type="button" style="background:var(--accent);color:#fff;border:0;padding:8px 14px;border-radius:6px;font:inherit;font-weight:500;cursor:pointer">Submit this to the catalog →</button>
            </div>`);
+    // Big datasets take a noticeable beat to tile + render after addSource;
+    // hold a verb-spinner on the map area until our source is loaded.
+    // Listen on `sourcedata` filtered to our source id (no race vs idle), and
+    // wire a 4s safety net so a quirky basemap can't strand the spinner.
+    mapLoader = overlayLoader(mapEl, VERBS_VERIFY_RENDER);
+    let dismissed = false;
+    const dismissMap = () => {
+      if (dismissed) return;
+      dismissed = true;
+      map.off('sourcedata', onSourceData);
+      mapLoader?.dismiss();
+    };
+    const onSourceData = (e: maplibregl.MapSourceDataEvent) => {
+      if (e.sourceId === 'v' && e.isSourceLoaded) dismissMap();
+    };
+    map.on('sourcedata', onSourceData);
+    setTimeout(dismissMap, 4000);
     renderOnMap(fc, report.bbox);
     document.getElementById('submit-this')?.addEventListener('click', async () => {
       try {
@@ -206,7 +227,8 @@ async function handle(file: File) {
       }
     });
   } catch (e) {
-    loader.dismiss();
+    sideLoader.dismiss();
+    mapLoader?.dismiss();
     sidebar.innerHTML = `<div class="error">${escapeHtml((e as Error).message)}</div>`;
   }
 }
@@ -232,6 +254,44 @@ window.addEventListener('drop', (e) => {
   const f = e.dataTransfer?.files?.[0];
   if (f) handle(f);
 });
+
+// File handed off from the home-page drag-anywhere → auto-verify on load.
+//
+// Three race-resistant paths to popAndRender; `popTriggered` guards against
+// double-fire. The diagnostic breadcrumbs and the 200 ms fallback are both
+// load-bearing — removing either has intermittently broken the handoff in
+// real browsers (works in headless e2e, breaks in actual Chrome). The exact
+// browser-side mechanism is murky (Vite HMR cache? MapLibre microtask
+// ordering?) but the pattern reproduces. If you want to clean this up, soak
+// the alternative against the e2e suite under scripts/e2e/ + a real-browser
+// hard-reload-incognito flow with both small and large files first.
+console.log(
+  '[verify] init · styleLoaded:', map.isStyleLoaded(),
+  '· mapLoaded:', map.loaded(),
+  '· sessionStorage:', sessionStorage.getItem('geodata:handoff'),
+);
+
+let popTriggered = false;
+const popAndRender = async (src: string) => {
+  if (popTriggered) return;
+  popTriggered = true;
+  console.log('[verify] popAndRender via:', src);
+  try {
+    const f = await popHandoff();
+    console.log('[verify] popHandoff →', f && { name: f.name, size: f.size, type: f.type });
+    if (f) handle(f);
+    else console.log('[verify] no handoff file — idle');
+  } catch (err) {
+    console.error('[verify] handoff pop failed', err);
+  }
+};
+
+if (map.isStyleLoaded()) {
+  popAndRender('isStyleLoaded');
+} else {
+  map.once('load', () => popAndRender('load-event'));
+}
+setTimeout(() => popAndRender('200ms-fallback'), 200);
 
 // URL state: ?url=https://example.com/file.geojson
 const urlParam = new URLSearchParams(location.search).get('url');

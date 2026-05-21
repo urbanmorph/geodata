@@ -15,52 +15,64 @@
       <!-- TOKENS -->
       :root { --card-bg: var(--bg-card); --row-hover: var(--bg-card); }
       body { max-width: 880px; margin: 0 auto; padding: 48px 24px 64px; }
-      .lede { color: var(--muted); margin: 0 0 var(--sp-7); max-width: 640px; font-size: var(--fs-base); }
 
-      .catalog-controls { margin: 8px 0 16px; }
-      .community-section { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
-      .community-section h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; letter-spacing: -.01em; }
-      .community-section .lede-line { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
-      .sort-toggle { display: inline-flex; gap: 4px; background: var(--card-bg); border: 1px solid var(--line); border-radius: 6px; padding: 2px; margin-bottom: 14px; }
-      .sort-toggle button { background: transparent; border: 0; padding: 6px 12px; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; border-radius: 4px; }
-      .sort-toggle button.active { background: var(--bg); color: var(--fg); font-weight: 500; }
-      .comm-grid { display: grid; gap: 12px; }
-      .comm-card { background: var(--card-bg); border-left: 3px solid var(--warn); padding: 14px 16px; border-radius: 6px; }
-      .comm-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-      .comm-card__title { font-weight: 600; font-size: 15px; }
-      .comm-card__title a { color: inherit; text-decoration: none; }
-      .comm-card__title a:hover { color: var(--accent); }
-      .comm-card__title .badge { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; padding: 1px 6px; border-radius: 3px; background: color-mix(in srgb, var(--warn) 18%, transparent); color: var(--warn); margin-left: 6px; }
-      .comm-card__score { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: 13px; }
-      .comm-card__score .up { color: var(--accent); }
-      .comm-card__score .down { color: #d23434; }
-      .comm-card__desc { color: var(--muted); font-size: 13px; margin: 6px 0 8px; }
-      .comm-card__meta { color: var(--muted); font-size: 12px; }
-      .comm-card__meta a { color: var(--muted); }
-      .comm-empty { color: var(--muted); font-size: 13px; padding: 14px 0; }
-      .catalog-search {
-        width: 100%;
-        font: 14px ui-sans-serif, system-ui, sans-serif;
+      .hero { text-align: center; margin: 32px 0 28px; }
+      .hero__title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 10px; }
+      .hero__sub { color: var(--muted); margin: 0 auto; max-width: 560px; font-size: 14px; line-height: 1.55; }
+      .hero__sub a { color: var(--fg); }
+
+      .search-bar {
+        display: flex; align-items: center; gap: 8px;
+        max-width: 640px; margin: 0 auto;
         padding: 10px 14px;
-        border: 1px solid var(--line);
-        border-radius: 8px;
         background: var(--bg);
-        color: var(--fg);
-        transition: border-color 140ms ease;
+        border: 2px solid var(--line);
+        border-radius: 14px;
+        transition: border-color 140ms ease, box-shadow 140ms ease;
       }
-      .catalog-search:focus {
-        outline: none;
+      .search-bar:focus-within {
         border-color: var(--accent);
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
       }
+      .search-bar__icon { font-size: 16px; opacity: .55; user-select: none; }
+      .catalog-search {
+        flex: 1; min-width: 0;
+        font: 16px ui-sans-serif, system-ui, sans-serif;
+        padding: 6px 4px;
+        border: none; outline: none; background: transparent; color: var(--fg);
+      }
+      .catalog-search::placeholder { color: var(--muted); }
+      .search-bar__attach {
+        display: inline-flex; align-items: center; justify-content: center;
+        width: 34px; height: 34px;
+        font-size: 17px;
+        color: var(--muted); text-decoration: none;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        transition: all 140ms ease;
+        cursor: pointer;
+      }
+      .search-bar__attach:hover { color: var(--accent); border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+      .search-meta {
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+        margin: 8px 0 24px;
+        min-height: 18px;
+      }
+      .search-meta a { color: var(--accent); text-decoration: none; border-bottom: 1px dashed currentColor; }
+      .search-meta a:hover { border-bottom-style: solid; }
+
       .catalog-chips {
-        display: flex;
-        gap: 6px;
-        margin-top: 10px;
+        display: flex; gap: 6px;
+        margin: 0 0 12px;
+        padding: 4px 0;
         flex-wrap: wrap;
+        justify-content: center;
       }
       .catalog-chip {
         font: 12px ui-sans-serif, system-ui, sans-serif;
-        padding: 4px 11px;
+        padding: 5px 12px;
         border: 1px solid var(--line);
         border-radius: 999px;
         background: transparent;
@@ -75,11 +87,49 @@
       .catalog-chip .count { color: inherit; opacity: .65; margin-left: 4px; font-variant-numeric: tabular-nums; }
       .catalog-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
 
-      .levels {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr));
-        gap: 0 32px;
+      .catalog { margin-top: 8px; }
+      .category-section { padding: 24px 0 28px; border-top: 1px solid var(--line); }
+      .category-section:first-of-type { border-top: none; padding-top: 4px; }
+      .category-section.hidden { display: none; }
+      .category-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+      .category-section__title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 0; }
+      .category-section__count { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+      .category-section__body { display: flex; flex-direction: column; gap: 0; }
+      .category-cta {
+        display: inline-block; margin-top: 14px;
+        padding: 6px 14px;
+        color: var(--muted); font-size: 12px;
+        text-decoration: none;
+        border: 1px dashed var(--line); border-radius: 999px;
+        transition: all 140ms ease;
       }
+      .category-cta:hover { color: var(--accent); border-color: var(--accent); border-style: solid; }
+
+      .comm-card { background: var(--card-bg); border-left: 3px solid #d97706; padding: 14px 16px; border-radius: 6px; margin: 10px 0; }
+      .comm-card.hidden { display: none; }
+      .comm-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      .comm-card__title { font-weight: 600; font-size: 15px; }
+      .comm-card__title a { color: inherit; text-decoration: none; }
+      .comm-card__title a:hover { color: var(--accent); }
+      .comm-card__score { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: 13px; }
+      .comm-card__score .up { color: var(--accent); }
+      .comm-card__score .down { color: #d23434; }
+      .comm-card__desc { color: var(--muted); font-size: 13px; margin: 6px 0 8px; }
+      .comm-card__meta { color: var(--muted); font-size: 12px; }
+
+      /* Drag-anywhere overlay */
+      body.is-dragging::after {
+        content: 'Drop to verify and share →';
+        position: fixed; inset: 0;
+        display: flex; align-items: center; justify-content: center;
+        font: 600 22px/1.2 ui-sans-serif, system-ui, sans-serif;
+        color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 8%, var(--bg));
+        border: 4px dashed var(--accent);
+        pointer-events: none;
+        z-index: 9999;
+      }
+
       .row.hidden { display: none; }
 
       .row {
@@ -197,10 +247,31 @@
       code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
 
       @media (max-width: 640px) {
-        body { padding: 32px 16px 60px; }
+        body { padding: 24px 12px 60px; }
         h1 { font-size: 19px; }
         .card { padding: 20px; border-radius: 12px; }
         .card__count { font-size: 28px; }
+
+        .hero { margin: 16px 0 20px; }
+        .hero__title { font-size: 22px; }
+        .hero__sub { font-size: 13px; }
+
+        .search-bar { max-width: 100%; padding: 8px 10px; border-radius: 12px; }
+        .catalog-search { font-size: 15px; }
+
+        /* Pills become horizontally scrollable — top ~5 visible, rest swipe. */
+        .catalog-chips {
+          flex-wrap: nowrap;
+          overflow-x: auto;
+          justify-content: flex-start;
+          padding: 4px 0 8px;
+          margin: 4px -12px 12px; /* bleed to body edges */
+          padding-left: 12px; padding-right: 12px;
+          scrollbar-width: none;
+          mask-image: linear-gradient(to right, transparent 0, #000 12px, #000 calc(100% - 24px), transparent 100%);
+        }
+        .catalog-chips::-webkit-scrollbar { display: none; }
+        .catalog-chip { padding: 6px 13px; }
       }
 
       /* Map overlay */
@@ -391,32 +462,36 @@
   </head>
   <body>
     <!-- NAV -->
-    <p class="lede">
-      India's official admin boundaries from state to village. View on a map, download as Parquet, GeoJSON, or KML.
-      Drop your own file to <a href="/verify">verify</a>, or contribute a new layer under an open licence.
-      Primary source is LGD (the authoritative government directory); alternative sources are listed under each level.
-    </p>
+    <header class="hero">
+      <h1 class="hero__title">Find a map. Or share one.</h1>
+      <p class="hero__sub">
+        India's curated boundaries, environment, electoral, postal and infrastructure layers — plus whatever the
+        community uploads. Drop your own file to verify before publishing.
+      </p>
+    </header>
 
-    <div class="catalog-controls">
+    <div class="search-bar" id="search-bar">
+      <span class="search-bar__icon" aria-hidden="true">🔍</span>
       <input
         type="search"
         id="catalog-search"
         class="catalog-search"
-        placeholder="Search layers, sources, descriptions…"
-        aria-label="Search layers"
+        placeholder="What map are you looking for?"
+        aria-label="Search maps"
         autocomplete="off"
       />
-      <div class="catalog-chips" role="toolbar" aria-label="Filter">
-        <!-- CATEGORY_CHIPS -->
-      </div>
-      <p class="catalog-empty" id="catalog-empty" hidden>No layers match.</p>
+      <a href="/verify" class="search-bar__attach" id="search-attach" aria-label="Verify or share a file" title="Verify or share a file">📎</a>
     </div>
+    <p class="search-meta" id="search-meta">type to search · drop a file to verify or share</p>
 
-    <div class="levels" id="catalog-grid">
-      <!-- LEVEL_CARDS -->
+    <div class="catalog-chips" role="toolbar" aria-label="Filter by category">
+      <!-- CATEGORY_CHIPS -->
     </div>
+    <p class="catalog-empty" id="catalog-empty" hidden>No matches. <a href="/verify">Contribute the first →</a></p>
 
-    <!-- COMMUNITY_SECTION -->
+    <div class="catalog" id="catalog-grid">
+      <!-- CATEGORY_SECTIONS -->
+    </div>
 
     <!-- FOOTER -->
 

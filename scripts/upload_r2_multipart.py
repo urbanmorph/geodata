@@ -48,6 +48,8 @@ def collect_large() -> list[tuple[str, Path]]:
             'LGD_Districts': 'districts', 'SOI_Districts': 'districts', 'bhuvan_districts': 'districts',
             'LGD_Subdistricts': 'subdistricts', 'SOI_Subdistricts': 'subdistricts',
             'LGD_Blocks': 'blocks', 'bhuvan_blocks': 'blocks', 'PMGSY_Blocks': 'blocks',
+            'LGD_panchayats': 'panchayats', 'LGD_Panchayats': 'panchayats',
+            'bhuvan_panchayats': 'panchayats',
             'LGD_Villages': 'villages', 'SOI_VILLAGE_POINT': 'villages',
         }.get(stem, 'misc')
         out.append((f'admin/{level}/{p.name}', p))

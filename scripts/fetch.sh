@@ -25,6 +25,8 @@ PATHS=(
   "admin/blocks/LGD_Blocks.parquet"
   "admin/blocks/bhuvan_blocks.parquet"
   "admin/blocks/PMGSY_Blocks.parquet"
+  "admin/habitations/PMGSY_Masterdata.csv"
+  "admin/panchayats/LGD_panchayats.parquet"
   "admin/villages/LGD_Villages.parquet"
   "admin/villages/SOI_VILLAGE_POINT.parquet"
 
@@ -33,13 +35,28 @@ PATHS=(
   "admin/districts/LGD_Districts.pmtiles"
   "admin/subdistricts/LGD_Subdistricts.pmtiles"
   "admin/blocks/LGD_Blocks.pmtiles"
+  "admin/panchayats/LGD_Panchayats.pmtiles"
   "admin/villages/LGD_Villages.pmtiles"
+
+  # Electoral
+  "electoral/constituencies/LGD_Parliament_Constituencies.parquet"
+  "electoral/constituencies/LGD_Parliament_Constituencies.pmtiles"
+  "electoral/constituencies/LGD_Assembly_Constituencies.parquet"
+  "electoral/constituencies/LGD_Assembly_Constituencies.pmtiles"
+
+  # Postal
+  "postal/boundaries/Datagov_Pincode_Boundaries.parquet"
+
+  # Environment
+  "environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet"
+  "environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles"
+  "environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet"
+  "environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles"
 
   # large optional:
   # "admin/villages/SOI_villages.parquet"          # 602 MB
   # "admin/villages/bhuvan_villages.parquet"       # 792 MB
-  # "admin/panchayats/LGD_panchayats.parquet"      # 368 MB
-  # "admin/panchayats/bhuvan_panchayats.parquet"   # 629 MB
+  # "admin/panchayats/bhuvan_panchayats.parquet"   # 629 MB — 2nd source for panchayats; LGD is authoritative
 )
 
 for p in "${PATHS[@]}"; do
