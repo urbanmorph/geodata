@@ -256,23 +256,25 @@ window.addEventListener('drop', (e) => {
 });
 
 // File handed off from the home-page drag-anywhere → auto-verify on load.
-// Wait for the map style so renderOnMap can call addSource safely.
-console.log('[verify] module init, sessionStorage:', sessionStorage.getItem('geodata:handoff'));
-map.on('load', async () => {
-  console.log('[verify] map style loaded, attempting popHandoff');
+//
+// Why this isn't just `map.on('load', ...)`: MapLibre's load event fires once,
+// and our BASE_STYLE has no remote resources, so it can fire synchronously-ish
+// during the constructor — i.e. *before* the listener gets attached. Without a
+// guard we'd silently miss the file. Check map.loaded() first and run inline
+// if the style is already up; only register a listener if we're early.
+const popAndRender = async () => {
   try {
     const f = await popHandoff();
-    console.log('[verify] popHandoff returned:', f && { name: f.name, size: f.size, type: f.type });
-    if (f) {
-      console.log('[verify] calling handle()');
-      handle(f);
-    } else {
-      console.log('[verify] no handoff file — idle, waiting for drop / file picker');
-    }
+    if (f) handle(f);
   } catch (err) {
-    console.error('[verify] handoff pop failed', err);
+    console.error('handoff pop failed', err);
   }
-});
+};
+if (map.loaded()) {
+  popAndRender();
+} else {
+  map.once('load', popAndRender);
+}
 
 // URL state: ?url=https://example.com/file.geojson
 const urlParam = new URLSearchParams(location.search).get('url');
