@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      <!-- TOKENS -->
+      :root { --card-bg: var(--bg-card); }
+      body { max-width: 1100px; margin: 0 auto; padding: 24px 24px 80px; }
+
+      .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 4px; }
+      .page-sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; max-width: 580px; }
+
+      /* === Initial drop state =============================================== */
+      #drop {
+        display: block; max-width: 640px; margin: 0 auto;
+        border: 2px dashed var(--line); border-radius: 14px; padding: 56px 24px;
+        text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+        background: var(--card-bg);
+      }
+      #drop:hover, #drop.dragover {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+      }
+      #drop strong { font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px; }
+      #drop .hint { color: var(--muted); font-size: 13px; }
+      #drop input[type=file] { display: none; }
+
+      /* === Workspace (after a file is loaded) ============================== */
+      #workspace { display: none; grid-template-columns: minmax(0, 1fr) min(360px, 38%); gap: 20px; }
+      #workspace.show { display: grid; }
+      #map {
+        position: relative;
+        height: 70vh; min-height: 420px;
+        border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+        background: var(--card-bg);
+      }
+      .ws-side {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px 18px;
+        max-height: 70vh; overflow-y: auto;
+      }
+      .ws-side h2 {
+        font-size: 11px; font-weight: 600; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--muted); margin: 0 0 12px;
+      }
+      .ws-side .reset {
+        display: block; width: 100%; margin: 14px 0 0;
+        background: transparent; color: var(--muted); border: 1px dashed var(--line);
+        border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 12px; cursor: pointer;
+      }
+      .ws-side .reset:hover { color: var(--fg); border-color: var(--fg); }
+
+      /* === Validation report =============================================== */
+      #report { margin: 0 0 16px; }
+      #report .row {
+        display: flex; gap: 10px; padding: 6px 0; font-size: 13px;
+        border-bottom: 1px solid var(--line);
+      }
+      #report .row:last-child { border-bottom: 0; }
+      #report .row.ok::before { content: "✓"; color: var(--ok); width: 16px; font-weight: 700; }
+      #report .row.warn::before { content: "⚠"; color: var(--warn); width: 16px; font-weight: 700; }
+      #report .row.err::before { content: "✗"; color: var(--err); width: 16px; font-weight: 700; }
+      #report .row .k { flex: 1; }
+      #report .row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+      /* === Metadata form =================================================== */
+      form { margin: 18px 0 0; display: none; padding-top: 16px; border-top: 1px solid var(--line); }
+      form.show { display: block; }
+      form h3 { font-size: 13px; font-weight: 600; margin: 0 0 14px; }
+      .field { margin-bottom: 14px; }
+      .field label { display: block; font-weight: 500; font-size: 12px; margin-bottom: 4px; }
+      .field label .req { color: var(--err); margin-left: 2px; }
+      .field .hint { color: var(--muted); font-size: 11px; margin-top: 3px; line-height: 1.4; }
+      .field input:not([type=radio]):not([type=checkbox]),
+      .field textarea, .field select {
+        width: 100%; padding: 7px 9px; font: inherit; font-size: 13px;
+        background: var(--bg); color: var(--fg);
+        border: 1px solid var(--line); border-radius: 6px;
+      }
+      .field input:not([type=radio]):not([type=checkbox]):focus,
+      .field textarea:focus, .field select:focus {
+        outline: none; border-color: var(--accent);
+      }
+      .field textarea { resize: vertical; min-height: 50px; }
+      .legal {
+        font-size: 11px; color: var(--muted); line-height: 1.5;
+        background: var(--bg); padding: 8px 10px; border-radius: 6px;
+        border-left: 3px solid var(--accent); margin: 12px 0;
+      }
+      .radio-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+      .radio-group label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 400; cursor: pointer; margin: 0; padding: 2px 0; }
+      .radio-group input[type=radio] { margin: 0; flex-shrink: 0; }
+      #captcha { margin: 12px 0; min-height: 65px; }
+
+      button.primary {
+        background: var(--accent); color: #fff; border: 0;
+        width: 100%; padding: 10px 14px; border-radius: 6px;
+        font: inherit; font-weight: 500; font-size: 14px; cursor: pointer;
+      }
+      button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.secondary {
+        background: transparent; color: var(--fg); border: 1px solid var(--line);
+        padding: 7px 12px; border-radius: 6px; font: inherit; font-size: 12px; cursor: pointer;
+      }
+      #submit-status { margin-top: 10px; color: var(--muted); font-size: 12px; min-height: 16px; }
+      #submit-status.err { color: var(--err); }
+
+      /* === Success state =================================================== */
+      #success { display: none; max-width: 640px; margin: 0 auto; }
+      #success.show { display: block; }
+      #success h2 { font-size: 18px; margin: 0 0 4px; color: var(--ok); }
+      #success .ok-line { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+      #success .warn {
+        background: color-mix(in srgb, var(--warn) 12%, var(--card-bg));
+        border-left: 3px solid var(--warn);
+        padding: 14px 16px; border-radius: 6px; margin: 16px 0;
+      }
+      #success .warn strong { color: var(--warn); }
+      #success .token {
+        font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+        padding: 10px 12px; word-break: break-all; margin: 10px 0;
+      }
+      #success .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 24px; }
+      #success a.cta {
+        display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+        padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px;
+      }
+      #success a.cta:hover { opacity: 0.92; }
+
+      /* === Map loader overlay (verify gap: validate → render) ============== */
+      .map-loader {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 14px;
+        backdrop-filter: blur(1px);
+        background: color-mix(in srgb, var(--bg) 70%, transparent);
+        pointer-events: none;
+        z-index: 5;
+        transition: opacity 220ms ease;
+      }
+      .map-loader.fade { opacity: 0; }
+      .map-loader__ring {
+        width: 28px; height: 28px;
+        border: 2px solid color-mix(in srgb, var(--fg) 18%, transparent);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: ml-spin 0.85s linear infinite;
+      }
+      .map-loader__verb { font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
+      @keyframes ml-spin { to { transform: rotate(360deg); } }
+
+      .helper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--muted); line-height: 1.6; }
+      .helper code { font: 11px ui-monospace, SFMono-Regular, monospace; background: var(--card-bg); padding: 1px 4px; border-radius: 3px; }
+
+      @media (max-width: 720px) {
+        body { padding: 16px 12px 60px; }
+        #drop { padding: 36px 16px; }
+        #workspace { grid-template-columns: 1fr; }
+        #map { height: 50vh; min-height: 280px; }
+        .ws-side { max-height: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+
+    <h1 class="page-title">Contribute a layer</h1>
+    <p class="page-sub">Drop a file, see it on a map, fill in a few details. Open licences only. Everything runs in your browser until you hit publish.</p>
+
+    <label id="drop" for="file">
+      <strong>Drop a file or click to choose</strong>
+      <span class="hint">GeoJSON · KML · KMZ · GPX · TCX · Parquet · up to 500 MB</span>
+      <input type="file" id="file" accept=".geojson,.json,.kml,.kmz,.gpx,.tcx,.parquet" />
+    </label>
+
+    <section id="workspace" aria-live="polite">
+      <div id="map"></div>
+      <aside class="ws-side">
+        <h2>Validation</h2>
+        <div id="report"></div>
+
+        <form id="meta" novalidate>
+          <h3>Publish to catalog</h3>
+
+          <div class="field">
+            <label for="f-name">Name <span class="req">*</span></label>
+            <input id="f-name" name="name" maxlength="120" required placeholder="Bangalore bike lanes" />
+          </div>
+
+          <div class="field">
+            <label for="f-desc">Description</label>
+            <textarea id="f-desc" name="description" maxlength="500" placeholder="What does this layer contain? Where did it come from?"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="f-cat">Category <span class="req">*</span></label>
+            <select id="f-cat" name="category" required>
+              <option value="">— pick one —</option>
+              <option value="administrative">Administrative boundaries</option>
+              <option value="people">People &amp; places</option>
+              <option value="environment">Environment &amp; nature</option>
+              <option value="agriculture">Agriculture &amp; land use</option>
+              <option value="transport">Transport &amp; mobility</option>
+              <option value="infrastructure">Infrastructure &amp; utilities</option>
+              <option value="culture">Culture &amp; heritage</option>
+              <option value="health-edu">Health &amp; education</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="f-lic">Licence <span class="req">*</span></label>
+            <select id="f-lic" name="license" required>
+              <option value="">— pick one —</option>
+              <option value="CC0-1.0">CC0 1.0 — Public Domain Dedication</option>
+              <option value="CC-BY-4.0">CC BY 4.0 — Attribution</option>
+              <option value="CC-BY-SA-4.0">CC BY-SA 4.0 — Attribution-ShareAlike</option>
+              <option value="ODbL-1.0">ODbL 1.0 — Open Database License</option>
+              <option value="ODC-PDDL-1.0">ODC PDDL — Public Domain Dedication</option>
+              <option value="GODL-India">Government Open Data Licence — India</option>
+            </select>
+            <div class="hint">Only open licences are accepted.</div>
+          </div>
+
+          <div class="field">
+            <label for="f-attr">Attribution <span class="req">*</span></label>
+            <input id="f-attr" name="attribution" minlength="3" maxlength="200" required placeholder="e.g. BBMP Open Data Portal" />
+            <div class="hint">Credit line shown on every card and the view page.</div>
+          </div>
+
+          <div class="field">
+            <label>Provenance <span class="req">*</span></label>
+            <div class="radio-group">
+              <label><input type="radio" name="is_original" value="0" checked /> <span>Republished from a public source</span></label>
+              <label><input type="radio" name="is_original" value="1" /> <span>Original work (I created this)</span></label>
+            </div>
+          </div>
+
+          <div class="field" id="src-field">
+            <label for="f-src"><span id="src-label">Source URL</span> <span class="req" id="src-req">*</span></label>
+            <input id="f-src" name="source_url" type="url" required placeholder="https://example.gov.in/dataset" />
+            <div class="hint" id="src-hint">The page where this data was originally published.</div>
+          </div>
+
+          <p class="legal">By submitting you confirm you have the right to share this content under the selected open licence. Copyrighted or proprietary data is not accepted.</p>
+
+          <div id="captcha" data-sitekey="<!-- TURNSTILE_SITEKEY -->"></div>
+
+          <button type="submit" class="primary" id="submit-btn" disabled>Publish →</button>
+          <div id="submit-status"></div>
+        </form>
+
+        <button type="button" class="reset" id="reset-btn">↺ drop a different file</button>
+      </aside>
+    </section>
+
+    <section id="success" aria-live="polite">
+      <h2>✓ Your submission is live</h2>
+      <p class="ok-line" id="success-url"></p>
+
+      <div class="warn">
+        <strong>Admin token — shown once. Save it.</strong>
+        <div class="token" id="success-token"></div>
+        <div class="actions">
+          <button type="button" class="secondary" id="copy-token">Copy token</button>
+          <button type="button" class="secondary" id="download-token">Download as .txt</button>
+        </div>
+        <div class="hint">Lose this and you can't edit or delete your submission.</div>
+      </div>
+
+      <a href="#" class="cta" id="goto-submission">Take me to my submission →</a>
+    </section>
+
+    <div class="helper">
+      <strong>Accepts:</strong> <code>.geojson</code> · <code>.json</code> · <code>.kml</code> · <code>.kmz</code> · <code>.gpx</code> · <code>.tcx</code> · <code>.parquet</code><br />
+      Files are parsed in your browser. Submit ships them to R2 + records metadata in D1.<br />
+      Rate limit: 5 submissions per hour, 20 per day, per IP.
+    </div>
+
+    <!-- FOOTER -->
+
+    <script type="module" src="/src/contribute.ts"></script>
+  </body>
+</html>

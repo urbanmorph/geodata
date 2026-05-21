@@ -62,7 +62,7 @@ async function testOne(filePath, browser) {
 
   // Wait for navigation
   try {
-    await page.waitForURL('**/verify', { timeout: 5000 });
+    await page.waitForURL('**/contribute', { timeout: 5000 });
     log('  navigated to', page.url());
   } catch (e) {
     log('  ⚠ did NOT navigate to /verify within 5s, current url:', page.url());

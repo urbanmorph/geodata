@@ -547,7 +547,7 @@ function renderCategorySection(cat) {
         ${rowsHtml}
         ${commHtml}
       </div>
-      <a href="/verify" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
+      <a href="/contribute?category=${esc(cat)}" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
     </section>`;
 }
 
@@ -642,12 +642,34 @@ await renderPage(
   { TURNSTILE_SITEKEY },
 );
 
+await renderPage(
+  'contribute',
+  {
+    title: 'Contribute · verify + publish a geo layer',
+    description:
+      "Drop a geo file, see it on a map, validate it locally, and publish to bharatlas under an open licence — all on one page. No signup, no email. Get a shareable URL and admin token in seconds.",
+    url: ORIGIN + '/contribute',
+    structuredData: {
+      '@context': 'https://schema.org',
+      '@type': 'WebApplication',
+      name: 'geodata · contribute',
+      url: ORIGIN + '/contribute',
+      applicationCategory: 'UtilityApplication',
+      operatingSystem: 'Web',
+    },
+  },
+  { TURNSTILE_SITEKEY },
+);
+
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
-  { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.7' },
-  { loc: ORIGIN + '/submit', changefreq: 'monthly', priority: '0.6' },
+  { loc: ORIGIN + '/contribute', changefreq: 'monthly', priority: '0.8' },
+  // /verify and /submit are kept as back-compat entry points for existing
+  // links, but /contribute is the canonical place to drop + publish a layer.
+  { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.5' },
+  { loc: ORIGIN + '/submit', changefreq: 'monthly', priority: '0.5' },
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
