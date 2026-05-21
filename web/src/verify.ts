@@ -201,10 +201,23 @@ async function handle(file: File) {
              <button id="submit-this" type="button" style="background:var(--accent);color:#fff;border:0;padding:8px 14px;border-radius:6px;font:inherit;font-weight:500;cursor:pointer">Submit this to the catalog →</button>
            </div>`);
     // Big datasets take a noticeable beat to tile + render after addSource;
-    // hold a verb-spinner on the map area until MapLibre fires `idle`.
+    // hold a verb-spinner on the map area until our source is loaded.
+    // Listen on `sourcedata` filtered to our source id (no race vs idle), and
+    // wire a 4s safety net so a quirky basemap can't strand the spinner.
     mapLoader = overlayLoader(mapEl, VERBS_VERIFY_RENDER);
+    let dismissed = false;
+    const dismissMap = () => {
+      if (dismissed) return;
+      dismissed = true;
+      map.off('sourcedata', onSourceData);
+      mapLoader?.dismiss();
+    };
+    const onSourceData = (e: maplibregl.MapSourceDataEvent) => {
+      if (e.sourceId === 'v' && e.isSourceLoaded) dismissMap();
+    };
+    map.on('sourcedata', onSourceData);
+    setTimeout(dismissMap, 4000);
     renderOnMap(fc, report.bbox);
-    map.once('idle', () => mapLoader?.dismiss());
     document.getElementById('submit-this')?.addEventListener('click', async () => {
       try {
         await stashForSubmit(file);
@@ -244,12 +257,20 @@ window.addEventListener('drop', (e) => {
 
 // File handed off from the home-page drag-anywhere → auto-verify on load.
 // Wait for the map style so renderOnMap can call addSource safely.
+console.log('[verify] module init, sessionStorage:', sessionStorage.getItem('geodata:handoff'));
 map.on('load', async () => {
+  console.log('[verify] map style loaded, attempting popHandoff');
   try {
     const f = await popHandoff();
-    if (f) handle(f);
+    console.log('[verify] popHandoff returned:', f && { name: f.name, size: f.size, type: f.type });
+    if (f) {
+      console.log('[verify] calling handle()');
+      handle(f);
+    } else {
+      console.log('[verify] no handoff file — idle, waiting for drop / file picker');
+    }
   } catch (err) {
-    console.error('handoff pop failed', err);
+    console.error('[verify] handoff pop failed', err);
   }
 });
 
