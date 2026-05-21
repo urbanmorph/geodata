@@ -144,16 +144,21 @@ if (searchInput && grid) {
   });
   window.addEventListener('drop', async (e) => {
     const dt = e.dataTransfer;
+    console.log('[home] drop fired · files:', dt?.files?.length, '· types:', dt && Array.from(dt.types));
     if (!dt?.files.length) return;
     e.preventDefault();
     document.body.classList.remove('is-dragging');
     dragDepth = 0;
+    const file = dt.files[0];
+    console.log('[home] file:', file.name, file.size, file.type);
     try {
       const { stashForSubmit } = await import('./handoff');
-      await stashForSubmit(dt.files[0]);
+      await stashForSubmit(file);
+      console.log('[home] stashed · sessionStorage:', sessionStorage.getItem('geodata:handoff'));
     } catch (err) {
-      console.error('handoff stash failed', err);
+      console.error('[home] handoff stash failed', err);
     }
+    console.log('[home] → /verify');
     location.assign('/verify');
   });
 }

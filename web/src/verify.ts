@@ -256,29 +256,38 @@ window.addEventListener('drop', (e) => {
 });
 
 // File handed off from the home-page drag-anywhere → auto-verify on load.
-//
-// MapLibre's 'load' event is a one-shot and our inline BASE_STYLE can fire it
-// faster than we attach the listener. Use isStyleLoaded() (true the moment the
-// style spec is loaded — exactly when addSource becomes safe) rather than
-// loaded() (which also waits for initial tile rendering and can be false long
-// after 'load' has already fired). The `triggered` guard makes both paths
-// idempotent so we can't double-fire.
+// Breadcrumbs deliberate (diagnostic). Three race-resistant paths:
+//   1. style already loaded → run inline
+//   2. otherwise → register a once-listener
+//   3. 200ms fallback timer that fires popAndRender if neither (1) nor (2) did
+// The `popTriggered` guard makes all three paths idempotent.
+console.log(
+  '[verify] init · styleLoaded:', map.isStyleLoaded(),
+  '· mapLoaded:', map.loaded(),
+  '· sessionStorage:', sessionStorage.getItem('geodata:handoff'),
+);
+
 let popTriggered = false;
-const popAndRender = async () => {
+const popAndRender = async (src: string) => {
   if (popTriggered) return;
   popTriggered = true;
+  console.log('[verify] popAndRender via:', src);
   try {
     const f = await popHandoff();
+    console.log('[verify] popHandoff →', f && { name: f.name, size: f.size, type: f.type });
     if (f) handle(f);
+    else console.log('[verify] no handoff file — idle');
   } catch (err) {
-    console.error('handoff pop failed', err);
+    console.error('[verify] handoff pop failed', err);
   }
 };
+
 if (map.isStyleLoaded()) {
-  popAndRender();
+  popAndRender('isStyleLoaded');
 } else {
-  map.once('load', popAndRender);
+  map.once('load', () => popAndRender('load-event'));
 }
+setTimeout(() => popAndRender('200ms-fallback'), 200);
 
 // URL state: ?url=https://example.com/file.geojson
 const urlParam = new URLSearchParams(location.search).get('url');
