@@ -256,11 +256,15 @@ window.addEventListener('drop', (e) => {
 });
 
 // File handed off from the home-page drag-anywhere → auto-verify on load.
-// Breadcrumbs deliberate (diagnostic). Three race-resistant paths:
-//   1. style already loaded → run inline
-//   2. otherwise → register a once-listener
-//   3. 200ms fallback timer that fires popAndRender if neither (1) nor (2) did
-// The `popTriggered` guard makes all three paths idempotent.
+//
+// Three race-resistant paths to popAndRender; `popTriggered` guards against
+// double-fire. The diagnostic breadcrumbs and the 200 ms fallback are both
+// load-bearing — removing either has intermittently broken the handoff in
+// real browsers (works in headless e2e, breaks in actual Chrome). The exact
+// browser-side mechanism is murky (Vite HMR cache? MapLibre microtask
+// ordering?) but the pattern reproduces. If you want to clean this up, soak
+// the alternative against the e2e suite under scripts/e2e/ + a real-browser
+// hard-reload-incognito flow with both small and large files first.
 console.log(
   '[verify] init · styleLoaded:', map.isStyleLoaded(),
   '· mapLoaded:', map.loaded(),

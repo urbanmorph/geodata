@@ -144,6 +144,10 @@ if (searchInput && grid) {
   });
   window.addEventListener('drop', async (e) => {
     const dt = e.dataTransfer;
+    // Diagnostic breadcrumbs are deliberate. Removing them has historically
+    // re-introduced an intermittent home→verify handoff bug in real browsers
+    // (works in headless e2e, breaks in actual Chrome). Don't strip without
+    // a replacement diagnostic and a soak test against the real flow.
     console.log('[home] drop fired · files:', dt?.files?.length, '· types:', dt && Array.from(dt.types));
     if (!dt?.files.length) return;
     e.preventDefault();
