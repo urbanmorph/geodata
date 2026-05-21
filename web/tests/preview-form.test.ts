@@ -23,4 +23,19 @@ describe('preview.template.html — form gating', () => {
     expect(html).toMatch(/<input id="f-attr"[^>]*\brequired\b/);
     expect(html).toMatch(/<input id="f-src"[^>]*\brequired\b/);
   });
+
+  it('hero copy emphasises dual purpose, not just "contribute"', () => {
+    // Avoid making /preview read as a submit-only surface. "Contribute a
+    // layer" implies one path; the page actually does view + verify +
+    // optional publish. Keep the title view-first.
+    expect(html).toContain('View, verify, or publish a geo file');
+    expect(html).not.toContain('<h1 class="page-title">Contribute a layer</h1>');
+  });
+
+  it('hero sub copy makes "no upload by default" explicit', () => {
+    // The previous wording — "fill in a few details" — primed users to
+    // submit. Replace with copy that names the optional publish step.
+    expect(html).toContain('Optionally publish to the open catalog');
+    expect(html).not.toContain('fill in a few details');
+  });
 });
