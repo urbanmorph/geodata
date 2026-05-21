@@ -393,7 +393,7 @@ const inlineCatalog = JSON.stringify(inlineCatalogObj);
 const homeSeo = seoHead({
   title: "India's open atlas · view, verify, contribute",
   description:
-    "India's official admin boundaries from state to village — view on a map, slice by state, download as Parquet, GeoJSON or KML. Drop your own file to verify, or contribute a new layer under an open licence. No signup, no API key, no tracking.",
+    "India's open atlas — view, slice and download official boundary layers, or drop your own geo file and share it. Open licences, no signup, no tracking.",
   url: ORIGIN + '/',
   structuredData: {
     '@context': 'https://schema.org',
@@ -595,7 +595,7 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
 await renderPage('about', {
   title: 'About',
   description:
-    "Bharatlas — a visual catalog, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences. No signup, no API key, no tracking.",
+    "Bharatlas — open catalog, in-browser verifier, and anonymous contribution flow for India's geo data. Admin boundaries plus community layers, all open.",
   url: ORIGIN + '/about',
   structuredData: {
     '@context': 'https://schema.org',
@@ -614,7 +614,7 @@ await renderPage(
   {
     title: 'Preview · view, verify, or publish a geo file',
     description:
-      "Drop a GeoJSON, KML, KMZ, GPX or Parquet file to render it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence — no signup, no email.",
+      "Drop a GeoJSON, KML, KMZ or Parquet file to see it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence.",
     url: ORIGIN + '/preview',
     structuredData: {
       '@context': 'https://schema.org',
