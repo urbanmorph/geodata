@@ -32,11 +32,14 @@
       #drop input[type=file] { display: none; }
 
       /* === Workspace (after a file is loaded) ============================== */
-      #workspace { display: none; grid-template-columns: minmax(0, 1fr) min(360px, 38%); gap: 20px; }
+      /* Single scroll axis = the page itself. Map sticks while the sidebar
+         (which can grow taller than the viewport once the form is open)
+         scrolls past it. No nested scrollbar. */
+      #workspace { display: none; grid-template-columns: minmax(0, 1fr) min(360px, 38%); gap: 20px; align-items: start; }
       #workspace.show { display: grid; }
       #map {
-        position: relative;
-        height: 70vh; min-height: 420px;
+        position: sticky; top: 16px;
+        height: calc(100vh - 80px); min-height: 420px;
         border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
         background: var(--card-bg);
       }
@@ -45,7 +48,6 @@
         border: 1px solid var(--line);
         border-radius: 8px;
         padding: 16px 18px;
-        max-height: 70vh; overflow-y: auto;
       }
       .ws-side h2 {
         font-size: 11px; font-weight: 600; letter-spacing: .08em;
@@ -166,8 +168,7 @@
         body { padding: 16px 12px 60px; }
         #drop { padding: 36px 16px; }
         #workspace { grid-template-columns: 1fr; }
-        #map { height: 50vh; min-height: 280px; }
-        .ws-side { max-height: none; }
+        #map { position: relative; top: auto; height: 50vh; min-height: 280px; }
       }
     </style>
   </head>
