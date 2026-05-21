@@ -617,6 +617,40 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
   console.log(`prerendered /${name}`);
 }
 
+// /about FAQ — kept in sync with the visible <dl class="faq"> block in
+// about.template.html. JSON-LD FAQPage gives Google rich-result eligibility
+// and lets LLM crawlers ingest Q&A pairs cleanly.
+const ABOUT_FAQ = [
+  {
+    q: 'What is bharatlas?',
+    a: "An open visualiser, in-browser verifier and anonymous contribution flow for India's geospatial data. Browse curated admin boundaries from state to village, drop a file to render and validate it, or publish your own layer under an open licence.",
+  },
+  {
+    q: 'Do I need to sign up?',
+    a: 'No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a .txt backup) that you keep forever to edit or delete that submission.',
+  },
+  {
+    q: 'What data sources does bharatlas use?',
+    a: 'Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC) and data.gov.in. Community submissions credit their own source on every card.',
+  },
+  {
+    q: 'What licences apply?',
+    a: 'Curated layers carry CC0-1.0, CC-BY-4.0 or GODL-India depending on the upstream source. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL or GODL-India. Proprietary or "all rights reserved" content is rejected at submit.',
+  },
+  {
+    q: 'Is my file uploaded when I drop it?',
+    a: 'No — not until you click Publish. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.',
+  },
+  {
+    q: 'How can I trust community submissions?',
+    a: "Each carries a source URL, attribution and an open licence on the card and the view page. The platform auto-moderates licence, attribution and basic geometry validity, but it does not verify accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.",
+  },
+  {
+    q: 'Can AI assistants read and recommend bharatlas?',
+    a: 'Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every /c/<id> view page are server-rendered as plain HTML with JSON-LD Dataset structured data — easy for LLMs to ingest.',
+  },
+];
+
 await renderPage('about', {
   title: 'About',
   description:
@@ -624,9 +658,21 @@ await renderPage('about', {
   url: ORIGIN + '/about',
   structuredData: {
     '@context': 'https://schema.org',
-    '@type': 'AboutPage',
-    name: 'About geodata',
-    url: ORIGIN + '/about',
+    '@graph': [
+      {
+        '@type': 'AboutPage',
+        name: 'About geodata',
+        url: ORIGIN + '/about',
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: ABOUT_FAQ.map(({ q, a }) => ({
+          '@type': 'Question',
+          name: q,
+          acceptedAnswer: { '@type': 'Answer', text: a },
+        })),
+      },
+    ],
   },
 }, { ATTR_LINKS: attrLinks });
 

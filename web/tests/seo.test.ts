@@ -94,3 +94,43 @@ describe('SEO — home JSON-LD enrichments', () => {
     }
   });
 });
+
+describe('SEO — /about FAQPage', () => {
+  function loadAboutGraph(): any[] {
+    const html = readFileSync(resolve(__dirname, '..', 'about.html'), 'utf8');
+    const m = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (!m) throw new Error('no JSON-LD on /about');
+    const data = JSON.parse(m[1].replace(/\\u003c/g, '<'));
+    return data['@graph'] || [data];
+  }
+
+  it('/about emits a FAQPage with ≥5 questions', () => {
+    // AEO win: FAQ-shaped JSON-LD is what LLM crawlers (ChatGPT, Claude,
+    // Perplexity) preferentially ingest for Q&A surfacing. Google can
+    // also feature it in FAQ rich results.
+    const graph = loadAboutGraph();
+    const faq = graph.find((n) => n['@type'] === 'FAQPage');
+    expect(faq, '/about missing FAQPage').toBeTruthy();
+    expect(faq.mainEntity?.length, 'FAQPage needs ≥5 questions').toBeGreaterThanOrEqual(5);
+    for (const q of faq.mainEntity) {
+      expect(q['@type']).toBe('Question');
+      expect(q.name?.length, 'Question name empty').toBeGreaterThan(5);
+      expect(q.acceptedAnswer?.['@type']).toBe('Answer');
+      expect(q.acceptedAnswer?.text?.length, 'Answer text empty').toBeGreaterThan(20);
+    }
+  });
+
+  it('/about still emits an AboutPage', () => {
+    // Don't lose the AboutPage type when adding FAQPage.
+    const graph = loadAboutGraph();
+    expect(graph.find((n) => n['@type'] === 'AboutPage'), '/about missing AboutPage').toBeTruthy();
+  });
+
+  it('/about has a visible <h2>Frequently asked</h2> section', () => {
+    // FAQ surface for users, not just crawlers. Don't ship JSON-LD that
+    // doesn't reflect what's on the page (Google has been known to
+    // penalise FAQ markup without matching visible content).
+    const html = readFileSync(resolve(__dirname, '..', 'about.html'), 'utf8');
+    expect(html).toMatch(/<h2[^>]*>\s*Frequently asked\s*<\/h2>/i);
+  });
+});
