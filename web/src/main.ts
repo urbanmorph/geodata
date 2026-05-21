@@ -108,6 +108,17 @@ if (searchInput && grid) {
     query = searchInput.value.trim().toLowerCase();
     apply();
   });
+
+  // ?q=… support — required for the WebSite SearchAction in JSON-LD to be
+  // honored by Google's sitelinks search box. Pre-fills the input and
+  // applies the filter on first paint.
+  const qParam = new URLSearchParams(location.search).get('q');
+  if (qParam) {
+    searchInput.value = qParam;
+    query = qParam.trim().toLowerCase();
+    apply();
+    searchInput.focus();
+  }
   for (const chip of chips) {
     chip.addEventListener('click', () => {
       if (chip.dataset.count === '0') return;

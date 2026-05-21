@@ -400,28 +400,53 @@ const homeSeo = seoHead({
     '@graph': [
       {
         '@type': 'WebSite',
-        name: 'geodata',
+        name: 'bharatlas',
+        alternateName: 'geodata',
         url: ORIGIN + '/',
         description:
           "Open catalog, verifier and contribution flow for India's geo data — admin boundaries plus community layers.",
+        publisher: {
+          '@type': 'Organization',
+          name: 'Urban Morph',
+          url: 'https://urbanmorph.com',
+        },
+        // Sitelinks search box. ?q= is wired in src/main.ts so the
+        // search input pre-fills + applies the filter on page load.
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: ORIGIN + '/?q={search_term_string}',
+          },
+          'query-input': 'required name=search_term_string',
+        },
       },
-      ...catalog.layers
-        .filter((l) => l.source === 'LGD' && (l.parquet?.url || l.pmtiles?.url))
-        .map((l) => ({
-          '@type': 'Dataset',
-          name: `${LEVEL_META[l.level]?.label ?? l.id} (LGD)`,
-          description: LEVEL_META[l.level]?.description ?? l.notes ?? '',
-          url: ORIGIN + '/#' + l.level,
-          license: licenseUrl(l.licence),
-          creator: l.attribution?.primary
-            ? { '@type': 'Organization', name: l.attribution.primary.name, url: l.attribution.primary.url }
-            : undefined,
-          distribution: [
-            l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
-            l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
-          ].filter(Boolean),
-          spatialCoverage: { '@type': 'Place', name: 'India' },
-        })),
+      // One Dataset per VISIBLE level — primary layer regardless of source.
+      // (Used to filter to source === 'LGD' which dropped wildlife + eco
+      // zones from Dataset Search visibility.)
+      ...LEVEL_ORDER
+        .filter((lvl) => byLevel[lvl]?.length)
+        .map((lvl) => {
+          const layers = byLevel[lvl];
+          const l = pickPrimary(layers);
+          const meta = LEVEL_META[lvl] || {};
+          return {
+            '@type': 'Dataset',
+            name: `${meta.label ?? l.id} (${l.source})`,
+            description: meta.description ?? l.notes ?? '',
+            url: ORIGIN + '/#' + lvl,
+            license: licenseUrl(l.licence),
+            creator: l.attribution?.primary
+              ? { '@type': 'Organization', name: l.attribution.primary.name, url: l.attribution.primary.url }
+              : undefined,
+            distribution: [
+              l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
+              l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
+            ].filter(Boolean),
+            spatialCoverage: { '@type': 'Place', name: 'India' },
+          };
+        })
+        .filter((d) => d.distribution.length > 0),
     ],
   },
 });
