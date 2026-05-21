@@ -54,28 +54,54 @@ for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href
 }
 
 // Catalog search + category filter (home page only).
-// Operates on pre-rendered cards via data-* attributes; show/hide via class.
+// Operates on category sections + pre-rendered cards via data-* attributes.
+// Pill click → show only that category section. Search → token-AND match
+// against the data-search haystack (already alias-expanded at build time).
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
 const grid = document.getElementById('catalog-grid');
 const emptyMsg = document.getElementById('catalog-empty');
+const searchMeta = document.getElementById('search-meta');
 if (searchInput && grid) {
-  const cards = Array.from(grid.querySelectorAll<HTMLElement>('.row'));
+  const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
   const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.catalog-chip'));
   let activeCat = 'all';
   let query = '';
+  const idleMeta = searchMeta?.textContent ?? '';
 
   const apply = () => {
-    let visible = 0;
-    for (const card of cards) {
-      const cat = card.dataset.category || '';
-      const hay = card.dataset.search || '';
-      const catOk = activeCat === 'all' || cat === activeCat;
-      const qOk = !query || hay.includes(query);
-      const show = catOk && qOk;
-      card.classList.toggle('hidden', !show);
-      if (show) visible++;
+    let totalVisible = 0;
+    const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
+    for (const section of sections) {
+      const cat = section.dataset.category || '';
+      if (activeCat !== 'all' && cat !== activeCat) {
+        section.classList.add('hidden');
+        continue;
+      }
+      const cards = Array.from(section.querySelectorAll<HTMLElement>('.row, .comm-card'));
+      let sectionVisible = 0;
+      for (const card of cards) {
+        const hay = card.dataset.search || '';
+        const qOk = !tokens.length || tokens.every((t) => hay.includes(t));
+        card.classList.toggle('hidden', !qOk);
+        if (qOk) sectionVisible++;
+      }
+      section.classList.toggle('hidden', sectionVisible === 0);
+      totalVisible += sectionVisible;
     }
-    if (emptyMsg) emptyMsg.hidden = visible > 0;
+    if (emptyMsg) emptyMsg.hidden = totalVisible > 0;
+    if (searchMeta) {
+      if (!query && activeCat === 'all') {
+        searchMeta.textContent = idleMeta;
+      } else if (query) {
+        const q = searchInput.value.trim();
+        searchMeta.textContent = `${totalVisible} match${totalVisible === 1 ? '' : 'es'} for "${q}"`;
+      } else {
+        const chip = chips.find((c) => c.dataset.cat === activeCat);
+        // chip text node holds the label; the count span is separate.
+        const label = (chip?.firstChild?.textContent || activeCat).trim().toLowerCase();
+        searchMeta.textContent = `${totalVisible} ${label} layer${totalVisible === 1 ? '' : 's'}`;
+      }
+    }
   };
 
   searchInput.addEventListener('input', () => {
@@ -90,4 +116,44 @@ if (searchInput && grid) {
       apply();
     });
   }
+}
+
+// Drag-anywhere on the home page → stash file via the existing handoff and
+// navigate to /verify. The 📎 button is a plain anchor — click works for
+// users who want to navigate without dragging.
+{
+  let dragDepth = 0;
+  const hasFiles = (dt: DataTransfer | null) =>
+    !!dt && Array.from(dt.types || []).includes('Files');
+
+  window.addEventListener('dragenter', (e) => {
+    if (!hasFiles(e.dataTransfer)) return;
+    e.preventDefault();
+    dragDepth++;
+    document.body.classList.add('is-dragging');
+  });
+  window.addEventListener('dragover', (e) => {
+    if (hasFiles(e.dataTransfer)) e.preventDefault();
+  });
+  window.addEventListener('dragleave', () => {
+    dragDepth--;
+    if (dragDepth <= 0) {
+      dragDepth = 0;
+      document.body.classList.remove('is-dragging');
+    }
+  });
+  window.addEventListener('drop', async (e) => {
+    const dt = e.dataTransfer;
+    if (!dt?.files.length) return;
+    e.preventDefault();
+    document.body.classList.remove('is-dragging');
+    dragDepth = 0;
+    try {
+      const { stashForSubmit } = await import('./handoff');
+      await stashForSubmit(dt.files[0]);
+    } catch (err) {
+      console.error('handoff stash failed', err);
+    }
+    location.assign('/verify');
+  });
 }

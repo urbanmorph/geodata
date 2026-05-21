@@ -174,6 +174,60 @@ const LEVEL_ORDER = [
   'wildlife', 'eco_zone',
 ];
 
+// Display order for category sections on the home page. Categories not in
+// this list fall to the end in catalog.categories declaration order.
+const CATEGORY_ORDER = [
+  'administrative', 'people', 'environment', 'agriculture',
+  'transport', 'infrastructure', 'culture', 'health-edu', 'other',
+];
+
+// Search-index alias dictionary. If any KEY (case-insensitive) appears in a
+// card's text, the EXPANSIONS get appended to its haystack. Lets users find
+// PMGSY by typing "rural roads", LGD by typing the long name, etc.
+// Keep tight — these add bytes to every page. No fuzzy / NLP, just synonyms.
+const SEARCH_ALIASES = {
+  'PMGSY':       ['Pradhan Mantri Gram Sadak Yojana', 'rural roads'],
+  'LGD':         ['Local Government Directory'],
+  'SOI':         ['Survey of India'],
+  'NRSC':        ['ISRO Bhuvan', 'national remote sensing centre'],
+  'MoRTH':       ['Ministry of Road Transport Highways', 'NHAI', 'highways'],
+  'MoEFCC':      ['Ministry of Environment Forest Climate Change'],
+  'ESZ':         ['eco sensitive zone'],
+  'CRZ':         ['coastal regulation zone'],
+  'pincode':     ['pin code', 'postal code', 'zip'],
+  'wildlife':    ['national park', 'sanctuary', 'reserve forest'],
+  'parliament':  ['lok sabha', 'PC', 'constituency'],
+  'assembly':    ['vidhan sabha', 'AC', 'MLA'],
+  'GatiShakti':  ['PM GatiShakti'],
+  'Bharatmaps':  ['NIC', 'national informatics centre'],
+  'CC0':         ['public domain'],
+  'CC-BY':       ['attribution'],
+  'ODbL':        ['open database license'],
+  'parquet':     ['arrow', 'columnar'],
+  'pmtiles':     ['vector tiles', 'maplibre'],
+  'geojson':     ['gis', 'qgis'],
+  'kml':         ['google earth'],
+};
+
+function expandAliases(text) {
+  const lower = text.toLowerCase();
+  const hits = [];
+  for (const [key, expansions] of Object.entries(SEARCH_ALIASES)) {
+    if (lower.includes(key.toLowerCase())) hits.push(...expansions);
+  }
+  return hits.length ? text + ' ' + hits.join(' ') : text;
+}
+
+// Available download formats as a space-joined haystack token list.
+function formatTokens(layer) {
+  const t = [];
+  if (layer.parquet?.url) t.push('parquet');
+  if (layer.pmtiles?.url) t.push('pmtiles', 'vector tiles');
+  if (layer.geojson?.url) t.push('geojson');
+  if (layer.parquet?.url) t.push('kml', 'geojson'); // derived in-browser
+  return t.join(' ');
+}
+
 // Pick the primary layer for each level. LGD is canonical wherever it exists.
 function pickPrimary(layers) {
   return layers.find((l) => l.source === 'LGD') || layers[0];
@@ -265,13 +319,29 @@ function renderRow(level, layersForLevel) {
       ? `<p class="row__source">${sourceText}${sourceText && freshnessSpan ? ' <span class="dot">·</span> ' : ''}${freshnessSpan}</p>`
       : '';
 
+  const haystackBase = [
+    meta.label,
+    meta.description,
+    primary.attribution?.primary?.name || '',
+    primary.notes || '',
+    primary.source || '',
+    primary.licence || '',
+    primary.category || '',
+    level,
+    formatTokens(primary),
+    // Source codes from alt layers — so a card surfaces when searching
+    // for any of its providers (e.g. "Bhuvan" on the States row).
+    layersForLevel.map((l) => l.source).join(' '),
+  ].join(' ');
+  const haystack = expandAliases(haystackBase).toLowerCase();
+
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
     `data-level="${esc(level)}"`,
     `data-category="${esc(primary.category || 'administrative')}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
-    `data-search="${esc((meta.label + ' ' + meta.description + ' ' + (primary.attribution?.primary?.name || '') + ' ' + (primary.notes || '')).toLowerCase())}"`,
+    `data-search="${esc(haystack)}"`,
   ].join(' ');
 
   return `<section class="row row--curated" id="${esc(level)}" ${dataAttrs}>
@@ -290,14 +360,18 @@ function renderRow(level, layersForLevel) {
     </section>`;
 }
 
-// Group layers by level
+// Group layers by level (used by renderRow's primary + alternates logic).
 const byLevel = {};
 for (const l of catalog.layers) {
   (byLevel[l.level] ||= []).push(l);
 }
-const cards = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length)
-  .map((lvl) => renderRow(lvl, byLevel[lvl]))
-  .join('\n');
+
+// Determine the category for each level (taken from its primary layer).
+const categoryByLevel = {};
+for (const lvl of Object.keys(byLevel)) {
+  const primary = pickPrimary(byLevel[lvl]);
+  categoryByLevel[lvl] = primary.category || 'other';
+}
 
 // Attribution links — used by the /about page footer only (the home page
 // now shows per-card source links instead of a global dump).
@@ -409,87 +483,88 @@ const community = fetchCommunitySubmissions();
 
 function renderCommunityCard(s) {
   const score = s.score;
+  const cat = s.category || 'other';
+  // Build searchable haystack the same way curated cards do, so search
+  // works equally on community contributions.
+  const haystack = expandAliases([
+    s.name || '',
+    s.description || '',
+    s.attribution || '',
+    cat,
+    s.format || '',
+    'community',
+  ].join(' ')).toLowerCase();
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
     `data-score="${score}"`,
     `data-created="${esc(s.created_at)}"`,
+    `data-category="${esc(cat)}"`,
+    `data-provenance="community"`,
+    `data-search="${esc(haystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
   return `<article class="comm-card" ${dataAttrs}>
     <div class="comm-card__head">
-      <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge">community</span></div>
+      <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge badge--community">community</span></div>
       <div class="comm-card__score" title="up ${s.up_count} · down ${s.down_count}">
         <span class="up">▲ ${s.up_count}</span> · <span class="down">▼ ${s.down_count}</span>
       </div>
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
-    <div class="comm-card__meta">${esc(s.category || 'other')} · ${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit}</div>
+    <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit}</div>
   </article>`;
 }
 
-const communityHtml = community.length
-  ? `<section class="community-section">
-      <h2>Community submissions <span style="color:var(--muted);font-weight:400">· ${community.length}</span></h2>
-      <p class="lede-line">Open-licensed contributions from anyone — verify provenance via the source link on each card.</p>
-      <div class="sort-toggle" role="tablist">
-        <button class="active" data-sort="recent" type="button">Recent</button>
-        <button data-sort="popular" type="button">Popular</button>
-      </div>
-      <div class="comm-grid" id="community-grid">
-        ${community.map(renderCommunityCard).join('\n')}
-      </div>
-    </section>
-    <script>
-      (() => {
-        const grid = document.getElementById('community-grid');
-        const buttons = document.querySelectorAll('.sort-toggle button');
-        if (!grid || !buttons.length) return;
-        const cards = Array.from(grid.children);
+// Group community submissions by category — they slot into their topic's
+// section alongside curated layers (no separate "community" wall).
+const communityByCategory = {};
+for (const s of community) {
+  const cat = (s.category && (catalog.categories || {})[s.category]) ? s.category : 'other';
+  (communityByCategory[cat] ||= []).push(s);
+}
+for (const cat of Object.keys(communityByCategory)) {
+  // Newest first; consumers re-sort if they want by score.
+  communityByCategory[cat].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+}
 
-        // Live-hydrate scores so votes from /c/<id> show up without waiting
-        // for the next prerender. Falls through silently on failure — the
-        // prerendered scores remain visible.
-        fetch('/api/community/scores').then(r => r.ok ? r.json() : null).then(rows => {
-          if (!Array.isArray(rows)) return;
-          const byId = Object.fromEntries(rows.map(s => [s.id, s]));
-          for (const card of cards) {
-            const id = card.dataset.id;
-            const s = byId[id];
-            if (!s) continue;
-            const up = Number(s.up) || 0, down = Number(s.down) || 0;
-            card.dataset.score = String(up - down);
-            const upEl = card.querySelector('.comm-card__score .up');
-            const downEl = card.querySelector('.comm-card__score .down');
-            if (upEl) upEl.textContent = '▲ ' + up;
-            if (downEl) downEl.textContent = '▼ ' + down;
-          }
-          // re-apply current sort
-          const active = document.querySelector('.sort-toggle button.active');
-          sortBy(active?.dataset.sort || 'recent');
-        }).catch(() => {});
+// Render one section per non-empty category. Inside each: curated level rows
+// first (in LEVEL_ORDER), then community cards (newest first). Both are
+// searchable via data-search; the category pill picks one section to show.
+function renderCategorySection(cat) {
+  const levelsInCat = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat);
+  const commInCat = communityByCategory[cat] || [];
+  if (!levelsInCat.length && !commInCat.length) return '';
+  const catLabel = (catalog.categories || {})[cat] || cat;
+  const total = levelsInCat.length + commInCat.length;
+  const rowsHtml = levelsInCat.map((lvl) => renderRow(lvl, byLevel[lvl])).join('\n');
+  const commHtml = commInCat.map(renderCommunityCard).join('\n');
+  return `<section class="category-section" data-category="${esc(cat)}">
+      <header class="category-section__head">
+        <h2 class="category-section__title">${esc(catLabel)}</h2>
+        <span class="category-section__count">${total} layer${total === 1 ? '' : 's'}</span>
+      </header>
+      <div class="category-section__body">
+        ${rowsHtml}
+        ${commHtml}
+      </div>
+      <a href="/verify" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
+    </section>`;
+}
 
-        function sortBy(mode) {
-          const sorted = cards.slice().sort((a, b) => {
-            if (mode === 'popular') {
-              const d = Number(b.dataset.score) - Number(a.dataset.score);
-              if (d !== 0) return d;
-            }
-            return b.dataset.created.localeCompare(a.dataset.created);
-          });
-          grid.replaceChildren(...sorted);
-        }
-        buttons.forEach((btn) => btn.addEventListener('click', () => {
-          buttons.forEach((b) => b.classList.toggle('active', b === btn));
-          sortBy(btn.dataset.sort);
-        }));
-      })();
-    </script>`
-  : '';
+const allCategories = new Set([
+  ...Object.values(categoryByLevel),
+  ...Object.keys(communityByCategory),
+]);
+const sortedCats = [...allCategories].sort((a, b) => {
+  const ai = CATEGORY_ORDER.indexOf(a);
+  const bi = CATEGORY_ORDER.indexOf(b);
+  return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
+});
+const categorySections = sortedCats.map(renderCategorySection).filter(Boolean).join('\n');
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const out = tmpl
-  .replace('<!-- LEVEL_CARDS -->', cards)
-  .replace('<!-- COMMUNITY_SECTION -->', communityHtml)
+  .replace('<!-- CATEGORY_SECTIONS -->', categorySections)
   .replace('<!-- CATEGORY_CHIPS -->', chipsHtml)
   .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
   .replace('<!-- SEO_HEAD -->', homeSeo)
@@ -499,7 +574,7 @@ const out = tmpl
   .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog.replace(/</g, '\\u003c')}</script>`);
 
 await writeFile(resolve(WEB, 'index.html'), out);
-console.log(`prerendered home — ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated, ${community.length} community`);
+console.log(`prerendered home — ${sortedCats.length} categories, ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated levels, ${community.length} community`);
 
 // Helper: prerender a page that just needs an SEO head.
 async function renderPage(name, seoOpts, extra = {}, navKey = name) {

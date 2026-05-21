@@ -22,7 +22,7 @@ import {
   VERBS_VERIFY_PARQUET,
   VERBS_VERIFY_FETCH,
 } from './loading';
-import { stashForSubmit } from './handoff';
+import { stashForSubmit, popHandoff } from './handoff';
 const BASE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
@@ -231,6 +231,17 @@ fileInput?.addEventListener('change', () => {
 window.addEventListener('drop', (e) => {
   const f = e.dataTransfer?.files?.[0];
   if (f) handle(f);
+});
+
+// File handed off from the home-page drag-anywhere → auto-verify on load.
+// Wait for the map style so renderOnMap can call addSource safely.
+map.on('load', async () => {
+  try {
+    const f = await popHandoff();
+    if (f) handle(f);
+  } catch (err) {
+    console.error('handoff pop failed', err);
+  }
 });
 
 // URL state: ?url=https://example.com/file.geojson
