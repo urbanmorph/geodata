@@ -69,10 +69,11 @@ export function renderViewPage(opts: RenderOpts): string {
   void opts.alreadyRated;
   // Route through /api/r2/<key> rather than the public R2 host. Same origin
   // means: works in local miniflare (where pub-...r2.dev doesn't know about
-  // locally-submitted files), avoids CORS in verify's fetch(), and keeps
-  // community files off the public bucket URL if we ever harden access.
+  // locally-submitted files), avoids CORS, and keeps community files off the
+  // public bucket URL if we ever harden access. The destination is
+  // /contribute (verify + publish merged) — /verify is being retired.
   const r2Url = `${origin}/api/r2/${s.r2_key}`;
-  const verifyUrl = `${origin}/verify?url=${encodeURIComponent(r2Url)}`;
+  const verifyUrl = `${origin}/contribute?url=${encodeURIComponent(r2Url)}`;
   const canonical = `${origin}/c/${s.id}`;
   const licenseUrl = LICENSE_URLS[s.license] || s.license;
   const filename = s.r2_key.split('/').pop() || 'download';
@@ -108,8 +109,7 @@ export function renderViewPage(opts: RenderOpts): string {
       <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">· ${esc(s.name)}</span></a>
       <nav class="site-nav">
         <a href="/">catalog</a>
-        <a href="/verify">verify</a>
-        <a href="/submit">submit</a>
+        <a href="/contribute">contribute</a>
         <a href="/about">about</a>
       </nav>
     </header>`;
@@ -236,7 +236,7 @@ export function renderViewPage(opts: RenderOpts): string {
     </div>
 
     <footer class="site-footer">
-      <p>Anyone can submit a layer at <a href="/submit">/submit</a> — open licences only.
+      <p>Anyone can submit a layer at <a href="/contribute">/contribute</a> — open licences only.
       All community submissions are auto-moderated; the platform doesn't vouch for accuracy.
       Verify provenance via the source link above.</p>
     </footer>

@@ -487,8 +487,12 @@ function renderSuccess(payload: SuccessPayload): void {
     /* private mode / quota — non-fatal */
   }
 
+  // Always navigate via the current origin — in dev the server returns an
+  // 8788 (wrangler) URL, but the user is on 5173 (vite). location.origin
+  // keeps everything on one host so the back button works.
+  const shareUrl = `${location.origin}/c/${payload.id}`;
   (document.getElementById('success-url') as HTMLElement).innerHTML =
-    `at <a href="${escapeHtml(payload.share_url)}">${escapeHtml(payload.share_url)}</a>`;
+    `at <a href="${escapeHtml(shareUrl)}">${escapeHtml(shareUrl)}</a>`;
   (document.getElementById('success-token') as HTMLElement).textContent = payload.admin_token;
 
   const copyBtn = document.getElementById('copy-token')!;
@@ -521,7 +525,7 @@ function renderSuccess(payload: SuccessPayload): void {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
 
-  (document.getElementById('goto-submission') as HTMLAnchorElement).href = payload.share_url;
+  (document.getElementById('goto-submission') as HTMLAnchorElement).href = shareUrl;
 
   successEl.classList.add('show');
   window.scrollTo({ top: 0, behavior: 'smooth' });

@@ -69,8 +69,7 @@ export const TOKENS = `
 
 export const NAV_LINKS = [
   { k: 'catalog', href: '/', label: 'catalog' },
-  { k: 'verify', href: '/verify', label: 'verify' },
-  { k: 'submit', href: '/submit', label: 'submit' },
+  { k: 'contribute', href: '/contribute', label: 'contribute' },
   { k: 'about', href: '/about', label: 'about' },
   { k: 'github', href: 'https://github.com/urbanmorph/geodata', label: 'github' },
 ];
