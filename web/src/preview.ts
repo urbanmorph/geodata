@@ -34,6 +34,10 @@ const fileInput = document.getElementById('file') as HTMLInputElement;
 const workspace = document.getElementById('workspace')!;
 const reportEl = document.getElementById('report')!;
 const form = document.getElementById('meta') as HTMLFormElement;
+const publishCta = document.getElementById('publish-cta')!;
+const publishOpenBtn = document.getElementById('publish-open') as HTMLButtonElement;
+const publishCancelBtn = document.getElementById('publish-cancel') as HTMLButtonElement;
+const viewOnlyBanner = document.getElementById('view-only-banner')!;
 const submitBtn = document.getElementById('submit-btn') as HTMLButtonElement;
 const statusEl = document.getElementById('submit-status')!;
 const successEl = document.getElementById('success')!;
@@ -45,6 +49,11 @@ let selectedFC: FC | null = null;
 let selectedFormat: Format | null = null;
 let turnstileToken: string | null = null;
 let turnstileWidgetId: string | number | null = null;
+
+// View-only mode: arrived via ?url= (i.e. clicking "view on map" on a
+// listed submission). Hide the publish CTA — re-submitting an already-
+// listed file is not a thing. User can still see the map + validation.
+const viewOnly = new URLSearchParams(location.search).has('url');
 
 // ---------- Map -----------------------------------------------------------
 const BASE_STYLE: maplibregl.StyleSpecification = {
@@ -267,8 +276,8 @@ async function handleFile(file: File): Promise<void> {
   renderOnMap(fc, r.bbox);
 
   if (rows.some((row) => row.level === 'err')) return;
-  showForm();
-  ensureTurnstile();
+  // Default: view-by-default. Form is gated behind the explicit Publish CTA.
+  showPublishCTA();
 }
 
 // ---------- Reset back to dropzone ---------------------------------------
@@ -279,6 +288,8 @@ function resetState(): void {
   turnstileToken = null;
   reportEl.innerHTML = '';
   hideForm();
+  hidePublishCTA();
+  viewOnlyBanner.hidden = true;
   hideSuccess();
   workspace.classList.remove('show');
   drop.style.display = '';
@@ -341,9 +352,39 @@ function renderReport(rows: Row[]): void {
     .join('');
 }
 
-function showForm(): void { form.classList.add('show'); }
-function hideForm(): void { form.classList.remove('show'); }
+function showForm(): void {
+  form.classList.add('show');
+  publishCta.classList.remove('show');
+}
+function hideForm(): void {
+  form.classList.remove('show');
+}
+function showPublishCTA(): void {
+  if (viewOnly) {
+    // Listed file — show the "you're viewing" banner instead of the publish CTA.
+    viewOnlyBanner.hidden = false;
+    publishCta.classList.remove('show');
+    return;
+  }
+  publishCta.classList.add('show');
+  form.classList.remove('show');
+}
+function hidePublishCTA(): void { publishCta.classList.remove('show'); }
 function hideSuccess(): void { successEl.classList.remove('show'); }
+
+// Click "Publish to catalog →" → expand the form + lazy-init Turnstile.
+publishOpenBtn?.addEventListener('click', () => {
+  showForm();
+  ensureTurnstile();
+  // Surface a sensible default in the status line so users know what's gating submit.
+  updateSubmitEnabled();
+});
+
+// "Cancel" in the form header → collapse back to the CTA without losing the file.
+publishCancelBtn?.addEventListener('click', () => {
+  hideForm();
+  if (!viewOnly) publishCta.classList.add('show');
+});
 
 // ---------- Turnstile (lazy) ---------------------------------------------
 function ensureTurnstile(): void {
@@ -371,14 +412,16 @@ function ensureTurnstile(): void {
 }
 
 function updateSubmitEnabled(): void {
+  // Disable strictly on the things our UI controls — the file pipeline and
+  // captcha. Native HTML5 validation handles the form fields on submit
+  // attempt; the previous form.checkValidity() check was unreliable in
+  // some browsers (visually grey button even when fields were filled).
   const fileOk = !!(selectedFile && selectedFC && selectedFormat);
   const captchaOk = !!turnstileToken;
-  const formOk = form.checkValidity();
-  submitBtn.disabled = !(fileOk && captchaOk && formOk);
+  submitBtn.disabled = !(fileOk && captchaOk);
   if (submitBtn.disabled) {
     statusEl.classList.remove('err');
     if (!fileOk) statusEl.textContent = 'drop a file first';
-    else if (!formOk) statusEl.textContent = 'fill in the required fields';
     else if (!captchaOk) statusEl.textContent = 'waiting on captcha…';
   } else {
     statusEl.textContent = '';

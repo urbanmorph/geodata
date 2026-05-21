@@ -1,11 +1,21 @@
 // Edge-rendered HTML for /c/[id] community submission view pages.
 // Pure function so it unit-tests without a Pages Functions runtime.
 // Stays light on purpose: no MapLibre, no Vite assets — just metadata,
-// downloads, thumbs-up, and a "view on map" link that punts to /verify.
+// downloads, thumbs-up, and a "view on map" link that punts to /preview.
+//
+// Origin handling: in production the request origin is bharatlas.com and
+// everything's fine. In dev, vite forwards /c/* to wrangler on :8788 — so
+// `request.url`'s origin reads ":8788" even though the user is on :5173.
+// Strategy:
+//   • Canonical + OG meta tags use the hardcoded PUBLIC_ORIGIN (bharatlas.com)
+//     so SEO doesn't ever index a port-bound dev URL.
+//   • User-facing internal links use RELATIVE paths — the browser resolves
+//     against the page's actual origin (5173 in dev, bharatlas.com in prod).
+// Result: no link the user can click jumps off 5173 in dev.
 
 import type { SubmissionView } from './submissions';
 
-const R2_BASE = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
+const PUBLIC_ORIGIN = 'https://bharatlas.com';
 
 const LICENSE_URLS: Record<string, string> = {
   'CC0-1.0': 'https://creativecommons.org/publicdomain/zero/1.0/',
@@ -65,16 +75,19 @@ export type RenderOpts = {
 };
 
 export function renderViewPage(opts: RenderOpts): string {
-  const { submission: s, origin, ratingsCount, embed, now } = opts;
+  const { submission: s, ratingsCount, embed, now } = opts;
   void opts.alreadyRated;
-  // Route through /api/r2/<key> rather than the public R2 host. Same origin
-  // means: works in local miniflare (where pub-...r2.dev doesn't know about
-  // locally-submitted files), avoids CORS, and keeps community files off the
-  // public bucket URL if we ever harden access. The destination is
-  // /contribute (verify + publish merged) — /verify is being retired.
-  const r2Url = `${origin}/api/r2/${s.r2_key}`;
-  const verifyUrl = `${origin}/contribute?url=${encodeURIComponent(r2Url)}`;
-  const canonical = `${origin}/c/${s.id}`;
+  void opts.origin; // intentionally unused — see file header for why.
+  // RELATIVE paths for everything the user might click — resolved by the
+  // browser against the page's actual origin (5173 in dev, bharatlas.com in
+  // prod). The ?url= form signals view-only to /preview so the publish CTA
+  // stays hidden — you can't re-submit something already in the catalog.
+  const r2Path = `/api/r2/${s.r2_key}`;
+  const verifyUrl = `/preview?url=${encodeURIComponent(r2Path)}`;
+  // CANONICAL paths for SEO/OG meta — always the public origin, never the
+  // port-bound dev URL.
+  const r2Url = `${PUBLIC_ORIGIN}/api/r2/${s.r2_key}`;
+  const canonical = `${PUBLIC_ORIGIN}/c/${s.id}`;
   const licenseUrl = LICENSE_URLS[s.license] || s.license;
   const filename = s.r2_key.split('/').pop() || 'download';
 
@@ -109,7 +122,7 @@ export function renderViewPage(opts: RenderOpts): string {
       <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">· ${esc(s.name)}</span></a>
       <nav class="site-nav">
         <a href="/">catalog</a>
-        <a href="/contribute">contribute</a>
+        <a href="/preview">contribute</a>
         <a href="/about">about</a>
       </nav>
     </header>`;
@@ -227,7 +240,7 @@ export function renderViewPage(opts: RenderOpts): string {
 
     <div class="actions">
       <a class="btn primary" href="${esc(verifyUrl)}">View on map →</a>
-      <a class="btn" href="${esc(r2Url)}" download="${esc(filename)}">Download <code>.${esc(s.format)}</code></a>
+      <a class="btn" href="${esc(r2Path)}" download="${esc(filename)}">Download <code>.${esc(s.format)}</code></a>
       <div class="vote-group" role="group" aria-label="vote on this submission">
         <button class="vote vote-up" id="vote-up" type="button" aria-pressed="false" aria-label="upvote">▲</button>
         <span class="vote-score" id="vote-score">${ratingsCount}</span>
@@ -236,7 +249,7 @@ export function renderViewPage(opts: RenderOpts): string {
     </div>
 
     <footer class="site-footer">
-      <p>Anyone can submit a layer at <a href="/contribute">/contribute</a> — open licences only.
+      <p>Anyone can submit a layer at <a href="/preview">/preview</a> — open licences only.
       All community submissions are auto-moderated; the platform doesn't vouch for accuracy.
       Verify provenance via the source link above.</p>
     </footer>

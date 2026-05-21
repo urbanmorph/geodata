@@ -162,7 +162,7 @@ if (searchInput && grid) {
     } catch (err) {
       console.error('[home] handoff stash failed', err);
     }
-    console.log('[home] → /contribute');
-    location.assign('/contribute');
+    console.log('[home] → /preview');
+    location.assign('/preview');
   });
 }

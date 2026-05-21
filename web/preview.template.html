@@ -60,6 +60,31 @@
       }
       .ws-side .reset:hover { color: var(--fg); border-color: var(--fg); }
 
+      /* === Publish CTA (shown when form is collapsed) ====================== */
+      #publish-cta { display: none; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
+      #publish-cta.show { display: block; }
+      #publish-cta .cta-line { font-size: 13px; font-weight: 500; margin: 0 0 8px; }
+      #publish-cta button.primary {
+        background: var(--accent); color: #fff; border: 0; width: 100%;
+        padding: 10px 14px; border-radius: 6px;
+        font: inherit; font-weight: 500; font-size: 14px; cursor: pointer;
+      }
+      #publish-cta button.primary:hover { opacity: 0.92; }
+      #publish-cta .cta-hint { font-size: 11px; color: var(--muted); margin: 8px 0 0; text-align: center; }
+
+      .view-only { display: block; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
+      .view-only p { font-size: 12px; color: var(--muted); margin: 0; }
+      .view-only a { color: var(--accent); }
+
+      .form-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .form-head h3 { margin: 0; }
+      button.cancel {
+        background: transparent; border: 0; cursor: pointer;
+        color: var(--muted); font-size: 16px; padding: 4px 8px; line-height: 1;
+        border-radius: 4px;
+      }
+      button.cancel:hover { color: var(--err); background: var(--bg); }
+
       /* === Validation report =============================================== */
       #report { margin: 0 0 16px; }
       #report .row {
@@ -190,8 +215,23 @@
         <h2>Validation</h2>
         <div id="report"></div>
 
+        <!-- Publish CTA — view-by-default; clicking expands the form. -->
+        <div id="publish-cta">
+          <p class="cta-line">Want to share this with others?</p>
+          <button type="button" class="primary" id="publish-open">Publish to catalog →</button>
+          <p class="cta-hint">Or leave it — nothing has been uploaded.</p>
+        </div>
+
+        <!-- View-only banner shown when the file came from /c/[id] (?url=…) -->
+        <div id="view-only-banner" class="view-only" hidden>
+          <p>You're viewing a layer that's already in the catalog. <a id="vob-source" href="/">Back to catalog →</a></p>
+        </div>
+
         <form id="meta" novalidate>
-          <h3>Publish to catalog</h3>
+          <div class="form-head">
+            <h3>Publish to catalog</h3>
+            <button type="button" class="cancel" id="publish-cancel" aria-label="Cancel publish">✕</button>
+          </div>
 
           <div class="field">
             <label for="f-name">Name <span class="req">*</span></label>
@@ -290,6 +330,6 @@
 
     <!-- FOOTER -->
 
-    <script type="module" src="/src/contribute.ts"></script>
+    <script type="module" src="/src/preview.ts"></script>
   </body>
 </html>

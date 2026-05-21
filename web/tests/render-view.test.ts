@@ -32,9 +32,11 @@ describe('renderViewPage', () => {
     expect(html).toMatch(/<title>Mumbai bike lanes · geodata<\/title>/);
   });
 
-  it('emits a canonical URL', () => {
+  it('emits a canonical URL pinned to bharatlas.com (not the request origin)', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
-    expect(html).toContain('<link rel="canonical" href="https://example.com/c/rT0I6Kgo9X"');
+    // Canonical must be the public origin regardless of where the request
+    // came from — guards against indexing localhost/dev URLs.
+    expect(html).toContain('<link rel="canonical" href="https://bharatlas.com/c/rT0I6Kgo9X"');
   });
 
   it('emits OG + Twitter meta tags', () => {
@@ -52,18 +54,19 @@ describe('renderViewPage', () => {
     expect(data.name).toBe('Mumbai bike lanes');
     expect(data.license).toContain('creativecommons.org');
     expect(data.distribution).toHaveLength(1);
-    expect(data.distribution[0].contentUrl).toMatch(/r2\.dev\/community\/rT0I6Kgo9X\/file\.geojson/);
+    expect(data.distribution[0].contentUrl).toMatch(/^https:\/\/bharatlas\.com\/api\/r2\/community\/rT0I6Kgo9X\/file\.geojson$/);
   });
 
-  it('renders a download link to R2', () => {
+  it('renders a download link routed via /api/r2', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
-    expect(html).toMatch(/href="https:\/\/[^"]*r2\.dev\/community\/rT0I6Kgo9X\/file\.geojson"/);
+    // Relative path — browser resolves to current origin, no port leak in dev
+    expect(html).toMatch(/href="\/api\/r2\/community\/rT0I6Kgo9X\/file\.geojson"/);
   });
 
-  it('renders the "View on map" CTA that points at /verify with url param', () => {
+  it('renders the "View on map" CTA that points at /preview with url param', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
-    expect(html).toContain('/verify?url=');
-    expect(html).toContain(encodeURIComponent('https://'));
+    expect(html).toContain('href="/preview?url=');
+    expect(html).toContain(encodeURIComponent('/api/r2/'));
   });
 
   it('renders up + down buttons with the current score', () => {

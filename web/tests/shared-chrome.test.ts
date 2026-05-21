@@ -40,9 +40,9 @@ describe('renderNav', () => {
   });
 
   it('marks the active link with data-active', () => {
-    const html = renderNav('verify');
-    expect(html).toMatch(/href="\/verify"[^>]*\bdata-active\b/);
-    expect(html).not.toMatch(/href="\/submit"[^>]*\bdata-active\b/);
+    const html = renderNav('preview');
+    expect(html).toMatch(/href="\/preview"[^>]*\bdata-active\b/);
+    expect(html).not.toMatch(/href="\/about"[^>]*\bdata-active\b/);
   });
 
   it('renders every link in NAV_LINKS', () => {
@@ -60,9 +60,8 @@ describe('renderNav', () => {
 
   it('keeps internal links target-less', () => {
     const html = renderNav('catalog');
-    // /verify line should not have target=_blank
-    expect(html).toMatch(/href="\/verify"[^>]*>verify<\/a>/);
-    expect(html).not.toMatch(/href="\/verify"[^>]*target="_blank"/);
+    expect(html).toMatch(/href="\/preview"[^>]*>contribute<\/a>/);
+    expect(html).not.toMatch(/href="\/preview"[^>]*target="_blank"/);
   });
 
   it('emits a unique active marker even when no key matches', () => {

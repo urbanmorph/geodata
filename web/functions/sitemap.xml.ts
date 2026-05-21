@@ -1,6 +1,6 @@
-// Edge-rendered sitemap. Static surfaces (/, /about, /verify, /submit) +
-// every accepted community submission's /c/<id> from D1. Cached 1h with
-// SWR so the response is fast and stays fresh between submits.
+// Edge-rendered sitemap. Static surfaces (/, /about, /preview) + every
+// accepted community submission's /c/<id> from D1. Cached 1h with SWR so
+// the response is fast and stays fresh between submits.
 //
 // Overrides the static web/public/sitemap.xml that the prerender emits —
 // CF Pages Functions take precedence over static files at the same path.
@@ -12,8 +12,7 @@ const ORIGIN = 'https://bharatlas.com';
 const STATIC: Array<{ loc: string; changefreq: string; priority: string }> = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
-  { loc: ORIGIN + '/verify', changefreq: 'monthly', priority: '0.7' },
-  { loc: ORIGIN + '/submit', changefreq: 'monthly', priority: '0.6' },
+  { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
 ];
 
 const escXml = (s: string) =>
