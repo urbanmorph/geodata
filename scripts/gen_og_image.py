@@ -23,10 +23,32 @@ import duckdb
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata' / 'LGD_States.parquet'
-SVG_OUT = ROOT / 'web' / 'public' / 'og-default.svg'
-PNG_OUT = ROOT / 'web' / 'public' / 'og-default.png'
+OUT_DIR = ROOT / 'web' / 'public'
 
 CANVAS_W, CANVAS_H = 1200, 630
+
+# One variant per page. Same wordmark + India silhouette; only the
+# sub-tagline differs. The page's seoHead() picks which file to point at.
+VARIANTS = [
+    {
+        'name': 'og-default',          # home / index / fallback
+        'tagline': "India's open atlas",
+        'sub': 'view · verify · publish geo files',
+        'footer': ('open licences', 'no signup, no tracking'),
+    },
+    {
+        'name': 'og-preview',
+        'tagline': 'View. Verify. Publish.',
+        'sub': 'drop a geo file → see it on a map',
+        'footer': ('open licences', 'nothing uploaded until you click Publish'),
+    },
+    {
+        'name': 'og-about',
+        'tagline': 'About bharatlas',
+        'sub': "India's open visualiser, verifier + contribution flow",
+        'footer': ('open source · MIT', 'made by Urban Morph'),
+    },
+]
 
 # Brand tokens — mirrored from web/scripts/shared-chrome.mjs CSS vars.
 INDIGO_BG = '#4338ca'        # bg-accent darker (accent-strong) for contrast
@@ -140,15 +162,15 @@ SVG_TMPL = """<?xml version="1.0" encoding="UTF-8"?>
     <text x="640" y="305" font-size="120" font-weight="800" letter-spacing="-3" fill="{fg}">bhar<tspan fill="{accent}">atlas</tspan></text>
 
     <!-- Tagline -->
-    <text x="643" y="360" font-size="32" font-weight="500" fill="{fg}" opacity="0.94">India's open atlas</text>
+    <text x="643" y="360" font-size="32" font-weight="500" fill="{fg}" opacity="0.94">{tagline}</text>
 
     <!-- Sub-tagline -->
-    <text x="643" y="402" font-size="22" font-weight="400" fill="{fg}" opacity="0.78">view · verify · publish geo files</text>
+    <text x="643" y="402" font-size="22" font-weight="400" fill="{fg}" opacity="0.78">{sub}</text>
 
     <!-- Footer line -->
     <text x="643" y="520" font-size="18" font-weight="400" fill="{fg}" opacity="0.58">
-      <tspan>open licences</tspan>
-      <tspan x="643" y="550">no signup, no tracking</tspan>
+      <tspan>{footer1}</tspan>
+      <tspan x="643" y="550">{footer2}</tspan>
     </text>
   </g>
 </svg>
@@ -188,21 +210,24 @@ def main() -> None:
     print(f'  projected: bbox=({bbox[0]:.0f},{bbox[1]:.0f})—({bbox[2]:.0f},{bbox[3]:.0f})')
     print(f'  path: {len(path_d)} chars')
 
-    svg = SVG_TMPL.format(
-        w=CANVAS_W, h=CANVAS_H,
-        indigo=INDIGO_BG,
-        outline=INDIGO_OUTLINE,
-        fg=FG_LIGHT,
-        accent=ACCENT_MARK,
-        path=path_d,
-    )
-    SVG_OUT.write_text(svg, encoding='utf-8')
-    print(f'wrote {SVG_OUT.relative_to(ROOT)}  ({len(svg):,} bytes)')
-
-    print(f'rendering → {PNG_OUT.relative_to(ROOT)} via Playwright…')
-    render_svg_to_png(SVG_OUT, PNG_OUT)
-    if PNG_OUT.exists():
-        print(f'wrote {PNG_OUT.relative_to(ROOT)}  ({PNG_OUT.stat().st_size:,} bytes)')
+    for v in VARIANTS:
+        svg = SVG_TMPL.format(
+            w=CANVAS_W, h=CANVAS_H,
+            indigo=INDIGO_BG,
+            outline=INDIGO_OUTLINE,
+            fg=FG_LIGHT,
+            accent=ACCENT_MARK,
+            path=path_d,
+            tagline=v['tagline'],
+            sub=v['sub'],
+            footer1=v['footer'][0],
+            footer2=v['footer'][1],
+        )
+        svg_out = OUT_DIR / f'{v["name"]}.svg'
+        png_out = OUT_DIR / f'{v["name"]}.png'
+        svg_out.write_text(svg, encoding='utf-8')
+        render_svg_to_png(svg_out, png_out)
+        print(f'  {v["name"]}.png  ({png_out.stat().st_size:,} bytes)')
 
 
 if __name__ == '__main__':

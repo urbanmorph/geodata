@@ -656,6 +656,7 @@ await renderPage('about', {
   description:
     "Bharatlas — open catalog, in-browser verifier, and anonymous contribution flow for India's geo data. Admin boundaries plus community layers, all open.",
   url: ORIGIN + '/about',
+  image: ORIGIN + '/og-about.png',
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
@@ -687,6 +688,7 @@ await renderPage(
     description:
       "Drop a GeoJSON, KML, KMZ or Parquet file to see it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence.",
     url: ORIGIN + '/preview',
+    image: ORIGIN + '/og-preview.png',
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',

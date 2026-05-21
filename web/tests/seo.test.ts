@@ -134,3 +134,33 @@ describe('SEO — /about FAQPage', () => {
     expect(html).toMatch(/<h2[^>]*>\s*Frequently asked\s*<\/h2>/i);
   });
 });
+
+describe('SEO — per-page OG images differentiated', () => {
+  function og(page: string): string {
+    const html = readFileSync(resolve(__dirname, '..', page), 'utf8');
+    const m = html.match(/property="og:image" content="([^"]+)"/);
+    return m ? m[1] : '';
+  }
+
+  it('home uses og-default.png', () => {
+    expect(og('index.html')).toMatch(/\/og-default\.png$/);
+  });
+
+  it('/about uses og-about.png', () => {
+    expect(og('about.html')).toMatch(/\/og-about\.png$/);
+  });
+
+  it('/preview uses og-preview.png', () => {
+    expect(og('preview.html')).toMatch(/\/og-preview\.png$/);
+  });
+
+  it('every page also sets twitter:image (mirror of og:image)', () => {
+    for (const page of ['index.html', 'about.html', 'preview.html']) {
+      const html = readFileSync(resolve(__dirname, '..', page), 'utf8');
+      const ogM = html.match(/property="og:image" content="([^"]+)"/);
+      const twM = html.match(/name="twitter:image" content="([^"]+)"/);
+      expect(twM, `${page} no twitter:image`).not.toBeNull();
+      expect(twM![1]).toBe(ogM![1]);
+    }
+  });
+});
