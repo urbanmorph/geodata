@@ -257,12 +257,16 @@ window.addEventListener('drop', (e) => {
 
 // File handed off from the home-page drag-anywhere → auto-verify on load.
 //
-// Why this isn't just `map.on('load', ...)`: MapLibre's load event fires once,
-// and our BASE_STYLE has no remote resources, so it can fire synchronously-ish
-// during the constructor — i.e. *before* the listener gets attached. Without a
-// guard we'd silently miss the file. Check map.loaded() first and run inline
-// if the style is already up; only register a listener if we're early.
+// MapLibre's 'load' event is a one-shot and our inline BASE_STYLE can fire it
+// faster than we attach the listener. Use isStyleLoaded() (true the moment the
+// style spec is loaded — exactly when addSource becomes safe) rather than
+// loaded() (which also waits for initial tile rendering and can be false long
+// after 'load' has already fired). The `triggered` guard makes both paths
+// idempotent so we can't double-fire.
+let popTriggered = false;
 const popAndRender = async () => {
+  if (popTriggered) return;
+  popTriggered = true;
   try {
     const f = await popHandoff();
     if (f) handle(f);
@@ -270,7 +274,7 @@ const popAndRender = async () => {
     console.error('handoff pop failed', err);
   }
 };
-if (map.loaded()) {
+if (map.isStyleLoaded()) {
   popAndRender();
 } else {
   map.once('load', popAndRender);
