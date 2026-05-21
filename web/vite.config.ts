@@ -42,10 +42,14 @@ export default defineConfig({
   // on 8788. /api/* are Pages Functions (D1, R2, Turnstile). /c/<id> is the
   // edge-rendered view page. Start wrangler with:
   //   wrangler pages dev dist/ --port=8788
+  //
+  // IMPORTANT: prefix patterns are MATCHED BY STRING.startsWith — '/c' alone
+  // catches '/contribute', '/catalog', etc. Anchor with a trailing slash and
+  // use a regex if needed.
   server: {
     proxy: {
       '/api': 'http://localhost:8788',
-      '/c': 'http://localhost:8788',
+      '^/c/.+': 'http://localhost:8788',
     },
   },
   build: {
