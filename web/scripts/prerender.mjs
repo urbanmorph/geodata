@@ -393,35 +393,60 @@ const inlineCatalog = JSON.stringify(inlineCatalogObj);
 const homeSeo = seoHead({
   title: "India's open atlas · view, verify, contribute",
   description:
-    "India's official admin boundaries from state to village — view on a map, slice by state, download as Parquet, GeoJSON or KML. Drop your own file to verify, or contribute a new layer under an open licence. No signup, no API key, no tracking.",
+    "India's open atlas — view, slice and download official boundary layers, or drop your own geo file and share it. Open licences, no signup, no tracking.",
   url: ORIGIN + '/',
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
       {
         '@type': 'WebSite',
-        name: 'geodata',
+        name: 'bharatlas',
+        alternateName: 'geodata',
         url: ORIGIN + '/',
         description:
           "Open catalog, verifier and contribution flow for India's geo data — admin boundaries plus community layers.",
+        publisher: {
+          '@type': 'Organization',
+          name: 'Urban Morph',
+          url: 'https://urbanmorph.com',
+        },
+        // Sitelinks search box. ?q= is wired in src/main.ts so the
+        // search input pre-fills + applies the filter on page load.
+        potentialAction: {
+          '@type': 'SearchAction',
+          target: {
+            '@type': 'EntryPoint',
+            urlTemplate: ORIGIN + '/?q={search_term_string}',
+          },
+          'query-input': 'required name=search_term_string',
+        },
       },
-      ...catalog.layers
-        .filter((l) => l.source === 'LGD' && (l.parquet?.url || l.pmtiles?.url))
-        .map((l) => ({
-          '@type': 'Dataset',
-          name: `${LEVEL_META[l.level]?.label ?? l.id} (LGD)`,
-          description: LEVEL_META[l.level]?.description ?? l.notes ?? '',
-          url: ORIGIN + '/#' + l.level,
-          license: licenseUrl(l.licence),
-          creator: l.attribution?.primary
-            ? { '@type': 'Organization', name: l.attribution.primary.name, url: l.attribution.primary.url }
-            : undefined,
-          distribution: [
-            l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
-            l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
-          ].filter(Boolean),
-          spatialCoverage: { '@type': 'Place', name: 'India' },
-        })),
+      // One Dataset per VISIBLE level — primary layer regardless of source.
+      // (Used to filter to source === 'LGD' which dropped wildlife + eco
+      // zones from Dataset Search visibility.)
+      ...LEVEL_ORDER
+        .filter((lvl) => byLevel[lvl]?.length)
+        .map((lvl) => {
+          const layers = byLevel[lvl];
+          const l = pickPrimary(layers);
+          const meta = LEVEL_META[lvl] || {};
+          return {
+            '@type': 'Dataset',
+            name: `${meta.label ?? l.id} (${l.source})`,
+            description: meta.description ?? l.notes ?? '',
+            url: ORIGIN + '/#' + lvl,
+            license: licenseUrl(l.licence),
+            creator: l.attribution?.primary
+              ? { '@type': 'Organization', name: l.attribution.primary.name, url: l.attribution.primary.url }
+              : undefined,
+            distribution: [
+              l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
+              l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
+            ].filter(Boolean),
+            spatialCoverage: { '@type': 'Place', name: 'India' },
+          };
+        })
+        .filter((d) => d.distribution.length > 0),
     ],
   },
 });
@@ -592,16 +617,63 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
   console.log(`prerendered /${name}`);
 }
 
+// /about FAQ — kept in sync with the visible <dl class="faq"> block in
+// about.template.html. JSON-LD FAQPage gives Google rich-result eligibility
+// and lets LLM crawlers ingest Q&A pairs cleanly.
+const ABOUT_FAQ = [
+  {
+    q: 'What is bharatlas?',
+    a: "An open visualiser, in-browser verifier and anonymous contribution flow for India's geospatial data. Browse curated admin boundaries from state to village, drop a file to render and validate it, or publish your own layer under an open licence.",
+  },
+  {
+    q: 'Do I need to sign up?',
+    a: 'No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a .txt backup) that you keep forever to edit or delete that submission.',
+  },
+  {
+    q: 'What data sources does bharatlas use?',
+    a: 'Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC) and data.gov.in. Community submissions credit their own source on every card.',
+  },
+  {
+    q: 'What licences apply?',
+    a: 'Curated layers carry CC0-1.0, CC-BY-4.0 or GODL-India depending on the upstream source. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL or GODL-India. Proprietary or "all rights reserved" content is rejected at submit.',
+  },
+  {
+    q: 'Is my file uploaded when I drop it?',
+    a: 'No — not until you click Publish. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.',
+  },
+  {
+    q: 'How can I trust community submissions?',
+    a: "Each carries a source URL, attribution and an open licence on the card and the view page. The platform auto-moderates licence, attribution and basic geometry validity, but it does not verify accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.",
+  },
+  {
+    q: 'Can AI assistants read and recommend bharatlas?',
+    a: 'Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every /c/<id> view page are server-rendered as plain HTML with JSON-LD Dataset structured data — easy for LLMs to ingest.',
+  },
+];
+
 await renderPage('about', {
   title: 'About',
   description:
-    "Bharatlas — a visual catalog, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences. No signup, no API key, no tracking.",
+    "Bharatlas — open catalog, in-browser verifier, and anonymous contribution flow for India's geo data. Admin boundaries plus community layers, all open.",
   url: ORIGIN + '/about',
+  image: ORIGIN + '/og-about.png',
   structuredData: {
     '@context': 'https://schema.org',
-    '@type': 'AboutPage',
-    name: 'About geodata',
-    url: ORIGIN + '/about',
+    '@graph': [
+      {
+        '@type': 'AboutPage',
+        name: 'About geodata',
+        url: ORIGIN + '/about',
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: ABOUT_FAQ.map(({ q, a }) => ({
+          '@type': 'Question',
+          name: q,
+          acceptedAnswer: { '@type': 'Answer', text: a },
+        })),
+      },
+    ],
   },
 }, { ATTR_LINKS: attrLinks });
 
@@ -614,8 +686,9 @@ await renderPage(
   {
     title: 'Preview · view, verify, or publish a geo file',
     description:
-      "Drop a GeoJSON, KML, KMZ, GPX or Parquet file to render it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence — no signup, no email.",
+      "Drop a GeoJSON, KML, KMZ or Parquet file to see it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence.",
     url: ORIGIN + '/preview',
+    image: ORIGIN + '/og-preview.png',
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',

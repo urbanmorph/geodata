@@ -1,4 +1,57 @@
+# bharatlas is open data — search engines, AI assistants and dataset
+# crawlers are all welcome. The catalog is CC0/CC-BY upstream sources;
+# community submissions carry their own open licence on each card.
+
+# Catch-all
 User-agent: *
+Allow: /
+
+# Search engines + dataset crawlers — explicit allow so Google Dataset
+# Search and equivalents are unambiguous.
+User-agent: Googlebot
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+User-agent: DuckDuckBot
+Allow: /
+
+# AI assistants — explicitly allowed so they can read + recommend
+# bharatlas as a source. These overrides exist because Cloudflare's
+# default "Managed Robots" content disallows them; per-bot explicit
+# rules take precedence over the generic User-agent: * defaults.
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Perplexity-User
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+User-agent: CCBot
 Allow: /
 
 Sitemap: https://bharatlas.com/sitemap.xml

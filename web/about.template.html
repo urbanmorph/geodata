@@ -30,6 +30,10 @@
       .source-grid .name { font-weight: 500; }
       .source-grid .meta { color: var(--muted); font-size: var(--fs-base); }
       .source-grid .meta code { font-size: var(--fs-xs); }
+      .faq { margin: var(--sp-3) 0 var(--sp-5); }
+      .faq dt { font-weight: 600; color: var(--fg); margin-top: var(--sp-4); }
+      .faq dt:first-child { margin-top: 0; }
+      .faq dd { margin: var(--sp-1) 0 0; color: var(--muted); }
       @media (max-width: 640px) {
         body { padding: 32px 16px 60px; }
         .hero { font-size: var(--fs-xl); }
@@ -39,8 +43,8 @@
   <body>
     <!-- NAV -->
 
-    <h2 style="text-transform:none;font-size:13px;letter-spacing:.04em;color:var(--accent);margin-top:8px">geodata</h2>
-    <p class="hero">Open-source visualiser for India's geo data.</p>
+    <p class="eyebrow" style="font-size:13px;letter-spacing:.04em;color:var(--accent);margin:8px 0 4px">geodata</p>
+    <h1 class="hero">Open-source visualiser for India's geo data.</h1>
     <p class="lede">
       Find, view, slice and contribute India's official admin-boundary datasets — and
       community-contributed geo layers — without an account, without an API key, without
@@ -133,6 +137,30 @@
       Data: each layer carries its own open licence — see the per-card line on the
       <a href="/">catalog</a>.
     </p>
+
+    <h2 id="faq">Frequently asked</h2>
+    <dl class="faq">
+      <dt>What is bharatlas?</dt>
+      <dd>An open visualiser, in-browser verifier and anonymous contribution flow for India's geospatial data. Browse curated admin boundaries from state to village, drop a file to render and validate it, or publish your own layer under an open licence.</dd>
+
+      <dt>Do I need to sign up?</dt>
+      <dd>No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a <code>.txt</code> backup) that you keep forever to edit or delete that submission.</dd>
+
+      <dt>What data sources does bharatlas use?</dt>
+      <dd>Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC) and data.gov.in. Community submissions credit their own source on every card.</dd>
+
+      <dt>What licences apply?</dt>
+      <dd>Curated layers carry CC0-1.0, CC-BY-4.0 or GODL-India depending on the upstream source. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL or GODL-India. Proprietary or "all rights reserved" content is rejected at submit.</dd>
+
+      <dt>Is my file uploaded when I drop it?</dt>
+      <dd>No — not until you click <strong>Publish</strong>. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.</dd>
+
+      <dt>How can I trust community submissions?</dt>
+      <dd>Each carries a source URL, attribution and an open licence on the card and the view page. The platform auto-moderates licence, attribution and basic geometry validity, but it does not verify accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.</dd>
+
+      <dt>Can AI assistants read and recommend bharatlas?</dt>
+      <dd>Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every <code>/c/&lt;id&gt;</code> view page are server-rendered as plain HTML with JSON-LD <code>Dataset</code> structured data — easy for LLMs to ingest.</dd>
+    </dl>
 
     <h2 id="use-of-data">Use of data</h2>
     <ul>

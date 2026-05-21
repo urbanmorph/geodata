@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vitest run && node scripts/prerender.mjs && vite build",
+    "build": "node scripts/prerender.mjs && vitest run && vite build",
     "preview": "vite preview",
-    "test": "vitest run",
+    "test": "node scripts/prerender.mjs && vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
