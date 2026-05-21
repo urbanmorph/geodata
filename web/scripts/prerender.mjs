@@ -135,8 +135,44 @@ const LEVEL_META = {
     unit: 'villages',
     description: 'Every revenue village in India. The finest admin polygon — 584k of them.',
   },
+
+  // Electoral
+  parliament_constituency: {
+    label: 'Lok Sabha constituencies',
+    unit: 'parliament constituencies',
+    description: 'All 543 Lok Sabha constituency polygons, latest delimitation. Use for election + journalism maps.',
+  },
+  assembly_constituency: {
+    label: 'Vidhan Sabha constituencies',
+    unit: 'assembly constituencies',
+    description: 'State legislative assembly constituency polygons across India.',
+  },
+
+  // Postal
+  pincode: {
+    label: 'Pin codes',
+    unit: 'pincode polygons',
+    description: 'India Post pincode boundary polygons. Joinable to many user-supplied datasets via postal code.',
+  },
+
+  // Environment
+  wildlife: {
+    label: 'Wildlife sanctuaries + national parks',
+    unit: 'protected areas',
+    description: 'Protected-area polygons across India — wildlife sanctuaries and national parks. Via PM GatiShakti.',
+  },
+  eco_zone: {
+    label: 'Eco-sensitive zones',
+    unit: 'eco-sensitive zones',
+    description: 'MoEFCC-notified eco-sensitive zones around protected areas. Via Bharatmaps Parivesh.',
+  },
 };
-const LEVEL_ORDER = ['state', 'district', 'subdistrict', 'block', 'panchayat', 'village'];
+const LEVEL_ORDER = [
+  'state', 'district', 'subdistrict', 'block', 'panchayat', 'village',
+  'parliament_constituency', 'assembly_constituency',
+  'pincode',
+  'wildlife', 'eco_zone',
+];
 
 // Pick the primary layer for each level. LGD is canonical wherever it exists.
 function pickPrimary(layers) {

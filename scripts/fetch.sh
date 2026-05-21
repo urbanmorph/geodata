@@ -38,6 +38,21 @@ PATHS=(
   "admin/panchayats/LGD_Panchayats.pmtiles"
   "admin/villages/LGD_Villages.pmtiles"
 
+  # Electoral
+  "electoral/constituencies/LGD_Parliament_Constituencies.parquet"
+  "electoral/constituencies/LGD_Parliament_Constituencies.pmtiles"
+  "electoral/constituencies/LGD_Assembly_Constituencies.parquet"
+  "electoral/constituencies/LGD_Assembly_Constituencies.pmtiles"
+
+  # Postal
+  "postal/boundaries/Datagov_Pincode_Boundaries.parquet"
+
+  # Environment
+  "environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet"
+  "environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles"
+  "environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet"
+  "environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles"
+
   # large optional:
   # "admin/villages/SOI_villages.parquet"          # 602 MB
   # "admin/villages/bhuvan_villages.parquet"       # 792 MB

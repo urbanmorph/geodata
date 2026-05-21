@@ -14,14 +14,26 @@ DATA = ROOT / 'data' / 'boundaries'
 # Public base URL of the R2 bucket
 R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
 
-# Level metadata
+# Level metadata. `path` is the R2 key prefix (also the upstream release path).
+# `category` is the catalog facet (matches the home-page filter chips).
 LEVELS = {
-    'state':       {'order': 1, 'plural': 'states'},
-    'district':    {'order': 2, 'plural': 'districts'},
-    'subdistrict': {'order': 3, 'plural': 'subdistricts'},
-    'block':       {'order': 4, 'plural': 'blocks'},
-    'panchayat':   {'order': 5, 'plural': 'panchayats'},
-    'village':     {'order': 6, 'plural': 'villages'},
+    'state':                  {'order': 1,  'plural': 'states',                                 'path': 'admin/states',          'category': 'administrative'},
+    'district':               {'order': 2,  'plural': 'districts',                              'path': 'admin/districts',       'category': 'administrative'},
+    'subdistrict':            {'order': 3,  'plural': 'subdistricts',                           'path': 'admin/subdistricts',    'category': 'administrative'},
+    'block':                  {'order': 4,  'plural': 'blocks',                                 'path': 'admin/blocks',          'category': 'administrative'},
+    'panchayat':              {'order': 5,  'plural': 'panchayats',                             'path': 'admin/panchayats',      'category': 'administrative'},
+    'village':                {'order': 6,  'plural': 'villages',                               'path': 'admin/villages',        'category': 'administrative'},
+
+    # Electoral
+    'parliament_constituency':{'order': 10, 'plural': 'parliament constituencies',              'path': 'electoral/constituencies', 'category': 'people'},
+    'assembly_constituency':  {'order': 11, 'plural': 'assembly constituencies',                'path': 'electoral/constituencies', 'category': 'people'},
+
+    # Postal
+    'pincode':                {'order': 20, 'plural': 'pin codes',                              'path': 'postal/boundaries',     'category': 'infrastructure'},
+
+    # Environment
+    'wildlife':               {'order': 30, 'plural': 'wildlife sanctuaries + national parks',  'path': 'environment/forests',   'category': 'environment'},
+    'eco_zone':               {'order': 31, 'plural': 'eco-sensitive zones',                    'path': 'environment/forests',   'category': 'environment'},
 }
 
 # Licences per upstream (yashveeeeeeer/india-geodata): states/districts are
@@ -38,6 +50,9 @@ ATTR = {
     'Bhuvan':        {'name': 'NRSC/ISRO Bhuvan',            'url': 'https://bhuvanpanchayat.nrsc.gov.in/'},
     'PMGSY':         {'name': 'PMGSY (Rural Roads)',         'url': 'https://omms.nic.in/'},
     'geoBoundaries': {'name': 'geoBoundaries',               'url': 'https://www.geoboundaries.org/'},
+    'data.gov.in':   {'name': 'Open Government Data (India)','url': 'https://data.gov.in/'},
+    'GatiShakti':    {'name': 'PM GatiShakti',               'url': 'https://gis.pmgatishakti.gov.in/'},
+    'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
@@ -86,6 +101,17 @@ LAYERS = [
 
     ('lgd_villages',       'village',     'LGD',    'LGD_Villages.parquet',       'LGD_Villages.pmtiles',       584615,  LIC_BELOW,      'Authoritative. 584k polygons. Use vector tiles to render.'),
     ('soi_village_points', 'village',     'SOI',    'SOI_VILLAGE_POINT.parquet',  None,                          None,    LIC_BELOW,      'SoI village centroids (point geometry).'),
+
+    # Electoral
+    ('lgd_parliament',     'parliament_constituency', 'LGD', 'LGD_Parliament_Constituencies.parquet', 'LGD_Parliament_Constituencies.pmtiles', 543,  LIC_BELOW, 'Lok Sabha constituencies — 543 polygons covering the entire country. Latest delimitation.'),
+    ('lgd_assembly',       'assembly_constituency',   'LGD', 'LGD_Assembly_Constituencies.parquet',   'LGD_Assembly_Constituencies.pmtiles',   None, LIC_BELOW, 'State legislative assembly constituencies. Polygons keyed by ST_CODE.'),
+
+    # Postal
+    ('datagov_pincodes',   'pincode',     'data.gov.in', 'Datagov_Pincode_Boundaries.parquet', None,             None,    LIC_BELOW, 'Pincode polygons from data.gov.in. Polygon download only — no PMTiles yet.'),
+
+    # Environment
+    ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', None, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
+    ('bm_eco_zones',       'eco_zone',    'Bharatmaps', 'Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet',           'Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles',           None, LIC_BELOW, 'Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps.'),
 ]
 
 # geoBoundaries cross-check layers (geojson only)
@@ -285,20 +311,21 @@ def build():
         # Approximation: file mtime of our local copy. Reflects when we last
         # ran scripts/fetch.sh against upstream — not the upstream publish date.
         fetched_at = mtime_of(parquet_path) or (mtime_of(pmtiles_path) if pmtiles_path else None)
-        plural = LEVELS[level]['plural']
+        level_meta = LEVELS[level]
+        path = level_meta['path']
         layers.append({
             'id': id_,
             'level': level,
             'source': source,
             'rows': rows,
             'parquet': {
-                'url': f'{R2}/admin/{plural}/{parquet}',
-                'upstream_url': f'{UPSTREAM_BASE}/admin/{plural}/{parquet}',
+                'url': f'{R2}/{path}/{parquet}',
+                'upstream_url': f'{UPSTREAM_BASE}/{path}/{parquet}',
                 'bytes': size_of(parquet_path),
             },
             'pmtiles': {
-                'url': f'{R2}/admin/{plural}/{pmtiles}',
-                'upstream_url': f'{UPSTREAM_BASE}/admin/{plural}/{pmtiles}',
+                'url': f'{R2}/{path}/{pmtiles}',
+                'upstream_url': f'{UPSTREAM_BASE}/{path}/{pmtiles}',
                 'bytes': size_of(pmtiles_path),
             } if pmtiles_path else None,
             'licence': licence,
@@ -306,7 +333,7 @@ def build():
                 'primary': ATTR[source],
                 'publisher': PUBLISHER,
             },
-            'category': 'administrative',
+            'category': level_meta.get('category', 'administrative'),
             'provenance': 'curated',
             'fetched_at': fetched_at,
             'notes': notes,
