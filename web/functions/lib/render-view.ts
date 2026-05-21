@@ -67,7 +67,11 @@ export type RenderOpts = {
 export function renderViewPage(opts: RenderOpts): string {
   const { submission: s, origin, ratingsCount, embed, now } = opts;
   void opts.alreadyRated;
-  const r2Url = `${R2_BASE}/${s.r2_key}`;
+  // Route through /api/r2/<key> rather than the public R2 host. Same origin
+  // means: works in local miniflare (where pub-...r2.dev doesn't know about
+  // locally-submitted files), avoids CORS in verify's fetch(), and keeps
+  // community files off the public bucket URL if we ever harden access.
+  const r2Url = `${origin}/api/r2/${s.r2_key}`;
   const verifyUrl = `${origin}/verify?url=${encodeURIComponent(r2Url)}`;
   const canonical = `${origin}/c/${s.id}`;
   const licenseUrl = LICENSE_URLS[s.license] || s.license;
