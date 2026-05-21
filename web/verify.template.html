@@ -57,6 +57,29 @@
       .empty { font-style: italic; }
       .helper { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 24px; padding-top: 16px; border-top: 1px dashed var(--line); }
       .helper code { font: 11px ui-monospace, SFMono-Regular, monospace; background: var(--bg); padding: 1px 4px; border-radius: 3px; }
+
+      /* Overlay loader on the map area (verify gap: validate → render) */
+      .map-loader {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 14px;
+        backdrop-filter: blur(1px);
+        background: color-mix(in srgb, var(--bg) 70%, transparent);
+        pointer-events: none;
+        z-index: 5;
+        transition: opacity 220ms ease;
+      }
+      .map-loader.fade { opacity: 0; }
+      .map-loader__ring {
+        width: 28px; height: 28px;
+        border: 2px solid color-mix(in srgb, var(--fg) 18%, transparent);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: ml-spin 0.85s linear infinite;
+      }
+      .map-loader__verb { font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif; color: var(--muted); letter-spacing: .02em; }
+      @keyframes ml-spin { to { transform: rotate(360deg); } }
       @media (max-width: 720px) {
         main { grid-template-columns: 1fr; grid-template-rows: 60vh 1fr; }
         aside { border-left: none; border-top: 1px solid var(--line); }

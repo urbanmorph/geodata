@@ -93,6 +93,14 @@ export const VERBS_VERIFY_FETCH = [
   'Reading the response…',
 ];
 
+export const VERBS_VERIFY_RENDER = [
+  'Tiling the geometry…',
+  'Painting polygons…',
+  'Plotting features…',
+  'Fitting the bounds…',
+  'Stroking edges…',
+];
+
 import { escapeHtml } from './util';
 
 type Handle = { dismiss: () => void; setVerbs: (v: string[]) => void };

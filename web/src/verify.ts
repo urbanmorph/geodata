@@ -17,10 +17,12 @@ import { escapeHtml } from './util';
 import { validate, normaliseFC, INDIA_BBOX, type FC, type Report } from './validate';
 import {
   inlineLoader,
+  overlayLoader,
   VERBS_VERIFY,
   VERBS_VERIFY_KMZ,
   VERBS_VERIFY_PARQUET,
   VERBS_VERIFY_FETCH,
+  VERBS_VERIFY_RENDER,
 } from './loading';
 import { stashForSubmit, popHandoff } from './handoff';
 const BASE_STYLE: maplibregl.StyleSpecification = {
@@ -180,15 +182,17 @@ function renderOnMap(fc: FC, bbox: Report['bbox']) {
 async function handle(file: File) {
   dropEl.classList.remove('dragover');
   sidebar.innerHTML = '';
-  const loader = inlineLoader(sidebar, VERBS_VERIFY);
+  const sideLoader = inlineLoader(sidebar, VERBS_VERIFY);
+  const mapEl = document.getElementById('map')!;
+  let mapLoader: ReturnType<typeof overlayLoader> | null = null;
   try {
     const raw =
       file.size < 20_000_000 && /\.(json|geojson)$/i.test(file.name)
         ? JSON.parse(await file.text())
         : undefined;
-    const { fc, format } = await fileToFC(file, loader);
+    const { fc, format } = await fileToFC(file, sideLoader);
     const report = validate(fc, raw);
-    loader.dismiss();
+    sideLoader.dismiss();
     const errsBlock = report.invalid > 0 || (report.crs && !/(4326|CRS84)/i.test(report.crs));
     sidebar.innerHTML = renderReport(report, format, file) +
       (errsBlock
@@ -196,7 +200,11 @@ async function handle(file: File) {
         : `<div class="cta-row" style="margin-top:18px;padding-top:14px;border-top:1px dashed var(--line)">
              <button id="submit-this" type="button" style="background:var(--accent);color:#fff;border:0;padding:8px 14px;border-radius:6px;font:inherit;font-weight:500;cursor:pointer">Submit this to the catalog →</button>
            </div>`);
+    // Big datasets take a noticeable beat to tile + render after addSource;
+    // hold a verb-spinner on the map area until MapLibre fires `idle`.
+    mapLoader = overlayLoader(mapEl, VERBS_VERIFY_RENDER);
     renderOnMap(fc, report.bbox);
+    map.once('idle', () => mapLoader?.dismiss());
     document.getElementById('submit-this')?.addEventListener('click', async () => {
       try {
         await stashForSubmit(file);
@@ -206,7 +214,8 @@ async function handle(file: File) {
       }
     });
   } catch (e) {
-    loader.dismiss();
+    sideLoader.dismiss();
+    mapLoader?.dismiss();
     sidebar.innerHTML = `<div class="error">${escapeHtml((e as Error).message)}</div>`;
   }
 }
