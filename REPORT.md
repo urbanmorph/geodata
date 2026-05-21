@@ -66,7 +66,7 @@ The 32-block-records-for-30-blocks reflects three different `block_lgd` codes re
 
 3. **SOI and Bhuvan village polygons not pulled.** Only LGD villages (474 MB) retained. SOI villages 602 MB; Bhuvan villages 792 MB. Useful only when cross-validating polygon disputes — LGD-by-code is the working source.
 
-4. **PMGSY_Blocks has IDs but no names.** Joinable only via a separate PMGSY masterdata CSV (`admin/habitations/PMGSY_Masterdata.csv` in india-geodata releases). Not pulled.
+4. ~~PMGSY_Blocks has IDs but no names.~~ **Resolved 2026-05-21:** `scripts/enrich_pmgsy_blocks.py` joins `PMGSY_Masterdata.csv` into `PMGSY_Blocks.parquet`. 6,627 / 6,637 blocks (99%) now carry `BLOCK_NAME` + `DISTRICT_NAME` + `STATE_NAME`. The 10 unmatched are decommissioned / mis-coded blocks.
 
 5. **Bhuvan under-counts blocks in several states** vs LGD: Gujarat 181 vs 251 · Karnataka 173 vs 234 · Telangana 443 vs 588 · Assam 185 vs 232. Bhuvan's release predates several recent re-divisions. Prefer LGD as the modern authority.
 

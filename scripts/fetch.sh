@@ -25,6 +25,7 @@ PATHS=(
   "admin/blocks/LGD_Blocks.parquet"
   "admin/blocks/bhuvan_blocks.parquet"
   "admin/blocks/PMGSY_Blocks.parquet"
+  "admin/habitations/PMGSY_Masterdata.csv"
   "admin/villages/LGD_Villages.parquet"
   "admin/villages/SOI_VILLAGE_POINT.parquet"
 

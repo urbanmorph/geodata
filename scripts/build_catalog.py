@@ -79,7 +79,7 @@ LAYERS = [
 
     ('lgd_blocks',         'block',       'LGD',    'LGD_Blocks.parquet',         'LGD_Blocks.pmtiles',         7146,    LIC_BELOW,      'Authoritative. Full code chain.'),
     ('bhuvan_blocks',      'block',       'Bhuvan', 'bhuvan_blocks.parquet',      None,                          6393,    LIC_BELOW,      'Bhuvan. Predates recent re-divisions in several states.'),
-    ('pmgsy_blocks',       'block',       'PMGSY',  'PMGSY_Blocks.parquet',       None,                          6637,    LIC_BELOW,      'PMGSY rural roads blocks. IDs only — no names.'),
+    ('pmgsy_blocks',       'block',       'PMGSY',  'PMGSY_Blocks.parquet',       None,                          6637,    LIC_BELOW,      'PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage).'),
 
     ('lgd_villages',       'village',     'LGD',    'LGD_Villages.parquet',       'LGD_Villages.pmtiles',       584615,  LIC_BELOW,      'Authoritative. 584k polygons. Use vector tiles to render.'),
     ('soi_village_points', 'village',     'SOI',    'SOI_VILLAGE_POINT.parquet',  None,                          None,    LIC_BELOW,      'SoI village centroids (point geometry).'),
