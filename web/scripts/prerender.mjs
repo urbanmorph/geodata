@@ -167,12 +167,33 @@ const LEVEL_META = {
     description: 'MoEFCC-notified eco-sensitive zones around protected areas. Via Bharatmaps Parivesh.',
   },
 };
-const LEVEL_ORDER = [
+// Hardcoded display order for built-in levels — externally ingested layers
+// are appended via merge() below, in catalog.level_order sequence.
+const BUILTIN_LEVEL_ORDER = [
   'state', 'district', 'subdistrict', 'block', 'panchayat', 'village',
   'parliament_constituency', 'assembly_constituency',
   'pincode',
   'wildlife', 'eco_zone',
 ];
+
+// Merge externally-ingested level metadata + order from catalog.json.
+// Hardcoded LEVEL_META entries take precedence; manifest entries fill
+// gaps for ingested layers. LEVEL_ORDER = builtin first, then external
+// in their declared order.
+const externalMeta = catalog.level_meta || {};
+for (const [lvl, m] of Object.entries(externalMeta)) {
+  if (!LEVEL_META[lvl]) {
+    LEVEL_META[lvl] = {
+      label: m.label,
+      unit: m.unit || 'features',
+      description: m.description,
+    };
+  }
+}
+const externalLevels = (catalog.level_order || []).filter(
+  (lvl) => !BUILTIN_LEVEL_ORDER.includes(lvl),
+);
+const LEVEL_ORDER = [...BUILTIN_LEVEL_ORDER, ...externalLevels];
 
 // Display order for category sections on the home page. Categories not in
 // this list fall to the end in catalog.categories declaration order.
