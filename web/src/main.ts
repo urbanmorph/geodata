@@ -1,5 +1,6 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
+import { isEmbedPath } from './embed-snippet';
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
@@ -7,6 +8,24 @@ const mapCloseBtn = document.getElementById('map-close') as HTMLButtonElement;
 
 // Dynamic imports are cached by the loader, so we don't need our own cache.
 const loadMap = () => import('./map');
+
+// /embed/<layerId>: Cloudflare Pages rewrites the path to /index.html, so the
+// same bundle serves both contexts. Detect via the unrewritten URL.
+{
+  const probe = isEmbedPath(location.pathname);
+  if (probe.embed) {
+    document.body.classList.add('embed');
+    // noindex duplicate embed pages; Google honors JS-set robots meta for
+    // client-rendered pages.
+    const m = document.createElement('meta');
+    m.name = 'robots';
+    m.content = 'noindex, nofollow';
+    document.head.appendChild(m);
+    if (!location.hash.startsWith('#view/')) {
+      history.replaceState(null, '', `#view/${encodeURIComponent(probe.layerId)}`);
+    }
+  }
+}
 
 async function showMap(layerId: string) {
   overlay.classList.add('open');

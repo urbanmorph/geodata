@@ -7,6 +7,8 @@ import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
+import { embedIframeHtml } from './embed-snippet';
+import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
 
 type Layer = {
   id: string;
@@ -97,6 +99,9 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     bounds: INDIA_BOUNDS,
     fitBoundsOptions: { padding: 20 },
     attributionControl: { compact: true },
+    // Required so map.getCanvas().toDataURL() returns pixels for the
+    // "Export image (PNG)" menu entry. Tiny perf cost; acceptable here.
+    preserveDrawingBuffer: true,
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
@@ -261,26 +266,61 @@ function wireDownloadButton(layer: Layer): void {
   const popover = document.getElementById('map-download-popover');
   if (!btn || !popover) return;
   const downloads = availableDownloads(layer);
-  if (!downloads.length) {
-    btn.classList.remove('shown');
-    popover.classList.remove('open');
-    popover.innerHTML = '';
-    return;
-  }
   btn.classList.add('shown');
   popover.innerHTML =
-    `<div class="map-popover__title">Download whole layer</div>` +
-    downloads
-      .map(
-        (d) =>
-          `<a class="map-popover__item" href="${escapeHtml(d.url)}" download>
-            <span class="map-popover__fmt">${escapeHtml(d.label)}</span>
-            <span class="map-popover__size">${escapeHtml(fmtBytes(d.bytes))}</span>
-            <span class="map-popover__hint">${escapeHtml(d.hint)}</span>
-          </a>`,
-      )
-      .join('') +
-    `<div class="map-popover__foot">Need a slice? Use <strong>Filter &amp; export</strong> for state-scoped GeoJSON &amp; KML.</div>`;
+    (downloads.length
+      ? `<div class="map-popover__title">Download whole layer</div>` +
+        downloads
+          .map(
+            (d) =>
+              `<a class="map-popover__item" href="${escapeHtml(d.url)}" download>
+                <span class="map-popover__fmt">${escapeHtml(d.label)}</span>
+                <span class="map-popover__size">${escapeHtml(fmtBytes(d.bytes))}</span>
+                <span class="map-popover__hint">${escapeHtml(d.hint)}</span>
+              </a>`,
+          )
+          .join('') +
+        `<div class="map-popover__foot">Need a slice? Use <strong>Filter &amp; export</strong> for state-scoped GeoJSON &amp; KML.</div>`
+      : '') +
+    `<div class="map-popover__title">Share this view</div>` +
+    `<button class="map-popover__item map-popover__item--btn" data-action="copy-embed">
+      <span class="map-popover__fmt">Copy embed code</span>
+      <span class="map-popover__hint">paste into a blog post or report</span>
+    </button>` +
+    `<button class="map-popover__item map-popover__item--btn" data-action="export-png">
+      <span class="map-popover__fmt">Export image (PNG)</span>
+      <span class="map-popover__hint">current viewport, your active base map</span>
+    </button>`;
+  const copyBtn = popover.querySelector<HTMLButtonElement>('[data-action="copy-embed"]');
+  const exportBtn = popover.querySelector<HTMLButtonElement>('[data-action="export-png"]');
+  copyBtn?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const snippet = embedIframeHtml(layer.id, location.origin);
+    try {
+      await navigator.clipboard.writeText(snippet);
+      const fmt = copyBtn.querySelector<HTMLElement>('.map-popover__fmt');
+      if (fmt) {
+        const original = fmt.textContent;
+        fmt.textContent = '✓ Copied';
+        setTimeout(() => { if (original) fmt.textContent = original; }, 1400);
+      }
+    } catch {
+      // Clipboard may be blocked (insecure context); fall back to a prompt.
+      prompt('Copy this iframe snippet:', snippet);
+    }
+  });
+  exportBtn?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (!map) return;
+    // preserveDrawingBuffer: true on init means the canvas is always
+    // readable; no need to triggerRepaint or wait for a 'render' event.
+    try {
+      const url = map.getCanvas().toDataURL('image/png');
+      triggerDownload(dataUrlToBlob(url), imageFilename(layer.id));
+    } catch (err) {
+      console.error('PNG export failed', err);
+    }
+  });
   bindPopover(btn, popover);
 }
 

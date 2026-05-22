@@ -1,3 +1,8 @@
 /verify     /preview   301
 /submit     /preview   301
 /contribute /preview   301
+
+# /embed/<layerId> serves the home page; main.ts detects the path and forces
+# embed mode (no chrome, layer auto-opened). Internal rewrite — URL stays
+# /embed/<id> in the browser. 200 = rewrite, not redirect.
+/embed/*    /index.html 200
