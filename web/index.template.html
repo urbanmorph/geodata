@@ -518,6 +518,13 @@
 
       /* Map popups are a single look — fed by hover on pointer devices and
          by tap on touch devices. No separate hover/tap variants. */
+
+      /* Embed mode: served at /embed/<layerId>. Hide all chrome and let the
+         map fill the iframe viewport. */
+      body.embed { overflow: hidden; margin: 0; }
+      body.embed > *:not(#map-overlay) { display: none !important; }
+      body.embed #map-overlay { display: flex; position: fixed; inset: 0; z-index: 0; }
+      body.embed #map-overlay header.map-bar { display: none; }
       #map { flex: 1; background: var(--bg); position: relative; }
       #map-loading { color: var(--muted); padding: 16px; }
       .map-loader {
