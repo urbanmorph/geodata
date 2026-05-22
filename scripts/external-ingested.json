@@ -15,7 +15,8 @@
     "pmtiles_bytes": 789655,
     "source_url": "https://data.opencity.in/dataset/gba-wards-delimitation-2025",
     "source_org": "Greater Bengaluru Authority",
-    "notes": "Latest GBA delimitation. Pair with the 5-corp polygons for parent grouping."
+    "notes": "Latest GBA delimitation. Pair with the 5-corp polygons for parent grouping.",
+    "unit": "wards"
   },
   {
     "id": "corporation_bengaluru",
@@ -33,7 +34,8 @@
     "pmtiles_bytes": 20745,
     "source_url": "https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025",
     "source_org": "Greater Bengaluru Authority",
-    "notes": "Parent polygons for the 369 GBA wards."
+    "notes": "Parent polygons for the 369 GBA wards.",
+    "unit": "corporations"
   },
   {
     "id": "wards_bengaluru_bbmp_2022",
@@ -51,7 +53,8 @@
     "pmtiles_bytes": 256845,
     "source_url": "https://data.opencity.in/dataset/bbmp-wards",
     "source_org": "BBMP",
-    "notes": "Use the GBA 2025 layer for current ward boundaries."
+    "notes": "Use the GBA 2025 layer for current ward boundaries.",
+    "unit": "wards"
   },
   {
     "id": "bda_jurisdiction",
@@ -69,7 +72,8 @@
     "pmtiles_bytes": 905,
     "source_url": "https://data.opencity.in/dataset/bda-jurisdiction-and-boundary",
     "source_org": "Bengaluru Development Authority",
-    "notes": "Single polygon. Useful as a boundary mask for any BDA-scoped analysis."
+    "notes": "Single polygon. Useful as a boundary mask for any BDA-scoped analysis.",
+    "unit": "jurisdiction"
   },
   {
     "id": "bda_layouts",
@@ -87,7 +91,8 @@
     "pmtiles_bytes": 83377,
     "source_url": "https://data.opencity.in/dataset/bda-approved-layouts",
     "source_org": "Bengaluru Development Authority",
-    "notes": ""
+    "notes": "",
+    "unit": "layouts"
   },
   {
     "id": "wards_chennai",
@@ -105,7 +110,8 @@
     "pmtiles_bytes": 214930,
     "source_url": "https://data.opencity.in/dataset/gcc-ward-information",
     "source_org": "Greater Chennai Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_hyderabad",
@@ -123,7 +129,8 @@
     "pmtiles_bytes": 50706,
     "source_url": "https://data.opencity.in/dataset/hyderabad-wards-info",
     "source_org": "Greater Hyderabad Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_mumbai",
@@ -141,7 +148,8 @@
     "pmtiles_bytes": 85246,
     "source_url": "https://data.opencity.in/dataset/mumbai-wards",
     "source_org": "Brihanmumbai Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "electoral_wards_mumbai_2017",
@@ -159,7 +167,8 @@
     "pmtiles_bytes": 290460,
     "source_url": "https://data.opencity.in/dataset/mumbai-electoral-wards",
     "source_org": "Mumbai State Election Commission",
-    "notes": ""
+    "notes": "",
+    "unit": "electoral wards"
   },
   {
     "id": "wards_kolkata",
@@ -177,7 +186,8 @@
     "pmtiles_bytes": 122240,
     "source_url": "https://data.opencity.in/dataset/kolkata-wards",
     "source_org": "Kolkata Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_pune",
@@ -195,7 +205,8 @@
     "pmtiles_bytes": 52045,
     "source_url": "https://data.opencity.in/dataset/pune-wards",
     "source_org": "Pune Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_ahmedabad",
@@ -213,7 +224,8 @@
     "pmtiles_bytes": 38253,
     "source_url": "https://data.opencity.in/dataset/ahmedabad-wards",
     "source_org": "Ahmedabad Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_jaipur",
@@ -231,7 +243,8 @@
     "pmtiles_bytes": 55708,
     "source_url": "https://data.opencity.in/dataset/jaipur-wards",
     "source_org": "Jaipur Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_gurugram",
@@ -249,7 +262,8 @@
     "pmtiles_bytes": 23148,
     "source_url": "https://data.opencity.in/dataset/gurugram-wards",
     "source_org": "Municipal Corporation of Gurugram",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_kochi",
@@ -267,7 +281,8 @@
     "pmtiles_bytes": 77451,
     "source_url": "https://data.opencity.in/dataset/kochi-wards",
     "source_org": "Kochi Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_bhubaneshwar",
@@ -285,7 +300,8 @@
     "pmtiles_bytes": 268512,
     "source_url": "https://data.opencity.in/dataset/bhubaneshwar-wards",
     "source_org": "Bhubaneshwar Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_vizag",
@@ -303,7 +319,8 @@
     "pmtiles_bytes": 96542,
     "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards",
     "source_org": "Greater Visakhapatnam Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   },
   {
     "id": "wards_thane",
@@ -321,6 +338,7 @@
     "pmtiles_bytes": 46219,
     "source_url": "https://data.opencity.in/dataset/thane-wards",
     "source_org": "Thane Municipal Corporation",
-    "notes": ""
+    "notes": "",
+    "unit": "wards"
   }
 ]

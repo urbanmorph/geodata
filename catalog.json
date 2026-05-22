@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-22T02:10:47.858823+00:00",
+  "generated": "2026-05-22T02:46:50.242778+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -182,7 +182,7 @@
   "level_meta": {
     "wards_bengaluru_gba": {
       "label": "Greater Bengaluru Wards (2025)",
-      "unit": "features",
+      "unit": "wards",
       "description": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025.",
       "source_url": "https://data.opencity.in/dataset/gba-wards-delimitation-2025",
       "source_org": "Greater Bengaluru Authority",
@@ -190,7 +190,7 @@
     },
     "corporation_bengaluru": {
       "label": "Greater Bengaluru Corporations (2025)",
-      "unit": "features",
+      "unit": "corporations",
       "description": "Five corporation-level polygons that make up the Greater Bengaluru Authority.",
       "source_url": "https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025",
       "source_org": "Greater Bengaluru Authority",
@@ -198,7 +198,7 @@
     },
     "wards_bengaluru_bbmp_2022": {
       "label": "BBMP Wards (2022, historical)",
-      "unit": "features",
+      "unit": "wards",
       "description": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme.",
       "source_url": "https://data.opencity.in/dataset/bbmp-wards",
       "source_org": "BBMP",
@@ -206,7 +206,7 @@
     },
     "bda_jurisdiction": {
       "label": "BDA Jurisdiction",
-      "unit": "features",
+      "unit": "jurisdiction",
       "description": "Bengaluru Development Authority planning + acquisition jurisdiction boundary.",
       "source_url": "https://data.opencity.in/dataset/bda-jurisdiction-and-boundary",
       "source_org": "Bengaluru Development Authority",
@@ -214,7 +214,7 @@
     },
     "bda_layouts": {
       "label": "BDA Approved Layouts",
-      "unit": "features",
+      "unit": "layouts",
       "description": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction.",
       "source_url": "https://data.opencity.in/dataset/bda-approved-layouts",
       "source_org": "Bengaluru Development Authority",
@@ -222,7 +222,7 @@
     },
     "wards_chennai": {
       "label": "Chennai (GCC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones.",
       "source_url": "https://data.opencity.in/dataset/gcc-ward-information",
       "source_org": "Greater Chennai Corporation",
@@ -230,7 +230,7 @@
     },
     "wards_hyderabad": {
       "label": "Hyderabad (GHMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones.",
       "source_url": "https://data.opencity.in/dataset/hyderabad-wards-info",
       "source_org": "Greater Hyderabad Municipal Corporation",
@@ -238,7 +238,7 @@
     },
     "wards_mumbai": {
       "label": "Mumbai (BMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread).",
       "source_url": "https://data.opencity.in/dataset/mumbai-wards",
       "source_org": "Brihanmumbai Municipal Corporation",
@@ -246,7 +246,7 @@
     },
     "electoral_wards_mumbai_2017": {
       "label": "Mumbai Electoral Wards (2017)",
-      "unit": "features",
+      "unit": "electoral wards",
       "description": "227 electoral ward divisions of Mumbai, 2017 delimitation. Use for election + civic-rep maps.",
       "source_url": "https://data.opencity.in/dataset/mumbai-electoral-wards",
       "source_org": "Mumbai State Election Commission",
@@ -254,7 +254,7 @@
     },
     "wards_kolkata": {
       "label": "Kolkata (KMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs.",
       "source_url": "https://data.opencity.in/dataset/kolkata-wards",
       "source_org": "Kolkata Municipal Corporation",
@@ -262,7 +262,7 @@
     },
     "wards_pune": {
       "label": "Pune (PMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Pune Municipal Corporation \u2014 58 administrative wards.",
       "source_url": "https://data.opencity.in/dataset/pune-wards",
       "source_org": "Pune Municipal Corporation",
@@ -270,7 +270,7 @@
     },
     "wards_ahmedabad": {
       "label": "Ahmedabad (AMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones.",
       "source_url": "https://data.opencity.in/dataset/ahmedabad-wards",
       "source_org": "Ahmedabad Municipal Corporation",
@@ -278,7 +278,7 @@
     },
     "wards_jaipur": {
       "label": "Jaipur (JMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Jaipur Municipal Corporation \u2014 150 ward boundaries.",
       "source_url": "https://data.opencity.in/dataset/jaipur-wards",
       "source_org": "Jaipur Municipal Corporation",
@@ -286,7 +286,7 @@
     },
     "wards_gurugram": {
       "label": "Gurugram (MCG) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Municipal Corporation of Gurugram \u2014 35 ward boundaries.",
       "source_url": "https://data.opencity.in/dataset/gurugram-wards",
       "source_org": "Municipal Corporation of Gurugram",
@@ -294,7 +294,7 @@
     },
     "wards_kochi": {
       "label": "Kochi (KMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Kochi Municipal Corporation \u2014 74 ward boundaries.",
       "source_url": "https://data.opencity.in/dataset/kochi-wards",
       "source_org": "Kochi Municipal Corporation",
@@ -302,7 +302,7 @@
     },
     "wards_bhubaneshwar": {
       "label": "Bhubaneshwar (BMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Bhubaneshwar Municipal Corporation \u2014 67 wards.",
       "source_url": "https://data.opencity.in/dataset/bhubaneshwar-wards",
       "source_org": "Bhubaneshwar Municipal Corporation",
@@ -310,7 +310,7 @@
     },
     "wards_vizag": {
       "label": "Visakhapatnam (GVMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards.",
       "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards",
       "source_org": "Greater Visakhapatnam Municipal Corporation",
@@ -318,7 +318,7 @@
     },
     "wards_thane": {
       "label": "Thane (TMC) Wards",
-      "unit": "features",
+      "unit": "wards",
       "description": "Thane Municipal Corporation \u2014 47 wards across the city.",
       "source_url": "https://data.opencity.in/dataset/thane-wards",
       "source_org": "Thane Municipal Corporation",
@@ -891,12 +891,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-gba/wards_bengaluru_gba.parquet",
-        "bytes": null
+        "bytes": 1002336
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles",
-        "bytes": null
+        "bytes": 789655
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -922,12 +922,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/corporation-bengaluru/corporation_bengaluru.parquet",
-        "bytes": null
+        "bytes": 113302
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/corporation-bengaluru/corporation_bengaluru.pmtiles",
-        "bytes": null
+        "bytes": 20745
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -953,12 +953,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.parquet",
-        "bytes": null
+        "bytes": 680145
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.pmtiles",
-        "bytes": null
+        "bytes": 256845
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -984,12 +984,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-jurisdiction/bda_jurisdiction.parquet",
-        "bytes": null
+        "bytes": 2929
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-jurisdiction/bda_jurisdiction.pmtiles",
-        "bytes": null
+        "bytes": 905
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1015,12 +1015,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-layouts/bda_layouts.parquet",
-        "bytes": null
+        "bytes": 151121
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-layouts/bda_layouts.pmtiles",
-        "bytes": null
+        "bytes": 83377
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1046,12 +1046,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chennai/wards_chennai.parquet",
-        "bytes": null
+        "bytes": 699072
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chennai/wards_chennai.pmtiles",
-        "bytes": null
+        "bytes": 214930
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1077,12 +1077,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-hyderabad/wards_hyderabad.parquet",
-        "bytes": null
+        "bytes": 61292
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-hyderabad/wards_hyderabad.pmtiles",
-        "bytes": null
+        "bytes": 50706
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1108,12 +1108,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mumbai/wards_mumbai.parquet",
-        "bytes": null
+        "bytes": 230639
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mumbai/wards_mumbai.pmtiles",
-        "bytes": null
+        "bytes": 85246
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1139,12 +1139,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.parquet",
-        "bytes": null
+        "bytes": 608859
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.pmtiles",
-        "bytes": null
+        "bytes": 290460
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1170,12 +1170,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kolkata/wards_kolkata.parquet",
-        "bytes": null
+        "bytes": 589774
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kolkata/wards_kolkata.pmtiles",
-        "bytes": null
+        "bytes": 122240
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1201,12 +1201,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pune/wards_pune.parquet",
-        "bytes": null
+        "bytes": 69324
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pune/wards_pune.pmtiles",
-        "bytes": null
+        "bytes": 52045
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1232,12 +1232,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-ahmedabad/wards_ahmedabad.parquet",
-        "bytes": null
+        "bytes": 79257
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-ahmedabad/wards_ahmedabad.pmtiles",
-        "bytes": null
+        "bytes": 38253
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1263,12 +1263,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-jaipur/wards_jaipur.parquet",
-        "bytes": null
+        "bytes": 74429
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-jaipur/wards_jaipur.pmtiles",
-        "bytes": null
+        "bytes": 55708
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1294,12 +1294,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-gurugram/wards_gurugram.parquet",
-        "bytes": null
+        "bytes": 61559
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-gurugram/wards_gurugram.pmtiles",
-        "bytes": null
+        "bytes": 23148
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1325,12 +1325,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kochi/wards_kochi.parquet",
-        "bytes": null
+        "bytes": 134965
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kochi/wards_kochi.pmtiles",
-        "bytes": null
+        "bytes": 77451
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1356,12 +1356,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhubaneshwar/wards_bhubaneshwar.parquet",
-        "bytes": null
+        "bytes": 210185
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhubaneshwar/wards_bhubaneshwar.pmtiles",
-        "bytes": null
+        "bytes": 268512
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1387,12 +1387,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vizag/wards_vizag.parquet",
-        "bytes": null
+        "bytes": 152494
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vizag/wards_vizag.pmtiles",
-        "bytes": null
+        "bytes": 96542
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -1418,12 +1418,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-thane/wards_thane.parquet",
-        "bytes": null
+        "bytes": 62553
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-thane/wards_thane.pmtiles",
-        "bytes": null
+        "bytes": 46219
       },
       "licence": "ODbL-1.0",
       "attribution": {

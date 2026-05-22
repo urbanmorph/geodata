@@ -125,6 +125,7 @@ LAYERS = [
 # ──────────────────────────────────────────────────────────────────────────
 EXTERNAL_MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 EXTERNAL_LEVEL_META: dict[str, dict] = {}  # level_id -> {label, unit, description, source_url, source_org}
+EXTERNAL_BYTES: dict[str, dict[str, int | None]] = {}  # layer_id -> {'parquet': bytes, 'pmtiles': bytes}
 
 if EXTERNAL_MANIFEST.exists():
     _external = json.loads(EXTERNAL_MANIFEST.read_text())
@@ -162,6 +163,12 @@ if EXTERNAL_MANIFEST.exists():
             x['features'], LIC_BELOW if x['license'] == 'CC0-1.0' else x['license'],
             x['description'],
         ))
+        # Local source files live in /tmp/ingest, not SRC, so size_of() can't
+        # find them. Cache the manifest-recorded bytes for the build() loop.
+        EXTERNAL_BYTES[x['id']] = {
+            'parquet': x.get('parquet_bytes'),
+            'pmtiles': x.get('pmtiles_bytes'),
+        }
 
 # geoBoundaries cross-check layers (geojson only)
 GEOBOUNDARIES = [
@@ -370,12 +377,12 @@ def build():
             'parquet': {
                 'url': f'{R2}/{path}/{parquet}',
                 'upstream_url': f'{UPSTREAM_BASE}/{path}/{parquet}',
-                'bytes': size_of(parquet_path),
+                'bytes': size_of(parquet_path) or EXTERNAL_BYTES.get(id_, {}).get('parquet'),
             },
             'pmtiles': {
                 'url': f'{R2}/{path}/{pmtiles}',
                 'upstream_url': f'{UPSTREAM_BASE}/{path}/{pmtiles}',
-                'bytes': size_of(pmtiles_path),
+                'bytes': size_of(pmtiles_path) or EXTERNAL_BYTES.get(id_, {}).get('pmtiles'),
             } if pmtiles_path else None,
             'licence': licence,
             'attribution': {
