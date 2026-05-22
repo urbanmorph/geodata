@@ -95,9 +95,9 @@ def stats_for_parquet(path: Path, con: duckdb.DuckDBPyConnection) -> dict | None
             'null_frac': round(float(null_frac or 0), 4),
         }
         if min_v is not None:
-            entry['min'] = _coerce_minmax(min_v, norm)
+            entry['min'] = _coerce(min_v, norm)
         if max_v is not None:
-            entry['max'] = _coerce_minmax(max_v, norm)
+            entry['max'] = _coerce(max_v, norm)
 
         if 2 <= entry['distinct'] <= FACET_THRESHOLD:
             try:
@@ -110,7 +110,7 @@ def stats_for_parquet(path: Path, con: duckdb.DuckDBPyConnection) -> dict | None
                     LIMIT {MAX_TOP_VALUES}
                 """).fetchall()
                 entry['top_values'] = [
-                    {'v': _coerce_value(v, norm), 'n': int(n)} for v, n in top
+                    {'v': _coerce(v, norm), 'n': int(n)} for v, n in top
                 ]
             except duckdb.Error as e:
                 print(f'  filter_stats: top_values failed on {col_name} — {e}')
@@ -120,21 +120,7 @@ def stats_for_parquet(path: Path, con: duckdb.DuckDBPyConnection) -> dict | None
     return {'row_count': int(row_count), 'columns': columns}
 
 
-def _coerce_minmax(v: str, norm: str) -> str | float | int:
-    if norm == 'int':
-        try:
-            return int(v)
-        except (ValueError, TypeError):
-            return v
-    if norm == 'float':
-        try:
-            return float(v)
-        except (ValueError, TypeError):
-            return v
-    return v
-
-
-def _coerce_value(v: str | None, norm: str) -> str | float | int | None:
+def _coerce(v, norm: str):
     if v is None:
         return None
     if norm == 'int':

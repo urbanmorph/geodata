@@ -96,14 +96,19 @@ export async function describeParquet(url: string): Promise<ProbeResult> {
 
   const topValues: Record<string, Array<{ v: string | number; n: number }>> = {};
   for (const d of lowCardCols) {
+    const norm = normaliseType(d.column_type);
     try {
+      // Cast numeric columns back to native types — otherwise the MapLibre
+      // filter (`['in', ['get', col], ['literal', values]]`) compares the
+      // baked strings against tile-property numbers and silently matches
+      // nothing. Strings/dates stay as VARCHAR.
       const rows = await query<{ v: unknown; n: bigint | number }>(
         `SELECT ${escIdent(d.column_name)}::VARCHAR AS v, COUNT(*) AS n
          FROM '${url}' WHERE ${escIdent(d.column_name)} IS NOT NULL
          GROUP BY 1 ORDER BY n DESC LIMIT ${MAX_TOP_VALUES}`,
       );
       topValues[d.column_name] = rows.map((r) => ({
-        v: String(r.v),
+        v: coerceMinMax(String(r.v), norm),
         n: Number(r.n),
       }));
     } catch {

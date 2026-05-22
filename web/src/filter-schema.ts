@@ -27,7 +27,7 @@ export type ColumnStats = {
 
 export type Affordance =
   | { kind: 'facet'; values: Array<{ v: string | number; n: number; label?: string }> }
-  | { kind: 'searchable'; sampleValues: Array<string | number> }
+  | { kind: 'searchable' }
   | { kind: 'search' }
   | { kind: 'range'; min: number; max: number }
   | { kind: 'boolean' }
@@ -93,12 +93,7 @@ export function pickAffordance(col: ColumnStats, rowCount: number): Affordance {
   }
 
   if (col.distinct <= 50) return { kind: 'facet', values: col.topValues ?? [] };
-  if (col.distinct <= 2000) {
-    return {
-      kind: 'searchable',
-      sampleValues: (col.topValues ?? []).slice(0, 10).map((v) => v.v),
-    };
-  }
+  if (col.distinct <= 2000) return { kind: 'searchable' };
   return { kind: 'search' };
 }
 
