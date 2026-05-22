@@ -8,3 +8,9 @@ export function isEmbedPath(pathname: string): { embed: true; layerId: string } 
   if (!m) return { embed: false };
   return { embed: true, layerId: decodeURIComponent(m[1]) };
 }
+
+export function isViewPath(pathname: string): { view: true; layerId: string } | { view: false } {
+  const m = pathname.match(/^\/view\/([^/?#]+)\/?$/);
+  if (!m) return { view: false };
+  return { view: true, layerId: decodeURIComponent(m[1]) };
+}

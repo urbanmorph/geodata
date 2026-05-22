@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { embedIframeHtml, isEmbedPath } from '../src/embed-snippet';
+import { embedIframeHtml, isEmbedPath, isViewPath } from '../src/embed-snippet';
 
 describe('embed-snippet — embedIframeHtml', () => {
   it('emits a sane iframe snippet with the encoded layer id', () => {
@@ -42,5 +42,23 @@ describe('embed-snippet — isEmbedPath', () => {
 
   it('rejects nested paths under /embed/<id>/something', () => {
     expect(isEmbedPath('/embed/lgd_villages/extra')).toEqual({ embed: false });
+  });
+});
+
+describe('isViewPath', () => {
+  it('recognises /view/<id>', () => {
+    expect(isViewPath('/view/lgd_villages')).toEqual({ view: true, layerId: 'lgd_villages' });
+  });
+  it('recognises a trailing slash', () => {
+    expect(isViewPath('/view/lgd_villages/')).toEqual({ view: true, layerId: 'lgd_villages' });
+  });
+  it('decodes URI-encoded ids', () => {
+    expect(isViewPath('/view/wards%40chennai')).toEqual({ view: true, layerId: 'wards@chennai' });
+  });
+  it('rejects bare /view + nested paths + unrelated routes', () => {
+    expect(isViewPath('/view')).toEqual({ view: false });
+    expect(isViewPath('/view/')).toEqual({ view: false });
+    expect(isViewPath('/view/lgd_villages/extra')).toEqual({ view: false });
+    expect(isViewPath('/about')).toEqual({ view: false });
   });
 });

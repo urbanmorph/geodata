@@ -1,6 +1,6 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
-import { isEmbedPath } from './embed-snippet';
+import { isEmbedPath, isViewPath } from './embed-snippet';
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
@@ -26,6 +26,12 @@ const loadMap = () => import('./map');
     }
   }
 }
+
+// /view/<layerId>: Cloudflare Pages Function (functions/view/[id].ts) serves
+// the home HTML with per-layer og:image and JSON-LD Dataset baked in for
+// social-card crawlers. Same browser bundle — open the layer directly
+// without touching the URL so the canonical /view/<id> stays shareable.
+const viewProbe = isViewPath(location.pathname);
 
 async function showMap(layerId: string) {
   overlay.classList.add('open');
@@ -60,13 +66,14 @@ window.addEventListener('keydown', (e) => {
 });
 window.addEventListener('hashchange', handleHash);
 handleHash();
+if (viewProbe.view) showMap(viewProbe.layerId);
 
 // Hover/touchstart prefetch: warm the map chunk as soon as the user signals
 // intent. Dynamic import() dedupes — fires once across all event sources.
 const prefetch = () => {
   loadMap();
 };
-for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href^="#view/"]')) {
+for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href^="/view/"]')) {
   a.addEventListener('mouseenter', prefetch, { once: true, passive: true });
   a.addEventListener('touchstart', prefetch, { once: true, passive: true });
   a.addEventListener('focus', prefetch, { once: true });
