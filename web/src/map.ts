@@ -169,21 +169,14 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     },
   });
 
-  // Hover-popup. HTML rebuild is memoised by feature id so dense panning over
-  // dense layers (villages: 584k features) doesn't re-stringify on every mousemove.
+  // One popup with one look — fed by hover on pointer devices and by tap on
+  // touch devices. Tap-on-feature shows it, tap-elsewhere (or tap a different
+  // feature) swaps/dismisses. Same code path; no separate sticky variant.
   const popup = new maplibregl.Popup({
     closeButton: false,
     closeOnClick: false,
     maxWidth: '320px',
-    className: 'geo-popup geo-popup--hover',
-  });
-  // Sticky popup on tap/click — keeps content visible on touch devices.
-  // The hover popup above stays on devices with a real pointer.
-  const tapPopup = new maplibregl.Popup({
-    closeButton: true,
-    closeOnClick: true,
-    maxWidth: '320px',
-    className: 'geo-popup geo-popup--tap',
+    className: 'geo-popup',
   });
   function buildRows(props: Record<string, unknown> | null | undefined): string {
     return Object.entries(props || {})
@@ -197,8 +190,7 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
   }
 
   let popupId: string | number | undefined;
-  map.on('mousemove', 'fill', (e) => {
-    map!.getCanvas().style.cursor = 'pointer';
+  const showPopup = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
     const f = e.features?.[0];
     if (!f) return;
     const fid = (f.id as string | number | undefined) ?? f.properties?.OBJECTID ?? f.properties?.vil_lgd;
@@ -207,18 +199,26 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
       popupId = fid;
     }
     popup.setLngLat(e.lngLat).addTo(map!);
+  };
+  map.on('mousemove', 'fill', (e) => {
+    map!.getCanvas().style.cursor = 'pointer';
+    showPopup(e);
   });
   map.on('mouseleave', 'fill', () => {
     map!.getCanvas().style.cursor = '';
     popup.remove();
     popupId = undefined;
   });
-
-  map.on('click', 'fill', (e) => {
-    const f = e.features?.[0];
-    if (!f) return;
-    popup.remove();
-    tapPopup.setLngLat(e.lngLat).setHTML(buildRows(f.properties)).addTo(map!);
+  // Touch / no-hover devices: tap a feature to show its details. Tapping
+  // empty map or a different feature swaps/clears it.
+  map.on('click', 'fill', showPopup);
+  map.on('click', (e) => {
+    // Empty-map tap (no features at click point) dismisses the popup.
+    const hit = map!.queryRenderedFeatures(e.point, { layers: ['fill'] });
+    if (!hit.length) {
+      popup.remove();
+      popupId = undefined;
+    }
   });
 }
 

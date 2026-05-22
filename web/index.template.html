@@ -516,10 +516,8 @@
         }
       }
 
-      /* Touch / no-hover devices: kill the hover popup (it'd flash on tap) */
-      @media (hover: none) {
-        .geo-popup--hover { display: none; }
-      }
+      /* Map popups are a single look — fed by hover on pointer devices and
+         by tap on touch devices. No separate hover/tap variants. */
       #map { flex: 1; background: var(--bg); position: relative; }
       #map-loading { color: var(--muted); padding: 16px; }
       .map-loader {
