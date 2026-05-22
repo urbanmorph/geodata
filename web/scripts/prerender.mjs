@@ -366,16 +366,18 @@ function renderRow(level, layersForLevel, opts = {}) {
     `data-search="${esc(haystack)}"`,
   ].join(' ');
 
-  // Compact list layout — one-line entry per layer. Description + alt
-  // sources reveal on click via <details>. Scales to ~200 layers without
-  // turning the home page into a wall of cards.
+  // Compact list layout — one-line entry per layer. Description, source,
+  // licence, freshness, alt sources reveal on click via <details>.
+  // Summary stays tight: title · source · count · actions. Licence lives
+  // in the expanded panel — dual SPDX strings ("CC0-1.0 / CC-BY-4.0")
+  // were wrapping at any reasonable column width and breaking vertical
+  // rhythm.
   return `<section class="row row--curated row--compact${collapsed}" id="${esc(level)}" ${dataAttrs}>
       <details class="row__details">
         <summary class="row__summary">
           <span class="row__title">${esc(meta.label)}</span>
           <span class="row__source">${esc(primary.source)}</span>
           <span class="row__count">${fmtRows(primary.rows)}</span>
-          <span class="row__lic">${esc(primary.licence || '')}</span>
           <span class="row__actions">
             ${viewBtn}
             ${dlInline}
@@ -384,6 +386,7 @@ function renderRow(level, layersForLevel, opts = {}) {
         <div class="row__expand">
           <p class="row__desc">${esc(meta.description)}</p>
           ${sourceLine}
+          ${primary.licence ? `<p class="row__lic-line">Licence: <code>${esc(primary.licence)}</code></p>` : ''}
           ${viewerHint}
           ${altSection}
         </div>
@@ -482,30 +485,19 @@ const homeSeo = seoHead({
   },
 });
 
-// Category chips: count layers per category, render an "All" chip + one per
-// non-empty category. Hide chip row entirely when only one category is in play.
-// Categories not declared in catalog.categories fall through to 'other'.
+// Category chips: count = visible level rows per category (not raw layer
+// rows). Raw-layer counts double-counted alt sources and included dead
+// gb_adm placeholders, making the pill total mismatch the section title.
+// `categoryCounts` is initialised here from visible levels; community
+// submissions get added below once communityByCategory is built; chip
+// HTML is rendered AFTER that so the totals are final.
 const knownCats = new Set(Object.keys(catalog.categories || {}));
 const categoryCounts = {};
-for (const l of catalog.layers || []) {
-  const cat = l.category && knownCats.has(l.category) ? l.category : 'other';
-  if (l.category && !knownCats.has(l.category)) {
-    console.warn(`[prerender] layer ${l.id} has unknown category "${l.category}" — bucketing as "other"`);
-  }
+for (const lvl of LEVEL_ORDER) {
+  if (!byLevel[lvl]?.length) continue;
+  const cat = knownCats.has(categoryByLevel[lvl]) ? categoryByLevel[lvl] : 'other';
   categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
 }
-const totalLayers = (catalog.layers || []).length;
-const activeCats = Object.entries(catalog.categories || {})
-  .filter(([id]) => categoryCounts[id]);
-const chips = [
-  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
-  ...activeCats.map(
-    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
-  ),
-];
-// Only render chips when there's more than one category to switch between
-// (with just admin layers today, the chip row would be noise).
-const chipsHtml = activeCats.length > 1 ? chips.join('') : '';
 
 // Community submissions: query D1 (local by default; --remote in prod build
 // once that's wired). Silently empty on failure so a missing wrangler /
@@ -582,7 +574,24 @@ for (const s of community) {
 for (const cat of Object.keys(communityByCategory)) {
   // Newest first; consumers re-sort if they want by score.
   communityByCategory[cat].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  // Top up the chip counts so pills include community contributions.
+  categoryCounts[cat] = (categoryCounts[cat] || 0) + communityByCategory[cat].length;
 }
+
+// Derive `totalLayers` from the final chip counts so the "All" chip
+// matches the sum of per-category chips exactly. Build chip HTML now
+// that the counts are stable.
+const totalLayers = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+const activeCats = Object.entries(catalog.categories || {})
+  .filter(([id]) => categoryCounts[id]);
+const chips = [
+  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
+  ...activeCats.map(
+    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
+  ),
+];
+// Only render chips when there's more than one category to switch between.
+const chipsHtml = activeCats.length > 1 ? chips.join('') : '';
 
 // Render one section per non-empty category. Inside each: curated level rows
 // first (in LEVEL_ORDER), then community cards (newest first). Both are
