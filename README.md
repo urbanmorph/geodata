@@ -9,10 +9,18 @@ A visual catalog, drag-drop verifier, and anonymous contribution flow for India'
 **Live**: https://bharatlas.com
 
 ```
-catalog          → state · district · subdistrict · block · village (LGD-coded)
-verify           → drop GeoJSON · KML · KMZ · GPX · TCX · Parquet → render + validate
-submit           → contribute under an open licence · anonymous · admin-token model
-view (/c/<id>)   → public page per submission, ▲/▼ vote, JSON-LD indexed
+catalog               → state · district · subdistrict · block · village (LGD)
+                        + city wards (Bengaluru, Chennai, Hyderabad, Mumbai, …)
+                        + electoral constituencies, wildlife, eco-zones
+preview               → drop GeoJSON · KML · KMZ · GPX · TCX · Parquet →
+                        render + validate → optional Publish
+filter & export       → dynamic facets / range / search per layer schema,
+                        slice by what the data actually contains, export
+                        as Parquet · GeoJSON · KML
+view (/view/<id>)     → curated layer with per-layer OG card
+view (/c/<id>)        → community submission, edge-rendered HTML, ▲/▼ vote,
+                        per-submission OG card
+embed                 → /embed/<id> iframe + PNG export from any map
 ```
 
 ## What's in this repo
@@ -51,7 +59,7 @@ git clone git@github.com:urbanmorph/geodata.git
 cd geodata/web
 npm install
 npm run dev    # http://localhost:5173
-npm test       # 167 vitest tests
+npm test       # 320+ vitest tests
 ```
 
 For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.
@@ -72,14 +80,16 @@ Commit messages: short subject, body explains *why* not *what*. Examples in `git
 cd web && npm test
 ```
 
-167 tests across validators, token generation, vote tally, render-view HTML, etc. See [`web/tests/`](./web/tests/).
+320+ tests across validators, token generation, vote tally, render-view HTML, filter affordances, OG template, and more. See [`web/tests/`](./web/tests/).
 
 ## Roadmap
 
-- [x] v1 — pan-India admin layers, parquet + PMTiles downloads
+- [x] v1 — pan-India admin layers, Parquet + PMTiles downloads
 - [x] v2 — DuckDB-WASM filter & export per state
 - [x] v3 — submission flow: drag-drop verify, anonymous token, auto-moderation, /c/[id] view page, mixed catalog, votes
-- [ ] v4 — public API + MCP server + Claude Code plugin
+- [x] v4 — SEO/AEO pass, opencity ingest (city wards), dynamic filters from schema, basemap toggle, format-hinted downloads, embed iframe + PNG export, unified edge OG renderer (per-layer + per-submission cards)
+- [ ] **next**: "Your submissions" panel · CSP re-enable · a11y to 95+ · privacy + ToS
+- [ ] v5 — public REST API + MCP server + Claude Code plugin
 
 ## Security
 
