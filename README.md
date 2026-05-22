@@ -74,14 +74,6 @@ For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/
 
 Commit messages: short subject, body explains *why* not *what*. Examples in `git log`.
 
-## Tests
-
-```bash
-cd web && npm test
-```
-
-320+ tests across validators, token generation, vote tally, render-view HTML, filter affordances, OG template, and more. See [`web/tests/`](./web/tests/).
-
 ## Roadmap
 
 - [x] v1 — pan-India admin layers, Parquet + PMTiles downloads
@@ -101,7 +93,7 @@ Code: [MIT](./LICENSE). Data: each layer carries its own open licence — see th
 
 ## Use of data
 
-The platform doesn't warrant accuracy or fitness for any purpose. Boundaries shown are for reference, not legal authority — refer to LGD, SOI, Bhuvan or the state revenue department for official use. Community submissions are auto-moderated, not editorially curated; verify provenance via the source link on each card. See [/about → Use of data](https://bharatlas.com/about#use-of-data).
+Provided as-is, no warranty. For legal/administrative use, go to the upstream source. Full disclaimers: [/about → Use of data](https://bharatlas.com/about#use-of-data).
 
 ## Credits
 
@@ -112,6 +104,4 @@ The platform doesn't warrant accuracy or fitness for any purpose. Boundaries sho
 
 Built by [Urban Morph](https://urbanmorph.com) · [@sathyasankaran](https://linkedin.com/in/sathyasankaran). Drop a ⭐ if you find it useful.
 
-## Status
-
-**Alpha.** The submission flow is live and accepting contributions, but the schema and API may change before v4. Community submissions are permanent under the open licence the contributor selected.
+**Status:** alpha. Submission flow is live and accepting contributions; the schema and external API may shift before v5. Community submissions are permanent under the open licence the contributor selected.

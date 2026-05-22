@@ -43,72 +43,47 @@
   <body>
     <!-- NAV -->
 
-    <p class="eyebrow" style="font-size:13px;letter-spacing:.04em;color:var(--accent);margin:8px 0 4px">geodata</p>
+    <p class="eyebrow" style="font-size:13px;letter-spacing:.04em;color:var(--accent);margin:8px 0 4px">bharatlas</p>
     <h1 class="hero">India's open atlas.</h1>
     <p class="lede">
-      Find a map, see it on a map, slice out what you need, and download. Submit your own
-      by dropping it on the page. No signup, no API key, no SQL.
+      Browse, slice, and download India's official map layers. Submit your own by dropping
+      it onto the page. No signup, no API key, no SQL.
+    </p>
+    <p style="margin:0 0 var(--sp-6)">
+      <a href="/" class="cta" style="display:inline-block;background:var(--fg);color:var(--bg);padding:10px 18px;border-radius:var(--radius-md);font-weight:500;text-decoration:none">Browse the catalog →</a>
     </p>
 
     <h2>Why bharatlas exists</h2>
     <p>
-      Sathya kept hitting the same wall. Maps lived everywhere online, but you couldn't
-      tell what they actually showed, who maintained them, or whether to trust them.
-      Pulling out just the slice he needed meant booting QGIS or wading through Google
-      Maps menus. Viewing was its own ordeal — sign in, navigate the menus, import.
-      The format question alone — KML? KMZ? GeoJSON? Parquet? — felt gatekept. And if
-      you'd made a map yourself and wanted to share it, you had to stand up your own
-      website to host it.
+      Maps live everywhere online, but you can't tell what they actually show, who
+      maintains them, or whether to trust them. Pulling out just the slice you need
+      means booting QGIS or wading through Google Maps menus. Viewing is its own ordeal
+      — sign in, navigate the menus, import. The format question alone — KML? KMZ?
+      GeoJSON? Parquet? — feels gatekept. And if you've made a map yourself and want to
+      share it, you have to stand up your own website to host it.
     </p>
     <p>
-      Bharatlas is the idea to flatten all of that. <strong>The wiki for India's maps.</strong>
-      View any layer in your browser. Filter what you need. Download in whatever format
-      your tool reads. Liked it? Upvote so others find it. Have a map worth sharing? Drag
-      and drop it onto the page. Every layer carries its source, licence and freshness on
-      the same card.
+      Sathya kept hitting the same wall. Bharatlas flattens all of that —
+      <strong>the wiki for India's maps.</strong> View any layer in your browser. Filter
+      what you need. Download in whatever format your tool reads. Liked it? Upvote so
+      others find it. Have a map worth sharing? Drag and drop it onto the page. Every
+      layer carries its source, licence and freshness on the same card.
     </p>
 
     <h2>Who it's for</h2>
     <ul>
       <li><strong>Journalists + researchers</strong> — pull a state's districts, villages or constituencies in ten seconds; download as GeoJSON or Parquet.</li>
       <li><strong>Civic technologists</strong> — share city-scale layers (wards, bike lanes, polling booths) with attribution baked in.</li>
-      <li><strong>App developers</strong> — direct PMTiles URLs, no rate limits, no key.</li>
+      <li><strong>App developers</strong> — direct PMTiles URLs, no rate limits, no API key.</li>
     </ul>
 
     <h2>What you can do today</h2>
     <ul>
-      <li>View every admin level from <strong>state</strong> to <strong>village</strong> on a map, plus city wards (Bengaluru, Chennai, Hyderabad, Mumbai, +12 more), constituencies, wildlife sanctuaries.</li>
+      <li>View every admin level from <strong>state</strong> to <strong>village</strong> on a map, plus city wards across <strong>15 Indian cities</strong> (Bengaluru, Chennai, Hyderabad, Mumbai and more), constituencies, wildlife sanctuaries.</li>
       <li>Filter any layer by what its columns actually contain — state, zone, area, anything — and export the slice as <strong>Parquet</strong>, <strong>GeoJSON</strong> or <strong>KML</strong>.</li>
       <li><a href="/preview">Drop a file</a> to see it on a map and validate it. Optionally publish under an open licence — no signup; you get an admin token to keep forever.</li>
       <li>Embed any map in a blog post or report (iframe snippet + PNG export, one click each).</li>
     </ul>
-
-    <h2>Where the curated data comes from</h2>
-    <div class="source-grid">
-      <span class="name"><a href="https://lgdirectory.gov.in/" target="_blank" rel="noopener">LGD</a></span>
-      <span class="meta">Local Government Directory — authoritative, with full code chain. <code>CC0-1.0</code> / <code>CC-BY-4.0</code></span>
-      <span class="name"><a href="https://surveyofindia.gov.in/" target="_blank" rel="noopener">SOI</a></span>
-      <span class="meta">Survey of India open-data series, community-republished. <code>CC0-1.0</code></span>
-      <span class="name"><a href="https://bhuvanpanchayat.nrsc.gov.in/" target="_blank" rel="noopener">Bhuvan</a></span>
-      <span class="meta">NRSC/ISRO Bhuvan panchayat portal. <code>CC0-1.0</code></span>
-      <span class="name"><a href="https://omms.nic.in/" target="_blank" rel="noopener">PMGSY</a></span>
-      <span class="meta">Pradhan Mantri Gram Sadak Yojana — rural roads, blocks. <code>CC0-1.0</code></span>
-      <span class="name"><a href="https://www.geoboundaries.org/" target="_blank" rel="noopener">geoBoundaries</a></span>
-      <span class="meta">Independent cross-check, name-only attributes. <code>CC-BY-4.0</code></span>
-    </div>
-    <p style="color:var(--muted);font-size:13px">
-      Re-publication pipeline by <a href="https://github.com/yashveeeeeeer/india-geodata" target="_blank" rel="noopener">yashveeeeeeer/india-geodata</a>.
-      See <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">REPORT.md</a> for full provenance and caveats.
-    </p>
-
-    <h2>Roadmap</h2>
-    <ul>
-      <li>"Your submissions" — return to a layer you uploaded, edit or re-share.</li>
-      <li>Typed layers — boundary, point, network, area — so any well-shaped file can join the catalog without a fixed admin hierarchy.</li>
-      <li>Public REST API + MCP server + Claude Code plugin.</li>
-      <li>Shapefile (.zip) support in <a href="/preview">/preview</a>.</li>
-    </ul>
-
 
     <h2>Open source</h2>
     <p>
@@ -119,9 +94,6 @@
 
     <h2 id="faq">Frequently asked</h2>
     <dl class="faq">
-      <dt>What is bharatlas?</dt>
-      <dd>An open visualiser, in-browser verifier and anonymous contribution flow for India's geospatial data. Browse curated admin boundaries from state to village, drop a file to render and validate it, or publish your own layer under an open licence.</dd>
-
       <dt>Do I need to sign up?</dt>
       <dd>No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a <code>.txt</code> backup) that you keep forever to edit or delete that submission.</dd>
 
@@ -146,7 +118,7 @@
       <li><strong>Provided as-is, no warranty.</strong> Express or implied guarantees of accuracy, completeness or fitness for a particular purpose are not made by this site or its maintainers.</li>
       <li><strong>Boundaries are for reference, not legal authority.</strong> For official, administrative or land-record use, refer directly to LGD, SOI, Bhuvan or the state revenue department.</li>
       <li><strong>Curated layers reflect the upstream source at fetch time</strong> — see the freshness pill on each card. Upstream sources change; the catalog can lag.</li>
-      <li><strong>Community submissions are auto-moderated, not editorially curated.</strong> The platform checks licence, format and basic geometry validity. It does not verify accuracy, completeness or authorship beyond the contributor's self-attestation. Verify provenance via the source link on each card before relying on community data.</li>
+      <li><strong>Community submissions are auto-moderated, not editorially curated.</strong> Licence, format and basic geometry validity are checked; accuracy and authorship are not. Verify via the source link on each card before relying on community data.</li>
     </ul>
 
     <h2 style="text-transform:none;letter-spacing:0;color:var(--fg);font-size:var(--fs-xl);margin-top:var(--sp-7)">Built by</h2>
