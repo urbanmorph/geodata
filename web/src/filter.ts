@@ -12,8 +12,9 @@ import {
   exportFilteredGeoJSON,
   exportFilteredKML,
   getDb,
+  query,
 } from './db';
-import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML } from './loading';
+import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
 import { getFullCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
@@ -88,14 +89,57 @@ export function mountFilterPanel(
     return [...filterState.values()].filter((f): f is ActiveFilter => f != null);
   }
 
+  // ───── Live row count (debounced) ─────
+  // Tracks the latest filter state so we can ignore stale COUNT results when
+  // the user clicks chips faster than DuckDB can answer. engineWarm is also
+  // used by the export buttons below — first DuckDB call (count or export)
+  // bears the cold start; subsequent ones reuse the warmed runtime.
+  let countSeq = 0;
+  let countTimer: number | undefined;
+  let countLoader: ReturnType<typeof inlineLoader> | undefined;
+  let engineWarm = false;
+
   function notifyChange() {
     const active = getActiveFilters();
     const mapFilter = buildMaplibreFilter(active);
     callbacks.onActiveFiltersChange?.(active, mapFilter);
     setExportEnabled(active.length > 0);
-    summary.innerHTML = active.length
-      ? `<span><strong>Filter active.</strong> Use the buttons below to export the matching slice.</span>`
-      : `<span class="filter-panel__muted">Pick a value above to enable export.</span>`;
+    window.clearTimeout(countTimer);
+    countLoader?.dismiss();
+    countLoader = undefined;
+    if (!active.length) {
+      summary.innerHTML = `<span class="filter-panel__muted">Pick a value above to enable export.</span>`;
+      return;
+    }
+    summary.innerHTML = `<span class="filter-panel__muted">Counting…</span>`;
+    countTimer = window.setTimeout(() => runRowCount(active), 300);
+  }
+
+  async function runRowCount(active: ActiveFilter[]) {
+    if (!layer.parquet?.url) return;
+    const mySeq = ++countSeq;
+    const where = buildWhereSQL(active).replace(/^WHERE\s+/i, '');
+    const sql = `SELECT COUNT(*) AS n FROM '${layer.parquet.url}' WHERE ${where}`;
+    countLoader = inlineLoader(summary, engineWarm ? VERBS_COUNT : VERBS_ENGINE);
+    const warmTimer = !engineWarm
+      ? window.setTimeout(() => countLoader?.setVerbs(VERBS_COUNT), 8000)
+      : undefined;
+    try {
+      const rows = await query<{ n: bigint | number }>(sql);
+      window.clearTimeout(warmTimer);
+      if (mySeq !== countSeq) return; // a newer filter superseded us
+      countLoader?.dismiss();
+      countLoader = undefined;
+      engineWarm = true;
+      const n = Number(rows[0]?.n ?? 0);
+      summary.innerHTML = `<span><strong>${n.toLocaleString('en-IN')}</strong> rows match.</span>`;
+    } catch (e) {
+      window.clearTimeout(warmTimer);
+      if (mySeq !== countSeq) return;
+      countLoader?.dismiss();
+      countLoader = undefined;
+      summary.innerHTML = `<span class="filter-panel__muted">Filter active. (count unavailable)</span>`;
+    }
   }
 
   // Render columns by ranked usefulness; pickAffordance lives in the schema
@@ -133,7 +177,6 @@ export function mountFilterPanel(
   // user clicks an export button.
   getDb().catch(() => {});
 
-  let engineWarm = false;
   exportBtns.forEach((btn) => {
     btn.addEventListener('click', async () => {
       const active = getActiveFilters();
