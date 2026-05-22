@@ -19,11 +19,14 @@ export type ColumnStats = {
   nullFrac: number;
   min?: number | string;
   max?: number | string;
-  topValues?: Array<{ v: string | number; n: number }>;
+  // `label` is an optional display string for a top value — used to render
+  // numeric state codes as their state names, etc. The filter still keys on
+  // `v` (the actual data value); `label` only affects the chip text.
+  topValues?: Array<{ v: string | number; n: number; label?: string }>;
 };
 
 export type Affordance =
-  | { kind: 'facet'; values: Array<{ v: string | number; n: number }> }
+  | { kind: 'facet'; values: Array<{ v: string | number; n: number; label?: string }> }
   | { kind: 'searchable'; sampleValues: Array<string | number> }
   | { kind: 'search' }
   | { kind: 'range'; min: number; max: number }
