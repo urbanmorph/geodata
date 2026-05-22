@@ -733,7 +733,7 @@ const ABOUT_FAQ = [
 await renderPage('about', {
   title: 'About',
   description:
-    "Bharatlas — open catalog, in-browser verifier, and anonymous contribution flow for India's geo data. Admin boundaries plus community layers, all open.",
+    "Bharatlas is the wiki for India's maps. View any layer, slice out what you need, download in any format, or contribute your own. Open licences, no signup.",
   url: ORIGIN + '/about',
   image: ORIGIN + '/og-about.png',
   structuredData: {
