@@ -5,6 +5,8 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_MAP } from './loading';
 import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
+import { availableDownloads, fmtBytes } from './format-hints';
+import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
 
 type Layer = {
   id: string;
@@ -36,19 +38,35 @@ function getArchive(url: string): PMTiles {
   return a;
 }
 
-// MapLibre over OpenStreetMap raster fallback — no API key, attribution required.
-const BASE_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: {
-    osm: {
+// All registered basemaps are added as raster sources at style-init time;
+// visibility is toggled per the user's choice. Overlay layers sit on top and
+// are never touched by basemap swaps.
+function buildBaseStyle(active: BasemapId): maplibregl.StyleSpecification {
+  const sources: Record<string, maplibregl.RasterSourceSpecification> = {};
+  const layers: maplibregl.LayerSpecification[] = [];
+  for (const b of BASEMAPS) {
+    sources[b.id] = b.source;
+    layers.push({
+      id: b.id,
       type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenStreetMap',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
-};
+      source: b.id,
+      layout: { visibility: b.id === active ? 'visible' : 'none' },
+    });
+  }
+  return { version: 8, sources, layers };
+}
+
+let activeBasemap: BasemapId = 'osm';
+function setBasemap(id: BasemapId): void {
+  if (!map) return;
+  for (const b of BASEMAPS) {
+    if (map.getLayer(b.id)) {
+      map.setLayoutProperty(b.id, 'visibility', b.id === id ? 'visible' : 'none');
+    }
+  }
+  activeBasemap = id;
+  setStoredBasemap(id);
+}
 
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
 
@@ -62,6 +80,8 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   opts.titleEl.textContent = `${layer.level} · ${layer.source} · ${layer.rows?.toLocaleString('en-IN') ?? '—'} rows`;
 
   await wireFilterButton(layer);
+  wireDownloadButton(layer);
+  wireBasemapButton();
 
   const container = document.getElementById('map')!;
   container.innerHTML = '';
@@ -70,9 +90,10 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     map = null;
   }
   const loader = overlayLoader(container, VERBS_MAP);
+  activeBasemap = getStoredBasemap();
   map = new maplibregl.Map({
     container,
-    style: BASE_STYLE,
+    style: buildBaseStyle(activeBasemap),
     bounds: INDIA_BOUNDS,
     fitBoundsOptions: { padding: 20 },
     attributionControl: { compact: true },
@@ -148,21 +169,14 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     },
   });
 
-  // Hover-popup. HTML rebuild is memoised by feature id so dense panning over
-  // dense layers (villages: 584k features) doesn't re-stringify on every mousemove.
+  // One popup with one look — fed by hover on pointer devices and by tap on
+  // touch devices. Tap-on-feature shows it, tap-elsewhere (or tap a different
+  // feature) swaps/dismisses. Same code path; no separate sticky variant.
   const popup = new maplibregl.Popup({
     closeButton: false,
     closeOnClick: false,
     maxWidth: '320px',
-    className: 'geo-popup geo-popup--hover',
-  });
-  // Sticky popup on tap/click — keeps content visible on touch devices.
-  // The hover popup above stays on devices with a real pointer.
-  const tapPopup = new maplibregl.Popup({
-    closeButton: true,
-    closeOnClick: true,
-    maxWidth: '320px',
-    className: 'geo-popup geo-popup--tap',
+    className: 'geo-popup',
   });
   function buildRows(props: Record<string, unknown> | null | undefined): string {
     return Object.entries(props || {})
@@ -176,8 +190,7 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
   }
 
   let popupId: string | number | undefined;
-  map.on('mousemove', 'fill', (e) => {
-    map!.getCanvas().style.cursor = 'pointer';
+  const showPopup = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
     const f = e.features?.[0];
     if (!f) return;
     const fid = (f.id as string | number | undefined) ?? f.properties?.OBJECTID ?? f.properties?.vil_lgd;
@@ -186,18 +199,26 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
       popupId = fid;
     }
     popup.setLngLat(e.lngLat).addTo(map!);
+  };
+  map.on('mousemove', 'fill', (e) => {
+    map!.getCanvas().style.cursor = 'pointer';
+    showPopup(e);
   });
   map.on('mouseleave', 'fill', () => {
     map!.getCanvas().style.cursor = '';
     popup.remove();
     popupId = undefined;
   });
-
-  map.on('click', 'fill', (e) => {
-    const f = e.features?.[0];
-    if (!f) return;
-    popup.remove();
-    tapPopup.setLngLat(e.lngLat).setHTML(buildRows(f.properties)).addTo(map!);
+  // Touch / no-hover devices: tap a feature to show its details. Tapping
+  // empty map or a different feature swaps/clears it.
+  map.on('click', 'fill', showPopup);
+  map.on('click', (e) => {
+    // Empty-map tap (no features at click point) dismisses the popup.
+    const hit = map!.queryRenderedFeatures(e.point, { layers: ['fill'] });
+    if (!hit.length) {
+      popup.remove();
+      popupId = undefined;
+    }
   });
 }
 
@@ -211,6 +232,86 @@ export function closeLayer() {
   const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
   if (btn) btn.classList.remove('shown');
   document.querySelector('.filter-panel')?.remove();
+  // Close any open header popovers so reopening a layer starts fresh.
+  for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
+}
+
+// Single popover-toggle helper shared by Download + Basemap. Click-outside
+// closes; opening one auto-closes the other.
+function bindPopover(btn: HTMLButtonElement, popover: HTMLElement): void {
+  const close = () => {
+    popover.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  };
+  const open = () => {
+    for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
+    popover.classList.add('open');
+    btn.setAttribute('aria-expanded', 'true');
+  };
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    popover.classList.contains('open') ? close() : open();
+  };
+  popover.onclick = (e) => e.stopPropagation();
+  document.addEventListener('click', close, { passive: true });
+}
+
+function wireDownloadButton(layer: Layer): void {
+  const btn = document.getElementById('map-download') as HTMLButtonElement | null;
+  const popover = document.getElementById('map-download-popover');
+  if (!btn || !popover) return;
+  const downloads = availableDownloads(layer);
+  if (!downloads.length) {
+    btn.classList.remove('shown');
+    popover.classList.remove('open');
+    popover.innerHTML = '';
+    return;
+  }
+  btn.classList.add('shown');
+  popover.innerHTML =
+    `<div class="map-popover__title">Download whole layer</div>` +
+    downloads
+      .map(
+        (d) =>
+          `<a class="map-popover__item" href="${escapeHtml(d.url)}" download>
+            <span class="map-popover__fmt">${escapeHtml(d.label)}</span>
+            <span class="map-popover__size">${escapeHtml(fmtBytes(d.bytes))}</span>
+            <span class="map-popover__hint">${escapeHtml(d.hint)}</span>
+          </a>`,
+      )
+      .join('') +
+    `<div class="map-popover__foot">Need a slice? Use <strong>Filter &amp; export</strong> for state-scoped GeoJSON &amp; KML.</div>`;
+  bindPopover(btn, popover);
+}
+
+function wireBasemapButton(): void {
+  const btn = document.getElementById('map-basemap') as HTMLButtonElement | null;
+  const popover = document.getElementById('map-basemap-popover');
+  if (!btn || !popover) return;
+  btn.classList.add('shown');
+  const render = () => {
+    popover.innerHTML =
+      `<div class="map-popover__title">Base map</div>` +
+      BASEMAPS.map(
+        (b) =>
+          `<button class="map-popover__item map-popover__item--btn${
+            b.id === activeBasemap ? ' is-active' : ''
+          }" data-basemap="${b.id}">
+            <span class="map-popover__fmt">${escapeHtml(b.name)}</span>
+            <span class="map-popover__hint">${escapeHtml(b.hint)}</span>
+          </button>`,
+      ).join('');
+    for (const el of popover.querySelectorAll<HTMLButtonElement>('[data-basemap]')) {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = el.dataset.basemap as BasemapId;
+        setBasemap(id);
+        render();
+      });
+    }
+  };
+  render();
+  bindPopover(btn, popover);
 }
 
 async function wireFilterButton(layer: Layer) {

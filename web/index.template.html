@@ -359,6 +359,52 @@
       #map-overlay button.filter-toggle { display: none; }
       #map-overlay button.filter-toggle.shown { display: inline-block; }
       #map-overlay button.filter-toggle:hover { border-color: var(--accent); color: var(--accent); }
+      #map-overlay button.filter-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+
+      /* Popover (download menu + basemap toggle) */
+      .map-pop-wrap { position: relative; display: inline-block; }
+      .map-popover {
+        position: absolute; top: calc(100% + 6px); right: 0;
+        min-width: 240px; max-width: 320px;
+        background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        padding: 6px;
+        z-index: 20;
+        display: none;
+      }
+      .map-popover.open { display: block; }
+      .map-popover__title {
+        font-size: 11px; color: var(--muted);
+        text-transform: uppercase; letter-spacing: .06em;
+        padding: 8px 10px 6px;
+      }
+      .map-popover__item {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        column-gap: 10px;
+        row-gap: 2px;
+        padding: 9px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--fg);
+        text-decoration: none;
+        font: inherit;
+        background: transparent;
+        border: none;
+        text-align: left;
+        width: 100%;
+      }
+      .map-popover__item:hover { background: var(--card-bg); }
+      .map-popover__item.is-active { background: color-mix(in srgb, var(--accent) 12%, transparent); }
+      .map-popover__fmt { font-weight: 600; font-size: 13px; grid-column: 1; }
+      .map-popover__size { font-size: 12px; color: var(--muted); grid-column: 2; justify-self: end; }
+      .map-popover__hint { font-size: 12px; color: var(--muted); grid-column: 1 / -1; }
+      .map-popover__foot {
+        padding: 8px 10px;
+        margin-top: 4px;
+        border-top: 1px solid var(--line);
+        font-size: 11px; color: var(--muted); line-height: 1.5;
+      }
 
       /* Filter panel (v2 — DuckDB-WASM in-browser slicing) */
       .filter-panel {
@@ -470,10 +516,8 @@
         }
       }
 
-      /* Touch / no-hover devices: kill the hover popup (it'd flash on tap) */
-      @media (hover: none) {
-        .geo-popup--hover { display: none; }
-      }
+      /* Map popups are a single look — fed by hover on pointer devices and
+         by tap on touch devices. No separate hover/tap variants. */
       #map { flex: 1; background: var(--bg); position: relative; }
       #map-loading { color: var(--muted); padding: 16px; }
       .map-loader {
@@ -567,6 +611,14 @@
     <div id="map-overlay" aria-hidden="true">
       <header class="map-bar">
         <span class="map-title" id="map-title">map</span>
+        <div class="map-pop-wrap">
+          <button class="filter-toggle" id="map-basemap" aria-label="Choose base map" aria-expanded="false" aria-haspopup="menu">Base map</button>
+          <div class="map-popover" id="map-basemap-popover" role="menu"></div>
+        </div>
+        <div class="map-pop-wrap">
+          <button class="filter-toggle" id="map-download" aria-label="Download this layer" aria-expanded="false" aria-haspopup="menu">Download</button>
+          <div class="map-popover" id="map-download-popover" role="menu"></div>
+        </div>
         <button class="filter-toggle" id="map-filter" aria-label="Open filter and export">Filter &amp; export</button>
         <button class="close" id="map-close" aria-label="Close map">← back</button>
       </header>
