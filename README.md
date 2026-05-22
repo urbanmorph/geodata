@@ -76,12 +76,11 @@ Commit messages: short subject, body explains *why* not *what*. Examples in `git
 
 ## Roadmap
 
-- [x] v1 — pan-India admin layers, Parquet + PMTiles downloads
-- [x] v2 — DuckDB-WASM filter & export per state
-- [x] v3 — submission flow: drag-drop verify, anonymous token, auto-moderation, /c/[id] view page, mixed catalog, votes
-- [x] v4 — SEO/AEO pass, opencity ingest (city wards), dynamic filters from schema, basemap toggle, format-hinted downloads, embed iframe + PNG export, unified edge OG renderer (per-layer + per-submission cards)
-- [ ] **next**: "Your submissions" panel · CSP re-enable · a11y to 95+ · privacy + ToS
-- [ ] v5 — public REST API + MCP server + Claude Code plugin
+- **Now**: "Your submissions" panel · CSP re-enable · a11y to 95+ · privacy + ToS
+- **Next**: REST API + MCP server + Claude Code plugin (v5)
+- **Done**: catalog, in-browser filter & export, anonymous contribution, mixed catalog, votes, embed + PNG, per-layer OG, schema-driven filters, city ward ingest
+
+Track active work in [Issues](https://github.com/urbanmorph/geodata/issues) and [Milestones](https://github.com/urbanmorph/geodata/milestones).
 
 ## Security
 
@@ -97,9 +96,21 @@ Provided as-is, no warranty. For legal/administrative use, go to the upstream so
 
 ## Credits
 
-- [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream parquet + PMTiles publisher.
-- [LGD](https://lgdirectory.gov.in/), [SOI](https://surveyofindia.gov.in/), [Bhuvan](https://bhuvan.nrsc.gov.in/) — primary government sources.
+Data sources, in approximate order of catalog footprint:
+
+- [LGD](https://lgdirectory.gov.in/) — Local Government Directory; the authoritative admin code chain (state → village).
+- [SOI](https://surveyofindia.gov.in/) — Survey of India; admin alternatives.
+- [Bhuvan](https://bhuvan.nrsc.gov.in/) — NRSC/ISRO Bhuvan; admin alternatives, eco-sensitive zones.
+- [OpenCity](https://data.opencity.in/) / [Oorvani Foundation](https://oorvanifoundation.org/) — city-scale layers (15 cities of ward / corporation / jurisdiction polygons).
+- [PMGSY](https://omms.nic.in/) — Pradhan Mantri Gram Sadak Yojana; rural blocks + roads.
+- [PM GatiShakti](https://gis.pmgatishakti.gov.in/) — wildlife sanctuaries + national parks.
+- [Bharatmaps](https://bharatmaps.gov.in/) (NIC) — eco-sensitive zones.
 - [geoBoundaries](https://www.geoboundaries.org/) — independent cross-check.
+- [data.gov.in](https://data.gov.in/) — additional government open data.
+
+Pipelines + patterns:
+
+- [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream Parquet + PMTiles re-publisher.
 - [mdshare](https://mdshare.dev/) — the anonymous-token contribution pattern lineage.
 
 Built by [Urban Morph](https://urbanmorph.com) · [@sathyasankaran](https://linkedin.com/in/sathyasankaran). Drop a ⭐ if you find it useful.
