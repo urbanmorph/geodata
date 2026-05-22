@@ -417,13 +417,26 @@ const attrLinks = Object.entries(catalog.attribution || {})
   .join(' · ');
 
 // Inline the SMALL parts of the catalog so map + filter open with zero
-// network roundtrips for the common case. The extracts manifest (~60 KB,
-// 405 entries) is only needed when the user clicks a format download
-// button — that lazy-fetches the full catalog.
+// network roundtrips for the common case. The extracts manifest, state
+// extracts and filter_stats are only needed when the user opens a layer's
+// Filter & export panel — that lazy-fetches the full catalog.
 const inlineCatalogObj = { ...catalog };
 delete inlineCatalogObj.extracts;
 delete inlineCatalogObj.state_extracts;
-const inlineCatalog = JSON.stringify(inlineCatalogObj);
+delete inlineCatalogObj.filter_stats;
+
+// Escape sequences that are unsafe inside a <script> tag. JSON.stringify
+// already escapes 0x00–0x1F, but parse5 (and other strict HTML parsers)
+// reject C1 control chars (0x80–0x9F) too, and U+2028 / U+2029 break some
+// older JS parsers when JSON is embedded as literal JS.
+function safeForHtmlScript(s) {
+  return s
+    .replace(/</g, '\\u003c')
+    .replace(new RegExp('\u2028', 'g'), '\\u2028')
+    .replace(new RegExp('\u2029', 'g'), '\\u2029')
+    .replace(/[\x7f-\x9f]/g, (m) => '\\u' + m.charCodeAt(0).toString(16).padStart(4, '0'));
+}
+const inlineCatalog = safeForHtmlScript(JSON.stringify(inlineCatalogObj));
 
 // SEO head for the home page (+ JSON-LD Dataset for each curated layer)
 const homeSeo = seoHead({
@@ -660,7 +673,7 @@ const out = tmpl
   .replace('<!-- TOKENS -->', TOKENS)
   .replace('<!-- NAV -->', renderNav('catalog'))
   .replace('<!-- FOOTER -->', FOOTER)
-  .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog.replace(/</g, '\\u003c')}</script>`);
+  .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog}</script>`);
 
 await writeFile(resolve(WEB, 'index.html'), out);
 console.log(`prerendered home — ${sortedCats.length} categories, ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated levels, ${community.length} community`);

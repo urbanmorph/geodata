@@ -3,7 +3,7 @@ import maplibregl, { Map as MlMap } from 'maplibre-gl';
 import { Protocol, PMTiles } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_MAP } from './loading';
-import { getCatalog } from './catalog';
+import { getCatalog, getFullCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
@@ -81,7 +81,10 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   }
   opts.titleEl.textContent = `${layer.level} · ${layer.source} · ${layer.rows?.toLocaleString('en-IN') ?? '—'} rows`;
 
-  await wireFilterButton(layer);
+  // Filter wiring runs in the background — stats fetch + rank shouldn't
+  // block the map's first paint. Worst case, the Filter & export button
+  // appears a moment after the map renders.
+  wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
   wireDownloadButton(layer);
   wireBasemapButton();
 
@@ -361,19 +364,60 @@ async function wireFilterButton(layer: Layer) {
   filterAbort = new AbortController();
   const signal = filterAbort.signal;
 
-  // Only LGD parquet layers carry the code chain that powers state-filtering.
-  const filterable = !!layer.parquet?.url && layer.source === 'LGD';
-  if (!filterable) {
-    btn.classList.remove('shown');
-    document.querySelector('.filter-panel')?.remove();
-    return;
+  btn.classList.remove('shown');
+  document.querySelector('.filter-panel')?.remove();
+  if (!layer.parquet?.url) return;
+
+  // Load column stats — baked first (most curated layers), live probe otherwise
+  // (opencity wards + geoBoundaries + future community uploads).
+  const { rankColumns } = await import('./filter-schema');
+  const fullCat = await getFullCatalog();
+  const baked = fullCat.filter_stats?.[layer.id];
+
+  let columns: import('./filter-schema').ColumnStats[];
+  let rowCount: number;
+  if (baked) {
+    rowCount = baked.row_count;
+    columns = baked.columns.map((c) => ({
+      name: c.name,
+      type: c.type,
+      distinct: c.distinct,
+      nullFrac: c.null_frac,
+      min: c.min,
+      max: c.max,
+      topValues: c.top_values,
+    }));
+  } else {
+    try {
+      const { describeParquet } = await import('./filter-probe');
+      if (signal.aborted) return;
+      const probe = await describeParquet(layer.parquet.url);
+      rowCount = probe.rowCount;
+      columns = probe.columns;
+    } catch (e) {
+      console.warn('filter-probe failed for', layer.id, e);
+      return;
+    }
   }
+  if (signal.aborted) return;
+
+  // Drop non-canonical members of every detected equivalence group.
+  // Canonical = the human-readable column (state_lgd / stcode11 → stname).
+  if (baked?.column_groups?.length) {
+    const drop = new Set<string>();
+    for (const g of baked.column_groups) {
+      for (const m of g.members) if (m !== g.canonical) drop.add(m);
+    }
+    columns = columns.filter((c) => !drop.has(c.name));
+  }
+
+  const ranked = rankColumns(columns, rowCount);
+  if (!ranked.length) return;
+
   btn.classList.add('shown');
   btn.textContent = 'Filter & export';
   btn.disabled = false;
 
-  // B2: prefetch the filter chunk during idle time so the click feels instant.
-  // Dynamic import dedupes — when the click fires, the chunk is already cached.
   const idle: (cb: () => void) => void =
     'requestIdleCallback' in window
       ? (cb) => (window as unknown as { requestIdleCallback: (c: () => void, o: { timeout: number }) => void }).requestIdleCallback(cb, { timeout: 4000 })
@@ -389,13 +433,15 @@ async function wireFilterButton(layer: Layer) {
       try {
         const { mountFilterPanel } = await import('./filter');
         if (signal.aborted) return;
-        mountFilterPanel(layer, document.getElementById('map')!, {
+        mountFilterPanel(layer, document.getElementById('map')!, ranked, rowCount, {
           onClose: () => {
             btn.disabled = false;
             btn.textContent = 'Filter & export';
-            applyStateFilter(null, null);
+            applyActiveFilters([], null);
           },
-          onStateChange: applyStateFilter,
+          onActiveFiltersChange: (filters, mapFilter) => {
+            applyActiveFilters(filters, mapFilter, fullCat);
+          },
         });
       } catch (e) {
         console.error('filter panel failed to load', e);
@@ -425,32 +471,60 @@ function panelAwarePadding(): { top: number; bottom: number; left: number; right
   return { top: base, bottom: base, left: base, right: base + r.width };
 }
 
-// Filter the active layer to a single state and fly the camera to its bounds.
-// Property name varies by parquet (state_lgd vs State_LGD) so we match either.
-function applyStateFilter(
-  code: number | null,
-  bounds: [number, number, number, number] | null,
+// Apply the active filter set to the map's fill+line layers. Uses the
+// MapLibre filter that filter-where.ts produced, plus a fitBounds special
+// case for the legacy state-filter (we know each state's bbox from the
+// catalog, so the camera flies to it just like before).
+function applyActiveFilters(
+  filters: import('./filter-where').ActiveFilter[],
+  mapFilter: import('./filter-where').MaplibreFilter,
+  fullCatalog?: {
+    state_bounds?: Record<string, [number, number, number, number]>;
+    states?: Array<{ code: number; name: string }>;
+  },
 ): void {
   if (!map) return;
-  const filter =
-    code == null
-      ? null
-      : ['any', ['==', ['get', 'state_lgd'], code], ['==', ['get', 'State_LGD'], code]];
   for (const id of ['fill', 'line']) {
-    if (map.getLayer(id)) map.setFilter(id, filter as maplibregl.FilterSpecification);
+    if (map.getLayer(id)) {
+      map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
+    }
   }
-  // Compute padding from the actual panel rect so fitBounds centres in the
-  // visible area regardless of layout (right-rail desktop, bottom-sheet mobile).
   const padding = panelAwarePadding();
-  if (bounds) {
-    map.fitBounds(
-      [
-        [bounds[0], bounds[1]],
-        [bounds[2], bounds[3]],
-      ],
-      { padding, duration: 600 },
-    );
-  } else {
+  // State fly-to. Accepts both the numeric state_lgd column and the string
+  // state-name columns (STNAME / state / state_name) — names are translated
+  // to codes via catalog.states. For multi-state selection, compute the
+  // union bbox across all selected states.
+  if (filters.length === 1 && filters[0].kind === 'in' && filters[0].values.length >= 1) {
+    const f = filters[0];
+    let codes: string[] = [];
+    if (/^state_lgd$/i.test(f.col)) {
+      codes = f.values.map(String);
+    } else if (/^(stname|state|state_name)$/i.test(f.col) && fullCatalog?.states) {
+      const byName = new Map(fullCatalog.states.map((s) => [s.name.toLowerCase(), s.code]));
+      codes = f.values
+        .map((v) => byName.get(String(v).toLowerCase()))
+        .filter((c): c is number => c != null)
+        .map(String);
+    }
+    if (codes.length && fullCatalog?.state_bounds) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const c of codes) {
+        const b = fullCatalog.state_bounds[c];
+        if (b) {
+          if (b[0] < minX) minX = b[0];
+          if (b[1] < minY) minY = b[1];
+          if (b[2] > maxX) maxX = b[2];
+          if (b[3] > maxY) maxY = b[3];
+        }
+      }
+      if (minX !== Infinity) {
+        map.fitBounds([[minX, minY], [maxX, maxY]], { padding, duration: 600 });
+        return;
+      }
+    }
+  }
+  // Filter cleared → fly back to India.
+  if (!filters.length) {
     map.fitBounds(INDIA_BOUNDS, { padding, duration: 600 });
   }
 }

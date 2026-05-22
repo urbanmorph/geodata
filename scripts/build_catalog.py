@@ -5,6 +5,7 @@ Run after scripts/fetch.sh + scripts/extract_per_state.py.
 """
 import json, os, sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
@@ -439,6 +440,18 @@ def build():
                 'bytes': size_of(gj),
             })
 
+    # v4.2 commit 3: bake per-column filter stats for layers whose parquet
+    # lives locally. External (R2-only) layers fall back to the browser's
+    # live `describeParquet` probe in commit 4.
+    from build_filter_stats import build_all as build_filter_stats_all
+    fs_inputs: list[tuple[str, Path]] = []
+    for l in layers:
+        if l.get('parquet') and l['parquet'].get('url'):
+            local = SRC / Path(l['parquet']['url']).name
+            if local.exists():
+                fs_inputs.append((l['id'], local))
+    filter_stats = build_filter_stats_all(fs_inputs) if fs_inputs else {}
+
     catalog = {
         'version': 1,
         'generated': None,
@@ -454,6 +467,7 @@ def build():
         'state_counts': build_state_counts(),
         'state_bounds': build_state_bounds(),
         'extracts': build_extracts(),
+        'filter_stats': filter_stats,
         'download_counts': fetch_download_counts(),
         'attribution': ATTR | {'_publisher': PUBLISHER},
         'licence_summary': {
