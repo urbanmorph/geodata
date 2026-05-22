@@ -53,6 +53,7 @@ ATTR = {
     'data.gov.in':   {'name': 'Open Government Data (India)','url': 'https://data.gov.in/'},
     'GatiShakti':    {'name': 'PM GatiShakti',               'url': 'https://gis.pmgatishakti.gov.in/'},
     'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
+    'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
@@ -114,6 +115,60 @@ LAYERS = [
     ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', None, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
     ('bm_eco_zones',       'eco_zone',    'Bharatmaps', 'Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet',           'Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles',           None, LIC_BELOW, 'Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps.'),
 ]
+
+
+# ──────────────────────────────────────────────────────────────────────────
+# Externally-ingested layers (scripts/ingest_external.py). Each ingest run
+# updates scripts/external-ingested.json; we merge those entries into
+# LEVELS + LAYERS + a level-meta dict that prerender.mjs consumes for
+# label/unit/description rendering. Future ingestions need zero edits here.
+# ──────────────────────────────────────────────────────────────────────────
+EXTERNAL_MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
+EXTERNAL_LEVEL_META: dict[str, dict] = {}  # level_id -> {label, unit, description, source_url, source_org}
+EXTERNAL_BYTES: dict[str, dict[str, int | None]] = {}  # layer_id -> {'parquet': bytes, 'pmtiles': bytes}
+
+if EXTERNAL_MANIFEST.exists():
+    _external = json.loads(EXTERNAL_MANIFEST.read_text())
+    # Stable order: respect the manifest insertion order; assign numeric
+    # `order` from a fixed base so external layers fall after the hardcoded
+    # ones in LEVEL_ORDER iteration.
+    for idx, x in enumerate(_external, start=100):
+        lvl = x['level']
+        if lvl in LEVELS:
+            # External level id collides with a hardcoded one — keep the
+            # hardcoded definition, let LAYERS pick this up as a duplicate
+            # source for the same level.
+            pass
+        else:
+            LEVELS[lvl] = {
+                'order': idx,
+                'plural': x['id'].replace('_', ' '),
+                'path': x['r2_prefix'],
+                'category': x['category'],
+            }
+        # Prerender consumes this metadata for the visible card.
+        # `name` is the friendly display label from the ingest config;
+        # fall back to title-cased id if older manifests lack it.
+        EXTERNAL_LEVEL_META[lvl] = {
+            'label': x.get('name') or x['id'].replace('_', ' ').title(),
+            'unit': x.get('unit') or 'features',
+            'description': x['description'],
+            'source_url': x['source_url'],
+            'source_org': x['source_org'],
+            'notes': x.get('notes', ''),
+        }
+        LAYERS.append((
+            x['id'], x['level'], x['source'],
+            x['parquet_file'], x['pmtiles_file'],
+            x['features'], LIC_BELOW if x['license'] == 'CC0-1.0' else x['license'],
+            x['description'],
+        ))
+        # Local source files live in /tmp/ingest, not SRC, so size_of() can't
+        # find them. Cache the manifest-recorded bytes for the build() loop.
+        EXTERNAL_BYTES[x['id']] = {
+            'parquet': x.get('parquet_bytes'),
+            'pmtiles': x.get('pmtiles_bytes'),
+        }
 
 # geoBoundaries cross-check layers (geojson only)
 GEOBOUNDARIES = [
@@ -322,12 +377,12 @@ def build():
             'parquet': {
                 'url': f'{R2}/{path}/{parquet}',
                 'upstream_url': f'{UPSTREAM_BASE}/{path}/{parquet}',
-                'bytes': size_of(parquet_path),
+                'bytes': size_of(parquet_path) or EXTERNAL_BYTES.get(id_, {}).get('parquet'),
             },
             'pmtiles': {
                 'url': f'{R2}/{path}/{pmtiles}',
                 'upstream_url': f'{UPSTREAM_BASE}/{path}/{pmtiles}',
-                'bytes': size_of(pmtiles_path),
+                'bytes': size_of(pmtiles_path) or EXTERNAL_BYTES.get(id_, {}).get('pmtiles'),
             } if pmtiles_path else None,
             'licence': licence,
             'attribution': {
@@ -390,6 +445,8 @@ def build():
         'country': 'IN',
         'r2_base': R2,
         'levels': LEVELS,
+        'level_meta': EXTERNAL_LEVEL_META,  # prerender.mjs fallback for ingested levels
+        'level_order': sorted(LEVELS.keys(), key=lambda k: LEVELS[k]['order']),
         'layers': layers,
         'state_extracts': state_extracts,
         'categories': CATEGORIES,

@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-21T14:19:21.399402+00:00",
+  "generated": "2026-05-22T02:46:50.242778+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -69,8 +69,293 @@
       "plural": "eco-sensitive zones",
       "path": "environment/forests",
       "category": "environment"
+    },
+    "wards_bengaluru_gba": {
+      "order": 100,
+      "plural": "wards bengaluru gba",
+      "path": "admin/wards-bengaluru-gba",
+      "category": "administrative"
+    },
+    "corporation_bengaluru": {
+      "order": 101,
+      "plural": "corporation bengaluru",
+      "path": "admin/corporation-bengaluru",
+      "category": "administrative"
+    },
+    "wards_bengaluru_bbmp_2022": {
+      "order": 102,
+      "plural": "wards bengaluru bbmp 2022",
+      "path": "admin/wards-bengaluru-bbmp-2022",
+      "category": "administrative"
+    },
+    "bda_jurisdiction": {
+      "order": 103,
+      "plural": "bda jurisdiction",
+      "path": "admin/bda-jurisdiction",
+      "category": "administrative"
+    },
+    "bda_layouts": {
+      "order": 104,
+      "plural": "bda layouts",
+      "path": "admin/bda-layouts",
+      "category": "administrative"
+    },
+    "wards_chennai": {
+      "order": 105,
+      "plural": "wards chennai",
+      "path": "admin/wards-chennai",
+      "category": "administrative"
+    },
+    "wards_hyderabad": {
+      "order": 106,
+      "plural": "wards hyderabad",
+      "path": "admin/wards-hyderabad",
+      "category": "administrative"
+    },
+    "wards_mumbai": {
+      "order": 107,
+      "plural": "wards mumbai",
+      "path": "admin/wards-mumbai",
+      "category": "administrative"
+    },
+    "electoral_wards_mumbai_2017": {
+      "order": 108,
+      "plural": "electoral wards mumbai 2017",
+      "path": "electoral/wards-mumbai-2017",
+      "category": "people"
+    },
+    "wards_kolkata": {
+      "order": 109,
+      "plural": "wards kolkata",
+      "path": "admin/wards-kolkata",
+      "category": "administrative"
+    },
+    "wards_pune": {
+      "order": 110,
+      "plural": "wards pune",
+      "path": "admin/wards-pune",
+      "category": "administrative"
+    },
+    "wards_ahmedabad": {
+      "order": 111,
+      "plural": "wards ahmedabad",
+      "path": "admin/wards-ahmedabad",
+      "category": "administrative"
+    },
+    "wards_jaipur": {
+      "order": 112,
+      "plural": "wards jaipur",
+      "path": "admin/wards-jaipur",
+      "category": "administrative"
+    },
+    "wards_gurugram": {
+      "order": 113,
+      "plural": "wards gurugram",
+      "path": "admin/wards-gurugram",
+      "category": "administrative"
+    },
+    "wards_kochi": {
+      "order": 114,
+      "plural": "wards kochi",
+      "path": "admin/wards-kochi",
+      "category": "administrative"
+    },
+    "wards_bhubaneshwar": {
+      "order": 115,
+      "plural": "wards bhubaneshwar",
+      "path": "admin/wards-bhubaneshwar",
+      "category": "administrative"
+    },
+    "wards_vizag": {
+      "order": 116,
+      "plural": "wards vizag",
+      "path": "admin/wards-vizag",
+      "category": "administrative"
+    },
+    "wards_thane": {
+      "order": 117,
+      "plural": "wards thane",
+      "path": "admin/wards-thane",
+      "category": "administrative"
     }
   },
+  "level_meta": {
+    "wards_bengaluru_gba": {
+      "label": "Greater Bengaluru Wards (2025)",
+      "unit": "wards",
+      "description": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025.",
+      "source_url": "https://data.opencity.in/dataset/gba-wards-delimitation-2025",
+      "source_org": "Greater Bengaluru Authority",
+      "notes": "Latest GBA delimitation. Pair with the 5-corp polygons for parent grouping."
+    },
+    "corporation_bengaluru": {
+      "label": "Greater Bengaluru Corporations (2025)",
+      "unit": "corporations",
+      "description": "Five corporation-level polygons that make up the Greater Bengaluru Authority.",
+      "source_url": "https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025",
+      "source_org": "Greater Bengaluru Authority",
+      "notes": "Parent polygons for the 369 GBA wards."
+    },
+    "wards_bengaluru_bbmp_2022": {
+      "label": "BBMP Wards (2022, historical)",
+      "unit": "wards",
+      "description": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme.",
+      "source_url": "https://data.opencity.in/dataset/bbmp-wards",
+      "source_org": "BBMP",
+      "notes": "Use the GBA 2025 layer for current ward boundaries."
+    },
+    "bda_jurisdiction": {
+      "label": "BDA Jurisdiction",
+      "unit": "jurisdiction",
+      "description": "Bengaluru Development Authority planning + acquisition jurisdiction boundary.",
+      "source_url": "https://data.opencity.in/dataset/bda-jurisdiction-and-boundary",
+      "source_org": "Bengaluru Development Authority",
+      "notes": "Single polygon. Useful as a boundary mask for any BDA-scoped analysis."
+    },
+    "bda_layouts": {
+      "label": "BDA Approved Layouts",
+      "unit": "layouts",
+      "description": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction.",
+      "source_url": "https://data.opencity.in/dataset/bda-approved-layouts",
+      "source_org": "Bengaluru Development Authority",
+      "notes": ""
+    },
+    "wards_chennai": {
+      "label": "Chennai (GCC) Wards",
+      "unit": "wards",
+      "description": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones.",
+      "source_url": "https://data.opencity.in/dataset/gcc-ward-information",
+      "source_org": "Greater Chennai Corporation",
+      "notes": ""
+    },
+    "wards_hyderabad": {
+      "label": "Hyderabad (GHMC) Wards",
+      "unit": "wards",
+      "description": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones.",
+      "source_url": "https://data.opencity.in/dataset/hyderabad-wards-info",
+      "source_org": "Greater Hyderabad Municipal Corporation",
+      "notes": ""
+    },
+    "wards_mumbai": {
+      "label": "Mumbai (BMC) Wards",
+      "unit": "wards",
+      "description": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread).",
+      "source_url": "https://data.opencity.in/dataset/mumbai-wards",
+      "source_org": "Brihanmumbai Municipal Corporation",
+      "notes": ""
+    },
+    "electoral_wards_mumbai_2017": {
+      "label": "Mumbai Electoral Wards (2017)",
+      "unit": "electoral wards",
+      "description": "227 electoral ward divisions of Mumbai, 2017 delimitation. Use for election + civic-rep maps.",
+      "source_url": "https://data.opencity.in/dataset/mumbai-electoral-wards",
+      "source_org": "Mumbai State Election Commission",
+      "notes": ""
+    },
+    "wards_kolkata": {
+      "label": "Kolkata (KMC) Wards",
+      "unit": "wards",
+      "description": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs.",
+      "source_url": "https://data.opencity.in/dataset/kolkata-wards",
+      "source_org": "Kolkata Municipal Corporation",
+      "notes": ""
+    },
+    "wards_pune": {
+      "label": "Pune (PMC) Wards",
+      "unit": "wards",
+      "description": "Pune Municipal Corporation \u2014 58 administrative wards.",
+      "source_url": "https://data.opencity.in/dataset/pune-wards",
+      "source_org": "Pune Municipal Corporation",
+      "notes": ""
+    },
+    "wards_ahmedabad": {
+      "label": "Ahmedabad (AMC) Wards",
+      "unit": "wards",
+      "description": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones.",
+      "source_url": "https://data.opencity.in/dataset/ahmedabad-wards",
+      "source_org": "Ahmedabad Municipal Corporation",
+      "notes": ""
+    },
+    "wards_jaipur": {
+      "label": "Jaipur (JMC) Wards",
+      "unit": "wards",
+      "description": "Jaipur Municipal Corporation \u2014 150 ward boundaries.",
+      "source_url": "https://data.opencity.in/dataset/jaipur-wards",
+      "source_org": "Jaipur Municipal Corporation",
+      "notes": ""
+    },
+    "wards_gurugram": {
+      "label": "Gurugram (MCG) Wards",
+      "unit": "wards",
+      "description": "Municipal Corporation of Gurugram \u2014 35 ward boundaries.",
+      "source_url": "https://data.opencity.in/dataset/gurugram-wards",
+      "source_org": "Municipal Corporation of Gurugram",
+      "notes": ""
+    },
+    "wards_kochi": {
+      "label": "Kochi (KMC) Wards",
+      "unit": "wards",
+      "description": "Kochi Municipal Corporation \u2014 74 ward boundaries.",
+      "source_url": "https://data.opencity.in/dataset/kochi-wards",
+      "source_org": "Kochi Municipal Corporation",
+      "notes": ""
+    },
+    "wards_bhubaneshwar": {
+      "label": "Bhubaneshwar (BMC) Wards",
+      "unit": "wards",
+      "description": "Bhubaneshwar Municipal Corporation \u2014 67 wards.",
+      "source_url": "https://data.opencity.in/dataset/bhubaneshwar-wards",
+      "source_org": "Bhubaneshwar Municipal Corporation",
+      "notes": ""
+    },
+    "wards_vizag": {
+      "label": "Visakhapatnam (GVMC) Wards",
+      "unit": "wards",
+      "description": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards.",
+      "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards",
+      "source_org": "Greater Visakhapatnam Municipal Corporation",
+      "notes": ""
+    },
+    "wards_thane": {
+      "label": "Thane (TMC) Wards",
+      "unit": "wards",
+      "description": "Thane Municipal Corporation \u2014 47 wards across the city.",
+      "source_url": "https://data.opencity.in/dataset/thane-wards",
+      "source_org": "Thane Municipal Corporation",
+      "notes": ""
+    }
+  },
+  "level_order": [
+    "state",
+    "district",
+    "subdistrict",
+    "block",
+    "panchayat",
+    "village",
+    "parliament_constituency",
+    "assembly_constituency",
+    "pincode",
+    "wildlife",
+    "eco_zone",
+    "wards_bengaluru_gba",
+    "corporation_bengaluru",
+    "wards_bengaluru_bbmp_2022",
+    "bda_jurisdiction",
+    "bda_layouts",
+    "wards_chennai",
+    "wards_hyderabad",
+    "wards_mumbai",
+    "electoral_wards_mumbai_2017",
+    "wards_kolkata",
+    "wards_pune",
+    "wards_ahmedabad",
+    "wards_jaipur",
+    "wards_gurugram",
+    "wards_kochi",
+    "wards_bhubaneshwar",
+    "wards_vizag",
+    "wards_thane"
+  ],
   "layers": [
     {
       "id": "lgd_states",
@@ -597,6 +882,564 @@
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:31:28.506039+00:00",
       "notes": "Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps."
+    },
+    {
+      "id": "wards_bengaluru_gba",
+      "level": "wards_bengaluru_gba",
+      "source": "OpenCity",
+      "rows": 369,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-gba/wards_bengaluru_gba.parquet",
+        "bytes": 1002336
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles",
+        "bytes": 789655
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025."
+    },
+    {
+      "id": "corporation_bengaluru",
+      "level": "corporation_bengaluru",
+      "source": "OpenCity",
+      "rows": 5,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/corporation-bengaluru/corporation_bengaluru.parquet",
+        "bytes": 113302
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/corporation-bengaluru/corporation_bengaluru.pmtiles",
+        "bytes": 20745
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Five corporation-level polygons that make up the Greater Bengaluru Authority."
+    },
+    {
+      "id": "wards_bengaluru_bbmp_2022",
+      "level": "wards_bengaluru_bbmp_2022",
+      "source": "OpenCity",
+      "rows": 243,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.parquet",
+        "bytes": 680145
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.pmtiles",
+        "bytes": 256845
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme."
+    },
+    {
+      "id": "bda_jurisdiction",
+      "level": "bda_jurisdiction",
+      "source": "OpenCity",
+      "rows": 1,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-jurisdiction/bda_jurisdiction.parquet",
+        "bytes": 2929
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-jurisdiction/bda_jurisdiction.pmtiles",
+        "bytes": 905
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Bengaluru Development Authority planning + acquisition jurisdiction boundary."
+    },
+    {
+      "id": "bda_layouts",
+      "level": "bda_layouts",
+      "source": "OpenCity",
+      "rows": 149,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-layouts/bda_layouts.parquet",
+        "bytes": 151121
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-layouts/bda_layouts.pmtiles",
+        "bytes": 83377
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction."
+    },
+    {
+      "id": "wards_chennai",
+      "level": "wards_chennai",
+      "source": "OpenCity",
+      "rows": 200,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chennai/wards_chennai.parquet",
+        "bytes": 699072
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chennai/wards_chennai.pmtiles",
+        "bytes": 214930
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones."
+    },
+    {
+      "id": "wards_hyderabad",
+      "level": "wards_hyderabad",
+      "source": "OpenCity",
+      "rows": 145,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-hyderabad/wards_hyderabad.parquet",
+        "bytes": 61292
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-hyderabad/wards_hyderabad.pmtiles",
+        "bytes": 50706
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones."
+    },
+    {
+      "id": "wards_mumbai",
+      "level": "wards_mumbai",
+      "source": "OpenCity",
+      "rows": 24,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mumbai/wards_mumbai.parquet",
+        "bytes": 230639
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mumbai/wards_mumbai.pmtiles",
+        "bytes": 85246
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread)."
+    },
+    {
+      "id": "electoral_wards_mumbai_2017",
+      "level": "electoral_wards_mumbai_2017",
+      "source": "OpenCity",
+      "rows": 227,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.parquet",
+        "bytes": 608859
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.pmtiles",
+        "bytes": 290460
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "people",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "227 electoral ward divisions of Mumbai, 2017 delimitation. Use for election + civic-rep maps."
+    },
+    {
+      "id": "wards_kolkata",
+      "level": "wards_kolkata",
+      "source": "OpenCity",
+      "rows": 141,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kolkata/wards_kolkata.parquet",
+        "bytes": 589774
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kolkata/wards_kolkata.pmtiles",
+        "bytes": 122240
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs."
+    },
+    {
+      "id": "wards_pune",
+      "level": "wards_pune",
+      "source": "OpenCity",
+      "rows": 58,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pune/wards_pune.parquet",
+        "bytes": 69324
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pune/wards_pune.pmtiles",
+        "bytes": 52045
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pune Municipal Corporation \u2014 58 administrative wards."
+    },
+    {
+      "id": "wards_ahmedabad",
+      "level": "wards_ahmedabad",
+      "source": "OpenCity",
+      "rows": 48,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-ahmedabad/wards_ahmedabad.parquet",
+        "bytes": 79257
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-ahmedabad/wards_ahmedabad.pmtiles",
+        "bytes": 38253
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones."
+    },
+    {
+      "id": "wards_jaipur",
+      "level": "wards_jaipur",
+      "source": "OpenCity",
+      "rows": 150,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-jaipur/wards_jaipur.parquet",
+        "bytes": 74429
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-jaipur/wards_jaipur.pmtiles",
+        "bytes": 55708
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Jaipur Municipal Corporation \u2014 150 ward boundaries."
+    },
+    {
+      "id": "wards_gurugram",
+      "level": "wards_gurugram",
+      "source": "OpenCity",
+      "rows": 35,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-gurugram/wards_gurugram.parquet",
+        "bytes": 61559
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-gurugram/wards_gurugram.pmtiles",
+        "bytes": 23148
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Municipal Corporation of Gurugram \u2014 35 ward boundaries."
+    },
+    {
+      "id": "wards_kochi",
+      "level": "wards_kochi",
+      "source": "OpenCity",
+      "rows": 74,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kochi/wards_kochi.parquet",
+        "bytes": 134965
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kochi/wards_kochi.pmtiles",
+        "bytes": 77451
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Kochi Municipal Corporation \u2014 74 ward boundaries."
+    },
+    {
+      "id": "wards_bhubaneshwar",
+      "level": "wards_bhubaneshwar",
+      "source": "OpenCity",
+      "rows": 67,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhubaneshwar/wards_bhubaneshwar.parquet",
+        "bytes": 210185
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhubaneshwar/wards_bhubaneshwar.pmtiles",
+        "bytes": 268512
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Bhubaneshwar Municipal Corporation \u2014 67 wards."
+    },
+    {
+      "id": "wards_vizag",
+      "level": "wards_vizag",
+      "source": "OpenCity",
+      "rows": 98,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vizag/wards_vizag.parquet",
+        "bytes": 152494
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vizag/wards_vizag.pmtiles",
+        "bytes": 96542
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards."
+    },
+    {
+      "id": "wards_thane",
+      "level": "wards_thane",
+      "source": "OpenCity",
+      "rows": 47,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-thane/wards_thane.parquet",
+        "bytes": 62553
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-thane/wards_thane.pmtiles",
+        "bytes": 46219
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": {
+          "name": "yashveeeeeeer/india-geodata",
+          "url": "https://github.com/yashveeeeeeer/india-geodata"
+        }
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Thane Municipal Corporation \u2014 47 wards across the city."
     },
     {
       "id": "gb_adm1",
@@ -3282,6 +4125,10 @@
     "Bharatmaps": {
       "name": "Bharatmaps (NIC)",
       "url": "https://bharatmaps.gov.in/"
+    },
+    "OpenCity": {
+      "name": "OpenCity / Oorvani Foundation",
+      "url": "https://data.opencity.in/"
     },
     "_publisher": {
       "name": "yashveeeeeeer/india-geodata",

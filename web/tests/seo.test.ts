@@ -81,7 +81,10 @@ describe('SEO — home JSON-LD enrichments', () => {
     const graph = loadGraph();
     const datasets = graph.filter((n) => n['@type'] === 'Dataset');
     const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
-    const visibleRows = (html.match(/<section class="row row--curated"/g) || []).length;
+    // The compact-layout sections carry `row--compact` as an extra class.
+    // Match anything starting with "row row--curated" until the class
+    // attribute's closing quote.
+    const visibleRows = (html.match(/<section class="row row--curated[^"]*"/g) || []).length;
     expect(datasets.length).toBe(visibleRows);
     expect(datasets.length).toBeGreaterThanOrEqual(10);
   });

@@ -167,12 +167,33 @@ const LEVEL_META = {
     description: 'MoEFCC-notified eco-sensitive zones around protected areas. Via Bharatmaps Parivesh.',
   },
 };
-const LEVEL_ORDER = [
+// Hardcoded display order for built-in levels — externally ingested layers
+// are appended via merge() below, in catalog.level_order sequence.
+const BUILTIN_LEVEL_ORDER = [
   'state', 'district', 'subdistrict', 'block', 'panchayat', 'village',
   'parliament_constituency', 'assembly_constituency',
   'pincode',
   'wildlife', 'eco_zone',
 ];
+
+// Merge externally-ingested level metadata + order from catalog.json.
+// Hardcoded LEVEL_META entries take precedence; manifest entries fill
+// gaps for ingested layers. LEVEL_ORDER = builtin first, then external
+// in their declared order.
+const externalMeta = catalog.level_meta || {};
+for (const [lvl, m] of Object.entries(externalMeta)) {
+  if (!LEVEL_META[lvl]) {
+    LEVEL_META[lvl] = {
+      label: m.label,
+      unit: m.unit || 'features',
+      description: m.description,
+    };
+  }
+}
+const externalLevels = (catalog.level_order || []).filter(
+  (lvl) => !BUILTIN_LEVEL_ORDER.includes(lvl),
+);
+const LEVEL_ORDER = [...BUILTIN_LEVEL_ORDER, ...externalLevels];
 
 // Display order for category sections on the home page. Categories not in
 // this list fall to the end in catalog.categories declaration order.
@@ -255,11 +276,12 @@ function downloadLinks(layer) {
   return items;
 }
 
-function renderRow(level, layersForLevel) {
+function renderRow(level, layersForLevel, opts = {}) {
   const meta = LEVEL_META[level];
   if (!meta) return '';
   const primary = pickPrimary(layersForLevel);
   const hasOthers = layersForLevel.length > 1;
+  const collapsed = opts.collapsed ? ' row--collapsed' : '';
 
   const viewable = !!(primary.pmtiles?.url || primary.geojson?.url);
   // Only LGD layers carry the code chain that powers the in-viewer state filter.
@@ -344,19 +366,33 @@ function renderRow(level, layersForLevel) {
     `data-search="${esc(haystack)}"`,
   ].join(' ');
 
-  return `<section class="row row--curated" id="${esc(level)}" ${dataAttrs}>
-      <div class="row__head">
-        <span class="row__title">${esc(meta.label)} <span class="badge badge--curated" title="Curated by urbanmorph from LGD">curated</span></span>
-        <span class="row__meta">${fmtRows(primary.rows)} ${esc(meta.unit)}<span class="dot">·</span>${lic}</span>
-      </div>
-      <p class="row__desc">${esc(meta.description)}</p>
-      ${sourceLine}
-      <div class="row__actions">
-        ${viewBtn}
-        ${dlInline}
-      </div>
-      ${viewerHint}
-      ${altSection}
+  // Compact list layout — one-line entry per layer. Description, source,
+  // licence, freshness, alt sources reveal on click via <details>.
+  // Summary: title · source · count+unit · actions. All columns are
+  // fixed-width except actions; the title column is capped so source/count
+  // line up vertically across rows.
+  const countDisplay = primary.rows != null
+    ? `<span class="row__num">${fmtRows(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
+    : '<span class="row__num">—</span>';
+  return `<section class="row row--curated row--compact${collapsed}" id="${esc(level)}" ${dataAttrs}>
+      <details class="row__details">
+        <summary class="row__summary">
+          <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}</span>
+          <span class="row__source" title="${esc(primary.source)}">${esc(primary.source)}</span>
+          <span class="row__count">${countDisplay}</span>
+          <span class="row__actions">
+            ${viewBtn}
+            ${dlInline}
+          </span>
+        </summary>
+        <div class="row__expand">
+          <p class="row__desc">${esc(meta.description)}</p>
+          ${sourceLine}
+          ${primary.licence ? `<p class="row__lic-line">Licence: <code>${esc(primary.licence)}</code></p>` : ''}
+          ${viewerHint}
+          ${altSection}
+        </div>
+      </details>
     </section>`;
 }
 
@@ -451,30 +487,19 @@ const homeSeo = seoHead({
   },
 });
 
-// Category chips: count layers per category, render an "All" chip + one per
-// non-empty category. Hide chip row entirely when only one category is in play.
-// Categories not declared in catalog.categories fall through to 'other'.
+// Category chips: count = visible level rows per category (not raw layer
+// rows). Raw-layer counts double-counted alt sources and included dead
+// gb_adm placeholders, making the pill total mismatch the section title.
+// `categoryCounts` is initialised here from visible levels; community
+// submissions get added below once communityByCategory is built; chip
+// HTML is rendered AFTER that so the totals are final.
 const knownCats = new Set(Object.keys(catalog.categories || {}));
 const categoryCounts = {};
-for (const l of catalog.layers || []) {
-  const cat = l.category && knownCats.has(l.category) ? l.category : 'other';
-  if (l.category && !knownCats.has(l.category)) {
-    console.warn(`[prerender] layer ${l.id} has unknown category "${l.category}" — bucketing as "other"`);
-  }
+for (const lvl of LEVEL_ORDER) {
+  if (!byLevel[lvl]?.length) continue;
+  const cat = knownCats.has(categoryByLevel[lvl]) ? categoryByLevel[lvl] : 'other';
   categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
 }
-const totalLayers = (catalog.layers || []).length;
-const activeCats = Object.entries(catalog.categories || {})
-  .filter(([id]) => categoryCounts[id]);
-const chips = [
-  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
-  ...activeCats.map(
-    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
-  ),
-];
-// Only render chips when there's more than one category to switch between
-// (with just admin layers today, the chip row would be noise).
-const chipsHtml = activeCats.length > 1 ? chips.join('') : '';
 
 // Community submissions: query D1 (local by default; --remote in prod build
 // once that's wired). Silently empty on failure so a missing wrangler /
@@ -506,9 +531,10 @@ function fetchCommunitySubmissions() {
 }
 const community = fetchCommunitySubmissions();
 
-function renderCommunityCard(s) {
+function renderCommunityCard(s, opts = {}) {
   const score = s.score;
   const cat = s.category || 'other';
+  const collapsed = opts.collapsed ? ' row--collapsed' : '';
   // Build searchable haystack the same way curated cards do, so search
   // works equally on community contributions.
   const haystack = expandAliases([
@@ -528,7 +554,7 @@ function renderCommunityCard(s) {
     `data-search="${esc(haystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
-  return `<article class="comm-card" ${dataAttrs}>
+  return `<article class="comm-card${collapsed}" ${dataAttrs}>
     <div class="comm-card__head">
       <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge badge--community">community</span></div>
       <div class="comm-card__score" title="up ${s.up_count} · down ${s.down_count}">
@@ -550,20 +576,57 @@ for (const s of community) {
 for (const cat of Object.keys(communityByCategory)) {
   // Newest first; consumers re-sort if they want by score.
   communityByCategory[cat].sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''));
+  // Top up the chip counts so pills include community contributions.
+  categoryCounts[cat] = (categoryCounts[cat] || 0) + communityByCategory[cat].length;
 }
+
+// Derive `totalLayers` from the final chip counts so the "All" chip
+// matches the sum of per-category chips exactly. Build chip HTML now
+// that the counts are stable.
+const totalLayers = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+const activeCats = Object.entries(catalog.categories || {})
+  .filter(([id]) => categoryCounts[id]);
+const chips = [
+  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
+  ...activeCats.map(
+    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
+  ),
+];
+// Only render chips when there's more than one category to switch between.
+const chipsHtml = activeCats.length > 1 ? chips.join('') : '';
 
 // Render one section per non-empty category. Inside each: curated level rows
 // first (in LEVEL_ORDER), then community cards (newest first). Both are
 // searchable via data-search; the category pill picks one section to show.
+//
+// Density management: sections with > VISIBLE_LIMIT layers collapse the
+// overflow under a "show all N" toggle (data-overflow attr); main.ts wires
+// the toggle. Per-layer `.row--collapsed` class hides them by default.
+const VISIBLE_LIMIT = 6;
+
 function renderCategorySection(cat) {
   const levelsInCat = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat);
   const commInCat = communityByCategory[cat] || [];
   if (!levelsInCat.length && !commInCat.length) return '';
   const catLabel = (catalog.categories || {})[cat] || cat;
   const total = levelsInCat.length + commInCat.length;
-  const rowsHtml = levelsInCat.map((lvl) => renderRow(lvl, byLevel[lvl])).join('\n');
-  const commHtml = commInCat.map(renderCommunityCard).join('\n');
-  return `<section class="category-section" data-category="${esc(cat)}">
+  const overflows = total > VISIBLE_LIMIT;
+
+  // Tag rows beyond VISIBLE_LIMIT with `row--collapsed`; main.ts toggles
+  // the section's `.expanded` state to reveal them. Search + category-pill
+  // filters bypass this (visible regardless of overflow state).
+  const rowsHtml = levelsInCat
+    .map((lvl, i) => renderRow(lvl, byLevel[lvl], { collapsed: overflows && i >= VISIBLE_LIMIT }))
+    .join('\n');
+  const commHtml = commInCat
+    .map((s, i) => renderCommunityCard(s, { collapsed: overflows && (levelsInCat.length + i) >= VISIBLE_LIMIT }))
+    .join('\n');
+
+  const showMore = overflows
+    ? `<button type="button" class="show-more" data-show-more aria-expanded="false">show all ${total} ${esc(catLabel.toLowerCase())} layers ↓</button>`
+    : '';
+
+  return `<section class="category-section" data-category="${esc(cat)}" ${overflows ? 'data-overflow' : ''}>
       <header class="category-section__head">
         <h2 class="category-section__title">${esc(catLabel)}</h2>
         <span class="category-section__count">${total} layer${total === 1 ? '' : 's'}</span>
@@ -571,6 +634,7 @@ function renderCategorySection(cat) {
       <div class="category-section__body">
         ${rowsHtml}
         ${commHtml}
+        ${showMore}
       </div>
       <a href="/preview?category=${esc(cat)}" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
     </section>`;
