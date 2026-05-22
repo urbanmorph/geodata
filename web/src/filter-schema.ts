@@ -68,10 +68,11 @@ export function pickAffordance(col: ColumnStats, rowCount: number): Affordance {
   if (col.nullFrac > 0.95) return { kind: 'drop', reason: 'mostly null' };
   if (ID_NAME_RX.test(col.name)) return { kind: 'drop', reason: 'id-like name' };
 
-  // High-uniqueness numeric/int columns are almost always OBJECTID-style row
-  // keys with no filter value. High-uniqueness STRINGS (village_name etc.)
-  // stay — they're the natural target of free-text search.
-  if (rowCount >= ALL_UNIQUE_MIN_ROWS && col.distinct > 50 && col.type !== 'string') {
+  // High-uniqueness INT columns are almost always OBJECTID-style row keys
+  // with no filter value. Floats with high uniqueness, by contrast, are
+  // typically measurements (area_sqkm, shape_length) — keep them as a range
+  // slider. High-uniqueness strings (village_name etc.) are search targets.
+  if (rowCount >= ALL_UNIQUE_MIN_ROWS && col.distinct > 50 && col.type === 'int') {
     const nonNull = rowCount * (1 - col.nullFrac);
     if (nonNull > 0 && col.distinct / nonNull > 0.97) {
       return { kind: 'drop', reason: 'all-unique' };
