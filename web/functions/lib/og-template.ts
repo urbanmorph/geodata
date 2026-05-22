@@ -1,31 +1,19 @@
-// v4.7 phase A: pure SVG template for per-layer / per-submission OG cards.
-// Consumed by the edge renderer at /og/view/<id>.png and /og/c/<id>.png.
-// Same look as the static og-default.png shipped in Phase D — indigo
-// gradient, India silhouette watermark, bharatlas wordmark, layer-specific
-// title + subtitle + footer.
-//
-// Kept pure (no resvg, no fetch) so it can be unit-tested without WASM and
-// reused by any future MCP/plugin endpoint that wants the same template.
+// Pure SVG template for /og/view/<id>.png and /og/c/<id>.png. No resvg / no
+// fetch so it stays unit-testable without WASM.
 
 import { INDIA_PATH } from './og-india-path';
 
 export type OgMetadata = {
-  // Big top line — e.g. "Indian villages" or community submission name.
   title: string;
-  // One-line subtitle — e.g. "5,84,615 polygons · LGD" or category badge.
   subtitle?: string;
-  // Bottom-left footer — source attribution + licence.
   footerLeft?: string;
-  // Bottom-right footer — defaults to the bharatlas tagline.
   footerRight?: string;
-  // Tiny tag on the top-right (curated / community / etc.).
   tag?: string;
 };
 
 const W = 1200;
 const H = 630;
 
-// XML-escape user-supplied strings.
 function esc(s: string): string {
   return s
     .replace(/&/g, '&amp;')
@@ -35,7 +23,7 @@ function esc(s: string): string {
     .replace(/'/g, '&#39;');
 }
 
-// Truncate long strings on the SVG layer — resvg has no overflow handling.
+// resvg has no text overflow handling, so we hard-clip before rendering.
 function clip(s: string, max: number): string {
   if (s.length <= max) return s;
   return s.slice(0, max - 1).trimEnd() + '…';
