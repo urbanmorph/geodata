@@ -1,11 +1,8 @@
-// v4.2 commit 5: generic FilterPanel.
-// Reads ColumnStats[] (from catalog.filter_stats or live describeParquet)
-// and renders an affordance per ranked column — facet chips, range inputs,
-// debounced search box, or boolean toggle. Maintains an ActiveFilter[] that
-// drives both the in-tile map repaint (via buildMaplibreFilter) and the
-// DuckDB export queries (via buildWhereSQL). Pre-baked R2 extracts still
-// short-circuit DuckDB when the active filter is exactly one IN on the
-// state_lgd column with one value.
+// Generic FilterPanel: renders one affordance per ranked column (facet chips,
+// range inputs, debounced search box, boolean toggle) and maintains an
+// ActiveFilter[] that drives both the in-tile MapLibre repaint and the
+// DuckDB-WASM count/export queries. Single-state filters short-circuit to a
+// pre-baked R2 extract when one exists.
 
 import {
   exportFilteredParquet,
@@ -21,6 +18,7 @@ import { pickAffordance, type Affordance, type ColumnStats } from './filter-sche
 import {
   buildMaplibreFilter,
   buildWhereSQL,
+  resolveStateCodes,
   type ActiveFilter,
   type MaplibreFilter,
 } from './filter-where';
@@ -142,8 +140,6 @@ export function mountFilterPanel(
     }
   }
 
-  // Render columns by ranked usefulness; pickAffordance lives in the schema
-  // module so the test surface stays pure.
   for (const col of ranked) {
     const aff = pickAffordance(col, rowCount);
     if (aff.kind === 'drop') continue;
@@ -183,16 +179,15 @@ export function mountFilterPanel(
       if (!active.length) return;
       const fmt = btn.dataset.fmt as 'parquet' | 'geojson' | 'kml';
 
-      // Fast path: hand off to a pre-baked R2 file when the active filter
-      // is exactly one IN on a state column with one value (and the bake
-      // exists). Accepts either the legacy numeric state_lgd or a string
-      // name column (STNAME, state, state_name) — names are translated to
-      // codes via the catalog.states lookup.
-      const stateCode = matchSingleStateFilter(active, stateNameToCode);
-      if (stateCode != null) {
-        const bake = extracts[String(stateCode)]?.[fmt];
+      // Pre-baked R2 fast path: skip DuckDB entirely when the user picked
+      // exactly one state (single value on a known state column) and a
+      // matching bake exists.
+      const stateCodes = resolveStateCodes(active, stateNameToCode);
+      if (stateCodes.length === 1) {
+        const code = stateCodes[0];
+        const bake = extracts[String(code)]?.[fmt];
         if (bake?.url) {
-          const fn = `${layer.id}__state${stateCode}.${fmt}`;
+          const fn = `${layer.id}__state${code}.${fmt}`;
           downloadUrl(bake.url, fn);
           status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(fn)} (${formatSize(bake.bytes)}, pre-baked).</span>`;
           return;
@@ -236,27 +231,6 @@ export function mountFilterPanel(
   });
 }
 
-// Detect a single-state filter so we can short-circuit DuckDB and hand off
-// to the pre-baked R2 extract. Supports both the (legacy) numeric state_lgd
-// column and any sibling string state-name column (STNAME / state /
-// state_name) — names are translated via the catalog.states map.
-function matchSingleStateFilter(
-  filters: ActiveFilter[],
-  stateNameToCode: Map<string, number>,
-): number | null {
-  if (filters.length !== 1) return null;
-  const f = filters[0];
-  if (f.kind !== 'in' || f.values.length !== 1) return null;
-  if (/^state_lgd$/i.test(f.col)) {
-    const v = f.values[0];
-    return typeof v === 'number' ? v : Number(v);
-  }
-  if (/^(stname|state|state_name)$/i.test(f.col)) {
-    return stateNameToCode.get(String(f.values[0]).toLowerCase()) ?? null;
-  }
-  return null;
-}
-
 // ───── Per-affordance renderers ─────
 
 function renderField(
@@ -289,14 +263,13 @@ function renderFacet(
   const wrap = document.createElement('div');
   wrap.className = 'filter-chips';
   const selected = new Set<string>();
-  for (const { v, n } of aff.values) {
+  for (const { v, n, label } of aff.values) {
     const chip = document.createElement('button');
     chip.type = 'button';
     chip.className = 'filter-chip';
     chip.dataset.value = String(v);
-    const display = aff.values.find((x) => x.v === v)?.label ?? String(v);
     chip.innerHTML =
-      `<span class="filter-chip__v">${escapeHtml(display)}</span>` +
+      `<span class="filter-chip__v">${escapeHtml(label ?? String(v))}</span>` +
       `<span class="filter-chip__n">${n.toLocaleString('en-IN')}</span>`;
     chip.addEventListener('click', () => {
       const key = String(v);

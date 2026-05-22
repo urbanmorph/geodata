@@ -9,6 +9,7 @@ import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
+import { resolveStateCodes, type ActiveFilter, type MaplibreFilter } from './filter-where';
 
 type Layer = {
   id: string;
@@ -471,13 +472,12 @@ function panelAwarePadding(): { top: number; bottom: number; left: number; right
   return { top: base, bottom: base, left: base, right: base + r.width };
 }
 
-// Apply the active filter set to the map's fill+line layers. Uses the
-// MapLibre filter that filter-where.ts produced, plus a fitBounds special
-// case for the legacy state-filter (we know each state's bbox from the
-// catalog, so the camera flies to it just like before).
+// Apply the active filter set to the map's fill+line layers and fly the
+// camera to the union bbox when the filter selects one-or-more known states
+// (so the user lands on the right region, not on India-wide).
 function applyActiveFilters(
-  filters: import('./filter-where').ActiveFilter[],
-  mapFilter: import('./filter-where').MaplibreFilter,
+  filters: ActiveFilter[],
+  mapFilter: MaplibreFilter,
   fullCatalog?: {
     state_bounds?: Record<string, [number, number, number, number]>;
     states?: Array<{ code: number; name: string }>;
@@ -490,40 +490,26 @@ function applyActiveFilters(
     }
   }
   const padding = panelAwarePadding();
-  // State fly-to. Accepts both the numeric state_lgd column and the string
-  // state-name columns (STNAME / state / state_name) — names are translated
-  // to codes via catalog.states. For multi-state selection, compute the
-  // union bbox across all selected states.
-  if (filters.length === 1 && filters[0].kind === 'in' && filters[0].values.length >= 1) {
-    const f = filters[0];
-    let codes: string[] = [];
-    if (/^state_lgd$/i.test(f.col)) {
-      codes = f.values.map(String);
-    } else if (/^(stname|state|state_name)$/i.test(f.col) && fullCatalog?.states) {
-      const byName = new Map(fullCatalog.states.map((s) => [s.name.toLowerCase(), s.code]));
-      codes = f.values
-        .map((v) => byName.get(String(v).toLowerCase()))
-        .filter((c): c is number => c != null)
-        .map(String);
+
+  if (fullCatalog?.state_bounds && fullCatalog.states) {
+    const byName = new Map(fullCatalog.states.map((s) => [s.name.toLowerCase(), s.code]));
+    const codes = resolveStateCodes(filters, byName);
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const c of codes) {
+      const b = fullCatalog.state_bounds[String(c)];
+      if (b) {
+        if (b[0] < minX) minX = b[0];
+        if (b[1] < minY) minY = b[1];
+        if (b[2] > maxX) maxX = b[2];
+        if (b[3] > maxY) maxY = b[3];
+      }
     }
-    if (codes.length && fullCatalog?.state_bounds) {
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for (const c of codes) {
-        const b = fullCatalog.state_bounds[c];
-        if (b) {
-          if (b[0] < minX) minX = b[0];
-          if (b[1] < minY) minY = b[1];
-          if (b[2] > maxX) maxX = b[2];
-          if (b[3] > maxY) maxY = b[3];
-        }
-      }
-      if (minX !== Infinity) {
-        map.fitBounds([[minX, minY], [maxX, maxY]], { padding, duration: 600 });
-        return;
-      }
+    if (minX !== Infinity) {
+      map.fitBounds([[minX, minY], [maxX, maxY]], { padding, duration: 600 });
+      return;
     }
   }
-  // Filter cleared → fly back to India.
+
   if (!filters.length) {
     map.fitBounds(INDIA_BOUNDS, { padding, duration: 600 });
   }

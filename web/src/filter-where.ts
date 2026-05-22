@@ -55,6 +55,31 @@ export function buildWhereSQL(filters: ActiveFilter[]): string {
   return parts.length ? 'WHERE ' + parts.join(' AND ') : '';
 }
 
+// Resolve an ActiveFilter to the LGD state codes it selects, when (and only
+// when) the user picked exactly one IN filter on a known state column. Used
+// by both the R2 pre-baked-extract fast path (filter.ts) and the camera
+// fly-to (map.ts). Returns [] when the filter doesn't address state.
+const STATE_CODE_COL = /^state_lgd$/i;
+const STATE_NAME_COL = /^(stname|state|state_name)$/i;
+
+export function resolveStateCodes(
+  filters: ActiveFilter[],
+  stateNameToCode: Map<string, number>,
+): number[] {
+  if (filters.length !== 1) return [];
+  const f = filters[0];
+  if (f.kind !== 'in') return [];
+  if (STATE_CODE_COL.test(f.col)) {
+    return f.values.map((v) => (typeof v === 'number' ? v : Number(v))).filter(Number.isFinite);
+  }
+  if (STATE_NAME_COL.test(f.col)) {
+    return f.values
+      .map((v) => stateNameToCode.get(String(v).toLowerCase()))
+      .filter((c): c is number => c != null);
+  }
+  return [];
+}
+
 export type MaplibreFilter = unknown[] | null;
 
 // MapLibre tile-property filter. Returns null when no filter applies, or
