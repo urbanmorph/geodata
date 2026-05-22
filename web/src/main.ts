@@ -71,8 +71,13 @@ if (searchInput && grid) {
   const apply = () => {
     let totalVisible = 0;
     const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
+    // When the user picks a category pill (or types a query), auto-expand
+    // every section so the row--collapsed cap doesn't hide matches. When
+    // both are off, leave sections in their default collapsed state.
+    const forceExpand = !!query || activeCat !== 'all';
     for (const section of sections) {
       const cat = section.dataset.category || '';
+      section.classList.toggle('expanded', forceExpand);
       if (activeCat !== 'all' && cat !== activeCat) {
         section.classList.add('hidden');
         continue;
@@ -125,6 +130,20 @@ if (searchInput && grid) {
       chips.forEach((c) => c.classList.toggle('active', c === chip));
       activeCat = chip.dataset.cat || 'all';
       apply();
+    });
+  }
+
+  // "show all N <category>" toggle inside dense category sections.
+  // Toggles `.expanded` on the parent <section>; CSS in index.template.html
+  // reveals/hides .row--collapsed children. The button hides itself when
+  // expanded. Also fires automatically when a category pill picks this
+  // section (so filtered views show everything).
+  for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-show-more]')) {
+    btn.addEventListener('click', () => {
+      const section = btn.closest('.category-section');
+      if (!section) return;
+      section.classList.add('expanded');
+      btn.setAttribute('aria-expanded', 'true');
     });
   }
 }

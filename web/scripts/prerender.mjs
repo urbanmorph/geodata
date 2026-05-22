@@ -276,11 +276,12 @@ function downloadLinks(layer) {
   return items;
 }
 
-function renderRow(level, layersForLevel) {
+function renderRow(level, layersForLevel, opts = {}) {
   const meta = LEVEL_META[level];
   if (!meta) return '';
   const primary = pickPrimary(layersForLevel);
   const hasOthers = layersForLevel.length > 1;
+  const collapsed = opts.collapsed ? ' row--collapsed' : '';
 
   const viewable = !!(primary.pmtiles?.url || primary.geojson?.url);
   // Only LGD layers carry the code chain that powers the in-viewer state filter.
@@ -365,19 +366,28 @@ function renderRow(level, layersForLevel) {
     `data-search="${esc(haystack)}"`,
   ].join(' ');
 
-  return `<section class="row row--curated" id="${esc(level)}" ${dataAttrs}>
-      <div class="row__head">
-        <span class="row__title">${esc(meta.label)} <span class="badge badge--curated" title="Curated by urbanmorph from LGD">curated</span></span>
-        <span class="row__meta">${fmtRows(primary.rows)} ${esc(meta.unit)}<span class="dot">·</span>${lic}</span>
-      </div>
-      <p class="row__desc">${esc(meta.description)}</p>
-      ${sourceLine}
-      <div class="row__actions">
-        ${viewBtn}
-        ${dlInline}
-      </div>
-      ${viewerHint}
-      ${altSection}
+  // Compact list layout — one-line entry per layer. Description + alt
+  // sources reveal on click via <details>. Scales to ~200 layers without
+  // turning the home page into a wall of cards.
+  return `<section class="row row--curated row--compact${collapsed}" id="${esc(level)}" ${dataAttrs}>
+      <details class="row__details">
+        <summary class="row__summary">
+          <span class="row__title">${esc(meta.label)}</span>
+          <span class="row__source">${esc(primary.source)}</span>
+          <span class="row__count">${fmtRows(primary.rows)}</span>
+          <span class="row__lic">${esc(primary.licence || '')}</span>
+          <span class="row__actions">
+            ${viewBtn}
+            ${dlInline}
+          </span>
+        </summary>
+        <div class="row__expand">
+          <p class="row__desc">${esc(meta.description)}</p>
+          ${sourceLine}
+          ${viewerHint}
+          ${altSection}
+        </div>
+      </details>
     </section>`;
 }
 
@@ -527,9 +537,10 @@ function fetchCommunitySubmissions() {
 }
 const community = fetchCommunitySubmissions();
 
-function renderCommunityCard(s) {
+function renderCommunityCard(s, opts = {}) {
   const score = s.score;
   const cat = s.category || 'other';
+  const collapsed = opts.collapsed ? ' row--collapsed' : '';
   // Build searchable haystack the same way curated cards do, so search
   // works equally on community contributions.
   const haystack = expandAliases([
@@ -549,7 +560,7 @@ function renderCommunityCard(s) {
     `data-search="${esc(haystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
-  return `<article class="comm-card" ${dataAttrs}>
+  return `<article class="comm-card${collapsed}" ${dataAttrs}>
     <div class="comm-card__head">
       <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge badge--community">community</span></div>
       <div class="comm-card__score" title="up ${s.up_count} · down ${s.down_count}">
@@ -576,15 +587,35 @@ for (const cat of Object.keys(communityByCategory)) {
 // Render one section per non-empty category. Inside each: curated level rows
 // first (in LEVEL_ORDER), then community cards (newest first). Both are
 // searchable via data-search; the category pill picks one section to show.
+//
+// Density management: sections with > VISIBLE_LIMIT layers collapse the
+// overflow under a "show all N" toggle (data-overflow attr); main.ts wires
+// the toggle. Per-layer `.row--collapsed` class hides them by default.
+const VISIBLE_LIMIT = 6;
+
 function renderCategorySection(cat) {
   const levelsInCat = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat);
   const commInCat = communityByCategory[cat] || [];
   if (!levelsInCat.length && !commInCat.length) return '';
   const catLabel = (catalog.categories || {})[cat] || cat;
   const total = levelsInCat.length + commInCat.length;
-  const rowsHtml = levelsInCat.map((lvl) => renderRow(lvl, byLevel[lvl])).join('\n');
-  const commHtml = commInCat.map(renderCommunityCard).join('\n');
-  return `<section class="category-section" data-category="${esc(cat)}">
+  const overflows = total > VISIBLE_LIMIT;
+
+  // Tag rows beyond VISIBLE_LIMIT with `row--collapsed`; main.ts toggles
+  // the section's `.expanded` state to reveal them. Search + category-pill
+  // filters bypass this (visible regardless of overflow state).
+  const rowsHtml = levelsInCat
+    .map((lvl, i) => renderRow(lvl, byLevel[lvl], { collapsed: overflows && i >= VISIBLE_LIMIT }))
+    .join('\n');
+  const commHtml = commInCat
+    .map((s, i) => renderCommunityCard(s, { collapsed: overflows && (levelsInCat.length + i) >= VISIBLE_LIMIT }))
+    .join('\n');
+
+  const showMore = overflows
+    ? `<button type="button" class="show-more" data-show-more aria-expanded="false">show all ${total} ${esc(catLabel.toLowerCase())} layers ↓</button>`
+    : '';
+
+  return `<section class="category-section" data-category="${esc(cat)}" ${overflows ? 'data-overflow' : ''}>
       <header class="category-section__head">
         <h2 class="category-section__title">${esc(catLabel)}</h2>
         <span class="category-section__count">${total} layer${total === 1 ? '' : 's'}</span>
@@ -592,6 +623,7 @@ function renderCategorySection(cat) {
       <div class="category-section__body">
         ${rowsHtml}
         ${commHtml}
+        ${showMore}
       </div>
       <a href="/preview?category=${esc(cat)}" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
     </section>`;
