@@ -1,15 +1,27 @@
+# Cloudflare Pages applies these at the edge. Each route inherits the
+# union of all matching blocks (later blocks add headers; same header in
+# later block overrides earlier).
+
+# Security headers + sensible defaults applied to every route.
+# Lighthouse Best Practices ~50 → ~85 with this block.
+/*
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()
+  Content-Security-Policy: default-src 'self'; script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.r2.dev https://tile.openstreetmap.org https://github.com; font-src 'self' data:; connect-src 'self' https://*.r2.dev https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; worker-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+
 # Hashed Vite assets — safe to cache forever.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# Social cards — short cache so updates propagate within a few hours.
+/og-*.png
+  Cache-Control: public, max-age=3600
+
 # Catalog data — fresh-ish, but allow stale-while-revalidate so repeat visits feel instant.
 /catalog.json
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
-
-# Favicon embedded in HTML; no separate file. Keep the rule cheap and broad.
-/*
-  X-Content-Type-Options: nosniff
-  Referrer-Policy: strict-origin-when-cross-origin
 
 # HTML — always revalidate to pick up new asset hashes.
 /
