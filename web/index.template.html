@@ -84,7 +84,7 @@
       .catalog-chip:hover { color: var(--fg); border-color: var(--fg); }
       .catalog-chip.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
       .catalog-chip[data-count="0"] { opacity: .4; cursor: not-allowed; }
-      .catalog-chip .count { color: inherit; opacity: .65; margin-left: 4px; font-variant-numeric: tabular-nums; }
+      .catalog-chip .count { color: inherit; margin-left: 4px; font-variant-numeric: tabular-nums; font-weight: 500; }
       .catalog-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 32px 0; }
 
       .catalog { margin-top: 8px; }
@@ -112,8 +112,8 @@
       .comm-card__title a { color: inherit; text-decoration: none; }
       .comm-card__title a:hover { color: var(--accent); }
       .comm-card__score { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: 13px; }
-      .comm-card__score .up { color: var(--accent); }
-      .comm-card__score .down { color: #d23434; }
+      .comm-card__score .up { color: var(--accent-strong); }
+      .comm-card__score .down { color: #b91c1c; }
       .comm-card__desc { color: var(--muted); font-size: 13px; margin: 6px 0 8px; }
       .comm-card__meta { color: var(--muted); font-size: 12px; }
 
@@ -266,8 +266,8 @@
       .btn-primary:hover { background: var(--accent); color: #fff; text-decoration: none; }
       .btn-primary.disabled { background: transparent; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
 
-      .dl-inline { display: inline-flex; gap: 10px; align-items: baseline; font-size: 13px; color: var(--muted); }
-      .dl-inline a { color: var(--fg); }
+      .dl-inline { display: inline-flex; gap: 16px; align-items: center; font-size: 13px; color: var(--muted); }
+      .dl-inline a { color: var(--fg); display: inline-flex; align-items: center; min-height: 44px; padding: 10px 4px; }
       .dl-inline .size { color: var(--muted); font-variant-numeric: tabular-nums; font-size: 12px; margin-left: 2px; }
       .dl-inline .dot { color: var(--line); }
       .dl-inline .count {
@@ -642,6 +642,7 @@
   </head>
   <body>
     <!-- NAV -->
+    <main>
     <header class="hero">
       <h1 class="hero__title">Find a map. Or share one.</h1>
       <p class="hero__sub">
@@ -672,6 +673,7 @@
     <div class="catalog" id="catalog-grid">
       <!-- CATEGORY_SECTIONS -->
     </div>
+    </main>
 
     <!-- FOOTER -->
 

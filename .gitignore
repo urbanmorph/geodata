@@ -12,6 +12,9 @@ web/index.html
 web/about.html
 web/verify.html
 web/submit.html
+web/preview.html
+web/privacy.html
+web/terms.html
 web/public/catalog.json
 web/public/sitemap.xml
 

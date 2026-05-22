@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      <!-- TOKENS -->
+      body { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.6; }
+      .hero { font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -.02em; margin: var(--sp-4) 0 var(--sp-3); }
+      .lede { color: var(--muted); font-size: var(--fs-lg); margin: 0 0 var(--sp-7); max-width: 600px; }
+      h2 { font-size: var(--fs-base); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: var(--sp-7) 0 var(--sp-3); }
+      ul { margin: 0; padding-left: 0; list-style: none; }
+      li { padding: var(--sp-1) 0 var(--sp-1) 18px; position: relative; }
+      li::before { content: "›"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+      li strong { font-weight: 600; color: var(--fg); }
+      a { text-decoration: underline; text-underline-offset: 2px; }
+      code { font: var(--fs-sm) ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg-card); padding: 1px 5px; border-radius: var(--radius-sm); color: var(--fg); }
+      .footnote { color: var(--muted); font-size: var(--fs-sm); margin-top: var(--sp-7); }
+      @media (max-width: 640px) { body { padding: 32px 16px 60px; } .hero { font-size: var(--fs-xl); } }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <main>
+    <h1 class="hero">Terms</h1>
+    <p class="lede">
+      By using bharatlas you agree to these terms. They're short because the platform is
+      simple.
+    </p>
+
+    <h2>What you can do</h2>
+    <ul>
+      <li>Browse, view, slice and download any catalog layer for any lawful purpose, subject to the licence shown on that card.</li>
+      <li>Contribute geo files you have the right to share, under one of the open licences in the publish form (CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India).</li>
+      <li>Embed any map in your blog, report or product via the iframe snippet on the map view.</li>
+    </ul>
+
+    <h2>When you contribute</h2>
+    <ul>
+      <li>You confirm you own the file or have the right to share it under the open licence you select.</li>
+      <li>You accept that your contribution becomes permanently available under that licence. We can soft-delete a submission on your admin-token request or on legal request, but distribution that already happened under the open licence may continue downstream.</li>
+      <li>You attest that the file's content does not violate Indian law — no classified data, no content that violates someone's privacy, no copyrighted material presented as your own.</li>
+    </ul>
+
+    <h2>What we don't warrant</h2>
+    <ul>
+      <li>We do not guarantee the accuracy, completeness or fitness of any layer for any particular purpose.</li>
+      <li>Boundaries shown are <strong>for reference, not legal authority</strong>. For official, administrative or land-record use, refer to LGD, SOI, Bhuvan or the state revenue department.</li>
+      <li>Community submissions are auto-moderated, not editorially curated. Verify provenance via the source link on each card before relying on community data.</li>
+    </ul>
+
+    <h2>Acceptable use</h2>
+    <ul>
+      <li>Don't scrape rate-limited endpoints. The R2 PMTiles URLs are public and unrate-limited — use those for bulk reads.</li>
+      <li>Don't submit malware, harmful files, or content that infringes others' rights.</li>
+      <li>Don't attempt to bypass anti-abuse mechanisms (Turnstile, IP rate-limits).</li>
+    </ul>
+
+    <h2>Removal + governance</h2>
+    <ul>
+      <li>Repeated violations may result in IP-level rate-limit tightening or submission removal.</li>
+      <li>We can remove submissions that violate these terms or applicable law.</li>
+      <li>We can change these terms with a note + updated date at the bottom of this page.</li>
+    </ul>
+
+    <h2>Contact</h2>
+    <ul>
+      <li>General: <a href="mailto:sathya@urbanmorph.com">sathya@urbanmorph.com</a></li>
+      <li>Security: same address, prefix the subject with <code>security:</code></li>
+    </ul>
+
+    <p class="footnote">Last updated: 2026-05-22.</p>
+    </main>
+
+    <!-- FOOTER -->
+  </body>
+</html>

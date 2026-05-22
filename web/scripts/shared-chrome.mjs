@@ -10,7 +10,7 @@ export const TOKENS = `
     --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
     --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
     --bg: #ffffff; --bg-elevated: #fafafa; --bg-card: #f5f5f5;
-    --fg: #0a0a0a; --muted: #6b7280; --muted-strong: #374151;
+    --fg: #0a0a0a; --muted: #525965; --muted-strong: #374151;
     --subtle: #9ca3af; --line: #e5e7eb; --line-bright: #d1d5db;
     --accent: #6366f1; --accent-strong: #4f46e5;
     --accent-fill: #6366f1; --accent-fill-hover: #4f46e5;
@@ -89,6 +89,8 @@ export function renderNav(activeKey) {
 export const FOOTER = `<footer class="site-footer">
       <p>Open licences only. Each layer carries its source link on the card.</p>
       <p>
+        <a href="/privacy">privacy</a> ·
+        <a href="/terms">terms</a> ·
         <a href="https://github.com/urbanmorph/geodata">code</a> ·
         <a href="https://github.com/urbanmorph/geodata/blob/main/REPORT.md">data report</a> ·
         made by <a href="https://urbanmorph.com">urbanmorph</a>

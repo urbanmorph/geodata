@@ -113,6 +113,6 @@ Pipelines + patterns:
 - [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream Parquet + PMTiles re-publisher.
 - [mdshare](https://mdshare.dev/) — the anonymous-token contribution pattern lineage.
 
-Built by [Urban Morph](https://urbanmorph.com) · [@sathyasankaran](https://linkedin.com/in/sathyasankaran). Drop a ⭐ if you find it useful.
+Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
 
 **Status:** alpha. Submission flow is live and accepting contributions; the schema and external API may shift before v5. Community submissions are permanent under the open licence the contributor selected.
