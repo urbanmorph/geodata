@@ -401,19 +401,14 @@ async function wireFilterButton(layer: Layer) {
   }
   if (signal.aborted) return;
 
-  // Decorate state_lgd top_values with state names so the chips read e.g.
-  // "Karnataka" instead of "29". Filter value stays the numeric code so
-  // the export pipeline keeps working.
-  if (fullCat.states?.length) {
-    const names = new Map(fullCat.states.map((s) => [String(s.code), s.name]));
-    for (const col of columns) {
-      if (/^state_lgd$/i.test(col.name) && col.topValues) {
-        col.topValues = col.topValues.map((tv) => {
-          const label = names.get(String(tv.v));
-          return label ? { ...tv, label } : tv;
-        });
-      }
+  // Drop non-canonical members of every detected equivalence group.
+  // Canonical = the human-readable column (state_lgd / stcode11 → stname).
+  if (baked?.column_groups?.length) {
+    const drop = new Set<string>();
+    for (const g of baked.column_groups) {
+      for (const m of g.members) if (m !== g.canonical) drop.add(m);
     }
+    columns = columns.filter((c) => !drop.has(c.name));
   }
 
   const ranked = rankColumns(columns, rowCount);
@@ -483,7 +478,10 @@ function panelAwarePadding(): { top: number; bottom: number; left: number; right
 function applyActiveFilters(
   filters: import('./filter-where').ActiveFilter[],
   mapFilter: import('./filter-where').MaplibreFilter,
-  fullCatalog?: { state_bounds?: Record<string, [number, number, number, number]> },
+  fullCatalog?: {
+    state_bounds?: Record<string, [number, number, number, number]>;
+    states?: Array<{ code: number; name: string }>;
+  },
 ): void {
   if (!map) return;
   for (const id of ['fill', 'line']) {
@@ -492,14 +490,37 @@ function applyActiveFilters(
     }
   }
   const padding = panelAwarePadding();
-  // Single-state fly-to (LGD state filter).
-  if (filters.length === 1 && filters[0].kind === 'in' && filters[0].values.length === 1 &&
-      /^state_lgd$/i.test(filters[0].col)) {
-    const code = String(filters[0].values[0]);
-    const b = fullCatalog?.state_bounds?.[code];
-    if (b) {
-      map.fitBounds([[b[0], b[1]], [b[2], b[3]]], { padding, duration: 600 });
-      return;
+  // State fly-to. Accepts both the numeric state_lgd column and the string
+  // state-name columns (STNAME / state / state_name) — names are translated
+  // to codes via catalog.states. For multi-state selection, compute the
+  // union bbox across all selected states.
+  if (filters.length === 1 && filters[0].kind === 'in' && filters[0].values.length >= 1) {
+    const f = filters[0];
+    let codes: string[] = [];
+    if (/^state_lgd$/i.test(f.col)) {
+      codes = f.values.map(String);
+    } else if (/^(stname|state|state_name)$/i.test(f.col) && fullCatalog?.states) {
+      const byName = new Map(fullCatalog.states.map((s) => [s.name.toLowerCase(), s.code]));
+      codes = f.values
+        .map((v) => byName.get(String(v).toLowerCase()))
+        .filter((c): c is number => c != null)
+        .map(String);
+    }
+    if (codes.length && fullCatalog?.state_bounds) {
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+      for (const c of codes) {
+        const b = fullCatalog.state_bounds[c];
+        if (b) {
+          if (b[0] < minX) minX = b[0];
+          if (b[1] < minY) minY = b[1];
+          if (b[2] > maxX) maxX = b[2];
+          if (b[3] > maxY) maxY = b[3];
+        }
+      }
+      if (minX !== Infinity) {
+        map.fitBounds([[minX, minY], [maxX, maxY]], { padding, duration: 600 });
+        return;
+      }
     }
   }
   // Filter cleared → fly back to India.

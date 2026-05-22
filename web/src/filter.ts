@@ -117,10 +117,16 @@ export function mountFilterPanel(
   });
 
   // Pre-baked R2 extracts manifest — used only for the state-filter fast
-  // path (one IN on state_lgd with one value). Lazy-fetched.
+  // path (one IN on a state column with one value). Lazy-fetched.
   let extracts: Record<string, Record<string, { url: string; bytes: number }>> = {};
+  let stateNameToCode = new Map<string, number>();
   getFullCatalog()
-    .then((c) => { extracts = c.extracts?.[layer.level] || {}; })
+    .then((c) => {
+      extracts = c.extracts?.[layer.level] || {};
+      if (c.states) {
+        stateNameToCode = new Map(c.states.map((s) => [s.name.toLowerCase(), s.code]));
+      }
+    })
     .catch(() => {});
 
   // Warm DuckDB-WASM in the background — masks the cold start when the
@@ -135,8 +141,11 @@ export function mountFilterPanel(
       const fmt = btn.dataset.fmt as 'parquet' | 'geojson' | 'kml';
 
       // Fast path: hand off to a pre-baked R2 file when the active filter
-      // is exactly one IN on state_lgd with one value (and the bake exists).
-      const stateCode = matchSingleStateFilter(active);
+      // is exactly one IN on a state column with one value (and the bake
+      // exists). Accepts either the legacy numeric state_lgd or a string
+      // name column (STNAME, state, state_name) — names are translated to
+      // codes via the catalog.states lookup.
+      const stateCode = matchSingleStateFilter(active, stateNameToCode);
       if (stateCode != null) {
         const bake = extracts[String(stateCode)]?.[fmt];
         if (bake?.url) {
@@ -184,15 +193,25 @@ export function mountFilterPanel(
   });
 }
 
-// Detect the legacy single-state-filter shape so we can hand off to the
-// pre-baked extract rather than re-querying DuckDB.
-function matchSingleStateFilter(filters: ActiveFilter[]): number | null {
+// Detect a single-state filter so we can short-circuit DuckDB and hand off
+// to the pre-baked R2 extract. Supports both the (legacy) numeric state_lgd
+// column and any sibling string state-name column (STNAME / state /
+// state_name) — names are translated via the catalog.states map.
+function matchSingleStateFilter(
+  filters: ActiveFilter[],
+  stateNameToCode: Map<string, number>,
+): number | null {
   if (filters.length !== 1) return null;
   const f = filters[0];
   if (f.kind !== 'in' || f.values.length !== 1) return null;
-  if (!/^state_lgd$/i.test(f.col)) return null;
-  const v = f.values[0];
-  return typeof v === 'number' ? v : Number(v);
+  if (/^state_lgd$/i.test(f.col)) {
+    const v = f.values[0];
+    return typeof v === 'number' ? v : Number(v);
+  }
+  if (/^(stname|state|state_name)$/i.test(f.col)) {
+    return stateNameToCode.get(String(f.values[0]).toLowerCase()) ?? null;
+  }
+  return null;
 }
 
 // ───── Per-affordance renderers ─────

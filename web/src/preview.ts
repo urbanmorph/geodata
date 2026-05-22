@@ -16,7 +16,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { validate, INDIA_BBOX, type FC, type Report } from './validate';
 import { fileToFC, type Format } from './parse-geo';
 import { popHandoff, stashForSubmit } from './handoff';
-import { overlayLoader, VERBS_VERIFY_RENDER, VERBS_VERIFY_FETCH, inlineLoader } from './loading';
+import { overlayLoader, VERBS_VERIFY_RENDER, VERBS_VERIFY_FETCH, VERBS_ENGINE, inlineLoader } from './loading';
 import { escapeHtml } from './util';
 
 type SuccessPayload = {
@@ -231,13 +231,26 @@ async function handleFile(file: File): Promise<void> {
   let fc: FC;
   let format: Format;
   let rawJson: unknown;
+  // The DuckDB cold start fetches ~40 MB of WASM from JsDelivr and can take
+  // 10-30s on slower connections. A static blue tick reads as "frozen", so
+  // we drop in the animated inlineLoader (rotating verb + spinning ring)
+  // for that phase, falling back to the plain row for other phases.
+  let phaseLoader: { dismiss: () => void } | undefined;
   try {
     const parsed = await fileToFC(file, {
       onPhase: (p) => {
-        const label = p === 'unzipping' ? 'unzipping…' : p === 'duckdb' ? 'loading DuckDB…' : 'parsing…';
-        renderReport([{ k: label, level: 'ok' }]);
+        phaseLoader?.dismiss();
+        phaseLoader = undefined;
+        if (p === 'duckdb') {
+          phaseLoader = inlineLoader(reportEl, VERBS_ENGINE);
+        } else if (p === 'unzipping') {
+          renderReport([{ k: 'unzipping…', level: 'ok' }]);
+        } else {
+          renderReport([{ k: 'parsing…', level: 'ok' }]);
+        }
       },
     });
+    phaseLoader?.dismiss();
     fc = parsed.fc;
     format = parsed.format;
     if (format === 'geojson' || format === 'json') {
@@ -248,6 +261,7 @@ async function handleFile(file: File): Promise<void> {
       }
     }
   } catch (e) {
+    phaseLoader?.dismiss();
     renderReport([{ k: (e as Error).message, level: 'err' }]);
     return;
   }

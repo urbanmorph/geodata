@@ -18,6 +18,7 @@ Called from scripts/build_catalog.py; can be run standalone:
 """
 from __future__ import annotations
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -149,6 +150,94 @@ def _coerce_value(v: str | None, norm: str) -> str | float | int | None:
     return v
 
 
+def detect_equivalences(
+    src: str,
+    columns: list[dict],
+    row_count: int,
+    con: duckdb.DuckDBPyConnection,
+) -> list[list[str]]:
+    """Find groups of columns whose value sets are bijective (modulo a single
+    null discrepancy). For each pair (a, b) of low-cardinality columns, we
+    compute COUNT(DISTINCT a), COUNT(DISTINCT b), COUNT(DISTINCT (a, b)) — if
+    the joint distinct count matches the larger single, they encode the same
+    information. Generalises the regex hack we previously used to hide
+    state_lgd / stcode11 next to STNAME.
+
+    Row-unique columns (distinct ≈ rowCount) are excluded — in a 36-row
+    LGD_States table, every column has 36 distinct values and any pair is
+    trivially "bijective", but the columns are row keys, not facets."""
+    row_unique_threshold = max(2, int(row_count * 0.95))
+    candidates = [
+        c['name'] for c in columns
+        if c['type'] not in ('geometry', 'blob')
+        and 2 <= c.get('distinct', 0) <= 50
+        and c.get('distinct', 0) < row_unique_threshold
+        and c.get('null_frac', 0) < 0.5
+    ]
+    by_name = {c['name']: c for c in columns}
+
+    # Union-find for transitive equivalence grouping.
+    parent = {n: n for n in candidates}
+
+    def find(x: str) -> str:
+        while parent[x] != x:
+            parent[x] = parent[parent[x]]
+            x = parent[x]
+        return x
+
+    def union(a: str, b: str) -> None:
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    for i in range(len(candidates)):
+        a = candidates[i]
+        for j in range(i + 1, len(candidates)):
+            b = candidates[j]
+            da, db = by_name[a]['distinct'], by_name[b]['distinct']
+            # Skip pairs with very different cardinalities — they can't bijective.
+            if abs(da - db) > 1:
+                continue
+            try:
+                row = con.execute(f"""
+                    SELECT COUNT(DISTINCT ("{a}", "{b}"))
+                    FROM '{src}'
+                    WHERE "{a}" IS NOT NULL AND "{b}" IS NOT NULL
+                """).fetchone()
+            except duckdb.Error:
+                continue
+            ab = int(row[0]) if row and row[0] is not None else 0
+            mx = max(da, db)
+            # Allow up to 1 row of slack: a NULL-encoded "Other" state can
+            # make stcode11 (28) differ from state_lgd (27) — still equivalent.
+            if mx - 1 <= ab <= mx + 1:
+                union(a, b)
+
+    groups_by_root: dict[str, list[str]] = {}
+    for n in candidates:
+        groups_by_root.setdefault(find(n), []).append(n)
+    return [sorted(g) for g in groups_by_root.values() if len(g) > 1]
+
+
+_CODE_NAME_RX = re.compile(r'(code|_lgd|_id|^id$)', re.IGNORECASE)
+
+
+def pick_canonical(group: list[str], columns: list[dict]) -> str:
+    """Choose the most human-readable representative of an equivalence group:
+    prefer strings over ints; prefer names that don't look like codes; fall
+    back to alphabetic order for stability."""
+    by_name = {c['name']: c for c in columns}
+
+    def score(name: str) -> tuple[int, int, int, str]:
+        c = by_name.get(name, {'type': 'string'})
+        is_string = 1 if c['type'] == 'string' else 0
+        not_code = 0 if _CODE_NAME_RX.search(name) else 1
+        # Prefer shorter names within the same other-axis tie.
+        return (not_code, is_string, -len(name), name)
+
+    return sorted(group, key=score, reverse=True)[0]
+
+
 def build_all(layers: list[tuple[str, Path]]) -> dict:
     """layers: [(layer_id, local_parquet_path), …]"""
     con = duckdb.connect()
@@ -159,10 +248,21 @@ def build_all(layers: list[tuple[str, Path]]) -> dict:
     out: dict = {}
     for layer_id, path in layers:
         s = stats_for_parquet(path, con)
-        if s is not None:
-            out[layer_id] = s
-            cols = len(s['columns'])
-            print(f'  filter_stats[{layer_id}]: {s["row_count"]:,} rows, {cols} cols')
+        if s is None:
+            continue
+        groups = detect_equivalences(str(path), s['columns'], s['row_count'], con)
+        if groups:
+            s['column_groups'] = [
+                {'canonical': pick_canonical(g, s['columns']), 'members': g}
+                for g in groups
+            ]
+        out[layer_id] = s
+        cols = len(s['columns'])
+        nb_groups = len(s.get('column_groups', []))
+        msg = f'  filter_stats[{layer_id}]: {s["row_count"]:,} rows, {cols} cols'
+        if nb_groups:
+            msg += f', {nb_groups} equivalence group(s)'
+        print(msg)
     return out
 
 

@@ -48,6 +48,17 @@ describe('pickAffordance — drops', () => {
     }
   });
 
+  it('drops *_id columns (foreign keys / row keys)', () => {
+    // Wider code/name collapsing — stcode11, state_lgd, etc. — is handled at
+    // build time by the column-equivalence detection (see
+    // scripts/build_filter_stats.py); the resulting non-canonical members are
+    // filtered out in map.ts. The affordance picker only handles obvious
+    // id-suffixed columns that don't depend on data inspection.
+    for (const name of ['foo_id', 'parent_id', 'OBJECTID', 'fid']) {
+      expect(pickAffordance(col({ name }), 1000).kind).toBe('drop');
+    }
+  });
+
   it('drops high-uniqueness int columns on large tables (looks like a row key)', () => {
     expect(
       pickAffordance(col({ name: 'row_no', type: 'int', distinct: 1000 }), 1000),

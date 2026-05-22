@@ -39,7 +39,7 @@ export const DISPLAY_CAP = 6;
 // trivially have unique values even in genuinely useful columns.
 export const ALL_UNIQUE_MIN_ROWS = 50;
 
-const ID_NAME_RX = /^(id|_id|fid|objectid|gid|uuid|hash|geohash)$/i;
+const ID_NAME_RX = /^(id|fid|objectid|gid|uuid|hash|geohash)$|_id$/i;
 const GEOM_NAME_RX = /^(geom|geometry|shape|wkb|wkt)$/i;
 
 const BOOL_VALUE_SETS: Array<Set<string>> = [

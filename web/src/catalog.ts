@@ -28,6 +28,11 @@ export type FilterStatsColumn = {
 export type LayerFilterStats = {
   row_count: number;
   columns: FilterStatsColumn[];
+  // Pairs of columns that DuckDB detected as bijective at build time
+  // (e.g. {state_lgd, stcode11, stname}). Only the canonical is shown
+  // in the filter UI; the other members carry the same information and
+  // would just confuse the user into ANDing them.
+  column_groups?: Array<{ canonical: string; members: string[] }>;
 };
 
 export type Catalog = {
