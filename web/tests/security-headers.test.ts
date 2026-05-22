@@ -52,6 +52,21 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
     expect(v).toMatch(/frame-ancestors 'none'/);        // clickjacking guard
   });
 
+  it('CSP allows DuckDB-WASM + MapLibre tile fetches via connect-src', () => {
+    // These were missed in the initial v4.0.1 CSP — DuckDB-WASM fetches
+    // its WASM binary from jsdelivr (script-src isn't enough; binary
+    // arrives via fetch() which is gated by connect-src), and MapLibre
+    // fetches OSM tiles via fetch(), not as <img>. Without these, /preview
+    // hung on "loading DuckDB..." and the basemap stayed blank in prod.
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/)![1];
+    const connect = csp.match(/connect-src([^;]+)/)![1];
+    expect(connect, 'connect-src missing jsdelivr').toMatch(/cdn\.jsdelivr\.net/);
+    expect(connect, 'connect-src missing OSM tiles').toMatch(/tile\.openstreetmap\.org/);
+    // wasm-unsafe-eval is the modern (Chrome 90+) directive that lets WASM
+    // modules compile without 'unsafe-eval' on script-src.
+    expect(csp).toMatch(/'wasm-unsafe-eval'/);
+  });
+
   it('keeps X-Content-Type-Options nosniff (already on by CF default; pin it)', () => {
     expect(headersFile).toMatch(/X-Content-Type-Options:\s*nosniff/i);
   });
