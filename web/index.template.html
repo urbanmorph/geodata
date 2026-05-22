@@ -146,7 +146,11 @@
       .row--compact .row__details { width: 100%; }
       .row--compact .row__summary {
         display: grid;
-        grid-template-columns: minmax(0, 1fr) 70px 80px auto;
+        /* Fixed title + source + count columns so source/count line up
+           vertically across rows regardless of title length. Actions
+           column absorbs the remainder, pushing buttons + downloads to
+           a consistent right edge. */
+        grid-template-columns: 200px 60px 180px 1fr;
         align-items: center;
         gap: 14px;
         padding: 10px 4px;
@@ -157,10 +161,12 @@
       .row--compact .row__summary::-webkit-details-marker { display: none; }
       .row--compact .row__summary::marker { content: ""; }
       .row--compact .row__summary:hover { background: var(--row-hover); }
-      .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); }
+      .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       .row--compact .row__summary > .row__source { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; text-align: left; }
-      .row--compact .row__summary > .row__count { font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; text-align: left; white-space: nowrap; }
-      .row--compact .row__summary > .row__actions { display: inline-flex; gap: 10px; align-items: center; justify-content: flex-end; }
+      .row--compact .row__summary > .row__count { color: var(--muted); font-size: 12px; text-align: left; white-space: nowrap; }
+      .row--compact .row__summary > .row__count .row__num { font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; margin-right: 6px; }
+      .row--compact .row__summary > .row__count .row__unit { color: var(--muted); }
+      .row--compact .row__summary > .row__actions { display: inline-flex; gap: 10px; align-items: center; }
       .row--compact .row__expand {
         padding: 10px 4px 14px;
         border-top: 1px dashed var(--line);

@@ -368,16 +368,18 @@ function renderRow(level, layersForLevel, opts = {}) {
 
   // Compact list layout — one-line entry per layer. Description, source,
   // licence, freshness, alt sources reveal on click via <details>.
-  // Summary stays tight: title · source · count · actions. Licence lives
-  // in the expanded panel — dual SPDX strings ("CC0-1.0 / CC-BY-4.0")
-  // were wrapping at any reasonable column width and breaking vertical
-  // rhythm.
+  // Summary: title · source · count+unit · actions. All columns are
+  // fixed-width except actions; the title column is capped so source/count
+  // line up vertically across rows.
+  const countDisplay = primary.rows != null
+    ? `<span class="row__num">${fmtRows(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
+    : '<span class="row__num">—</span>';
   return `<section class="row row--curated row--compact${collapsed}" id="${esc(level)}" ${dataAttrs}>
       <details class="row__details">
         <summary class="row__summary">
           <span class="row__title">${esc(meta.label)}</span>
           <span class="row__source">${esc(primary.source)}</span>
-          <span class="row__count">${fmtRows(primary.rows)}</span>
+          <span class="row__count">${countDisplay}</span>
           <span class="row__actions">
             ${viewBtn}
             ${dlInline}
