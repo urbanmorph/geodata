@@ -186,6 +186,69 @@
       .map-loader__verb { font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
       @keyframes ml-spin { to { transform: rotate(360deg); } }
 
+      /* === Your submissions (v4.8) ========================================== */
+      #my-subs {
+        display: block; max-width: 640px; margin: 18px auto 0;
+        background: var(--bg-card); border: 1px solid var(--line);
+        border-radius: 10px; padding: 12px 14px;
+      }
+      #my-subs[hidden] { display: none; }
+      #my-subs h2 {
+        font-size: 11px; font-weight: 600; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--muted); margin: 0 0 8px;
+      }
+      #my-subs-list { display: flex; flex-direction: column; }
+      .my-subs-row {
+        display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+        align-items: center;
+        padding: 8px 4px; font-size: 13px;
+        color: inherit; text-decoration: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .my-subs-row:last-child { border-bottom: 0; }
+      .my-subs-row:hover .my-subs-name { color: var(--accent); }
+      .my-subs-name {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        font-weight: 500;
+      }
+      .my-subs-pill {
+        font: 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .08em; color: var(--muted-strong, var(--muted));
+        background: var(--bg); border: 1px solid var(--line);
+        padding: 3px 6px; border-radius: 999px;
+      }
+      .my-subs-when {
+        font-size: 11px; color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      #paste-back-toggle {
+        margin-top: 8px;
+        background: transparent; border: 0; cursor: pointer;
+        color: var(--muted); font: inherit; font-size: 12px;
+        padding: 6px 4px;
+      }
+      #paste-back-toggle:hover { color: var(--fg); }
+      #paste-back-form {
+        display: flex; gap: 6px; margin-top: 8px;
+      }
+      #paste-back-form[hidden] { display: none; }
+      #paste-back-form input {
+        flex: 1; padding: 7px 9px; font: inherit; font-size: 13px;
+        background: var(--bg); color: var(--fg);
+        border: 1px solid var(--line); border-radius: 6px;
+      }
+      #paste-back-form input:focus { outline: none; border-color: var(--accent); }
+      #paste-back-form button {
+        background: var(--accent); color: #fff; border: 0;
+        padding: 7px 14px; border-radius: 6px;
+        font: inherit; font-size: 13px; cursor: pointer;
+      }
+      .paste-back-status { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 16px; }
+      .paste-back-status.err { color: var(--err); }
+      @media (max-width: 720px) {
+        #my-subs { margin-left: 0; margin-right: 0; }
+      }
+
       .helper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--muted); line-height: 1.6; }
       .helper code { font: 11px ui-monospace, SFMono-Regular, monospace; background: var(--card-bg); padding: 1px 4px; border-radius: 3px; }
 
@@ -208,6 +271,17 @@
       <span class="hint">GeoJSON · KML · KMZ · GPX · TCX · Parquet · up to 500 MB</span>
       <input type="file" id="file" accept=".geojson,.json,.kml,.kmz,.gpx,.tcx,.parquet" />
     </label>
+
+    <aside id="my-subs" hidden aria-label="Your submissions">
+      <h2>Your submissions</h2>
+      <div id="my-subs-list"></div>
+      <button type="button" id="paste-back-toggle" aria-expanded="false" aria-controls="paste-back-form">+ Add an existing submission by admin URL</button>
+      <form id="paste-back-form" hidden>
+        <input type="text" id="paste-back-url" placeholder="https://bharatlas.com/c/Xa9Kp7n?key=adm_…" autocomplete="off" />
+        <button type="submit">Add</button>
+      </form>
+      <div id="paste-back-status" class="paste-back-status" role="status" aria-live="polite"></div>
+    </aside>
 
     <section id="workspace" aria-live="polite">
       <div id="map"></div>

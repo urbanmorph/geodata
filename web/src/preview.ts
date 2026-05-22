@@ -18,6 +18,14 @@ import { fileToFC, type Format } from './parse-geo';
 import { popHandoff, stashForSubmit } from './handoff';
 import { overlayLoader, VERBS_VERIFY_RENDER, VERBS_VERIFY_FETCH, VERBS_ENGINE, inlineLoader } from './loading';
 import { escapeHtml } from './util';
+import {
+  saveSubmission,
+  listSubmissions,
+  getSubmission,
+  hydrateLegacyTokens,
+  type StoredSubmission,
+} from './my-submissions';
+import { parseAdminUrl } from './paste-back';
 
 type SuccessPayload = {
   id: string;
@@ -538,11 +546,14 @@ function renderSuccess(payload: SuccessPayload): void {
   drop.style.display = 'none';
   statusEl.textContent = '';
 
-  try {
-    localStorage.setItem(`geodata:tokens:${payload.id}`, payload.admin_token);
-  } catch {
-    /* private mode / quota — non-fatal */
-  }
+  const submittedName = (form.elements.namedItem('name') as HTMLInputElement | null)?.value?.trim() || payload.id;
+  saveSubmission({
+    id: payload.id,
+    name: submittedName,
+    token: payload.admin_token,
+    created_at: Date.now(),
+    permission: 'admin',
+  });
 
   // Always navigate via the current origin — in dev the server returns an
   // 8788 (wrangler) URL, but the user is on 5173 (vite). location.origin
@@ -586,7 +597,122 @@ function renderSuccess(payload: SuccessPayload): void {
 
   successEl.classList.add('show');
   window.scrollTo({ top: 0, behavior: 'smooth' });
+  renderMySubmissions();
 }
+
+// ---------- Your submissions panel ---------------------------------------
+function relativeTime(then: number, now: number = Date.now()): string {
+  const d = Math.max(0, now - then);
+  const day = 86_400_000;
+  if (d < day) return 'today';
+  const days = Math.floor(d / day);
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) return `${Math.floor(days / 7)}w ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+
+function renderMySubmissions(): void {
+  const panel = document.getElementById('my-subs');
+  const listEl = document.getElementById('my-subs-list');
+  if (!panel || !listEl) return;
+  const rows = listSubmissions();
+  if (rows.length === 0) { panel.hidden = true; return; }
+  panel.hidden = false;
+  const now = Date.now();
+  listEl.innerHTML = rows
+    .map((r: StoredSubmission) =>
+      `<a class="my-subs-row" href="/c/${encodeURIComponent(r.id)}">` +
+        `<span class="my-subs-name">${escapeHtml(r.name)}</span>` +
+        `<span class="my-subs-pill">ADMIN</span>` +
+        `<span class="my-subs-when">${escapeHtml(relativeTime(r.created_at, now))}</span>` +
+      `</a>`,
+    )
+    .join('');
+}
+
+function wirePasteBack(): void {
+  const toggle = document.getElementById('paste-back-toggle');
+  const form = document.getElementById('paste-back-form') as HTMLFormElement | null;
+  const input = document.getElementById('paste-back-url') as HTMLInputElement | null;
+  const status = document.getElementById('paste-back-status');
+  if (!toggle || !form || !input || !status) return;
+
+  toggle.addEventListener('click', () => {
+    const open = form.hidden;
+    form.hidden = !open;
+    toggle.setAttribute('aria-expanded', String(open));
+    if (open) input.focus();
+  });
+
+  const fail = (msg: string) => {
+    status.textContent = msg;
+    status.classList.add('err');
+  };
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    status.textContent = '';
+    status.className = 'paste-back-status';
+    const parsed = parseAdminUrl(input.value);
+    if (!parsed.ok) return fail(parsed.reason);
+    if (getSubmission(parsed.id)) return fail('this device already has this submission');
+
+    status.textContent = 'verifying…';
+    let resp: Response;
+    try {
+      resp = await fetch(`/api/c/${encodeURIComponent(parsed.id)}/summary`);
+    } catch {
+      return fail('network error — try again');
+    }
+    if (resp.status === 404) return fail('submission not found');
+    if (!resp.ok) return fail(`server returned ${resp.status}`);
+
+    let body: { id: string; name: string; created_at: string };
+    try {
+      body = await resp.json();
+    } catch {
+      return fail('server returned non-JSON');
+    }
+    saveSubmission({
+      id: body.id,
+      name: body.name,
+      token: parsed.key,
+      created_at: Date.parse(body.created_at) || Date.now(),
+      permission: 'admin',
+    });
+    input.value = '';
+    form.hidden = true;
+    toggle.setAttribute('aria-expanded', 'false');
+    status.textContent = '';
+    renderMySubmissions();
+  });
+}
+
+// Best-effort: refresh stale names for the top few rows in the background.
+// 404s leave the local row untouched (handled separately at /c/<id> visit time).
+async function refreshSummaries(): Promise<void> {
+  const rows = listSubmissions().slice(0, 10);
+  if (rows.length === 0) return;
+  const results = await Promise.all(rows.map(async (r) => {
+    try {
+      const resp = await fetch(`/api/c/${encodeURIComponent(r.id)}/summary`);
+      if (!resp.ok) return false;
+      const body = await resp.json() as { name?: string };
+      if (body.name && body.name !== r.name) {
+        saveSubmission({ ...r, name: body.name });
+        return true;
+      }
+    } catch { /* swallow */ }
+    return false;
+  }));
+  if (results.some(Boolean)) renderMySubmissions();
+}
+
+hydrateLegacyTokens();
+renderMySubmissions();
+wirePasteBack();
+void refreshSummaries();
 
 // ---------- Utils --------------------------------------------------------
 function fmtBytes(n: number): string {
