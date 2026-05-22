@@ -140,13 +140,13 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta property="og:title" content="${esc(s.name)}" />
     <meta property="og:description" content="${esc(description)}" />
     <meta property="og:url" content="${esc(canonical)}" />
-    <meta property="og:image" content="${PUBLIC_ORIGIN}/og-default.png" />
+    <meta property="og:image" content="${PUBLIC_ORIGIN}/og/c/${esc(s.id)}.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${esc(s.name)}" />
     <meta name="twitter:description" content="${esc(description)}" />
-    <meta name="twitter:image" content="${PUBLIC_ORIGIN}/og-default.png" />
+    <meta name="twitter:image" content="${PUBLIC_ORIGIN}/og/c/${esc(s.id)}.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
     <style>

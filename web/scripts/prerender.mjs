@@ -286,8 +286,10 @@ function renderRow(level, layersForLevel, opts = {}) {
   const viewable = !!(primary.pmtiles?.url || primary.geojson?.url);
   // Only LGD layers carry the code chain that powers the in-viewer state filter.
   const filterable = viewable && primary.source === 'LGD';
+  // v4.7: link to the canonical /view/<id> path. Edge function serves the
+  // home HTML with layer-specific OG meta; main.ts opens the map on load.
   const viewBtn = viewable
-    ? `<a href="#view/${esc(primary.id)}" class="btn-primary">View map →</a>`
+    ? `<a href="/view/${esc(primary.id)}" class="btn-primary">View map →</a>`
     : `<span class="btn-primary disabled" title="No map for this layer">no map</span>`;
 
   const downloads = downloadLinks(primary);

@@ -141,14 +141,14 @@ describe('renderViewPage', () => {
   });
 });
 
-describe('renderViewPage — OG/Twitter image meta (v4.0.1 fix)', () => {
-  it('emits og:image pointing at the bharatlas social card', () => {
-    // Pre-fix the view page had og:title + og:description but NO og:image —
-    // so shared submission links rendered with no hero in Slack/Twitter/etc.
-    // Default to /og-default.png until per-submission rendering lands.
+describe('renderViewPage — OG/Twitter image meta (v4.7 per-submission)', () => {
+  it('emits og:image pointing at the per-submission OG endpoint', () => {
+    // v4.7: each /c/<id> share resolves to a layer-specific /og/c/<id>.png
+    // rendered by the edge worker (functions/og/c/[id].png.ts). The Pages
+    // cache holds the PNG for 30d; first share per region warms it.
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
-    expect(html).toMatch(/<meta property="og:image" content="https:\/\/bharatlas\.com\/og-default\.png"/);
-    expect(html).toMatch(/<meta name="twitter:image" content="https:\/\/bharatlas\.com\/og-default\.png"/);
+    expect(html).toMatch(/<meta property="og:image" content="https:\/\/bharatlas\.com\/og\/c\/[^"]+\.png"/);
+    expect(html).toMatch(/<meta name="twitter:image" content="https:\/\/bharatlas\.com\/og\/c\/[^"]+\.png"/);
   });
 
   it('uses twitter:card=summary_large_image (hero card, not thumbnail)', () => {

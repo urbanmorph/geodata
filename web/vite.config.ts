@@ -49,6 +49,7 @@ export default defineConfig({
       '/api': 'http://localhost:8788',
       '^/c/.+': 'http://localhost:8788',
       '^/og/.+': 'http://localhost:8788',
+      '^/view/.+': 'http://localhost:8788',
     },
   },
   build: {
