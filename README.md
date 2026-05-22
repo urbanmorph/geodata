@@ -76,12 +76,11 @@ Commit messages: short subject, body explains *why* not *what*. Examples in `git
 
 ## Roadmap
 
-- [x] v1 — pan-India admin layers, Parquet + PMTiles downloads
-- [x] v2 — DuckDB-WASM filter & export per state
-- [x] v3 — submission flow: drag-drop verify, anonymous token, auto-moderation, /c/[id] view page, mixed catalog, votes
-- [x] v4 — SEO/AEO pass, opencity ingest (city wards), dynamic filters from schema, basemap toggle, format-hinted downloads, embed iframe + PNG export, unified edge OG renderer (per-layer + per-submission cards)
-- [ ] **next**: "Your submissions" panel · CSP re-enable · a11y to 95+ · privacy + ToS
-- [ ] v5 — public REST API + MCP server + Claude Code plugin
+- **Now**: "Your submissions" panel · CSP re-enable · a11y to 95+ · privacy + ToS
+- **Next**: REST API + MCP server + Claude Code plugin (v5)
+- **Done**: catalog, in-browser filter & export, anonymous contribution, mixed catalog, votes, embed + PNG, per-layer OG, schema-driven filters, city ward ingest
+
+Track active work in [Issues](https://github.com/urbanmorph/geodata/issues) and [Milestones](https://github.com/urbanmorph/geodata/milestones).
 
 ## Security
 
