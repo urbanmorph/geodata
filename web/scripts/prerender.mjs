@@ -780,11 +780,29 @@ await renderPage(
   { TURNSTILE_SITEKEY },
 );
 
+await renderPage('privacy', {
+  title: 'Privacy',
+  description:
+    "Bharatlas runs without accounts, third-party analytics or tracking cookies. This page explains what we store (very little) and what we don't.",
+  url: ORIGIN + '/privacy',
+  image: ORIGIN + '/og-default.png',
+});
+
+await renderPage('terms', {
+  title: 'Terms',
+  description:
+    "Terms for using bharatlas: open-licence content only, no warranty of accuracy, contributor attests right to share. Short and plain-English.",
+  url: ORIGIN + '/terms',
+  image: ORIGIN + '/og-default.png',
+});
+
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
+  { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
+  { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

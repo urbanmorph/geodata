@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      <!-- TOKENS -->
+      body { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.6; }
+      .hero { font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -.02em; margin: var(--sp-4) 0 var(--sp-3); }
+      .lede { color: var(--muted); font-size: var(--fs-lg); margin: 0 0 var(--sp-7); max-width: 600px; }
+      h2 { font-size: var(--fs-base); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: var(--sp-7) 0 var(--sp-3); }
+      ul { margin: 0; padding-left: 0; list-style: none; }
+      li { padding: var(--sp-1) 0 var(--sp-1) 18px; position: relative; }
+      li::before { content: "›"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+      li strong { font-weight: 600; color: var(--fg); }
+      a { text-decoration: underline; text-underline-offset: 2px; }
+      .footnote { color: var(--muted); font-size: var(--fs-sm); margin-top: var(--sp-7); }
+      @media (max-width: 640px) { body { padding: 32px 16px 60px; } .hero { font-size: var(--fs-xl); } }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+    <main>
+    <h1 class="hero">Privacy</h1>
+    <p class="lede">
+      bharatlas runs without accounts, without third-party analytics, and without tracking
+      cookies. This page is short because we collect little.
+    </p>
+
+    <h2>What we store</h2>
+    <ul>
+      <li><strong>Community submissions</strong> you publish — the file, the metadata you typed, and the time. On Cloudflare R2 (file) and D1 (metadata). Linked to a one-way SHA-256 hash of your IP for rate-limit purposes only.</li>
+      <li><strong>In your browser</strong> — localStorage holds the admin tokens for any submissions you made from this device, plus your basemap preference. No cookies, no fingerprinting. Nothing leaves your browser until you click <strong>Publish</strong>.</li>
+      <li><strong>Server logs</strong> — Cloudflare's edge logs HTTP requests for around 24 hours. We don't aggregate them, sell them, or look at them unless investigating abuse.</li>
+    </ul>
+
+    <h2>What we don't do</h2>
+    <ul>
+      <li>No accounts. No email collection. No name collection.</li>
+      <li>No third-party analytics (no Google Analytics, no Hotjar, no Mixpanel, no fingerprinting libraries).</li>
+      <li>No advertising. No data sharing. No data sale.</li>
+      <li>No social-network embed pixels.</li>
+    </ul>
+
+    <h2>Third parties involved</h2>
+    <ul>
+      <li><strong>Cloudflare</strong> (Pages, R2, D1, Turnstile) hosts everything. Their <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">privacy policy</a> covers their edge logs.</li>
+      <li><strong>Turnstile</strong> (a CAPTCHA replacement, also Cloudflare) runs on the publish form to deter automated abuse. No personal data is sent to it.</li>
+      <li>The maps you browse stream from R2 with no usage tracking by us.</li>
+    </ul>
+
+    <h2>AI / LLM crawlers</h2>
+    <p>
+      We explicitly allow GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major
+      LLM crawlers via <code>robots.txt</code>. The content is open under the licences
+      shown on each card; we want it to be discoverable to anyone — human or model — who
+      can use it.
+    </p>
+
+    <h2>Removal</h2>
+    <ul>
+      <li>To remove a community submission you uploaded, use the <strong>Delete</strong> action on the <code>/c/&lt;id&gt;</code> page via the admin token you received at submit.</li>
+      <li>If you've lost the token, email <a href="mailto:sathya@urbanmorph.com">sathya@urbanmorph.com</a> from an address that proves ownership of the submission.</li>
+      <li>For other privacy concerns, same address.</li>
+    </ul>
+
+    <h2>Changes</h2>
+    <p>
+      We'll keep this page short. Substantive changes get a note + date here.
+    </p>
+
+    <p class="footnote">Last updated: 2026-05-22.</p>
+    </main>
+
+    <!-- FOOTER -->
+  </body>
+</html>
