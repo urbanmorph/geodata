@@ -402,25 +402,32 @@ function renderRow(level, layersForLevel, opts = {}) {
   const countDisplay = primary.rows != null
     ? `<span class="row__num">${fmtRows(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
     : '<span class="row__num">—</span>';
+  // row__actions lives OUTSIDE <summary> so the interactive <a> links inside
+  // don't violate HTML semantics (interactive descendants of an interactive
+  // element). row__head is the visible grid: details on the left, actions on
+  // the right. Click on title → toggles details. Click on actions → navigates
+  // / downloads without toggling. See task #65 background for full rationale.
   return `<section class="row row--curated row--compact${collapsed}" id="${esc(level)}" ${dataAttrs}>
-      <details class="row__details">
-        <summary class="row__summary">
-          <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}</span>
-          <span class="row__source" title="${esc(primary.source)}">${esc(primary.source)}</span>
-          <span class="row__count">${countDisplay}</span>
-          <span class="row__actions">
-            ${viewBtn}
-            ${dlInline}
-          </span>
-        </summary>
-        <div class="row__expand">
-          <p class="row__desc">${esc(meta.description)}</p>
-          ${sourceLine}
-          ${primary.licence ? `<p class="row__lic-line">Licence: <code>${esc(primary.licence)}</code></p>` : ''}
-          ${viewerHint}
-          ${altSection}
+      <div class="row__head">
+        <details class="row__details">
+          <summary class="row__summary">
+            <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}</span>
+            <span class="row__source" title="${esc(primary.source)}">${esc(primary.source)}</span>
+            <span class="row__count">${countDisplay}</span>
+          </summary>
+          <div class="row__expand">
+            <p class="row__desc">${esc(meta.description)}</p>
+            ${sourceLine}
+            ${primary.licence ? `<p class="row__lic-line">Licence: <code>${esc(primary.licence)}</code></p>` : ''}
+            ${viewerHint}
+            ${altSection}
+          </div>
+        </details>
+        <div class="row__actions">
+          ${viewBtn}
+          ${dlInline}
         </div>
-      </details>
+      </div>
     </section>`;
 }
 

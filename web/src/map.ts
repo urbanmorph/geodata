@@ -111,15 +111,68 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
   map.once('idle', () => loader.dismiss());
 
-  map.on('load', () => {
-    attachData(layer).catch((e) => {
+  map.on('load', async () => {
+    try {
+      await attachData(layer);
+      // Always-on India-correct state boundary overlay. Renders LGD state
+      // lines on top of whichever basemap + data layer is active so the
+      // canonical boundary is visible regardless of what the basemap shows.
+      // Skip when the user is already viewing lgd_states (would double-draw).
+      await addLgdOverlay(cat.layers ?? [], layer.id);
+    } catch (e) {
       console.error('attachData failed', e);
       const c = document.getElementById('map')!;
       const err = document.createElement('div');
       err.id = 'map-loading';
       err.textContent = `failed to load layer: ${(e as Error).message}`;
       c.appendChild(err);
-    });
+    }
+  });
+}
+
+// LGD state boundaries layered on top of any non-LGD layer. Useful for
+// cross-source comparison — when viewing soi_states / bhuvan_states /
+// gb_adm1 etc., the LGD lines on top show where the upstream and LGD
+// disagree at-a-glance. Drawn in a basemap-style warm taupe so it reads
+// as a boundary line, not a brand annotation.
+//
+// NOT a fix for basemap label problems. Underlying basemap tiles
+// (Carto / OSM) still label disputed regions per international conventions
+// (e.g. "AZAD KASHMIR", "GILGIT-BALTISTAN" inside Indian-claimed territory).
+// A real India-correct basemap (Bhuvan WMS, Mappls, or a forked Mapbox
+// style) is tracked in task #64.
+async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Promise<void> {
+  if (!map) return;
+  if (activeLayerId === 'lgd_states') return; // already the primary; don't double-draw
+  const lgd = catalogLayers.find((l) => l.id === 'lgd_states');
+  if (!lgd?.pmtiles?.url) return;
+
+  const archive = getArchive(lgd.pmtiles.url);
+  const metadata = await archive.getMetadata();
+  const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
+  if (!vlayers.length) return;
+  const sourceLayer = vlayers[0].id;
+
+  if (map.getSource('lgd-overlay')) return; // idempotent
+  map.addSource('lgd-overlay', {
+    type: 'vector',
+    url: `pmtiles://${lgd.pmtiles.url}`,
+    attribution: 'India boundaries · LGD',
+  });
+  map.addLayer({
+    id: 'lgd-overlay-line',
+    type: 'line',
+    source: 'lgd-overlay',
+    'source-layer': sourceLayer,
+    paint: {
+      // Warm taupe-grey at low opacity — reads as a basemap admin boundary
+      // (printed-atlas convention), not a brand-coloured annotation. Sits
+      // visually next to the basemap's own state lines rather than competing
+      // with them or the active layer's polygons.
+      'line-color': '#8b7e6f',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 10, 1.1],
+      'line-opacity': 0.55,
+    },
   });
 }
 

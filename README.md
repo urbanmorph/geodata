@@ -10,16 +10,19 @@ A visual catalog, drag-drop verifier, and anonymous contribution flow for India'
 
 ```
 catalog               → state · district · subdistrict · block · village (LGD)
+                        + cross-source alternates (SOI · Bhuvan · geoBoundaries
+                        · PMGSY per level — click "also: ..." on any card)
                         + city wards (Bengaluru, Chennai, Hyderabad, Mumbai, …)
                         + electoral constituencies, wildlife, eco-zones
+                        + 63k pincode polygons (bharatviz)
 preview               → drop GeoJSON · KML · KMZ · GPX · TCX · Parquet →
                         render + validate → optional Publish
 filter & export       → dynamic facets / range / search per layer schema,
                         slice by what the data actually contains, export
                         as Parquet · GeoJSON · KML
 view (/view/<id>)     → curated layer with per-layer OG card
-view (/c/<id>)        → community submission, edge-rendered HTML, ▲/▼ vote,
-                        per-submission OG card
+view (/c/<id>)        → community submission, edge-rendered HTML, 👍 useful
+                        vote, per-submission OG card
 embed                 → /embed/<id> iframe + PNG export from any map
 ```
 
@@ -76,9 +79,9 @@ Commit messages: short subject, body explains *why* not *what*. Examples in `git
 
 ## Roadmap
 
-- **Now**: "Your submissions" panel · CSP re-enable · a11y to 95+ · privacy + ToS
+- **Now**: India-correct basemap (Bhuvan WMS / Mappls / forked Mapbox style) · CSP re-enable
 - **Next**: REST API + MCP server + Claude Code plugin (v5)
-- **Done**: catalog, in-browser filter & export, anonymous contribution, mixed catalog, votes, embed + PNG, per-layer OG, schema-driven filters, city ward ingest
+- **Done**: catalog, in-browser filter & export, anonymous contribution, mixed catalog, single-direction "useful" vote, embed + PNG, per-layer OG, schema-driven filters, city ward ingest, "Your submissions" panel, hourly auto-rebuild for community submissions, liability disclaimer + disputed-borders policy, cross-source viewing (SOI/Bhuvan/PMGSY PMTiles + bharatviz pincodes + LGD overlay), privacy + ToS, a11y refactor
 
 Track active work in [Issues](https://github.com/urbanmorph/geodata/issues) and [Milestones](https://github.com/urbanmorph/geodata/milestones).
 
@@ -105,6 +108,7 @@ Data sources, in approximate order of catalog footprint:
 - [PMGSY](https://omms.nic.in/) — Pradhan Mantri Gram Sadak Yojana; rural blocks + roads.
 - [PM GatiShakti](https://gis.pmgatishakti.gov.in/) — wildlife sanctuaries + national parks.
 - [Bharatmaps](https://bharatmaps.gov.in/) (NIC) — eco-sensitive zones.
+- [bharatviz](https://bharatviz.org/) (Saket Choudhary, MIT) — India Post pincode boundary polygons (simplified).
 - [geoBoundaries](https://www.geoboundaries.org/) — independent cross-check.
 - [data.gov.in](https://data.gov.in/) — additional government open data.
 
