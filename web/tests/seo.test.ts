@@ -96,6 +96,21 @@ describe('SEO — home JSON-LD enrichments', () => {
       expect(d.distribution?.length, `${d.name} no distribution`).toBeGreaterThan(0);
     }
   });
+
+  it('every Dataset description is ≥50 chars (Google Dataset Search rule)', () => {
+    // Google Search Console rejects Dataset entries with shorter descriptions
+    // ("Invalid string length in field 'description'"). The prerender pads
+    // short notes via padDatasetDescription(); this test ensures the pad
+    // actually fired on every emitted row, including future additions where
+    // someone forgets to write a long description.
+    const datasets = loadGraph().filter((n) => n['@type'] === 'Dataset');
+    for (const d of datasets) {
+      expect(
+        d.description?.length ?? 0,
+        `${d.name}: description too short (${d.description?.length} chars): "${d.description}"`,
+      ).toBeGreaterThanOrEqual(50);
+    }
+  });
 });
 
 describe('SEO — /about FAQPage', () => {

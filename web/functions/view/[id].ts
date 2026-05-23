@@ -5,17 +5,13 @@
 // index.html and rewrite its meta tags via HTMLRewriter. The browser-side
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
 
+import { buildViewDataset, type CatalogLayer, type LevelMeta } from '../lib/view-dataset';
+
 type Params = { id: string };
 
 type Catalog = {
-  layers?: Array<{
-    id: string;
-    level: string;
-    source: string;
-    rows: number | null;
-    licence?: string;
-  }>;
-  level_meta?: Record<string, { label: string; unit?: string; description?: string }>;
+  layers?: CatalogLayer[];
+  level_meta?: Record<string, LevelMeta>;
 };
 
 const NOT_FOUND_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>Not found · geodata</title><meta name="robots" content="noindex"></head><body style="font:15px/1.5 ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:80px auto;padding:0 24px;color:#444"><h1 style="font-size:22px">404 — layer not found</h1><p>This layer id doesn't exist in the catalog.</p><p><a href="/" style="color:#0a58ca">← back to the catalog</a></p></body></html>`;
@@ -39,31 +35,12 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   if (!layer) {
     return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
-  const levelMeta = catalog.level_meta?.[layer.level];
-  const title = levelMeta?.label || layer.id.replace(/_/g, ' ');
-  const unit = levelMeta?.unit || 'features';
-  const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
-  const baseDescription = levelMeta?.description ?? `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`;
-  // Meta tag uses Google's snippet ceiling (158); JSON-LD Dataset needs ≥50
-  // chars (Google Dataset Search rejects shorter). Pad with a stable suffix
-  // when the source string falls under the JSON-LD minimum.
-  const description = baseDescription.slice(0, 158);
-  const ldDescription = baseDescription.length >= 80
-    ? baseDescription
-    : `${baseDescription} Part of the bharatlas open atlas of India's geospatial data, sourced from ${layer.source}.`;
-  const canonical = `${origin}/view/${id}`;
-  const ogImage = `${origin}/og/view/${id}.png`;
 
-  const jsonLd = {
-    '@context': 'https://schema.org',
-    '@type': 'Dataset',
-    name: title,
-    description: ldDescription,
-    url: canonical,
-    license: layer.licence ? mapLicenceUrl(layer.licence) : undefined,
-    creator: { '@type': 'Organization', name: layer.source },
-    spatialCoverage: { '@type': 'Place', name: 'India' },
-  };
+  const { title, description, canonical, ogImage, jsonLd } = buildViewDataset(
+    layer,
+    catalog.level_meta?.[layer.level],
+    origin,
+  );
 
   // HTMLRewriter.setAttribute HTML-escapes the value itself — passing pre-escaped
   // strings produces &amp;quot; etc.
@@ -93,11 +70,3 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
       },
     }));
 };
-
-function mapLicenceUrl(licence: string): string {
-  if (licence.includes('CC0')) return 'https://creativecommons.org/publicdomain/zero/1.0/';
-  if (licence.includes('CC-BY-SA')) return 'https://creativecommons.org/licenses/by-sa/4.0/';
-  if (licence.includes('CC-BY')) return 'https://creativecommons.org/licenses/by/4.0/';
-  if (licence.includes('ODbL')) return 'https://opendatacommons.org/licenses/odbl/1-0/';
-  return licence;
-}
