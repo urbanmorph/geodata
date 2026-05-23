@@ -94,12 +94,17 @@ export function renderViewPage(opts: RenderOpts): string {
   const description =
     s.description ||
     `Community-submitted geo layer on geodata: ${s.name}. ${s.feature_count ?? '—'} features, ${fmtBytes(s.bytes)}.`;
+  // Google Dataset Search rejects descriptions under ~50 chars. Pad with a
+  // contextual suffix so terse contributor-supplied descriptions still pass.
+  const ldDescription = description.length >= 80
+    ? description
+    : `${description} Community-contributed map on bharatlas, India's open atlas. Licence: ${s.license}.`;
 
   const ld = {
     '@context': 'https://schema.org',
     '@type': 'Dataset',
     name: s.name,
-    description,
+    description: ldDescription,
     url: canonical,
     license: licenseUrl,
     dateCreated: s.created_at,

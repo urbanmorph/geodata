@@ -84,18 +84,18 @@ CATEGORIES = {
 
 # (id, level, source, parquet, pmtiles, rows, licence, notes)
 LAYERS = [
-    ('lgd_states',         'state',       'LGD',    'LGD_States.parquet',         'LGD_States.pmtiles',         36,      LIC_STATE_DIST, 'Authoritative LGD source. Full code chain.'),
+    ('lgd_states',         'state',       'LGD',    'LGD_States.parquet',         'LGD_States.pmtiles',         36,      LIC_STATE_DIST, 'Authoritative state and Union Territory boundaries from India\'s Local Government Directory (LGD). 36 polygons with the full LGD code chain, enabling joins with district, subdistrict, block and village layers.'),
     ('soi_states',         'state',       'SOI',    'SOI_States.parquet',         None,                          40,      LIC_STATE_DIST, 'Survey of India derivative.'),
     ('bhuvan_states',      'state',       'Bhuvan', 'bhuvan_states.parquet',      None,                          37,      LIC_STATE_DIST, 'NRSC/ISRO Bhuvan. Own codes, not LGD.'),
 
-    ('lgd_districts',      'district',    'LGD',    'LGD_Districts.parquet',      'LGD_Districts.pmtiles',      785,     LIC_STATE_DIST, 'Authoritative. Joins to states via state_lgd.'),
+    ('lgd_districts',      'district',    'LGD',    'LGD_Districts.parquet',      'LGD_Districts.pmtiles',      785,     LIC_STATE_DIST, 'Every district in India from the Local Government Directory (LGD). 785 polygons; joins to state boundaries via the state_lgd code, with the full LGD chain for joining to subdistricts, blocks and villages.'),
     ('soi_districts',      'district',    'SOI',    'SOI_Districts.parquet',      None,                          742,     LIC_STATE_DIST, 'SoI derivative. Partial LGD codes.'),
     ('bhuvan_districts',   'district',    'Bhuvan', 'bhuvan_districts.parquet',   None,                          663,     LIC_STATE_DIST, 'Bhuvan. Under-counts vs LGD in some states.'),
 
-    ('lgd_subdistricts',   'subdistrict', 'LGD',    'LGD_Subdistricts.parquet',   'LGD_Subdistricts.pmtiles',   6471,    LIC_BELOW,      'Authoritative.'),
+    ('lgd_subdistricts',   'subdistrict', 'LGD',    'LGD_Subdistricts.parquet',   'LGD_Subdistricts.pmtiles',   6471,    LIC_BELOW,      'All subdistricts (tehsil / taluk / mandal) in India from the Local Government Directory (LGD). 6,471 polygons with the full LGD code chain for joining to districts, states, and finer admin levels (blocks, villages).'),
     ('soi_subdistricts',   'subdistrict', 'SOI',    'SOI_Subdistricts.parquet',   None,                          4723,    LIC_BELOW,      'SoI tehsils. Partial codes.'),
 
-    ('lgd_blocks',         'block',       'LGD',    'LGD_Blocks.parquet',         'LGD_Blocks.pmtiles',         7146,    LIC_BELOW,      'Authoritative. Full code chain.'),
+    ('lgd_blocks',         'block',       'LGD',    'LGD_Blocks.parquet',         'LGD_Blocks.pmtiles',         7146,    LIC_BELOW,      'Community-development blocks across India from the Local Government Directory (LGD). 7,146 polygons with the full LGD code chain joining to subdistricts, districts and states.'),
     ('bhuvan_blocks',      'block',       'Bhuvan', 'bhuvan_blocks.parquet',      None,                          6393,    LIC_BELOW,      'Bhuvan. Predates recent re-divisions in several states.'),
     ('pmgsy_blocks',       'block',       'PMGSY',  'PMGSY_Blocks.parquet',       None,                          6637,    LIC_BELOW,      'PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage).'),
 
