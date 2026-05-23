@@ -72,6 +72,7 @@ function licenseUrl(id) {
     'ODbL-1.0':      'https://opendatacommons.org/licenses/odbl/1-0/',
     'ODC-PDDL-1.0':  'https://opendatacommons.org/licenses/pddl/1-0/',
     'GODL-India':    'https://data.gov.in/government-open-data-license-india',
+    'MIT':           'https://opensource.org/licenses/MIT',
   };
   if (!id) return undefined;
   // dual e.g. "CC0-1.0 / CC-BY-4.0" — pick the most permissive.

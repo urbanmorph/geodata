@@ -177,6 +177,25 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
       'line-opacity': 0.85,
     },
   });
+  // Point geometries (e.g. soi_village_points 5.76 lakh points). Fill / line
+  // layers naturally ignore non-polygon features, so this circle layer adds
+  // point rendering without changing how polygon layers display. Radius
+  // grows with zoom so country-view shows sparse dots and city-view shows
+  // clearly readable markers.
+  map.addLayer({
+    id: 'point',
+    type: 'circle',
+    source: sourceId,
+    ...common,
+    filter: ['==', ['geometry-type'], 'Point'],
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 1, 10, 3, 14, 5],
+      'circle-color': '#0a58ca',
+      'circle-opacity': 0.7,
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 8, 0, 12, 0.5],
+      'circle-stroke-color': '#fff',
+    },
+  });
 
   // One popup with one look — fed by hover on pointer devices and by tap on
   // touch devices. Tap-on-feature shows it, tap-elsewhere (or tap a different
@@ -202,28 +221,42 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
   const showPopup = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
     const f = e.features?.[0];
     if (!f) return;
-    const fid = (f.id as string | number | undefined) ?? f.properties?.OBJECTID ?? f.properties?.vil_lgd;
+    // Fid is used to dedup setHTML across the many mousemove events that fire
+    // while hovering one feature. Widened to cover SOI points (lowercase
+    // objectid, soi_code) and arbitrary contributed shapes that may carry
+    // none of the above — falls back to lngLat-as-fingerprint at ~1m precision.
+    const fid = (f.id as string | number | undefined)
+      ?? f.properties?.OBJECTID
+      ?? f.properties?.objectid
+      ?? f.properties?.vil_lgd
+      ?? f.properties?.soi_code
+      ?? `${e.lngLat.lng.toFixed(5)},${e.lngLat.lat.toFixed(5)}`;
     if (fid !== popupId) {
       popup.setHTML(buildRows(f.properties));
       popupId = fid;
     }
     popup.setLngLat(e.lngLat).addTo(map!);
   };
-  map.on('mousemove', 'fill', (e) => {
-    map!.getCanvas().style.cursor = 'pointer';
-    showPopup(e);
-  });
-  map.on('mouseleave', 'fill', () => {
-    map!.getCanvas().style.cursor = '';
-    popup.remove();
-    popupId = undefined;
-  });
-  // Touch / no-hover devices: tap a feature to show its details. Tapping
-  // empty map or a different feature swaps/clears it.
-  map.on('click', 'fill', showPopup);
+  // Bind hover / click on both polygon-fill and point layers so point-only
+  // layers (soi_village_points) get the same popup behavior as polygon ones.
+  const interactiveLayers = ['fill', 'point'];
+  for (const id of interactiveLayers) {
+    map.on('mousemove', id, (e) => {
+      map!.getCanvas().style.cursor = 'pointer';
+      showPopup(e);
+    });
+    map.on('mouseleave', id, () => {
+      map!.getCanvas().style.cursor = '';
+      popup.remove();
+      popupId = undefined;
+    });
+    // Touch / no-hover devices: tap a feature to show its details. Tapping
+    // empty map or a different feature swaps/clears it.
+    map.on('click', id, showPopup);
+  }
   map.on('click', (e) => {
     // Empty-map tap (no features at click point) dismisses the popup.
-    const hit = map!.queryRenderedFeatures(e.point, { layers: ['fill'] });
+    const hit = map!.queryRenderedFeatures(e.point, { layers: interactiveLayers });
     if (!hit.length) {
       popup.remove();
       popupId = undefined;

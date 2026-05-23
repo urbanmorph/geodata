@@ -55,11 +55,18 @@ ATTR = {
     'GatiShakti':    {'name': 'PM GatiShakti',               'url': 'https://gis.pmgatishakti.gov.in/'},
     'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
+    'bharatviz':     {'name': 'bharatviz (Saket Choudhary)',  'url': 'https://bharatviz.org/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
     'url': 'https://github.com/yashveeeeeeer/india-geodata',
 }
+
+# Sources whose files are republished via the yashveeeeeeer/india-geodata
+# release archive (so PUBLISHER + UPSTREAM_BASE apply). Other curated sources
+# (bharatviz, etc.) are pulled direct from origin — their entries should not
+# carry the yashveer attribution or upstream_url.
+YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps'}
 
 # Where to re-fetch each upstream file from. Path under the release base URL.
 # Kept here so the source registry travels with the catalog and a single
@@ -102,15 +109,14 @@ LAYERS = [
     ('lgd_panchayats',     'panchayat',   'LGD',    'LGD_panchayats.parquet',     'LGD_Panchayats.pmtiles',     319287,  LIC_BELOW,      'Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom.'),
 
     ('lgd_villages',       'village',     'LGD',    'LGD_Villages.parquet',       'LGD_Villages.pmtiles',       584615,  LIC_BELOW,      'Authoritative. 584k polygons. Use vector tiles to render.'),
-    ('soi_village_points', 'village',     'SOI',    'SOI_VILLAGE_POINT.parquet',  'SOI_VILLAGE_POINT.pmtiles',   576430,  LIC_BELOW,      'SoI village centroids (point geometry). 5.76 lakh point features — every revenue village named by SoI.'),
+    ('soi_village_points', 'village',     'SOI',    'SOI_VILLAGE_POINT.parquet',  'SOI_VILLAGE_POINT.pmtiles',   576430,  LIC_BELOW,      'SoI village centroids (point geometry). 5.76 lakh point features. Coverage is dense in southern + western states and sparse in UP, Bihar, Jharkhand and several NE states (SoI source limitation, not a rendering issue).'),
 
     # Electoral
     ('lgd_parliament',     'parliament_constituency', 'LGD', 'LGD_Parliament_Constituencies.parquet', 'LGD_Parliament_Constituencies.pmtiles', 543,  LIC_BELOW, 'Lok Sabha constituencies — 543 polygons covering the entire country. Latest delimitation.'),
     ('lgd_assembly',       'assembly_constituency',   'LGD', 'LGD_Assembly_Constituencies.parquet',   'LGD_Assembly_Constituencies.pmtiles',   None, LIC_BELOW, 'State legislative assembly constituencies. Polygons keyed by ST_CODE.'),
 
-    # Postal — pincodes deferred: data.gov.in ships only parquet, no PMTiles,
-    # so the "View map" button reads "no map" and the row looks broken on the
-    # home page. Re-add once we generate vector tiles for the 19k polygons.
+    # Postal
+    ('bharatviz_pincodes', 'pincode',     'bharatviz', 'bharatviz_pincodes.parquet', 'bharatviz_pincodes.pmtiles',  63864,   'MIT',          'India Post pincode boundary polygons (simplified). 63,864 polygons. © 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.'),
 
     # Environment
     ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', None, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
@@ -388,7 +394,7 @@ def build():
             'licence': licence,
             'attribution': {
                 'primary': ATTR[source],
-                'publisher': PUBLISHER,
+                'publisher': PUBLISHER if source in YASHVEER_HOSTED else None,
             },
             'category': level_meta.get('category', 'administrative'),
             'provenance': 'curated',
