@@ -112,8 +112,7 @@
       .comm-card__title a { color: inherit; text-decoration: none; }
       .comm-card__title a:hover { color: var(--accent); }
       .comm-card__score { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: 13px; }
-      .comm-card__score .up { color: var(--accent-strong); }
-      .comm-card__score .down { color: #b91c1c; }
+      .comm-card__score .useful { color: var(--accent-strong); }
       .comm-card__desc { color: var(--muted); font-size: 13px; margin: 6px 0 8px; }
       .comm-card__meta { color: var(--muted); font-size: 12px; }
 
@@ -688,8 +687,8 @@
           <button class="filter-toggle" id="map-download" aria-label="Download this layer" aria-expanded="false" aria-haspopup="menu">Download</button>
           <div class="map-popover" id="map-download-popover" role="menu"></div>
         </div>
-        <button class="filter-toggle" id="map-filter" aria-label="Open filter and export">Filter &amp; export</button>
-        <button class="close" id="map-close" aria-label="Close map">← back</button>
+        <button class="filter-toggle" id="map-filter">Filter &amp; export</button>
+        <button class="close" id="map-close">← back</button>
       </header>
       <div id="map"><div id="map-loading">loading map…</div></div>
     </div>

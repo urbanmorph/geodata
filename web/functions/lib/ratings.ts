@@ -1,10 +1,13 @@
-// Reddit-style up/down voting on community submissions.
+// Single-direction "Useful" voting on community submissions.
 // (submission_id, ip_hash) is the primary key — one vote per IP per
-// submission, mutable: vote=1 (up), -1 (down), or 0 (clear → delete row).
+// submission, mutable: vote=1 (useful) or 0 (clear → delete row).
+// The Tally type retains `down` + `score` for back-compat reads of
+// pre-existing rows; new writes cannot add downvotes (api/rate.ts
+// rejects vote=-1).
 
 type RunnableD1 = Pick<D1Database, 'prepare'>;
 
-export type Vote = 1 | -1 | 0;
+export type Vote = 1 | 0;
 export type Tally = { up: number; down: number; score: number };
 
 export async function recordVote(

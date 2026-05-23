@@ -26,7 +26,9 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
     getSubmissionForView(ctx.env.DB, id),
     countVotes(ctx.env.DB, id),
   ]);
-  const ratingsCount = tally.score;
+  // Display count = upvotes only ("N useful"). Legacy downvote totals in
+  // pre-existing rows are intentionally ignored — see task #61.
+  const ratingsCount = tally.up;
 
   if (!submission) {
     return new Response(NOT_FOUND_HTML, {

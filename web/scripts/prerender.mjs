@@ -560,7 +560,9 @@ function fetchCommunitySubmissions() {
 const community = fetchCommunitySubmissions();
 
 function renderCommunityCard(s, opts = {}) {
-  const score = s.score;
+  // Single-direction "Useful" voting (task #61). Display + sort key both
+  // use up_count only; existing down_count rows in D1 are ignored here.
+  const useful = s.up_count;
   const cat = s.category || 'other';
   const collapsed = opts.collapsed ? ' row--collapsed' : '';
   // Build searchable haystack the same way curated cards do, so search
@@ -575,7 +577,7 @@ function renderCommunityCard(s, opts = {}) {
   ].join(' ')).toLowerCase();
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
-    `data-score="${score}"`,
+    `data-useful="${useful}"`,
     `data-created="${esc(s.created_at)}"`,
     `data-category="${esc(cat)}"`,
     `data-provenance="community"`,
@@ -585,8 +587,8 @@ function renderCommunityCard(s, opts = {}) {
   return `<article class="comm-card${collapsed}" ${dataAttrs}>
     <div class="comm-card__head">
       <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge badge--community">community</span></div>
-      <div class="comm-card__score" title="up ${s.up_count} · down ${s.down_count}">
-        <span class="up">▲ ${s.up_count}</span> · <span class="down">▼ ${s.down_count}</span>
+      <div class="comm-card__score" title="${useful} found this useful">
+        <span class="useful">👍 ${useful}</span>
       </div>
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
