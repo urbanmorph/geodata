@@ -13,6 +13,8 @@ const STATIC: Array<{ loc: string; changefreq: string; priority: string }> = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
+  { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
+  { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
 ];
 
 const escXml = (s: string) =>
