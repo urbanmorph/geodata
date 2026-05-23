@@ -2,7 +2,7 @@
 
 Coverage report for bharatlas's curated admin layers. For implementation details (directory layout, refresh commands) see the [README](./README.md). For per-card licence + attribution see the [catalog](https://bharatlas.com/).
 
-Last verified: 2026-05-19.
+Last verified: 2026-05-23.
 
 ## TL;DR
 
@@ -30,9 +30,10 @@ A curated republication of openly-licensed Indian geospatial data. Each admin le
 | Block (CD) | Bhuvan | 6,393 | yes | own codes | ↑ state+dist |
 | Block (CD) | PMGSY | 6,637 | **no — IDs only** | yes | ↑ state+dist |
 | Village | LGD | **584,615** | yes | yes (full) | ↑ state+dist+subdt+block+GP |
-| Village (point) | SOI | ~600k | yes | partial | ↑ state+dist+subdt |
+| Village (point) | SOI | 576,430 | yes | partial | ↑ state+dist+subdt |
+| Pincode | bharatviz | 63,864 | yes (office name + pincode) | no | none — flat |
 
-LGD layers carry: `state_lgd`, `dist_lgd`, `subdt_lgd`, `block_lgd`, `vil_lgd`, plus 2011 Census codes (`stcode11`, `dtcode11`, …). Bhuvan uses its own codes only.
+LGD layers carry: `state_lgd`, `dist_lgd`, `subdt_lgd`, `block_lgd`, `vil_lgd`, plus 2011 Census codes (`stcode11`, `dtcode11`, …). Bhuvan uses its own codes only. As of 2026-05-23 every layer above has both `.parquet` (download) and `.pmtiles` (map view) on R2 — the SOI/Bhuvan/PMGSY pmtiles were baked in catch-up (PR #25).
 
 ### Secondary — geoBoundaries (CC-BY-4.0)
 
@@ -64,7 +65,9 @@ The 32-block-records-for-30-blocks reflects three different `block_lgd` codes re
 
 2. **Habitations / settlements not pulled.** Multi-GB files (Karma Shapes 900 MB, GatiShakti 2.5 GB, ESRI Sentinel-2 built-up 545 MB). Worth a dedicated decision.
 
-3. **SOI and Bhuvan village polygons not pulled.** Only LGD villages (474 MB) retained. SOI villages 602 MB; Bhuvan villages 792 MB. Useful only when cross-validating polygon disputes — LGD-by-code is the working source.
+3. **SOI and Bhuvan village *polygons* not pulled.** Only LGD villages (474 MB) retained as polygons. SOI village *points* (576k, 25 MB parquet + 58 MB pmtiles) ARE pulled and viewable since PR #25 — useful for label/centroid joins but not polygon work. SOI village polygons 602 MB; Bhuvan village polygons 792 MB — skipped because LGD-by-code is the working source for polygon work.
+
+   SOI village-point coverage is uneven across states: dense in southern + western states (Maharashtra 54k, Rajasthan 52k, Tamil Nadu 51k, Karnataka 51k) and catastrophically sparse in UP (7.5k, ~7% of actual villages), Bihar (7.7k, ~17%), Jharkhand (7.1k, ~22%), Mizoram (0.4k), Tripura (0.05k). Surfaced as the visual east-central blank space on /view/soi_village_points. Disclosed on the layer card.
 
 4. ~~PMGSY_Blocks has IDs but no names.~~ **Resolved 2026-05-21:** `scripts/enrich_pmgsy_blocks.py` joins `PMGSY_Masterdata.csv` into `PMGSY_Blocks.parquet`. 6,627 / 6,637 blocks (99%) now carry `BLOCK_NAME` + `DISTRICT_NAME` + `STATE_NAME`. The 10 unmatched are decommissioned / mis-coded blocks.
 
