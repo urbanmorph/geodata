@@ -55,11 +55,18 @@ ATTR = {
     'GatiShakti':    {'name': 'PM GatiShakti',               'url': 'https://gis.pmgatishakti.gov.in/'},
     'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
+    'bharatviz':     {'name': 'bharatviz (Saket Choudhary)',  'url': 'https://bharatviz.org/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
     'url': 'https://github.com/yashveeeeeeer/india-geodata',
 }
+
+# Sources whose files are republished via the yashveeeeeeer/india-geodata
+# release archive (so PUBLISHER + UPSTREAM_BASE apply). Other curated sources
+# (bharatviz, etc.) are pulled direct from origin — their entries should not
+# carry the yashveer attribution or upstream_url.
+YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps'}
 
 # Where to re-fetch each upstream file from. Path under the release base URL.
 # Kept here so the source registry travels with the catalog and a single
@@ -85,32 +92,31 @@ CATEGORIES = {
 # (id, level, source, parquet, pmtiles, rows, licence, notes)
 LAYERS = [
     ('lgd_states',         'state',       'LGD',    'LGD_States.parquet',         'LGD_States.pmtiles',         36,      LIC_STATE_DIST, 'Authoritative state and Union Territory boundaries from India\'s Local Government Directory (LGD). 36 polygons with the full LGD code chain, enabling joins with district, subdistrict, block and village layers.'),
-    ('soi_states',         'state',       'SOI',    'SOI_States.parquet',         None,                          40,      LIC_STATE_DIST, 'Survey of India derivative.'),
-    ('bhuvan_states',      'state',       'Bhuvan', 'bhuvan_states.parquet',      None,                          37,      LIC_STATE_DIST, 'NRSC/ISRO Bhuvan. Own codes, not LGD.'),
+    ('soi_states',         'state',       'SOI',    'SOI_States.parquet',         'SOI_States.pmtiles',          40,      LIC_STATE_DIST, 'Survey of India derivative.'),
+    ('bhuvan_states',      'state',       'Bhuvan', 'bhuvan_states.parquet',      'bhuvan_states.pmtiles',       37,      LIC_STATE_DIST, 'NRSC/ISRO Bhuvan. Own codes, not LGD.'),
 
     ('lgd_districts',      'district',    'LGD',    'LGD_Districts.parquet',      'LGD_Districts.pmtiles',      785,     LIC_STATE_DIST, 'Every district in India from the Local Government Directory (LGD). 785 polygons; joins to state boundaries via the state_lgd code, with the full LGD chain for joining to subdistricts, blocks and villages.'),
-    ('soi_districts',      'district',    'SOI',    'SOI_Districts.parquet',      None,                          742,     LIC_STATE_DIST, 'SoI derivative. Partial LGD codes.'),
-    ('bhuvan_districts',   'district',    'Bhuvan', 'bhuvan_districts.parquet',   None,                          663,     LIC_STATE_DIST, 'Bhuvan. Under-counts vs LGD in some states.'),
+    ('soi_districts',      'district',    'SOI',    'SOI_Districts.parquet',      'SOI_Districts.pmtiles',       742,     LIC_STATE_DIST, 'SoI derivative. Partial LGD codes.'),
+    ('bhuvan_districts',   'district',    'Bhuvan', 'bhuvan_districts.parquet',   'bhuvan_districts.pmtiles',    663,     LIC_STATE_DIST, 'Bhuvan. Under-counts vs LGD in some states.'),
 
     ('lgd_subdistricts',   'subdistrict', 'LGD',    'LGD_Subdistricts.parquet',   'LGD_Subdistricts.pmtiles',   6471,    LIC_BELOW,      'All subdistricts (tehsil / taluk / mandal) in India from the Local Government Directory (LGD). 6,471 polygons with the full LGD code chain for joining to districts, states, and finer admin levels (blocks, villages).'),
-    ('soi_subdistricts',   'subdistrict', 'SOI',    'SOI_Subdistricts.parquet',   None,                          4723,    LIC_BELOW,      'SoI tehsils. Partial codes.'),
+    ('soi_subdistricts',   'subdistrict', 'SOI',    'SOI_Subdistricts.parquet',   'SOI_Subdistricts.pmtiles',    4723,    LIC_BELOW,      'SoI tehsils. Partial codes.'),
 
     ('lgd_blocks',         'block',       'LGD',    'LGD_Blocks.parquet',         'LGD_Blocks.pmtiles',         7146,    LIC_BELOW,      'Community-development blocks across India from the Local Government Directory (LGD). 7,146 polygons with the full LGD code chain joining to subdistricts, districts and states.'),
-    ('bhuvan_blocks',      'block',       'Bhuvan', 'bhuvan_blocks.parquet',      None,                          6393,    LIC_BELOW,      'Bhuvan. Predates recent re-divisions in several states.'),
-    ('pmgsy_blocks',       'block',       'PMGSY',  'PMGSY_Blocks.parquet',       None,                          6637,    LIC_BELOW,      'PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage).'),
+    ('bhuvan_blocks',      'block',       'Bhuvan', 'bhuvan_blocks.parquet',      'bhuvan_blocks.pmtiles',       6393,    LIC_BELOW,      'Bhuvan. Predates recent re-divisions in several states.'),
+    ('pmgsy_blocks',       'block',       'PMGSY',  'PMGSY_Blocks.parquet',       'PMGSY_Blocks.pmtiles',        6637,    LIC_BELOW,      'PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage).'),
 
     ('lgd_panchayats',     'panchayat',   'LGD',    'LGD_panchayats.parquet',     'LGD_Panchayats.pmtiles',     319287,  LIC_BELOW,      'Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom.'),
 
     ('lgd_villages',       'village',     'LGD',    'LGD_Villages.parquet',       'LGD_Villages.pmtiles',       584615,  LIC_BELOW,      'Authoritative. 584k polygons. Use vector tiles to render.'),
-    ('soi_village_points', 'village',     'SOI',    'SOI_VILLAGE_POINT.parquet',  None,                          None,    LIC_BELOW,      'SoI village centroids (point geometry).'),
+    ('soi_village_points', 'village',     'SOI',    'SOI_VILLAGE_POINT.parquet',  'SOI_VILLAGE_POINT.pmtiles',   576430,  LIC_BELOW,      'SoI village centroids (point geometry). 5.76 lakh point features. Coverage is dense in southern + western states and sparse in UP, Bihar, Jharkhand and several NE states (SoI source limitation, not a rendering issue).'),
 
     # Electoral
     ('lgd_parliament',     'parliament_constituency', 'LGD', 'LGD_Parliament_Constituencies.parquet', 'LGD_Parliament_Constituencies.pmtiles', 543,  LIC_BELOW, 'Lok Sabha constituencies — 543 polygons covering the entire country. Latest delimitation.'),
     ('lgd_assembly',       'assembly_constituency',   'LGD', 'LGD_Assembly_Constituencies.parquet',   'LGD_Assembly_Constituencies.pmtiles',   None, LIC_BELOW, 'State legislative assembly constituencies. Polygons keyed by ST_CODE.'),
 
-    # Postal — pincodes deferred: data.gov.in ships only parquet, no PMTiles,
-    # so the "View map" button reads "no map" and the row looks broken on the
-    # home page. Re-add once we generate vector tiles for the 19k polygons.
+    # Postal
+    ('bharatviz_pincodes', 'pincode',     'bharatviz', 'bharatviz_pincodes.parquet', 'bharatviz_pincodes.pmtiles',  63864,   'MIT',          'India Post pincode boundary polygons (simplified). 63,864 polygons. © 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.'),
 
     # Environment
     ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', None, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
@@ -388,7 +394,7 @@ def build():
             'licence': licence,
             'attribution': {
                 'primary': ATTR[source],
-                'publisher': PUBLISHER,
+                'publisher': PUBLISHER if source in YASHVEER_HOSTED else None,
             },
             'category': level_meta.get('category', 'administrative'),
             'provenance': 'curated',
