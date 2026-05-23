@@ -78,6 +78,19 @@ function licenseUrl(id) {
   const first = id.split('/')[0].trim();
   return map[first] || undefined;
 }
+
+// Google Dataset Search rejects schema.org Dataset entries whose description
+// is under ~50 chars. Pad short notes with a stable contextual suffix so
+// future drift (short notes / new layers with terse meta.description) doesn't
+// re-trigger Search Console warnings.
+const DATASET_DESC_MIN = 80;
+function padDatasetDescription(desc, name, source) {
+  const trimmed = (desc || '').trim();
+  if (trimmed.length >= DATASET_DESC_MIN) return trimmed;
+  const suffix = ` Part of the bharatlas open atlas of India's geospatial data, sourced from ${source}.`;
+  return (trimmed + suffix).trim();
+}
+
 function seoHead(o) {
   const title = `${o.title} · bharatlas`;
   const image = o.image || ORIGIN + '/og-default.png';
@@ -484,7 +497,7 @@ const homeSeo = seoHead({
           return {
             '@type': 'Dataset',
             name: `${meta.label ?? l.id} (${l.source})`,
-            description: meta.description ?? l.notes ?? '',
+            description: padDatasetDescription(meta.description ?? l.notes ?? '', meta.label ?? l.id, l.source),
             url: ORIGIN + '/#' + lvl,
             license: licenseUrl(l.licence),
             creator: l.attribution?.primary

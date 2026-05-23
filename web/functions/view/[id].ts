@@ -43,7 +43,14 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   const title = levelMeta?.label || layer.id.replace(/_/g, ' ');
   const unit = levelMeta?.unit || 'features';
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
-  const description = (levelMeta?.description ?? `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`).slice(0, 158);
+  const baseDescription = levelMeta?.description ?? `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`;
+  // Meta tag uses Google's snippet ceiling (158); JSON-LD Dataset needs ≥50
+  // chars (Google Dataset Search rejects shorter). Pad with a stable suffix
+  // when the source string falls under the JSON-LD minimum.
+  const description = baseDescription.slice(0, 158);
+  const ldDescription = baseDescription.length >= 80
+    ? baseDescription
+    : `${baseDescription} Part of the bharatlas open atlas of India's geospatial data, sourced from ${layer.source}.`;
   const canonical = `${origin}/view/${id}`;
   const ogImage = `${origin}/og/view/${id}.png`;
 
@@ -51,7 +58,7 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
     '@context': 'https://schema.org',
     '@type': 'Dataset',
     name: title,
-    description,
+    description: ldDescription,
     url: canonical,
     license: layer.licence ? mapLicenceUrl(layer.licence) : undefined,
     creator: { '@type': 'Organization', name: layer.source },
