@@ -20,6 +20,7 @@ function prerenderPlugin(): Plugin {
         resolve(server.config.root, 'index.template.html'),
         resolve(server.config.root, 'about.template.html'),
         resolve(server.config.root, 'preview.template.html'),
+        resolve(server.config.root, 'scripts', 'prerender.mjs'),
         resolve(server.config.root, '..', 'catalog.json'),
       ];
       watched.forEach((f) => server.watcher.add(f));
@@ -50,6 +51,11 @@ export default defineConfig({
       '^/c/.+': 'http://localhost:8788',
       '^/og/.+': 'http://localhost:8788',
       '^/view/.+': 'http://localhost:8788',
+      // wrangler-served pages (/view, /c, /og, …) reference dist hashed
+      // assets like /assets/main-XXX.js. Vite dev doesn't generate those
+      // (it serves /src/main.ts instead), so without this line the browser
+      // 404s on assets when navigating to any wrangler-proxied path.
+      '/assets': 'http://localhost:8788',
     },
   },
   build: {

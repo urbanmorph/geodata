@@ -225,6 +225,12 @@
       .row__source { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
       .row__source a { color: var(--fg); }
       .row__source .dot { color: var(--line); }
+      /* Alternative sources for the same level. Signals plurality without
+         claiming any single source as canonical. Lighter than the primary
+         attribution; lifts on hover so they read as clickable. */
+      .row__alts { color: var(--muted); }
+      .row__alts a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+      .row__alts a:hover { color: var(--accent); }
       .row__freshness { font-variant-numeric: tabular-nums; cursor: help; }
       .row__freshness.stale { color: #d97706; }
       .badge {

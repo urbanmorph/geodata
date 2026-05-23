@@ -348,8 +348,20 @@ function renderRow(level, layersForLevel, opts = {}) {
   const freshnessSpan = primary.fetched_at
     ? `<span class="row__freshness${isStale(primary.fetched_at) ? ' stale' : ''}" title="${esc(primary.fetched_at)}">${relativeTime(primary.fetched_at)}</span>`
     : '';
+  // Show alternate sources for the same level inline. This signals plurality
+  // at-a-glance — no single source is "the truth" for boundaries / names.
+  // Clicking jumps to /view/<id> for that source's version. See terms.html
+  // "Limitation of liability" for the editorial position on disputed depictions.
+  //
+  // Filter to map-renderable sources only (pmtiles or geojson). Parquet-only
+  // alternates (some SOI / Bhuvan layers) still exist in the data; their
+  // downloads surface in the <details class="alt"> "compare sources" block
+  // below. The inline "also:" list is exclusively for "you can view this".
+  const altSources = layersForLevel
+    .filter((l) => l !== primary && (l.pmtiles?.url || l.geojson?.url))
+    .map((l) => `<a href="/view/${esc(l.id)}">${esc(l.source)}</a>`);
   const sourceText = primary.attribution?.primary
-    ? `Source: <a href="${esc(primary.attribution.primary.url)}" target="_blank" rel="noopener">${esc(primary.attribution.primary.name)}</a>`
+    ? `Per <a href="${esc(primary.attribution.primary.url)}" target="_blank" rel="noopener">${esc(primary.attribution.primary.name)}</a>${altSources.length ? ` <span class="row__alts">also: ${altSources.join(', ')}</span>` : ''}`
     : '';
   const sourceLine =
     sourceText || freshnessSpan
