@@ -57,14 +57,14 @@
     <p>
       Maps live everywhere online, but you can't tell what they actually show, who
       maintains them, or whether to trust them. Pulling out just the slice you need
-      means booting QGIS or wading through Google Maps menus. Viewing is its own ordeal
-      — sign in, navigate the menus, import. The format question alone — KML? KMZ?
-      GeoJSON? Parquet? — feels gatekept. And if you've made a map yourself and want to
+      means booting QGIS or wading through Google Maps menus. Viewing is its own ordeal:
+      sign in, navigate the menus, import. The format question alone (KML? KMZ?
+      GeoJSON? Parquet?) feels gatekept. And if you've made a map yourself and want to
       share it, you have to stand up your own website to host it.
     </p>
     <p>
-      <a href="https://www.sathyasankaran.com" target="_blank" rel="noopener">Sathya</a> kept hitting the same wall. Bharatlas flattens all of that —
-      <strong>the wiki for India's maps.</strong> View any layer in your browser. Filter
+      <a href="https://www.sathyasankaran.com" target="_blank" rel="noopener">Sathya</a> kept hitting the same wall. Bharatlas flattens all of that.
+      <strong>The wiki for India's maps.</strong> View any layer in your browser. Filter
       what you need. Download in whatever format your tool reads. Liked it? Upvote so
       others find it. Have a map worth sharing? Drag and drop it onto the page. Every
       layer carries its source, licence and freshness on the same card.
@@ -72,23 +72,23 @@
 
     <h2>Who it's for</h2>
     <ul>
-      <li><strong>Journalists + researchers</strong> — pull a state's districts, villages or constituencies in ten seconds; download as GeoJSON or Parquet.</li>
-      <li><strong>Civic technologists</strong> — share city-scale layers (wards, bike lanes, polling booths) with attribution baked in.</li>
-      <li><strong>App developers</strong> — direct PMTiles URLs, no rate limits, no API key.</li>
+      <li><strong>Journalists + researchers:</strong> pull a state's districts, villages or constituencies in ten seconds; download as GeoJSON or Parquet.</li>
+      <li><strong>Civic technologists:</strong> share city-scale layers (wards, bike lanes, polling booths) with attribution baked in.</li>
+      <li><strong>App developers:</strong> direct PMTiles URLs, no rate limits, no API key.</li>
     </ul>
 
     <h2>What you can do today</h2>
     <ul>
       <li>View every admin level from <strong>state</strong> to <strong>village</strong> on a map, plus city wards across <strong>15 Indian cities</strong> (Bengaluru, Chennai, Hyderabad, Mumbai and more), constituencies, wildlife sanctuaries.</li>
-      <li>Filter any layer by what its columns actually contain — state, zone, area, anything — and export the slice as <strong>Parquet</strong>, <strong>GeoJSON</strong> or <strong>KML</strong>.</li>
-      <li><a href="/preview">Drop a file</a> to see it on a map and validate it. Optionally publish under an open licence — no signup; you get an admin token to keep forever.</li>
+      <li>Filter any layer by what its columns actually contain (state, zone, area, anything) and export the slice as <strong>Parquet</strong>, <strong>GeoJSON</strong> or <strong>KML</strong>.</li>
+      <li><a href="/preview">Drop a file</a> to see it on a map and validate it. Optionally publish under an open licence. No signup; you get an admin token to keep forever.</li>
       <li>Embed any map in a blog post or report (iframe snippet + PNG export, one click each).</li>
     </ul>
 
     <h2>Open source</h2>
     <p>
       Code: <a href="https://github.com/urbanmorph/geodata">github.com/urbanmorph/geodata</a> · MIT.<br />
-      Data: each layer carries its own open licence — see the per-card line on the
+      Data: each layer carries its own open licence; see the per-card line on the
       <a href="/">catalog</a>.
     </p>
 
@@ -104,21 +104,20 @@
       <dd>Curated layers carry CC0-1.0, CC-BY-4.0 or GODL-India depending on the upstream source. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL or GODL-India. Proprietary or "all rights reserved" content is rejected at submit.</dd>
 
       <dt>Is my file uploaded when I drop it?</dt>
-      <dd>No — not until you click <strong>Publish</strong>. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.</dd>
+      <dd>No, not until you click <strong>Publish</strong>. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.</dd>
 
       <dt>How can I trust community submissions?</dt>
       <dd>Each carries a source URL, attribution and an open licence on the card and the view page. The platform auto-moderates licence, attribution and basic geometry validity, but it does not verify accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.</dd>
 
       <dt>Can AI assistants read and recommend bharatlas?</dt>
-      <dd>Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every <code>/c/&lt;id&gt;</code> view page are server-rendered as plain HTML with JSON-LD <code>Dataset</code> structured data — easy for LLMs to ingest.</dd>
+      <dd>Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every <code>/c/&lt;id&gt;</code> view page are server-rendered as plain HTML with JSON-LD <code>Dataset</code> structured data, easy for LLMs to ingest.</dd>
     </dl>
 
     <h2 id="use-of-data">Use of data</h2>
     <ul>
-      <li><strong>Provided as-is, no warranty.</strong> Express or implied guarantees of accuracy, completeness or fitness for a particular purpose are not made by this site or its maintainers.</li>
-      <li><strong>Boundaries are for reference, not legal authority.</strong> For official, administrative or land-record use, refer directly to LGD, SOI, Bhuvan or the state revenue department.</li>
-      <li><strong>Curated layers reflect the upstream source at fetch time</strong> — see the freshness pill on each card. Upstream sources change; the catalog can lag.</li>
+      <li><strong>Curated layers reflect the upstream source at fetch time.</strong> See the freshness pill on each card. Upstream sources change; the catalog can lag.</li>
       <li><strong>Community submissions are auto-moderated, not editorially curated.</strong> Licence, format and basic geometry validity are checked; accuracy and authorship are not. Verify via the source link on each card before relying on community data.</li>
+      <li><strong>Boundaries and place names render exactly as the upstream source publishes them.</strong> bharatlas does not edit, correct or editorialize. Where you disagree with a depiction (including for J&amp;K, the Line of Actual Control or any disputed territory), raise it with the source; each catalog card lists alternative sources so you can compare. See <a href="/terms#liability">Limitation of liability</a> for the warranty disclaimer, damages cap and full terms.</li>
     </ul>
 
     <h2 style="text-transform:none;letter-spacing:0;color:var(--fg);font-size:var(--fs-xl);margin-top:var(--sp-7)">Built by</h2>

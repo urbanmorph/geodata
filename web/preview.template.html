@@ -157,6 +157,10 @@
         padding: 10px 12px; word-break: break-all; margin: 10px 0;
       }
       #success .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 24px; }
+      #success .ok-meta {
+        color: var(--fg); font-size: 13px; font-weight: 500;
+        margin: -16px 0 24px; line-height: 1.5;
+      }
       #success a.cta {
         display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
         padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px;
@@ -193,6 +197,10 @@
         border-radius: 10px; padding: 12px 14px;
       }
       #my-subs[hidden] { display: none; }
+      /* When the user has dropped a file (workspace.show), the verify flow
+         takes over the canvas; hide the past-submissions panel so they don't
+         stack and overlap the map. Returns when workspace.show is removed. */
+      body:has(#workspace.show) #my-subs { display: none; }
       #my-subs h2 {
         font-size: 11px; font-weight: 600; letter-spacing: .08em;
         text-transform: uppercase; color: var(--muted); margin: 0 0 8px;
@@ -264,7 +272,7 @@
     <!-- NAV -->
 
     <h1 class="page-title">View, verify, or publish a geo file</h1>
-    <p class="page-sub">Drop a file to render it on a map and check it. Optionally publish to the open catalog — nothing is uploaded unless you click <strong>Publish</strong>.</p>
+    <p class="page-sub">Drop a file to render it on a map and check it. Optionally publish to the open catalog. Nothing is uploaded unless you click <strong>Publish</strong>.</p>
 
     <label id="drop" for="file">
       <strong>Drop a file or click to choose</strong>
@@ -293,7 +301,7 @@
         <div id="publish-cta">
           <p class="cta-line">Want to share this with others?</p>
           <button type="button" class="primary" id="publish-open">Publish to catalog →</button>
-          <p class="cta-hint">Or leave it — nothing has been uploaded.</p>
+          <p class="cta-hint">Or leave it. Nothing has been uploaded.</p>
         </div>
 
         <!-- View-only banner shown when the file came from /c/[id] (?url=…) -->
@@ -320,7 +328,7 @@
           <div class="field">
             <label for="f-cat">Category <span class="req">*</span></label>
             <select id="f-cat" name="category" required>
-              <option value="">— pick one —</option>
+              <option value="">pick one</option>
               <option value="administrative">Administrative boundaries</option>
               <option value="people">People &amp; places</option>
               <option value="environment">Environment &amp; nature</option>
@@ -336,13 +344,13 @@
           <div class="field">
             <label for="f-lic">Licence <span class="req">*</span></label>
             <select id="f-lic" name="license" required>
-              <option value="">— pick one —</option>
-              <option value="CC0-1.0">CC0 1.0 — Public Domain Dedication</option>
-              <option value="CC-BY-4.0">CC BY 4.0 — Attribution</option>
-              <option value="CC-BY-SA-4.0">CC BY-SA 4.0 — Attribution-ShareAlike</option>
-              <option value="ODbL-1.0">ODbL 1.0 — Open Database License</option>
-              <option value="ODC-PDDL-1.0">ODC PDDL — Public Domain Dedication</option>
-              <option value="GODL-India">Government Open Data Licence — India</option>
+              <option value="">pick one</option>
+              <option value="CC0-1.0">CC0 1.0 (Public Domain Dedication)</option>
+              <option value="CC-BY-4.0">CC BY 4.0 (Attribution)</option>
+              <option value="CC-BY-SA-4.0">CC BY-SA 4.0 (Attribution-ShareAlike)</option>
+              <option value="ODbL-1.0">ODbL 1.0 (Open Database License)</option>
+              <option value="ODC-PDDL-1.0">ODC PDDL (Public Domain Dedication)</option>
+              <option value="GODL-India">Government Open Data Licence, India</option>
             </select>
             <div class="hint">Only open licences are accepted.</div>
           </div>
@@ -382,9 +390,10 @@
     <section id="success" aria-live="polite">
       <h2>✓ Your submission is live</h2>
       <p class="ok-line" id="success-url"></p>
+      <p class="ok-meta">The link works immediately. Your submission will be listed in the home page catalog in the next hour.</p>
 
       <div class="warn">
-        <strong>Admin token — shown once. Save it.</strong>
+        <strong>Admin token (shown once). Save it.</strong>
         <div class="token" id="success-token"></div>
         <div class="actions">
           <button type="button" class="secondary" id="copy-token">Copy token</button>

@@ -5,10 +5,57 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # Manual trigger button in the GitHub Actions UI — useful when you've
+  # accepted a community submission and want to push a rebuild faster
+  # than the hourly cron would.
+  workflow_dispatch:
+  # Hourly rebuild to pick up new accepted community submissions, which
+  # are baked into the home page at build time (prerender.mjs queries D1).
+  # The check-community-queue job below short-circuits this run when D1
+  # has nothing new, so CF Pages build minutes are only consumed for
+  # rebuilds that actually carry payload.
+  schedule:
+    - cron: '17 * * * *'
 
 jobs:
+  # Gate job: for scheduled runs only, query D1 to see if any submissions
+  # were accepted in the overlap window (cron interval + 10 min slack so
+  # nothing falls through a boundary). Skipped for push / pull_request /
+  # workflow_dispatch — those always proceed.
+  check-community-queue:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    outputs:
+      has-new: ${{ steps.check.outputs.has-new }}
+    steps:
+      - name: query D1 for recent accepted submissions
+        id: check
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm install -g wrangler@4 >/dev/null 2>&1
+          RAW=$(wrangler d1 execute geodata-submissions --remote --json \
+            --command "SELECT COUNT(*) AS n FROM submissions WHERE status='accepted' AND created_at >= datetime('now', '-70 minutes')")
+          COUNT=$(echo "$RAW" | jq -r '.[0].results[0].n // 0')
+          echo "Found $COUNT new submission(s) in the last 70 min"
+          if [ "$COUNT" -gt 0 ]; then
+            echo "has-new=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has-new=false" >> "$GITHUB_OUTPUT"
+          fi
+
   test-and-deploy:
-    name: tests + build${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && ' + deploy' || '' }}
+    needs: [check-community-queue]
+    # Run when:
+    #  - the gate job was skipped (i.e. this is push/PR/workflow_dispatch), OR
+    #  - the gate ran and found new community submissions.
+    # always() lets us evaluate the if even though the dependency was skipped.
+    if: >-
+      ${{ always() && (needs.check-community-queue.result == 'skipped' ||
+          needs.check-community-queue.outputs.has-new == 'true') }}
+    name: tests + build${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') && ' + deploy' || (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && ' + deploy' || '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -29,21 +76,25 @@ jobs:
         run: npm test
 
       - name: build
-        # For production builds (push to main), the secrets feed real values
-        # into the prerender so the deployed dist has the right Turnstile site
-        # key + queries the remote D1 for community submissions. For PRs the
-        # build still runs (with the always-pass test key + local fallback)
-        # to verify nothing's broken.
+        # Any build that will be deployed needs the real Turnstile site key +
+        # remote D1 query for community cards. Pull-request builds run with
+        # the always-pass test key + local D1 fallback (nothing to deploy,
+        # just verifying the build doesn't break).
         env:
           TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY || '1x00000000000000000000AA' }}
-          COMMUNITY_FROM: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'remote' || 'local' }}
+          COMMUNITY_FROM: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' && 'remote' || 'local' }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npm run build
 
       - name: deploy to cloudflare pages
-        # Only on push to main. PRs build but don't deploy.
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        # Deploy when:
+        #  - push to main (normal commit-driven deploy)
+        #  - workflow_dispatch (manual rebuild button)
+        #  - schedule (hourly community-queue rebuild; only reaches this step
+        #    when check-community-queue found new submissions)
+        # PRs build but don't deploy.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
