@@ -70,11 +70,13 @@ describe('renderViewPage', () => {
     expect(html).toContain(encodeURIComponent('/api/r2/'));
   });
 
-  it('renders up + down buttons with the current score', () => {
+  it('renders a single Useful button with the current count', () => {
+    // v4.x (task #61): single-direction "Useful" vote replaced ▲/▼.
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 42, alreadyRated: false });
-    expect(html).toMatch(/id="vote-up"/);
-    expect(html).toMatch(/id="vote-down"/);
-    expect(html).toMatch(/id="vote-score">42</);
+    expect(html).toMatch(/id="vote-useful"/);
+    expect(html).toMatch(/id="vote-count">42</);
+    expect(html).not.toMatch(/id="vote-down"/);
+    expect(html).not.toMatch(/aria-label="downvote"/);
   });
 
   it('escapes HTML in name / description / attribution', () => {

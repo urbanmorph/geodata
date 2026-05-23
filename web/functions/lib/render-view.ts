@@ -211,12 +211,11 @@ export function renderViewPage(opts: RenderOpts): string {
       a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
       a.btn:hover, button.btn:hover { border-color: var(--accent); }
       button.btn:disabled { opacity: .55; cursor: default; border-color: var(--line); }
-      .vote-group { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 2px 6px; background: var(--bg); }
-      .vote { background: transparent; border: 0; padding: 4px 6px; font: inherit; cursor: pointer; color: var(--muted); border-radius: var(--radius-sm); line-height: 1; }
-      .vote:hover { color: var(--fg); background: var(--bg-card); }
-      .vote[aria-pressed=true].vote-up { color: var(--accent); }
-      .vote[aria-pressed=true].vote-down { color: #ef4444; }
-      .vote-score { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 18px; text-align: center; }
+      .vote-useful { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 6px 12px; background: var(--bg); font: inherit; cursor: pointer; color: var(--muted); line-height: 1; min-height: 36px; }
+      .vote-useful:hover { color: var(--fg); border-color: var(--accent); }
+      .vote-useful[aria-pressed=true] { color: var(--accent); border-color: var(--accent); }
+      .vote-useful .vote-count { font-weight: 600; font-variant-numeric: tabular-nums; }
+      .vote-useful .vote-label { font-weight: 500; }
       .site-footer { margin-top: var(--sp-8); padding-top: var(--sp-5); border-top: 1px solid var(--line);
         font-size: var(--fs-sm); color: var(--muted); line-height: 1.6; }
       .site-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
@@ -250,11 +249,11 @@ export function renderViewPage(opts: RenderOpts): string {
     <div class="actions">
       <a class="btn primary" href="${esc(verifyUrl)}">View on map →</a>
       <a class="btn" href="${esc(r2Path)}" download="${esc(filename)}">Download <code>.${esc(s.format)}</code></a>
-      <div class="vote-group" role="group" aria-label="vote on this submission">
-        <button class="vote vote-up" id="vote-up" type="button" aria-pressed="false" aria-label="upvote">▲</button>
-        <span class="vote-score" id="vote-score">${ratingsCount}</span>
-        <button class="vote vote-down" id="vote-down" type="button" aria-pressed="false" aria-label="downvote">▼</button>
-      </div>
+      <button class="vote-useful" id="vote-useful" type="button" aria-pressed="false">
+        <span aria-hidden="true">👍</span>
+        <span class="vote-count" id="vote-count">${ratingsCount}</span>
+        <span class="vote-label">useful</span>
+      </button>
     </div>
 
     <footer class="site-footer">
@@ -266,23 +265,23 @@ export function renderViewPage(opts: RenderOpts): string {
     <script>
       (() => {
         const id = document.body.dataset.submissionId;
-        const upBtn = document.getElementById('vote-up');
-        const downBtn = document.getElementById('vote-down');
-        const score = document.getElementById('vote-score');
-        if (!upBtn || !downBtn || !score) return;
+        const btn = document.getElementById('vote-useful');
+        const count = document.getElementById('vote-count');
+        if (!btn || !count) return;
 
+        // Display count = up votes only. Existing legacy downvotes in D1
+        // are ignored in the UI per task #61 (single-direction Useful vote).
         let myVote = 0;
         const apply = (s) => {
-          score.textContent = String(s.score);
-          myVote = s.myVote;
-          upBtn.setAttribute('aria-pressed', s.myVote === 1 ? 'true' : 'false');
-          downBtn.setAttribute('aria-pressed', s.myVote === -1 ? 'true' : 'false');
+          count.textContent = String(s.up || 0);
+          myVote = s.myVote === 1 ? 1 : 0;
+          btn.setAttribute('aria-pressed', myVote === 1 ? 'true' : 'false');
         };
 
         fetch('/api/c/' + id + '/rate').then(r => r.ok ? r.json() : null).then(s => s && apply(s)).catch(() => {});
 
         const send = async (vote) => {
-          upBtn.disabled = true; downBtn.disabled = true;
+          btn.disabled = true;
           try {
             const r = await fetch('/api/c/' + id + '/rate', {
               method: 'POST',
@@ -291,12 +290,10 @@ export function renderViewPage(opts: RenderOpts): string {
             });
             if (r.ok) apply(await r.json());
           } catch {}
-          upBtn.disabled = false; downBtn.disabled = false;
+          btn.disabled = false;
         };
-        // Cancel-on-opposite: if you've already voted (either way), clicking
-        // any button clears your vote. Click again to set the new direction.
-        upBtn.addEventListener('click', () => send(myVote === 0 ? 1 : 0));
-        downBtn.addEventListener('click', () => send(myVote === 0 ? -1 : 0));
+        // Click to mark useful; click again to clear.
+        btn.addEventListener('click', () => send(myVote === 1 ? 0 : 1));
       })();
     </script>
   </body>

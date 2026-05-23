@@ -1,8 +1,11 @@
-// /api/c/:id/rate — anonymous up/down voting.
-//   GET  → { up, down, score, myVote } for this IP (read-only).
-//   POST { vote: 1 | -1 | 0 } → records / changes / clears the vote.
+// /api/c/:id/rate — anonymous single-direction "Useful" voting.
+//   GET  → { up, down, score, myVote } for this IP (down stays for back-
+//         compat reads of pre-existing rows; new writes can't add down).
+//   POST { vote: 1 | 0 } → records or clears the "Useful" mark.
 // (submission_id, ip_hash) is the primary key, so votes are idempotent
-// and reversible per IP.
+// and reversible per IP. Downvote previously existed but was retired
+// (brigading risk on an open-contribution platform with no moderation
+// team) — see task #61 for the migration rationale.
 
 import type { Env as MiddlewareEnv } from '../../_middleware';
 import { getSubmissionForView } from '../../../lib/submissions';
@@ -44,8 +47,8 @@ export const onRequestPost: PagesFunction<Env, keyof Params> = async (ctx) => {
     return j(400, { error: 'invalid JSON body' });
   }
   const vote = body.vote;
-  if (vote !== 1 && vote !== -1 && vote !== 0) {
-    return j(400, { error: 'vote must be 1, -1, or 0' });
+  if (vote !== 1 && vote !== 0) {
+    return j(400, { error: 'vote must be 1 (useful) or 0 (clear)' });
   }
 
   const sub = await getSubmissionForView(ctx.env.DB, id);
