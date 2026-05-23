@@ -156,3 +156,38 @@ describe('renderViewPage — OG/Twitter image meta (v4.7 per-submission)', () =>
     expect(html).toMatch(/<meta name="twitter:card" content="summary_large_image"/);
   });
 });
+
+describe('renderViewPage — Dataset description length (Google Dataset Search ≥50)', () => {
+  function extractDataset(html: string): { description: string } {
+    const m = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (!m) throw new Error('no JSON-LD');
+    const data = JSON.parse(m[1].replace(/\\u003c/g, '<').replace(/\\u003e/g, '>').replace(/\\u0026/g, '&'));
+    return data;
+  }
+
+  it('long contributor descriptions pass through unchanged', () => {
+    const longDesc =
+      'A thoroughly detailed description of the contributed map layer that comfortably exceeds the 80-character minimum threshold.';
+    const html = renderViewPage({
+      submission: { ...row(), description: longDesc },
+      origin: ORIGIN, ratingsCount: 0, alreadyRated: false,
+    });
+    expect(extractDataset(html).description).toBe(longDesc);
+  });
+
+  it('short contributor descriptions get padded ≥50 chars', () => {
+    const html = renderViewPage({
+      submission: { ...row(), description: 'tiny' },
+      origin: ORIGIN, ratingsCount: 0, alreadyRated: false,
+    });
+    expect(extractDataset(html).description.length).toBeGreaterThanOrEqual(50);
+  });
+
+  it('falls back description (no contributor desc) is ≥50 chars', () => {
+    const html = renderViewPage({
+      submission: { ...row(), description: undefined },
+      origin: ORIGIN, ratingsCount: 0, alreadyRated: false,
+    });
+    expect(extractDataset(html).description.length).toBeGreaterThanOrEqual(50);
+  });
+});
