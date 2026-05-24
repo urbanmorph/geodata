@@ -138,7 +138,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <title>${esc(s.name)} · geodata</title>
+    <title>${esc(s.name)} · bharatlas</title>
     <meta name="description" content="${esc(description)}" />
     <link rel="canonical" href="${esc(canonical)}" />
     <meta property="og:type" content="website" />
@@ -148,6 +148,8 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta property="og:image" content="${PUBLIC_ORIGIN}/og/c/${esc(s.id)}.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="bharatlas" />
+    <meta property="og:locale" content="en_IN" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${esc(s.name)}" />
     <meta name="twitter:description" content="${esc(description)}" />

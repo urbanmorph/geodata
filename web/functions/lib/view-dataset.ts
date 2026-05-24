@@ -26,6 +26,7 @@ export type ViewDataset = {
   canonical: string;
   ogImage: string;
   jsonLd: Record<string, unknown>;
+  breadcrumbJsonLd: Record<string, unknown>;
 };
 
 const META_DESC_MAX = 158;
@@ -51,10 +52,14 @@ export function buildViewDataset(
     levelMeta?.description ??
     `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`;
   const description = baseDescription.slice(0, META_DESC_MAX);
+  // Same padding template as prerender's homeSeo Dataset block: lifts
+  // terse base descriptions over the ≥50 floor and seeds format/provenance
+  // keywords for SERP rich snippets. Keep in sync with prerender.mjs's
+  // padDatasetDescription suffix.
   const ldDescription =
     baseDescription.length >= LD_DESC_MIN
       ? baseDescription
-      : `${baseDescription} Part of the bharatlas open atlas of India's geospatial data, sourced from ${layer.source}.`;
+      : `${baseDescription} Free to view, slice and download as Parquet, PMTiles, GeoJSON or KML. Open atlas of India by Urban Morph, sourced from ${layer.source}.`;
   const canonical = `${origin}/view/${layer.id}`;
   const ogImage = `${origin}/og/view/${layer.id}.png`;
 
@@ -73,6 +78,19 @@ export function buildViewDataset(
       license: layer.licence ? mapLicenceUrl(layer.licence) : undefined,
       creator: { '@type': 'Organization', name: layer.source },
       spatialCoverage: { '@type': 'Place', name: 'India' },
+    },
+    // Sibling JSON-LD block. Google honors multiple <script type="application/
+    // ld+json"> blocks on one page and de-dupes by @type. Surfaces breadcrumb
+    // trail under the URL in SERPs without coupling Dataset payload tests to
+    // a wrapping @graph.
+    breadcrumbJsonLd: {
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
+        { '@type': 'ListItem', position: 2, name: 'Catalog', item: `${origin}/` },
+        { '@type': 'ListItem', position: 3, name: title, item: canonical },
+      ],
     },
   };
 }

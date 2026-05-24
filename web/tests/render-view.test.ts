@@ -29,7 +29,7 @@ const ORIGIN = 'https://example.com';
 describe('renderViewPage', () => {
   it('puts the submission name in the title', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
-    expect(html).toMatch(/<title>Mumbai bike lanes · geodata<\/title>/);
+    expect(html).toMatch(/<title>Mumbai bike lanes · bharatlas<\/title>/);
   });
 
   it('emits a canonical URL pinned to bharatlas.com (not the request origin)', () => {
