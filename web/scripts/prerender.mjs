@@ -565,6 +565,9 @@ const homeSeo = seoHead({
             distribution: [
               l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
               l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
+              l.geojson?.url && { '@type': 'DataDownload', encodingFormat: 'application/geo+json', contentUrl: l.geojson.url, contentSize: l.geojson.bytes },
+              l.kml?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.google-earth.kml+xml', contentUrl: l.kml.url, contentSize: l.kml.bytes },
+              l.shapefile?.url && { '@type': 'DataDownload', encodingFormat: 'application/zip', contentUrl: l.shapefile.url, contentSize: l.shapefile.bytes },
             ].filter(Boolean),
             spatialCoverage: { '@type': 'Place', name: 'India' },
           };
