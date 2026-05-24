@@ -9,17 +9,19 @@ A visual catalog, drag-drop verifier, and anonymous contribution flow for India'
 **Live**: https://bharatlas.com
 
 ```
-catalog               → state · district · subdistrict · block · village (LGD)
+catalog               → India national boundary (LGD-dissolved)
+                        + state · district · subdistrict · block · village (LGD)
                         + cross-source alternates (SOI · Bhuvan · geoBoundaries
                         · PMGSY per level — click "also: ..." on any card)
                         + city wards (Bengaluru, Chennai, Hyderabad, Mumbai, …)
                         + electoral constituencies, wildlife, eco-zones
                         + 63k pincode polygons (bharatviz)
+download              → whole layer as Parquet · PMTiles · GeoJSON · KML ·
+                        Shapefile, direct from the card
+filter & slice        → dynamic facets / range / search per layer schema;
+                        export the slice in any of the formats above
 preview               → drop GeoJSON · KML · KMZ · GPX · TCX · Parquet →
                         render + validate → optional Publish
-filter & export       → dynamic facets / range / search per layer schema,
-                        slice by what the data actually contains, export
-                        as Parquet · GeoJSON · KML
 view (/view/<id>)     → curated layer with per-layer OG card
 view (/c/<id>)        → community submission, edge-rendered HTML, 👍 useful
                         vote, per-submission OG card
@@ -35,7 +37,9 @@ embed                 → /embed/<id> iframe + PNG export from any map
 | `web/tests/` | vitest unit tests for pure functions (validators, tokens, view rendering, votes). |
 | `scripts/fetch.sh` | Pulls parquets + PMTiles from [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) releases. |
 | `scripts/extract_per_state.py` | Slices pan-India parquets into per-state GeoJSON via DuckDB-spatial. |
-| `scripts/upload_r2.sh` | Mirrors `sources/` + `data/` to Cloudflare R2. |
+| `scripts/bake_whole_layer.py` | Bakes whole-layer GeoJSON / KML / Shapefile per curated layer (parquet ≤ 100 MB). |
+| `scripts/upload_r2.sh` | Mirrors `sources/` + `data/` to Cloudflare R2 via wrangler. |
+| `scripts/upload_baked.py` | Pushes `data/baked/*` to R2 via boto3 (S3-compat fallback when wrangler is unavailable). |
 | `scripts/admin/cleanup_submission.sh` | Delete community submissions by name pattern (R2 + D1). |
 | `catalog.json` | Curated-layer index used by the viewer. Single source of truth. |
 | `REPORT.md` | Coverage + provenance + caveats per curated layer. |
@@ -62,7 +66,7 @@ git clone git@github.com:urbanmorph/geodata.git
 cd geodata/web
 npm install
 npm run dev    # http://localhost:5173
-npm test       # 320+ vitest tests
+npm test       # 380+ vitest tests
 ```
 
 For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.
@@ -79,9 +83,9 @@ Commit messages: short subject, body explains *why* not *what*. Examples in `git
 
 ## Roadmap
 
-- **Now**: India-correct basemap (Bhuvan WMS / Mappls / forked Mapbox style) · CSP re-enable
+- **Now**: CSP re-enable (debugging a DuckDB-WASM crash under strict CSP)
 - **Next**: REST API + MCP server + Claude Code plugin (v5)
-- **Done**: catalog, in-browser filter & export, anonymous contribution, mixed catalog, single-direction "useful" vote, embed + PNG, per-layer OG, schema-driven filters, city ward ingest, "Your submissions" panel, hourly auto-rebuild for community submissions, liability disclaimer + disputed-borders policy, cross-source viewing (SOI/Bhuvan/PMGSY PMTiles + bharatviz pincodes + LGD overlay), privacy + ToS, a11y refactor
+- **Shipped**: catalog with cross-source compare; in-browser filter + slice + export; whole-layer downloads (Parquet / PMTiles / GeoJSON / KML / Shapefile); India-correct minimal basemap + national boundary layer; drag-and-drop verify + anonymous contribution; "Your submissions" panel; embed iframe + PNG export; edge-rendered `/view/<id>` + `/c/<id>` with per-layer OG cards; schema-driven dynamic filters; live category counts; privacy + ToS + disputed-borders policy; a11y refactor; AEO crawler allowlist + JSON-LD (Dataset, BreadcrumbList, FAQPage, Person)
 
 Track active work in [Issues](https://github.com/urbanmorph/geodata/issues) and [Milestones](https://github.com/urbanmorph/geodata/milestones).
 
