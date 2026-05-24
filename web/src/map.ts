@@ -413,16 +413,37 @@ function wireDownloadButton(layer: Layer): void {
       prompt('Copy this iframe snippet:', snippet);
     }
   });
-  exportBtn?.addEventListener('click', (e) => {
+  exportBtn?.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (!map) return;
-    // preserveDrawingBuffer: true on init means the canvas is always
-    // readable; no need to triggerRepaint or wait for a 'render' event.
+    // preserveDrawingBuffer:true keeps the WebGL framebuffer readable
+    // BUT only reflects the last animation-frame paint. If the user
+    // opened the map and clicked Export before the next frame ran, OR if
+    // a basemap tile arrived between paints, toDataURL captures a stale
+    // / blank buffer. Force a repaint and wait for the next 'idle' event
+    // (fired when MapLibre has finished applying all pending updates) so
+    // the captured pixels are guaranteed to be the user's current view.
+    const fmt = exportBtn.querySelector<HTMLElement>('.map-popover__fmt');
+    const original = fmt?.textContent ?? '';
+    if (fmt) fmt.textContent = 'Rendering…';
     try {
+      await new Promise<void>((resolve) => {
+        const m = map!;
+        m.once('idle', () => resolve());
+        m.triggerRepaint();
+      });
       const url = map.getCanvas().toDataURL('image/png');
       triggerDownload(dataUrlToBlob(url), imageFilename(layer.id));
+      if (fmt) {
+        fmt.textContent = '✓ Saved';
+        setTimeout(() => { if (original) fmt.textContent = original; }, 1400);
+      }
     } catch (err) {
       console.error('PNG export failed', err);
+      if (fmt) {
+        fmt.textContent = 'Export failed';
+        setTimeout(() => { if (original) fmt.textContent = original; }, 1800);
+      }
     }
   });
   bindPopover(btn, popover);
