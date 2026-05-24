@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap } from '../src/embed-snippet';
+import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap } from '../src/embed-snippet';
 
 describe('embed-snippet — embedIframeHtml', () => {
   it('emits a sane iframe snippet with the encoded layer id', () => {
@@ -60,6 +60,27 @@ describe('isViewPath', () => {
     expect(isViewPath('/view/')).toEqual({ view: false });
     expect(isViewPath('/view/lgd_villages/extra')).toEqual({ view: false });
     expect(isViewPath('/about')).toEqual({ view: false });
+  });
+});
+
+describe('titleAfterCloseMap', () => {
+  // Paired with urlAfterCloseMap — when the URL flips back to /, the browser
+  // tab title also has to flip back from the per-layer "lgd states · bharatlas"
+  // (injected by the /view/<id> edge function) to the home title. Otherwise
+  // the URL bar shows / but the tab still says "lgd states · bharatlas".
+  const HOME = "India's open atlas · view, verify, contribute · bharatlas";
+
+  it('returns the home title when closing a /view/<id> path', () => {
+    expect(titleAfterCloseMap('/view/lgd_states', '', HOME)).toBe(HOME);
+    expect(titleAfterCloseMap('/view/soi_subdistricts', '', HOME)).toBe(HOME);
+  });
+  it('returns the home title when closing a #view/<id> hash', () => {
+    expect(titleAfterCloseMap('/', '#view/lgd_states', HOME)).toBe(HOME);
+  });
+  it('returns null when no close trigger fired (caller leaves title alone)', () => {
+    expect(titleAfterCloseMap('/', '', HOME)).toBeNull();
+    expect(titleAfterCloseMap('/about', '', HOME)).toBeNull();
+    expect(titleAfterCloseMap('/preview', '', HOME)).toBeNull();
   });
 });
 
