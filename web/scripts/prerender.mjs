@@ -259,12 +259,20 @@ function expandAliases(text) {
 }
 
 // Available download formats as a space-joined haystack token list.
+// Reflects what the catalog card actually advertises so search ("kml",
+// "shapefile") surfaces cards that ship those formats directly.
 function formatTokens(layer) {
   const t = [];
   if (layer.parquet?.url) t.push('parquet');
   if (layer.pmtiles?.url) t.push('pmtiles', 'vector tiles');
   if (layer.geojson?.url) t.push('geojson');
-  if (layer.parquet?.url) t.push('kml', 'geojson'); // derived in-browser
+  if (layer.kml?.url) t.push('kml', 'google earth');
+  if (layer.shapefile?.url) t.push('shapefile', 'shp', 'qgis');
+  // Viewer offers in-browser conversion for any parquet layer too —
+  // surface 'kml'/'geojson' even when not baked, so search-by-format
+  // doesn't hide layers whose downloads route through the viewer.
+  if (layer.parquet?.url && !layer.kml?.url) t.push('kml');
+  if (layer.parquet?.url && !layer.geojson?.url) t.push('geojson');
   return t.join(' ');
 }
 
@@ -292,6 +300,8 @@ function downloadLinks(layer) {
   if (layer.parquet?.url) items.push({ fmt: 'parquet', url: dlUrl(layer.parquet.url, 'parquet'), size: layer.parquet.bytes, count: countFor(layer, 'parquet') });
   if (layer.pmtiles?.url) items.push({ fmt: 'pmtiles', url: dlUrl(layer.pmtiles.url, 'pmtiles'), size: layer.pmtiles.bytes, count: countFor(layer, 'pmtiles') });
   if (layer.geojson?.url) items.push({ fmt: 'geojson', url: dlUrl(layer.geojson.url, 'geojson'), size: layer.geojson.bytes, count: countFor(layer, 'geojson') });
+  if (layer.kml?.url) items.push({ fmt: 'kml', url: dlUrl(layer.kml.url, 'kml'), size: layer.kml.bytes, count: countFor(layer, 'kml') });
+  if (layer.shapefile?.url) items.push({ fmt: 'shp', url: dlUrl(layer.shapefile.url, 'shapefile'), size: layer.shapefile.bytes, count: countFor(layer, 'shapefile') });
   return items;
 }
 
@@ -347,8 +357,14 @@ function renderRow(level, layersForLevel, opts = {}) {
 
   const lic = primary.licence ? `<span class="lic"><code>${esc(primary.licence)}</code></span>` : '';
 
+  // Viewer-hint message adapts to what's already on the card:
+  // - If geojson/kml/shp are baked whole-layer, the hint is just about state slicing.
+  // - Otherwise it still advertises the in-viewer instant-convert path.
+  const hasBakedDerivative = !!(primary.geojson?.url || primary.kml?.url || primary.shapefile?.url);
   const viewerHint = filterable
-    ? `<p class="row__viewer-hint">↳ Inside the viewer: slice by state · instant download as <strong>GeoJSON</strong> (QGIS, web) or <strong>KML</strong> (Google Earth & Maps)</p>`
+    ? (hasBakedDerivative
+      ? `<p class="row__viewer-hint">↳ Inside the viewer: slice by state for a single-state subset (full-layer downloads above are India-wide)</p>`
+      : `<p class="row__viewer-hint">↳ Inside the viewer: slice by state · instant download as <strong>GeoJSON</strong> (QGIS, web) or <strong>KML</strong> (Google Earth & Maps)</p>`)
     : '';
 
   const freshnessSpan = primary.fetched_at

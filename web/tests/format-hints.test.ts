@@ -16,6 +16,29 @@ describe('format-hints — availableDownloads', () => {
     expect(out.map((d) => d.fmt)).toEqual(['parquet', 'pmtiles', 'geojson']);
   });
 
+  it('surfaces baked kml + shapefile when present, in stable order after geojson', () => {
+    const layer = {
+      shapefile: { url: 's.shp.zip', bytes: 4 },
+      kml: { url: 'k.kml', bytes: 5 },
+      parquet: { url: 'p.parquet', bytes: 1 },
+      pmtiles: { url: 't.pmtiles', bytes: 2 },
+      geojson: { url: 'g.json', bytes: 3 },
+    };
+    const out = availableDownloads(layer);
+    expect(out.map((d) => d.fmt)).toEqual(['parquet', 'pmtiles', 'geojson', 'kml', 'shapefile']);
+  });
+
+  it('omits kml + shapefile when not baked (null) — bake-not-yet-run is graceful', () => {
+    const layer = {
+      parquet: { url: 'p', bytes: 1 },
+      pmtiles: { url: 't', bytes: 2 },
+      kml: null,
+      shapefile: null,
+    };
+    const out = availableDownloads(layer);
+    expect(out.map((d) => d.fmt)).toEqual(['parquet', 'pmtiles']);
+  });
+
   it('preserves bytes (including null) and url verbatim', () => {
     const out = availableDownloads({
       parquet: { url: 'https://r2/x.parquet', bytes: null },
@@ -54,6 +77,7 @@ describe('format-hints — labels + hints', () => {
     expect(formatLabel('pmtiles')).toBe('PMTiles');
     expect(formatLabel('geojson')).toBe('GeoJSON');
     expect(formatLabel('kml')).toBe('KML');
+    expect(formatLabel('shapefile')).toBe('Shapefile');
   });
 
   it('hints mention the canonical use case', () => {
@@ -61,6 +85,7 @@ describe('format-hints — labels + hints', () => {
     expect(formatHint('pmtiles')).toMatch(/vector tiles|MapLibre/);
     expect(formatHint('geojson')).toMatch(/QGIS|web|Earth/);
     expect(formatHint('kml')).toMatch(/Google Earth/);
+    expect(formatHint('shapefile')).toMatch(/QGIS|ArcGIS|\.shp/);
   });
 });
 

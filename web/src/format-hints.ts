@@ -1,7 +1,7 @@
 // Per-format download metadata for the map-view download menu.
 // Pure: no DOM, no DuckDB. Consumed by map.ts to build the popover.
 
-export type DownloadFormat = 'parquet' | 'pmtiles' | 'geojson' | 'kml';
+export type DownloadFormat = 'parquet' | 'pmtiles' | 'geojson' | 'kml' | 'shapefile';
 
 export type DownloadEntry = {
   fmt: DownloadFormat;
@@ -15,13 +15,16 @@ type LayerLike = {
   parquet?: { url: string; bytes: number | null } | null;
   pmtiles?: { url: string; bytes: number | null } | null;
   geojson?: { url: string; bytes: number | null } | null;
+  kml?: { url: string; bytes: number | null } | null;
+  shapefile?: { url: string; bytes: number | null } | null;
 };
 
 const HINTS: Record<DownloadFormat, { label: string; hint: string }> = {
-  parquet: { label: 'Parquet', hint: 'analytics · DuckDB, pandas, R' },
-  pmtiles: { label: 'PMTiles', hint: 'vector tiles · MapLibre, web maps' },
-  geojson: { label: 'GeoJSON', hint: 'web maps, QGIS, Earth' },
-  kml:     { label: 'KML',     hint: 'Google Earth, Google My Maps' },
+  parquet:   { label: 'Parquet',   hint: 'analytics · DuckDB, pandas, R' },
+  pmtiles:   { label: 'PMTiles',   hint: 'vector tiles · MapLibre, web maps' },
+  geojson:   { label: 'GeoJSON',   hint: 'web maps, QGIS, Earth' },
+  kml:       { label: 'KML',       hint: 'Google Earth, Google My Maps' },
+  shapefile: { label: 'Shapefile', hint: 'QGIS, ArcGIS · .shp + .dbf + .shx zipped' },
 };
 
 export function formatLabel(fmt: DownloadFormat): string {
@@ -42,6 +45,12 @@ export function availableDownloads(layer: LayerLike): DownloadEntry[] {
   }
   if (layer.geojson?.url) {
     out.push({ fmt: 'geojson', ...HINTS.geojson, url: layer.geojson.url, bytes: layer.geojson.bytes });
+  }
+  if (layer.kml?.url) {
+    out.push({ fmt: 'kml', ...HINTS.kml, url: layer.kml.url, bytes: layer.kml.bytes });
+  }
+  if (layer.shapefile?.url) {
+    out.push({ fmt: 'shapefile', ...HINTS.shapefile, url: layer.shapefile.url, bytes: layer.shapefile.bytes });
   }
   return out;
 }
