@@ -40,26 +40,33 @@
   Cache-Control: public, max-age=604800, stale-while-revalidate=86400
 
 # HTML — edge-cache with stale-while-revalidate. Earlier we had
-# max-age=0, must-revalidate which forced every HTML hit to origin
-# (TTFB ~1 s; cf-cache-status: DYNAMIC). Vite's hashed asset filenames
-# are immutable, so a stale HTML pointing at an old hash still works —
-# the must-revalidate was over-cautious.
+# max-age=0, must-revalidate which forced every HTML hit to origin.
 #
-# Policy: browser caches 1 min, edge caches 5 min, edge serves stale for
-# up to a day while async-revalidating. Hourly cron + per-submission
-# rebuild trigger means catalog changes propagate within ~5 min worst
-# case (cron rebuild + cache expiry). Repeat visits get ~30 ms TTFB
-# instead of ~1 s.
+# Cache-Control governs the browser. CDN-Cache-Control is required for
+# Cloudflare to actually edge-cache HTML — without it, Pages serves
+# HTML as cf-cache-status: DYNAMIC regardless of standard Cache-Control
+# (a CF Pages opinion: HTML is treated as dynamic by default).
+#
+# Policy: browser 1 min, edge 5 min, edge serves stale up to a day
+# while async-revalidating. Hourly cron + per-submission rebuild trigger
+# means catalog changes propagate within ~5 min worst case. Repeat
+# visits get ~30 ms TTFB instead of ~1 s.
 /
   Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 /index.html
   Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 /about
   Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 /preview
   Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 # Legal pages — edits are rare and can wait a day to propagate.
 /privacy
   Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=86400, stale-while-revalidate=86400
 /terms
   Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=86400, stale-while-revalidate=86400
