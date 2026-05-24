@@ -126,8 +126,8 @@ function seoHead(o) {
 const LEVEL_META = {
   country: {
     label: 'India national boundary',
-    unit: 'boundary segments',
-    description: "The India-correct national outline. Same line the Bharatlas Minimal basemap renders — India's claim, with the de facto convention lines that India rejects filtered out. Hand-curated by the osm-in community from OpenStreetMap.",
+    unit: 'country (MultiPolygon)',
+    description: "India's national boundary as a single MultiPolygon. Derived by dissolving the 36 LGD state and UT polygons, so it's India-correct by construction (Aksai Chin via J&K/Ladakh, full Arunachal Pradesh claim).",
   },
   state: {
     label: 'States',
