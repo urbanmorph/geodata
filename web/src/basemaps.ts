@@ -31,7 +31,7 @@
 
 import type { SourceSpecification, LayerSpecification } from 'maplibre-gl';
 
-export type BasemapId = 'minimal' | 'positron';
+export type BasemapId = 'minimal' | 'positron' | 'opentopo' | 'satellite';
 
 export type Basemap = {
   id: BasemapId;
@@ -51,6 +51,12 @@ const CARTO_ATTRIB =
 
 const OSM_IN_ATTRIB =
   'India boundary: <a href="https://github.com/osm-in/mapbox-gl-styles" target="_blank" rel="noopener">osm-in</a> · © OpenStreetMap contributors (ODbL)';
+
+const OPENTOPOMAP_ATTRIB =
+  'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
+
+const ESRI_IMAGERY_ATTRIB =
+  'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
 
 export const BASEMAPS: Basemap[] = [
   {
@@ -135,6 +141,65 @@ export const BASEMAPS: Basemap[] = [
         id: 'positron-base',
         type: 'raster',
         source: 'positron-tiles',
+      },
+    ],
+  },
+  {
+    id: 'opentopo',
+    name: 'OpenTopoMap',
+    hint: 'topographic relief · international labels (state lines overlaid via LGD)',
+    sources: {
+      // OpenTopoMap is a community-hosted OSM-derived topographic style with
+      // hypsometric tints + contour lines + relief shading. No API key. CC-BY-SA.
+      // Their usage policy asks for restraint at scale; bharatlas's alpha
+      // volume is well within their politely-asked-for limits. If we scale up
+      // significantly we'd need to either self-host or move to a paid tier
+      // (e.g. Thunderforest, Stadia, MapTiler).
+      'opentopo-tiles': {
+        type: 'raster',
+        tiles: [
+          'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+          'https://b.tile.opentopomap.org/{z}/{x}/{y}.png',
+          'https://c.tile.opentopomap.org/{z}/{x}/{y}.png',
+        ],
+        tileSize: 256,
+        maxzoom: 17,
+        attribution: OPENTOPOMAP_ATTRIB,
+      },
+    },
+    layers: [
+      {
+        id: 'opentopo-base',
+        type: 'raster',
+        source: 'opentopo-tiles',
+      },
+    ],
+  },
+  {
+    id: 'satellite',
+    name: 'Esri Imagery',
+    hint: 'global satellite · India state lines overlaid via LGD',
+    sources: {
+      // Esri's World Imagery service — JPEG tiles, no API key required for
+      // public web use, attribution required. Important: Esri's REST tile
+      // service uses {z}/{y}/{x} ordering, not OSM's {z}/{x}/{y}. MapLibre
+      // substitutes placeholders verbatim, so the URL template must reflect
+      // the actual server's ordering — see basemaps.test.ts for the guard.
+      'satellite-tiles': {
+        type: 'raster',
+        tiles: [
+          'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: ESRI_IMAGERY_ATTRIB,
+      },
+    },
+    layers: [
+      {
+        id: 'satellite-base',
+        type: 'raster',
+        source: 'satellite-tiles',
       },
     ],
   },

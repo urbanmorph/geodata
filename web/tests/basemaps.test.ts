@@ -19,11 +19,47 @@ class MockStorage implements Storage {
 }
 
 describe('basemaps — registry', () => {
-  it('exposes minimal (default) + Carto Light opt-in', () => {
-    expect(BASEMAPS.length).toBeGreaterThanOrEqual(2);
+  it('exposes minimal (default) + Carto Light + OpenTopoMap + satellite', () => {
+    expect(BASEMAPS.length).toBeGreaterThanOrEqual(4);
     const ids = BASEMAPS.map((b) => b.id);
     expect(ids).toContain('minimal');
     expect(ids).toContain('positron');
+    expect(ids).toContain('opentopo');
+    expect(ids).toContain('satellite');
+  });
+
+  it('opentopo uses OpenTopoMap community tiles (no API key, CC-BY-SA)', () => {
+    const ot = BASEMAPS.find((b) => b.id === 'opentopo');
+    expect(ot).toBeTruthy();
+    for (const src of Object.values(ot!.sources)) {
+      const tiles = (src as { tiles?: string[] }).tiles || [];
+      expect(tiles.length).toBeGreaterThan(0);
+      for (const t of tiles) {
+        expect(t).toMatch(/^https:\/\//);
+        expect(t).toContain('opentopomap.org');
+      }
+      const attr = String((src as { attribution?: string }).attribution || '');
+      expect(attr.toLowerCase()).toContain('opentopomap');
+      expect(attr.toLowerCase()).toContain('openstreetmap');
+    }
+  });
+
+  it('satellite uses Esri World Imagery (no API key, public web use)', () => {
+    const sat = BASEMAPS.find((b) => b.id === 'satellite');
+    expect(sat).toBeTruthy();
+    for (const src of Object.values(sat!.sources)) {
+      const tiles = (src as { tiles?: string[] }).tiles || [];
+      expect(tiles.length).toBeGreaterThan(0);
+      for (const t of tiles) {
+        expect(t).toMatch(/^https:\/\//);
+        expect(t).toContain('arcgisonline.com');
+        // ESRI REST endpoint uses {z}/{y}/{x} ordering, not the OSM {z}/{x}/{y}.
+        // MapLibre substitutes placeholders verbatim; the template MUST match.
+        expect(t).toContain('{z}/{y}/{x}');
+      }
+      const attr = String((src as { attribution?: string }).attribution || '');
+      expect(attr.toLowerCase()).toContain('esri');
+    }
   });
 
   it('every entry has a unique id, name, hint, and non-empty sources + layers', () => {
