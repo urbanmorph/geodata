@@ -412,7 +412,7 @@ function renderRow(level, layersForLevel, opts = {}) {
         <details class="row__details">
           <summary class="row__summary">
             <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}</span>
-            <span class="row__source" title="${esc(primary.source)}">${esc(primary.source)}</span>
+            <span class="row__source" title="${esc(primary.attribution?.primary?.name || primary.source)}">${esc(primary.source)}</span>
             <span class="row__count">${countDisplay}</span>
           </summary>
           <div class="row__expand">
