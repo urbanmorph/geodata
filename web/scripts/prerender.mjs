@@ -190,6 +190,41 @@ const LEVEL_META = {
     unit: 'eco-sensitive zones',
     description: 'MoEFCC-notified eco-sensitive zones around protected areas. Via Bharatmaps Parivesh.',
   },
+  forest: {
+    label: 'Forest boundaries',
+    unit: 'forest polygons',
+    description: 'Reserved + protected + unclassed forest boundary polygons from Survey of India topographic maps.',
+  },
+  ramsar: {
+    label: 'Ramsar wetlands',
+    unit: 'Ramsar sites',
+    description: "India's wetland sites of international importance under the Ramsar Convention. Sourced via Bharatmaps Parivesh.",
+  },
+  wetland: {
+    label: 'Wetland boundaries',
+    unit: 'wetlands',
+    description: 'All wetland polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh.',
+  },
+  river_basin: {
+    label: 'River basins',
+    unit: 'major river basins',
+    description: "India's major river basin polygons from the Central Water Commission's Water Resources Information System (WRIS).",
+  },
+  river_subbasin: {
+    label: 'River sub-basins',
+    unit: 'sub-basins',
+    description: 'One tier finer than basins. Use for catchment-scale water-resources analysis. From CWC WRIS.',
+  },
+  river: {
+    label: 'Rivers + streams',
+    unit: 'river segments',
+    description: "India's river network as line geometry. Streams + rivers + tributaries from CWC WRIS.",
+  },
+  flood_event: {
+    label: 'Historical flood polygons',
+    unit: 'flood events',
+    description: '1,006 historical flood event polygons across India from the 1960s to 2020. Compiled for hydrological modelling; useful as a climate-adaptation reference layer.',
+  },
 };
 // Hardcoded display order for built-in levels — externally ingested layers
 // are appended via merge() below, in catalog.level_order sequence.
@@ -198,7 +233,10 @@ const BUILTIN_LEVEL_ORDER = [
   'state', 'district', 'subdistrict', 'block', 'panchayat', 'village',
   'parliament_constituency', 'assembly_constituency',
   'pincode',
-  'wildlife', 'eco_zone',
+  'wildlife', 'eco_zone', 'forest',
+  'ramsar', 'wetland',
+  'river_basin', 'river_subbasin', 'river',
+  'flood_event',
 ];
 
 // Merge externally-ingested level metadata + order from catalog.json.

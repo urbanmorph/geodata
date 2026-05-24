@@ -38,8 +38,15 @@ LEVELS = {
     'pincode':                {'order': 20, 'plural': 'pin codes',                              'path': 'postal/boundaries',     'category': 'infrastructure'},
 
     # Environment
-    'wildlife':               {'order': 30, 'plural': 'wildlife sanctuaries + national parks',  'path': 'environment/forests',   'category': 'environment'},
-    'eco_zone':               {'order': 31, 'plural': 'eco-sensitive zones',                    'path': 'environment/forests',   'category': 'environment'},
+    'wildlife':               {'order': 30, 'plural': 'wildlife sanctuaries + national parks',  'path': 'environment/forests',         'category': 'environment'},
+    'eco_zone':               {'order': 31, 'plural': 'eco-sensitive zones',                    'path': 'environment/forests',         'category': 'environment'},
+    'forest':                 {'order': 32, 'plural': 'forest boundaries',                      'path': 'environment/forests',         'category': 'environment'},
+    'ramsar':                 {'order': 33, 'plural': 'ramsar wetlands',                        'path': 'water/wetlands',              'category': 'environment'},
+    'wetland':                {'order': 34, 'plural': 'wetland boundaries',                    'path': 'water/wetlands',              'category': 'environment'},
+    'river_basin':            {'order': 35, 'plural': 'river basins',                           'path': 'water/hydro-boundaries',      'category': 'environment'},
+    'river_subbasin':         {'order': 36, 'plural': 'river sub-basins',                       'path': 'water/hydro-boundaries',      'category': 'environment'},
+    'river':                  {'order': 37, 'plural': 'rivers + streams',                       'path': 'water/rivers',                'category': 'environment'},
+    'flood_event':            {'order': 38, 'plural': 'historical flood polygons',              'path': 'environment/flood-inventory', 'category': 'environment'},
 
     # Reference layers — base assets used across the platform AND useful
     # standalone (national outline, etc.).
@@ -66,6 +73,8 @@ ATTR = {
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
     'bharatviz':     {'name': 'bharatviz (Saket Choudhary)',  'url': 'https://bharatviz.org/'},
     'osm-in':        {'name': 'osm-in (community)',           'url': 'https://github.com/osm-in/mapbox-gl-styles'},
+    'CWC':           {'name': 'Central Water Commission (WRIS)', 'url': 'https://cwc.gov.in/en/water-resources-information-system-wris'},
+    'IndiaFloodInventory': {'name': 'India Flood Inventory v3', 'url': 'https://github.com/yashveeeeeeer/india-geodata/releases/tag/environment/flood-inventory'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
@@ -76,7 +85,7 @@ PUBLISHER = {
 # release archive (so PUBLISHER + UPSTREAM_BASE apply). Other curated sources
 # (bharatviz, etc.) are pulled direct from origin — their entries should not
 # carry the yashveer attribution or upstream_url.
-YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps'}
+YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps', 'CWC', 'IndiaFloodInventory'}
 
 # Where to re-fetch each upstream file from. Path under the release base URL.
 # Kept here so the source registry travels with the catalog and a single
@@ -123,14 +132,24 @@ LAYERS = [
 
     # Electoral
     ('lgd_parliament',     'parliament_constituency', 'LGD', 'LGD_Parliament_Constituencies.parquet', 'LGD_Parliament_Constituencies.pmtiles', 543,  LIC_BELOW, 'Lok Sabha constituencies — 543 polygons covering the entire country. Latest delimitation.'),
-    ('lgd_assembly',       'assembly_constituency',   'LGD', 'LGD_Assembly_Constituencies.parquet',   'LGD_Assembly_Constituencies.pmtiles',   None, LIC_BELOW, 'State legislative assembly constituencies. Polygons keyed by ST_CODE.'),
+    ('lgd_assembly',       'assembly_constituency',   'LGD', 'LGD_Assembly_Constituencies.parquet',   'LGD_Assembly_Constituencies.pmtiles',   4177, LIC_BELOW, 'State legislative assembly constituencies. Polygons keyed by ST_CODE.'),
 
     # Postal
     ('bharatviz_pincodes', 'pincode',     'bharatviz', 'bharatviz_pincodes.parquet', 'bharatviz_pincodes.pmtiles',  63864,   'MIT',          'India Post pincode boundary polygons (simplified). 63,864 polygons. © 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.'),
 
     # Environment
-    ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', None, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
-    ('bm_eco_zones',       'eco_zone',    'Bharatmaps', 'Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet',           'Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles',           None, LIC_BELOW, 'Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps.'),
+    ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', 665, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
+    ('bm_eco_zones',       'eco_zone',    'Bharatmaps', 'Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet',           'Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles',           249, LIC_BELOW, 'Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps.'),
+
+    # Environment + water (added 2026-05): Ramsar sites, full wetland inventory,
+    # river basins, sub-basins, river network, SOI forests. All yashveer-hosted
+    # under CC0; same fetch/upload/bake pipeline as the curated admin layers.
+    ('soi_forests',        'forest',         'SOI',        'SOI_Forests.parquet',                                'SOI_Forests.pmtiles',                                57963,  LIC_BELOW, 'Forest boundary polygons from Survey of India topographic maps. Includes reserved + protected + unclassed forests.'),
+    ('bp_ramsar',          'ramsar',         'Bharatmaps', 'Bharatmaps_Parivesh_Ramsar_Wetlands.parquet',        'Bharatmaps_Parivesh_Ramsar_Wetlands.pmtiles',        99,     LIC_BELOW, "India's Ramsar Convention wetland sites of international importance, sourced via Bharatmaps Parivesh."),
+    ('bp_wetlands',        'wetland',        'Bharatmaps', 'Bharatmaps_Parivesh_Wetland_Boundaries.parquet',     'Bharatmaps_Parivesh_Wetland_Boundaries.pmtiles',     207483, LIC_BELOW, 'All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh.'),
+    ('wris_basin',         'river_basin',    'CWC',        'WRIS_Basin.parquet',                                 'WRIS_Basin.pmtiles',                                 25,     LIC_BELOW, "India's major river basin polygons from the Central Water Commission Water Resources Information System (WRIS)."),
+    ('wris_subbasin',      'river_subbasin', 'CWC',        'WRIS_SubBasin.parquet',                              'WRIS_SubBasin.pmtiles',                              99,     LIC_BELOW, 'River sub-basin polygons (one tier under basins) from CWC WRIS.'),
+    ('wris_rivers',        'river',          'CWC',        'WRIS_Rivers.parquet',                                'WRIS_Rivers.pmtiles',                                30546,  LIC_BELOW, "India's river network from CWC WRIS — line geometry for streams and rivers."),
 ]
 
 
@@ -469,6 +488,37 @@ def build():
             'provenance': 'curated',
             'fetched_at': mtime_of(BAKED / ib_path / f'{ib_basename}.geojson'),
             'notes': "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source — includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim).",
+        })
+
+    # India Flood Inventory v3 — single geojson upstream (CC-BY-4.0). 1,006
+    # historical flood event polygons 1960s–2020. No parquet/pmtiles upstream;
+    # ships as geojson-only (the in-viewer DuckDB path can still load it).
+    flood_name = 'INDIA_FLOOD_INVENTORY_V3.geojson'
+    flood_local = SRC / flood_name
+    if flood_local.exists():
+        layers.append({
+            'id': 'india_flood_inventory',
+            'level': 'flood_event',
+            'source': 'IndiaFloodInventory',
+            'rows': 1006,
+            'parquet': None,
+            'pmtiles': None,
+            'geojson': {
+                'url': f'{R2}/environment/flood-inventory/{flood_name}',
+                'upstream_url': f'{UPSTREAM_BASE}/environment/flood-inventory/{flood_name}',
+                'bytes': size_of(flood_local),
+            },
+            'kml': None,
+            'shapefile': None,
+            'licence': 'CC-BY-4.0',
+            'attribution': {
+                'primary': ATTR['IndiaFloodInventory'],
+                'publisher': PUBLISHER,
+            },
+            'category': 'environment',
+            'provenance': 'curated',
+            'fetched_at': mtime_of(flood_local),
+            'notes': '1,006 historical flood event polygons across India, 1960s–2020. Compiled for hydrological modelling research; useful as a climate-adaptation reference layer.',
         })
 
     for id_, level, name, rows, notes in GEOBOUNDARIES:

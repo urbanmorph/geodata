@@ -16,7 +16,10 @@ if command -v mise >/dev/null 2>&1; then
 fi
 node --version | grep -qE '^v(2[0-9]|[3-9][0-9])' || { echo "need node >= 20"; exit 1; }
 
-WRANGLER="npx --yes wrangler@latest"
+# Prefer the already-installed wrangler on PATH (mise / homebrew / pnpm)
+# over `npx wrangler@latest`, which has hit a workerd arch mismatch on
+# this machine where the npx cache resolves the wrong platform binary.
+WRANGLER="${WRANGLER_BIN:-wrangler}"
 
 : "${CLOUDFLARE_API_TOKEN:?must be set}"
 : "${CLOUDFLARE_ACCOUNT_ID:?must be set}"

@@ -230,6 +230,22 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
       'fill-opacity': 0.22,
     },
   });
+  // Halo line under the colored line. Provides contrast on busy basemaps
+  // (satellite, topo) where the 1-px blue stroke would otherwise vanish
+  // against the imagery. ~2.5x wider than the colored line so a white ring
+  // shows on each side; opacity dialed so it reads as a soft halo on light
+  // backgrounds and a crisp outline on dark ones.
+  map.addLayer({
+    id: 'line-halo',
+    type: 'line',
+    source: sourceId,
+    ...common,
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 10, 3.5],
+      'line-opacity': 0.75,
+    },
+  });
   map.addLayer({
     id: 'line',
     type: 'line',
@@ -609,7 +625,7 @@ function applyActiveFilters(
   },
 ): void {
   if (!map) return;
-  for (const id of ['fill', 'line']) {
+  for (const id of ['fill', 'line-halo', 'line']) {
     if (map.getLayer(id)) {
       map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
     }
