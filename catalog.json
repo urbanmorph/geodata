@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-23T17:27:13.641685+00:00",
+  "generated": "2026-05-24T11:39:01.980683+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -69,6 +69,12 @@
       "plural": "eco-sensitive zones",
       "path": "environment/forests",
       "category": "environment"
+    },
+    "country": {
+      "order": 0,
+      "plural": "national boundary",
+      "path": "reference",
+      "category": "administrative"
     },
     "wards_bengaluru_gba": {
       "order": 100,
@@ -326,6 +332,7 @@
     }
   },
   "level_order": [
+    "country",
     "state",
     "district",
     "subdistrict",
@@ -372,6 +379,18 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/LGD_States.pmtiles",
         "bytes": 3520986
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.geojson",
+        "bytes": 27090105
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.kml",
+        "bytes": 21332062
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.shp.zip",
+        "bytes": 11708294
+      },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -402,6 +421,18 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/SOI_States.pmtiles",
         "bytes": 4826221
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.geojson",
+        "bytes": 39878398
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.kml",
+        "bytes": 31350335
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.shp.zip",
+        "bytes": 17015261
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
@@ -434,6 +465,18 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/bhuvan_states.pmtiles",
         "bytes": 1147038
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.geojson",
+        "bytes": 9010254
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.kml",
+        "bytes": 7112837
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.shp.zip",
+        "bytes": 3044423
+      },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -464,6 +507,18 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/LGD_Districts.pmtiles",
         "bytes": 12690364
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.geojson",
+        "bytes": 93092856
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.kml",
+        "bytes": 73569503
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.shp.zip",
+        "bytes": 39338901
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
@@ -496,6 +551,18 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/SOI_Districts.pmtiles",
         "bytes": 10128284
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.geojson",
+        "bytes": 119591773
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.kml",
+        "bytes": 94101930
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.shp.zip",
+        "bytes": 50435919
+      },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -526,6 +593,18 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/bhuvan_districts.pmtiles",
         "bytes": 15114633
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.geojson",
+        "bytes": 149348180
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.kml",
+        "bytes": 117297556
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.shp.zip",
+        "bytes": 62679401
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
@@ -558,6 +637,18 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/LGD_Subdistricts.pmtiles",
         "bytes": 34118385
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.geojson",
+        "bytes": 283078106
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.kml",
+        "bytes": 226005997
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.shp.zip",
+        "bytes": 111154611
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -588,6 +679,18 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/SOI_Subdistricts.pmtiles",
         "bytes": 22449178
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.geojson",
+        "bytes": 243256283
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.kml",
+        "bytes": 192534914
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.shp.zip",
+        "bytes": 97183541
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -620,6 +723,18 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/LGD_Blocks.pmtiles",
         "bytes": 36758638
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.geojson",
+        "bytes": 298296371
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.kml",
+        "bytes": 238304358
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.shp.zip",
+        "bytes": 116432767
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -651,6 +766,15 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/bhuvan_blocks.pmtiles",
         "bytes": 39341155
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.geojson",
+        "bytes": 417864960
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.kml",
+        "bytes": 329636203
+      },
+      "shapefile": null,
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -682,6 +806,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/PMGSY_Blocks.pmtiles",
         "bytes": 37787333
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -713,6 +840,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/panchayats/LGD_Panchayats.pmtiles",
         "bytes": 189994168
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -744,6 +874,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/LGD_Villages.pmtiles",
         "bytes": 269837981
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -774,6 +907,18 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/SOI_VILLAGE_POINT.pmtiles",
         "bytes": 60575972
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.geojson",
+        "bytes": 308893668
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.kml",
+        "bytes": 544952254
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.shp.zip",
+        "bytes": 32722739
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -806,6 +951,18 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Parliament_Constituencies.pmtiles",
         "bytes": 10788391
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.geojson",
+        "bytes": 89088511
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.kml",
+        "bytes": 70142905
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.shp.zip",
+        "bytes": 38264817
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -836,6 +993,18 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Assembly_Constituencies.pmtiles",
         "bytes": 24419884
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.geojson",
+        "bytes": 169311020
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.kml",
+        "bytes": 135638842
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.shp.zip",
+        "bytes": 67986277
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -868,6 +1037,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/bharatviz_pincodes.pmtiles",
         "bytes": 2362790
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "MIT",
       "attribution": {
         "primary": {
@@ -896,6 +1068,15 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles",
         "bytes": 9352459
       },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.geojson",
+        "bytes": 48629227
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.kml",
+        "bytes": 36977513
+      },
+      "shapefile": null,
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -926,6 +1107,18 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles",
         "bytes": 1102704
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.geojson",
+        "bytes": 6314281
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.kml",
+        "bytes": 5147332
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.shp.zip",
+        "bytes": 2699638
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -958,6 +1151,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles",
         "bytes": 789655
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -986,6 +1182,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/corporation-bengaluru/corporation_bengaluru.pmtiles",
         "bytes": 20745
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1014,6 +1213,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.pmtiles",
         "bytes": 256845
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1042,6 +1244,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-jurisdiction/bda_jurisdiction.pmtiles",
         "bytes": 905
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1070,6 +1275,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-layouts/bda_layouts.pmtiles",
         "bytes": 83377
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1098,6 +1306,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chennai/wards_chennai.pmtiles",
         "bytes": 214930
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1126,6 +1337,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-hyderabad/wards_hyderabad.pmtiles",
         "bytes": 50706
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1154,6 +1368,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mumbai/wards_mumbai.pmtiles",
         "bytes": 85246
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1182,6 +1399,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.pmtiles",
         "bytes": 290460
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1210,6 +1430,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kolkata/wards_kolkata.pmtiles",
         "bytes": 122240
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1238,6 +1461,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pune/wards_pune.pmtiles",
         "bytes": 52045
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1266,6 +1492,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-ahmedabad/wards_ahmedabad.pmtiles",
         "bytes": 38253
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1294,6 +1523,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-jaipur/wards_jaipur.pmtiles",
         "bytes": 55708
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1322,6 +1554,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-gurugram/wards_gurugram.pmtiles",
         "bytes": 23148
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1350,6 +1585,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kochi/wards_kochi.pmtiles",
         "bytes": 77451
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1378,6 +1616,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhubaneshwar/wards_bhubaneshwar.pmtiles",
         "bytes": 268512
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1406,6 +1647,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vizag/wards_vizag.pmtiles",
         "bytes": 96542
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1434,6 +1678,9 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-thane/wards_thane.pmtiles",
         "bytes": 46219
       },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -1446,6 +1693,38 @@
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Thane Municipal Corporation \u2014 47 wards across the city."
+    },
+    {
+      "id": "india_boundary",
+      "level": "country",
+      "source": "osm-in",
+      "rows": null,
+      "parquet": null,
+      "pmtiles": null,
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson",
+        "bytes": 56260
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.kml",
+        "bytes": 47504
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.shp.zip",
+        "bytes": 16163
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "osm-in (community)",
+          "url": "https://github.com/osm-in/mapbox-gl-styles"
+        },
+        "publisher": null
+      },
+      "category": "administrative",
+      "provenance": "curated",
+      "fetched_at": "2026-05-24T11:37:55.350517+00:00",
+      "notes": "Hand-curated by the osm-in community from OpenStreetMap data. India's claim \u2014 disputed-by-IN lines filtered out."
     },
     {
       "id": "gb_adm1",
@@ -4111,50 +4390,6 @@
           "max": 36,
           "top_values": [
             {
-              "v": 15,
-              "n": 1
-            },
-            {
-              "v": 20,
-              "n": 1
-            },
-            {
-              "v": 3,
-              "n": 1
-            },
-            {
-              "v": 4,
-              "n": 1
-            },
-            {
-              "v": 29,
-              "n": 1
-            },
-            {
-              "v": 14,
-              "n": 1
-            },
-            {
-              "v": 28,
-              "n": 1
-            },
-            {
-              "v": 25,
-              "n": 1
-            },
-            {
-              "v": 10,
-              "n": 1
-            },
-            {
-              "v": 33,
-              "n": 1
-            },
-            {
-              "v": 21,
-              "n": 1
-            },
-            {
               "v": 16,
               "n": 1
             },
@@ -4164,34 +4399,6 @@
             },
             {
               "v": 17,
-              "n": 1
-            },
-            {
-              "v": 34,
-              "n": 1
-            },
-            {
-              "v": 18,
-              "n": 1
-            },
-            {
-              "v": 22,
-              "n": 1
-            },
-            {
-              "v": 1,
-              "n": 1
-            },
-            {
-              "v": 12,
-              "n": 1
-            },
-            {
-              "v": 6,
-              "n": 1
-            },
-            {
-              "v": 36,
               "n": 1
             },
             {
@@ -4211,27 +4418,35 @@
               "n": 1
             },
             {
-              "v": 11,
+              "v": 34,
               "n": 1
             },
             {
-              "v": 7,
+              "v": 6,
               "n": 1
             },
             {
-              "v": 9,
+              "v": 36,
               "n": 1
             },
             {
-              "v": 5,
+              "v": 3,
               "n": 1
             },
             {
-              "v": 35,
+              "v": 4,
               "n": 1
             },
             {
-              "v": 24,
+              "v": 25,
+              "n": 1
+            },
+            {
+              "v": 10,
+              "n": 1
+            },
+            {
+              "v": 33,
               "n": 1
             },
             {
@@ -4253,6 +4468,70 @@
             {
               "v": 23,
               "n": 1
+            },
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 18,
+              "n": 1
+            },
+            {
+              "v": 22,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 21,
+              "n": 1
+            },
+            {
+              "v": 12,
+              "n": 1
+            },
+            {
+              "v": 29,
+              "n": 1
+            },
+            {
+              "v": 14,
+              "n": 1
+            },
+            {
+              "v": 28,
+              "n": 1
+            },
+            {
+              "v": 15,
+              "n": 1
+            },
+            {
+              "v": 20,
+              "n": 1
+            },
+            {
+              "v": 35,
+              "n": 1
+            },
+            {
+              "v": 24,
+              "n": 1
             }
           ]
         },
@@ -4265,23 +4544,31 @@
           "max": "WEST BENGAL",
           "top_values": [
             {
+              "v": "RAJASTHAN",
+              "n": 1
+            },
+            {
+              "v": "CHANDIGARH",
+              "n": 1
+            },
+            {
               "v": "WEST BENGAL",
               "n": 1
             },
             {
-              "v": "KERALA",
+              "v": "LAKSHADWEEP",
               "n": 1
             },
             {
-              "v": "MAHARASHTRA",
+              "v": "GUJARAT",
               "n": 1
             },
             {
-              "v": "DELHI",
+              "v": "HARYANA",
               "n": 1
             },
             {
-              "v": "MADHYA PRADESH",
+              "v": "ANDAMAN & NICOBAR",
               "n": 1
             },
             {
@@ -4313,6 +4600,14 @@
               "n": 1
             },
             {
+              "v": "KERALA",
+              "n": 1
+            },
+            {
+              "v": "MAHARASHTRA",
+              "n": 1
+            },
+            {
               "v": "TELANGANA",
               "n": 1
             },
@@ -4325,51 +4620,15 @@
               "n": 1
             },
             {
-              "v": "ODISHA",
-              "n": 1
-            },
-            {
-              "v": "ARUNACHAL PRADESH",
-              "n": 1
-            },
-            {
-              "v": "RAJASTHAN",
-              "n": 1
-            },
-            {
-              "v": "CHANDIGARH",
-              "n": 1
-            },
-            {
-              "v": "LAKSHADWEEP",
-              "n": 1
-            },
-            {
-              "v": "GUJARAT",
-              "n": 1
-            },
-            {
-              "v": "HARYANA",
-              "n": 1
-            },
-            {
-              "v": "ANDAMAN & NICOBAR",
-              "n": 1
-            },
-            {
-              "v": "UTTAR PRADESH",
-              "n": 1
-            },
-            {
-              "v": "MEGHALAYA",
-              "n": 1
-            },
-            {
               "v": "DADRA,NAGAR HAVELI,DAMAN & DIU",
               "n": 1
             },
             {
               "v": "MIZORAM",
+              "n": 1
+            },
+            {
+              "v": "ARUNACHAL PRADESH",
               "n": 1
             },
             {
@@ -4397,7 +4656,7 @@
               "n": 1
             },
             {
-              "v": "PUNJAB",
+              "v": "ODISHA",
               "n": 1
             },
             {
@@ -4406,6 +4665,26 @@
             },
             {
               "v": "HIMACHAL PRADESH",
+              "n": 1
+            },
+            {
+              "v": "PUNJAB",
+              "n": 1
+            },
+            {
+              "v": "DELHI",
+              "n": 1
+            },
+            {
+              "v": "MADHYA PRADESH",
+              "n": 1
+            },
+            {
+              "v": "UTTAR PRADESH",
+              "n": 1
+            },
+            {
+              "v": "MEGHALAYA",
               "n": 1
             }
           ]
@@ -4419,91 +4698,7 @@
           "max": "39",
           "top_values": [
             {
-              "v": "20",
-              "n": 1
-            },
-            {
-              "v": "15",
-              "n": 1
-            },
-            {
-              "v": "04",
-              "n": 1
-            },
-            {
-              "v": "06",
-              "n": 1
-            },
-            {
-              "v": "12",
-              "n": 1
-            },
-            {
-              "v": "31",
-              "n": 1
-            },
-            {
-              "v": "27",
-              "n": 1
-            },
-            {
-              "v": "30",
-              "n": 1
-            },
-            {
               "v": "34",
-              "n": 1
-            },
-            {
-              "v": "22",
-              "n": 1
-            },
-            {
-              "v": "18",
-              "n": 1
-            },
-            {
-              "v": "11",
-              "n": 1
-            },
-            {
-              "v": "33",
-              "n": 1
-            },
-            {
-              "v": "10",
-              "n": 1
-            },
-            {
-              "v": "29",
-              "n": 1
-            },
-            {
-              "v": "02",
-              "n": 1
-            },
-            {
-              "v": "14",
-              "n": 1
-            },
-            {
-              "v": "32",
-              "n": 1
-            },
-            {
-              "v": "38",
-              "n": 1
-            },
-            {
-              "v": "23",
-              "n": 1
-            },
-            {
-              "v": "19",
-              "n": 1
-            },
-            {
-              "v": "13",
               "n": 1
             },
             {
@@ -4539,18 +4734,6 @@
               "n": 1
             },
             {
-              "v": "01",
-              "n": 1
-            },
-            {
-              "v": "05",
-              "n": 1
-            },
-            {
-              "v": "21",
-              "n": 1
-            },
-            {
               "v": "37",
               "n": 1
             },
@@ -4560,6 +4743,102 @@
             },
             {
               "v": "35",
+              "n": 1
+            },
+            {
+              "v": "32",
+              "n": 1
+            },
+            {
+              "v": "38",
+              "n": 1
+            },
+            {
+              "v": "23",
+              "n": 1
+            },
+            {
+              "v": "19",
+              "n": 1
+            },
+            {
+              "v": "13",
+              "n": 1
+            },
+            {
+              "v": "20",
+              "n": 1
+            },
+            {
+              "v": "15",
+              "n": 1
+            },
+            {
+              "v": "11",
+              "n": 1
+            },
+            {
+              "v": "31",
+              "n": 1
+            },
+            {
+              "v": "27",
+              "n": 1
+            },
+            {
+              "v": "30",
+              "n": 1
+            },
+            {
+              "v": "22",
+              "n": 1
+            },
+            {
+              "v": "18",
+              "n": 1
+            },
+            {
+              "v": "33",
+              "n": 1
+            },
+            {
+              "v": "10",
+              "n": 1
+            },
+            {
+              "v": "29",
+              "n": 1
+            },
+            {
+              "v": "02",
+              "n": 1
+            },
+            {
+              "v": "14",
+              "n": 1
+            },
+            {
+              "v": "21",
+              "n": 1
+            },
+            {
+              "v": "04",
+              "n": 1
+            },
+            {
+              "v": "06",
+              "n": 1
+            },
+            {
+              "v": "12",
+              "n": 1
+            },
+            {
+              "v": "01",
+              "n": 1
+            },
+            {
+              "v": "05",
               "n": 1
             }
           ]
@@ -4572,122 +4851,6 @@
           "min": 1,
           "max": 38,
           "top_values": [
-            {
-              "v": 34,
-              "n": 1
-            },
-            {
-              "v": 22,
-              "n": 1
-            },
-            {
-              "v": 1,
-              "n": 1
-            },
-            {
-              "v": 18,
-              "n": 1
-            },
-            {
-              "v": 24,
-              "n": 1
-            },
-            {
-              "v": 37,
-              "n": 1
-            },
-            {
-              "v": 35,
-              "n": 1
-            },
-            {
-              "v": 29,
-              "n": 1
-            },
-            {
-              "v": 28,
-              "n": 1
-            },
-            {
-              "v": 14,
-              "n": 1
-            },
-            {
-              "v": 5,
-              "n": 1
-            },
-            {
-              "v": 9,
-              "n": 1
-            },
-            {
-              "v": 7,
-              "n": 1
-            },
-            {
-              "v": 21,
-              "n": 1
-            },
-            {
-              "v": 12,
-              "n": 1
-            },
-            {
-              "v": 3,
-              "n": 1
-            },
-            {
-              "v": 4,
-              "n": 1
-            },
-            {
-              "v": 11,
-              "n": 1
-            },
-            {
-              "v": 36,
-              "n": 1
-            },
-            {
-              "v": 6,
-              "n": 1
-            },
-            {
-              "v": 8,
-              "n": 1
-            },
-            {
-              "v": 17,
-              "n": 1
-            },
-            {
-              "v": 16,
-              "n": 1
-            },
-            {
-              "v": 31,
-              "n": 1
-            },
-            {
-              "v": 27,
-              "n": 1
-            },
-            {
-              "v": 30,
-              "n": 1
-            },
-            {
-              "v": 2,
-              "n": 1
-            },
-            {
-              "v": 33,
-              "n": 1
-            },
-            {
-              "v": 10,
-              "n": 1
-            },
             {
               "v": 32,
               "n": 1
@@ -4709,11 +4872,127 @@
               "n": 1
             },
             {
+              "v": 22,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            },
+            {
+              "v": 18,
+              "n": 1
+            },
+            {
+              "v": 8,
+              "n": 1
+            },
+            {
+              "v": 17,
+              "n": 1
+            },
+            {
+              "v": 16,
+              "n": 1
+            },
+            {
+              "v": 24,
+              "n": 1
+            },
+            {
+              "v": 37,
+              "n": 1
+            },
+            {
+              "v": 35,
+              "n": 1
+            },
+            {
+              "v": 34,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 31,
+              "n": 1
+            },
+            {
+              "v": 27,
+              "n": 1
+            },
+            {
+              "v": 30,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 21,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            },
+            {
+              "v": 4,
+              "n": 1
+            },
+            {
               "v": 20,
               "n": 1
             },
             {
               "v": 15,
+              "n": 1
+            },
+            {
+              "v": 29,
+              "n": 1
+            },
+            {
+              "v": 28,
+              "n": 1
+            },
+            {
+              "v": 14,
+              "n": 1
+            },
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 33,
+              "n": 1
+            },
+            {
+              "v": 10,
+              "n": 1
+            },
+            {
+              "v": 36,
+              "n": 1
+            },
+            {
+              "v": 6,
+              "n": 1
+            },
+            {
+              "v": 12,
               "n": 1
             }
           ]
@@ -4727,19 +5006,19 @@
           "max": "West Bengal",
           "top_values": [
             {
-              "v": "Chhattisgarh",
+              "v": "Maharashtra",
               "n": 1
             },
             {
-              "v": "Tripura",
+              "v": "Haryana",
               "n": 1
             },
             {
-              "v": "Madhya Pradesh",
+              "v": "West Bengal",
               "n": 1
             },
             {
-              "v": "Sikkim",
+              "v": "Nagaland",
               "n": 1
             },
             {
@@ -4759,27 +5038,51 @@
               "n": 1
             },
             {
-              "v": "Lakshadweep",
+              "v": "Andhra Pradesh",
               "n": 1
             },
             {
-              "v": "Delhi",
+              "v": "Madhya Pradesh",
               "n": 1
             },
             {
-              "v": "Mizoram",
+              "v": "Sikkim",
               "n": 1
             },
             {
-              "v": "Haryana",
+              "v": "Gujarat",
               "n": 1
             },
             {
-              "v": "West Bengal",
+              "v": "Ladakh",
               "n": 1
             },
             {
-              "v": "Nagaland",
+              "v": "Uttar Pradesh",
+              "n": 1
+            },
+            {
+              "v": "Jharkhand",
+              "n": 1
+            },
+            {
+              "v": "Tamil nadu",
+              "n": 1
+            },
+            {
+              "v": "Rajasthan",
+              "n": 1
+            },
+            {
+              "v": "Bihar",
+              "n": 1
+            },
+            {
+              "v": "Andaman & Nicobar",
+              "n": 1
+            },
+            {
+              "v": "Dadra,Nagar Haveli,Daman & Diu",
               "n": 1
             },
             {
@@ -4803,59 +5106,11 @@
               "n": 1
             },
             {
-              "v": "Uttarakhand",
+              "v": "Chhattisgarh",
               "n": 1
             },
             {
-              "v": "Assam",
-              "n": 1
-            },
-            {
-              "v": "Rajasthan",
-              "n": 1
-            },
-            {
-              "v": "Bihar",
-              "n": 1
-            },
-            {
-              "v": "Kerala",
-              "n": 1
-            },
-            {
-              "v": "Tamil nadu",
-              "n": 1
-            },
-            {
-              "v": "Andaman & Nicobar",
-              "n": 1
-            },
-            {
-              "v": "Dadra,Nagar Haveli,Daman & Diu",
-              "n": 1
-            },
-            {
-              "v": "Andhra Pradesh",
-              "n": 1
-            },
-            {
-              "v": "Maharashtra",
-              "n": 1
-            },
-            {
-              "v": "Gujarat",
-              "n": 1
-            },
-            {
-              "v": "Ladakh",
-              "n": 1
-            },
-            {
-              "v": "Uttar Pradesh",
-              "n": 1
-            },
-            {
-              "v": "Jharkhand",
+              "v": "Tripura",
               "n": 1
             },
             {
@@ -4868,6 +5123,30 @@
             },
             {
               "v": "Odisha",
+              "n": 1
+            },
+            {
+              "v": "Kerala",
+              "n": 1
+            },
+            {
+              "v": "Lakshadweep",
+              "n": 1
+            },
+            {
+              "v": "Delhi",
+              "n": 1
+            },
+            {
+              "v": "Mizoram",
+              "n": 1
+            },
+            {
+              "v": "Uttarakhand",
+              "n": 1
+            },
+            {
+              "v": "Assam",
               "n": 1
             }
           ]
@@ -4885,19 +5164,67 @@
               "n": 1
             },
             {
-              "v": "CHHATTISGARH",
+              "v": "KERALA",
               "n": 1
             },
             {
-              "v": "HIMACHAL PRADESH",
+              "v": "MAHARASHTRA",
               "n": 1
             },
             {
-              "v": "PUNJAB",
+              "v": "PUDUCHERRY",
               "n": 1
             },
             {
-              "v": "ARUNACHAL PRADESH",
+              "v": "TAMIL NADU",
+              "n": 1
+            },
+            {
+              "v": "GOA",
+              "n": 1
+            },
+            {
+              "v": "LADAKH",
+              "n": 1
+            },
+            {
+              "v": "UTTARAKHAND",
+              "n": 1
+            },
+            {
+              "v": "TELANGANA",
+              "n": 1
+            },
+            {
+              "v": "SIKKIM",
+              "n": 1
+            },
+            {
+              "v": "BIHAR",
+              "n": 1
+            },
+            {
+              "v": "DELHI",
+              "n": 1
+            },
+            {
+              "v": "MADHYA PRADESH",
+              "n": 1
+            },
+            {
+              "v": "LAKSHADWEEP",
+              "n": 1
+            },
+            {
+              "v": "GUJARAT",
+              "n": 1
+            },
+            {
+              "v": "HARYANA",
+              "n": 1
+            },
+            {
+              "v": "ANDAMAN & NICOBAR",
               "n": 1
             },
             {
@@ -4909,11 +5236,47 @@
               "n": 1
             },
             {
+              "v": "ARUNACHAL PRADESH",
+              "n": 1
+            },
+            {
+              "v": "PUNJAB",
+              "n": 1
+            },
+            {
+              "v": "RAJASTHAN",
+              "n": 1
+            },
+            {
+              "v": "CHANDIGARH",
+              "n": 1
+            },
+            {
+              "v": "CHHATTISGARH",
+              "n": 1
+            },
+            {
+              "v": "HIMACHAL PRADESH",
+              "n": 1
+            },
+            {
+              "v": "UTTAR PRADESH",
+              "n": 1
+            },
+            {
+              "v": "MEGHALAYA",
+              "n": 1
+            },
+            {
               "v": "KARNATAKA",
               "n": 1
             },
             {
               "v": "MANIPUR",
+              "n": 1
+            },
+            {
+              "v": "ODISHA",
               "n": 1
             },
             {
@@ -4939,90 +5302,6 @@
             {
               "v": "TRIPURA",
               "n": 1
-            },
-            {
-              "v": "KERALA",
-              "n": 1
-            },
-            {
-              "v": "MAHARASHTRA",
-              "n": 1
-            },
-            {
-              "v": "ODISHA",
-              "n": 1
-            },
-            {
-              "v": "DELHI",
-              "n": 1
-            },
-            {
-              "v": "MADHYA PRADESH",
-              "n": 1
-            },
-            {
-              "v": "UTTAR PRADESH",
-              "n": 1
-            },
-            {
-              "v": "MEGHALAYA",
-              "n": 1
-            },
-            {
-              "v": "RAJASTHAN",
-              "n": 1
-            },
-            {
-              "v": "CHANDIGARH",
-              "n": 1
-            },
-            {
-              "v": "PUDUCHERRY",
-              "n": 1
-            },
-            {
-              "v": "TAMIL NADU",
-              "n": 1
-            },
-            {
-              "v": "GOA",
-              "n": 1
-            },
-            {
-              "v": "LADAKH",
-              "n": 1
-            },
-            {
-              "v": "UTTARAKHAND",
-              "n": 1
-            },
-            {
-              "v": "LAKSHADWEEP",
-              "n": 1
-            },
-            {
-              "v": "GUJARAT",
-              "n": 1
-            },
-            {
-              "v": "HARYANA",
-              "n": 1
-            },
-            {
-              "v": "ANDAMAN & NICOBAR",
-              "n": 1
-            },
-            {
-              "v": "TELANGANA",
-              "n": 1
-            },
-            {
-              "v": "SIKKIM",
-              "n": 1
-            },
-            {
-              "v": "BIHAR",
-              "n": 1
             }
           ]
         },
@@ -5035,35 +5314,23 @@
           "max": 36,
           "top_values": [
             {
-              "v": 16,
+              "v": 6,
               "n": 1
             },
             {
-              "v": 8,
+              "v": 36,
               "n": 1
             },
             {
-              "v": 17,
+              "v": 29,
               "n": 1
             },
             {
-              "v": 2,
+              "v": 14,
               "n": 1
             },
             {
-              "v": 30,
-              "n": 1
-            },
-            {
-              "v": 27,
-              "n": 1
-            },
-            {
-              "v": 31,
-              "n": 1
-            },
-            {
-              "v": 21,
+              "v": 28,
               "n": 1
             },
             {
@@ -5079,15 +5346,15 @@
               "n": 1
             },
             {
-              "v": 7,
+              "v": 18,
               "n": 1
             },
             {
-              "v": 9,
+              "v": 22,
               "n": 1
             },
             {
-              "v": 5,
+              "v": 1,
               "n": 1
             },
             {
@@ -5107,15 +5374,67 @@
               "n": 1
             },
             {
-              "v": 18,
+              "v": 16,
               "n": 1
             },
             {
-              "v": 22,
+              "v": 8,
               "n": 1
             },
             {
-              "v": 1,
+              "v": 17,
+              "n": 1
+            },
+            {
+              "v": 12,
+              "n": 1
+            },
+            {
+              "v": 21,
+              "n": 1
+            },
+            {
+              "v": 15,
+              "n": 1
+            },
+            {
+              "v": 20,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            },
+            {
+              "v": 4,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 30,
+              "n": 1
+            },
+            {
+              "v": 27,
+              "n": 1
+            },
+            {
+              "v": 31,
               "n": 1
             },
             {
@@ -5136,46 +5455,6 @@
             },
             {
               "v": 23,
-              "n": 1
-            },
-            {
-              "v": 6,
-              "n": 1
-            },
-            {
-              "v": 36,
-              "n": 1
-            },
-            {
-              "v": 12,
-              "n": 1
-            },
-            {
-              "v": 29,
-              "n": 1
-            },
-            {
-              "v": 14,
-              "n": 1
-            },
-            {
-              "v": 28,
-              "n": 1
-            },
-            {
-              "v": 15,
-              "n": 1
-            },
-            {
-              "v": 20,
-              "n": 1
-            },
-            {
-              "v": 3,
-              "n": 1
-            },
-            {
-              "v": 4,
               "n": 1
             }
           ]
@@ -5229,47 +5508,15 @@
               "n": 1
             },
             {
-              "v": 3691262.239632214,
+              "v": 423019.02810073394,
               "n": 1
             },
             {
-              "v": 72104.71259266634,
+              "v": 1131857.3004578887,
               "n": 1
             },
             {
-              "v": 2963355.7852354585,
-              "n": 1
-            },
-            {
-              "v": 5597278.066786466,
-              "n": 1
-            },
-            {
-              "v": 2008605.4870488604,
-              "n": 1
-            },
-            {
-              "v": 3014349.351586134,
-              "n": 1
-            },
-            {
-              "v": 2228761.2629810357,
-              "n": 1
-            },
-            {
-              "v": 271575.03003122885,
-              "n": 1
-            },
-            {
-              "v": 3367509.5437867576,
-              "n": 1
-            },
-            {
-              "v": 5742877.345496983,
-              "n": 1
-            },
-            {
-              "v": 347804.26272029406,
+              "v": 3937758.1759938635,
               "n": 1
             },
             {
@@ -5289,39 +5536,11 @@
               "n": 1
             },
             {
-              "v": 1049358.6037059696,
-              "n": 1
-            },
-            {
-              "v": 1940079.6246092285,
-              "n": 1
-            },
-            {
-              "v": 3656928.816882231,
-              "n": 1
-            },
-            {
-              "v": 534841.8751139762,
-              "n": 1
-            },
-            {
               "v": 6147365.473505214,
               "n": 1
             },
             {
               "v": 6579818.404422868,
-              "n": 1
-            },
-            {
-              "v": 423019.02810073394,
-              "n": 1
-            },
-            {
-              "v": 1131857.3004578887,
-              "n": 1
-            },
-            {
-              "v": 3937758.1759938635,
               "n": 1
             },
             {
@@ -5333,7 +5552,39 @@
               "n": 1
             },
             {
-              "v": 4851482.322101016,
+              "v": 3691262.239632214,
+              "n": 1
+            },
+            {
+              "v": 72104.71259266634,
+              "n": 1
+            },
+            {
+              "v": 2963355.7852354585,
+              "n": 1
+            },
+            {
+              "v": 2228761.2629810357,
+              "n": 1
+            },
+            {
+              "v": 271575.03003122885,
+              "n": 1
+            },
+            {
+              "v": 3367509.5437867576,
+              "n": 1
+            },
+            {
+              "v": 5742877.345496983,
+              "n": 1
+            },
+            {
+              "v": 1940079.6246092285,
+              "n": 1
+            },
+            {
+              "v": 3656928.816882231,
               "n": 1
             },
             {
@@ -5355,6 +5606,34 @@
             {
               "v": 1019102.8555496905,
               "n": 1
+            },
+            {
+              "v": 347804.26272029406,
+              "n": 1
+            },
+            {
+              "v": 534841.8751139762,
+              "n": 1
+            },
+            {
+              "v": 4851482.322101016,
+              "n": 1
+            },
+            {
+              "v": 1049358.6037059696,
+              "n": 1
+            },
+            {
+              "v": 5597278.066786466,
+              "n": 1
+            },
+            {
+              "v": 2008605.4870488604,
+              "n": 1
+            },
+            {
+              "v": 3014349.351586134,
+              "n": 1
             }
           ]
         },
@@ -5367,71 +5646,11 @@
           "max": 429971589919.2261,
           "top_values": [
             {
-              "v": 40460733017.44443,
+              "v": 98104009174.95964,
               "n": 1
             },
             {
-              "v": 58205292626.15533,
-              "n": 1
-            },
-            {
-              "v": 368622520063.3496,
-              "n": 1
-            },
-            {
-              "v": 304575234931.07745,
-              "n": 1
-            },
-            {
-              "v": 9070963317.360067,
-              "n": 1
-            },
-            {
-              "v": 347868466414.9896,
-              "n": 1
-            },
-            {
-              "v": 116431248518.33426,
-              "n": 1
-            },
-            {
-              "v": 251100601144.0454,
-              "n": 1
-            },
-            {
-              "v": 105791486926.57309,
-              "n": 1
-            },
-            {
-              "v": 12527440690.60065,
-              "n": 1
-            },
-            {
-              "v": 135846782201.40788,
-              "n": 1
-            },
-            {
-              "v": 20643998182.367287,
-              "n": 1
-            },
-            {
-              "v": 156559060771.8496,
-              "n": 1
-            },
-            {
-              "v": 3999136843.180849,
-              "n": 1
-            },
-            {
-              "v": 155763425.45970094,
-              "n": 1
-            },
-            {
-              "v": 25115122035.990982,
-              "n": 1
-            },
-            {
-              "v": 27206322743.964745,
+              "v": 178289129797.5117,
               "n": 1
             },
             {
@@ -5455,11 +5674,83 @@
               "n": 1
             },
             {
+              "v": 156559060771.8496,
+              "n": 1
+            },
+            {
+              "v": 3999136843.180849,
+              "n": 1
+            },
+            {
+              "v": 155763425.45970094,
+              "n": 1
+            },
+            {
+              "v": 25115122035.990982,
+              "n": 1
+            },
+            {
+              "v": 27206322743.964745,
+              "n": 1
+            },
+            {
               "v": 530362564.4613942,
               "n": 1
             },
             {
               "v": 216970754025.63974,
+              "n": 1
+            },
+            {
+              "v": 135846782201.40788,
+              "n": 1
+            },
+            {
+              "v": 31132861.649632555,
+              "n": 1
+            },
+            {
+              "v": 79129960790.28015,
+              "n": 1
+            },
+            {
+              "v": 40460733017.44443,
+              "n": 1
+            },
+            {
+              "v": 58205292626.15533,
+              "n": 1
+            },
+            {
+              "v": 368622520063.3496,
+              "n": 1
+            },
+            {
+              "v": 206400848840.97125,
+              "n": 1
+            },
+            {
+              "v": 347868466414.9896,
+              "n": 1
+            },
+            {
+              "v": 116431248518.33426,
+              "n": 1
+            },
+            {
+              "v": 304575234931.07745,
+              "n": 1
+            },
+            {
+              "v": 9070963317.360067,
+              "n": 1
+            },
+            {
+              "v": 124398801034.53966,
+              "n": 1
+            },
+            {
+              "v": 68561182525.645645,
               "n": 1
             },
             {
@@ -5479,35 +5770,23 @@
               "n": 1
             },
             {
-              "v": 124398801034.53966,
+              "v": 251100601144.0454,
               "n": 1
             },
             {
-              "v": 68561182525.645645,
+              "v": 105791486926.57309,
               "n": 1
             },
             {
-              "v": 206400848840.97125,
+              "v": 12527440690.60065,
+              "n": 1
+            },
+            {
+              "v": 20643998182.367287,
               "n": 1
             },
             {
               "v": 8121470549.926832,
-              "n": 1
-            },
-            {
-              "v": 98104009174.95964,
-              "n": 1
-            },
-            {
-              "v": 178289129797.5117,
-              "n": 1
-            },
-            {
-              "v": 31132861.649632555,
-              "n": 1
-            },
-            {
-              "v": 79129960790.28015,
               "n": 1
             }
           ]
@@ -5532,59 +5811,11 @@
           "max": "WEST BENGAL",
           "top_values": [
             {
-              "v": "D\u0100DRA & NAGAR HAVELI & DAM\u0100N & DIU",
-              "n": 1
-            },
-            {
-              "v": "DELHI",
-              "n": 1
-            },
-            {
-              "v": "MADHYA PRADESH",
-              "n": 1
-            },
-            {
-              "v": "JH\u0100RKHAND",
-              "n": 1
-            },
-            {
-              "v": "ARUN\u0100CHAL PRADESH",
-              "n": 1
-            },
-            {
-              "v": "DISPUTED (WEST BENGAL , BIH\u0100R & JH\u0100RKHAND)",
-              "n": 1
-            },
-            {
-              "v": "BIH\u0100R",
-              "n": 1
-            },
-            {
-              "v": "MIZORAM",
-              "n": 1
-            },
-            {
               "v": "TAMIL N\u0100DU",
               "n": 1
             },
             {
               "v": "MANIPUR",
-              "n": 1
-            },
-            {
-              "v": "HIM\u0100CHAL PRADESH",
-              "n": 1
-            },
-            {
-              "v": "SIKKIM",
-              "n": 1
-            },
-            {
-              "v": "PUNJAB",
-              "n": 1
-            },
-            {
-              "v": "LAD\u0100KH",
               "n": 1
             },
             {
@@ -5616,30 +5847,6 @@
               "n": 1
             },
             {
-              "v": "ODISHA",
-              "n": 1
-            },
-            {
-              "v": "ANDHRA PRADESH",
-              "n": 1
-            },
-            {
-              "v": "CHHAtT\u012aSGARH",
-              "n": 1
-            },
-            {
-              "v": "GUJAR\u0100T",
-              "n": 1
-            },
-            {
-              "v": "ASSAM",
-              "n": 1
-            },
-            {
-              "v": "TRIPURA",
-              "n": 1
-            },
-            {
               "v": "TELANG\u0100NA",
               "n": 1
             },
@@ -5664,6 +5871,26 @@
               "n": 1
             },
             {
+              "v": "D\u0100DRA & NAGAR HAVELI & DAM\u0100N & DIU",
+              "n": 1
+            },
+            {
+              "v": "DELHI",
+              "n": 1
+            },
+            {
+              "v": "MADHYA PRADESH",
+              "n": 1
+            },
+            {
+              "v": "JH\u0100RKHAND",
+              "n": 1
+            },
+            {
+              "v": "ARUN\u0100CHAL PRADESH",
+              "n": 1
+            },
+            {
               "v": "LAKSHADWEEP",
               "n": 1
             },
@@ -5673,6 +5900,34 @@
             },
             {
               "v": "ANDAMAN & NICOBAR",
+              "n": 1
+            },
+            {
+              "v": "DISPUTED (WEST BENGAL , BIH\u0100R & JH\u0100RKHAND)",
+              "n": 1
+            },
+            {
+              "v": "BIH\u0100R",
+              "n": 1
+            },
+            {
+              "v": "MIZORAM",
+              "n": 1
+            },
+            {
+              "v": "HIM\u0100CHAL PRADESH",
+              "n": 1
+            },
+            {
+              "v": "SIKKIM",
+              "n": 1
+            },
+            {
+              "v": "PUNJAB",
+              "n": 1
+            },
+            {
+              "v": "LAD\u0100KH",
               "n": 1
             },
             {
@@ -5688,7 +5943,31 @@
               "n": 1
             },
             {
+              "v": "ANDHRA PRADESH",
+              "n": 1
+            },
+            {
+              "v": "CHHAtT\u012aSGARH",
+              "n": 1
+            },
+            {
+              "v": "GUJAR\u0100T",
+              "n": 1
+            },
+            {
+              "v": "ASSAM",
+              "n": 1
+            },
+            {
+              "v": "TRIPURA",
+              "n": 1
+            },
+            {
               "v": "DISPUTED (MADHYA PRADESH & GUJAR\u0100T)",
+              "n": 1
+            },
+            {
+              "v": "ODISHA",
               "n": 1
             }
           ]
@@ -5710,7 +5989,91 @@
               "n": 1
             },
             {
+              "v": 14,
+              "n": 1
+            },
+            {
+              "v": 31,
+              "n": 1
+            },
+            {
+              "v": 27,
+              "n": 1
+            },
+            {
+              "v": 30,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 8,
+              "n": 1
+            },
+            {
+              "v": 17,
+              "n": 1
+            },
+            {
+              "v": 16,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            },
+            {
               "v": 4,
+              "n": 1
+            },
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 12,
+              "n": 1
+            },
+            {
+              "v": 24,
+              "n": 1
+            },
+            {
+              "v": 37,
+              "n": 1
+            },
+            {
+              "v": 35,
+              "n": 1
+            },
+            {
+              "v": 28,
+              "n": 1
+            },
+            {
+              "v": 21,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            },
+            {
+              "v": 22,
+              "n": 1
+            },
+            {
+              "v": 18,
+              "n": 1
+            },
+            {
+              "v": 33,
+              "n": 1
+            },
+            {
+              "v": 10,
               "n": 1
             },
             {
@@ -5719,10 +6082,6 @@
             },
             {
               "v": 6,
-              "n": 1
-            },
-            {
-              "v": 12,
               "n": 1
             },
             {
@@ -5746,75 +6105,11 @@
               "n": 1
             },
             {
-              "v": 22,
-              "n": 1
-            },
-            {
-              "v": 1,
-              "n": 1
-            },
-            {
-              "v": 18,
-              "n": 1
-            },
-            {
-              "v": 11,
-              "n": 1
-            },
-            {
-              "v": 33,
-              "n": 1
-            },
-            {
-              "v": 10,
-              "n": 1
-            },
-            {
-              "v": 31,
-              "n": 1
-            },
-            {
-              "v": 27,
-              "n": 1
-            },
-            {
-              "v": 30,
-              "n": 1
-            },
-            {
-              "v": 2,
-              "n": 1
-            },
-            {
-              "v": 24,
-              "n": 1
-            },
-            {
-              "v": 37,
-              "n": 1
-            },
-            {
-              "v": 35,
-              "n": 1
-            },
-            {
-              "v": 20,
-              "n": 1
-            },
-            {
-              "v": 21,
-              "n": 1
-            },
-            {
-              "v": 9,
-              "n": 1
-            },
-            {
               "v": 5,
               "n": 1
             },
             {
-              "v": 14,
+              "v": 9,
               "n": 1
             },
             {
@@ -5826,23 +6121,7 @@
               "n": 1
             },
             {
-              "v": 28,
-              "n": 1
-            },
-            {
-              "v": 8,
-              "n": 1
-            },
-            {
-              "v": 17,
-              "n": 1
-            },
-            {
-              "v": 16,
-              "n": 1
-            },
-            {
-              "v": 3,
+              "v": 20,
               "n": 1
             },
             {
@@ -5860,6 +6139,42 @@
           "max": 7367386.55486,
           "top_values": [
             {
+              "v": 6169514.62592,
+              "n": 1
+            },
+            {
+              "v": 5334646.8294,
+              "n": 1
+            },
+            {
+              "v": 3027573.76649,
+              "n": 1
+            },
+            {
+              "v": 18063.0554287,
+              "n": 1
+            },
+            {
+              "v": 1294185.60295,
+              "n": 1
+            },
+            {
+              "v": 2489986.05555,
+              "n": 1
+            },
+            {
+              "v": 5531548.43409,
+              "n": 1
+            },
+            {
+              "v": 19515.3848779,
+              "n": 1
+            },
+            {
+              "v": 2980745.4907,
+              "n": 1
+            },
+            {
               "v": 5255584.61647,
               "n": 1
             },
@@ -5873,94 +6188,6 @@
             },
             {
               "v": 1000977.86666,
-              "n": 1
-            },
-            {
-              "v": 69953.923576,
-              "n": 1
-            },
-            {
-              "v": 908482.059297,
-              "n": 1
-            },
-            {
-              "v": 5421812.7441,
-              "n": 1
-            },
-            {
-              "v": 3641881.14748,
-              "n": 1
-            },
-            {
-              "v": 321582.368932,
-              "n": 1
-            },
-            {
-              "v": 62113.0763786,
-              "n": 1
-            },
-            {
-              "v": 3051893.17033,
-              "n": 1
-            },
-            {
-              "v": 2489986.05555,
-              "n": 1
-            },
-            {
-              "v": 144322.282827,
-              "n": 1
-            },
-            {
-              "v": 4653505.04251,
-              "n": 1
-            },
-            {
-              "v": 43844.4495976,
-              "n": 1
-            },
-            {
-              "v": 547229.221631,
-              "n": 1
-            },
-            {
-              "v": 3321742.57315,
-              "n": 1
-            },
-            {
-              "v": 2554135.05051,
-              "n": 1
-            },
-            {
-              "v": 997252.322014,
-              "n": 1
-            },
-            {
-              "v": 5824763.34306,
-              "n": 1
-            },
-            {
-              "v": 18063.0554287,
-              "n": 1
-            },
-            {
-              "v": 1294185.60295,
-              "n": 1
-            },
-            {
-              "v": 3650797.43791,
-              "n": 1
-            },
-            {
-              "v": 234859.24611,
-              "n": 1
-            },
-            {
-              "v": 1869642.34988,
-              "n": 1
-            },
-            {
-              "v": 6169514.62592,
               "n": 1
             },
             {
@@ -5984,6 +6211,30 @@
               "n": 1
             },
             {
+              "v": 3650797.43791,
+              "n": 1
+            },
+            {
+              "v": 234859.24611,
+              "n": 1
+            },
+            {
+              "v": 466580.959052,
+              "n": 1
+            },
+            {
+              "v": 5421812.7441,
+              "n": 1
+            },
+            {
+              "v": 3641881.14748,
+              "n": 1
+            },
+            {
+              "v": 1869642.34988,
+              "n": 1
+            },
+            {
               "v": 1460877.66476,
               "n": 1
             },
@@ -5996,27 +6247,55 @@
               "n": 1
             },
             {
-              "v": 5334646.8294,
+              "v": 321582.368932,
               "n": 1
             },
             {
-              "v": 3027573.76649,
+              "v": 62113.0763786,
               "n": 1
             },
             {
-              "v": 5531548.43409,
+              "v": 3051893.17033,
               "n": 1
             },
             {
-              "v": 19515.3848779,
+              "v": 547229.221631,
               "n": 1
             },
             {
-              "v": 2980745.4907,
+              "v": 3321742.57315,
               "n": 1
             },
             {
-              "v": 466580.959052,
+              "v": 2554135.05051,
+              "n": 1
+            },
+            {
+              "v": 997252.322014,
+              "n": 1
+            },
+            {
+              "v": 5824763.34306,
+              "n": 1
+            },
+            {
+              "v": 144322.282827,
+              "n": 1
+            },
+            {
+              "v": 4653505.04251,
+              "n": 1
+            },
+            {
+              "v": 43844.4495976,
+              "n": 1
+            },
+            {
+              "v": 69953.923576,
+              "n": 1
+            },
+            {
+              "v": 908482.059297,
               "n": 1
             }
           ]
@@ -6029,6 +6308,30 @@
           "min": 4222065.23,
           "max": 329884350826.0,
           "top_values": [
+            {
+              "v": 159974205730.0,
+              "n": 1
+            },
+            {
+              "v": 20275401681.5,
+              "n": 1
+            },
+            {
+              "v": 131451435845.0,
+              "n": 1
+            },
+            {
+              "v": 90616372590.8,
+              "n": 1
+            },
+            {
+              "v": 109075825908.0,
+              "n": 1
+            },
+            {
+              "v": 3634036174.96,
+              "n": 1
+            },
             {
               "v": 189354459035.0,
               "n": 1
@@ -6046,26 +6349,6 @@
               "n": 1
             },
             {
-              "v": 15253036.1617,
-              "n": 1
-            },
-            {
-              "v": 82235861170.0,
-              "n": 1
-            },
-            {
-              "v": 21487419275.7,
-              "n": 1
-            },
-            {
-              "v": 159974205730.0,
-              "n": 1
-            },
-            {
-              "v": 20275401681.5,
-              "n": 1
-            },
-            {
               "v": 4222065.23,
               "n": 1
             },
@@ -6075,14 +6358,6 @@
             },
             {
               "v": 10045832169.1,
-              "n": 1
-            },
-            {
-              "v": 131451435845.0,
-              "n": 1
-            },
-            {
-              "v": 90616372590.8,
               "n": 1
             },
             {
@@ -6099,6 +6374,10 @@
             },
             {
               "v": 7837275699.51,
+              "n": 1
+            },
+            {
+              "v": 30346283.2252,
               "n": 1
             },
             {
@@ -6130,6 +6409,30 @@
               "n": 1
             },
             {
+              "v": 21487419275.7,
+              "n": 1
+            },
+            {
+              "v": 111867387.146,
+              "n": 1
+            },
+            {
+              "v": 296496286032.0,
+              "n": 1
+            },
+            {
+              "v": 150149190526.0,
+              "n": 1
+            },
+            {
+              "v": 15253036.1617,
+              "n": 1
+            },
+            {
+              "v": 82235861170.0,
+              "n": 1
+            },
+            {
               "v": 168011409245.0,
               "n": 1
             },
@@ -6147,30 +6450,6 @@
             },
             {
               "v": 6853415168.2,
-              "n": 1
-            },
-            {
-              "v": 111867387.146,
-              "n": 1
-            },
-            {
-              "v": 296496286032.0,
-              "n": 1
-            },
-            {
-              "v": 150149190526.0,
-              "n": 1
-            },
-            {
-              "v": 30346283.2252,
-              "n": 1
-            },
-            {
-              "v": 109075825908.0,
-              "n": 1
-            },
-            {
-              "v": 3634036174.96,
               "n": 1
             },
             {
@@ -6200,94 +6479,6 @@
           "max": "WEST BENGAL",
           "top_values": [
             {
-              "v": "PUDUCHERRY",
-              "n": 1
-            },
-            {
-              "v": "TAMIL NADU",
-              "n": 1
-            },
-            {
-              "v": "GOA",
-              "n": 1
-            },
-            {
-              "v": "LADAKH",
-              "n": 1
-            },
-            {
-              "v": "UTTARAKHAND",
-              "n": 1
-            },
-            {
-              "v": "DISPUTED (WEST BENGAL , BIHAR & JHARKHAND)",
-              "n": 1
-            },
-            {
-              "v": "KERALA",
-              "n": 1
-            },
-            {
-              "v": "MAHARASHTRA",
-              "n": 1
-            },
-            {
-              "v": "DADRA & NAGAR HAVELI & DAMAN & DIU",
-              "n": 1
-            },
-            {
-              "v": "MIZORAM",
-              "n": 1
-            },
-            {
-              "v": "DELHI",
-              "n": 1
-            },
-            {
-              "v": "MADHYA PRADESH",
-              "n": 1
-            },
-            {
-              "v": "TELANGANA",
-              "n": 1
-            },
-            {
-              "v": "SIKKIM",
-              "n": 1
-            },
-            {
-              "v": "BIHAR",
-              "n": 1
-            },
-            {
-              "v": "WEST BENGAL",
-              "n": 1
-            },
-            {
-              "v": "KARNATAKA",
-              "n": 1
-            },
-            {
-              "v": "DISPUTED (RAJATHAN & GUJARAT)",
-              "n": 1
-            },
-            {
-              "v": "MANIPUR",
-              "n": 1
-            },
-            {
-              "v": "PUNJAB",
-              "n": 1
-            },
-            {
-              "v": "CHHATTISGARH",
-              "n": 1
-            },
-            {
-              "v": "HIMACHAL PRADESH",
-              "n": 1
-            },
-            {
               "v": "ANDHRA PRADESH",
               "n": 1
             },
@@ -6312,14 +6503,6 @@
               "n": 1
             },
             {
-              "v": "DISPUTED (MADHYA PRADESH & GUJARAT)",
-              "n": 1
-            },
-            {
-              "v": "ODISHA",
-              "n": 1
-            },
-            {
               "v": "RAJASTHAN",
               "n": 1
             },
@@ -6328,7 +6511,47 @@
               "n": 1
             },
             {
-              "v": "ARUNACHAL PRADESH",
+              "v": "PUDUCHERRY",
+              "n": 1
+            },
+            {
+              "v": "TAMIL NADU",
+              "n": 1
+            },
+            {
+              "v": "GOA",
+              "n": 1
+            },
+            {
+              "v": "LADAKH",
+              "n": 1
+            },
+            {
+              "v": "UTTARAKHAND",
+              "n": 1
+            },
+            {
+              "v": "DISPUTED (WEST BENGAL , BIHAR & JHARKHAND)",
+              "n": 1
+            },
+            {
+              "v": "DELHI",
+              "n": 1
+            },
+            {
+              "v": "MADHYA PRADESH",
+              "n": 1
+            },
+            {
+              "v": "JAMMU AND KASHMIR",
+              "n": 1
+            },
+            {
+              "v": "UTTAR PRADESH",
+              "n": 1
+            },
+            {
+              "v": "MEGHALAYA",
               "n": 1
             },
             {
@@ -6348,15 +6571,71 @@
               "n": 1
             },
             {
-              "v": "JAMMU AND KASHMIR",
+              "v": "MIZORAM",
               "n": 1
             },
             {
-              "v": "UTTAR PRADESH",
+              "v": "WEST BENGAL",
               "n": 1
             },
             {
-              "v": "MEGHALAYA",
+              "v": "TELANGANA",
+              "n": 1
+            },
+            {
+              "v": "SIKKIM",
+              "n": 1
+            },
+            {
+              "v": "BIHAR",
+              "n": 1
+            },
+            {
+              "v": "PUNJAB",
+              "n": 1
+            },
+            {
+              "v": "CHHATTISGARH",
+              "n": 1
+            },
+            {
+              "v": "HIMACHAL PRADESH",
+              "n": 1
+            },
+            {
+              "v": "DISPUTED (MADHYA PRADESH & GUJARAT)",
+              "n": 1
+            },
+            {
+              "v": "ODISHA",
+              "n": 1
+            },
+            {
+              "v": "KERALA",
+              "n": 1
+            },
+            {
+              "v": "MAHARASHTRA",
+              "n": 1
+            },
+            {
+              "v": "DADRA & NAGAR HAVELI & DAMAN & DIU",
+              "n": 1
+            },
+            {
+              "v": "ARUNACHAL PRADESH",
+              "n": 1
+            },
+            {
+              "v": "KARNATAKA",
+              "n": 1
+            },
+            {
+              "v": "DISPUTED (RAJATHAN & GUJARAT)",
+              "n": 1
+            },
+            {
+              "v": "MANIPUR",
               "n": 1
             }
           ]
@@ -6381,11 +6660,51 @@
           "max": "West Bengal",
           "top_values": [
             {
+              "v": "Maharashtra",
+              "n": 1
+            },
+            {
+              "v": "Lakshadweep",
+              "n": 1
+            },
+            {
+              "v": "Delhi",
+              "n": 1
+            },
+            {
+              "v": "Mizoram",
+              "n": 1
+            },
+            {
+              "v": "Daman & Diu",
+              "n": 1
+            },
+            {
+              "v": "Rajasthan",
+              "n": 1
+            },
+            {
+              "v": "Bihar",
+              "n": 1
+            },
+            {
               "v": "Chhattisgarh",
               "n": 1
             },
             {
               "v": "Tripura",
+              "n": 1
+            },
+            {
+              "v": "Madhya Pradesh",
+              "n": 1
+            },
+            {
+              "v": "Sikkim",
+              "n": 1
+            },
+            {
+              "v": "Andaman & Nicobar",
               "n": 1
             },
             {
@@ -6405,19 +6724,11 @@
               "n": 1
             },
             {
-              "v": "Kerala",
+              "v": "Andhra Pradesh",
               "n": 1
             },
             {
-              "v": "Union Territory of Ladakh",
-              "n": 1
-            },
-            {
-              "v": "Madhya Pradesh",
-              "n": 1
-            },
-            {
-              "v": "Sikkim",
+              "v": "Union Territory of Jammu and Kashmir",
               "n": 1
             },
             {
@@ -6433,7 +6744,31 @@
               "n": 1
             },
             {
-              "v": "Maharashtra",
+              "v": "Karnataka",
+              "n": 1
+            },
+            {
+              "v": "Punjab",
+              "n": 1
+            },
+            {
+              "v": "Uttarakhand",
+              "n": 1
+            },
+            {
+              "v": "Assam",
+              "n": 1
+            },
+            {
+              "v": "Kerala",
+              "n": 1
+            },
+            {
+              "v": "Union Territory of Ladakh",
+              "n": 1
+            },
+            {
+              "v": "Orissa",
               "n": 1
             },
             {
@@ -6446,42 +6781,6 @@
             },
             {
               "v": "Nagaland",
-              "n": 1
-            },
-            {
-              "v": "Lakshadweep",
-              "n": 1
-            },
-            {
-              "v": "Delhi",
-              "n": 1
-            },
-            {
-              "v": "Mizoram",
-              "n": 1
-            },
-            {
-              "v": "Uttarakhand",
-              "n": 1
-            },
-            {
-              "v": "Assam",
-              "n": 1
-            },
-            {
-              "v": "Orissa",
-              "n": 1
-            },
-            {
-              "v": "Karnataka",
-              "n": 1
-            },
-            {
-              "v": "Punjab",
-              "n": 1
-            },
-            {
-              "v": "Andaman & Nicobar",
               "n": 1
             },
             {
@@ -6507,26 +6806,6 @@
             {
               "v": "Meghalaya",
               "n": 1
-            },
-            {
-              "v": "Andhra Pradesh",
-              "n": 1
-            },
-            {
-              "v": "Union Territory of Jammu and Kashmir",
-              "n": 1
-            },
-            {
-              "v": "Daman & Diu",
-              "n": 1
-            },
-            {
-              "v": "Rajasthan",
-              "n": 1
-            },
-            {
-              "v": "Bihar",
-              "n": 1
             }
           ]
         },
@@ -6538,30 +6817,6 @@
           "min": "1",
           "max": "9",
           "top_values": [
-            {
-              "v": "5",
-              "n": 1
-            },
-            {
-              "v": "9",
-              "n": 1
-            },
-            {
-              "v": "7",
-              "n": 1
-            },
-            {
-              "v": "22",
-              "n": 1
-            },
-            {
-              "v": "1",
-              "n": 1
-            },
-            {
-              "v": "18",
-              "n": 1
-            },
             {
               "v": "24",
               "n": 1
@@ -6575,83 +6830,11 @@
               "n": 1
             },
             {
-              "v": "29",
-              "n": 1
-            },
-            {
-              "v": "28",
-              "n": 1
-            },
-            {
-              "v": "14",
-              "n": 1
-            },
-            {
-              "v": "8",
-              "n": 1
-            },
-            {
-              "v": "17",
-              "n": 1
-            },
-            {
-              "v": "16",
-              "n": 1
-            },
-            {
               "v": "3",
               "n": 1
             },
             {
               "v": "4",
-              "n": 1
-            },
-            {
-              "v": "33",
-              "n": 1
-            },
-            {
-              "v": "25",
-              "n": 1
-            },
-            {
-              "v": "10",
-              "n": 1
-            },
-            {
-              "v": "34",
-              "n": 1
-            },
-            {
-              "v": "21",
-              "n": 1
-            },
-            {
-              "v": "11",
-              "n": 1
-            },
-            {
-              "v": "31",
-              "n": 1
-            },
-            {
-              "v": "27",
-              "n": 1
-            },
-            {
-              "v": "30",
-              "n": 1
-            },
-            {
-              "v": "2",
-              "n": 1
-            },
-            {
-              "v": "36",
-              "n": 1
-            },
-            {
-              "v": "6",
               "n": 1
             },
             {
@@ -6675,6 +6858,54 @@
               "n": 1
             },
             {
+              "v": "8",
+              "n": 1
+            },
+            {
+              "v": "17",
+              "n": 1
+            },
+            {
+              "v": "16",
+              "n": 1
+            },
+            {
+              "v": "5",
+              "n": 1
+            },
+            {
+              "v": "9",
+              "n": 1
+            },
+            {
+              "v": "7",
+              "n": 1
+            },
+            {
+              "v": "29",
+              "n": 1
+            },
+            {
+              "v": "28",
+              "n": 1
+            },
+            {
+              "v": "14",
+              "n": 1
+            },
+            {
+              "v": "12",
+              "n": 1
+            },
+            {
+              "v": "11",
+              "n": 1
+            },
+            {
+              "v": "34",
+              "n": 1
+            },
+            {
               "v": "20",
               "n": 1
             },
@@ -6683,7 +6914,55 @@
               "n": 1
             },
             {
-              "v": "12",
+              "v": "31",
+              "n": 1
+            },
+            {
+              "v": "27",
+              "n": 1
+            },
+            {
+              "v": "30",
+              "n": 1
+            },
+            {
+              "v": "2",
+              "n": 1
+            },
+            {
+              "v": "21",
+              "n": 1
+            },
+            {
+              "v": "22",
+              "n": 1
+            },
+            {
+              "v": "1",
+              "n": 1
+            },
+            {
+              "v": "18",
+              "n": 1
+            },
+            {
+              "v": "33",
+              "n": 1
+            },
+            {
+              "v": "25",
+              "n": 1
+            },
+            {
+              "v": "10",
+              "n": 1
+            },
+            {
+              "v": "36",
+              "n": 1
+            },
+            {
+              "v": "6",
               "n": 1
             }
           ]
@@ -6772,11 +7051,11 @@
               "n": 30
             },
             {
-              "v": "ANDHRA PRADESH",
+              "v": "ARUNACHAL PRADESH",
               "n": 26
             },
             {
-              "v": "ARUNACHAL PRADESH",
+              "v": "ANDHRA PRADESH",
               "n": 26
             },
             {
@@ -6784,11 +7063,11 @@
               "n": 24
             },
             {
-              "v": "PUNJAB",
+              "v": "WEST BENGAL",
               "n": 23
             },
             {
-              "v": "WEST BENGAL",
+              "v": "PUNJAB",
               "n": 23
             },
             {
@@ -6890,11 +7169,11 @@
               "n": 50
             },
             {
-              "v": "33",
+              "v": "10",
               "n": 38
             },
             {
-              "v": "10",
+              "v": "33",
               "n": 38
             },
             {
@@ -6906,15 +7185,15 @@
               "n": 35
             },
             {
-              "v": "24",
-              "n": 33
-            },
-            {
               "v": "36",
               "n": 33
             },
             {
               "v": "22",
+              "n": 33
+            },
+            {
+              "v": "24",
               "n": 33
             },
             {
@@ -6938,19 +7217,19 @@
               "n": 24
             },
             {
-              "v": "03",
-              "n": 23
-            },
-            {
               "v": "19",
               "n": 23
             },
             {
-              "v": "06",
-              "n": 22
+              "v": "03",
+              "n": 23
             },
             {
               "v": "01",
+              "n": 22
+            },
+            {
+              "v": "06",
               "n": 22
             },
             {
@@ -6970,19 +7249,19 @@
               "n": 13
             },
             {
-              "v": "17",
-              "n": 12
-            },
-            {
               "v": "02",
               "n": 12
             },
             {
-              "v": "07",
-              "n": 11
+              "v": "17",
+              "n": 12
             },
             {
               "v": "15",
+              "n": 11
+            },
+            {
+              "v": "07",
               "n": 11
             },
             {
@@ -6998,19 +7277,19 @@
               "n": 4
             },
             {
-              "v": "35",
-              "n": 3
-            },
-            {
               "v": "39",
               "n": 3
             },
             {
-              "v": "30",
-              "n": 2
+              "v": "35",
+              "n": 3
             },
             {
               "v": "38",
+              "n": 2
+            },
+            {
+              "v": "30",
               "n": 2
             },
             {
@@ -7068,11 +7347,11 @@
               "n": 8
             },
             {
-              "v": "2018",
+              "v": "2015_c",
               "n": 6
             },
             {
-              "v": "2015_c",
+              "v": "2018",
               "n": 6
             },
             {
@@ -7080,11 +7359,11 @@
               "n": 3
             },
             {
-              "v": "2019",
+              "v": "2014_c",
               "n": 2
             },
             {
-              "v": "2014_c",
+              "v": "2019",
               "n": 2
             },
             {
@@ -7182,19 +7461,19 @@
               "n": 23
             },
             {
-              "v": 6,
-              "n": 22
-            },
-            {
               "v": 1,
               "n": 22
             },
             {
-              "v": 14,
-              "n": 16
+              "v": 6,
+              "n": 22
             },
             {
               "v": 13,
+              "n": 16
+            },
+            {
+              "v": 14,
               "n": 16
             },
             {
@@ -7206,11 +7485,11 @@
               "n": 13
             },
             {
-              "v": 2,
+              "v": 17,
               "n": 12
             },
             {
-              "v": 17,
+              "v": 2,
               "n": 12
             },
             {
@@ -7242,11 +7521,11 @@
               "n": 3
             },
             {
-              "v": 37,
+              "v": 30,
               "n": 2
             },
             {
-              "v": 30,
+              "v": 37,
               "n": 2
             },
             {
@@ -7391,7 +7670,7 @@
               "n": 36
             },
             {
-              "v": "GUJAR\u0100T",
+              "v": "TELANG\u0100NA",
               "n": 33
             },
             {
@@ -7399,19 +7678,19 @@
               "n": 33
             },
             {
+              "v": "GUJAR\u0100T",
+              "n": 33
+            },
+            {
               "v": "ASSAM",
               "n": 33
             },
             {
-              "v": "TELANG\u0100NA",
-              "n": 33
-            },
-            {
-              "v": "ODISHA",
+              "v": "KARN\u0100TAKA",
               "n": 30
             },
             {
-              "v": "KARN\u0100TAKA",
+              "v": "ODISHA",
               "n": 30
             },
             {
@@ -7431,11 +7710,11 @@
               "n": 23
             },
             {
-              "v": "PUNJAB",
+              "v": "JAMMU AND KASHM\u012aR",
               "n": 22
             },
             {
-              "v": "JAMMU AND KASHM\u012aR",
+              "v": "PUNJAB",
               "n": 22
             },
             {
@@ -7463,15 +7742,15 @@
               "n": 12
             },
             {
-              "v": "DELHI",
-              "n": 11
-            },
-            {
               "v": "MEGH\u0100LAYA",
               "n": 11
             },
             {
               "v": "N\u0100G\u0100LAND",
+              "n": 11
+            },
+            {
+              "v": "DELHI",
               "n": 11
             },
             {
@@ -7503,11 +7782,11 @@
               "n": 3
             },
             {
-              "v": "DISPUTED (R\u0100JATH\u0100N & GUJAR\u0100T)",
+              "v": "LAD\u0100KH",
               "n": 2
             },
             {
-              "v": "LAD\u0100KH",
+              "v": "DISPUTED (R\u0100JATH\u0100N & GUJAR\u0100T)",
               "n": 2
             },
             {
@@ -7515,7 +7794,7 @@
               "n": 2
             },
             {
-              "v": "DISPUTED (WEST BENGAL , BIH\u0100R & JH\u0100RKHAND)",
+              "v": "DISPUTED (MADHYA PRADESH & GUJAR\u0100T)",
               "n": 1
             },
             {
@@ -7527,7 +7806,7 @@
               "n": 1
             },
             {
-              "v": "DISPUTED (MADHYA PRADESH & GUJAR\u0100T)",
+              "v": "DISPUTED (WEST BENGAL , BIH\u0100R & JH\u0100RKHAND)",
               "n": 1
             }
           ]
@@ -7579,7 +7858,7 @@
               "n": 36
             },
             {
-              "v": 36,
+              "v": 18,
               "n": 33
             },
             {
@@ -7591,15 +7870,15 @@
               "n": 33
             },
             {
-              "v": 18,
+              "v": 36,
               "n": 33
             },
             {
-              "v": 21,
+              "v": 29,
               "n": 30
             },
             {
-              "v": 29,
+              "v": 21,
               "n": 30
             },
             {
@@ -7619,15 +7898,15 @@
               "n": 23
             },
             {
-              "v": 6,
-              "n": 22
-            },
-            {
               "v": 3,
               "n": 22
             },
             {
               "v": 1,
+              "n": 22
+            },
+            {
+              "v": 6,
               "n": 22
             },
             {
@@ -7651,7 +7930,7 @@
               "n": 12
             },
             {
-              "v": 17,
+              "v": 13,
               "n": 11
             },
             {
@@ -7659,8 +7938,12 @@
               "n": 11
             },
             {
-              "v": 13,
+              "v": 17,
               "n": 11
+            },
+            {
+              "v": 16,
+              "n": 8
             },
             {
               "v": 0,
@@ -7671,31 +7954,27 @@
               "n": 8
             },
             {
-              "v": 16,
-              "n": 8
+              "v": 11,
+              "n": 4
             },
             {
               "v": 34,
               "n": 4
             },
             {
-              "v": 11,
-              "n": 4
+              "v": 35,
+              "n": 3
             },
             {
               "v": 38,
               "n": 3
             },
             {
-              "v": 35,
-              "n": 3
-            },
-            {
-              "v": 30,
+              "v": 37,
               "n": 2
             },
             {
-              "v": 37,
+              "v": 30,
               "n": 2
             },
             {
@@ -7761,7 +8040,7 @@
               "n": 36
             },
             {
-              "v": "RAJASTHAN",
+              "v": "ASSAM",
               "n": 33
             },
             {
@@ -7769,11 +8048,11 @@
               "n": 33
             },
             {
-              "v": "ASSAM",
+              "v": "TELANGANA",
               "n": 33
             },
             {
-              "v": "TELANGANA",
+              "v": "RAJASTHAN",
               "n": 33
             },
             {
@@ -7801,7 +8080,7 @@
               "n": 23
             },
             {
-              "v": "PUNJAB",
+              "v": "HARYANA",
               "n": 22
             },
             {
@@ -7809,7 +8088,7 @@
               "n": 22
             },
             {
-              "v": "HARYANA",
+              "v": "PUNJAB",
               "n": 22
             },
             {
@@ -7821,16 +8100,20 @@
               "n": 14
             },
             {
-              "v": "UTTARAKHAND",
+              "v": "ANDHRA PRADESH",
               "n": 13
             },
             {
-              "v": "ANDHRA PRADESH",
+              "v": "UTTARAKHAND",
               "n": 13
             },
             {
               "v": "HIMACHAL PRADESH",
               "n": 12
+            },
+            {
+              "v": "MEGHALAYA",
+              "n": 11
             },
             {
               "v": "NAGALAND",
@@ -7841,20 +8124,12 @@
               "n": 11
             },
             {
-              "v": "MEGHALAYA",
-              "n": 11
-            },
-            {
-              "v": "MIZORAM",
-              "n": 8
-            },
-            {
               "v": "TRIPURA",
               "n": 8
             },
             {
-              "v": "SIKKIM",
-              "n": 4
+              "v": "MIZORAM",
+              "n": 8
             },
             {
               "v": "PUDUCHERRY",
@@ -7865,19 +8140,23 @@
               "n": 4
             },
             {
-              "v": "DADRA & NAGAR HAVELI & DAMAN & DIU",
-              "n": 3
+              "v": "SIKKIM",
+              "n": 4
             },
             {
               "v": "ANDAMAN & NICOBAR",
               "n": 3
             },
             {
-              "v": "LADAKH",
-              "n": 2
+              "v": "DADRA & NAGAR HAVELI & DAMAN & DIU",
+              "n": 3
             },
             {
               "v": "GOA",
+              "n": 2
+            },
+            {
+              "v": "LADAKH",
               "n": 2
             },
             {
@@ -7885,19 +8164,19 @@
               "n": 2
             },
             {
-              "v": "LAKSHADWEEP",
-              "n": 1
-            },
-            {
-              "v": "CHANDIGARH",
-              "n": 1
-            },
-            {
               "v": "DISPUTED (WEST BENGAL , BIHAR & JHARKHAND)",
               "n": 1
             },
             {
+              "v": "LAKSHADWEEP",
+              "n": 1
+            },
+            {
               "v": "DISPUTED (MADHYA PRADESH & GUJARAT)",
+              "n": 1
+            },
+            {
+              "v": "CHANDIGARH",
               "n": 1
             }
           ]
@@ -8011,11 +8290,11 @@
               "n": 14
             },
             {
-              "v": "Andhra Pradesh",
+              "v": "Uttarakhand",
               "n": 13
             },
             {
-              "v": "Uttarakhand",
+              "v": "Andhra Pradesh",
               "n": 13
             },
             {
@@ -8023,11 +8302,11 @@
               "n": 12
             },
             {
-              "v": "Nagaland",
+              "v": "Meghalaya",
               "n": 11
             },
             {
-              "v": "Meghalaya",
+              "v": "Nagaland",
               "n": 11
             },
             {
@@ -8059,11 +8338,11 @@
               "n": 4
             },
             {
-              "v": "Goa",
+              "v": "Andaman & Nicobar",
               "n": 2
             },
             {
-              "v": "Andaman & Nicobar",
+              "v": "Goa",
               "n": 2
             },
             {
@@ -8075,15 +8354,15 @@
               "n": 1
             },
             {
+              "v": "Dadar Nagar& Haveli",
+              "n": 1
+            },
+            {
               "v": "Lakshadweep",
               "n": 1
             },
             {
               "v": "Chandigarh",
-              "n": 1
-            },
-            {
-              "v": "Dadar Nagar& Haveli",
               "n": 1
             }
           ]
@@ -8121,11 +8400,11 @@
               "n": 32
             },
             {
-              "v": "21",
+              "v": "29",
               "n": 30
             },
             {
-              "v": "29",
+              "v": "21",
               "n": 30
             },
             {
@@ -8145,11 +8424,11 @@
               "n": 24
             },
             {
-              "v": "6",
+              "v": "3",
               "n": 22
             },
             {
-              "v": "3",
+              "v": "6",
               "n": 22
             },
             {
@@ -8169,11 +8448,11 @@
               "n": 14
             },
             {
-              "v": "5",
+              "v": "28",
               "n": 13
             },
             {
-              "v": "28",
+              "v": "5",
               "n": 13
             },
             {
@@ -8209,11 +8488,11 @@
               "n": 6
             },
             {
-              "v": "11",
+              "v": "34",
               "n": 4
             },
             {
-              "v": "34",
+              "v": "11",
               "n": 4
             },
             {
@@ -8221,15 +8500,15 @@
               "n": 2
             },
             {
-              "v": "30",
-              "n": 2
-            },
-            {
               "v": "35",
               "n": 2
             },
             {
-              "v": "26",
+              "v": "30",
+              "n": 2
+            },
+            {
+              "v": "4",
               "n": 1
             },
             {
@@ -8237,11 +8516,11 @@
               "n": 1
             },
             {
-              "v": "4",
+              "v": "7",
               "n": 1
             },
             {
-              "v": "7",
+              "v": "26",
               "n": 1
             }
           ]
@@ -8391,11 +8670,11 @@
               "n": 76
             },
             {
-              "v": "17",
+              "v": "14",
               "n": 39
             },
             {
-              "v": "14",
+              "v": "17",
               "n": 39
             },
             {
@@ -8419,11 +8698,11 @@
               "n": 10
             },
             {
-              "v": "11",
+              "v": "35",
               "n": 9
             },
             {
-              "v": "35",
+              "v": "11",
               "n": 9
             },
             {
@@ -8589,11 +8868,11 @@
               "n": 10
             },
             {
-              "v": "ANDAMAN & NICOBAR",
+              "v": "SIKKIM",
               "n": 9
             },
             {
-              "v": "SIKKIM",
+              "v": "ANDAMAN & NICOBAR",
               "n": 9
             },
             {
@@ -8747,11 +9026,11 @@
               "n": 76
             },
             {
-              "v": 14,
+              "v": 17,
               "n": 39
             },
             {
-              "v": 17,
+              "v": 14,
               "n": 39
             },
             {
@@ -9004,27 +9283,27 @@
               "n": 23
             },
             {
-              "v": "JAMMU AND KASHMIR",
-              "n": 22
-            },
-            {
               "v": "MIZORAM",
               "n": 22
             },
             {
-              "v": "GOA",
-              "n": 11
+              "v": "JAMMU AND KASHMIR",
+              "n": 22
             },
             {
               "v": "MEGHALAYA",
               "n": 11
             },
             {
-              "v": "SIKKIM",
-              "n": 9
+              "v": "GOA",
+              "n": 11
             },
             {
               "v": "ANDAMAN & NICOBAR",
+              "n": 9
+            },
+            {
+              "v": "SIKKIM",
               "n": 9
             },
             {
@@ -9048,15 +9327,15 @@
               "n": 1
             },
             {
+              "v": "Disputed (West Bengal)",
+              "n": 1
+            },
+            {
               "v": "CHANDIGARH",
               "n": 1
             },
             {
               "v": "DISPUTED",
-              "n": 1
-            },
-            {
-              "v": "Disputed (West Bengal)",
               "n": 1
             }
           ]
@@ -9194,11 +9473,11 @@
               "n": 23
             },
             {
-              "v": "JAMMU AND KASHMIR",
+              "v": "MIZORAM",
               "n": 22
             },
             {
-              "v": "MIZORAM",
+              "v": "JAMMU AND KASHMIR",
               "n": 22
             },
             {
@@ -9234,7 +9513,7 @@
               "n": 2
             },
             {
-              "v": "CHANDIGARH",
+              "v": "DISPUTED (WEST BENGAL)",
               "n": 1
             },
             {
@@ -9242,11 +9521,11 @@
               "n": 1
             },
             {
-              "v": "LAKSHADWEEP",
+              "v": "CHANDIGARH",
               "n": 1
             },
             {
-              "v": "DISPUTED (WEST BENGAL)",
+              "v": "LAKSHADWEEP",
               "n": 1
             }
           ]
@@ -9420,11 +9699,11 @@
               "n": 22
             },
             {
-              "v": "GOA",
+              "v": "DELHI",
               "n": 12
             },
             {
-              "v": "DELHI",
+              "v": "GOA",
               "n": 12
             },
             {
@@ -9562,11 +9841,11 @@
               "n": 58
             },
             {
-              "v": "17",
+              "v": "14",
               "n": 39
             },
             {
-              "v": "14",
+              "v": "17",
               "n": 39
             },
             {
@@ -9732,10 +10011,6 @@
               "n": 4
             },
             {
-              "v": 23,
-              "n": 3
-            },
-            {
               "v": 21,
               "n": 3
             },
@@ -9744,7 +10019,11 @@
               "n": 3
             },
             {
-              "v": 22,
+              "v": 23,
+              "n": 3
+            },
+            {
+              "v": 19,
               "n": 2
             },
             {
@@ -9752,7 +10031,7 @@
               "n": 2
             },
             {
-              "v": 19,
+              "v": 22,
               "n": 2
             },
             {
@@ -9760,27 +10039,7 @@
               "n": 2
             },
             {
-              "v": 42,
-              "n": 1
-            },
-            {
               "v": 27,
-              "n": 1
-            },
-            {
-              "v": 50,
-              "n": 1
-            },
-            {
-              "v": 44,
-              "n": 1
-            },
-            {
-              "v": 43,
-              "n": 1
-            },
-            {
-              "v": 51,
               "n": 1
             },
             {
@@ -9788,7 +10047,27 @@
               "n": 1
             },
             {
-              "v": 34,
+              "v": 44,
+              "n": 1
+            },
+            {
+              "v": 50,
+              "n": 1
+            },
+            {
+              "v": 25,
+              "n": 1
+            },
+            {
+              "v": 51,
+              "n": 1
+            },
+            {
+              "v": 42,
+              "n": 1
+            },
+            {
+              "v": 43,
               "n": 1
             },
             {
@@ -9796,7 +10075,7 @@
               "n": 1
             },
             {
-              "v": 25,
+              "v": 34,
               "n": 1
             }
           ]
@@ -9930,11 +10209,11 @@
               "n": 39
             },
             {
-              "v": 15,
+              "v": 11,
               "n": 26
             },
             {
-              "v": 11,
+              "v": 15,
               "n": 26
             },
             {
@@ -9942,11 +10221,11 @@
               "n": 22
             },
             {
-              "v": 30,
+              "v": 7,
               "n": 12
             },
             {
-              "v": 7,
+              "v": 30,
               "n": 12
             },
             {
@@ -10137,11 +10416,11 @@
               "n": 6
             },
             {
-              "v": "Lakshadweep",
+              "v": "Andaman & Nicobar",
               "n": 4
             },
             {
-              "v": "Andaman & Nicobar",
+              "v": "Lakshadweep",
               "n": 4
             },
             {
@@ -10153,11 +10432,11 @@
               "n": 2
             },
             {
-              "v": "Chandigarh",
+              "v": "Dadar Nagar& Haveli",
               "n": 1
             },
             {
-              "v": "Dadar Nagar& Haveli",
+              "v": "Chandigarh",
               "n": 1
             },
             {
@@ -10271,11 +10550,11 @@
               "n": 38
             },
             {
-              "v": "14",
+              "v": "16",
               "n": 37
             },
             {
-              "v": "16",
+              "v": "14",
               "n": 37
             },
             {
@@ -10303,12 +10582,16 @@
               "n": 4
             },
             {
+              "v": "25",
+              "n": 2
+            },
+            {
               "v": "34",
               "n": 2
             },
             {
-              "v": "25",
-              "n": 2
+              "v": "26",
+              "n": 1
             },
             {
               "v": "4",
@@ -10316,10 +10599,6 @@
             },
             {
               "v": "7",
-              "n": 1
-            },
-            {
-              "v": "26",
               "n": 1
             }
           ]
@@ -10437,11 +10716,11 @@
               "n": 248
             },
             {
-              "v": 12,
+              "v": 4,
               "n": 220
             },
             {
-              "v": 4,
+              "v": 12,
               "n": 220
             },
             {
@@ -10571,11 +10850,11 @@
               "n": 248
             },
             {
-              "v": "Gujarat",
+              "v": "Assam",
               "n": 220
             },
             {
-              "v": "Assam",
+              "v": "Gujarat",
               "n": 220
             },
             {
@@ -12492,11 +12771,11 @@
               "n": 26
             },
             {
-              "v": "08",
+              "v": "37",
               "n": 25
             },
             {
-              "v": "37",
+              "v": "08",
               "n": 25
             },
             {
@@ -12512,11 +12791,11 @@
               "n": 17
             },
             {
-              "v": "18",
+              "v": "20",
               "n": 14
             },
             {
-              "v": "20",
+              "v": "18",
               "n": 14
             },
             {
@@ -12548,19 +12827,11 @@
               "n": 4
             },
             {
+              "v": "12",
+              "n": 2
+            },
+            {
               "v": "30",
-              "n": 2
-            },
-            {
-              "v": "39",
-              "n": 2
-            },
-            {
-              "v": "17",
-              "n": 2
-            },
-            {
-              "v": "16",
               "n": 2
             },
             {
@@ -12568,11 +12839,19 @@
               "n": 2
             },
             {
-              "v": "12",
+              "v": "39",
               "n": 2
             },
             {
-              "v": "11",
+              "v": "16",
+              "n": 2
+            },
+            {
+              "v": "17",
+              "n": 2
+            },
+            {
+              "v": "31",
               "n": 1
             },
             {
@@ -12580,11 +12859,11 @@
               "n": 1
             },
             {
-              "v": "34",
+              "v": "11",
               "n": 1
             },
             {
-              "v": "31",
+              "v": "35",
               "n": 1
             },
             {
@@ -12592,7 +12871,7 @@
               "n": 1
             },
             {
-              "v": "35",
+              "v": "34",
               "n": 1
             },
             {
@@ -12662,11 +12941,11 @@
               "n": 17
             },
             {
-              "v": "ASSAM",
+              "v": "JHARKHAND",
               "n": 14
             },
             {
-              "v": "JHARKHAND",
+              "v": "ASSAM",
               "n": 14
             },
             {
@@ -12698,6 +12977,18 @@
               "n": 4
             },
             {
+              "v": "GOA",
+              "n": 2
+            },
+            {
+              "v": "TRIPURA",
+              "n": 2
+            },
+            {
+              "v": "MANIPUR",
+              "n": 2
+            },
+            {
               "v": "ARUNACHAL PRADESH",
               "n": 2
             },
@@ -12706,27 +12997,11 @@
               "n": 2
             },
             {
-              "v": "GOA",
-              "n": 2
-            },
-            {
-              "v": "MANIPUR",
-              "n": 2
-            },
-            {
-              "v": "TRIPURA",
-              "n": 2
-            },
-            {
               "v": "ANDAMAN & NICOBAR",
               "n": 1
             },
             {
-              "v": "SIKKIM",
-              "n": 1
-            },
-            {
-              "v": "DAMAN & DIU",
+              "v": "NAGALAND",
               "n": 1
             },
             {
@@ -12734,7 +13009,11 @@
               "n": 1
             },
             {
-              "v": "MIZORAM",
+              "v": "CHANDIGARH",
+              "n": 1
+            },
+            {
+              "v": "DAMAN & DIU",
               "n": 1
             },
             {
@@ -12742,15 +13021,15 @@
               "n": 1
             },
             {
-              "v": "CHANDIGARH",
+              "v": "MIZORAM",
+              "n": 1
+            },
+            {
+              "v": "SIKKIM",
               "n": 1
             },
             {
               "v": "PUDUCHERRY",
-              "n": 1
-            },
-            {
-              "v": "NAGALAND",
               "n": 1
             }
           ]
@@ -12942,15 +13221,11 @@
               "n": 2
             },
             {
-              "v": 15,
-              "n": 1
-            },
-            {
               "v": 4,
               "n": 1
             },
             {
-              "v": 35,
+              "v": 31,
               "n": 1
             },
             {
@@ -12962,11 +13237,15 @@
               "n": 1
             },
             {
-              "v": 11,
+              "v": 35,
               "n": 1
             },
             {
-              "v": 31,
+              "v": 15,
+              "n": 1
+            },
+            {
+              "v": 11,
               "n": 1
             }
           ]
@@ -13073,19 +13352,19 @@
               "n": 95
             },
             {
-              "v": "22",
-              "n": 90
-            },
-            {
               "v": "06",
               "n": 90
             },
             {
-              "v": "05",
-              "n": 70
+              "v": "22",
+              "n": 90
             },
             {
               "v": "07",
+              "n": 70
+            },
+            {
+              "v": "05",
               "n": 70
             },
             {
@@ -13101,15 +13380,15 @@
               "n": 61
             },
             {
-              "v": "16",
-              "n": 60
-            },
-            {
               "v": "17",
               "n": 60
             },
             {
               "v": "13",
+              "n": 60
+            },
+            {
+              "v": "16",
               "n": 60
             },
             {
@@ -13207,27 +13486,27 @@
               "n": 95
             },
             {
-              "v": "CHHATTISGARH",
-              "n": 90
-            },
-            {
               "v": "HARYANA",
               "n": 90
             },
             {
-              "v": "DELHI",
-              "n": 70
+              "v": "CHHATTISGARH",
+              "n": 90
             },
             {
               "v": "UTTARKHAND",
               "n": 70
             },
             {
-              "v": "HIMACHAL PRADESH",
-              "n": 68
+              "v": "DELHI",
+              "n": 70
             },
             {
               "v": "MANIPUR",
+              "n": 68
+            },
+            {
+              "v": "HIMACHAL PRADESH",
               "n": 68
             },
             {
@@ -13235,15 +13514,15 @@
               "n": 61
             },
             {
+              "v": "NAGALAND",
+              "n": 60
+            },
+            {
               "v": "MEGHALAYA",
               "n": 60
             },
             {
               "v": "TRIPURA",
-              "n": 60
-            },
-            {
-              "v": "NAGALAND",
               "n": 60
             },
             {
@@ -13403,11 +13682,11 @@
               "n": 235
             },
             {
-              "v": 29,
+              "v": 23,
               "n": 225
             },
             {
-              "v": 23,
+              "v": 29,
               "n": 225
             },
             {
@@ -13451,11 +13730,11 @@
               "n": 96
             },
             {
-              "v": 22,
+              "v": 6,
               "n": 90
             },
             {
-              "v": 6,
+              "v": 22,
               "n": 90
             },
             {
@@ -13870,11 +14149,11 @@
               "n": 12
             },
             {
-              "v": "Jharkhand",
+              "v": "Chhattisgarh",
               "n": 11
             },
             {
-              "v": "Chhattisgarh",
+              "v": "Jharkhand",
               "n": 11
             },
             {
@@ -13898,11 +14177,11 @@
               "n": 6
             },
             {
-              "v": "Nagaland",
+              "v": "Meghalaya",
               "n": 6
             },
             {
-              "v": "Meghalaya",
+              "v": "Nagaland",
               "n": 6
             },
             {
@@ -13910,7 +14189,11 @@
               "n": 3
             },
             {
-              "v": "Delhi",
+              "v": "Dadra & Nagar Haveli",
+              "n": 1
+            },
+            {
+              "v": "Puducherry",
               "n": 1
             },
             {
@@ -13918,15 +14201,11 @@
               "n": 1
             },
             {
+              "v": "Delhi",
+              "n": 1
+            },
+            {
               "v": "Lakshadweep (UT)",
-              "n": 1
-            },
-            {
-              "v": "Dadra & Nagar Haveli",
-              "n": 1
-            },
-            {
-              "v": "Puducherry",
               "n": 1
             }
           ]
@@ -13984,6 +14263,10 @@
               "n": 2
             },
             {
+              "v": "Chandrapur",
+              "n": 2
+            },
+            {
               "v": "Wild Life North Circle",
               "n": 2
             },
@@ -13992,55 +14275,7 @@
               "n": 2
             },
             {
-              "v": "Chandrapur",
-              "n": 2
-            },
-            {
-              "v": "Kolhapur",
-              "n": 1
-            },
-            {
-              "v": "Madurai",
-              "n": 1
-            },
-            {
-              "v": "Seithekema",
-              "n": 1
-            },
-            {
-              "v": "Aurangabad",
-              "n": 1
-            },
-            {
-              "v": "Naginimora",
-              "n": 1
-            },
-            {
-              "v": "Wildlife North",
-              "n": 1
-            },
-            {
-              "v": "2",
-              "n": 1
-            },
-            {
-              "v": "Southern / Central Circle",
-              "n": 1
-            },
-            {
-              "v": "Str Wildlife",
-              "n": 1
-            },
-            {
-              "v": "Thane",
-              "n": 1
-            },
-            {
-              "v": "Mtr Wildlife",
-              "n": 1
-            },
-            {
-              "v": "1",
+              "v": "Northern Circle",
               "n": 1
             },
             {
@@ -14048,11 +14283,55 @@
               "n": 1
             },
             {
+              "v": "Thane",
+              "n": 1
+            },
+            {
+              "v": "1",
+              "n": 1
+            },
+            {
+              "v": "Aurangabad",
+              "n": 1
+            },
+            {
+              "v": "Kolhapur",
+              "n": 1
+            },
+            {
+              "v": "Wildlife North",
+              "n": 1
+            },
+            {
+              "v": "Madurai",
+              "n": 1
+            },
+            {
+              "v": "2",
+              "n": 1
+            },
+            {
+              "v": "Naginimora",
+              "n": 1
+            },
+            {
               "v": "Dharmapuri",
               "n": 1
             },
             {
-              "v": "Northern Circle",
+              "v": "Seithekema",
+              "n": 1
+            },
+            {
+              "v": "Str Wildlife",
+              "n": 1
+            },
+            {
+              "v": "Mtr Wildlife",
+              "n": 1
+            },
+            {
+              "v": "Southern / Central Circle",
               "n": 1
             }
           ]
@@ -14104,11 +14383,11 @@
               "n": 30
             },
             {
-              "v": "Other data",
+              "v": "MoEF",
               "n": 1
             },
             {
-              "v": "MoEF",
+              "v": "Other data",
               "n": 1
             }
           ]
@@ -14150,27 +14429,11 @@
               "n": 2
             },
             {
-              "v": "2021/03/15",
+              "v": "2000/12/21",
               "n": 1
             },
             {
-              "v": "1955/03/31",
-              "n": 1
-            },
-            {
-              "v": "2004/05/14",
-              "n": 1
-            },
-            {
-              "v": "16-05-1997, 17-05-1997",
-              "n": 1
-            },
-            {
-              "v": "2000/06/08",
-              "n": 1
-            },
-            {
-              "v": "2014/05/03",
+              "v": "2013/05/03",
               "n": 1
             },
             {
@@ -14178,7 +14441,87 @@
               "n": 1
             },
             {
+              "v": "2012/02/29",
+              "n": 1
+            },
+            {
+              "v": "2010/11/02",
+              "n": 1
+            },
+            {
+              "v": "1997/08/19",
+              "n": 1
+            },
+            {
+              "v": "24-01-1997, 30-04-1997",
+              "n": 1
+            },
+            {
+              "v": "13/04/1987",
+              "n": 1
+            },
+            {
+              "v": "1955/03/31",
+              "n": 1
+            },
+            {
+              "v": "2019/05/29",
+              "n": 1
+            },
+            {
+              "v": "2004/05/14",
+              "n": 1
+            },
+            {
+              "v": "1970/06/03",
+              "n": 1
+            },
+            {
+              "v": "2018/03/23",
+              "n": 1
+            },
+            {
+              "v": "2000/12/07",
+              "n": 1
+            },
+            {
+              "v": "15-02-1994, 06-11-2000",
+              "n": 1
+            },
+            {
+              "v": "1975/11/22",
+              "n": 1
+            },
+            {
+              "v": "2000/06/08",
+              "n": 1
+            },
+            {
               "v": "27-11-1970",
+              "n": 1
+            },
+            {
+              "v": "16-05-1997, 17-05-1997",
+              "n": 1
+            },
+            {
+              "v": "2003/10/24",
+              "n": 1
+            },
+            {
+              "v": "2013/07/18",
+              "n": 1
+            },
+            {
+              "v": "1958/12/02",
+              "n": 1
+            },
+            {
+              "v": "2021/03/15",
+              "n": 1
+            },
+            {
+              "v": "2014/05/03",
               "n": 1
             },
             {
@@ -14190,59 +14533,7 @@
               "n": 1
             },
             {
-              "v": "1997/05/02",
-              "n": 1
-            },
-            {
-              "v": "2000/12/21",
-              "n": 1
-            },
-            {
-              "v": "2000/08/08",
-              "n": 1
-            },
-            {
-              "v": "2018/03/23",
-              "n": 1
-            },
-            {
-              "v": "2010/11/02",
-              "n": 1
-            },
-            {
-              "v": "1997/04/09",
-              "n": 1
-            },
-            {
-              "v": "28-07-1997, 29-07-1997",
-              "n": 1
-            },
-            {
-              "v": "2019/05/29",
-              "n": 1
-            },
-            {
-              "v": "1958/12/02",
-              "n": 1
-            },
-            {
-              "v": "1970/06/03",
-              "n": 1
-            },
-            {
-              "v": "1988/02/08",
-              "n": 1
-            },
-            {
-              "v": "24-01-1997, 30-04-1997",
-              "n": 1
-            },
-            {
-              "v": "2003/10/24",
-              "n": 1
-            },
-            {
-              "v": "13/04/1987",
+              "v": "1994/12/08",
               "n": 1
             },
             {
@@ -14254,7 +14545,7 @@
               "n": 1
             },
             {
-              "v": "1994/12/08",
+              "v": "1997/05/02",
               "n": 1
             },
             {
@@ -14274,23 +14565,15 @@
               "n": 1
             },
             {
-              "v": "15-02-1994, 06-11-2000",
+              "v": "2000/08/08",
               "n": 1
             },
             {
-              "v": "2013/07/18",
+              "v": "28-07-1997, 29-07-1997",
               "n": 1
             },
             {
-              "v": "2000/12/07",
-              "n": 1
-            },
-            {
-              "v": "2012/02/29",
-              "n": 1
-            },
-            {
-              "v": "1975/11/22",
+              "v": "1997/04/09",
               "n": 1
             },
             {
@@ -14302,11 +14585,7 @@
               "n": 1
             },
             {
-              "v": "2013/05/03",
-              "n": 1
-            },
-            {
-              "v": "1997/08/19",
+              "v": "1988/02/08",
               "n": 1
             }
           ]
@@ -14340,11 +14619,11 @@
               "n": 4
             },
             {
-              "v": "1970",
+              "v": "1985",
               "n": 2
             },
             {
-              "v": "1985",
+              "v": "1970",
               "n": 2
             },
             {
@@ -14352,47 +14631,19 @@
               "n": 2
             },
             {
-              "v": "2018",
-              "n": 2
-            },
-            {
               "v": "2013",
               "n": 2
             },
             {
-              "v": "2016",
+              "v": "2018",
+              "n": 2
+            },
+            {
+              "v": "1958",
               "n": 1
             },
             {
-              "v": "1997, 1997",
-              "n": 1
-            },
-            {
-              "v": "2019",
-              "n": 1
-            },
-            {
-              "v": "1995",
-              "n": 1
-            },
-            {
-              "v": "2004",
-              "n": 1
-            },
-            {
-              "v": "1988",
-              "n": 1
-            },
-            {
-              "v": "1969",
-              "n": 1
-            },
-            {
-              "v": "1996",
-              "n": 1
-            },
-            {
-              "v": "1987",
+              "v": "1986, 2004",
               "n": 1
             },
             {
@@ -14400,7 +14651,23 @@
               "n": 1
             },
             {
-              "v": "1980",
+              "v": "1969",
+              "n": 1
+            },
+            {
+              "v": "2010",
+              "n": 1
+            },
+            {
+              "v": "1996",
+              "n": 1
+            },
+            {
+              "v": "1955",
+              "n": 1
+            },
+            {
+              "v": "2016",
               "n": 1
             },
             {
@@ -14408,11 +14675,11 @@
               "n": 1
             },
             {
-              "v": "1958",
+              "v": "1987",
               "n": 1
             },
             {
-              "v": "2010",
+              "v": "1985, 1970",
               "n": 1
             },
             {
@@ -14424,15 +14691,27 @@
               "n": 1
             },
             {
-              "v": "1955",
+              "v": "2019",
               "n": 1
             },
             {
-              "v": "1985, 1970",
+              "v": "1988",
               "n": 1
             },
             {
-              "v": "1986, 2004",
+              "v": "1997, 1997",
+              "n": 1
+            },
+            {
+              "v": "2004",
+              "n": 1
+            },
+            {
+              "v": "1980",
+              "n": 1
+            },
+            {
+              "v": "1995",
               "n": 1
             }
           ]
@@ -14446,11 +14725,11 @@
           "max": "Core Zone",
           "top_values": [
             {
-              "v": "Buffer Zone",
+              "v": "Core Zone",
               "n": 7
             },
             {
-              "v": "Core Zone",
+              "v": "Buffer Zone",
               "n": 7
             }
           ]
@@ -14532,11 +14811,11 @@
               "n": 19
             },
             {
-              "v": "03",
+              "v": "05",
               "n": 14
             },
             {
-              "v": "05",
+              "v": "03",
               "n": 14
             },
             {
@@ -14544,15 +14823,15 @@
               "n": 13
             },
             {
-              "v": "15",
-              "n": 12
-            },
-            {
               "v": "36",
               "n": 12
             },
             {
-              "v": "06",
+              "v": "15",
+              "n": 12
+            },
+            {
+              "v": "22",
               "n": 11
             },
             {
@@ -14560,24 +14839,20 @@
               "n": 11
             },
             {
-              "v": "22",
+              "v": "06",
               "n": 11
-            },
-            {
-              "v": "14",
-              "n": 8
             },
             {
               "v": "11",
               "n": 8
             },
             {
-              "v": "30",
-              "n": 7
+              "v": "14",
+              "n": 8
             },
             {
-              "v": "13",
-              "n": 6
+              "v": "30",
+              "n": 7
             },
             {
               "v": "16",
@@ -14588,7 +14863,11 @@
               "n": 6
             },
             {
-              "v": "26",
+              "v": "13",
+              "n": 6
+            },
+            {
+              "v": "07",
               "n": 1
             },
             {
@@ -14596,15 +14875,15 @@
               "n": 1
             },
             {
-              "v": "34",
-              "n": 1
-            },
-            {
-              "v": "07",
-              "n": 1
-            },
-            {
               "v": "04",
+              "n": 1
+            },
+            {
+              "v": "26",
+              "n": 1
+            },
+            {
+              "v": "34",
               "n": 1
             }
           ]
@@ -14756,10 +15035,6 @@
               "n": 6
             },
             {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Aerial Bay, Mayabunder, as well as Port Blair",
-              "n": 5
-            },
-            {
               "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder as well as Port Blair",
               "n": 5
             },
@@ -14768,15 +15043,19 @@
               "n": 5
             },
             {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Gandhighat Jetty, Uttara Jetty as well as Port Blair.",
-              "n": 4
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Aerial Bay, Mayabunder, as well as Port Blair",
+              "n": 5
             },
             {
               "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder as well as Port Blair.",
               "n": 4
             },
             {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Aerial Bay, as well as Port Blair.",
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Gandhighat Jetty, Uttara Jetty as well as Port Blair.",
+              "n": 4
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Kalara, Mayabunder, as well as Port Blair.",
               "n": 3
             },
             {
@@ -14784,16 +15063,8 @@
               "n": 3
             },
             {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Kalara, Mayabunder, as well as Port Blair.",
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Aerial Bay, as well as Port Blair.",
               "n": 3
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Jarawa Protection Post, as well as Port Blair",
-              "n": 2
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder area, Diglipur area, as well as Port Blair",
-              "n": 2
             },
             {
               "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to South Cinque Island and West Sister Island as well as Port Blair.",
@@ -14804,7 +15075,7 @@
               "n": 2
             },
             {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder area, Diglipur area, as well as Port Blair.",
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Gandhighat Jetty, Uttara Jetty as well as Port Blair",
               "n": 2
             },
             {
@@ -14812,111 +15083,23 @@
               "n": 2
             },
             {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder area, Diglipur area, as well as Port Blair.",
+              "n": 2
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder area, Diglipur area, as well as Port Blair",
+              "n": 2
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Jarawa Protection Post, as well as Port Blair",
+              "n": 2
+            },
+            {
               "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai and back. Ferry services are available to the national park.",
               "n": 2
             },
             {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Gandhighat Jetty, Uttara Jetty as well as Port Blair",
-              "n": 2
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Jarawa Protection Post, as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect these islands to South Cinque Island as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Aerial Bay, as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Keating Point.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur Taluk, as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai and back. Ferry services are available to the national park",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur, Mayabunder, as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder, Austin Strait as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur, as well as Port Blair and travel is only by special demand.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Marine Park, Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "You can take the inter-island boat service from Port Blair. The journey has been termed a trip within itself and takes about a week. Another option is to take the MV Campbell Bay, a government ship that covers the distance from Port Blair to Campbell Bay",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur, as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder, as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Gandhighat Jetty, Uttara Jetty, Mayabunder as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder, Gandhighat Jetty, Uttara Jetty as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Ferrargunj, as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Yerrata Jetty, Rangat, as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Rangat Taluk, as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to South Cinque Island, West Sister Island, Kwate tu Kwage as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Malacca, Nancowry, Campbell Bay, as well as Port Blair",
-              "n": 1
-            },
-            {
               "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Rangat area as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Nilambur Jetty, Jarawa Protection Post as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Havelock Island as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Seven passenger ships-MV Kavaratti, MV Arabian Sea, MV Lakshadweep Sea, MV Lagoon, MV Corals, MV Amindivi and MV Minicoy, operate between Cochin and Lakshadweep.",
               "n": 1
             },
             {
@@ -14924,19 +15107,27 @@
               "n": 1
             },
             {
+              "v": "You can take the inter-island boat service from Port Blair. The journey has been termed a trip within itself and takes about a week. Another option is to take the MV Campbell Bay, a government ship that covers the distance from Port Blair to Campbell Bay",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder, Gandhighat Jetty, Uttara Jetty as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Malacca, Nancowry, Campbell Bay, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Seven passenger ships-MV Kavaratti, MV Arabian Sea, MV Lakshadweep Sea, MV Lagoon, MV Corals, MV Amindivi and MV Minicoy, operate between Cochin and Lakshadweep.",
+              "n": 1
+            },
+            {
               "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur area as well as Port Blair",
               "n": 1
             },
             {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to South Cinque Island, West Sister Island, Kwate tu Kwage as well as Port Blair.",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Austen Strait from Mayabunder, as well as Port Blair",
-              "n": 1
-            },
-            {
-              "v": "Frequent ship services are available passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder area, Diglipur area, as well as Port Blair.",
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur, as well as Port Blair and travel is only by special demand.",
               "n": 1
             },
             {
@@ -14944,7 +15135,95 @@
               "n": 1
             },
             {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Aerial Bay, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Ferrargunj, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur Taluk, as well as Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur, as well as Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai and back. Ferry services are available to the national park",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Yerrata Jetty, Rangat, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Diglipur, Mayabunder, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to South Cinque Island, West Sister Island, Kwate tu Kwage as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Rangat Taluk, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect these islands to South Cinque Island as well as Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Jarawa Protection Post, as well as Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Marine Park, Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to South Cinque Island, West Sister Island, Kwate tu Kwage as well as Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Havelock Island as well as Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Nilambur Jetty, Jarawa Protection Post as well as Port Blair.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Austen Strait from Mayabunder, as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder, Austin Strait as well as Port Blair",
+              "n": 1
+            },
+            {
               "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to the nearest inhabited island, Havelock. The only two ways to arrive here are either by boat or by a seapl",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Gandhighat Jetty, Uttara Jetty, Mayabunder as well as Port Blair",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available for passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Keating Point.",
+              "n": 1
+            },
+            {
+              "v": "Frequent ship services are available passengers traveling to Port Blair from Vishakhapatnam, Kolkata and Chennai. Ferries connect this island to Mayabunder area, Diglipur area, as well as Port Blair.",
               "n": 1
             }
           ]
@@ -15069,11 +15348,79 @@
               "n": 2
             },
             {
-              "v": "Vishnu Jedia GIS Cell,IT,Panna Tiger Reserve,Panna",
+              "v": "Forest Department Gujarat State,Bhaskarcharya Inst",
+              "n": 1
+            },
+            {
+              "v": "Forest Department Gujrat State",
+              "n": 1
+            },
+            {
+              "v": "Gis Cell PMU Lucknow",
+              "n": 1
+            },
+            {
+              "v": "Kaimoor WildLife Division Mirzapur",
+              "n": 1
+            },
+            {
+              "v": "GIS Lab Forest Department,Manipur",
+              "n": 1
+            },
+            {
+              "v": "HP Forest Department",
+              "n": 1
+            },
+            {
+              "v": "Forest Department, Gujarat State",
+              "n": 1
+            },
+            {
+              "v": "GIS Cell, EF &CC Dept. Mizoram",
+              "n": 1
+            },
+            {
+              "v": "Kachchh West Forest Division & Bhaskarcharya Inst",
+              "n": 1
+            },
+            {
+              "v": "Geomatics Centre Tamilnadu forest Department",
+              "n": 1
+            },
+            {
+              "v": "Geomatics Center Mehkar",
               "n": 1
             },
             {
               "v": "GIS Cell, EF&CC Dept, Mizoram",
+              "n": 1
+            },
+            {
+              "v": "GIS Cell,EF & CC Dept. Mizoram",
+              "n": 1
+            },
+            {
+              "v": "Kachchh East Forest Division & Bhaskaracharya inst",
+              "n": 1
+            },
+            {
+              "v": "Forest Resources & Ecology Divsion ,UP",
+              "n": 1
+            },
+            {
+              "v": "Vishnu Jedia GIS Cell,IT,Panna Tiger Reserve,Panna",
+              "n": 1
+            },
+            {
+              "v": "Forest Department ,Gujarat State",
+              "n": 1
+            },
+            {
+              "v": "GIS LAB,Tripura Forest Department",
+              "n": 1
+            },
+            {
+              "v": "Sohagibarwa WildLife Division,Maharajgan(UP)",
               "n": 1
             },
             {
@@ -15086,74 +15433,6 @@
             },
             {
               "v": "GIS Cell ,EF & CC Dept., Mizoram",
-              "n": 1
-            },
-            {
-              "v": "GIS LAB,Tripura Forest Department",
-              "n": 1
-            },
-            {
-              "v": "GIS Cell, EF &CC Dept. Mizoram",
-              "n": 1
-            },
-            {
-              "v": "Geomatics Center Mehkar",
-              "n": 1
-            },
-            {
-              "v": "Forest Resources & Ecology Divsion ,UP",
-              "n": 1
-            },
-            {
-              "v": "Geomatics Centre Tamilnadu forest Department",
-              "n": 1
-            },
-            {
-              "v": "Kachchh West Forest Division & Bhaskarcharya Inst",
-              "n": 1
-            },
-            {
-              "v": "Forest Department ,Gujarat State",
-              "n": 1
-            },
-            {
-              "v": "Forest Department Gujarat State,Bhaskarcharya Inst",
-              "n": 1
-            },
-            {
-              "v": "HP Forest Department",
-              "n": 1
-            },
-            {
-              "v": "Gis Cell PMU Lucknow",
-              "n": 1
-            },
-            {
-              "v": "Forest Department Gujrat State",
-              "n": 1
-            },
-            {
-              "v": "GIS Cell,EF & CC Dept. Mizoram",
-              "n": 1
-            },
-            {
-              "v": "GIS Lab Forest Department,Manipur",
-              "n": 1
-            },
-            {
-              "v": "Sohagibarwa WildLife Division,Maharajgan(UP)",
-              "n": 1
-            },
-            {
-              "v": "Forest Department, Gujarat State",
-              "n": 1
-            },
-            {
-              "v": "Kaimoor WildLife Division Mirzapur",
-              "n": 1
-            },
-            {
-              "v": "Kachchh East Forest Division & Bhaskaracharya inst",
               "n": 1
             }
           ]
@@ -15187,31 +15466,7 @@
               "n": 3
             },
             {
-              "v": 15694.7586161,
-              "n": 1
-            },
-            {
-              "v": 17005.4612771,
-              "n": 1
-            },
-            {
-              "v": 194600.235962,
-              "n": 1
-            },
-            {
-              "v": 95879.3345728,
-              "n": 1
-            },
-            {
-              "v": 113956.971638,
-              "n": 1
-            },
-            {
-              "v": 0.250233414312,
-              "n": 1
-            },
-            {
-              "v": 122270.81541,
+              "v": 0.406347446858,
               "n": 1
             },
             {
@@ -15219,11 +15474,31 @@
               "n": 1
             },
             {
-              "v": 5571354.36361,
+              "v": 0.250233414312,
               "n": 1
             },
             {
-              "v": 176527.351831,
+              "v": 15694.7586161,
+              "n": 1
+            },
+            {
+              "v": 51593.9188206,
+              "n": 1
+            },
+            {
+              "v": 1.32049515181,
+              "n": 1
+            },
+            {
+              "v": 112288.234579,
+              "n": 1
+            },
+            {
+              "v": 1.55136588867,
+              "n": 1
+            },
+            {
+              "v": 138580.286978,
               "n": 1
             },
             {
@@ -15239,23 +15514,7 @@
               "n": 1
             },
             {
-              "v": 51593.9188206,
-              "n": 1
-            },
-            {
-              "v": 0.406347446858,
-              "n": 1
-            },
-            {
-              "v": 7070.97121197,
-              "n": 1
-            },
-            {
-              "v": 112288.234579,
-              "n": 1
-            },
-            {
-              "v": 1.32049515181,
+              "v": 12750.7477521,
               "n": 1
             },
             {
@@ -15263,27 +15522,11 @@
               "n": 1
             },
             {
-              "v": 3.59430842459,
+              "v": 176527.351831,
               "n": 1
             },
             {
-              "v": 51533.546447,
-              "n": 1
-            },
-            {
-              "v": 138580.286978,
-              "n": 1
-            },
-            {
-              "v": 1695.09928119,
-              "n": 1
-            },
-            {
-              "v": 215712.579133,
-              "n": 1
-            },
-            {
-              "v": 12750.7477521,
+              "v": 0.835541360972,
               "n": 1
             },
             {
@@ -15295,11 +15538,47 @@
               "n": 1
             },
             {
-              "v": 1.55136588867,
+              "v": 3.59430842459,
               "n": 1
             },
             {
-              "v": 0.835541360972,
+              "v": 7070.97121197,
+              "n": 1
+            },
+            {
+              "v": 122270.81541,
+              "n": 1
+            },
+            {
+              "v": 5571354.36361,
+              "n": 1
+            },
+            {
+              "v": 51533.546447,
+              "n": 1
+            },
+            {
+              "v": 194600.235962,
+              "n": 1
+            },
+            {
+              "v": 17005.4612771,
+              "n": 1
+            },
+            {
+              "v": 1695.09928119,
+              "n": 1
+            },
+            {
+              "v": 113956.971638,
+              "n": 1
+            },
+            {
+              "v": 215712.579133,
+              "n": 1
+            },
+            {
+              "v": 95879.3345728,
               "n": 1
             }
           ]
@@ -15329,7 +15608,7 @@
               "n": 21
             },
             {
-              "v": "Set_4",
+              "v": "Set_8",
               "n": 20
             },
             {
@@ -15337,15 +15616,15 @@
               "n": 20
             },
             {
-              "v": "Set_1",
-              "n": 20
-            },
-            {
-              "v": "Set_8",
-              "n": 20
-            },
-            {
               "v": "Set_3",
+              "n": 20
+            },
+            {
+              "v": "Set_4",
+              "n": 20
+            },
+            {
+              "v": "Set_1",
               "n": 20
             },
             {
@@ -15399,11 +15678,11 @@
               "n": 15
             },
             {
-              "v": "12",
+              "v": "10",
               "n": 14
             },
             {
-              "v": "10",
+              "v": "12",
               "n": 14
             },
             {
@@ -15411,7 +15690,7 @@
               "n": 12
             },
             {
-              "v": "9",
+              "v": "17",
               "n": 11
             },
             {
@@ -15419,15 +15698,15 @@
               "n": 11
             },
             {
-              "v": "17",
+              "v": "9",
               "n": 11
             },
             {
-              "v": "24",
+              "v": "22",
               "n": 10
             },
             {
-              "v": "22",
+              "v": "24",
               "n": 10
             },
             {
@@ -15451,7 +15730,7 @@
               "n": 8
             },
             {
-              "v": "14",
+              "v": "18",
               "n": 7
             },
             {
@@ -15459,15 +15738,19 @@
               "n": 7
             },
             {
-              "v": "18",
-              "n": 7
-            },
-            {
               "v": "38",
               "n": 7
             },
             {
+              "v": "14",
+              "n": 7
+            },
+            {
               "v": "35",
+              "n": 6
+            },
+            {
+              "v": "26",
               "n": 6
             },
             {
@@ -15479,15 +15762,11 @@
               "n": 6
             },
             {
-              "v": "26",
-              "n": 6
-            },
-            {
               "v": "27",
               "n": 5
             },
             {
-              "v": "32",
+              "v": "36",
               "n": 4
             },
             {
@@ -15495,7 +15774,7 @@
               "n": 4
             },
             {
-              "v": "36",
+              "v": "34",
               "n": 4
             },
             {
@@ -15503,7 +15782,7 @@
               "n": 4
             },
             {
-              "v": "34",
+              "v": "32",
               "n": 4
             },
             {
@@ -15519,31 +15798,7 @@
               "n": 2
             },
             {
-              "v": "15, 16",
-              "n": 1
-            },
-            {
-              "v": "39",
-              "n": 1
-            },
-            {
-              "v": "52",
-              "n": 1
-            },
-            {
-              "v": "62",
-              "n": 1
-            },
-            {
-              "v": "83",
-              "n": 1
-            },
-            {
-              "v": " ",
-              "n": 1
-            },
-            {
-              "v": "47",
+              "v": "42",
               "n": 1
             },
             {
@@ -15551,11 +15806,7 @@
               "n": 1
             },
             {
-              "v": "42",
-              "n": 1
-            },
-            {
-              "v": "2",
+              "v": "15, 16",
               "n": 1
             },
             {
@@ -15563,7 +15814,35 @@
               "n": 1
             },
             {
+              "v": "47",
+              "n": 1
+            },
+            {
+              "v": " ",
+              "n": 1
+            },
+            {
+              "v": "2",
+              "n": 1
+            },
+            {
+              "v": "62",
+              "n": 1
+            },
+            {
+              "v": "52",
+              "n": 1
+            },
+            {
+              "v": "83",
+              "n": 1
+            },
+            {
               "v": "67",
+              "n": 1
+            },
+            {
+              "v": "39",
               "n": 1
             }
           ]
@@ -15652,6 +15931,10 @@
     "bharatviz": {
       "name": "bharatviz (Saket Choudhary)",
       "url": "https://bharatviz.org/"
+    },
+    "osm-in": {
+      "name": "osm-in (community)",
+      "url": "https://github.com/osm-in/mapbox-gl-styles"
     },
     "_publisher": {
       "name": "yashveeeeeeer/india-geodata",

@@ -124,6 +124,11 @@ function seoHead(o) {
 
 // Per-level descriptions and unit labels — plain English, not table-speak.
 const LEVEL_META = {
+  country: {
+    label: 'India national boundary',
+    unit: 'boundary segments',
+    description: "The India-correct national outline. Same line the Bharatlas Minimal basemap renders — India's claim, with the de facto convention lines that India rejects filtered out. Hand-curated by the osm-in community from OpenStreetMap.",
+  },
   state: {
     label: 'States',
     unit: 'states & UTs',
@@ -189,6 +194,7 @@ const LEVEL_META = {
 // Hardcoded display order for built-in levels — externally ingested layers
 // are appended via merge() below, in catalog.level_order sequence.
 const BUILTIN_LEVEL_ORDER = [
+  'country',
   'state', 'district', 'subdistrict', 'block', 'panchayat', 'village',
   'parliament_constituency', 'assembly_constituency',
   'pincode',
