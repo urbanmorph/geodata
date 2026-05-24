@@ -47,6 +47,53 @@ def content_type_for(name: str) -> str:
     return "application/octet-stream"
 
 
+def collect_local_files() -> list[tuple[Path, str, int]]:
+    """Build (path, r2_key, size) tuples for everything we want to mirror.
+
+    Two trees:
+      data/baked/<r2_prefix>/<file>  →  <r2_prefix>/<file>      (mirror)
+      sources/india-geodata/<file>   →  R2 key derived from catalog.json's
+                                        per-layer URL fields. Mapping lives
+                                        in catalog.json so build_catalog.py
+                                        is the single source of truth (no
+                                        duplicate filename→prefix table).
+    """
+    import json
+    out: list[tuple[Path, str, int]] = []
+
+    # Tree 1: baked whole-layer downloads.
+    if BAKED.exists():
+        for f in sorted(BAKED.rglob("*")):
+            if f.is_file():
+                rel = f.relative_to(BAKED).as_posix()
+                out.append((f, rel, f.stat().st_size))
+
+    # Tree 2: sources/india-geodata/ — read catalog.json to get URL→file mapping.
+    catalog_path = ROOT / "catalog.json"
+    if catalog_path.exists():
+        catalog = json.loads(catalog_path.read_text())
+        sources_dir = ROOT / "sources" / "india-geodata"
+        r2_prefix = "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/"
+        seen: set[str] = set()
+        for layer in catalog.get("layers", []) or []:
+            for fmt in ("parquet", "pmtiles", "geojson"):
+                fmt_obj = layer.get(fmt)
+                if not fmt_obj or not fmt_obj.get("url"):
+                    continue
+                url = fmt_obj["url"]
+                if not url.startswith(r2_prefix):
+                    continue
+                key = url[len(r2_prefix):]
+                if key in seen:
+                    continue
+                seen.add(key)
+                # Source filename is the key's basename (sources/ is flat).
+                local = sources_dir / Path(key).name
+                if local.exists():
+                    out.append((local, key, local.stat().st_size))
+    return out
+
+
 def main() -> int:
     access_key = os.environ.get("R2_ACCESS_KEY_ID")
     secret_key = os.environ.get("R2_SECRET_ACCESS_KEY")
@@ -54,10 +101,6 @@ def main() -> int:
     if not (access_key and secret_key and account_id):
         print("ERROR: need R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, CLOUDFLARE_ACCOUNT_ID in env")
         return 2
-
-    if not BAKED.exists():
-        print(f"ERROR: {BAKED} doesn't exist — run scripts/bake_whole_layer.py first")
-        return 3
 
     endpoint = f"https://{account_id}.r2.cloudflarestorage.com"
     s3 = boto3.client(
@@ -71,14 +114,9 @@ def main() -> int:
         config=Config(signature_version="s3v4"),
     )
 
-    # Enumerate every local file under data/baked/
-    locals_: list[tuple[Path, str, int]] = []
-    for f in sorted(BAKED.rglob("*")):
-        if f.is_file():
-            rel = f.relative_to(BAKED).as_posix()  # mirrors r2 key layout
-            locals_.append((f, rel, f.stat().st_size))
+    locals_ = collect_local_files()
     if not locals_:
-        print("nothing under data/baked/")
+        print("nothing to upload — neither data/baked/ nor sources/india-geodata/ has files")
         return 0
 
     # List relevant remote prefixes once. data/baked/<prefix>/<file> maps to

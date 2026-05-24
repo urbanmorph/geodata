@@ -52,6 +52,21 @@ PATHS=(
   "environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles"
   "environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet"
   "environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles"
+  "environment/forests/SOI_Forests.parquet"
+  "environment/forests/SOI_Forests.pmtiles"
+  "environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.geojson"
+
+  # Water — wetlands, river basins, river network
+  "water/wetlands/Bharatmaps_Parivesh_Ramsar_Wetlands.parquet"
+  "water/wetlands/Bharatmaps_Parivesh_Ramsar_Wetlands.pmtiles"
+  "water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.parquet"
+  "water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.pmtiles"
+  "water/hydro-boundaries/WRIS_Basin.parquet"
+  "water/hydro-boundaries/WRIS_Basin.pmtiles"
+  "water/hydro-boundaries/WRIS_SubBasin.parquet"
+  "water/hydro-boundaries/WRIS_SubBasin.pmtiles"
+  "water/rivers/WRIS_Rivers.parquet"
+  "water/rivers/WRIS_Rivers.pmtiles"
 
   # large optional:
   # "admin/villages/SOI_villages.parquet"          # 602 MB
