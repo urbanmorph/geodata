@@ -144,12 +144,12 @@ LAYERS = [
     # Environment + water (added 2026-05): Ramsar sites, full wetland inventory,
     # river basins, sub-basins, river network, SOI forests. All yashveer-hosted
     # under CC0; same fetch/upload/bake pipeline as the curated admin layers.
-    ('soi_forests',        'forest',         'SOI',        'SOI_Forests.parquet',                                'SOI_Forests.pmtiles',                                None, LIC_BELOW, 'Forest boundary polygons from Survey of India topographic maps. Includes reserved + protected + unclassed forests.'),
-    ('bp_ramsar',          'ramsar',         'Bharatmaps', 'Bharatmaps_Parivesh_Ramsar_Wetlands.parquet',        'Bharatmaps_Parivesh_Ramsar_Wetlands.pmtiles',        None, LIC_BELOW, "India's 80+ Ramsar Convention wetland sites of international importance, sourced via Bharatmaps Parivesh."),
-    ('bp_wetlands',        'wetland',        'Bharatmaps', 'Bharatmaps_Parivesh_Wetland_Boundaries.parquet',     'Bharatmaps_Parivesh_Wetland_Boundaries.pmtiles',     None, LIC_BELOW, 'All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh.'),
-    ('wris_basin',         'river_basin',    'CWC',        'WRIS_Basin.parquet',                                 'WRIS_Basin.pmtiles',                                 None, LIC_BELOW, "India's major river basin polygons from the Central Water Commission Water Resources Information System (WRIS)."),
-    ('wris_subbasin',      'river_subbasin', 'CWC',        'WRIS_SubBasin.parquet',                              'WRIS_SubBasin.pmtiles',                              None, LIC_BELOW, 'River sub-basin polygons (one tier under basins) from CWC WRIS.'),
-    ('wris_rivers',        'river',          'CWC',        'WRIS_Rivers.parquet',                                'WRIS_Rivers.pmtiles',                                None, LIC_BELOW, "India's river network from CWC WRIS — line geometry for streams and rivers."),
+    ('soi_forests',        'forest',         'SOI',        'SOI_Forests.parquet',                                'SOI_Forests.pmtiles',                                57963,  LIC_BELOW, 'Forest boundary polygons from Survey of India topographic maps. Includes reserved + protected + unclassed forests.'),
+    ('bp_ramsar',          'ramsar',         'Bharatmaps', 'Bharatmaps_Parivesh_Ramsar_Wetlands.parquet',        'Bharatmaps_Parivesh_Ramsar_Wetlands.pmtiles',        99,     LIC_BELOW, "India's Ramsar Convention wetland sites of international importance, sourced via Bharatmaps Parivesh."),
+    ('bp_wetlands',        'wetland',        'Bharatmaps', 'Bharatmaps_Parivesh_Wetland_Boundaries.parquet',     'Bharatmaps_Parivesh_Wetland_Boundaries.pmtiles',     207483, LIC_BELOW, 'All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh.'),
+    ('wris_basin',         'river_basin',    'CWC',        'WRIS_Basin.parquet',                                 'WRIS_Basin.pmtiles',                                 25,     LIC_BELOW, "India's major river basin polygons from the Central Water Commission Water Resources Information System (WRIS)."),
+    ('wris_subbasin',      'river_subbasin', 'CWC',        'WRIS_SubBasin.parquet',                              'WRIS_SubBasin.pmtiles',                              99,     LIC_BELOW, 'River sub-basin polygons (one tier under basins) from CWC WRIS.'),
+    ('wris_rivers',        'river',          'CWC',        'WRIS_Rivers.parquet',                                'WRIS_Rivers.pmtiles',                                30546,  LIC_BELOW, "India's river network from CWC WRIS — line geometry for streams and rivers."),
 ]
 
 
