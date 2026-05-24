@@ -29,6 +29,7 @@ Run after fetch.sh; before build_catalog.py + upload_r2.sh.
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
@@ -62,11 +63,12 @@ SRC = ROOT / "sources" / "india-geodata"
 # downloadables. (id, source-file path, R2 prefix, basename, label, level,
 # rows, licence, attribution-source-key, notes)
 #
-# India national boundary lives at web/public/india-boundary.geojson because
-# the Bharatlas Minimal basemap loads it client-side. Surfacing it as a
-# downloadable catalog layer means QGIS users get the same India-correct
-# outline we render.
-REFERENCE_INDIA_BOUNDARY_SRC = ROOT / "web" / "public" / "india-boundary.geojson"
+# India national boundary is derived from LGD_States.parquet (dissolve
+# union → single India MultiPolygon). Authoritative since LGD is India's
+# own admin source; India-correct by construction. The same osm-in line
+# file still drives the Bharatlas Minimal basemap; this download is for
+# QGIS users who want a single closed shape of the country.
+REFERENCE_INDIA_BOUNDARY_SRC = ROOT / "sources" / "india-geodata" / "LGD_States.parquet"
 REFERENCE_INDIA_BOUNDARY_R2_PREFIX = "reference"
 REFERENCE_INDIA_BOUNDARY_BASENAME = "india_boundary"
 
@@ -147,6 +149,44 @@ def write_geojson_whole(
                 f.write(json.dumps(feat, ensure_ascii=False, default=str))
                 first = False
             f.write("]}")
+
+
+def build_india_polygon_geojson(parquet_src: Path, out: Path) -> None:
+    """Dissolve LGD's 36 state polygons into a single India MultiPolygon.
+
+    Earlier draft tried to polygonize osm-in's 137 LineStrings after
+    filtering disputed-by-IN segments — but the remaining lines don't
+    close into rings (4 unclosed MultiLineStrings, 0 polygons). Switching
+    to ST_Union over LGD states gives an authoritative India-correct
+    shape (LGD is India's own source for admin boundaries, so the union
+    naturally includes Aksai Chin + Arunachal Pradesh) with no topology
+    games. Output: one Feature with a single MultiPolygon geometry.
+    """
+    import duckdb
+    out.parent.mkdir(parents=True, exist_ok=True)
+    con = duckdb.connect()
+    con.execute("INSTALL spatial; LOAD spatial")
+    row = con.execute(
+        f"SELECT ST_AsGeoJSON(ST_Union_Agg(geometry)) AS gj, COUNT(*) AS n "
+        f"FROM '{parquet_src.as_posix()}'"
+    ).fetchone()
+    if not row or not row[0]:
+        raise RuntimeError(f"ST_Union over {parquet_src} returned empty")
+    geometry = json.loads(row[0])
+    n_states = int(row[1])
+    feature = {
+        "type": "Feature",
+        "properties": {
+            "name": "India",
+            "country_code": "IN",
+            "source": "LGD (Local Government Directory)",
+            "note": f"India's national boundary. Dissolved from {n_states} LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source).",
+        },
+        "geometry": geometry,
+    }
+    fc_out = {"type": "FeatureCollection", "features": [feature]}
+    with out.open("w", encoding="utf-8") as f:
+        json.dump(fc_out, f, ensure_ascii=False, separators=(",", ":"))
 
 
 def write_shapefile_zip(geojson_path: Path, basename: str, out: Path) -> None:
@@ -296,16 +336,22 @@ def main() -> int:
         total_s += s
         errors.extend(e)
 
-    # Reference: India national boundary (osm-in). Source is geojson, not
-    # parquet — we run KML + shapefile only. (geojson is the source; copy
-    # it into the baked tree so upload_r2.sh ships it from the same place.)
+    # Reference: India national boundary (osm-in). The source file is 137
+    # LineStrings — too thin to read against a basemap and ships the
+    # disputed-by-IN segments India rejects. Stitch the claimed segments
+    # into a closed MultiPolygon so the view page renders like every other
+    # polygon layer (blue line + transparent fill) and downloads ship one
+    # India-correct shape instead of a pile of borders.
     if REFERENCE_INDIA_BOUNDARY_SRC.exists():
         paths = out_paths(REFERENCE_INDIA_BOUNDARY_R2_PREFIX, REFERENCE_INDIA_BOUNDARY_BASENAME)
         if not should_skip(paths["geojson"]):
-            paths["geojson"].parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(REFERENCE_INDIA_BOUNDARY_SRC, paths["geojson"])
-            print(f"wrote india_boundary fmt=geojson size={file_size(paths['geojson'])}")
-            total_w += 1
+            try:
+                build_india_polygon_geojson(REFERENCE_INDIA_BOUNDARY_SRC, paths["geojson"])
+                print(f"wrote india_boundary fmt=geojson (polygon stitched) size={file_size(paths['geojson'])}")
+                total_w += 1
+            except Exception as e:
+                errors.append(f"india_boundary geojson: {e}")
+                print(f"FAIL  india_boundary fmt=geojson err={e}")
         else:
             print(f"skip  india_boundary fmt=geojson size={file_size(paths['geojson'])}")
             total_s += 1
