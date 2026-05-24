@@ -426,6 +426,14 @@ function wireBasemapButton(): void {
   const popover = document.getElementById('map-basemap-popover');
   if (!btn || !popover) return;
   btn.classList.add('shown');
+  // Close the popover after a selection — action complete, get out of the way.
+  // bindPopover's document-click closer is blocked by the popover's own
+  // stopPropagation (necessary so clicking the menu chrome doesn't dismiss it),
+  // so each terminal action inside the popover has to close itself.
+  const closePopover = () => {
+    popover.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  };
   const render = () => {
     popover.innerHTML =
       `<div class="map-popover__title">Base map</div>` +
@@ -443,7 +451,8 @@ function wireBasemapButton(): void {
         e.stopPropagation();
         const id = el.dataset.basemap as BasemapId;
         setBasemap(id);
-        render();
+        render(); // update is-active state so the next open shows the new pick
+        closePopover();
       });
     }
   };

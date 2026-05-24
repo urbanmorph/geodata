@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { embedIframeHtml, isEmbedPath, isViewPath } from '../src/embed-snippet';
+import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap } from '../src/embed-snippet';
 
 describe('embed-snippet — embedIframeHtml', () => {
   it('emits a sane iframe snippet with the encoded layer id', () => {
@@ -60,5 +60,30 @@ describe('isViewPath', () => {
     expect(isViewPath('/view/')).toEqual({ view: false });
     expect(isViewPath('/view/lgd_villages/extra')).toEqual({ view: false });
     expect(isViewPath('/about')).toEqual({ view: false });
+  });
+});
+
+describe('urlAfterCloseMap', () => {
+  // Decides what the URL should become when the user closes the map overlay.
+  // Three call-sites all funnel through here so the URL-bar always matches
+  // what the user is looking at (catalog).
+  it('strips a #view/<id> hash but keeps the original path + query', () => {
+    // Hash-based: user was on / and clicked a card that opened map via hash.
+    expect(urlAfterCloseMap('/', '#view/lgd_states', '')).toBe('/');
+    expect(urlAfterCloseMap('/', '#view/lgd_states', '?foo=1')).toBe('/?foo=1');
+  });
+  it('returns to / when closing a /view/<id> path (the back-button URL bug)', () => {
+    // Path-based: user landed at /view/<id> via shared link or clicked View
+    // map → on the home page (anchor navigation). Without this, the URL bar
+    // stays at /view/<id> while the displayed page is the catalog.
+    expect(urlAfterCloseMap('/view/lgd_states', '', '')).toBe('/');
+    expect(urlAfterCloseMap('/view/soi_subdistricts', '', '')).toBe('/');
+  });
+  it('preserves the query string on path-close so deep links survive', () => {
+    expect(urlAfterCloseMap('/view/lgd_states', '', '?embed=1')).toBe('/?embed=1');
+  });
+  it('returns unchanged for non-view paths (defensive no-op)', () => {
+    expect(urlAfterCloseMap('/', '', '')).toBe('/');
+    expect(urlAfterCloseMap('/about', '', '?q=1')).toBe('/about?q=1');
   });
 });

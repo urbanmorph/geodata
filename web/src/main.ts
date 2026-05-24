@@ -1,6 +1,6 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
-import { isEmbedPath, isViewPath } from './embed-snippet';
+import { isEmbedPath, isViewPath, urlAfterCloseMap } from './embed-snippet';
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
@@ -46,8 +46,10 @@ async function hideMap() {
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   (await loadMap()).closeLayer();
-  if (location.hash.startsWith('#view/')) {
-    history.replaceState(null, '', location.pathname + location.search);
+  const next = urlAfterCloseMap(location.pathname, location.hash, location.search);
+  const current = location.pathname + location.hash + location.search;
+  if (next !== current) {
+    history.replaceState(null, '', next);
   }
 }
 
