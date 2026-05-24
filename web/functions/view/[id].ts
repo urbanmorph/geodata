@@ -36,7 +36,7 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
     return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
 
-  const { title, description, canonical, ogImage, jsonLd } = buildViewDataset(
+  const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd } = buildViewDataset(
     layer,
     catalog.level_meta?.[layer.level],
     origin,
@@ -60,6 +60,10 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
     .on('script[type="application/ld+json"]', {
       element(el) {
         el.setInnerContent(JSON.stringify(jsonLd).replace(/</g, '\\u003c'), { html: true });
+        // Multiple JSON-LD blocks on a page are fine — Google ingests each
+        // independently. Append BreadcrumbList right after the Dataset.
+        const bc = JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c');
+        el.after(`\n    <script type="application/ld+json">${bc}</script>`, { html: true });
       },
     })
     .transform(new Response(indexResp.body, {

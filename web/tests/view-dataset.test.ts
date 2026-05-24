@@ -39,6 +39,19 @@ describe('buildViewDataset', () => {
     expect(v.jsonLd.description).toBe(v.ldDescription);
   });
 
+  it('emits a BreadcrumbList JSON-LD with Home → Catalog → <layer>', () => {
+    const v = buildViewDataset(layer, { label: 'Villages' }, ORIGIN);
+    expect(v.breadcrumbJsonLd).toMatchObject({
+      '@context': 'https://schema.org',
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://bharatlas.com/' },
+        { '@type': 'ListItem', position: 2, name: 'Catalog', item: 'https://bharatlas.com/' },
+        { '@type': 'ListItem', position: 3, name: 'Villages', item: 'https://bharatlas.com/view/lgd_villages' },
+      ],
+    });
+  });
+
   it('emits a Dataset JSON-LD with the required shape', () => {
     const v = buildViewDataset(layer, { label: 'Villages' }, ORIGIN);
     expect(v.jsonLd).toMatchObject({

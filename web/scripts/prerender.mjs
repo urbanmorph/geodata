@@ -88,7 +88,11 @@ const DATASET_DESC_MIN = 80;
 function padDatasetDescription(desc, name, source) {
   const trimmed = (desc || '').trim();
   if (trimmed.length >= DATASET_DESC_MIN) return trimmed;
-  const suffix = ` Part of the bharatlas open atlas of India's geospatial data, sourced from ${source}.`;
+  // Padded suffix lifts terse level descriptions over Google's Dataset
+  // Search ≥50 floor with margin and adds format keywords + provenance
+  // for richer SERP snippets. Stays under the ~250-char rich-snippet cap
+  // when combined with the longest level description (~110 chars).
+  const suffix = ` Free to view, slice and download as Parquet, PMTiles, GeoJSON or KML. Open atlas of India by Urban Morph, sourced from ${source}.`;
   return (trimmed + suffix).trim();
 }
 
@@ -108,7 +112,8 @@ function seoHead(o) {
     `<meta property="og:description" content="${esc(o.description)}" />`,
     `<meta property="og:url" content="${esc(o.url)}" />`,
     `<meta property="og:image" content="${esc(image)}" />`,
-    `<meta property="og:site_name" content="geodata" />`,
+    `<meta property="og:site_name" content="bharatlas" />`,
+    `<meta property="og:locale" content="en_IN" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${esc(title)}" />`,
     `<meta name="twitter:description" content="${esc(o.description)}" />`,
@@ -482,18 +487,25 @@ const inlineCatalog = safeForHtmlScript(JSON.stringify(inlineCatalogObj));
 const homeSeo = seoHead({
   title: "India's open atlas · view, verify, contribute",
   description:
-    "India's open atlas — view, slice and download official boundary layers, or drop your own geo file and share it. Open licences, no signup, no tracking.",
+    "India's open atlas: view, slice and download official boundary layers, or drop your own geo file and share it. Open licences, no signup, no tracking.",
   url: ORIGIN + '/',
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+          { '@type': 'ListItem', position: 2, name: 'Catalog', item: ORIGIN + '/' },
+        ],
+      },
       {
         '@type': 'WebSite',
         name: 'bharatlas',
         alternateName: 'geodata',
         url: ORIGIN + '/',
         description:
-          "Open catalog, verifier and contribution flow for India's geo data — admin boundaries plus community layers.",
+          "Open catalog, verifier and contribution flow for India's geo data: admin boundaries plus community layers.",
         publisher: {
           '@type': 'Organization',
           name: 'Urban Morph',
@@ -783,6 +795,16 @@ await renderPage('about', {
         '@type': 'AboutPage',
         name: 'About bharatlas',
         url: ORIGIN + '/about',
+        author: { '@id': ORIGIN + '/about#sathya' },
+        publisher: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
+      },
+      {
+        '@type': 'Person',
+        '@id': ORIGIN + '/about#sathya',
+        name: 'Sathya Sankaran',
+        url: 'https://www.sathyasankaran.com',
+        sameAs: ['https://linkedin.com/in/sathyasankaran'],
+        worksFor: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
       },
       {
         '@type': 'FAQPage',
