@@ -26,6 +26,26 @@ export function titleAfterCloseMap(pathname: string, hash: string, homeTitle: st
   return null;
 }
 
+// Combined URL + title decision for closing the map overlay. The caller
+// MUST compute this from a pre-mutation snapshot of location.* and then
+// apply both fields, never re-read location between the two applications.
+// Earlier code called urlAfterCloseMap + replaceState first, then
+// titleAfterCloseMap, which read the post-mutation '/' pathname and
+// returned null — title silently stuck on the per-layer string injected
+// by the /view/<id> edge function. One snapshot, one decision, both
+// applications: the ordering bug becomes impossible.
+export function nextStateOnClose(
+  pathname: string,
+  hash: string,
+  search: string,
+  homeTitle: string,
+): { url: string; title: string | null } {
+  return {
+    url: urlAfterCloseMap(pathname, hash, search),
+    title: titleAfterCloseMap(pathname, hash, homeTitle),
+  };
+}
+
 // What the URL should become after the user closes the map overlay. Three
 // call-sites (close button, Escape key, hash-clear) all funnel through here
 // so the URL bar always matches what the user is looking at (the catalog).

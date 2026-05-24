@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap } from '../src/embed-snippet';
+import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap, nextStateOnClose } from '../src/embed-snippet';
 
 describe('embed-snippet — embedIframeHtml', () => {
   it('emits a sane iframe snippet with the encoded layer id', () => {
@@ -81,6 +81,44 @@ describe('titleAfterCloseMap', () => {
     expect(titleAfterCloseMap('/', '', HOME)).toBeNull();
     expect(titleAfterCloseMap('/about', '', HOME)).toBeNull();
     expect(titleAfterCloseMap('/preview', '', HOME)).toBeNull();
+  });
+});
+
+describe('nextStateOnClose', () => {
+  // Regression: shipped a bug where main.ts called urlAfterCloseMap +
+  // history.replaceState BEFORE titleAfterCloseMap. replaceState mutated
+  // location.pathname from /view/<id> → /, so titleAfterCloseMap then
+  // saw the post-mutation '/', returned null, and the tab title stuck on
+  // the per-layer string injected by the /view/<id> edge function.
+  //
+  // Combining URL + title into one pure decision computed BEFORE any
+  // mutation makes the ordering bug structurally impossible: the caller
+  // applies both fields from the snapshot, never re-reads location.
+  const HOME = "India's open atlas · view, verify, contribute · bharatlas";
+
+  it('returns both new URL and new title when closing a /view/<id> path', () => {
+    expect(nextStateOnClose('/view/lgd_states', '', '', HOME)).toEqual({
+      url: '/',
+      title: HOME,
+    });
+  });
+  it('returns both new URL and new title when closing a #view/<id> hash', () => {
+    expect(nextStateOnClose('/', '#view/lgd_states', '', HOME)).toEqual({
+      url: '/',
+      title: HOME,
+    });
+  });
+  it('preserves query string on path-close', () => {
+    expect(nextStateOnClose('/view/lgd_states', '', '?q=1', HOME)).toEqual({
+      url: '/?q=1',
+      title: HOME,
+    });
+  });
+  it('returns null title on non-view URLs so caller leaves title alone', () => {
+    expect(nextStateOnClose('/about', '', '', HOME)).toEqual({
+      url: '/about',
+      title: null,
+    });
   });
 });
 
