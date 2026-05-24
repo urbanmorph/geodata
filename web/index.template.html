@@ -129,11 +129,15 @@
         z-index: 9999;
       }
 
-      .row.hidden { display: none; }
       /* row--collapsed: hidden by default; section's .expanded class reveals.
-         Search/filter overrides with .row.hidden which always wins. */
+         Search/filter then hides non-matches with .row.hidden — bumped to
+         .category-section .row.hidden so it matches the expanded rule's
+         (0,3,0) specificity, and placed after it so source-order also
+         tips ties its way. Without this, collapsed rows below the cap
+         stay visible when search expands their section. */
       .row--collapsed { display: none; }
       .category-section.expanded .row--collapsed { display: block; }
+      .category-section .row.hidden { display: none; }
 
       .row {
         padding: 4px 0;

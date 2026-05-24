@@ -369,21 +369,25 @@ function renderRow(level, layersForLevel, opts = {}) {
       ? `<p class="row__source">${sourceText}${sourceText && freshnessSpan ? ' <span class="dot">·</span> ' : ''}${freshnessSpan}</p>`
       : '';
 
-  const haystackBase = [
-    meta.label,
-    meta.description,
-    primary.attribution?.primary?.name || '',
-    primary.notes || '',
-    primary.source || '',
-    primary.licence || '',
-    primary.category || '',
-    level,
-    formatTokens(primary),
-    // Source codes from alt layers — so a card surfaces when searching
-    // for any of its providers (e.g. "Bhuvan" on the States row).
-    layersForLevel.map((l) => l.source).join(' '),
-  ].join(' ');
-  const haystack = expandAliases(haystackBase).toLowerCase();
+  // Two haystacks so the client filter can do high-signal title matching
+  // first, then fall back to body. Without the split, "villages" surfaced
+  // Districts / Sub-districts / Blocks whose descriptions explain how they
+  // join to villages. See src/catalog-filter.ts for the matcher.
+  const primaryHaystack = expandAliases([meta.label, level].join(' ')).toLowerCase();
+  const bodyHaystack = expandAliases(
+    [
+      meta.description,
+      primary.attribution?.primary?.name || '',
+      primary.notes || '',
+      primary.source || '',
+      primary.licence || '',
+      primary.category || '',
+      formatTokens(primary),
+      // Source codes from alt layers — so a card surfaces when searching
+      // for any of its providers (e.g. "Bhuvan" on the States row).
+      layersForLevel.map((l) => l.source).join(' '),
+    ].join(' '),
+  ).toLowerCase();
 
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
@@ -391,7 +395,8 @@ function renderRow(level, layersForLevel, opts = {}) {
     `data-category="${esc(primary.category || 'administrative')}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
-    `data-search="${esc(haystack)}"`,
+    `data-search-primary="${esc(primaryHaystack)}"`,
+    `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
 
   // Compact list layout — one-line entry per layer. Description, source,
@@ -585,23 +590,20 @@ function renderCommunityCard(s, opts = {}) {
   const useful = s.up_count;
   const cat = s.category || 'other';
   const collapsed = opts.collapsed ? ' row--collapsed' : '';
-  // Build searchable haystack the same way curated cards do, so search
-  // works equally on community contributions.
-  const haystack = expandAliases([
-    s.name || '',
-    s.description || '',
-    s.attribution || '',
-    cat,
-    s.format || '',
-    'community',
-  ].join(' ')).toLowerCase();
+  // Two-tier haystack (matches curated cards). Title is the only field
+  // we trust as "this card is about X"; the rest is body.
+  const primaryHaystack = expandAliases(s.name || '').toLowerCase();
+  const bodyHaystack = expandAliases(
+    [s.description || '', s.attribution || '', cat, s.format || '', 'community'].join(' '),
+  ).toLowerCase();
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
     `data-useful="${useful}"`,
     `data-created="${esc(s.created_at)}"`,
     `data-category="${esc(cat)}"`,
     `data-provenance="community"`,
-    `data-search="${esc(haystack)}"`,
+    `data-search-primary="${esc(primaryHaystack)}"`,
+    `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
   return `<article class="comm-card${collapsed}" ${dataAttrs}>
@@ -636,10 +638,13 @@ for (const cat of Object.keys(communityByCategory)) {
 const totalLayers = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
 const activeCats = Object.entries(catalog.categories || {})
   .filter(([id]) => categoryCounts[id]);
+// data-total stays as the raw category size; data-count is what the
+// client mutates as the user filters. The count span displays either
+// "N" (idle) or "filtered/N" (when a search/filter is active).
 const chips = [
-  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
+  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}" data-total="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
   ...activeCats.map(
-    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
+    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}" data-total="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
   ),
 ];
 // Only render chips when there's more than one category to switch between.
