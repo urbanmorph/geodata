@@ -124,6 +124,11 @@ function seoHead(o) {
 
 // Per-level descriptions and unit labels — plain English, not table-speak.
 const LEVEL_META = {
+  country: {
+    label: 'India national boundary',
+    unit: 'country (MultiPolygon)',
+    description: "India's national boundary as a single MultiPolygon. Derived by dissolving the 36 LGD state and UT polygons, so it's India-correct by construction (Aksai Chin via J&K/Ladakh, full Arunachal Pradesh claim).",
+  },
   state: {
     label: 'States',
     unit: 'states & UTs',
@@ -189,6 +194,7 @@ const LEVEL_META = {
 // Hardcoded display order for built-in levels — externally ingested layers
 // are appended via merge() below, in catalog.level_order sequence.
 const BUILTIN_LEVEL_ORDER = [
+  'country',
   'state', 'district', 'subdistrict', 'block', 'panchayat', 'village',
   'parliament_constituency', 'assembly_constituency',
   'pincode',
@@ -559,6 +565,9 @@ const homeSeo = seoHead({
             distribution: [
               l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
               l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
+              l.geojson?.url && { '@type': 'DataDownload', encodingFormat: 'application/geo+json', contentUrl: l.geojson.url, contentSize: l.geojson.bytes },
+              l.kml?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.google-earth.kml+xml', contentUrl: l.kml.url, contentSize: l.kml.bytes },
+              l.shapefile?.url && { '@type': 'DataDownload', encodingFormat: 'application/zip', contentUrl: l.shapefile.url, contentSize: l.shapefile.bytes },
             ].filter(Boolean),
             spatialCoverage: { '@type': 'Place', name: 'India' },
           };

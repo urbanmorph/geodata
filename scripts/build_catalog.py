@@ -453,22 +453,22 @@ def build():
         layers.append({
             'id': 'india_boundary',
             'level': 'country',
-            'source': 'osm-in',
-            'rows': None,
+            'source': 'LGD',
+            'rows': 1,
             'parquet': None,
             'pmtiles': None,
             'geojson': ib_baked.get('geojson'),
             'kml': ib_baked.get('kml'),
             'shapefile': ib_baked.get('shapefile'),
-            'licence': 'ODbL-1.0',
+            'licence': LIC_STATE_DIST,
             'attribution': {
-                'primary': ATTR['osm-in'],
+                'primary': ATTR['LGD'],
                 'publisher': None,
             },
             'category': 'administrative',
             'provenance': 'curated',
             'fetched_at': mtime_of(BAKED / ib_path / f'{ib_basename}.geojson'),
-            'notes': "Hand-curated by the osm-in community from OpenStreetMap data. India's claim — disputed-by-IN lines filtered out.",
+            'notes': "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source — includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim).",
         })
 
     for id_, level, name, rows, notes in GEOBOUNDARIES:
