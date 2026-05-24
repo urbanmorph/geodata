@@ -1,6 +1,6 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
-import { isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap } from './embed-snippet';
+import { isEmbedPath, isViewPath, nextStateOnClose } from './embed-snippet';
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
@@ -51,14 +51,17 @@ async function hideMap() {
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   (await loadMap()).closeLayer();
-  const next = urlAfterCloseMap(location.pathname, location.hash, location.search);
+  // Snapshot location BEFORE any mutation. The earlier two-call version
+  // (urlAfterCloseMap + replaceState, then titleAfterCloseMap) read the
+  // post-mutation '/' pathname for the title decision and stuck the tab
+  // title on the per-layer string.
+  const next = nextStateOnClose(location.pathname, location.hash, location.search, HOME_TITLE);
   const current = location.pathname + location.hash + location.search;
-  if (next !== current) {
-    history.replaceState(null, '', next);
+  if (next.url !== current) {
+    history.replaceState(null, '', next.url);
   }
-  const nextTitle = titleAfterCloseMap(location.pathname, location.hash, HOME_TITLE);
-  if (nextTitle !== null && nextTitle !== document.title) {
-    document.title = nextTitle;
+  if (next.title !== null && next.title !== document.title) {
+    document.title = next.title;
   }
 }
 
