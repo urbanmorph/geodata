@@ -1,6 +1,7 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose } from './embed-snippet';
+import { filterCards, type CardLike } from './catalog-filter';
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
@@ -95,8 +96,8 @@ for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href
 
 // Catalog search + category filter (home page only).
 // Operates on category sections + pre-rendered cards via data-* attributes.
-// Pill click → show only that category section. Search → token-AND match
-// against the data-search haystack (already alias-expanded at build time).
+// Pill click → show only that category section. Search → two-tier matcher
+// (see catalog-filter.ts). Pill counts update live to filtered/total.
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
 const grid = document.getElementById('catalog-grid');
 const emptyMsg = document.getElementById('catalog-empty');
@@ -104,35 +105,64 @@ const searchMeta = document.getElementById('search-meta');
 if (searchInput && grid) {
   const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
   const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.catalog-chip'));
+  // One-time collection: every card across every section, paired with its
+  // CardLike record for the pure filter and its DOM node for visibility
+  // toggling. Order is preserved so the matches[] mask lines up.
+  const cardEls = Array.from(grid.querySelectorAll<HTMLElement>('.row, .comm-card'));
+  const cardLikes: CardLike[] = cardEls.map((el) => ({
+    category: el.dataset.category || el.closest<HTMLElement>('.category-section')?.dataset.category || '',
+    primary: el.dataset.searchPrimary || '',
+    body: el.dataset.searchBody || '',
+  }));
   let activeCat = 'all';
   let query = '';
   const idleMeta = searchMeta?.textContent ?? '';
 
   const apply = () => {
-    let totalVisible = 0;
-    const tokens = query ? query.split(/\s+/).filter(Boolean) : [];
+    const result = filterCards(cardLikes, query);
     // When the user picks a category pill (or types a query), auto-expand
-    // every section so the row--collapsed cap doesn't hide matches. When
-    // both are off, leave sections in their default collapsed state.
+    // every section so the row--collapsed cap doesn't hide matches.
     const forceExpand = !!query || activeCat !== 'all';
-    for (const section of sections) {
-      const cat = section.dataset.category || '';
-      section.classList.toggle('expanded', forceExpand);
-      if (activeCat !== 'all' && cat !== activeCat) {
-        section.classList.add('hidden');
-        continue;
+
+    // Per-card visibility = matches query AND in active category.
+    // Track per-section + total visible for section hide + meta line.
+    const visiblePerSection = new Map<HTMLElement, number>();
+    let totalVisible = 0;
+    for (let i = 0; i < cardEls.length; i++) {
+      const el = cardEls[i];
+      const cat = cardLikes[i].category;
+      const inCat = activeCat === 'all' || cat === activeCat;
+      const visible = result.matches[i] && inCat;
+      el.classList.toggle('hidden', !visible);
+      if (visible) {
+        totalVisible++;
+        const sec = el.closest<HTMLElement>('.category-section');
+        if (sec) visiblePerSection.set(sec, (visiblePerSection.get(sec) || 0) + 1);
       }
-      const cards = Array.from(section.querySelectorAll<HTMLElement>('.row, .comm-card'));
-      let sectionVisible = 0;
-      for (const card of cards) {
-        const hay = card.dataset.search || '';
-        const qOk = !tokens.length || tokens.every((t) => hay.includes(t));
-        card.classList.toggle('hidden', !qOk);
-        if (qOk) sectionVisible++;
-      }
-      section.classList.toggle('hidden', sectionVisible === 0);
-      totalVisible += sectionVisible;
     }
+    for (const section of sections) {
+      section.classList.toggle('expanded', forceExpand);
+      const cat = section.dataset.category || '';
+      const sectionVisible = visiblePerSection.get(section) || 0;
+      const catFiltered = activeCat !== 'all' && cat !== activeCat;
+      section.classList.toggle('hidden', catFiltered || sectionVisible === 0);
+    }
+
+    // Pill counts: filtered/total when a query is active, bare total when idle.
+    // 'all' chip aggregates across categories; per-cat chips read their own.
+    const filtering = !!query;
+    for (const chip of chips) {
+      const cat = chip.dataset.cat || '';
+      const total = Number(chip.dataset.total || '0');
+      const filtered = cat === 'all'
+        ? result.totalMatches
+        : (result.countsByCategory.get(cat) || 0);
+      const span = chip.querySelector<HTMLElement>('.count');
+      if (span) span.textContent = filtering ? `${filtered}/${total}` : String(total);
+      // data-count drives the [data-count="0"] dim style + click guard.
+      chip.dataset.count = String(filtering ? filtered : total);
+    }
+
     if (emptyMsg) emptyMsg.hidden = totalVisible > 0;
     if (searchMeta) {
       if (!query && activeCat === 'all') {
@@ -142,7 +172,6 @@ if (searchInput && grid) {
         searchMeta.textContent = `${totalVisible} match${totalVisible === 1 ? '' : 'es'} for "${q}"`;
       } else {
         const chip = chips.find((c) => c.dataset.cat === activeCat);
-        // chip text node holds the label; the count span is separate.
         const label = (chip?.firstChild?.textContent || activeCat).trim().toLowerCase();
         searchMeta.textContent = `${totalVisible} ${label} layer${totalVisible === 1 ? '' : 's'}`;
       }
