@@ -137,17 +137,21 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   });
 }
 
-// LGD state boundaries layered on top of any non-LGD layer. Useful for
-// cross-source comparison — when viewing soi_states / bhuvan_states /
-// gb_adm1 etc., the LGD lines on top show where the upstream and LGD
-// disagree at-a-glance. Drawn in a basemap-style warm taupe so it reads
-// as a boundary line, not a brand annotation.
+// LGD state boundaries layered on top of any non-LGD layer.
 //
-// NOT a fix for basemap label problems. Underlying basemap tiles
-// (Carto / OSM) still label disputed regions per international conventions
-// (e.g. "AZAD KASHMIR", "GILGIT-BALTISTAN" inside Indian-claimed territory).
-// A real India-correct basemap (Bhuvan WMS, Mappls, or a forked Mapbox
-// style) is tracked in task #64.
+// Two complementary purposes:
+//   1. Cross-source comparison — when viewing soi_states / bhuvan_states /
+//      gb_adm1 etc., the LGD lines on top show where the upstream and LGD
+//      disagree at-a-glance.
+//   2. Correct boundary on the Carto Light opt-in basemap — Carto's tiles
+//      render disputed boundaries per international convention. We can't
+//      change the labels in the basemap tiles, but we can draw the LGD
+//      state boundary (including India's claim over J&K) on top so the
+//      *boundary* matches India's official depiction even when the labels
+//      don't. Hint text on the Carto Light entry flags the trade.
+//
+// Drawn in a basemap-style warm taupe so it reads as a boundary line
+// rather than a brand annotation.
 async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Promise<void> {
   if (!map) return;
   if (activeLayerId === 'lgd_states') return; // already the primary; don't double-draw
@@ -339,8 +343,10 @@ export function closeLayer() {
 }
 
 // Single popover-toggle helper shared by Download + Basemap. Click-outside
-// closes; opening one auto-closes the other.
-function bindPopover(btn: HTMLButtonElement, popover: HTMLElement): void {
+// closes; opening one auto-closes the other. Returns the `close` function so
+// callers can wire it to terminal actions inside the popover (e.g. picking
+// a basemap should close the menu — see wireBasemapButton).
+function bindPopover(btn: HTMLButtonElement, popover: HTMLElement): () => void {
   const close = () => {
     popover.classList.remove('open');
     btn.setAttribute('aria-expanded', 'false');
@@ -356,6 +362,7 @@ function bindPopover(btn: HTMLButtonElement, popover: HTMLElement): void {
   };
   popover.onclick = (e) => e.stopPropagation();
   document.addEventListener('click', close, { passive: true });
+  return close;
 }
 
 function wireDownloadButton(layer: Layer): void {
@@ -426,14 +433,10 @@ function wireBasemapButton(): void {
   const popover = document.getElementById('map-basemap-popover');
   if (!btn || !popover) return;
   btn.classList.add('shown');
-  // Close the popover after a selection — action complete, get out of the way.
   // bindPopover's document-click closer is blocked by the popover's own
-  // stopPropagation (necessary so clicking the menu chrome doesn't dismiss it),
-  // so each terminal action inside the popover has to close itself.
-  const closePopover = () => {
-    popover.classList.remove('open');
-    btn.setAttribute('aria-expanded', 'false');
-  };
+  // stopPropagation (necessary so clicking menu chrome doesn't dismiss it),
+  // so terminal actions inside the popover have to close it explicitly.
+  const closePopover = bindPopover(btn, popover);
   const render = () => {
     popover.innerHTML =
       `<div class="map-popover__title">Base map</div>` +
@@ -457,7 +460,6 @@ function wireBasemapButton(): void {
     }
   };
   render();
-  bindPopover(btn, popover);
 }
 
 async function wireFilterButton(layer: Layer) {

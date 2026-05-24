@@ -1,32 +1,37 @@
 // Basemap registry for the map viewer.
 //
-// Two options today:
+// Two options:
 //
-//   1. minimal (default) — solid background + India boundary GeoJSON overlay
-//      from osm-in/mapbox-gl-styles. No raster tiles, no external API key,
-//      no third-party network beyond the same-origin static GeoJSON. India's
-//      international boundary is rendered per India's official claim (the
-//      claimed_by:IN lines from the osm-in dataset); de facto disputed lines
-//      that India rejects (disputed_by:IN) are skipped. This is the answer
-//      to the J&K-labels feedback — by not loading a basemap that carries
-//      international-convention labels, the labels can't appear.
+//   1. minimal (default) — solid ocean background + Natural Earth 1:110m
+//      land polygons + India boundary line per India's claim (osm-in
+//      community GeoJSON, ODbL). No raster tiles, no external API key,
+//      no third-party network beyond the same-origin static GeoJSON.
+//      The de facto disputed lines that India rejects (disputed_by:IN)
+//      are filtered out. This is the answer to the J&K-labels feedback:
+//      by not loading a basemap that carries international-convention
+//      labels, the labels can't appear.
 //
-//   2. positron (Carto Light) — kept as an opt-in for users who want
-//      geographic context (roads, cities, terrain shading). Labelled with
-//      "international labels" in the menu so users know what they're
-//      switching to. CARTO terms allow this for low-traffic open-source
-//      use; attribution is required (handled by MapLibre via the source's
-//      attribution field).
+//   2. positron (Carto Light) — opt-in for users who want geographic
+//      context (roads, cities). Labelled with "international labels" in
+//      the menu so users know what they're switching to. CARTO terms
+//      allow this for low-traffic open-source use; attribution required.
 //
-// India boundary GeoJSON: 56 KB, 137 LineStrings, hand-curated by the osm-in
-// community from OpenStreetMap data. Lives at /india-boundary.geojson on
-// same origin (committed under web/public/). See:
+// A third "Topo" option using Mapzen Terrarium DEM + MapLibre 5's
+// color-relief layer was prototyped and dropped — perf cost of fetching
+// DEM tiles per viewport wasn't worth the visual upgrade, and a
+// pre-baked hypsometric tile set is more work than the audience
+// currently warrants. Dropping topo also let us revert MapLibre 5 →
+// 4.7.1, shrinking the map-vendor bundle by ~250 KB raw.
+//
+// India boundary GeoJSON: 56 KB, 137 LineStrings, hand-curated by the
+// osm-in community from OpenStreetMap data. Lives at
+// /india-boundary.geojson on same origin (committed under web/public/).
 //   https://github.com/osm-in/mapbox-gl-styles
 //   https://gist.github.com/planemad/933e2b5a4c7d9f0a26541522a1492f92
 
 import type { SourceSpecification, LayerSpecification } from 'maplibre-gl';
 
-export type BasemapId = 'minimal' | 'topo' | 'positron';
+export type BasemapId = 'minimal' | 'positron' | 'opentopo' | 'satellite';
 
 export type Basemap = {
   id: BasemapId;
@@ -46,6 +51,12 @@ const CARTO_ATTRIB =
 
 const OSM_IN_ATTRIB =
   'India boundary: <a href="https://github.com/osm-in/mapbox-gl-styles" target="_blank" rel="noopener">osm-in</a> · © OpenStreetMap contributors (ODbL)';
+
+const OPENTOPOMAP_ATTRIB =
+  'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
+
+const ESRI_IMAGERY_ATTRIB =
+  'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
 
 export const BASEMAPS: Basemap[] = [
   {
@@ -109,96 +120,9 @@ export const BASEMAPS: Basemap[] = [
     ],
   },
   {
-    id: 'topo',
-    name: 'Bharatlas Topo',
-    hint: 'India-correct · elevation tints · hillshade · no labels',
-    sources: {
-      'terrain-dem': {
-        type: 'raster-dem',
-        // Mapzen Terrarium tiles via AWS Open Terrain Tiles (public dataset,
-        // no API key). MapLibre decodes the RGB-encoded elevation natively
-        // and feeds it to both the color-relief and hillshade layers.
-        tiles: ['https://elevation-tiles-prod.s3.amazonaws.com/terrarium/{z}/{x}/{y}.png'],
-        tileSize: 256,
-        encoding: 'terrarium',
-        maxzoom: 15,
-        attribution:
-          'Elevation: <a href="https://registry.opendata.aws/terrain-tiles/" target="_blank" rel="noopener">AWS Open Terrain Tiles</a> (Tilezen Joerd · CC-BY)',
-      },
-      'india-boundary': {
-        type: 'geojson',
-        data: '/india-boundary.geojson',
-        attribution: OSM_IN_ATTRIB,
-      },
-    },
-    layers: [
-      {
-        id: 'topo-bg',
-        type: 'background',
-        // Fallback ocean colour while terrain tiles load. Matches the
-        // shallow-ocean stop in the color-relief ramp below.
-        paint: { 'background-color': '#a8c8d4' },
-      },
-      {
-        // MapLibre 5.6+ color-relief layer — paints each pixel based on its
-        // elevation via the [`elevation`] expression. True hypsometric tints
-        // (greens for lowland, tans for hills, browns for mountains, snow
-        // for peaks). Source must be a raster-dem; the encoding decoding
-        // is handled by MapLibre itself.
-        id: 'topo-color-relief',
-        type: 'color-relief',
-        source: 'terrain-dem',
-        paint: {
-          'color-relief-color': [
-            'interpolate',
-            ['linear'],
-            ['elevation'],
-            -500, '#7daabb', // deep ocean (Indian Ocean trenches)
-            -50, '#a8c8d4', // shallow / continental shelf
-            0, '#c8d8d2', // coast — barely-land
-            1, '#a6c2a3', // lowland green (Indo-Gangetic plain)
-            300, '#cad99a', // hills — light olive
-            800, '#dccc8d', // low mountains — tan
-            1800, '#c69e6c', // mid mountains — golden brown
-            3200, '#a07550', // high mountains — burnt umber
-            4800, '#806244', // very high — dark earth
-            5800, '#e9ddca', // snow line — warm ivory
-            8848, '#ffffff', // peaks — white (Everest)
-          ],
-        },
-      },
-      {
-        id: 'topo-hillshade',
-        type: 'hillshade',
-        source: 'terrain-dem',
-        paint: {
-          // Subtle relief shading on top of the hypsometric tints so
-          // mountains have visible texture. Kept gentle so the colour
-          // ramp remains readable; the tints are the dominant visual.
-          'hillshade-exaggeration': 0.45,
-          'hillshade-shadow-color': '#5a4a3a',
-          'hillshade-highlight-color': '#ffffff',
-          'hillshade-accent-color': '#a89070',
-          'hillshade-illumination-direction': 335,
-        },
-      },
-      {
-        id: 'topo-india-boundary',
-        type: 'line',
-        source: 'india-boundary',
-        filter: ['!=', ['get', 'disputed_by'], 'IN'],
-        paint: {
-          'line-color': '#3a2f24', // dark earth — readable on any tint
-          'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1, 10, 2.2],
-          'line-opacity': 0.85,
-        },
-      },
-    ],
-  },
-  {
     id: 'positron',
     name: 'Carto Light',
-    hint: 'international labels (boundaries not India-correct)',
+    hint: 'international labels (state lines overlaid via LGD, labels unchangeable)',
     sources: {
       'positron-tiles': {
         type: 'raster',
@@ -217,6 +141,65 @@ export const BASEMAPS: Basemap[] = [
         id: 'positron-base',
         type: 'raster',
         source: 'positron-tiles',
+      },
+    ],
+  },
+  {
+    id: 'opentopo',
+    name: 'OpenTopoMap',
+    hint: 'topographic relief · international labels (state lines overlaid via LGD)',
+    sources: {
+      // OpenTopoMap is a community-hosted OSM-derived topographic style with
+      // hypsometric tints + contour lines + relief shading. No API key. CC-BY-SA.
+      // Their usage policy asks for restraint at scale; bharatlas's alpha
+      // volume is well within their politely-asked-for limits. If we scale up
+      // significantly we'd need to either self-host or move to a paid tier
+      // (e.g. Thunderforest, Stadia, MapTiler).
+      'opentopo-tiles': {
+        type: 'raster',
+        tiles: [
+          'https://a.tile.opentopomap.org/{z}/{x}/{y}.png',
+          'https://b.tile.opentopomap.org/{z}/{x}/{y}.png',
+          'https://c.tile.opentopomap.org/{z}/{x}/{y}.png',
+        ],
+        tileSize: 256,
+        maxzoom: 17,
+        attribution: OPENTOPOMAP_ATTRIB,
+      },
+    },
+    layers: [
+      {
+        id: 'opentopo-base',
+        type: 'raster',
+        source: 'opentopo-tiles',
+      },
+    ],
+  },
+  {
+    id: 'satellite',
+    name: 'Esri Imagery',
+    hint: 'global satellite · India state lines overlaid via LGD',
+    sources: {
+      // Esri's World Imagery service — JPEG tiles, no API key required for
+      // public web use, attribution required. Important: Esri's REST tile
+      // service uses {z}/{y}/{x} ordering, not OSM's {z}/{x}/{y}. MapLibre
+      // substitutes placeholders verbatim, so the URL template must reflect
+      // the actual server's ordering — see basemaps.test.ts for the guard.
+      'satellite-tiles': {
+        type: 'raster',
+        tiles: [
+          'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+        ],
+        tileSize: 256,
+        maxzoom: 19,
+        attribution: ESRI_IMAGERY_ATTRIB,
+      },
+    },
+    layers: [
+      {
+        id: 'satellite-base',
+        type: 'raster',
+        source: 'satellite-tiles',
       },
     ],
   },

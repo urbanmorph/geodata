@@ -19,12 +19,47 @@ class MockStorage implements Storage {
 }
 
 describe('basemaps — registry', () => {
-  it('exposes minimal (default) + topo + Carto Light opt-in', () => {
-    expect(BASEMAPS.length).toBeGreaterThanOrEqual(3);
+  it('exposes minimal (default) + Carto Light + OpenTopoMap + satellite', () => {
+    expect(BASEMAPS.length).toBeGreaterThanOrEqual(4);
     const ids = BASEMAPS.map((b) => b.id);
     expect(ids).toContain('minimal');
-    expect(ids).toContain('topo');
     expect(ids).toContain('positron');
+    expect(ids).toContain('opentopo');
+    expect(ids).toContain('satellite');
+  });
+
+  it('opentopo uses OpenTopoMap community tiles (no API key, CC-BY-SA)', () => {
+    const ot = BASEMAPS.find((b) => b.id === 'opentopo');
+    expect(ot).toBeTruthy();
+    for (const src of Object.values(ot!.sources)) {
+      const tiles = (src as { tiles?: string[] }).tiles || [];
+      expect(tiles.length).toBeGreaterThan(0);
+      for (const t of tiles) {
+        expect(t).toMatch(/^https:\/\//);
+        expect(t).toContain('opentopomap.org');
+      }
+      const attr = String((src as { attribution?: string }).attribution || '');
+      expect(attr.toLowerCase()).toContain('opentopomap');
+      expect(attr.toLowerCase()).toContain('openstreetmap');
+    }
+  });
+
+  it('satellite uses Esri World Imagery (no API key, public web use)', () => {
+    const sat = BASEMAPS.find((b) => b.id === 'satellite');
+    expect(sat).toBeTruthy();
+    for (const src of Object.values(sat!.sources)) {
+      const tiles = (src as { tiles?: string[] }).tiles || [];
+      expect(tiles.length).toBeGreaterThan(0);
+      for (const t of tiles) {
+        expect(t).toMatch(/^https:\/\//);
+        expect(t).toContain('arcgisonline.com');
+        // ESRI REST endpoint uses {z}/{y}/{x} ordering, not the OSM {z}/{x}/{y}.
+        // MapLibre substitutes placeholders verbatim; the template MUST match.
+        expect(t).toContain('{z}/{y}/{x}');
+      }
+      const attr = String((src as { attribution?: string }).attribution || '');
+      expect(attr.toLowerCase()).toContain('esri');
+    }
   });
 
   it('every entry has a unique id, name, hint, and non-empty sources + layers', () => {
@@ -66,26 +101,9 @@ describe('basemaps — registry', () => {
     }
   });
 
-  it('the topo basemap loads Terrarium DEM (AWS Open Terrain Tiles, no key)', () => {
-    const topo = BASEMAPS.find((b) => b.id === 'topo');
-    expect(topo).toBeTruthy();
-    // The raster-dem source feeds both the color-relief layer (hypsometric
-    // tints via the ['elevation'] expression, MapLibre 5.6+) and the
-    // hillshade layer. Tiles must point at the AWS public dataset (no key).
-    const types = new Set(Object.values(topo!.sources).map((s) => s.type));
-    expect(types.has('raster-dem')).toBe(true);
-    for (const src of Object.values(topo!.sources)) {
-      const tiles = (src as { tiles?: string[] }).tiles;
-      if (tiles) {
-        for (const t of tiles) {
-          expect(t).toContain('elevation-tiles-prod.s3.amazonaws.com');
-        }
-      }
-    }
-    const layerTypes = new Set(topo!.layers.map((l) => l.type));
-    expect(layerTypes.has('color-relief')).toBe(true);
-    expect(layerTypes.has('hillshade')).toBe(true);
-  });
+  // (The Mapzen Terrarium topo basemap was prototyped and dropped; see the
+  // basemaps.ts header comment for the rationale. If we re-add a topo
+  // option later, the matching test belongs here.)
 
   it('positron references recognised tile providers (Carto or OSM) over https', () => {
     const positron = BASEMAPS.find((b) => b.id === 'positron');
@@ -110,11 +128,14 @@ describe('basemaps — registry', () => {
   });
 
   it('the Carto Light entry is labelled with the international-labels caveat', () => {
-    // Users opting in to a basemap with non-India-correct boundaries should
-    // see the trade in the menu. Hint text is the only place this surfaces.
+    // Users opting in to a basemap that ships international-convention
+    // labels should see the trade in the menu (our LGD overlay corrects
+    // state lines on top, but the basemap labels themselves are baked into
+    // the raster tiles and can't be changed).
     const positron = BASEMAPS.find((b) => b.id === 'positron');
     expect(positron).toBeTruthy();
     expect(positron!.hint.toLowerCase()).toContain('international');
+    expect(positron!.hint.toLowerCase()).toContain('labels');
   });
 });
 
