@@ -11,6 +11,11 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
 GB = ROOT / 'sources' / 'geoboundaries'
 DATA = ROOT / 'data' / 'boundaries'
+# Whole-layer baked downloads (geojson / kml / shp.zip). Produced by
+# scripts/bake_whole_layer.py. URLs are wired into each layer only when
+# the corresponding file actually exists on disk — so this script is a
+# safe no-op until the bake has run.
+BAKED = ROOT / 'data' / 'baked'
 
 # Public base URL of the R2 bucket
 R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
@@ -35,6 +40,10 @@ LEVELS = {
     # Environment
     'wildlife':               {'order': 30, 'plural': 'wildlife sanctuaries + national parks',  'path': 'environment/forests',   'category': 'environment'},
     'eco_zone':               {'order': 31, 'plural': 'eco-sensitive zones',                    'path': 'environment/forests',   'category': 'environment'},
+
+    # Reference layers — base assets used across the platform AND useful
+    # standalone (national outline, etc.).
+    'country':                {'order': 0,  'plural': 'national boundary',                      'path': 'reference',             'category': 'administrative'},
 }
 
 # Licences per upstream (yashveeeeeeer/india-geodata): states/districts are
@@ -56,6 +65,7 @@ ATTR = {
     'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
     'bharatviz':     {'name': 'bharatviz (Saket Choudhary)',  'url': 'https://bharatviz.org/'},
+    'osm-in':        {'name': 'osm-in (community)',           'url': 'https://github.com/osm-in/mapbox-gl-styles'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
@@ -191,6 +201,30 @@ def size_of(p: Path) -> int | None:
         return p.stat().st_size
     except FileNotFoundError:
         return None
+
+
+# Whole-layer baked download formats. Catalog only advertises a format
+# when the file actually exists in BAKED — keeps the catalog honest if
+# bake_whole_layer.py hasn't run yet or gated a layer above the size cap.
+_BAKED_FORMATS = (
+    ('geojson',   '.geojson',  'application/geo+json'),
+    ('kml',       '.kml',      'application/vnd.google-earth.kml+xml'),
+    ('shapefile', '.shp.zip',  'application/zip'),
+)
+
+
+def baked_downloads(r2_prefix: str, basename: str) -> dict:
+    """Return {fmt: {url, bytes}} for each baked file that exists. Empty
+    dict if none have been baked yet."""
+    out = {}
+    for fmt, ext, _mime in _BAKED_FORMATS:
+        p = BAKED / r2_prefix / f'{basename}{ext}'
+        if p.exists() and p.stat().st_size > 0:
+            out[fmt] = {
+                'url': f'{R2}/{r2_prefix}/{basename}{ext}',
+                'bytes': p.stat().st_size,
+            }
+    return out
 
 
 def mtime_of(p: Path) -> str | None:
@@ -376,6 +410,7 @@ def build():
         fetched_at = mtime_of(parquet_path) or (mtime_of(pmtiles_path) if pmtiles_path else None)
         level_meta = LEVELS[level]
         path = level_meta['path']
+        baked = baked_downloads(path, parquet_path.stem)
         layers.append({
             'id': id_,
             'level': level,
@@ -391,6 +426,12 @@ def build():
                 'upstream_url': f'{UPSTREAM_BASE}/{path}/{pmtiles}',
                 'bytes': size_of(pmtiles_path) or EXTERNAL_BYTES.get(id_, {}).get('pmtiles'),
             } if pmtiles_path else None,
+            # Whole-layer baked downloads. Each is None when not baked
+            # (size-cap gated, or bake hasn't run). Frontend only renders
+            # buttons for non-null formats.
+            'geojson': baked.get('geojson'),
+            'kml': baked.get('kml'),
+            'shapefile': baked.get('shapefile'),
             'licence': licence,
             'attribution': {
                 'primary': ATTR[source],
@@ -400,6 +441,34 @@ def build():
             'provenance': 'curated',
             'fetched_at': fetched_at,
             'notes': notes,
+        })
+
+    # India national boundary (osm-in). The same India-correct line that
+    # the Bharatlas Minimal basemap renders, exposed as a downloadable
+    # layer so QGIS users get a clean outline.
+    ib_path = 'reference'
+    ib_basename = 'india_boundary'
+    ib_baked = baked_downloads(ib_path, ib_basename)
+    if ib_baked.get('geojson'):
+        layers.append({
+            'id': 'india_boundary',
+            'level': 'country',
+            'source': 'osm-in',
+            'rows': None,
+            'parquet': None,
+            'pmtiles': None,
+            'geojson': ib_baked.get('geojson'),
+            'kml': ib_baked.get('kml'),
+            'shapefile': ib_baked.get('shapefile'),
+            'licence': 'ODbL-1.0',
+            'attribution': {
+                'primary': ATTR['osm-in'],
+                'publisher': None,
+            },
+            'category': 'administrative',
+            'provenance': 'curated',
+            'fetched_at': mtime_of(BAKED / ib_path / f'{ib_basename}.geojson'),
+            'notes': "Hand-curated by the osm-in community from OpenStreetMap data. India's claim — disputed-by-IN lines filtered out.",
         })
 
     for id_, level, name, rows, notes in GEOBOUNDARIES:

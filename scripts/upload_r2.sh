@@ -60,6 +60,7 @@ content_type_for() {
     *.kmz)     echo 'application/vnd.google-earth.kmz' ;;
     *.pmtiles) echo 'application/vnd.pmtiles' ;;
     *.json)    echo 'application/json' ;;
+    *.zip)     echo 'application/zip' ;;
     *)         echo 'application/octet-stream' ;;
   esac
 }
@@ -134,6 +135,17 @@ for f in "$ROOT"/data/extracts/*/*/*.*; do
   rel="${f#$ROOT/data/}"
   put "$f" "$rel"
 done
+
+echo "→ uploading whole-layer baked downloads (geojson/kml/shp.zip from bake_whole_layer.py)"
+if [ -d "$ROOT/data/baked" ]; then
+  # Mirrors the directory tree: data/baked/<r2-prefix>/<file> → <r2-prefix>/<file>
+  find "$ROOT/data/baked" -type f | while read -r f; do
+    rel="${f#$ROOT/data/baked/}"
+    put "$f" "$rel"
+  done
+else
+  echo "  (no data/baked tree yet — run scripts/bake_whole_layer.py first)"
+fi
 
 echo "✓ done"
 echo "public base: https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev"
