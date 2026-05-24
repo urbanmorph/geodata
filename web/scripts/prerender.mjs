@@ -768,7 +768,7 @@ const ABOUT_FAQ = [
 await renderPage('about', {
   title: 'About',
   description:
-    "Bharatlas is the wiki for India's maps. View any layer, slice out what you need, download in any format, or contribute your own. Open licences, no signup.",
+    "Show your data on a map of India: districts, forests, rivers, wards. Or browse, slice and download India's official map layers. No signup, no API key.",
   url: ORIGIN + '/about',
   image: ORIGIN + '/og-about.png',
   structuredData: {
@@ -776,7 +776,7 @@ await renderPage('about', {
     '@graph': [
       {
         '@type': 'AboutPage',
-        name: 'About geodata',
+        name: 'About bharatlas',
         url: ORIGIN + '/about',
       },
       {
