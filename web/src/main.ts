@@ -1,6 +1,6 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
-import { isEmbedPath, isViewPath, urlAfterCloseMap } from './embed-snippet';
+import { isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap } from './embed-snippet';
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
@@ -41,6 +41,11 @@ async function showMap(layerId: string) {
   await m.openLayer(layerId, { titleEl: mapTitle });
 }
 
+// Mirrors the prerendered <title> in web/index.html. If that changes,
+// update here too — kept as a constant so tab-title restoration on map
+// close doesn't depend on a meta tag or a server roundtrip.
+const HOME_TITLE = "India's open atlas · view, verify, contribute · bharatlas";
+
 async function hideMap() {
   overlay.classList.remove('open');
   overlay.setAttribute('aria-hidden', 'true');
@@ -50,6 +55,10 @@ async function hideMap() {
   const current = location.pathname + location.hash + location.search;
   if (next !== current) {
     history.replaceState(null, '', next);
+  }
+  const nextTitle = titleAfterCloseMap(location.pathname, location.hash, HOME_TITLE);
+  if (nextTitle !== null && nextTitle !== document.title) {
+    document.title = nextTitle;
   }
 }
 
