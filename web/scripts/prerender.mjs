@@ -419,13 +419,13 @@ function renderRow(level, layersForLevel, opts = {}) {
             <p class="row__desc">${esc(meta.description)}</p>
             ${sourceLine}
             ${primary.licence ? `<p class="row__lic-line">Licence: <code>${esc(primary.licence)}</code></p>` : ''}
+            ${dlInline ? `<p class="row__downloads">Download: ${dlInline}</p>` : ''}
             ${viewerHint}
             ${altSection}
           </div>
         </details>
         <div class="row__actions">
           ${viewBtn}
-          ${dlInline}
         </div>
       </div>
     </section>`;

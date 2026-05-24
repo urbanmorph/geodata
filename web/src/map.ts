@@ -41,30 +41,37 @@ function getArchive(url: string): PMTiles {
   return a;
 }
 
-// All registered basemaps are added as raster sources at style-init time;
-// visibility is toggled per the user's choice. Overlay layers sit on top and
-// are never touched by basemap swaps.
+// All registered basemaps are added at style-init time with their sources
+// and layers; visibility is toggled per the user's choice. Each basemap may
+// own multiple layers (e.g. the minimal basemap has a background fill + line
+// layers for the India boundary), so swap logic walks every layer per
+// basemap rather than assuming one layer per basemap. Overlay layers (LGD
+// state lines etc.) sit on top of all basemaps and are never touched by
+// basemap swaps.
 function buildBaseStyle(active: BasemapId): maplibregl.StyleSpecification {
-  const sources: Record<string, maplibregl.RasterSourceSpecification> = {};
+  const sources: Record<string, maplibregl.SourceSpecification> = {};
   const layers: maplibregl.LayerSpecification[] = [];
   for (const b of BASEMAPS) {
-    sources[b.id] = b.source;
-    layers.push({
-      id: b.id,
-      type: 'raster',
-      source: b.id,
-      layout: { visibility: b.id === active ? 'visible' : 'none' },
-    });
+    Object.assign(sources, b.sources);
+    for (const lyr of b.layers) {
+      const existingLayout = (lyr as { layout?: Record<string, unknown> }).layout || {};
+      layers.push({
+        ...lyr,
+        layout: { ...existingLayout, visibility: b.id === active ? 'visible' : 'none' },
+      } as maplibregl.LayerSpecification);
+    }
   }
   return { version: 8, sources, layers };
 }
 
-let activeBasemap: BasemapId = 'osm';
+let activeBasemap: BasemapId = 'minimal';
 function setBasemap(id: BasemapId): void {
   if (!map) return;
   for (const b of BASEMAPS) {
-    if (map.getLayer(b.id)) {
-      map.setLayoutProperty(b.id, 'visibility', b.id === id ? 'visible' : 'none');
+    for (const lyr of b.layers) {
+      if (map.getLayer(lyr.id)) {
+        map.setLayoutProperty(lyr.id, 'visibility', b.id === id ? 'visible' : 'none');
+      }
     }
   }
   activeBasemap = id;
@@ -419,6 +426,14 @@ function wireBasemapButton(): void {
   const popover = document.getElementById('map-basemap-popover');
   if (!btn || !popover) return;
   btn.classList.add('shown');
+  // Close the popover after a selection — action complete, get out of the way.
+  // bindPopover's document-click closer is blocked by the popover's own
+  // stopPropagation (necessary so clicking the menu chrome doesn't dismiss it),
+  // so each terminal action inside the popover has to close itself.
+  const closePopover = () => {
+    popover.classList.remove('open');
+    btn.setAttribute('aria-expanded', 'false');
+  };
   const render = () => {
     popover.innerHTML =
       `<div class="map-popover__title">Base map</div>` +
@@ -436,7 +451,8 @@ function wireBasemapButton(): void {
         e.stopPropagation();
         const id = el.dataset.basemap as BasemapId;
         setBasemap(id);
-        render();
+        render(); // update is-active state so the next open shows the new pick
+        closePopover();
       });
     }
   };

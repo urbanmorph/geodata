@@ -156,11 +156,13 @@
       }
       .row--compact .row__summary {
         display: grid;
-        /* Fixed title + source + count columns so source/count line up
-           vertically across rows regardless of title length. Title overflow
-           → ellipsis with tooltip; source widened to fit "GatiShakti" /
-           "Bharatmaps". Actions now sit in the row__head grid as a sibling. */
-        grid-template-columns: 280px 80px 180px;
+        /* Title flexes (1fr) — downloads moved into row__expand so we no
+           longer compete for horizontal space in the action column. Source
+           is fixed-width to keep it aligned across rows; count is wide
+           enough for the longest unit text ("community-development blocks").
+           Actions (now just the View map button) sits in the row__head
+           grid as a sibling. */
+        grid-template-columns: minmax(0, 1fr) 80px 240px;
         align-items: center;
         gap: 14px;
         padding: 10px 4px;
@@ -173,11 +175,18 @@
       .row--compact .row__summary:hover { background: var(--row-hover); }
       .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
       .row--compact .row__summary > .row__source { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .row--compact .row__summary > .row__count { color: var(--muted); font-size: 12px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      /* display: block so text-overflow ellipsis applies to the combined
+         num + unit text flow (spans inside default to inline; inline elems
+         ignore overflow:hidden + text-overflow:ellipsis). */
+      .row--compact .row__summary > .row__count { display: block; color: var(--muted); font-size: 12px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
       .row--compact .row__summary > .row__count .row__num { font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; margin-right: 6px; }
       .row--compact .row__summary > .row__count .row__unit { color: var(--muted); }
       .row--compact .row__head > .row__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; padding: 10px 4px; }
-      .row--compact .row__head > .row__actions .dl-inline { display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+      /* Download links live inside row__expand (under "Download:") instead
+         of the action column — frees horizontal space for the title. */
+      .row--compact .row__expand .row__downloads { font-size: 13px; margin: 0 0 8px; color: var(--muted); }
+      .row--compact .row__expand .row__downloads .dl-inline { display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+      .row--compact .row__expand .row__downloads .dl-inline a { font-weight: 500; }
       .row--compact .row__expand {
         padding: 10px 4px 14px;
         border-top: 1px dashed var(--line);
@@ -188,14 +197,37 @@
       .row--compact .row__lic-line code { font: 11px ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
       .row--compact .btn-primary { padding: 4px 10px; font-size: 12px; }
 
-      /* Mobile: only title + actions visible; source + count fold into expand */
-      @media (max-width: 640px) {
+      /* Tablet: drop source column, count keeps room. Downloads are already
+         in row__expand so nothing to hide in the action area. */
+      @media (max-width: 900px) {
         .row--compact .row__summary {
-          grid-template-columns: minmax(0, 1fr);
-          gap: 6px 12px;
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 10px;
         }
         .row--compact .row__summary > .row__source { display: none; }
-        .row--compact .row__summary > .row__count { display: none; }
+      }
+
+      /* Mobile: title + count + View map. Tighter type and padding. */
+      @media (max-width: 640px) {
+        .row--compact .row__summary {
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 6px 10px;
+          font-size: 12px;
+          padding: 8px 4px;
+        }
+        .row--compact .row__summary > .row__count { font-size: 11px; }
+        .row--compact .row__head { gap: 8px; }
+      }
+
+      /* Very narrow: count drops to its own row so View map keeps room */
+      @media (max-width: 420px) {
+        .row--compact .row__summary {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .row--compact .row__summary > .row__count {
+          grid-column: 1;
+          padding-top: 2px;
+        }
       }
 
       /* "show all N" toggle at the bottom of a dense category */

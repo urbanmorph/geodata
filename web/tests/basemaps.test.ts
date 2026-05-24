@@ -19,11 +19,15 @@ class MockStorage implements Storage {
 }
 
 describe('basemaps — registry', () => {
-  it('exposes at least three basemap options', () => {
+  it('exposes minimal (default) + topo + Carto Light opt-in', () => {
     expect(BASEMAPS.length).toBeGreaterThanOrEqual(3);
+    const ids = BASEMAPS.map((b) => b.id);
+    expect(ids).toContain('minimal');
+    expect(ids).toContain('topo');
+    expect(ids).toContain('positron');
   });
 
-  it('every entry has a unique id, name, hint, and raster source', () => {
+  it('every entry has a unique id, name, hint, and non-empty sources + layers', () => {
     const ids = new Set<string>();
     for (const b of BASEMAPS) {
       expect(b.id).toBeTruthy();
@@ -31,29 +35,86 @@ describe('basemaps — registry', () => {
       ids.add(b.id);
       expect(b.name.length).toBeGreaterThan(0);
       expect(b.hint.length).toBeGreaterThan(0);
-      expect(b.source.type).toBe('raster');
-      // tiles[] may not be present on all source spec variants; check via cast.
-      const tiles = (b.source as { tiles?: string[] }).tiles;
-      expect(tiles).toBeTruthy();
-      expect(tiles!.length).toBeGreaterThan(0);
+      expect(Object.keys(b.sources).length).toBeGreaterThan(0);
+      expect(b.layers.length).toBeGreaterThan(0);
     }
   });
 
-  it('every source carries attribution (Carto and OSM both require it)', () => {
+  it('layer ids are globally unique across all basemaps (style cannot carry duplicates)', () => {
+    const layerIds = new Set<string>();
     for (const b of BASEMAPS) {
-      expect(b.source.attribution).toBeTruthy();
-      expect(String(b.source.attribution).length).toBeGreaterThan(5);
+      for (const lyr of b.layers) {
+        expect(layerIds.has(lyr.id)).toBe(false);
+        layerIds.add(lyr.id);
+      }
     }
   });
 
-  it('tile URLs use https and reference OSM or Carto', () => {
-    for (const b of BASEMAPS) {
-      const tiles = (b.source as { tiles?: string[] }).tiles || [];
+  it('the minimal basemap has no external network calls (no raster tiles)', () => {
+    // The whole point of "minimal" is that it doesn't depend on a third-party
+    // tile provider that might serve disputed-border labels. Sources are
+    // same-origin GeoJSON only (Natural Earth land + osm-in India boundary).
+    const minimal = BASEMAPS.find((b) => b.id === 'minimal');
+    expect(minimal).toBeTruthy();
+    for (const src of Object.values(minimal!.sources)) {
+      expect(src.type).not.toBe('raster');
+      expect(src.type).not.toBe('raster-dem');
+      if (src.type === 'geojson') {
+        const data = (src as { data: unknown }).data;
+        if (typeof data === 'string') expect(data).toMatch(/^\//);
+      }
+    }
+  });
+
+  it('the topo basemap loads Terrarium DEM (AWS Open Terrain Tiles, no key)', () => {
+    const topo = BASEMAPS.find((b) => b.id === 'topo');
+    expect(topo).toBeTruthy();
+    // The raster-dem source feeds both the color-relief layer (hypsometric
+    // tints via the ['elevation'] expression, MapLibre 5.6+) and the
+    // hillshade layer. Tiles must point at the AWS public dataset (no key).
+    const types = new Set(Object.values(topo!.sources).map((s) => s.type));
+    expect(types.has('raster-dem')).toBe(true);
+    for (const src of Object.values(topo!.sources)) {
+      const tiles = (src as { tiles?: string[] }).tiles;
+      if (tiles) {
+        for (const t of tiles) {
+          expect(t).toContain('elevation-tiles-prod.s3.amazonaws.com');
+        }
+      }
+    }
+    const layerTypes = new Set(topo!.layers.map((l) => l.type));
+    expect(layerTypes.has('color-relief')).toBe(true);
+    expect(layerTypes.has('hillshade')).toBe(true);
+  });
+
+  it('positron references recognised tile providers (Carto or OSM) over https', () => {
+    const positron = BASEMAPS.find((b) => b.id === 'positron');
+    expect(positron).toBeTruthy();
+    for (const src of Object.values(positron!.sources)) {
+      const tiles = (src as { tiles?: string[] }).tiles || [];
+      expect(tiles.length).toBeGreaterThan(0);
       for (const t of tiles) {
         expect(t).toMatch(/^https:\/\//);
         expect(t).toMatch(/openstreetmap|cartocdn/);
       }
     }
+  });
+
+  it('every external source carries attribution (Carto + OSM both require it)', () => {
+    for (const b of BASEMAPS) {
+      for (const src of Object.values(b.sources)) {
+        expect((src as { attribution?: string }).attribution).toBeTruthy();
+        expect(String((src as { attribution?: string }).attribution).length).toBeGreaterThan(5);
+      }
+    }
+  });
+
+  it('the Carto Light entry is labelled with the international-labels caveat', () => {
+    // Users opting in to a basemap with non-India-correct boundaries should
+    // see the trade in the menu. Hint text is the only place this surfaces.
+    const positron = BASEMAPS.find((b) => b.id === 'positron');
+    expect(positron).toBeTruthy();
+    expect(positron!.hint.toLowerCase()).toContain('international');
   });
 });
 
@@ -67,13 +128,19 @@ describe('basemaps — persistence', () => {
     expect(getStoredBasemap(storage)).toBe(DEFAULT_BASEMAP);
   });
 
+  it('defaults to the minimal India-correct view', () => {
+    expect(DEFAULT_BASEMAP).toBe('minimal');
+  });
+
   it('round-trips a stored basemap id', () => {
-    setStoredBasemap('voyager', storage);
-    expect(getStoredBasemap(storage)).toBe('voyager');
+    setStoredBasemap('positron', storage);
+    expect(getStoredBasemap(storage)).toBe('positron');
   });
 
   it('ignores a stored id that no longer matches a known basemap (forward-compat)', () => {
-    storage.setItem('bharatlas:basemap', 'mapbox-xyz' as unknown as BasemapId);
+    // 'voyager' is a stale id from a prior version of the registry — proves
+    // we degrade gracefully when the registry shrinks across deploys.
+    storage.setItem('bharatlas:basemap', 'voyager' as unknown as BasemapId);
     expect(getStoredBasemap(storage)).toBe(DEFAULT_BASEMAP);
   });
 });
@@ -81,11 +148,10 @@ describe('basemaps — persistence', () => {
 describe('basemaps — getBasemap', () => {
   it('returns the matching basemap by id', () => {
     expect(getBasemap('positron').id).toBe('positron');
+    expect(getBasemap('minimal').id).toBe('minimal');
   });
 
   it('falls back to the first registered basemap for unknown ids', () => {
-    // The cast is intentional — we want runtime resilience even if a stale
-    // localStorage value or URL hash sneaks past the type system.
     expect(getBasemap('what-even' as BasemapId).id).toBe(BASEMAPS[0].id);
   });
 });

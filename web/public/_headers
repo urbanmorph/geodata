@@ -28,6 +28,17 @@
 /catalog.json
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
 
+# India boundary overlay — hand-curated GeoJSON from osm-in. Source rarely
+# changes; safe to cache for a week with stale-while-revalidate so a future
+# boundary update propagates within a day.
+/india-boundary.geojson
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
+# Natural Earth world land polygons (1:110m). Changes very rarely — cache
+# aggressively. Public domain.
+/world-land.geojson
+  Cache-Control: public, max-age=604800, stale-while-revalidate=86400
+
 # HTML — always revalidate to pick up new asset hashes.
 /
   Cache-Control: public, max-age=0, must-revalidate
