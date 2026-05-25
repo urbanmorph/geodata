@@ -42,7 +42,7 @@ embed                 → /embed/<id> iframe + PNG export from any map
 | `scripts/upload_baked.py` | Pushes `data/baked/*` to R2 via boto3 (S3-compat fallback when wrangler is unavailable). |
 | `scripts/admin/cleanup_submission.sh` | Delete community submissions by name pattern (R2 + D1). |
 | `catalog.json` | Curated-layer index used by the viewer. Single source of truth. |
-| `REPORT.md` | Coverage + provenance + caveats per curated layer. |
+| [/about#caveats](https://bharatlas.com/about#caveats) | Data caveats (cross-source drift, coverage gaps, precision). |
 
 Large data files (`sources/`, `data/`) are not in git — they live in R2. See `scripts/fetch.sh` to rebuild locally.
 

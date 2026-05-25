@@ -127,6 +127,17 @@
       <li><strong>Boundaries and place names render exactly as the upstream source publishes them.</strong> bharatlas does not edit, correct or editorialize. Where you disagree with a depiction (including for J&amp;K, the Line of Actual Control or any disputed territory), raise it with the source; each catalog card lists alternative sources so you can compare. See <a href="/terms#liability">Limitation of liability</a> for the warranty disclaimer, damages cap and full terms.</li>
     </ul>
 
+    <h2 id="caveats">Data caveats</h2>
+    <ul>
+      <li><strong>Cross-source name spellings drift.</strong> "Odisha" (LGD) vs "Orissa" (Bhuvan); "Durgukondal" vs "Durgkondal". Always join on LGD codes, never on names.</li>
+      <li><strong>Bhuvan under-counts blocks in several states</strong> vs LGD: Gujarat 181 vs 251, Karnataka 173 vs 234, Telangana 443 vs 588, Assam 185 vs 232. Bhuvan predates recent re-divisions. Prefer LGD as the modern authority.</li>
+      <li><strong>SOI village-point coverage is uneven.</strong> Dense in southern + western states (Maharashtra 54k, Rajasthan 52k); sparse in UP (7.5k, ~7% of actual villages), Bihar (7.7k), Jharkhand (7.1k). Visible as the east-central blank on /view/soi_village_points.</li>
+      <li><strong>2011 Census codes vs current LGD codes.</strong> Both are present in LGD layers. They diverge after every reorganisation. LGD is current; Census 2011 is stable but stale.</li>
+      <li><strong>Polygon precision varies.</strong> LGD polygons are simplified (MaxSimpTol field present). For precise area work prefer SOI; for joins-and-display LGD is sufficient.</li>
+      <li><strong>Pincode boundaries are Voronoi approximations.</strong> No official service-area polygons exist. Both bharatviz (63,864 polygons) and data.gov.in (19,312) are derived from post office point locations, not surveyed.</li>
+      <li><strong>Panchayats + villages are too large for single-file download.</strong> Use the in-viewer state filter to slice by state, or download the parquet directly for programmatic work.</li>
+    </ul>
+
     <h2 style="text-transform:none;letter-spacing:0;color:var(--fg);font-size:var(--fs-xl);margin-top:var(--sp-7)">Built by</h2>
     <div class="built-by">
       <a href="https://urbanmorph.com" rel="noopener" aria-label="Urban Morph">
