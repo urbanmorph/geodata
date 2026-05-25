@@ -219,6 +219,13 @@ export function mountFilterPanel(
         clearTimeout(warmTimer);
         loader.dismiss();
         engineWarm = true;
+        // Count the filtered export against the same layer + format
+        // counter that catalog-card downloads use. The parquetUrl is the
+        // raw R2 URL; strip the domain to get the R2 key, swap the
+        // extension to the exported format, and fire-and-forget a GET to
+        // /api/dl/ so the Pages Function increments D1.
+        const countKey = parquetUrl.replace(/^https?:\/\/[^/]+\//, '').replace(/\.parquet$/, `.${fmt}`);
+        fetch(`/api/dl/${countKey}`, { keepalive: true }).catch(() => {});
         status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(filename)} (${formatSize(blob.size)}).</span>`;
       } catch (e) {
         clearTimeout(warmTimer);
