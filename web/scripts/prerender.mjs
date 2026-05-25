@@ -171,6 +171,22 @@ const LEVEL_META = {
     unit: 'assembly constituencies',
     description: 'State legislative assembly constituency polygons across India.',
   },
+  high_court: {
+    label: 'High Court jurisdictions',
+    unit: 'high courts',
+    description: "Territorial jurisdiction of India's 25 High Courts. Dissolved from LGD state polygons per the constitutional assignment of states to each court. Filter by seat city or search by state name.",
+  },
+  ngt_zone: {
+    label: 'NGT zonal benches',
+    unit: 'NGT zones',
+    description: "National Green Tribunal's 5 zonal bench jurisdictions (Delhi, Bhopal, Kolkata, Chennai, Pune). Dissolved from LGD state polygons per the 2017 gazette notification.",
+  },
+  nclt_bench: {
+    label: 'NCLT benches',
+    unit: 'NCLT benches',
+    description: "National Company Law Tribunal's 15 bench jurisdictions. Dissolved from LGD state polygons per nclt.gov.in bench assignments.",
+    description: 'State legislative assembly constituency polygons across India.',
+  },
 
   // Postal
   pincode: {
@@ -232,6 +248,7 @@ const BUILTIN_LEVEL_ORDER = [
   'country',
   'state', 'district', 'subdistrict', 'block', 'panchayat', 'village',
   'parliament_constituency', 'assembly_constituency',
+  'high_court', 'ngt_zone', 'nclt_bench',
   'pincode',
   'wildlife', 'eco_zone', 'forest',
   'ramsar', 'wetland',
