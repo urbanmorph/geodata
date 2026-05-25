@@ -79,6 +79,15 @@ export const BASEMAPS: Basemap[] = [
         data: '/india-boundary.geojson',
         attribution: OSM_IN_ATTRIB,
       },
+      'india-outline': {
+        type: 'geojson',
+        // Simplified LGD-dissolved India polygon (106 KB, same-origin).
+        // Complete closed outline including coast + India's claimed
+        // territory (J&K, Aksai Chin, Arunachal). Simplified at ~1 km
+        // tolerance — good enough for country-scale basemap rendering.
+        data: '/india-outline.geojson',
+        attribution: 'India outline: LGD (dissolved states)',
+      },
     },
     layers: [
       {
@@ -100,23 +109,25 @@ export const BASEMAPS: Basemap[] = [
           'fill-outline-color': '#d0c8be', // subtle taupe coast outline
         },
       },
+      // Complete India outline from the LGD-dissolved polygon. Renders
+      // the full coast + all land borders as a single stroke — the osm-in
+      // file only had claim lines (J&K, Aksai Chin, Arunachal) so the
+      // coast and non-disputed borders were invisible.
       {
-        id: 'minimal-india-boundary',
+        id: 'minimal-india-outline',
         type: 'line',
-        source: 'india-boundary',
-        // Render only lines India claims OR that aren't a disputed-by-IN line.
-        // Skips the 51 features tagged disputed_by:IN with no claim attached
-        // (these are the de facto international convention India rejects).
-        // Renders the 64 claimed_by:IN features (India's claim) + the 22
-        // undisputed segments (e.g. India-Sri Lanka coast where there's no
-        // controversy).
-        filter: ['!=', ['get', 'disputed_by'], 'IN'],
+        source: 'india-outline',
         paint: {
-          'line-color': '#7d6a5a', // warm taupe, reads as a printed-atlas boundary
-          'line-width': ['interpolate', ['linear'], ['zoom'], 3, 0.8, 10, 1.8],
+          'line-color': '#7d6a5a',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1.0, 10, 2.0],
           'line-opacity': 0.9,
         },
       },
+      // osm-in claim lines no longer rendered — the LGD-dissolved outline
+      // already traces India's claim (includes J&K + Ladakh + Arunachal
+      // via the state polygons). Keeping the india-boundary source + its
+      // attribution so it's still available if needed, but no layer draws
+      // from it on the Minimal basemap.
     ],
   },
   {

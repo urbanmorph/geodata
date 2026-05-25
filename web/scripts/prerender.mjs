@@ -241,6 +241,31 @@ const LEVEL_META = {
     unit: 'flood events',
     description: '1,006 historical flood event polygons across India from the 1960s to 2020. Compiled for hydrological modelling; useful as a climate-adaptation reference layer.',
   },
+  seismic_zone: {
+    label: 'Seismic zones',
+    unit: 'seismic zones',
+    description: 'BIS IS 1893:2016 earthquake hazard zones II-V covering all of India. Use for disaster risk mapping, construction planning, and insurance assessment.',
+  },
+  dam: {
+    label: 'Dams',
+    unit: 'dams',
+    description: 'Dam point locations across India. Two sources: Bharatmaps and CWC WRIS. Compare for cross-source coverage.',
+  },
+  reservoir: {
+    label: 'Reservoirs',
+    unit: 'reservoirs',
+    description: 'Reservoir polygons from CWC WRIS. Complements the river basin, sub-basin, and river network layers.',
+  },
+  national_highway: {
+    label: 'National highways',
+    unit: 'highway segments',
+    description: 'National highway centerlines from the Ministry of Road Transport and Highways via PM GatiShakti.',
+  },
+  health_facility: {
+    label: 'Health facilities',
+    unit: 'health facilities',
+    description: 'Primary Health Centres, Community Health Centres, sub-centres, and district hospitals from NIC HealthGIS. 147,957 point features across India.',
+  },
 };
 // Hardcoded display order for built-in levels — externally ingested layers
 // are appended via merge() below, in catalog.level_order sequence.
@@ -250,6 +275,10 @@ const BUILTIN_LEVEL_ORDER = [
   'parliament_constituency', 'assembly_constituency',
   'high_court', 'ngt_zone', 'nclt_bench',
   'pincode',
+  'seismic_zone',
+  'dam', 'reservoir',
+  'national_highway',
+  'health_facility',
   'wildlife', 'eco_zone', 'forest',
   'ramsar', 'wetland',
   'river_basin', 'river_subbasin', 'river',

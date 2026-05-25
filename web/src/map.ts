@@ -283,8 +283,8 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
   // cover all of India (HC jurisdictions, NGT zones, states) visually erase
   // the national border. Placed between fill and line-halo so it reads as
   // part of the basemap, not part of the active layer.
-  if (map.getLayer('minimal-india-boundary')) {
-    map.moveLayer('minimal-india-boundary', 'line-halo');
+  for (const id of ['minimal-india-outline', 'minimal-india-boundary']) {
+    if (map.getLayer(id)) map.moveLayer(id, 'line-halo');
   }
 
   // One popup with one look — fed by hover on pointer devices and by tap on
