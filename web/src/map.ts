@@ -176,13 +176,14 @@ async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Pro
     source: 'lgd-overlay',
     'source-layer': sourceLayer,
     paint: {
-      // Warm taupe-grey at low opacity — reads as a basemap admin boundary
-      // (printed-atlas convention), not a brand-coloured annotation. Sits
-      // visually next to the basemap's own state lines rather than competing
-      // with them or the active layer's polygons.
+      // Subtle orientation grid — faded enough that the active layer's
+      // blue+halo border dominates, but still legible as "this is where
+      // state X ends." Earlier values (0.55 opacity, 0.6-1.1px) competed
+      // with the layer's own polygon borders, especially on state-derived
+      // layers (HC jurisdictions, NGT zones) where every boundary coincides.
       'line-color': '#8b7e6f',
-      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.6, 10, 1.1],
-      'line-opacity': 0.55,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.3, 10, 0.7],
+      'line-opacity': 0.3,
     },
   });
 }
@@ -276,6 +277,15 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
       'circle-stroke-color': '#fff',
     },
   });
+
+  // Promote the India-correct boundary line above the fill so it isn't
+  // dimmed by the transparent polygon overlay. Without this, layers that
+  // cover all of India (HC jurisdictions, NGT zones, states) visually erase
+  // the national border. Placed between fill and line-halo so it reads as
+  // part of the basemap, not part of the active layer.
+  if (map.getLayer('minimal-india-boundary')) {
+    map.moveLayer('minimal-india-boundary', 'line-halo');
+  }
 
   // One popup with one look — fed by hover on pointer devices and by tap on
   // touch devices. Tap-on-feature shows it, tap-elsewhere (or tap a different
@@ -533,7 +543,7 @@ async function wireFilterButton(layer: Layer) {
     try {
       const { describeParquet } = await import('./filter-probe');
       if (signal.aborted) return;
-      const probe = await describeParquet(layer.parquet.url);
+      const probe = await describeParquet(layer.parquet!.url);
       rowCount = probe.rowCount;
       columns = probe.columns;
     } catch (e) {

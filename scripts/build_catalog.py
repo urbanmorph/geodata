@@ -48,6 +48,11 @@ LEVELS = {
     'river':                  {'order': 37, 'plural': 'rivers + streams',                       'path': 'water/rivers',                'category': 'environment'},
     'flood_event':            {'order': 38, 'plural': 'historical flood polygons',              'path': 'environment/flood-inventory', 'category': 'environment'},
 
+    # Judiciary — dissolved from LGD states per jurisdiction mappings.
+    'high_court':             {'order': 40, 'plural': 'high court jurisdictions',                'path': 'judiciary',             'category': 'people'},
+    'ngt_zone':               {'order': 41, 'plural': 'NGT zonal benches',                      'path': 'judiciary',             'category': 'people'},
+    'nclt_bench':             {'order': 42, 'plural': 'NCLT benches',                            'path': 'judiciary',             'category': 'people'},
+
     # Reference layers — base assets used across the platform AND useful
     # standalone (national outline, etc.).
     'country':                {'order': 0,  'plural': 'national boundary',                      'path': 'reference',             'category': 'administrative'},
