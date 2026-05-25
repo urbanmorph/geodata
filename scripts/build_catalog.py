@@ -48,8 +48,24 @@ LEVELS = {
     'river':                  {'order': 37, 'plural': 'rivers + streams',                       'path': 'water/rivers',                'category': 'environment'},
     'flood_event':            {'order': 38, 'plural': 'historical flood polygons',              'path': 'environment/flood-inventory', 'category': 'environment'},
 
+    # Disaster risk
+    'seismic_zone':           {'order': 45, 'plural': 'seismic zones',                           'path': 'environment/seismic',         'category': 'environment'},
+
+    # Water infrastructure
+    'dam':                    {'order': 46, 'plural': 'dams',                                    'path': 'water/irrigation',            'category': 'environment'},
+    'reservoir':              {'order': 47, 'plural': 'reservoirs',                               'path': 'water/waterbodies',           'category': 'environment'},
+
+    # Transport
+    'national_highway':       {'order': 48, 'plural': 'national highways',                       'path': 'infra/national-highways',     'category': 'transport'},
+
+    # Health
+    'health_facility':        {'order': 49, 'plural': 'health facilities',                       'path': 'healthcare/facilities',       'category': 'health-edu'},
+
+    # Weather
+    'weather_station':        {'order': 50, 'plural': 'weather stations',                        'path': 'environment/weather',         'category': 'environment'},
+
     # Judiciary — dissolved from LGD states per jurisdiction mappings.
-    'high_court':             {'order': 40, 'plural': 'high court jurisdictions',                'path': 'judiciary',             'category': 'people'},
+    'high_court':             {'order': 51, 'plural': 'high court jurisdictions',                'path': 'judiciary',             'category': 'people'},
     'ngt_zone':               {'order': 41, 'plural': 'NGT zonal benches',                      'path': 'judiciary',             'category': 'people'},
     'nclt_bench':             {'order': 42, 'plural': 'NCLT benches',                            'path': 'judiciary',             'category': 'people'},
 
@@ -78,6 +94,7 @@ ATTR = {
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
     'bharatviz':     {'name': 'bharatviz (Saket Choudhary)',  'url': 'https://bharatviz.org/'},
     'osm-in':        {'name': 'osm-in (community)',           'url': 'https://github.com/osm-in/mapbox-gl-styles'},
+    'NIC-Health':    {'name': 'NIC HealthGIS',               'url': 'https://healthgis.nic.in/'},
     'CWC':           {'name': 'Central Water Commission (WRIS)', 'url': 'https://cwc.gov.in/en/water-resources-information-system-wris'},
     'IndiaFloodInventory': {'name': 'India Flood Inventory v3', 'url': 'https://github.com/yashveeeeeeer/india-geodata/releases/tag/environment/flood-inventory'},
 }
@@ -90,7 +107,7 @@ PUBLISHER = {
 # release archive (so PUBLISHER + UPSTREAM_BASE apply). Other curated sources
 # (bharatviz, etc.) are pulled direct from origin — their entries should not
 # carry the yashveer attribution or upstream_url.
-YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps', 'CWC', 'IndiaFloodInventory', 'data.gov.in'}
+YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps', 'CWC', 'IndiaFloodInventory', 'data.gov.in', 'NIC-Health'}
 
 # Where to re-fetch each upstream file from. Path under the release base URL.
 # Kept here so the source registry travels with the catalog and a single
@@ -156,6 +173,20 @@ LAYERS = [
     ('wris_basin',         'river_basin',    'CWC',        'WRIS_Basin.parquet',                                 'WRIS_Basin.pmtiles',                                 25,     LIC_BELOW, "India's major river basin polygons from the Central Water Commission Water Resources Information System (WRIS)."),
     ('wris_subbasin',      'river_subbasin', 'CWC',        'WRIS_SubBasin.parquet',                              'WRIS_SubBasin.pmtiles',                              99,     LIC_BELOW, 'River sub-basin polygons (one tier under basins) from CWC WRIS.'),
     ('wris_rivers',        'river',          'CWC',        'WRIS_Rivers.parquet',                                'WRIS_Rivers.pmtiles',                                30546,  LIC_BELOW, "India's river network from CWC WRIS — line geometry for streams and rivers."),
+
+    # Disaster risk + weather
+    ('seismic_zones',      'seismic_zone',   'data.gov.in', 'Seismic_Zones.parquet',                              'Seismic_Zones.pmtiles',                              173,    'GODL-India', 'BIS IS 1893:2016 seismic risk zones II-V. 173 polygons covering all of India. Use for earthquake hazard mapping.'),
+
+    # Water infrastructure (complements basins + rivers)
+    ('bm_dams',            'dam',            'Bharatmaps', 'Bharatmaps_Dams.parquet',                              'Bharatmaps_Dams.pmtiles',                            5608,   LIC_BELOW, 'Dam point locations across India from Bharatmaps.'),
+    ('wris_dams',          'dam',            'CWC',        'WRIS_Dams.parquet',                                    'WRIS_Dams.pmtiles',                                  5600,   LIC_BELOW, 'Dam point locations from CWC WRIS. Compare with Bharatmaps dams for cross-source coverage.'),
+    ('wris_reservoirs',    'reservoir',      'CWC',        'WRIS_Reservoirs.parquet',                               'WRIS_Reservoirs.pmtiles',                            6141,   LIC_BELOW, 'Reservoir polygons from CWC WRIS. Complements the river basin and river network layers.'),
+
+    # Transport
+    ('gs_highways',        'national_highway', 'GatiShakti', 'GatiShakti_MORTH_National_Highways.parquet',          'GatiShakti_MORTH_National_Highways.pmtiles',          10317,  LIC_BELOW, 'National highway centerlines from Ministry of Road Transport and Highways via PM GatiShakti. 10,317 line segments.'),
+
+    # Health
+    ('nic_health',         'health_facility', 'NIC-Health', 'INDIA_HEALTH_FACILITIES_NIC.parquet',                  'INDIA_HEALTH_FACILITIES_NIC.pmtiles',                147957, 'GODL-India', 'Primary Health Centres, Community Health Centres, sub-centres, and district hospitals from NIC HealthGIS. 147,957 point features across India.'),
 ]
 
 
