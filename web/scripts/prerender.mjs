@@ -633,10 +633,18 @@ for (const lvl of LEVEL_ORDER) {
 // once that's wired). Silently empty on failure so a missing wrangler /
 // missing DB doesn't break the build.
 const COMMUNITY_FROM = process.env.COMMUNITY_FROM || 'local'; // local | remote
+// Prefer a PATH-resolved wrangler (mise / homebrew) over npx, which has
+// hit a workerd arch mismatch on this machine's npx cache.
+import { execFileSync } from 'node:child_process';
+const WRANGLER_BIN = (() => {
+  try { execFileSync('which', ['wrangler'], { stdio: 'pipe' }); return 'wrangler'; }
+  catch { return null; }
+})();
+const wranglerPrefix = WRANGLER_BIN || 'npx --yes wrangler';
 function fetchCommunitySubmissions() {
   try {
     const out = execSync(
-      `npx --yes wrangler d1 execute geodata-submissions --${COMMUNITY_FROM} --json --command "${
+      `${wranglerPrefix} d1 execute geodata-submissions --${COMMUNITY_FROM} --json --command "${
         'SELECT s.id, s.name, s.description, s.category, s.attribution, s.is_original, ' +
         's.format, s.bytes, s.feature_count, s.r2_key, s.created_at, ' +
         "COALESCE(SUM(CASE WHEN r.vote = 1 THEN 1 ELSE 0 END), 0) AS up_count, " +

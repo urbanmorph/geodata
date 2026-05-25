@@ -311,9 +311,15 @@ def fetch_download_counts():
     web_root = ROOT / 'web'
     if not (web_root / 'wrangler.toml').exists():
         return {}
+    import shutil
+    # Prefer a PATH-resolved wrangler (mise / homebrew) over npx, which
+    # has hit a workerd arch mismatch on this machine's npx cache.
+    wrangler_bin = shutil.which('wrangler') or 'npx'
+    wrangler_cmd = ([wrangler_bin] if wrangler_bin != 'npx'
+                    else ['npx', '--yes', 'wrangler@latest'])
     try:
         out = subprocess.run(
-            ['npx', '--yes', 'wrangler@latest', 'd1', 'execute',
+            [*wrangler_cmd, 'd1', 'execute',
              'geodata-submissions', '--remote',
              '--command', 'SELECT layer_id, state_code, format, count FROM download_counts',
              '--json'],
