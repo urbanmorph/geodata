@@ -144,6 +144,31 @@ def dissolve_layer(
     print(f"  wrote {out_geojson.name}: {len(features)} features, {out_geojson.stat().st_size:,} bytes")
 
 
+def geojson_to_parquet(con: duckdb.DuckDBPyConnection, gj: Path, out: Path) -> None:
+    """Convert a GeoJSON FeatureCollection to spatial Parquet via DuckDB."""
+    out.parent.mkdir(parents=True, exist_ok=True)
+    con.execute(
+        f"COPY (SELECT * FROM ST_Read('{gj.as_posix()}')) "
+        f"TO '{out.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD)"
+    )
+
+
+def geojson_to_pmtiles(gj: Path, out: Path) -> None:
+    """Convert GeoJSON to PMTiles via tippecanoe (if available)."""
+    import subprocess
+    out.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run([
+        'tippecanoe',
+        '-o', str(out),
+        '-zg',             # auto max zoom
+        '--drop-densest-as-needed',
+        '--extend-zooms-if-still-dropping',
+        '-l', gj.stem,    # layer name = filename stem
+        '--force',         # overwrite
+        str(gj),
+    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+
 def main() -> int:
     if not SRC.exists():
         print(f"ERROR: {SRC} not found — download via scripts/fetch.sh")
@@ -152,6 +177,8 @@ def main() -> int:
     con = duckdb.connect()
     con.execute("INSTALL spatial; LOAD spatial")
     ogr2ogr_ok = have_ogr2ogr()
+    import shutil
+    tippecanoe_ok = shutil.which('tippecanoe') is not None
     OUT.mkdir(parents=True, exist_ok=True)
 
     layers = [
@@ -164,6 +191,21 @@ def main() -> int:
         gj = OUT / f'{basename}.geojson'
         print(f"\n=== {basename} ({len(lookup)} jurisdictions) ===")
         dissolve_layer(con, SRC, lookup, court_type, gj)
+
+        pq = OUT / f'{basename}.parquet'
+        try:
+            geojson_to_parquet(con, gj, pq)
+            print(f"  wrote {pq.name}: {pq.stat().st_size:,} bytes")
+        except Exception as e:
+            print(f"  FAIL parquet: {e}")
+
+        pmt = OUT / f'{basename}.pmtiles'
+        if tippecanoe_ok:
+            try:
+                geojson_to_pmtiles(gj, pmt)
+                print(f"  wrote {pmt.name}: {pmt.stat().st_size:,} bytes")
+            except Exception as e:
+                print(f"  FAIL pmtiles: {e}")
 
         kml = OUT / f'{basename}.kml'
         try:

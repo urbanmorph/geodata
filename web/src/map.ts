@@ -534,7 +534,7 @@ async function wireFilterButton(layer: Layer) {
     try {
       const { describeParquet } = await import('./filter-probe');
       if (signal.aborted) return;
-      const probe = await describeParquet(layer.parquet.url);
+      const probe = await describeParquet(layer.parquet!.url);
       rowCount = probe.rowCount;
       columns = probe.columns;
     } catch (e) {
