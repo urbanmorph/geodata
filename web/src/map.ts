@@ -278,6 +278,15 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     },
   });
 
+  // Promote the India-correct boundary line above the fill so it isn't
+  // dimmed by the transparent polygon overlay. Without this, layers that
+  // cover all of India (HC jurisdictions, NGT zones, states) visually erase
+  // the national border. Placed between fill and line-halo so it reads as
+  // part of the basemap, not part of the active layer.
+  if (map.getLayer('minimal-india-boundary')) {
+    map.moveLayer('minimal-india-boundary', 'line-halo');
+  }
+
   // One popup with one look — fed by hover on pointer devices and by tap on
   // touch devices. Tap-on-feature shows it, tap-elsewhere (or tap a different
   // feature) swaps/dismisses. Same code path; no separate sticky variant.
