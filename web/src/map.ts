@@ -116,7 +116,6 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
   map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
-  map.once('idle', () => loader.dismiss());
 
   map.on('load', async () => {
     try {
@@ -126,6 +125,11 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
       // canonical boundary is visible regardless of what the basemap shows.
       // Skip when the user is already viewing lgd_states (would double-draw).
       await addLgdOverlay(cat.layers ?? [], layer.id);
+      // Dismiss the loader only after data sources are attached AND
+      // MapLibre has finished rendering the tiles. Earlier this fired
+      // on the basemap's first 'idle' (before attachData even started),
+      // so the spinner vanished while tiles were still loading.
+      map.once('idle', () => loader.dismiss());
     } catch (e) {
       console.error('attachData failed', e);
       const c = document.getElementById('map')!;
