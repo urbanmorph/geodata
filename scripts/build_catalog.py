@@ -140,8 +140,8 @@ LAYERS = [
     ('lgd_assembly',       'assembly_constituency',   'LGD', 'LGD_Assembly_Constituencies.parquet',   'LGD_Assembly_Constituencies.pmtiles',   4177, LIC_BELOW, 'State legislative assembly constituencies. Polygons keyed by ST_CODE.'),
 
     # Postal
-    ('bharatviz_pincodes', 'pincode',     'bharatviz', 'bharatviz_pincodes.parquet', 'bharatviz_pincodes.pmtiles',  63864,   'MIT',          'India Post pincode boundary polygons (simplified). 63,864 polygons. © 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.'),
     ('datagov_pincodes',   'pincode',     'data.gov.in', 'Datagov_Pincode_Boundaries.parquet', 'Datagov_Pincode_Boundaries.pmtiles', 19312, 'GODL-India', "India Post delivery post office pincode boundaries from data.gov.in (May 2025). 19,312 polygons covering delivery PO service areas. Compare with bharatviz's 63,864 finer polygons. Neither is officially surveyed; both are Voronoi approximations from post office point locations."),
+    ('bharatviz_pincodes', 'pincode',     'bharatviz', 'bharatviz_pincodes.parquet', 'bharatviz_pincodes.pmtiles',  63864,   'MIT',          'India Post pincode boundary polygons (simplified). 63,864 polygons. © 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.'),
 
     # Environment
     ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', 665, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
