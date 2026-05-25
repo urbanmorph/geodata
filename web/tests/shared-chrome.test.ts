@@ -71,10 +71,10 @@ describe('renderNav', () => {
 });
 
 describe('FOOTER', () => {
-  it('credits urbanmorph + links code repo + data report', () => {
+  it('credits urbanmorph + links code repo + pdgi', () => {
     expect(FOOTER).toContain('urbanmorph');
     expect(FOOTER).toContain('github.com/urbanmorph/geodata');
-    expect(FOOTER).toContain('REPORT.md');
+    expect(FOOTER).toContain('pdgi.org');
   });
 
   it('mentions the open-licences policy', () => {
