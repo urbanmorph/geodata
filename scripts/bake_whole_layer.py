@@ -108,15 +108,35 @@ def out_paths(r2_prefix: str, basename: str) -> dict[str, Path]:
 # Format writers (reuse + extend bake_extracts)
 # ---------------------------------------------------------------------------
 
+def _detect_geom_col(
+    con: duckdb.DuckDBPyConnection, parquet: Path
+) -> str:
+    """Detect the geometry column name in a parquet file. Some upstream
+    sources use 'geometry', others use 'geom' (e.g. bharatviz_pincodes).
+    Falls back to 'geometry' if detection fails."""
+    try:
+        schema = con.execute(
+            f"SELECT column_name, column_type FROM "
+            f"(DESCRIBE SELECT * FROM '{parquet.as_posix()}' LIMIT 0) "
+            f"WHERE column_type ILIKE '%GEOMETRY%'"
+        ).fetchall()
+        if schema:
+            return schema[0][0]
+    except Exception:
+        pass
+    return "geometry"
+
+
 def write_geojson_whole(
     con: duckdb.DuckDBPyConnection, parquet: Path, out: Path, gdal_ok: bool
 ) -> None:
     """Whole-layer geojson — no WHERE filter. Mirrors bake_extracts's
     GDAL path, with the manual fallback for non-spatial builds."""
     out.parent.mkdir(parents=True, exist_ok=True)
+    geom_col = _detect_geom_col(con, parquet)
     if gdal_ok:
         con.execute(
-            f"COPY (SELECT * EXCLUDE geometry, geometry FROM '{parquet.as_posix()}') "
+            f"COPY (SELECT * EXCLUDE \"{geom_col}\", \"{geom_col}\" FROM '{parquet.as_posix()}') "
             f"TO '{out.as_posix()}' "
             f"WITH (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'RFC7946=YES')"
         )
@@ -128,10 +148,10 @@ def write_geojson_whole(
         schema = con.execute(
             f"DESCRIBE SELECT * FROM '{parquet.as_posix()}' LIMIT 0"
         ).fetchall()
-        prop_cols = [r[0] for r in schema if r[0] != "geometry"]
+        prop_cols = [r[0] for r in schema if r[0] != geom_col]
         select_props = ", ".join(f'"{c}"' for c in prop_cols)
         rows = con.execute(
-            f"SELECT ST_AsGeoJSON(geometry) AS _geom, {select_props} "
+            f"SELECT ST_AsGeoJSON(\"{geom_col}\") AS _geom, {select_props} "
             f"FROM '{parquet.as_posix()}'"
         ).fetchall()
         with out.open("w", encoding="utf-8") as f:
@@ -202,6 +222,7 @@ def write_shapefile_zip(geojson_path: Path, basename: str, out: Path) -> None:
             [
                 "ogr2ogr",
                 "-f", "ESRI Shapefile",
+                "-nlt", "PROMOTE_TO_MULTI",
                 str(tmp_dir / f"{basename}.shp"),
                 str(geojson_path),
                 # Shapefile column names cap at 10 chars; -lco preserves
@@ -224,8 +245,11 @@ def write_shapefile_zip(geojson_path: Path, basename: str, out: Path) -> None:
 def curated_layers() -> list[tuple[str, str, str, int]]:
     """(layer_id, source_parquet_path, r2_prefix, basename_without_ext)
     for every curated layer that has a local parquet on disk. Reads from
-    build_catalog.LAYERS so the manifest stays single-sourced."""
+    build_catalog.LAYERS first, then supplements with any catalog.json
+    layers that have a parquet URL but are missing from LAYERS (e.g.
+    externally-ingested city ward layers from OpenCity)."""
     out = []
+    seen_ids: set[str] = set()
     for id_, level, source, parquet, pmtiles, rows, licence, notes in bc.LAYERS:
         parquet_path = SRC / parquet
         if not parquet_path.exists():
@@ -233,6 +257,40 @@ def curated_layers() -> list[tuple[str, str, str, int]]:
         path = bc.LEVELS[level]["path"]
         basename = parquet_path.stem
         out.append((id_, str(parquet_path), path, basename))
+        seen_ids.add(id_)
+
+    # Supplement from catalog.json: externally-ingested layers (city wards
+    # etc.) are appended dynamically in build_catalog and appear in
+    # catalog.json but not in the hardcoded bc.LAYERS tuple at import time.
+    catalog_path = ROOT / "web" / "public" / "catalog.json"
+    r2_base = "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/"
+    if catalog_path.exists():
+        try:
+            catalog = json.loads(catalog_path.read_text())
+            for layer in catalog.get("layers", []):
+                lid = layer.get("id")
+                if not lid or lid in seen_ids:
+                    continue
+                pq = layer.get("parquet")
+                if not pq or not pq.get("url"):
+                    continue
+                url: str = pq["url"]
+                # Derive R2 prefix and basename from the URL path.
+                # URL example: https://pub-...r2.dev/admin/wards-chennai/wards_chennai.parquet
+                if url.startswith(r2_base):
+                    rel = url[len(r2_base):]  # "admin/wards-chennai/wards_chennai.parquet"
+                else:
+                    continue
+                basename = Path(rel).stem  # "wards_chennai"
+                r2_prefix = str(Path(rel).parent)  # "admin/wards-chennai"
+                parquet_path = SRC / Path(rel).name  # sources/india-geodata/wards_chennai.parquet
+                if not parquet_path.exists():
+                    continue
+                out.append((lid, str(parquet_path), r2_prefix, basename))
+                seen_ids.add(lid)
+        except Exception as e:
+            print(f"WARN  catalog.json read failed, external layers skipped: {e}")
+
     return out
 
 
