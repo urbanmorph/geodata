@@ -798,7 +798,14 @@ const out = tmpl
   .replace('<!-- TOKENS -->', TOKENS)
   .replace('<!-- NAV -->', renderNav('catalog'))
   .replace('<!-- FOOTER -->', FOOTER)
-  .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog}</script>`);
+  .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog}</script>`)
+  .replace('<!-- DOWNLOAD_TOTAL -->', (() => {
+    const dc = catalog.download_counts || {};
+    const total = Object.values(dc).reduce(
+      (sum, layer) => sum + Object.values(layer).reduce(
+        (s2, state) => s2 + Object.values(state).reduce((s3, n) => s3 + n, 0), 0), 0);
+    return total > 0 ? ` · ${fmtCount(total)} downloads` : '';
+  })());
 
 await writeFile(resolve(WEB, 'index.html'), out);
 console.log(`prerendered home — ${sortedCats.length} categories, ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated levels, ${community.length} community`);
