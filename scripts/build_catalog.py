@@ -85,7 +85,7 @@ PUBLISHER = {
 # release archive (so PUBLISHER + UPSTREAM_BASE apply). Other curated sources
 # (bharatviz, etc.) are pulled direct from origin — their entries should not
 # carry the yashveer attribution or upstream_url.
-YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps', 'CWC', 'IndiaFloodInventory'}
+YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps', 'CWC', 'IndiaFloodInventory', 'data.gov.in'}
 
 # Where to re-fetch each upstream file from. Path under the release base URL.
 # Kept here so the source registry travels with the catalog and a single
@@ -136,6 +136,7 @@ LAYERS = [
 
     # Postal
     ('bharatviz_pincodes', 'pincode',     'bharatviz', 'bharatviz_pincodes.parquet', 'bharatviz_pincodes.pmtiles',  63864,   'MIT',          'India Post pincode boundary polygons (simplified). 63,864 polygons. © 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.'),
+    ('datagov_pincodes',   'pincode',     'data.gov.in', 'Datagov_Pincode_Boundaries.parquet', 'Datagov_Pincode_Boundaries.pmtiles', 19312, 'GODL-India', "India Post delivery post office pincode boundaries from data.gov.in (May 2025). 19,312 polygons covering delivery PO service areas. Compare with bharatviz's 63,864 finer polygons. Neither is officially surveyed; both are Voronoi approximations from post office point locations."),
 
     # Environment
     ('gs_wildlife',        'wildlife',    'GatiShakti', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet', 'GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles', 665, LIC_BELOW, 'Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.'),
