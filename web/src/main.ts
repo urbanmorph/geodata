@@ -3,6 +3,8 @@
 import { isEmbedPath, isViewPath, nextStateOnClose } from './embed-snippet';
 import { filterCards, type CardLike } from './catalog-filter';
 
+document.querySelector('.view-seo')?.remove();
+
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
 const mapCloseBtn = document.getElementById('map-close') as HTMLButtonElement;

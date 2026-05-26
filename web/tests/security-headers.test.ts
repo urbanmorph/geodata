@@ -36,10 +36,40 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
     }
   });
 
-  // CSP temporarily removed pending v4.0.2 DuckDB debugging.
-  // Tests will reinstate once we know the safe directive set.
-  it('CSP is intentionally OFF — re-enable in v4.0.2 after debugging DuckDB worker init', () => {
-    expect(headersFile).not.toMatch(/^\s*Content-Security-Policy:/m);
+  it('sets Content-Security-Policy', () => {
+    expect(headersFile).toMatch(/^\s*Content-Security-Policy:/m);
+  });
+
+  it('CSP allows WASM execution via wasm-unsafe-eval', () => {
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
+    expect(csp).not.toBeNull();
+    expect(csp![1]).toContain("'wasm-unsafe-eval'");
+  });
+
+  it('CSP allows blob: workers for DuckDB', () => {
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
+    expect(csp).not.toBeNull();
+    expect(csp![1]).toContain('worker-src');
+    expect(csp![1]).toContain('blob:');
+  });
+
+  it('CSP allows jsdelivr for DuckDB WASM bundles', () => {
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
+    expect(csp).not.toBeNull();
+    expect(csp![1]).toContain('https://cdn.jsdelivr.net');
+  });
+
+  it('CSP allows Cloudflare Turnstile', () => {
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
+    expect(csp).not.toBeNull();
+    expect(csp![1]).toContain('https://challenges.cloudflare.com');
+  });
+
+  it('CSP does not use unsafe-eval (only wasm-unsafe-eval)', () => {
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
+    expect(csp).not.toBeNull();
+    const stripped = csp![1].replace(/'wasm-unsafe-eval'/g, '');
+    expect(stripped).not.toContain("'unsafe-eval'");
   });
 
   it('keeps X-Content-Type-Options nosniff (already on by CF default; pin it)', () => {
