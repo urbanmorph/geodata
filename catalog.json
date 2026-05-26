@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-26T09:19:12.442681+00:00",
+  "generated": "2026-05-26T09:36:08.419921+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -8,37 +8,37 @@
       "order": 1,
       "plural": "states",
       "path": "admin/states",
-      "category": "administrative"
+      "category": "boundaries"
     },
     "district": {
       "order": 2,
       "plural": "districts",
       "path": "admin/districts",
-      "category": "administrative"
+      "category": "boundaries"
     },
     "subdistrict": {
       "order": 3,
       "plural": "subdistricts",
       "path": "admin/subdistricts",
-      "category": "administrative"
+      "category": "boundaries"
     },
     "block": {
       "order": 4,
       "plural": "blocks",
       "path": "admin/blocks",
-      "category": "administrative"
+      "category": "boundaries"
     },
     "panchayat": {
       "order": 5,
       "plural": "panchayats",
       "path": "admin/panchayats",
-      "category": "administrative"
+      "category": "boundaries"
     },
     "village": {
       "order": 6,
       "plural": "villages",
       "path": "admin/villages",
-      "category": "administrative"
+      "category": "boundaries"
     },
     "parliament_constituency": {
       "order": 10,
@@ -176,55 +176,55 @@
       "order": 0,
       "plural": "national boundary",
       "path": "reference",
-      "category": "administrative"
+      "category": "boundaries"
     },
     "wards_bengaluru_gba": {
       "order": 100,
       "plural": "wards bengaluru gba",
       "path": "admin/wards-bengaluru-gba",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "corporation_bengaluru": {
       "order": 101,
       "plural": "corporation bengaluru",
       "path": "admin/corporation-bengaluru",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_bengaluru_bbmp_2022": {
       "order": 102,
       "plural": "wards bengaluru bbmp 2022",
       "path": "admin/wards-bengaluru-bbmp-2022",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "bda_jurisdiction": {
       "order": 103,
       "plural": "bda jurisdiction",
       "path": "admin/bda-jurisdiction",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "bda_layouts": {
       "order": 104,
       "plural": "bda layouts",
       "path": "admin/bda-layouts",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_chennai": {
       "order": 105,
       "plural": "wards chennai",
       "path": "admin/wards-chennai",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_hyderabad": {
       "order": 106,
       "plural": "wards hyderabad",
       "path": "admin/wards-hyderabad",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_mumbai": {
       "order": 107,
       "plural": "wards mumbai",
       "path": "admin/wards-mumbai",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "electoral_wards_mumbai_2017": {
       "order": 108,
@@ -236,55 +236,121 @@
       "order": 109,
       "plural": "wards kolkata",
       "path": "admin/wards-kolkata",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_pune": {
       "order": 110,
       "plural": "wards pune",
       "path": "admin/wards-pune",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_ahmedabad": {
       "order": 111,
       "plural": "wards ahmedabad",
       "path": "admin/wards-ahmedabad",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_jaipur": {
       "order": 112,
       "plural": "wards jaipur",
       "path": "admin/wards-jaipur",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_gurugram": {
       "order": 113,
       "plural": "wards gurugram",
       "path": "admin/wards-gurugram",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_kochi": {
       "order": 114,
       "plural": "wards kochi",
       "path": "admin/wards-kochi",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_bhubaneshwar": {
       "order": 115,
       "plural": "wards bhubaneshwar",
       "path": "admin/wards-bhubaneshwar",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_vizag": {
       "order": 116,
       "plural": "wards vizag",
       "path": "admin/wards-vizag",
-      "category": "administrative"
+      "category": "city-wards"
     },
     "wards_thane": {
       "order": 117,
       "plural": "wards thane",
       "path": "admin/wards-thane",
-      "category": "administrative"
+      "category": "city-wards"
+    },
+    "wards_delhi": {
+      "order": 118,
+      "plural": "wards delhi",
+      "path": "admin/wards-delhi",
+      "category": "city-wards"
+    },
+    "wards_indore": {
+      "order": 119,
+      "plural": "wards indore",
+      "path": "admin/wards-indore",
+      "category": "city-wards"
+    },
+    "wards_coimbatore": {
+      "order": 120,
+      "plural": "wards coimbatore",
+      "path": "admin/wards-coimbatore",
+      "category": "city-wards"
+    },
+    "wards_madurai": {
+      "order": 121,
+      "plural": "wards madurai",
+      "path": "admin/wards-madurai",
+      "category": "city-wards"
+    },
+    "wards_navi_mumbai": {
+      "order": 122,
+      "plural": "wards navi mumbai",
+      "path": "admin/wards-navi-mumbai",
+      "category": "city-wards"
+    },
+    "wards_guwahati": {
+      "order": 123,
+      "plural": "wards guwahati",
+      "path": "admin/wards-guwahati",
+      "category": "city-wards"
+    },
+    "wards_mysuru": {
+      "order": 124,
+      "plural": "wards mysuru",
+      "path": "admin/wards-mysuru",
+      "category": "city-wards"
+    },
+    "wards_bhopal": {
+      "order": 125,
+      "plural": "wards bhopal",
+      "path": "admin/wards-bhopal",
+      "category": "city-wards"
+    },
+    "wards_chandigarh": {
+      "order": 126,
+      "plural": "wards chandigarh",
+      "path": "admin/wards-chandigarh",
+      "category": "city-wards"
+    },
+    "wards_lucknow": {
+      "order": 127,
+      "plural": "wards lucknow",
+      "path": "admin/wards-lucknow",
+      "category": "city-wards"
+    },
+    "wards_kanpur": {
+      "order": 128,
+      "plural": "wards kanpur",
+      "path": "admin/wards-kanpur",
+      "category": "city-wards"
     }
   },
   "level_meta": {
@@ -431,6 +497,94 @@
       "source_url": "https://data.opencity.in/dataset/thane-wards",
       "source_org": "Thane Municipal Corporation",
       "notes": ""
+    },
+    "wards_delhi": {
+      "label": "Delhi Wards (MCD + NDMC + Cantonment)",
+      "unit": "wards",
+      "description": "Municipal Corporation of Delhi, NDMC, and Delhi Cantonment Board wards. 290 ward boundaries.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Delhi",
+      "source_org": "DataMeet",
+      "notes": ""
+    },
+    "wards_indore": {
+      "label": "Indore (IMC) Wards (2024)",
+      "unit": "wards",
+      "description": "Indore Municipal Corporation \u2014 85 ward boundaries. 2024 delimitation.",
+      "source_url": "https://data.opencity.in/dataset/indore-wards-map",
+      "source_org": "Indore Municipal Corporation",
+      "notes": ""
+    },
+    "wards_coimbatore": {
+      "label": "Coimbatore (CCMC) Wards (2011)",
+      "unit": "wards",
+      "description": "Coimbatore City Municipal Corporation \u2014 100 ward boundaries. Census 2011 reorganization.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore",
+      "source_org": "DataMeet",
+      "notes": ""
+    },
+    "wards_madurai": {
+      "label": "Madurai (MCM) Wards (2024)",
+      "unit": "wards",
+      "description": "Madurai City Municipal Corporation \u2014 100 ward boundaries. 2024 delimitation.",
+      "source_url": "https://data.opencity.in/dataset/madurai-wards-map",
+      "source_org": "Madurai City Municipal Corporation",
+      "notes": ""
+    },
+    "wards_navi_mumbai": {
+      "label": "Navi Mumbai (NMMC) Wards (2024)",
+      "unit": "wards",
+      "description": "Navi Mumbai Municipal Corporation \u2014 111 ward boundaries. 2024 delimitation.",
+      "source_url": "https://data.opencity.in/dataset/navi-mumbai-wards-map",
+      "source_org": "Navi Mumbai Municipal Corporation",
+      "notes": ""
+    },
+    "wards_guwahati": {
+      "label": "Guwahati (GMC) Wards (2022)",
+      "unit": "wards",
+      "description": "Guwahati Municipal Corporation \u2014 60 ward boundaries. 2022 delimitation.",
+      "source_url": "https://data.opencity.in/dataset/guwahati-wards-information",
+      "source_org": "Guwahati Municipal Corporation",
+      "notes": ""
+    },
+    "wards_mysuru": {
+      "label": "Mysuru (MCC) Wards",
+      "unit": "wards",
+      "description": "Mysuru City Corporation \u2014 65 ward boundaries.",
+      "source_url": "https://data.opencity.in/dataset/mysuru-city-corporation-wards-info",
+      "source_org": "Mysuru City Corporation",
+      "notes": ""
+    },
+    "wards_bhopal": {
+      "label": "Bhopal (BMC) Wards (2024)",
+      "unit": "wards",
+      "description": "Bhopal Municipal Corporation \u2014 86 ward boundaries. 2024 delimitation.",
+      "source_url": "https://data.opencity.in/dataset/bhopal-wards-map",
+      "source_org": "Bhopal Municipal Corporation",
+      "notes": ""
+    },
+    "wards_chandigarh": {
+      "label": "Chandigarh (MC) Wards",
+      "unit": "wards",
+      "description": "Municipal Corporation of Chandigarh \u2014 28 ward boundaries.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chandigarh",
+      "source_org": "Municipal Corporation of Chandigarh",
+      "notes": ""
+    },
+    "wards_lucknow": {
+      "label": "Lucknow (LMC) Wards",
+      "unit": "wards",
+      "description": "Lucknow Municipal Corporation \u2014 112 ward boundaries.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow",
+      "source_org": "Lucknow Municipal Corporation",
+      "notes": ""
+    },
+    "wards_kanpur": {
+      "label": "Kanpur (KMC) Wards",
+      "unit": "wards",
+      "description": "Kanpur Municipal Corporation \u2014 58 ward boundaries.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur",
+      "source_org": "Kanpur Municipal Corporation",
+      "notes": ""
     }
   },
   "level_order": [
@@ -480,7 +634,18 @@
     "wards_kochi",
     "wards_bhubaneshwar",
     "wards_vizag",
-    "wards_thane"
+    "wards_thane",
+    "wards_delhi",
+    "wards_indore",
+    "wards_coimbatore",
+    "wards_madurai",
+    "wards_navi_mumbai",
+    "wards_guwahati",
+    "wards_mysuru",
+    "wards_bhopal",
+    "wards_chandigarh",
+    "wards_lucknow",
+    "wards_kanpur"
   ],
   "layers": [
     {
@@ -521,7 +686,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:35.410177+00:00",
       "notes": "Authoritative state and Union Territory boundaries from India's Local Government Directory (LGD). 36 polygons with the full LGD code chain, enabling joins with district, subdistrict, block and village layers."
@@ -564,7 +729,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:42.332872+00:00",
       "notes": "Survey of India derivative."
@@ -607,7 +772,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:44.032499+00:00",
       "notes": "NRSC/ISRO Bhuvan. Own codes, not LGD."
@@ -650,7 +815,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:49.392838+00:00",
       "notes": "Every district in India from the Local Government Directory (LGD). 785 polygons; joins to state boundaries via the state_lgd code, with the full LGD chain for joining to subdistricts, blocks and villages."
@@ -693,7 +858,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:02.013181+00:00",
       "notes": "SoI derivative. Partial LGD codes."
@@ -736,7 +901,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:11.522025+00:00",
       "notes": "Bhuvan. Under-counts vs LGD in some states."
@@ -779,7 +944,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:28.791492+00:00",
       "notes": "All subdistricts (tehsil / taluk / mandal) in India from the Local Government Directory (LGD). 6,471 polygons with the full LGD code chain for joining to districts, states, and finer admin levels (blocks, villages)."
@@ -822,7 +987,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:43.888281+00:00",
       "notes": "SoI tehsils. Partial codes."
@@ -865,7 +1030,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:58:07.316028+00:00",
       "notes": "Community-development blocks across India from the Local Government Directory (LGD). 7,146 polygons with the full LGD code chain joining to subdistricts, districts and states."
@@ -905,7 +1070,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:58:47.442152+00:00",
       "notes": "Bhuvan. Predates recent re-divisions in several states."
@@ -939,7 +1104,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:07:38.268872+00:00",
       "notes": "PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage)."
@@ -973,7 +1138,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:12:19.703241+00:00",
       "notes": "Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom."
@@ -1007,7 +1172,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-04-26T13:08:10.529947+00:00",
       "notes": "Authoritative. 584k polygons. Use vector tiles to render."
@@ -1050,7 +1215,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-04-26T13:01:32.132923+00:00",
       "notes": "SoI village centroids (point geometry). 5.76 lakh point features. Coverage is dense in southern + western states and sparse in UP, Bihar, Jharkhand and several NE states (SoI source limitation, not a rendering issue)."
@@ -1810,7 +1975,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025."
@@ -1847,7 +2012,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Five corporation-level polygons that make up the Greater Bengaluru Authority."
@@ -1887,7 +2052,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme."
@@ -1927,7 +2092,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Bengaluru Development Authority planning + acquisition jurisdiction boundary."
@@ -1967,7 +2132,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction."
@@ -2004,7 +2169,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones."
@@ -2044,7 +2209,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones."
@@ -2084,7 +2249,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread)."
@@ -2161,7 +2326,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs."
@@ -2201,7 +2366,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Pune Municipal Corporation \u2014 58 administrative wards."
@@ -2241,7 +2406,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones."
@@ -2281,7 +2446,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Jaipur Municipal Corporation \u2014 150 ward boundaries."
@@ -2321,7 +2486,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Municipal Corporation of Gurugram \u2014 35 ward boundaries."
@@ -2361,7 +2526,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Kochi Municipal Corporation ward boundaries \u2014 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal."
@@ -2398,7 +2563,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal."
@@ -2438,7 +2603,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards."
@@ -2478,10 +2643,450 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Thane Municipal Corporation \u2014 47 wards across the city."
+    },
+    {
+      "id": "wards_delhi",
+      "level": "wards_delhi",
+      "source": "OpenCity",
+      "rows": 290,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-delhi/wards_delhi.parquet",
+        "bytes": 138208
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-delhi/wards_delhi.pmtiles",
+        "bytes": 97475
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.geojson",
+        "bytes": 737950
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.kml",
+        "bytes": 620275
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.shp.zip",
+        "bytes": 168691
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Municipal Corporation of Delhi, NDMC, and Delhi Cantonment Board wards. 290 ward boundaries."
+    },
+    {
+      "id": "wards_indore",
+      "level": "wards_indore",
+      "source": "OpenCity",
+      "rows": 85,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-indore/wards_indore.parquet",
+        "bytes": 86265
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-indore/wards_indore.pmtiles",
+        "bytes": 63144
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.geojson",
+        "bytes": 440146
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.kml",
+        "bytes": 400264
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.shp.zip",
+        "bytes": 89461
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Indore Municipal Corporation \u2014 85 ward boundaries. 2024 delimitation."
+    },
+    {
+      "id": "wards_coimbatore",
+      "level": "wards_coimbatore",
+      "source": "OpenCity",
+      "rows": 100,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-coimbatore/wards_coimbatore.parquet",
+        "bytes": 80607
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-coimbatore/wards_coimbatore.pmtiles",
+        "bytes": 32023
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.geojson",
+        "bytes": 377200
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.kml",
+        "bytes": 328093
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.shp.zip",
+        "bytes": 76511
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Coimbatore City Municipal Corporation \u2014 100 ward boundaries. Census 2011 reorganization."
+    },
+    {
+      "id": "wards_madurai",
+      "level": "wards_madurai",
+      "source": "OpenCity",
+      "rows": 100,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-madurai/wards_madurai.parquet",
+        "bytes": 134864
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-madurai/wards_madurai.pmtiles",
+        "bytes": 90494
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.geojson",
+        "bytes": 708311
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.kml",
+        "bytes": 642336
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.shp.zip",
+        "bytes": 147482
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Madurai City Municipal Corporation \u2014 100 ward boundaries. 2024 delimitation."
+    },
+    {
+      "id": "wards_navi_mumbai",
+      "level": "wards_navi_mumbai",
+      "source": "OpenCity",
+      "rows": 111,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-navi-mumbai/wards_navi_mumbai.parquet",
+        "bytes": 82597
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-navi-mumbai/wards_navi_mumbai.pmtiles",
+        "bytes": 51243
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.geojson",
+        "bytes": 438232
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.kml",
+        "bytes": 417617
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.shp.zip",
+        "bytes": 86124
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Navi Mumbai Municipal Corporation \u2014 111 ward boundaries. 2024 delimitation."
+    },
+    {
+      "id": "wards_guwahati",
+      "level": "wards_guwahati",
+      "source": "OpenCity",
+      "rows": 60,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-guwahati/wards_guwahati.parquet",
+        "bytes": 194788
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-guwahati/wards_guwahati.pmtiles",
+        "bytes": 88774
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.geojson",
+        "bytes": 927796
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.kml",
+        "bytes": 772093
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.shp.zip",
+        "bytes": 201051
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Guwahati Municipal Corporation \u2014 60 ward boundaries. 2022 delimitation."
+    },
+    {
+      "id": "wards_mysuru",
+      "level": "wards_mysuru",
+      "source": "OpenCity",
+      "rows": 65,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mysuru/wards_mysuru.parquet",
+        "bytes": 126567
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mysuru/wards_mysuru.pmtiles",
+        "bytes": 79331
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.geojson",
+        "bytes": 436233
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.kml",
+        "bytes": 397823
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.shp.zip",
+        "bytes": 137986
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Mysuru City Corporation \u2014 65 ward boundaries."
+    },
+    {
+      "id": "wards_bhopal",
+      "level": "wards_bhopal",
+      "source": "OpenCity",
+      "rows": 86,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhopal/wards_bhopal.parquet",
+        "bytes": 124796
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhopal/wards_bhopal.pmtiles",
+        "bytes": 111628
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.geojson",
+        "bytes": 349914
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.kml",
+        "bytes": 307171
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.shp.zip",
+        "bytes": 118717
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Bhopal Municipal Corporation \u2014 86 ward boundaries. 2024 delimitation."
+    },
+    {
+      "id": "wards_chandigarh",
+      "level": "wards_chandigarh",
+      "source": "OpenCity",
+      "rows": 28,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chandigarh/wards_chandigarh.parquet",
+        "bytes": 13963
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chandigarh/wards_chandigarh.pmtiles",
+        "bytes": 15217
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.geojson",
+        "bytes": 51192
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.kml",
+        "bytes": 51885
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.shp.zip",
+        "bytes": 12313
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Municipal Corporation of Chandigarh \u2014 28 ward boundaries."
+    },
+    {
+      "id": "wards_lucknow",
+      "level": "wards_lucknow",
+      "source": "OpenCity",
+      "rows": 112,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-lucknow/wards_lucknow.parquet",
+        "bytes": 99253
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-lucknow/wards_lucknow.pmtiles",
+        "bytes": 47320
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.geojson",
+        "bytes": 376401
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.kml",
+        "bytes": 339663
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.shp.zip",
+        "bytes": 96027
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Lucknow Municipal Corporation \u2014 112 ward boundaries."
+    },
+    {
+      "id": "wards_kanpur",
+      "level": "wards_kanpur",
+      "source": "OpenCity",
+      "rows": 58,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kanpur/wards_kanpur.parquet",
+        "bytes": 68690
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kanpur/wards_kanpur.pmtiles",
+        "bytes": 29726
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.geojson",
+        "bytes": 234134
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.kml",
+        "bytes": 206055
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.shp.zip",
+        "bytes": 62884
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Kanpur Municipal Corporation \u2014 58 ward boundaries."
     },
     {
       "id": "india_boundary",
@@ -2510,7 +3115,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-24T13:16:39.947047+00:00",
       "notes": "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source \u2014 includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim)."
@@ -2565,7 +3170,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:51:25.765499+00:00",
       "notes": "name-only"
@@ -2590,7 +3195,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:49:05.585534+00:00",
       "notes": "name-only"
@@ -2615,7 +3220,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:49:41.513654+00:00",
       "notes": "name-only"
@@ -2640,7 +3245,7 @@
         },
         "publisher": null
       },
-      "category": "administrative",
+      "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:50:55.916651+00:00",
       "notes": "mislabeled in upstream \u2014 block-equivalent, not village"
@@ -2784,7 +3389,8 @@
   ],
   "state_extracts": [],
   "categories": {
-    "administrative": "Administrative",
+    "boundaries": "Boundaries",
+    "city-wards": "City wards",
     "people": "People & places",
     "environment": "Environment",
     "agriculture": "Agriculture & land use",

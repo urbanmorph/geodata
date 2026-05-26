@@ -39,8 +39,8 @@ export const DISPLAY_CAP = 6;
 // trivially have unique values even in genuinely useful columns.
 export const ALL_UNIQUE_MIN_ROWS = 50;
 
-const ID_NAME_RX = /^(id|fid|objectid|gid|uuid|hash|geohash)$|_id$/i;
 const GEOM_NAME_RX = /^(geom|geometry|shape|wkb|wkt)$/i;
+const ID_NAME_RX = /^(id|fid|objectid|gid|uuid|hash|geohash)$|_id$|^ogc_fid$|^orig_fid$|^InPoly_FID$/i;
 
 const BOOL_VALUE_SETS: Array<Set<string>> = [
   new Set(['0', '1']),
@@ -67,6 +67,30 @@ export function pickAffordance(col: ColumnStats, rowCount: number): Affordance {
   if (col.distinct <= 1) return { kind: 'drop', reason: 'all-same' };
   if (col.nullFrac > 0.95) return { kind: 'drop', reason: 'mostly null' };
   if (ID_NAME_RX.test(col.name)) return { kind: 'drop', reason: 'id-like name' };
+  if (col.name.startsWith('_')) return { kind: 'drop', reason: 'underscore-prefixed internal' };
+
+  // Boolean check must come before near-constant so {0,1} and {yes,no}
+  // aren't swallowed by the numeric-constant heuristic.
+  if (col.type === 'bool') return { kind: 'boolean' };
+  if (col.distinct === 2 && col.topValues && isBooleanByValues(col.topValues)) {
+    return { kind: 'boolean' };
+  }
+
+  // Near-constant: if distinct <= 3 and all values are numeric-looking
+  // (e.g., tessellate=-1, extrude=0, visibility=-1), it's technical metadata.
+  if (col.distinct <= 3 && col.topValues?.length) {
+    const allNumeric = col.topValues.every((v) => /^-?\d+(\.\d+)?$/.test(String(v.v).trim()));
+    if (allNumeric) return { kind: 'drop', reason: 'near-constant numeric' };
+  }
+
+  // High-precision floats that are unique per row are computed geometry
+  // stats (area, length, perimeter) regardless of column name.
+  if ((col.type === 'float' || col.type === 'double') && rowCount >= 10) {
+    const nonNull = rowCount * (1 - col.nullFrac);
+    if (nonNull > 0 && col.distinct / nonNull > 0.9) {
+      return { kind: 'drop', reason: 'per-row float (likely computed stat)' };
+    }
+  }
 
   // High-uniqueness INT columns are almost always OBJECTID-style row keys
   // with no filter value. Floats with high uniqueness, by contrast, are
@@ -77,11 +101,6 @@ export function pickAffordance(col: ColumnStats, rowCount: number): Affordance {
     if (nonNull > 0 && col.distinct / nonNull > 0.97) {
       return { kind: 'drop', reason: 'all-unique' };
     }
-  }
-
-  if (col.type === 'bool') return { kind: 'boolean' };
-  if (col.distinct === 2 && col.topValues && isBooleanByValues(col.topValues)) {
-    return { kind: 'boolean' };
   }
 
   if (col.type === 'int' || col.type === 'float' || col.type === 'date') {

@@ -48,6 +48,36 @@ describe('pickAffordance — drops', () => {
     }
   });
 
+  it('drops underscore-prefixed internal columns', () => {
+    for (const name of ['_VERSION', '_CHANGESET', '_USER', '_UID', '_TIMESTAMP', '_id']) {
+      expect(pickAffordance(col({ name }), 100).kind).toBe('drop');
+    }
+  });
+
+  it('drops auto-increment IDs (OGC_FID, FID, InPoly_FID, orig_fid)', () => {
+    for (const name of ['OGC_FID', 'FID', 'InPoly_FID', 'orig_fid']) {
+      expect(pickAffordance(col({ name, type: 'int', distinct: 100 }), 100).kind).toBe('drop');
+    }
+  });
+
+  it('drops near-constant numeric columns (e.g., tessellate=-1, extrude=0)', () => {
+    const c = col({ name: 'tessellate', distinct: 1, topValues: [{ v: -1, n: 100 }] });
+    expect(pickAffordance(c, 100).kind).toBe('drop'); // distinct=1 → all-same
+
+    const c2 = col({ name: 'extrude', distinct: 2, topValues: [{ v: 0, n: 90 }, { v: -1, n: 10 }] });
+    expect(pickAffordance(c2, 100).kind).toBe('drop'); // near-constant numeric
+  });
+
+  it('drops per-row floats (computed geometry stats like shape_area, shape_length)', () => {
+    const c = col({ name: 'Shape_Area', type: 'float', distinct: 98, nullFrac: 0 });
+    expect(pickAffordance(c, 100).kind).toBe('drop'); // 98/100 unique → per-row float
+  });
+
+  it('keeps low-cardinality floats as facet (not dropped)', () => {
+    const c = col({ name: 'area_sqkm', type: 'float', distinct: 20, min: 0.2, max: 12.4 });
+    expect(pickAffordance(c, 1000).kind).not.toBe('drop');
+  });
+
   it('drops *_id columns (foreign keys / row keys)', () => {
     // Wider code/name collapsing — stcode11, state_lgd, etc. — is handled at
     // build time by the column-equivalence detection (see
@@ -174,9 +204,9 @@ describe('pickAffordance — categorical', () => {
 });
 
 describe('pickAffordance — numeric range', () => {
-  it('picks range for int distinct=1000 with min/max', () => {
+  it('picks range for float with moderate cardinality and min/max', () => {
     const a = pickAffordance(
-      col({ name: 'area_sqkm', type: 'float', distinct: 1000, min: 0.2, max: 12.4 }),
+      col({ name: 'elevation', type: 'float', distinct: 200, min: 0.2, max: 12.4 }),
       1000,
     );
     expect(a).toMatchObject({ kind: 'range', min: 0.2, max: 12.4 });
