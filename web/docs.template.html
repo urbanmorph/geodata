@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" sizes="any" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      <!-- TOKENS -->
+      :root { --row-hover: var(--bg-card); }
+      body { max-width: 800px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.6; }
+      h1 { font-size: 28px; margin: 0 0 var(--sp-2); font-weight: 700; }
+      h2 { font-size: 20px; margin: var(--sp-6) 0 var(--sp-2); font-weight: 600; color: var(--fg); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+      h3 { font-size: 16px; margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
+      p, li { font-size: 15px; color: var(--muted); }
+      code { font: 13px ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+      pre { background: var(--row-hover); padding: var(--sp-3); border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+      pre code { background: none; padding: 0; }
+      table { width: 100%; border-collapse: collapse; font-size: 14px; margin: var(--sp-2) 0; }
+      th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+      th { font-weight: 600; color: var(--fg); font-size: 13px; text-transform: uppercase; letter-spacing: 0.03em; }
+      td { color: var(--muted); }
+      td code { font-size: 12px; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .method { display: inline-block; font-weight: 700; font-size: 12px; padding: 2px 8px; border-radius: 4px; background: #22c55e22; color: #22c55e; margin-right: 6px; }
+      .endpoint { font-family: ui-monospace, SFMono-Regular, monospace; font-size: 14px; }
+      .try-it { font-size: 13px; color: var(--accent); margin-left: 8px; }
+      .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; }
+      .badge--stable { background: #22c55e22; color: #22c55e; }
+      .badge--beta { background: #f59e0b22; color: #f59e0b; }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+
+      <h1>API v1 <span class="badge badge--beta">beta</span></h1>
+      <p>Public, read-only JSON API for India's open geo layers. No auth, no API key. All endpoints return JSON with CORS enabled.</p>
+      <p>Base URL: <code>https://bharatlas.com/api/v1</code></p>
+
+      <h2>Layers</h2>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers</span></h3>
+      <p>List all curated layers with pagination and filters.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>category</code></td><td>string</td><td>Filter by category (e.g. <code>boundaries</code>, <code>city-wards</code>, <code>environment</code>)</td></tr>
+        <tr><td><code>level</code></td><td>string</td><td>Filter by admin level (e.g. <code>state</code>, <code>district</code>)</td></tr>
+        <tr><td><code>source</code></td><td>string</td><td>Filter by data source (e.g. <code>LGD</code>, <code>OpenCity</code>)</td></tr>
+        <tr><td><code>q</code></td><td>string</td><td>Text search across id, source, notes</td></tr>
+        <tr><td><code>limit</code></td><td>int</td><td>Results per page (default 100, max 500)</td></tr>
+        <tr><td><code>offset</code></td><td>int</td><td>Skip N results (default 0)</td></tr>
+      </table>
+      <pre><code>curl https://bharatlas.com/api/v1/layers?category=city-wards&amp;limit=5</code></pre>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id</span></h3>
+      <p>Single layer detail with download URLs, attribution, and column schema.</p>
+      <pre><code>curl https://bharatlas.com/api/v1/layers/lgd_states</code></pre>
+
+      <h2>Locate <span class="badge badge--stable">stable</span></h2>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/locate</span></h3>
+      <p>Given a lat/lng, returns all polygon layers that contain that point: state, district, ward, pincode, forest, eco-zone, seismic zone, and more. The "where am I?" endpoint.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Latitude (6 to 38, India bounding box)</td></tr>
+        <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68 to 98, India bounding box)</td></tr>
+        <tr><td><code>layers</code></td><td>string</td><td>Comma-separated layer IDs (default: 12 essential layers)</td></tr>
+        <tr><td><code>zoom</code></td><td>int</td><td>Tile resolution 4-16 (default 14, auto-capped to layer max zoom)</td></tr>
+      </table>
+      <pre><code>curl "https://bharatlas.com/api/v1/locate?lat=12.97&amp;lng=77.59"</code></pre>
+      <p>Response groups results by category:</p>
+      <pre><code>{
+  "point": { "lat": 12.97, "lng": 77.59 },
+  "results": {
+    "boundaries": [{
+      "layer_id": "lgd_states",
+      "level": "state",
+      "feature": {
+        "properties": { "STNAME": "KARNATAKA", "State_LGD": 29 }
+      }
+    }]
+  },
+  "queried_layers": ["lgd_states", "lgd_districts", ...],
+  "timing_ms": 450
+}</code></pre>
+
+      <h2>Categories and Levels</h2>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/categories</span></h3>
+      <p>List all categories with layer counts.</p>
+      <pre><code>curl https://bharatlas.com/api/v1/categories</code></pre>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/levels</span></h3>
+      <p>List admin hierarchy levels in order (country, state, district, subdistrict, block, village, ...).</p>
+      <pre><code>curl https://bharatlas.com/api/v1/levels</code></pre>
+
+      <h2>Downloads</h2>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/downloads/counts</span></h3>
+      <p>Download counts per layer and format, plus a grand total.</p>
+      <pre><code>curl https://bharatlas.com/api/v1/downloads/counts</code></pre>
+
+      <h2>Community Submissions</h2>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/submissions</span></h3>
+      <p>List accepted community submissions.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>sort</code></td><td>string</td><td><code>recent</code> (default) or <code>useful</code></td></tr>
+        <tr><td><code>category</code></td><td>string</td><td>Filter by category</td></tr>
+        <tr><td><code>q</code></td><td>string</td><td>Search name and description</td></tr>
+        <tr><td><code>limit</code></td><td>int</td><td>Results per page (default 20, max 100)</td></tr>
+        <tr><td><code>offset</code></td><td>int</td><td>Skip N results</td></tr>
+      </table>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/submissions/:id</span></h3>
+      <p>Single submission detail.</p>
+
+      <h2>Response Format</h2>
+      <p>All endpoints return JSON. List endpoints wrap results in:</p>
+      <pre><code>{ "data": [...], "total": 77, "limit": 100, "offset": 0 }</code></pre>
+      <p>Detail endpoints wrap in:</p>
+      <pre><code>{ "data": { ... } }</code></pre>
+      <p>Errors return:</p>
+      <pre><code>{ "error": "Not found", "status": 404 }</code></pre>
+
+      <h2>Stability</h2>
+      <p>All v1 endpoints follow additive-only evolution: new fields may appear, but existing fields will not be renamed or removed. If a breaking change is needed, it ships as v2.</p>
+      <p>Rate limits: reads are unlimited. Cloudflare DDoS protection applies. Write endpoints (submission, rating) are rate-limited per IP.</p>
+
+      <h2>Download Formats</h2>
+      <p>Each layer may offer up to 5 formats. Use the <code>downloads</code> object from <code>/api/v1/layers/:id</code> to get direct URLs:</p>
+      <table>
+        <tr><th>Format</th><th>Best for</th></tr>
+        <tr><td><code>parquet</code></td><td>DuckDB, Pandas, R, Spark</td></tr>
+        <tr><td><code>pmtiles</code></td><td>MapLibre, Leaflet, web maps</td></tr>
+        <tr><td><code>geojson</code></td><td>QGIS, D3, Mapbox, general GIS</td></tr>
+        <tr><td><code>kml</code></td><td>Google Earth</td></tr>
+        <tr><td><code>shapefile</code></td><td>ArcGIS, legacy GIS tools</td></tr>
+      </table>
+
+    <!-- FOOTER -->
+  </body>
+</html>
