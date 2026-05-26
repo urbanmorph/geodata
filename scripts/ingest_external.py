@@ -52,6 +52,7 @@ class Dataset:
     unit: str = 'features'  # plural noun shown next to the count ("wards", "corporations")
     features: int | None = None  # feature count; filled in post-conversion if None
     notes: str = ''         # extra note shown on the card
+    attr_key: str = 'OpenCity'  # key into build_catalog.py ATTR dict for attribution
 
 
 # All datasets ingested in v4.1 (notf + BDA).
@@ -514,6 +515,108 @@ DATASETS: list[Dataset] = [
         r2_prefix='admin/wards-kanpur',
         features=58,
     ),
+
+    # ──────── Patna ────────
+    Dataset(
+        id='wards_patna',
+        name='Patna (PMC) Wards (~2019)',
+        src=str(HOME / 'GitHub/notf/supporting documents/patna/patna-wards.geojson'),
+        category='city-wards',
+        level='wards_patna',
+        description='Patna Municipal Corporation — 75 wards (628 sub-ward polygons). Two naming schemes: numbered "Ward N" and spelled-out names.',
+        source_org='datta07/INDIAN-SHAPEFILES',
+        source_url='https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES',
+        license='MIT',
+        unit='wards',
+        r2_prefix='admin/wards-patna',
+        features=628,
+        attr_key='datta07',
+    ),
+
+    # ──────── Surat ────────
+    Dataset(
+        id='wards_surat',
+        name='Surat (SMC) Wards (~2019)',
+        src=str(HOME / 'GitHub/notf/supporting documents/surat/surat-wards.geojson'),
+        category='city-wards',
+        level='wards_surat',
+        description='Surat Municipal Corporation — 30 ward boundaries with named wards.',
+        source_org='datta07/INDIAN-SHAPEFILES',
+        source_url='https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES',
+        license='MIT',
+        unit='wards',
+        r2_prefix='admin/wards-surat',
+        features=30,
+        attr_key='datta07',
+    ),
+
+    # ──────── Vadodara ────────
+    Dataset(
+        id='wards_vadodara',
+        name='Vadodara (VMC) Wards',
+        src=str(HOME / 'GitHub/notf/supporting documents/vadodara/vadodara-wards.geojson'),
+        category='city-wards',
+        level='wards_vadodara',
+        description='Vadodara Municipal Corporation — 12 administrative ward boundaries.',
+        source_org='DataMeet',
+        source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vadodara',
+        license='CC-BY-4.0',
+        unit='wards',
+        r2_prefix='admin/wards-vadodara',
+        features=12,
+        attr_key='DataMeet',
+    ),
+
+    # ──────── Faridabad ────────
+    Dataset(
+        id='wards_faridabad',
+        name='Faridabad (MCF) Wards',
+        src=str(HOME / 'GitHub/notf/supporting documents/faridabad/faridabad-wards.geojson'),
+        category='city-wards',
+        level='wards_faridabad',
+        description='Municipal Corporation of Faridabad — 40 ward boundaries.',
+        source_org='DataMeet',
+        source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Faridabad',
+        license='CC-BY-4.0',
+        unit='wards',
+        r2_prefix='admin/wards-faridabad',
+        features=40,
+        attr_key='DataMeet',
+    ),
+
+    # ──────── Pimpri-Chinchwad ────────
+    Dataset(
+        id='wards_pcmc',
+        name='Pimpri-Chinchwad (PCMC) Electoral Wards',
+        src=str(HOME / 'GitHub/notf/supporting documents/pimpri-chinchwad/pcmc-wards.geojson'),
+        category='city-wards',
+        level='wards_pcmc',
+        description='Pimpri-Chinchwad Municipal Corporation — 66 electoral ward boundaries across 6 zones.',
+        source_org='DataMeet',
+        source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/PCMC',
+        license='CC-BY-4.0',
+        unit='wards',
+        r2_prefix='admin/wards-pcmc',
+        features=66,
+        attr_key='DataMeet',
+    ),
+
+    # ──────── Vijayawada ────────
+    Dataset(
+        id='wards_vijayawada',
+        name='Vijayawada (VMC) Wards',
+        src=str(HOME / 'GitHub/notf/supporting documents/vijayawada/vijayawada-wards.geojson'),
+        category='city-wards',
+        level='wards_vijayawada',
+        description='Vijayawada Municipal Corporation — 77 ward boundaries.',
+        source_org='DataMeet',
+        source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vijayawada',
+        license='CC-BY-4.0',
+        unit='wards',
+        r2_prefix='admin/wards-vijayawada',
+        features=77,
+        attr_key='DataMeet',
+    ),
 ]
 
 
@@ -620,7 +723,7 @@ def ingest(ds: Dataset, s3) -> dict:
         'name': ds.name,                # friendly label shown on the card
         'level': ds.level,
         'category': ds.category,
-        'source': 'OpenCity',
+        'source': ds.attr_key,
         'description': ds.description,
         'unit': ds.unit,                # "wards" / "corporations" / "layouts" etc.
         'features': n,

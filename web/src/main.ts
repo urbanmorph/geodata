@@ -200,8 +200,20 @@ if (searchInput && grid) {
       if (chip.dataset.count === '0') return;
       chips.forEach((c) => c.classList.toggle('active', c === chip));
       activeCat = chip.dataset.cat || 'all';
+      try { sessionStorage.setItem('cat', activeCat); } catch {}
       apply();
     });
+  }
+
+  // Restore category from sessionStorage (survives back-navigation from /view/).
+  const saved = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
+  if (saved && saved !== 'all') {
+    const match = chips.find((c) => c.dataset.cat === saved);
+    if (match) {
+      chips.forEach((c) => c.classList.toggle('active', c === match));
+      activeCat = saved;
+      apply();
+    }
   }
 
   // "show all N <category>" toggle inside dense category sections.
