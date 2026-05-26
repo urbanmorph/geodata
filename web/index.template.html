@@ -565,6 +565,24 @@
         color: var(--fg);
         width: 100%;
       }
+      .filter-typeahead { position: relative; }
+      .filter-typeahead__list {
+        position: absolute; z-index: 10; top: 100%; left: 0; right: 0;
+        margin: 2px 0 0; padding: 0; list-style: none;
+        background: var(--bg-elevated); border: 1px solid var(--line);
+        border-radius: 6px; max-height: 200px; overflow-y: auto;
+      }
+      .filter-typeahead__list:empty { display: none; }
+      .filter-typeahead__item {
+        padding: 6px 11px; cursor: pointer; font-size: 13px; color: var(--fg);
+      }
+      .filter-typeahead__item:hover { background: var(--accent); color: #fff; }
+      .filter-typeahead__clear {
+        position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+        background: none; border: none; color: var(--muted); cursor: pointer;
+        font-size: 16px; padding: 2px 4px; line-height: 1;
+      }
+      .filter-typeahead__clear:hover { color: var(--fg); }
 
       .filter-bool { display: flex; gap: 6px; }
       .filter-bool__btn {

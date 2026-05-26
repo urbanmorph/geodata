@@ -244,6 +244,8 @@ export function renderViewPage(opts: RenderOpts): string {
       <dd><a href="${esc(licenseUrl)}" rel="noopener" target="_blank"><code>${esc(s.license)}</code></a></dd>
       <dt>Format</dt>
       <dd><code>${esc(s.format)}</code> · ${esc(fmtBytes(s.bytes))}${s.feature_count != null ? ` · ${s.feature_count.toLocaleString()} features` : ''}${s.geometry_types ? ` · ${esc(s.geometry_types)}` : ''}</dd>
+      ${s.data_year ? `<dt>Data year</dt>
+      <dd>${s.data_year}</dd>` : ''}
       <dt>Submitted</dt>
       <dd>${esc(relativeTime(s.created_at, now))}</dd>
     </dl>

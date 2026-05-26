@@ -62,6 +62,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const license = f('license');
   const attribution = f('attribution');
   const sourceUrl = f('source_url');
+  const dataYear = f('data_year') ? parseInt(f('data_year')!, 10) : null;
   const isOriginal = f('is_original') === '1';
 
   const filename = sanitizeFilename(file.name);
@@ -148,6 +149,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         license,
         attribution,
         source_url: sourceUrl,
+        data_year: dataYear,
         is_original: isOriginal ? 1 : 0,
         format: ext,
         bytes: file.size,
