@@ -549,11 +549,20 @@ async function wireFilterButton(layer: Layer) {
   btn.classList.remove('shown');
   document.querySelector('.filter-panel')?.remove();
 
+  btn.classList.add('shown');
+  btn.disabled = true;
+  const { VERBS_ENGINE } = await import('./loading');
+  let verbIdx = 0;
+  let verbTimer: ReturnType<typeof setInterval> | null = setInterval(() => {
+    btn.textContent = VERBS_ENGINE[verbIdx++ % VERBS_ENGINE.length];
+  }, 1800);
+  btn.textContent = VERBS_ENGINE[0];
+
   const result = await loadFilterColumns(layer, signal);
-  if (!result) return;
+  if (verbTimer) { clearInterval(verbTimer); verbTimer = null; }
+  if (!result) { btn.classList.remove('shown'); return; }
   const { columns: ranked, rowCount } = result;
 
-  btn.classList.add('shown');
   btn.textContent = 'Filter & export';
   btn.disabled = false;
 
@@ -568,7 +577,7 @@ async function wireFilterButton(layer: Layer) {
     async () => {
       if (document.querySelector('.filter-panel')) return;
       btn.disabled = true;
-      btn.textContent = 'Loading…';
+      btn.textContent = 'Preparing filters…';
       try {
         const { mountFilterPanel } = await import('./filter');
         if (signal.aborted) return;

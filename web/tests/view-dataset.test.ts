@@ -97,7 +97,7 @@ describe('resolveLevelMeta', () => {
 
   it('falls back to builtin LEVEL_META by layer.level for curated layers', () => {
     const result = resolveLevelMeta(layer, undefined);
-    expect(result?.label).toBe('Villages');
+    expect(result?.label).toBe('Villages (2024)');
   });
 
   it('prefers catalog over builtin when both match', () => {
