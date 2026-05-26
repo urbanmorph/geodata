@@ -11,7 +11,7 @@ export type ActiveFilter =
   | { col: string; kind: 'search'; q: string }
   | { col: string; kind: 'bool'; v: boolean };
 
-function escIdent(s: string): string {
+export function escIdent(s: string): string {
   return `"${s.replace(/"/g, '""')}"`;
 }
 

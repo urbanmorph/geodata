@@ -56,17 +56,17 @@ LEVELS = {
     'reservoir':              {'order': 47, 'plural': 'reservoirs',                               'path': 'water/waterbodies',           'category': 'environment'},
 
     # Transport
-    'airport':                {'order': 47, 'plural': 'airports',                                 'path': 'transport/airports',          'category': 'transport'},
-    'national_highway':       {'order': 48, 'plural': 'national highways',                       'path': 'infra/national-highways',     'category': 'transport'},
+    'airport':                {'order': 48, 'plural': 'airports',                                 'path': 'transport/airports',          'category': 'transport'},
+    'national_highway':       {'order': 49, 'plural': 'national highways',                       'path': 'infra/national-highways',     'category': 'transport'},
 
     # Health
-    'health_facility':        {'order': 49, 'plural': 'health facilities',                       'path': 'healthcare/facilities',       'category': 'health-edu'},
+    'health_facility':        {'order': 50, 'plural': 'health facilities',                       'path': 'healthcare/facilities',       'category': 'health-edu'},
 
     # Weather
-    'weather_station':        {'order': 50, 'plural': 'weather stations',                        'path': 'environment/weather',         'category': 'environment'},
+    'weather_station':        {'order': 51, 'plural': 'weather stations',                        'path': 'environment/weather',         'category': 'environment'},
 
     # Judiciary — dissolved from LGD states per jurisdiction mappings.
-    'high_court':             {'order': 51, 'plural': 'high court jurisdictions',                'path': 'judiciary',             'category': 'people'},
+    'high_court':             {'order': 52, 'plural': 'high court jurisdictions',                'path': 'judiciary',             'category': 'people'},
     'ngt_zone':               {'order': 41, 'plural': 'NGT zonal benches',                      'path': 'judiciary',             'category': 'people'},
     'nclt_bench':             {'order': 42, 'plural': 'NCLT benches',                            'path': 'judiciary',             'category': 'people'},
 
@@ -244,6 +244,10 @@ if EXTERNAL_MANIFEST.exists():
             'pmtiles': x.get('pmtiles_bytes'),
         }
 
+# Reverse map: directory uses plural ("districts"), catalog uses singular ("district").
+# Computed once after LEVELS is finalised (including external-ingested additions).
+PLURAL_TO_SINGULAR = {v['plural']: k for k, v in LEVELS.items()}
+
 # geoBoundaries cross-check layers (geojson only)
 GEOBOUNDARIES = [
     ('gb_adm1', 'state',       'IND_ADM1.geojson', 36,   'name-only'),
@@ -397,14 +401,12 @@ def build_extracts():
     EXT = ROOT / 'data' / 'extracts'
     if not EXT.exists():
         return {}
-    # Reverse map: directory uses plural ("districts"), catalog uses singular ("district").
-    plural_to_singular = {v['plural']: k for k, v in LEVELS.items()}
     out: dict = {}
     for level_dir in sorted(EXT.iterdir()):
         if not level_dir.is_dir():
             continue
         plural = level_dir.name
-        singular = plural_to_singular.get(plural, plural)
+        singular = PLURAL_TO_SINGULAR.get(plural, plural)
         out[singular] = {}
         for state_dir in sorted(level_dir.iterdir()):
             if not state_dir.is_dir():
@@ -597,14 +599,13 @@ def build():
     for level_dir in sorted(DATA.glob('*')):
         if not level_dir.is_dir():
             continue
-        plural_to_singular = {v['plural']: k for k, v in LEVELS.items()}
         for gj in sorted(level_dir.glob('*.geojson')):
             stem = gj.stem
             parts = stem.split('_')
             state = parts[-1]
             state_extracts.append({
                 'state': state,
-                'level': plural_to_singular.get(level_dir.name, level_dir.name),
+                'level': PLURAL_TO_SINGULAR.get(level_dir.name, level_dir.name),
                 'url': f'{R2}/boundaries/{level_dir.name}/{gj.name}',
                 'bytes': size_of(gj),
             })

@@ -4,6 +4,8 @@
 // Themed verb sets capture the "what's happening" feel of each phase so
 // long waits never feel dead. Pick a set or pass your own.
 
+import { escapeHtml } from './util';
+
 export const VERBS_MAP = [
   'Triangulating polygons…',
   'Plotting boundaries…',
@@ -100,8 +102,6 @@ export const VERBS_VERIFY_RENDER = [
   'Fitting the bounds…',
   'Stroking edges…',
 ];
-
-import { escapeHtml } from './util';
 
 type Handle = { dismiss: () => void; setVerbs: (v: string[]) => void };
 

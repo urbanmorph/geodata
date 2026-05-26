@@ -176,7 +176,6 @@ def write_geojson_manual(con: duckdb.DuckDBPyConnection, src: Path, col: str,
         f"FROM '{src.as_posix()}' WHERE {col} = {code}"
     ).fetchall()
 
-    out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as f:
         f.write('{"type":"FeatureCollection","features":[')
         first = True
@@ -201,6 +200,7 @@ def write_geojson_manual(con: duckdb.DuckDBPyConnection, src: Path, col: str,
 
 # ---------------------------------------------------------------------------
 # GeoJSON -> KML (mirrors web/src/db.ts geoJSONFeaturesToKML)
+# Keep in sync with web/src/db.ts KML section
 # ---------------------------------------------------------------------------
 
 NAME_KEYS = (

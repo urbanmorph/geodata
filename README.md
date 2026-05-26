@@ -66,7 +66,7 @@ git clone git@github.com:urbanmorph/geodata.git
 cd geodata/web
 npm install
 npm run dev    # http://localhost:5173
-npm test       # 380+ vitest tests
+npm test       # 387+ vitest tests
 ```
 
 For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.

@@ -9,7 +9,7 @@ import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
-import { resolveStateCodes, type ActiveFilter, type MaplibreFilter } from './filter-where';
+import { type ActiveFilter, type MaplibreFilter } from './filter-where';
 
 type Layer = {
   id: string;
@@ -79,6 +79,18 @@ function setBasemap(id: BasemapId): void {
 }
 
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
+const BASE_PADDING = { top: 60, bottom: 20, left: 20, right: 20 };
+const MAX_POPUP_PROPS = 10;
+
+// If the layer's data extent covers >80% of India's area, snap to
+// INDIA_BOUNDS so all India-level layers start at the same zoom.
+// City-scale layers (wards, BDA) keep their own tight bounds.
+function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, number, number, number] {
+  const indiaArea = (INDIA_BOUNDS[2] - INDIA_BOUNDS[0]) * (INDIA_BOUNDS[3] - INDIA_BOUNDS[1]);
+  const layerArea = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]);
+  return layerArea / indiaArea > 0.5 ? INDIA_BOUNDS : bounds;
+}
+
 // The layer's data extent — set by attachData from the PMTiles header
 // or geojson source. Every fitBounds in the session uses this instead
 // of hardcoding INDIA_BOUNDS so city-scale layers (wards, BDA) return
@@ -113,7 +125,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     container,
     style: buildBaseStyle(activeBasemap),
     bounds: INDIA_BOUNDS,
-    fitBoundsOptions: { padding: { top: 60, bottom: 20, left: 20, right: 20 } },
+    fitBoundsOptions: { padding: BASE_PADDING },
     attributionControl: { compact: true },
     // Required so map.getCanvas().toDataURL() returns pixels for the
     // "Export image (PNG)" menu entry. Tiny perf cost; acceptable here.
@@ -214,11 +226,11 @@ async function attachData(layer: Layer) {
       minzoom: header.minZoom,
       maxzoom: header.maxZoom,
     });
-    layerBounds = [header.minLon, header.minLat, header.maxLon, header.maxLat];
+    layerBounds = snapToIndiaIfLarge([header.minLon, header.minLat, header.maxLon, header.maxLat]);
     map.fitBounds([
       [layerBounds[0], layerBounds[1]],
       [layerBounds[2], layerBounds[3]],
-    ], { padding: { top: 60, bottom: 20, left: 20, right: 20 }, duration: 0 });
+    ], { padding: BASE_PADDING, duration: 0 });
     addFillLayers('layer', sourceLayer);
   } else if (layer.geojson?.url) {
     map.addSource('layer', { type: 'geojson', data: layer.geojson.url, attribution: layer.source });
@@ -309,7 +321,7 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
   function buildRows(props: Record<string, unknown> | null | undefined): string {
     return Object.entries(props || {})
       .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
-      .slice(0, 10)
+      .slice(0, MAX_POPUP_PROPS)
       .map(
         ([k, v]) =>
           `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`
@@ -600,10 +612,10 @@ async function wireFilterButton(layer: Layer) {
             btn.disabled = false;
             btn.textContent = 'Filter & export';
             applyActiveFilters([], null);
-            if (map) map.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding: { top: 60, bottom: 20, left: 20, right: 20 }, duration: 600 });
+            if (map) map.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding: BASE_PADDING, duration: 600 });
           },
           onActiveFiltersChange: (filters, mapFilter) => {
-            applyActiveFilters(filters, mapFilter, fullCat);
+            applyActiveFilters(filters, mapFilter);
           },
         });
         // Re-center India for the uncovered viewport now that the
@@ -647,10 +659,6 @@ function panelAwarePadding(): { top: number; bottom: number; left: number; right
 function applyActiveFilters(
   filters: ActiveFilter[],
   mapFilter: MaplibreFilter,
-  fullCatalog?: {
-    state_bounds?: Record<string, [number, number, number, number]>;
-    states?: Array<{ code: number; name: string }>;
-  },
 ): void {
   if (!map) return;
   for (const id of ['fill', 'line-halo', 'line', 'point']) {
@@ -660,10 +668,9 @@ function applyActiveFilters(
   }
   const padding = panelAwarePadding();
 
-  // Zoom to the filtered area. Old approach used LGD state codes which
-  // only worked for LGD-coded layers. New approach: wait for MapLibre to
-  // apply the filter, then compute bbox from the rendered features.
-  // Generic — works for ANY layer regardless of column schema.
+  // Zoom to the filtered area by computing a bbox from rendered features
+  // after MapLibre applies the filter. Generic: works for any layer
+  // regardless of column schema (no LGD-specific state-code logic).
   if (filters.length) {
     const m = map;
     const p = padding;
