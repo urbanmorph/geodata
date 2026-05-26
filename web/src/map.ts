@@ -22,14 +22,33 @@ type Layer = {
   notes?: string;
 };
 
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
+const BASE_PADDING = { top: 60, bottom: 20, left: 20, right: 20 };
+const MAX_POPUP_PROPS = 10;
+const DATA_LAYERS = ['fill', 'line-halo', 'line', 'point'] as const;
+const INTERACTIVE_LAYERS = ['fill', 'point'] as const;
+const POINT_GEOM_FILTER: maplibregl.FilterSpecification = ['==', ['geometry-type'], 'Point'];
+
+// ---------------------------------------------------------------------------
+// Module state
+// ---------------------------------------------------------------------------
+
 let map: MlMap | null = null;
 let filterAbort: AbortController | null = null;
+let activeBasemap: BasemapId = 'minimal';
+let layerBounds: [number, number, number, number] = INDIA_BOUNDS;
 
-// Register the pmtiles:// protocol with MapLibre. Idempotent.
+// ---------------------------------------------------------------------------
+// PMTiles protocol + archive cache
+// ---------------------------------------------------------------------------
+
 const protocol = new Protocol();
 maplibregl.addProtocol('pmtiles', protocol.tile);
 
-// Pre-registered PMTiles archives — lets MapLibre share the parsed header.
 const archives = new Map<string, PMTiles>();
 function getArchive(url: string): PMTiles {
   let a = archives.get(url);
@@ -41,13 +60,48 @@ function getArchive(url: string): PMTiles {
   return a;
 }
 
-// All registered basemaps are added at style-init time with their sources
-// and layers; visibility is toggled per the user's choice. Each basemap may
-// own multiple layers (e.g. the minimal basemap has a background fill + line
-// layers for the India boundary), so swap logic walks every layer per
-// basemap rather than assuming one layer per basemap. Overlay layers (LGD
-// state lines etc.) sit on top of all basemaps and are never touched by
-// basemap swaps.
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+function asBounds(b: [number, number, number, number]): [[number, number], [number, number]] {
+  return [[b[0], b[1]], [b[2], b[3]]];
+}
+
+function flyTo(
+  bounds: [number, number, number, number],
+  opts?: { padding?: Record<string, number>; duration?: number },
+): void {
+  if (!map) return;
+  map.fitBounds(asBounds(bounds), {
+    padding: opts?.padding ?? BASE_PADDING,
+    duration: opts?.duration ?? 600,
+  });
+}
+
+function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, number, number, number] {
+  const indiaArea = (INDIA_BOUNDS[2] - INDIA_BOUNDS[0]) * (INDIA_BOUNDS[3] - INDIA_BOUNDS[1]);
+  const layerArea = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]);
+  return layerArea / indiaArea > 0.5 ? INDIA_BOUNDS : bounds;
+}
+
+function panelAwarePadding(): { top: number; bottom: number; left: number; right: number } {
+  const base = 20;
+  const panel = document.querySelector<HTMLElement>('.filter-panel');
+  if (!panel) return { top: base, bottom: base, left: base, right: base };
+  const r = panel.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  if (r.bottom >= vh - 1 && r.width >= vw * 0.7) {
+    return { top: base, bottom: base + r.height, left: base, right: base };
+  }
+  return { top: base, bottom: base, left: base, right: base + r.width };
+}
+
+// ---------------------------------------------------------------------------
+// Basemap
+// ---------------------------------------------------------------------------
+
 function buildBaseStyle(active: BasemapId): maplibregl.StyleSpecification {
   const sources: Record<string, maplibregl.SourceSpecification> = {};
   const layers: maplibregl.LayerSpecification[] = [];
@@ -64,7 +118,6 @@ function buildBaseStyle(active: BasemapId): maplibregl.StyleSpecification {
   return { version: 8, sources, layers };
 }
 
-let activeBasemap: BasemapId = 'minimal';
 function setBasemap(id: BasemapId): void {
   if (!map) return;
   for (const b of BASEMAPS) {
@@ -78,136 +131,115 @@ function setBasemap(id: BasemapId): void {
   setStoredBasemap(id);
 }
 
-const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
-const BASE_PADDING = { top: 60, bottom: 20, left: 20, right: 20 };
-const MAX_POPUP_PROPS = 10;
+// ---------------------------------------------------------------------------
+// Data layer rendering
+// ---------------------------------------------------------------------------
 
-// If the layer's data extent covers >80% of India's area, snap to
-// INDIA_BOUNDS so all India-level layers start at the same zoom.
-// City-scale layers (wards, BDA) keep their own tight bounds.
-function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, number, number, number] {
-  const indiaArea = (INDIA_BOUNDS[2] - INDIA_BOUNDS[0]) * (INDIA_BOUNDS[3] - INDIA_BOUNDS[1]);
-  const layerArea = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]);
-  return layerArea / indiaArea > 0.5 ? INDIA_BOUNDS : bounds;
+function addDataLayers(sourceId: string, sourceLayer?: string) {
+  if (!map) return;
+  const common = sourceLayer ? { 'source-layer': sourceLayer } : {};
+  map.addLayer({
+    id: 'fill', type: 'fill', source: sourceId, ...common,
+    paint: { 'fill-color': '#0a58ca', 'fill-opacity': 0.22 },
+  });
+  map.addLayer({
+    id: 'line-halo', type: 'line', source: sourceId, ...common,
+    paint: {
+      'line-color': '#ffffff',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 10, 3.5],
+      'line-opacity': 0.75,
+    },
+  });
+  map.addLayer({
+    id: 'line', type: 'line', source: sourceId, ...common,
+    paint: {
+      'line-color': '#0a58ca',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.4, 10, 1.2],
+      'line-opacity': 0.85,
+    },
+  });
+  map.addLayer({
+    id: 'point', type: 'circle', source: sourceId, ...common,
+    filter: POINT_GEOM_FILTER,
+    paint: {
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 10, 5, 14, 7],
+      'circle-color': '#0a58ca',
+      'circle-opacity': 0.75,
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 10, 1],
+      'circle-stroke-color': '#fff',
+    },
+  });
+
+  for (const id of ['minimal-india-outline', 'minimal-india-boundary']) {
+    if (map.getLayer(id)) map.moveLayer(id, 'line-halo');
+  }
 }
 
-// The layer's data extent — set by attachData from the PMTiles header
-// or geojson source. Every fitBounds in the session uses this instead
-// of hardcoding INDIA_BOUNDS so city-scale layers (wards, BDA) return
-// to their own extent, not to all-India.
-let layerBounds: [number, number, number, number] = INDIA_BOUNDS;
+// ---------------------------------------------------------------------------
+// Popup
+// ---------------------------------------------------------------------------
 
-export async function openLayer(layerId: string, opts: { titleEl: HTMLElement }) {
-  const cat = (await getCatalog()) as { layers?: Layer[] };
-  const layer = cat.layers?.find((l) => l.id === layerId);
-  if (!layer) {
-    opts.titleEl.textContent = `unknown layer: ${layerId}`;
-    return;
-  }
-  opts.titleEl.textContent = `${layer.level} · ${layer.source} · ${layer.rows?.toLocaleString('en-IN') ?? '—'} rows`;
-
-  // Filter wiring runs in the background — stats fetch + rank shouldn't
-  // block the map's first paint. Worst case, the Filter & export button
-  // appears a moment after the map renders.
-  wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
-  wireDownloadButton(layer);
-  wireBasemapButton();
-
-  const container = document.getElementById('map')!;
-  container.innerHTML = '';
-  if (map) {
-    map.remove();
-    map = null;
-  }
-  const loader = overlayLoader(container, VERBS_MAP);
-  activeBasemap = getStoredBasemap();
-  map = new maplibregl.Map({
-    container,
-    style: buildBaseStyle(activeBasemap),
-    bounds: INDIA_BOUNDS,
-    fitBoundsOptions: { padding: BASE_PADDING },
-    attributionControl: { compact: true },
-    // Required so map.getCanvas().toDataURL() returns pixels for the
-    // "Export image (PNG)" menu entry. Tiny perf cost; acceptable here.
-    preserveDrawingBuffer: true,
+function bindPopupToLayers() {
+  if (!map) return;
+  const popup = new maplibregl.Popup({
+    closeButton: false,
+    closeOnClick: false,
+    maxWidth: '320px',
+    className: 'geo-popup',
   });
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
-  map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
 
-  map.on('load', async () => {
-    try {
-      await attachData(layer);
-      // Always-on India-correct state boundary overlay. Renders LGD state
-      // lines on top of whichever basemap + data layer is active so the
-      // canonical boundary is visible regardless of what the basemap shows.
-      // Skip when the user is already viewing lgd_states (would double-draw).
-      await addLgdOverlay(cat.layers ?? [], layer.id);
-      // Dismiss the loader only after data sources are attached AND
-      // MapLibre has finished rendering the tiles. Earlier this fired
-      // on the basemap's first 'idle' (before attachData even started),
-      // so the spinner vanished while tiles were still loading.
-      map.once('idle', () => loader.dismiss());
-    } catch (e) {
-      console.error('attachData failed', e);
-      const c = document.getElementById('map')!;
-      const err = document.createElement('div');
-      err.id = 'map-loading';
-      err.textContent = `failed to load layer: ${(e as Error).message}`;
-      c.appendChild(err);
+  function buildRows(props: Record<string, unknown> | null | undefined): string {
+    return Object.entries(props || {})
+      .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
+      .slice(0, MAX_POPUP_PROPS)
+      .map(
+        ([k, v]) =>
+          `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`,
+      )
+      .join('');
+  }
+
+  let popupId: string | number | undefined;
+  const showPopup = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
+    const f = e.features?.[0];
+    if (!f) return;
+    const fid = (f.id as string | number | undefined)
+      ?? f.properties?.OBJECTID
+      ?? f.properties?.objectid
+      ?? f.properties?.vil_lgd
+      ?? f.properties?.soi_code
+      ?? `${e.lngLat.lng.toFixed(5)},${e.lngLat.lat.toFixed(5)}`;
+    if (fid !== popupId) {
+      popup.setHTML(buildRows(f.properties));
+      popupId = fid;
+    }
+    popup.setLngLat(e.lngLat).addTo(map!);
+  };
+
+  for (const id of INTERACTIVE_LAYERS) {
+    map.on('mousemove', id, (e) => {
+      map!.getCanvas().style.cursor = 'pointer';
+      showPopup(e);
+    });
+    map.on('mouseleave', id, () => {
+      map!.getCanvas().style.cursor = '';
+      popup.remove();
+      popupId = undefined;
+    });
+    map.on('click', id, showPopup);
+  }
+  map.on('click', (e) => {
+    const hit = map!.queryRenderedFeatures(e.point, { layers: [...INTERACTIVE_LAYERS] });
+    if (!hit.length) {
+      popup.remove();
+      popupId = undefined;
     }
   });
 }
 
-// LGD state boundaries layered on top of any non-LGD layer.
-//
-// Two complementary purposes:
-//   1. Cross-source comparison — when viewing soi_states / bhuvan_states /
-//      gb_adm1 etc., the LGD lines on top show where the upstream and LGD
-//      disagree at-a-glance.
-//   2. Correct boundary on the Carto Light opt-in basemap — Carto's tiles
-//      render disputed boundaries per international convention. We can't
-//      change the labels in the basemap tiles, but we can draw the LGD
-//      state boundary (including India's claim over J&K) on top so the
-//      *boundary* matches India's official depiction even when the labels
-//      don't. Hint text on the Carto Light entry flags the trade.
-//
-// Drawn in a basemap-style warm taupe so it reads as a boundary line
-// rather than a brand annotation.
-async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Promise<void> {
-  if (!map) return;
-  if (activeLayerId === 'lgd_states') return; // already the primary; don't double-draw
-  const lgd = catalogLayers.find((l) => l.id === 'lgd_states');
-  if (!lgd?.pmtiles?.url) return;
-
-  const archive = getArchive(lgd.pmtiles.url);
-  const metadata = await archive.getMetadata();
-  const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
-  if (!vlayers.length) return;
-  const sourceLayer = vlayers[0].id;
-
-  if (map.getSource('lgd-overlay')) return; // idempotent
-  map.addSource('lgd-overlay', {
-    type: 'vector',
-    url: `pmtiles://${lgd.pmtiles.url}`,
-    attribution: 'India boundaries · LGD',
-  });
-  map.addLayer({
-    id: 'lgd-overlay-line',
-    type: 'line',
-    source: 'lgd-overlay',
-    'source-layer': sourceLayer,
-    paint: {
-      // Subtle orientation grid — faded enough that the active layer's
-      // blue+halo border dominates, but still legible as "this is where
-      // state X ends." Earlier values (0.55 opacity, 0.6-1.1px) competed
-      // with the layer's own polygon borders, especially on state-derived
-      // layers (HC jurisdictions, NGT zones) where every boundary coincides.
-      'line-color': '#8b7e6f',
-      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.3, 10, 0.7],
-      'line-opacity': 0.3,
-    },
-  });
-}
+// ---------------------------------------------------------------------------
+// Data source attachment
+// ---------------------------------------------------------------------------
 
 async function attachData(layer: Layer) {
   if (!map) return;
@@ -227,173 +259,156 @@ async function attachData(layer: Layer) {
       maxzoom: header.maxZoom,
     });
     layerBounds = snapToIndiaIfLarge([header.minLon, header.minLat, header.maxLon, header.maxLat]);
-    map.fitBounds([
-      [layerBounds[0], layerBounds[1]],
-      [layerBounds[2], layerBounds[3]],
-    ], { padding: BASE_PADDING, duration: 0 });
-    addFillLayers('layer', sourceLayer);
+    flyTo(layerBounds, { padding: BASE_PADDING, duration: 0 });
+    addDataLayers('layer', sourceLayer);
   } else if (layer.geojson?.url) {
     map.addSource('layer', { type: 'geojson', data: layer.geojson.url, attribution: layer.source });
-    addFillLayers('layer');
+    addDataLayers('layer');
   } else {
     throw new Error('no renderable source for ' + layer.id);
   }
+
+  bindPopupToLayers();
 }
 
-function addFillLayers(sourceId: string, sourceLayer?: string) {
+// LGD state boundaries layered on top of any non-LGD layer for cross-source
+// comparison and to show India-correct boundaries on the Carto basemap.
+async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Promise<void> {
   if (!map) return;
-  const common = sourceLayer ? { 'source-layer': sourceLayer } : {};
-  map.addLayer({
-    id: 'fill',
-    type: 'fill',
-    source: sourceId,
-    ...common,
-    paint: {
-      'fill-color': '#0a58ca',
-      'fill-opacity': 0.22,
-    },
+  if (activeLayerId === 'lgd_states') return;
+  const lgd = catalogLayers.find((l) => l.id === 'lgd_states');
+  if (!lgd?.pmtiles?.url) return;
+
+  const archive = getArchive(lgd.pmtiles.url);
+  const metadata = await archive.getMetadata();
+  const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
+  if (!vlayers.length) return;
+  const sourceLayer = vlayers[0].id;
+
+  if (map.getSource('lgd-overlay')) return;
+  map.addSource('lgd-overlay', {
+    type: 'vector',
+    url: `pmtiles://${lgd.pmtiles.url}`,
+    attribution: 'India boundaries · LGD',
   });
-  // Halo line under the colored line. Provides contrast on busy basemaps
-  // (satellite, topo) where the 1-px blue stroke would otherwise vanish
-  // against the imagery. ~2.5x wider than the colored line so a white ring
-  // shows on each side; opacity dialed so it reads as a soft halo on light
-  // backgrounds and a crisp outline on dark ones.
   map.addLayer({
-    id: 'line-halo',
+    id: 'lgd-overlay-line',
     type: 'line',
-    source: sourceId,
-    ...common,
+    source: 'lgd-overlay',
+    'source-layer': sourceLayer,
     paint: {
-      'line-color': '#ffffff',
-      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 10, 3.5],
-      'line-opacity': 0.75,
+      'line-color': '#8b7e6f',
+      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.3, 10, 0.7],
+      'line-opacity': 0.3,
     },
-  });
-  map.addLayer({
-    id: 'line',
-    type: 'line',
-    source: sourceId,
-    ...common,
-    paint: {
-      'line-color': '#0a58ca',
-      'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.4, 10, 1.2],
-      'line-opacity': 0.85,
-    },
-  });
-  // Point geometries (e.g. soi_village_points 5.76 lakh points). Fill / line
-  // layers naturally ignore non-polygon features, so this circle layer adds
-  // point rendering without changing how polygon layers display. Radius
-  // grows with zoom so country-view shows sparse dots and city-view shows
-  // clearly readable markers.
-  map.addLayer({
-    id: 'point',
-    type: 'circle',
-    source: sourceId,
-    ...common,
-    filter: ['==', ['geometry-type'], 'Point'],
-    paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 10, 5, 14, 7],
-      'circle-color': '#0a58ca',
-      'circle-opacity': 0.75,
-      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 10, 1],
-      'circle-stroke-color': '#fff',
-    },
-  });
-
-  // Promote the India-correct boundary line above the fill so it isn't
-  // dimmed by the transparent polygon overlay. Without this, layers that
-  // cover all of India (HC jurisdictions, NGT zones, states) visually erase
-  // the national border. Placed between fill and line-halo so it reads as
-  // part of the basemap, not part of the active layer.
-  for (const id of ['minimal-india-outline', 'minimal-india-boundary']) {
-    if (map.getLayer(id)) map.moveLayer(id, 'line-halo');
-  }
-
-  // One popup with one look — fed by hover on pointer devices and by tap on
-  // touch devices. Tap-on-feature shows it, tap-elsewhere (or tap a different
-  // feature) swaps/dismisses. Same code path; no separate sticky variant.
-  const popup = new maplibregl.Popup({
-    closeButton: false,
-    closeOnClick: false,
-    maxWidth: '320px',
-    className: 'geo-popup',
-  });
-  function buildRows(props: Record<string, unknown> | null | undefined): string {
-    return Object.entries(props || {})
-      .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
-      .slice(0, MAX_POPUP_PROPS)
-      .map(
-        ([k, v]) =>
-          `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`
-      )
-      .join('');
-  }
-
-  let popupId: string | number | undefined;
-  const showPopup = (e: maplibregl.MapMouseEvent & { features?: maplibregl.MapGeoJSONFeature[] }) => {
-    const f = e.features?.[0];
-    if (!f) return;
-    // Fid is used to dedup setHTML across the many mousemove events that fire
-    // while hovering one feature. Widened to cover SOI points (lowercase
-    // objectid, soi_code) and arbitrary contributed shapes that may carry
-    // none of the above — falls back to lngLat-as-fingerprint at ~1m precision.
-    const fid = (f.id as string | number | undefined)
-      ?? f.properties?.OBJECTID
-      ?? f.properties?.objectid
-      ?? f.properties?.vil_lgd
-      ?? f.properties?.soi_code
-      ?? `${e.lngLat.lng.toFixed(5)},${e.lngLat.lat.toFixed(5)}`;
-    if (fid !== popupId) {
-      popup.setHTML(buildRows(f.properties));
-      popupId = fid;
-    }
-    popup.setLngLat(e.lngLat).addTo(map!);
-  };
-  // Bind hover / click on both polygon-fill and point layers so point-only
-  // layers (soi_village_points) get the same popup behavior as polygon ones.
-  const interactiveLayers = ['fill', 'point'];
-  for (const id of interactiveLayers) {
-    map.on('mousemove', id, (e) => {
-      map!.getCanvas().style.cursor = 'pointer';
-      showPopup(e);
-    });
-    map.on('mouseleave', id, () => {
-      map!.getCanvas().style.cursor = '';
-      popup.remove();
-      popupId = undefined;
-    });
-    // Touch / no-hover devices: tap a feature to show its details. Tapping
-    // empty map or a different feature swaps/clears it.
-    map.on('click', id, showPopup);
-  }
-  map.on('click', (e) => {
-    // Empty-map tap (no features at click point) dismisses the popup.
-    const hit = map!.queryRenderedFeatures(e.point, { layers: interactiveLayers });
-    if (!hit.length) {
-      popup.remove();
-      popupId = undefined;
-    }
   });
 }
 
-export function closeLayer() {
-  if (map) {
-    map.remove();
-    map = null;
+// ---------------------------------------------------------------------------
+// Filter column loading
+// ---------------------------------------------------------------------------
+
+async function loadFilterColumns(
+  layer: Layer,
+  signal: AbortSignal,
+): Promise<{ columns: import('./filter-schema').ColumnStats[]; rowCount: number } | null> {
+  if (!layer.parquet?.url) return null;
+
+  const { rankColumns } = await import('./filter-schema');
+  const fullCat = await getFullCatalog();
+  const baked = fullCat.filter_stats?.[layer.id];
+
+  let columns: import('./filter-schema').ColumnStats[];
+  let rowCount: number;
+  if (baked) {
+    rowCount = baked.row_count;
+    columns = baked.columns.map((c) => ({
+      name: c.name,
+      type: c.type,
+      distinct: c.distinct,
+      nullFrac: c.null_frac,
+      min: c.min,
+      max: c.max,
+      topValues: c.top_values,
+    }));
+  } else {
+    try {
+      const { describeParquet } = await import('./filter-probe');
+      if (signal.aborted) return null;
+      const probe = await describeParquet(layer.parquet!.url);
+      rowCount = probe.rowCount;
+      columns = probe.columns;
+    } catch (e) {
+      console.warn('filter-probe failed for', layer.id, e);
+      return null;
+    }
   }
-  filterAbort?.abort();
-  filterAbort = null;
-  const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
-  if (btn) btn.classList.remove('shown');
-  document.querySelector('.filter-panel')?.remove();
-  // Close any open header popovers so reopening a layer starts fresh.
-  for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
+  if (signal.aborted) return null;
+
+  if (baked?.column_groups?.length) {
+    const drop = new Set<string>();
+    for (const g of baked.column_groups) {
+      for (const m of g.members) if (m !== g.canonical) drop.add(m);
+    }
+    columns = columns.filter((c) => !drop.has(c.name));
+  }
+
+  const ranked = rankColumns(columns, rowCount);
+  if (!ranked.length) return null;
+  return { columns: ranked, rowCount };
 }
 
-// Single popover-toggle helper shared by Download + Basemap. Click-outside
-// closes; opening one auto-closes the other. Returns the `close` function so
-// callers can wire it to terminal actions inside the popover (e.g. picking
-// a basemap should close the menu — see wireBasemapButton).
+// ---------------------------------------------------------------------------
+// Filter application
+// ---------------------------------------------------------------------------
+
+function applyActiveFilters(
+  filters: ActiveFilter[],
+  mapFilter: MaplibreFilter,
+): void {
+  if (!map) return;
+  for (const id of DATA_LAYERS) {
+    if (!map.getLayer(id)) continue;
+    if (id === 'point') {
+      map.setFilter(id, mapFilter ? ['all', POINT_GEOM_FILTER, mapFilter as maplibregl.FilterSpecification] : POINT_GEOM_FILTER);
+    } else {
+      map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
+    }
+  }
+  const padding = panelAwarePadding();
+
+  if (filters.length) {
+    const m = map;
+    const p = padding;
+    m.once('idle', () => {
+      const features = m.queryRenderedFeatures(undefined, {
+        layers: (['fill', 'point'] as string[]).filter((id) => m.getLayer(id)),
+      });
+      if (!features.length) return;
+      const bounds = new maplibregl.LngLatBounds();
+      for (const f of features) {
+        if (f.geometry.type === 'Point') {
+          bounds.extend(f.geometry.coordinates as [number, number]);
+        } else if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
+          const coords = f.geometry.type === 'Polygon'
+            ? f.geometry.coordinates[0]
+            : f.geometry.coordinates[0][0];
+          for (const c of coords) bounds.extend(c as [number, number]);
+        }
+      }
+      if (!bounds.isEmpty()) {
+        m.fitBounds(bounds, { padding: p, duration: 600 });
+      }
+    });
+  } else {
+    flyTo(layerBounds, { padding, duration: 600 });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Popover helper
+// ---------------------------------------------------------------------------
+
 function bindPopover(btn: HTMLButtonElement, popover: HTMLElement): () => void {
   const close = () => {
     popover.classList.remove('open');
@@ -412,6 +427,10 @@ function bindPopover(btn: HTMLButtonElement, popover: HTMLElement): () => void {
   document.addEventListener('click', close, { passive: true });
   return close;
 }
+
+// ---------------------------------------------------------------------------
+// Header button wiring
+// ---------------------------------------------------------------------------
 
 function wireDownloadButton(layer: Layer): void {
   const btn = document.getElementById('map-download') as HTMLButtonElement | null;
@@ -457,20 +476,12 @@ function wireDownloadButton(layer: Layer): void {
         setTimeout(() => { if (original) fmt.textContent = original; }, 1400);
       }
     } catch {
-      // Clipboard may be blocked (insecure context); fall back to a prompt.
       prompt('Copy this iframe snippet:', snippet);
     }
   });
   exportBtn?.addEventListener('click', async (e) => {
     e.stopPropagation();
     if (!map) return;
-    // preserveDrawingBuffer:true keeps the WebGL framebuffer readable
-    // BUT only reflects the last animation-frame paint. If the user
-    // opened the map and clicked Export before the next frame ran, OR if
-    // a basemap tile arrived between paints, toDataURL captures a stale
-    // / blank buffer. Force a repaint and wait for the next 'idle' event
-    // (fired when MapLibre has finished applying all pending updates) so
-    // the captured pixels are guaranteed to be the user's current view.
     const fmt = exportBtn.querySelector<HTMLElement>('.map-popover__fmt');
     const original = fmt?.textContent ?? '';
     if (fmt) fmt.textContent = 'Rendering…';
@@ -502,9 +513,6 @@ function wireBasemapButton(): void {
   const popover = document.getElementById('map-basemap-popover');
   if (!btn || !popover) return;
   btn.classList.add('shown');
-  // bindPopover's document-click closer is blocked by the popover's own
-  // stopPropagation (necessary so clicking menu chrome doesn't dismiss it),
-  // so terminal actions inside the popover have to close it explicitly.
   const closePopover = bindPopover(btn, popover);
   const render = () => {
     popover.innerHTML =
@@ -523,7 +531,7 @@ function wireBasemapButton(): void {
         e.stopPropagation();
         const id = el.dataset.basemap as BasemapId;
         setBasemap(id);
-        render(); // update is-active state so the next open shows the new pick
+        render();
         closePopover();
       });
     }
@@ -540,53 +548,10 @@ async function wireFilterButton(layer: Layer) {
 
   btn.classList.remove('shown');
   document.querySelector('.filter-panel')?.remove();
-  if (!layer.parquet?.url) return;
 
-  // Load column stats — baked first (most curated layers), live probe otherwise
-  // (opencity wards + geoBoundaries + future community uploads).
-  const { rankColumns } = await import('./filter-schema');
-  const fullCat = await getFullCatalog();
-  const baked = fullCat.filter_stats?.[layer.id];
-
-  let columns: import('./filter-schema').ColumnStats[];
-  let rowCount: number;
-  if (baked) {
-    rowCount = baked.row_count;
-    columns = baked.columns.map((c) => ({
-      name: c.name,
-      type: c.type,
-      distinct: c.distinct,
-      nullFrac: c.null_frac,
-      min: c.min,
-      max: c.max,
-      topValues: c.top_values,
-    }));
-  } else {
-    try {
-      const { describeParquet } = await import('./filter-probe');
-      if (signal.aborted) return;
-      const probe = await describeParquet(layer.parquet!.url);
-      rowCount = probe.rowCount;
-      columns = probe.columns;
-    } catch (e) {
-      console.warn('filter-probe failed for', layer.id, e);
-      return;
-    }
-  }
-  if (signal.aborted) return;
-
-  // Drop non-canonical members of every detected equivalence group.
-  // Canonical = the human-readable column (state_lgd / stcode11 → stname).
-  if (baked?.column_groups?.length) {
-    const drop = new Set<string>();
-    for (const g of baked.column_groups) {
-      for (const m of g.members) if (m !== g.canonical) drop.add(m);
-    }
-    columns = columns.filter((c) => !drop.has(c.name));
-  }
-
-  const ranked = rankColumns(columns, rowCount);
-  if (!ranked.length) return;
+  const result = await loadFilterColumns(layer, signal);
+  if (!result) return;
+  const { columns: ranked, rowCount } = result;
 
   btn.classList.add('shown');
   btn.textContent = 'Filter & export';
@@ -612,17 +577,15 @@ async function wireFilterButton(layer: Layer) {
             btn.disabled = false;
             btn.textContent = 'Filter & export';
             applyActiveFilters([], null);
-            if (map) map.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding: BASE_PADDING, duration: 600 });
+            flyTo(layerBounds, { padding: BASE_PADDING });
           },
           onActiveFiltersChange: (filters, mapFilter) => {
             applyActiveFilters(filters, mapFilter);
           },
         });
-        // Re-center India for the uncovered viewport now that the
-        // filter panel covers the right side.
         if (map) {
           requestAnimationFrame(() => {
-            map!.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding: panelAwarePadding(), duration: 300 });
+            flyTo(layerBounds, { padding: panelAwarePadding(), duration: 300 });
           });
         }
       } catch (e) {
@@ -636,71 +599,67 @@ async function wireFilterButton(layer: Layer) {
   );
 }
 
-// Read the filter panel's bounding box and produce a fitBounds padding
-// object so the map fits inside the *uncovered* portion of the viewport.
-function panelAwarePadding(): { top: number; bottom: number; left: number; right: number } {
-  const base = 20;
-  const panel = document.querySelector<HTMLElement>('.filter-panel');
-  if (!panel) return { top: base, bottom: base, left: base, right: base };
-  const r = panel.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  // Bottom sheet: panel is at the bottom and spans most of the viewport width.
-  if (r.bottom >= vh - 1 && r.width >= vw * 0.7) {
-    return { top: base, bottom: base + r.height, left: base, right: base };
+// ---------------------------------------------------------------------------
+// Public API
+// ---------------------------------------------------------------------------
+
+export async function openLayer(layerId: string, opts: { titleEl: HTMLElement }) {
+  const cat = (await getCatalog()) as { layers?: Layer[] };
+  const layer = cat.layers?.find((l) => l.id === layerId);
+  if (!layer) {
+    opts.titleEl.textContent = `unknown layer: ${layerId}`;
+    return;
   }
-  // Default: right rail.
-  return { top: base, bottom: base, left: base, right: base + r.width };
+  opts.titleEl.textContent = `${layer.level} · ${layer.source} · ${layer.rows?.toLocaleString('en-IN') ?? '—'} rows`;
+
+  wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
+  wireDownloadButton(layer);
+  wireBasemapButton();
+
+  const container = document.getElementById('map')!;
+  container.innerHTML = '';
+  if (map) {
+    map.remove();
+    map = null;
+  }
+  const loader = overlayLoader(container, VERBS_MAP);
+  activeBasemap = getStoredBasemap();
+  map = new maplibregl.Map({
+    container,
+    style: buildBaseStyle(activeBasemap),
+    bounds: INDIA_BOUNDS,
+    fitBoundsOptions: { padding: BASE_PADDING },
+    attributionControl: { compact: true },
+    preserveDrawingBuffer: true,
+  });
+  map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+  map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
+
+  map.on('load', async () => {
+    try {
+      await attachData(layer);
+      await addLgdOverlay(cat.layers ?? [], layer.id);
+      map.once('idle', () => loader.dismiss());
+    } catch (e) {
+      console.error('attachData failed', e);
+      const c = document.getElementById('map')!;
+      const err = document.createElement('div');
+      err.id = 'map-loading';
+      err.textContent = `failed to load layer: ${(e as Error).message}`;
+      c.appendChild(err);
+    }
+  });
 }
 
-// Apply the active filter set to the map's fill+line layers and fly the
-// camera to the union bbox when the filter selects one-or-more known states
-// (so the user lands on the right region, not on India-wide).
-function applyActiveFilters(
-  filters: ActiveFilter[],
-  mapFilter: MaplibreFilter,
-): void {
-  if (!map) return;
-  const pointGeomFilter: maplibregl.FilterSpecification = ['==', ['geometry-type'], 'Point'];
-  for (const id of ['fill', 'line-halo', 'line', 'point']) {
-    if (!map.getLayer(id)) continue;
-    if (id === 'point') {
-      map.setFilter(id, mapFilter ? ['all', pointGeomFilter, mapFilter as maplibregl.FilterSpecification] : pointGeomFilter);
-    } else {
-      map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
-    }
+export function closeLayer() {
+  if (map) {
+    map.remove();
+    map = null;
   }
-  const padding = panelAwarePadding();
-
-  // Zoom to the filtered area by computing a bbox from rendered features
-  // after MapLibre applies the filter. Generic: works for any layer
-  // regardless of column schema (no LGD-specific state-code logic).
-  if (filters.length) {
-    const m = map;
-    const p = padding;
-    // Wait for MapLibre to finish applying the filter + rendering
-    // before computing the bbox from visible features.
-    m.once('idle', () => {
-      const features = m.queryRenderedFeatures(undefined, {
-        layers: ['fill', 'point'].filter((id) => m.getLayer(id)),
-      });
-      if (!features.length) return;
-      const bounds = new maplibregl.LngLatBounds();
-      for (const f of features) {
-        if (f.geometry.type === 'Point') {
-          bounds.extend(f.geometry.coordinates as [number, number]);
-        } else if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
-          const coords = f.geometry.type === 'Polygon'
-            ? f.geometry.coordinates[0]
-            : f.geometry.coordinates[0][0];
-          for (const c of coords) bounds.extend(c as [number, number]);
-        }
-      }
-      if (!bounds.isEmpty()) {
-        m.fitBounds(bounds, { padding: p, duration: 600 });
-      }
-    });
-  } else {
-    map.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding, duration: 600 });
-  }
+  filterAbort?.abort();
+  filterAbort = null;
+  const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
+  if (btn) btn.classList.remove('shown');
+  document.querySelector('.filter-panel')?.remove();
+  for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
 }
