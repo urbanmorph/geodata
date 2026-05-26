@@ -485,6 +485,17 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
         layer['fetched_at'] = prev['fetched_at']
 
 
+def _load_prev_catalog() -> dict:
+    """Load the full previous catalog.json for carry-forward."""
+    prev_path = ROOT / 'catalog.json'
+    if not prev_path.exists():
+        return {}
+    try:
+        return json.loads(prev_path.read_text())
+    except Exception:
+        return {}
+
+
 def _load_prev_layers() -> dict[str, dict]:
     """Load layers from the existing catalog.json as a {id: layer} dict."""
     prev_path = ROOT / 'catalog.json'
@@ -499,7 +510,8 @@ def _load_prev_layers() -> dict[str, dict]:
 
 def build():
     layers = []
-    prev_layers = _load_prev_layers()
+    _prev_catalog = _load_prev_catalog()
+    prev_layers = {l['id']: l for l in _prev_catalog.get('layers', [])}
 
     for id_, level, source, parquet, pmtiles, rows, licence, notes in LAYERS:
         parquet_path = SRC / parquet
@@ -686,7 +698,7 @@ def build():
         'state_bounds': build_state_bounds(),
         'extracts': build_extracts(),
         'filter_stats': filter_stats,
-        'download_counts': fetch_download_counts(),
+        'download_counts': fetch_download_counts() or _prev_catalog.get('download_counts', {}),
         'attribution': ATTR | {'_publisher': PUBLISHER},
         'licence_summary': {
             'states_districts': LIC_STATE_DIST,
