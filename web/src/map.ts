@@ -81,6 +81,16 @@ function setBasemap(id: BasemapId): void {
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
 const BASE_PADDING = { top: 60, bottom: 20, left: 20, right: 20 };
 const MAX_POPUP_PROPS = 10;
+
+// If the layer's data extent covers >80% of India's area, snap to
+// INDIA_BOUNDS so all India-level layers start at the same zoom.
+// City-scale layers (wards, BDA) keep their own tight bounds.
+function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, number, number, number] {
+  const indiaArea = (INDIA_BOUNDS[2] - INDIA_BOUNDS[0]) * (INDIA_BOUNDS[3] - INDIA_BOUNDS[1]);
+  const layerArea = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]);
+  return layerArea / indiaArea > 0.5 ? INDIA_BOUNDS : bounds;
+}
+
 // The layer's data extent — set by attachData from the PMTiles header
 // or geojson source. Every fitBounds in the session uses this instead
 // of hardcoding INDIA_BOUNDS so city-scale layers (wards, BDA) return
@@ -216,7 +226,7 @@ async function attachData(layer: Layer) {
       minzoom: header.minZoom,
       maxzoom: header.maxZoom,
     });
-    layerBounds = [header.minLon, header.minLat, header.maxLon, header.maxLat];
+    layerBounds = snapToIndiaIfLarge([header.minLon, header.minLat, header.maxLon, header.maxLat]);
     map.fitBounds([
       [layerBounds[0], layerBounds[1]],
       [layerBounds[2], layerBounds[3]],
