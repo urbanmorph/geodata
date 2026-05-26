@@ -94,6 +94,8 @@ ATTR = {
     'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
     'bharatviz':     {'name': 'bharatviz (Saket Choudhary)',  'url': 'https://bharatviz.org/'},
+    'DataMeet':      {'name': 'DataMeet India',               'url': 'https://github.com/datameet/Municipal_Spatial_Data'},
+    'datta07':       {'name': 'datta07/INDIAN-SHAPEFILES',    'url': 'https://github.com/datta07/INDIAN-SHAPEFILES'},
     'osm-in':        {'name': 'osm-in (community)',           'url': 'https://github.com/osm-in/mapbox-gl-styles'},
     'NIC-Health':    {'name': 'NIC HealthGIS',               'url': 'https://healthgis.nic.in/'},
     'CWC':           {'name': 'Central Water Commission (WRIS)', 'url': 'https://cwc.gov.in/en/water-resources-information-system-wris'},

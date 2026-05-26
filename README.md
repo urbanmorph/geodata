@@ -15,13 +15,13 @@ catalog               → India national boundary (LGD-dissolved)
                         + state · district · subdistrict · block · village (LGD)
                         + cross-source alternates (SOI · Bhuvan · geoBoundaries
                         · PMGSY per level — click "also: ..." on any card)
-                        + city wards (Bengaluru, Chennai, Hyderabad, Mumbai, …)
+                        + city wards (34 layers across 30+ Indian cities)
                         + electoral constituencies, wildlife, eco-zones
                         + 63k pincode polygons (bharatviz)
 download              → whole layer as Parquet · PMTiles · GeoJSON · KML ·
                         Shapefile, direct from the card
-filter & slice        → dynamic facets / range / search per layer schema;
-                        export the slice in any of the formats above
+filter & slice        → dynamic facets / range / typeahead search per
+                        layer schema; export the slice in any format above
 preview               → drop GeoJSON · KML · KMZ · GPX · TCX · Parquet →
                         render + validate → optional Publish
 view (/view/<id>)     → curated layer with per-layer OG card
@@ -68,7 +68,7 @@ git clone git@github.com:urbanmorph/geodata.git
 cd geodata/web
 npm install
 npm run dev    # http://localhost:5173
-npm test       # 387+ vitest tests
+npm test       # 410+ vitest tests
 ```
 
 For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.
@@ -85,9 +85,8 @@ Commit messages: short subject, body explains *why* not *what*. Examples in `git
 
 ## Roadmap
 
-- **Now**: CSP re-enable (debugging a DuckDB-WASM crash under strict CSP)
 - **Next**: REST API + MCP server + Claude Code plugin (v5)
-- **Shipped**: catalog with cross-source compare; in-browser filter + slice + export; whole-layer downloads (Parquet / PMTiles / GeoJSON / KML / Shapefile); India-correct minimal basemap + national boundary layer; drag-and-drop verify + anonymous contribution; "Your submissions" panel; embed iframe + PNG export; edge-rendered `/view/<id>` + `/c/<id>` with per-layer OG cards; schema-driven dynamic filters; live category counts; privacy + ToS + disputed-borders policy; a11y refactor; AEO crawler allowlist + JSON-LD (Dataset, BreadcrumbList, FAQPage, Person)
+- **Shipped**: CSP; catalog with cross-source compare; in-browser filter + slice + typeahead export; whole-layer downloads (Parquet / PMTiles / GeoJSON / KML / Shapefile); data vintage years on all layers; India-correct minimal basemap + national boundary layer; drag-and-drop verify + anonymous contribution; "Your submissions" panel; embed iframe + PNG export; edge-rendered `/view/<id>` + `/c/<id>` with per-layer OG cards; schema-driven dynamic filters with statistical column classification; live category counts; privacy + ToS + disputed-borders policy; a11y refactor; AEO crawler allowlist + JSON-LD (Dataset, BreadcrumbList, FAQPage, Person)
 
 Track active work in [Issues](https://github.com/urbanmorph/geodata/issues) and [Milestones](https://github.com/urbanmorph/geodata/milestones).
 
@@ -110,7 +109,9 @@ Data sources, in approximate order of catalog footprint:
 - [LGD](https://lgdirectory.gov.in/) — Local Government Directory; the authoritative admin code chain (state → village).
 - [SOI](https://surveyofindia.gov.in/) — Survey of India; admin alternatives.
 - [Bhuvan](https://bhuvan.nrsc.gov.in/) — NRSC/ISRO Bhuvan; admin alternatives, eco-sensitive zones.
-- [OpenCity](https://data.opencity.in/) / [Oorvani Foundation](https://oorvanifoundation.org/) — city-scale layers (15 cities of ward / corporation / jurisdiction polygons).
+- [OpenCity](https://data.opencity.in/) / [Oorvani Foundation](https://oorvanifoundation.org/) — city-scale layers (ward / corporation / jurisdiction polygons for 20+ cities).
+- [DataMeet](https://github.com/datameet/Municipal_Spatial_Data) — community-curated municipal spatial data (ward boundaries for multiple cities).
+- [datta07/INDIAN-SHAPEFILES](https://github.com/datta07/INDIAN-SHAPEFILES) — metropolitan city ward shapefiles.
 - [PMGSY](https://omms.nic.in/) — Pradhan Mantri Gram Sadak Yojana; rural blocks + roads.
 - [PM GatiShakti](https://gis.pmgatishakti.gov.in/) — wildlife sanctuaries + national parks.
 - [Bharatmaps](https://bharatmaps.gov.in/) (NIC) — eco-sensitive zones.
@@ -125,4 +126,4 @@ Pipelines + patterns:
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
 
-**Status:** v1.0. 60+ curated layers, community submissions, dynamic filters, whole-layer downloads in 4 formats. The schema and external API may still shift. Community submissions are permanent under the open licence the contributor selected.
+**Status:** v1.0. 77 curated layers, community submissions, dynamic filters with typeahead, whole-layer downloads in 5 formats. The schema and external API may still shift. Community submissions are permanent under the open licence the contributor selected.

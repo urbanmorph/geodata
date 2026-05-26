@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generated": "2026-05-26T09:36:08.419921+00:00",
+  "generated": "2026-05-26T14:45:30.933712+00:00",
   "country": "IN",
   "r2_base": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev",
   "levels": {
@@ -351,6 +351,42 @@
       "plural": "wards kanpur",
       "path": "admin/wards-kanpur",
       "category": "city-wards"
+    },
+    "wards_patna": {
+      "order": 129,
+      "plural": "wards patna",
+      "path": "admin/wards-patna",
+      "category": "city-wards"
+    },
+    "wards_surat": {
+      "order": 130,
+      "plural": "wards surat",
+      "path": "admin/wards-surat",
+      "category": "city-wards"
+    },
+    "wards_vadodara": {
+      "order": 131,
+      "plural": "wards vadodara",
+      "path": "admin/wards-vadodara",
+      "category": "city-wards"
+    },
+    "wards_faridabad": {
+      "order": 132,
+      "plural": "wards faridabad",
+      "path": "admin/wards-faridabad",
+      "category": "city-wards"
+    },
+    "wards_pcmc": {
+      "order": 133,
+      "plural": "wards pcmc",
+      "path": "admin/wards-pcmc",
+      "category": "city-wards"
+    },
+    "wards_vijayawada": {
+      "order": 134,
+      "plural": "wards vijayawada",
+      "path": "admin/wards-vijayawada",
+      "category": "city-wards"
     }
   },
   "level_meta": {
@@ -585,6 +621,54 @@
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur",
       "source_org": "Kanpur Municipal Corporation",
       "notes": ""
+    },
+    "wards_patna": {
+      "label": "Patna (PMC) Wards (~2019)",
+      "unit": "wards",
+      "description": "Patna Municipal Corporation \u2014 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names.",
+      "source_url": "https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES",
+      "source_org": "datta07/INDIAN-SHAPEFILES",
+      "notes": ""
+    },
+    "wards_surat": {
+      "label": "Surat (SMC) Wards (~2019)",
+      "unit": "wards",
+      "description": "Surat Municipal Corporation \u2014 30 ward boundaries with named wards.",
+      "source_url": "https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES",
+      "source_org": "datta07/INDIAN-SHAPEFILES",
+      "notes": ""
+    },
+    "wards_vadodara": {
+      "label": "Vadodara (VMC) Wards",
+      "unit": "wards",
+      "description": "Vadodara Municipal Corporation \u2014 12 administrative ward boundaries.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vadodara",
+      "source_org": "DataMeet",
+      "notes": ""
+    },
+    "wards_faridabad": {
+      "label": "Faridabad (MCF) Wards",
+      "unit": "wards",
+      "description": "Municipal Corporation of Faridabad \u2014 40 ward boundaries.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Faridabad",
+      "source_org": "DataMeet",
+      "notes": ""
+    },
+    "wards_pcmc": {
+      "label": "Pimpri-Chinchwad (PCMC) Electoral Wards",
+      "unit": "wards",
+      "description": "Pimpri-Chinchwad Municipal Corporation \u2014 66 electoral ward boundaries across 6 zones.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/PCMC",
+      "source_org": "DataMeet",
+      "notes": ""
+    },
+    "wards_vijayawada": {
+      "label": "Vijayawada (VMC) Wards",
+      "unit": "wards",
+      "description": "Vijayawada Municipal Corporation \u2014 77 ward boundaries.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vijayawada",
+      "source_org": "DataMeet",
+      "notes": ""
     }
   },
   "level_order": [
@@ -645,7 +729,13 @@
     "wards_bhopal",
     "wards_chandigarh",
     "wards_lucknow",
-    "wards_kanpur"
+    "wards_kanpur",
+    "wards_patna",
+    "wards_surat",
+    "wards_vadodara",
+    "wards_faridabad",
+    "wards_pcmc",
+    "wards_vijayawada"
   ],
   "layers": [
     {
@@ -3089,6 +3179,246 @@
       "notes": "Kanpur Municipal Corporation \u2014 58 ward boundaries."
     },
     {
+      "id": "wards_patna",
+      "level": "wards_patna",
+      "source": "datta07",
+      "rows": 628,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-patna/wards_patna.parquet",
+        "bytes": 339062
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-patna/wards_patna.pmtiles",
+        "bytes": 239323
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.geojson",
+        "bytes": 8408424
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.kml",
+        "bytes": 6867250
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.shp.zip",
+        "bytes": 3010956
+      },
+      "licence": "MIT",
+      "attribution": {
+        "primary": {
+          "name": "datta07/INDIAN-SHAPEFILES",
+          "url": "https://github.com/datta07/INDIAN-SHAPEFILES"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-05-26T14:44:38.109170+00:00",
+      "notes": "Patna Municipal Corporation \u2014 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names."
+    },
+    {
+      "id": "wards_surat",
+      "level": "wards_surat",
+      "source": "datta07",
+      "rows": 30,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-surat/wards_surat.parquet",
+        "bytes": 342845
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-surat/wards_surat.pmtiles",
+        "bytes": 112957
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.geojson",
+        "bytes": 963461
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.kml",
+        "bytes": 768262
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.shp.zip",
+        "bytes": 370532
+      },
+      "licence": "MIT",
+      "attribution": {
+        "primary": {
+          "name": "datta07/INDIAN-SHAPEFILES",
+          "url": "https://github.com/datta07/INDIAN-SHAPEFILES"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-05-26T14:44:38.110005+00:00",
+      "notes": "Surat Municipal Corporation \u2014 30 ward boundaries with named wards."
+    },
+    {
+      "id": "wards_vadodara",
+      "level": "wards_vadodara",
+      "source": "DataMeet",
+      "rows": 12,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vadodara/wards_vadodara.parquet",
+        "bytes": 21798
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vadodara/wards_vadodara.pmtiles",
+        "bytes": 13863
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.geojson",
+        "bytes": 43009
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.kml",
+        "bytes": 36101
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.shp.zip",
+        "bytes": 18447
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-05-26T14:44:38.110706+00:00",
+      "notes": "Vadodara Municipal Corporation \u2014 12 administrative ward boundaries."
+    },
+    {
+      "id": "wards_faridabad",
+      "level": "wards_faridabad",
+      "source": "DataMeet",
+      "rows": 40,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-faridabad/wards_faridabad.parquet",
+        "bytes": 19888
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-faridabad/wards_faridabad.pmtiles",
+        "bytes": 22083
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.geojson",
+        "bytes": 70848
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.kml",
+        "bytes": 56898
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.shp.zip",
+        "bytes": 19119
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-05-26T14:44:38.111326+00:00",
+      "notes": "Municipal Corporation of Faridabad \u2014 40 ward boundaries."
+    },
+    {
+      "id": "wards_pcmc",
+      "level": "wards_pcmc",
+      "source": "DataMeet",
+      "rows": 66,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pcmc/wards_pcmc.parquet",
+        "bytes": 74601
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pcmc/wards_pcmc.pmtiles",
+        "bytes": 26430
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.geojson",
+        "bytes": 189473
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.kml",
+        "bytes": 135888
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.shp.zip",
+        "bytes": 68284
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-05-26T14:44:38.112003+00:00",
+      "notes": "Pimpri-Chinchwad Municipal Corporation \u2014 66 electoral ward boundaries across 6 zones."
+    },
+    {
+      "id": "wards_vijayawada",
+      "level": "wards_vijayawada",
+      "source": "DataMeet",
+      "rows": 77,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.parquet",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vijayawada/wards_vijayawada.parquet",
+        "bytes": 25892
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.pmtiles",
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vijayawada/wards_vijayawada.pmtiles",
+        "bytes": 25557
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.geojson",
+        "bytes": 102884
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.kml",
+        "bytes": 84456
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.shp.zip",
+        "bytes": 25173
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-05-26T14:44:38.112629+00:00",
+      "notes": "Vijayawada Municipal Corporation \u2014 77 ward boundaries."
+    },
+    {
       "id": "india_boundary",
       "level": "country",
       "source": "LGD",
@@ -3404,7 +3734,2216 @@
   "state_counts": {},
   "state_bounds": {},
   "extracts": {},
-  "filter_stats": {},
+  "filter_stats": {
+    "wards_patna": {
+      "row_count": 628,
+      "columns": [
+        {
+          "name": "OGC_FID",
+          "type": "int",
+          "distinct": 628,
+          "null_frac": 0.0,
+          "min": 0,
+          "max": 627
+        },
+        {
+          "name": "objectid",
+          "type": "int",
+          "distinct": 628,
+          "null_frac": 0.0,
+          "min": 71333,
+          "max": 219265
+        },
+        {
+          "name": "statename",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "Bihar",
+          "max": "Bihar"
+        },
+        {
+          "name": "statecode",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "10",
+          "max": "10"
+        },
+        {
+          "name": "districtname",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "Patna",
+          "max": "Patna"
+        },
+        {
+          "name": "districtcode",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "230",
+          "max": "230"
+        },
+        {
+          "name": "ulbname",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "Patna",
+          "max": "Patna"
+        },
+        {
+          "name": "ulbcode",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "801373",
+          "max": "801373"
+        },
+        {
+          "name": "wardname",
+          "type": "string",
+          "distinct": 152,
+          "null_frac": 0.0,
+          "min": " Ward 31",
+          "max": "Ward14"
+        },
+        {
+          "name": "wardcode",
+          "type": "string",
+          "distinct": 75,
+          "null_frac": 0.879,
+          "min": "1",
+          "max": "9"
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "distinct": 0,
+          "null_frac": 1.0
+        },
+        {
+          "name": "remark",
+          "type": "string",
+          "distinct": 4,
+          "null_frac": 0.0,
+          "min": "",
+          "max": "Ok",
+          "top_values": [
+            {
+              "v": "--",
+              "n": 616
+            },
+            {
+              "v": "",
+              "n": 10
+            },
+            {
+              "v": "Functional",
+              "n": 1
+            },
+            {
+              "v": "Ok",
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "st_area(shape)",
+          "type": "float",
+          "distinct": 115,
+          "null_frac": 0.0,
+          "min": 9.77917883249722e-07,
+          "max": 0.000867317553441183
+        },
+        {
+          "name": "st_perimeter(shape)",
+          "type": "float",
+          "distinct": 115,
+          "null_frac": 0.0,
+          "min": 0.005369040640734752,
+          "max": 0.20230129880963008
+        },
+        {
+          "name": "geom",
+          "type": "geometry",
+          "distinct": -1,
+          "null_frac": 0
+        }
+      ]
+    },
+    "wards_surat": {
+      "row_count": 30,
+      "columns": [
+        {
+          "name": "OGC_FID",
+          "type": "int",
+          "distinct": 30,
+          "null_frac": 0.0,
+          "min": 0,
+          "max": 29,
+          "top_values": [
+            {
+              "v": 15,
+              "n": 1
+            },
+            {
+              "v": 20,
+              "n": 1
+            },
+            {
+              "v": 24,
+              "n": 1
+            },
+            {
+              "v": 6,
+              "n": 1
+            },
+            {
+              "v": 14,
+              "n": 1
+            },
+            {
+              "v": 28,
+              "n": 1
+            },
+            {
+              "v": 29,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            },
+            {
+              "v": 18,
+              "n": 1
+            },
+            {
+              "v": 22,
+              "n": 1
+            },
+            {
+              "v": 0,
+              "n": 1
+            },
+            {
+              "v": 21,
+              "n": 1
+            },
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            },
+            {
+              "v": 4,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 13,
+              "n": 1
+            },
+            {
+              "v": 19,
+              "n": 1
+            },
+            {
+              "v": 23,
+              "n": 1
+            },
+            {
+              "v": 26,
+              "n": 1
+            },
+            {
+              "v": 12,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 27,
+              "n": 1
+            },
+            {
+              "v": 10,
+              "n": 1
+            },
+            {
+              "v": 25,
+              "n": 1
+            },
+            {
+              "v": 8,
+              "n": 1
+            },
+            {
+              "v": 16,
+              "n": 1
+            },
+            {
+              "v": 17,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "objectid",
+          "type": "int",
+          "distinct": 30,
+          "null_frac": 0.0,
+          "min": 37363,
+          "max": 43345,
+          "top_values": [
+            {
+              "v": 39982,
+              "n": 1
+            },
+            {
+              "v": 41942,
+              "n": 1
+            },
+            {
+              "v": 39992,
+              "n": 1
+            },
+            {
+              "v": 37363,
+              "n": 1
+            },
+            {
+              "v": 39991,
+              "n": 1
+            },
+            {
+              "v": 39998,
+              "n": 1
+            },
+            {
+              "v": 40773,
+              "n": 1
+            },
+            {
+              "v": 39994,
+              "n": 1
+            },
+            {
+              "v": 40772,
+              "n": 1
+            },
+            {
+              "v": 39984,
+              "n": 1
+            },
+            {
+              "v": 39986,
+              "n": 1
+            },
+            {
+              "v": 39988,
+              "n": 1
+            },
+            {
+              "v": 40786,
+              "n": 1
+            },
+            {
+              "v": 39996,
+              "n": 1
+            },
+            {
+              "v": 40385,
+              "n": 1
+            },
+            {
+              "v": 43345,
+              "n": 1
+            },
+            {
+              "v": 39997,
+              "n": 1
+            },
+            {
+              "v": 40384,
+              "n": 1
+            },
+            {
+              "v": 40386,
+              "n": 1
+            },
+            {
+              "v": 39983,
+              "n": 1
+            },
+            {
+              "v": 39989,
+              "n": 1
+            },
+            {
+              "v": 39995,
+              "n": 1
+            },
+            {
+              "v": 39987,
+              "n": 1
+            },
+            {
+              "v": 40771,
+              "n": 1
+            },
+            {
+              "v": 38124,
+              "n": 1
+            },
+            {
+              "v": 39985,
+              "n": 1
+            },
+            {
+              "v": 39990,
+              "n": 1
+            },
+            {
+              "v": 40382,
+              "n": 1
+            },
+            {
+              "v": 39993,
+              "n": 1
+            },
+            {
+              "v": 40383,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "statename",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "Gujarat",
+          "max": "Gujarat"
+        },
+        {
+          "name": "statecode",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "24",
+          "max": "24"
+        },
+        {
+          "name": "districtname",
+          "type": "string",
+          "distinct": 0,
+          "null_frac": 1.0
+        },
+        {
+          "name": "districtcode",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "492",
+          "max": "492"
+        },
+        {
+          "name": "ulbname",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "Surat",
+          "max": "Surat"
+        },
+        {
+          "name": "ulbcode",
+          "type": "string",
+          "distinct": 1,
+          "null_frac": 0.0,
+          "min": "802629",
+          "max": "802629"
+        },
+        {
+          "name": "wardname",
+          "type": "string",
+          "distinct": 30,
+          "null_frac": 0.0,
+          "min": "Aanjana-Dumbhal",
+          "max": "Wadi Falia-Navapura-Begumpura-Salabatpura",
+          "top_values": [
+            {
+              "v": "Bamroli-Udhna(North)",
+              "n": 1
+            },
+            {
+              "v": "Dabholi-Singanpor",
+              "n": 1
+            },
+            {
+              "v": "Umarwada-Matawadi",
+              "n": 1
+            },
+            {
+              "v": "Wadi Falia-Navapura-Begumpura-Salabatpura",
+              "n": 1
+            },
+            {
+              "v": "Nanavat-Saiyadpura-Kubernagar-Mahidharpura",
+              "n": 1
+            },
+            {
+              "v": "Jahangirpura-Variyav-Chhaprabhatha-Kosad",
+              "n": 1
+            },
+            {
+              "v": "Godadara-Dindoli(North) ",
+              "n": 1
+            },
+            {
+              "v": "Dindoli(South)",
+              "n": 1
+            },
+            {
+              "v": "Althan-Bamroli-Vadod",
+              "n": 1
+            },
+            {
+              "v": "Limbayat-Udhna Yard",
+              "n": 1
+            },
+            {
+              "v": "Kansad-Sachin-Unn-Aabhva",
+              "n": 1
+            },
+            {
+              "v": "Bhatar-Vesu-Dumas",
+              "n": 1
+            },
+            {
+              "v": "Katargam-Vedroad",
+              "n": 1
+            },
+            {
+              "v": "Puna(West)",
+              "n": 1
+            },
+            {
+              "v": "Limbayat-Parvat-Kumbhariya",
+              "n": 1
+            },
+            {
+              "v": "Pandesara-Bhestan",
+              "n": 1
+            },
+            {
+              "v": "Varachha-Sarthana-Simada-Laskana",
+              "n": 1
+            },
+            {
+              "v": "Udhna(South) ",
+              "n": 1
+            },
+            {
+              "v": "Fulpada-Ashwinikumar",
+              "n": 1
+            },
+            {
+              "v": "Karanj-Magob",
+              "n": 1
+            },
+            {
+              "v": "Khatodara-Majura-Sagrampura",
+              "n": 1
+            },
+            {
+              "v": "Amroli-Mota Varachha-Kathor",
+              "n": 1
+            },
+            {
+              "v": "Puna(East)",
+              "n": 1
+            },
+            {
+              "v": "Aanjana-Dumbhal",
+              "n": 1
+            },
+            {
+              "v": "Kapodra",
+              "n": 1
+            },
+            {
+              "v": "Rander-Jahangirabad-Palanpur",
+              "n": 1
+            },
+            {
+              "v": "Soni Falia-Nanpura-Athwa-Piplod",
+              "n": 1
+            },
+            {
+              "v": "Katargam",
+              "n": 1
+            },
+            {
+              "v": "Adajan-Pal-Ichchhapor",
+              "n": 1
+            },
+            {
+              "v": "Adajan-Gorat",
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "wardcode",
+          "type": "string",
+          "distinct": 30,
+          "null_frac": 0.0,
+          "min": "1",
+          "max": "9",
+          "top_values": [
+            {
+              "v": "21",
+              "n": 1
+            },
+            {
+              "v": "27",
+              "n": 1
+            },
+            {
+              "v": "30",
+              "n": 1
+            },
+            {
+              "v": "2",
+              "n": 1
+            },
+            {
+              "v": "15",
+              "n": 1
+            },
+            {
+              "v": "20",
+              "n": 1
+            },
+            {
+              "v": "11",
+              "n": 1
+            },
+            {
+              "v": "24",
+              "n": 1
+            },
+            {
+              "v": "10",
+              "n": 1
+            },
+            {
+              "v": "25",
+              "n": 1
+            },
+            {
+              "v": "8",
+              "n": 1
+            },
+            {
+              "v": "16",
+              "n": 1
+            },
+            {
+              "v": "17",
+              "n": 1
+            },
+            {
+              "v": "12",
+              "n": 1
+            },
+            {
+              "v": "28",
+              "n": 1
+            },
+            {
+              "v": "14",
+              "n": 1
+            },
+            {
+              "v": "29",
+              "n": 1
+            },
+            {
+              "v": "13",
+              "n": 1
+            },
+            {
+              "v": "26",
+              "n": 1
+            },
+            {
+              "v": "23",
+              "n": 1
+            },
+            {
+              "v": "19",
+              "n": 1
+            },
+            {
+              "v": "6",
+              "n": 1
+            },
+            {
+              "v": "3",
+              "n": 1
+            },
+            {
+              "v": "4",
+              "n": 1
+            },
+            {
+              "v": "22",
+              "n": 1
+            },
+            {
+              "v": "18",
+              "n": 1
+            },
+            {
+              "v": "1",
+              "n": 1
+            },
+            {
+              "v": "5",
+              "n": 1
+            },
+            {
+              "v": "7",
+              "n": 1
+            },
+            {
+              "v": "9",
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "id",
+          "type": "string",
+          "distinct": 0,
+          "null_frac": 1.0
+        },
+        {
+          "name": "remark",
+          "type": "string",
+          "distinct": 2,
+          "null_frac": 0.0,
+          "min": "",
+          "max": "Ok",
+          "top_values": [
+            {
+              "v": "Ok",
+              "n": 27
+            },
+            {
+              "v": "",
+              "n": 3
+            }
+          ]
+        },
+        {
+          "name": "st_area(shape)",
+          "type": "float",
+          "distinct": 30,
+          "null_frac": 0.0,
+          "min": 0.00016334211472216105,
+          "max": 0.007189727937940611,
+          "top_values": [
+            {
+              "v": 0.0003400553716236646,
+              "n": 1
+            },
+            {
+              "v": 0.0004109953985589066,
+              "n": 1
+            },
+            {
+              "v": 0.0005867404632816224,
+              "n": 1
+            },
+            {
+              "v": 0.002615940438058036,
+              "n": 1
+            },
+            {
+              "v": 0.00039831902137403953,
+              "n": 1
+            },
+            {
+              "v": 0.00018339591371507787,
+              "n": 1
+            },
+            {
+              "v": 0.00030281616860023286,
+              "n": 1
+            },
+            {
+              "v": 0.0006980689438414863,
+              "n": 1
+            },
+            {
+              "v": 0.00021535261489886122,
+              "n": 1
+            },
+            {
+              "v": 0.0004930459479234498,
+              "n": 1
+            },
+            {
+              "v": 0.00034027870394942817,
+              "n": 1
+            },
+            {
+              "v": 0.0007472362070982873,
+              "n": 1
+            },
+            {
+              "v": 0.0005599623666786205,
+              "n": 1
+            },
+            {
+              "v": 0.0003584472526018746,
+              "n": 1
+            },
+            {
+              "v": 0.00047778285430965487,
+              "n": 1
+            },
+            {
+              "v": 0.0003297562085969617,
+              "n": 1
+            },
+            {
+              "v": 0.00017589917382403818,
+              "n": 1
+            },
+            {
+              "v": 0.0010691072091728417,
+              "n": 1
+            },
+            {
+              "v": 0.00019578789450014334,
+              "n": 1
+            },
+            {
+              "v": 0.001926420651792201,
+              "n": 1
+            },
+            {
+              "v": 0.007189727937940611,
+              "n": 1
+            },
+            {
+              "v": 0.00016334211472216105,
+              "n": 1
+            },
+            {
+              "v": 0.0013854023888768738,
+              "n": 1
+            },
+            {
+              "v": 0.003972314450660758,
+              "n": 1
+            },
+            {
+              "v": 0.000307738105273606,
+              "n": 1
+            },
+            {
+              "v": 0.0008279562885079525,
+              "n": 1
+            },
+            {
+              "v": 0.00020020203146441413,
+              "n": 1
+            },
+            {
+              "v": 0.003822200848439002,
+              "n": 1
+            },
+            {
+              "v": 0.00046289120277320035,
+              "n": 1
+            },
+            {
+              "v": 0.00545738218684784,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "st_perimeter(shape)",
+          "type": "float",
+          "distinct": 30,
+          "null_frac": 0.0,
+          "min": 0.07691776079335727,
+          "max": 0.693142541942655,
+          "top_values": [
+            {
+              "v": 0.15500521675848575,
+              "n": 1
+            },
+            {
+              "v": 0.22115425399460092,
+              "n": 1
+            },
+            {
+              "v": 0.12212642751826745,
+              "n": 1
+            },
+            {
+              "v": 0.12951068223114193,
+              "n": 1
+            },
+            {
+              "v": 0.09849934107082649,
+              "n": 1
+            },
+            {
+              "v": 0.2018204823461147,
+              "n": 1
+            },
+            {
+              "v": 0.08309748411912954,
+              "n": 1
+            },
+            {
+              "v": 0.10162219391168548,
+              "n": 1
+            },
+            {
+              "v": 0.1242345221104544,
+              "n": 1
+            },
+            {
+              "v": 0.09333091915128051,
+              "n": 1
+            },
+            {
+              "v": 0.11265110283111636,
+              "n": 1
+            },
+            {
+              "v": 0.18919348048916873,
+              "n": 1
+            },
+            {
+              "v": 0.34683512283150825,
+              "n": 1
+            },
+            {
+              "v": 0.07691776079335727,
+              "n": 1
+            },
+            {
+              "v": 0.693142541942655,
+              "n": 1
+            },
+            {
+              "v": 0.11216594360698341,
+              "n": 1
+            },
+            {
+              "v": 0.11760395883396621,
+              "n": 1
+            },
+            {
+              "v": 0.0803562415577368,
+              "n": 1
+            },
+            {
+              "v": 0.5558300562816545,
+              "n": 1
+            },
+            {
+              "v": 0.24633523588250114,
+              "n": 1
+            },
+            {
+              "v": 0.08269032314366437,
+              "n": 1
+            },
+            {
+              "v": 0.3262118559327879,
+              "n": 1
+            },
+            {
+              "v": 0.14527012934979464,
+              "n": 1
+            },
+            {
+              "v": 0.12483378769825587,
+              "n": 1
+            },
+            {
+              "v": 0.5034695149095841,
+              "n": 1
+            },
+            {
+              "v": 0.08849495486233888,
+              "n": 1
+            },
+            {
+              "v": 0.1066044249951723,
+              "n": 1
+            },
+            {
+              "v": 0.11247875522088416,
+              "n": 1
+            },
+            {
+              "v": 0.4134608207850955,
+              "n": 1
+            },
+            {
+              "v": 0.11846543961464222,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "geom",
+          "type": "geometry",
+          "distinct": -1,
+          "null_frac": 0
+        }
+      ]
+    },
+    "wards_vadodara": {
+      "row_count": 12,
+      "columns": [
+        {
+          "name": "OGC_FID",
+          "type": "int",
+          "distinct": 12,
+          "null_frac": 0.0,
+          "min": 0,
+          "max": 11,
+          "top_values": [
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            },
+            {
+              "v": 4,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 8,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            },
+            {
+              "v": 0,
+              "n": 1
+            },
+            {
+              "v": 6,
+              "n": 1
+            },
+            {
+              "v": 10,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "ward_no",
+          "type": "int",
+          "distinct": 12,
+          "null_frac": 0.0,
+          "min": 1,
+          "max": 12,
+          "top_values": [
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            },
+            {
+              "v": 4,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 10,
+              "n": 1
+            },
+            {
+              "v": 6,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 8,
+              "n": 1
+            },
+            {
+              "v": 12,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "ward_address",
+          "type": "string",
+          "distinct": 12,
+          "null_frac": 0.0,
+          "min": "",
+          "max": "Tambe no Waado, Raopura Municipal School Building, Sanshtha Vasahat Road, Raopura, Vadodara",
+          "top_values": [
+            {
+              "v": "Nr. Sawad Community Hall, Harni-Warasia Road, Near Shweta Park Char Rasta, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "G.I.D.C. Industrial Estate, Makarpura, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Tambe no Waado, Raopura Municipal School Building, Sanshtha Vasahat Road, Raopura, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Opp. New Sindhi Market, Isckon-Vasna Road, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Laheripura, Near Nyay Mandir, Vadodara-1",
+              "n": 1
+            },
+            {
+              "v": "",
+              "n": 1
+            },
+            {
+              "v": "B/h. Prarambh Complex, Nr. Mahesh Complex,Waghodia Road, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Old Octroi Bldg., Fatehgunj, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Near VMC Atithi Gruh, High Tension Line Road, ShubhanPura, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Nr. Loksatta Press, Opp. Bhathiji Mandir, Bahucharaji Road, Nagarwada, Tin Rasta, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Sindhwai Mata Road, PratapNagar, Vadodara",
+              "n": 1
+            },
+            {
+              "v": "Near Post Office, Navjivan, Ajwa Road, Vadodara",
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "ward_name",
+          "type": "string",
+          "distinct": 12,
+          "null_frac": 0.0,
+          "min": "Ajwa",
+          "max": "Waghodia",
+          "top_values": [
+            {
+              "v": "Tin Rasta",
+              "n": 1
+            },
+            {
+              "v": "Vasna",
+              "n": 1
+            },
+            {
+              "v": "Ajwa",
+              "n": 1
+            },
+            {
+              "v": "Raopura",
+              "n": 1
+            },
+            {
+              "v": "Subhanpura",
+              "n": 1
+            },
+            {
+              "v": "Nyay Mandir",
+              "n": 1
+            },
+            {
+              "v": "Makarpura",
+              "n": 1
+            },
+            {
+              "v": "Waghodia",
+              "n": 1
+            },
+            {
+              "v": "Akota",
+              "n": 1
+            },
+            {
+              "v": "Pratap Nagar",
+              "n": 1
+            },
+            {
+              "v": "Harni",
+              "n": 1
+            },
+            {
+              "v": "Fatehgunj",
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "geom",
+          "type": "geometry",
+          "distinct": -1,
+          "null_frac": 0
+        }
+      ]
+    },
+    "wards_faridabad": {
+      "row_count": 40,
+      "columns": [
+        {
+          "name": "OGC_FID",
+          "type": "int",
+          "distinct": 40,
+          "null_frac": 0.0,
+          "min": 0,
+          "max": 39,
+          "top_values": [
+            {
+              "v": 0,
+              "n": 1
+            },
+            {
+              "v": 21,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            },
+            {
+              "v": 18,
+              "n": 1
+            },
+            {
+              "v": 22,
+              "n": 1
+            },
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 27,
+              "n": 1
+            },
+            {
+              "v": 30,
+              "n": 1
+            },
+            {
+              "v": 31,
+              "n": 1
+            },
+            {
+              "v": 8,
+              "n": 1
+            },
+            {
+              "v": 16,
+              "n": 1
+            },
+            {
+              "v": 17,
+              "n": 1
+            },
+            {
+              "v": 12,
+              "n": 1
+            },
+            {
+              "v": 14,
+              "n": 1
+            },
+            {
+              "v": 28,
+              "n": 1
+            },
+            {
+              "v": 29,
+              "n": 1
+            },
+            {
+              "v": 15,
+              "n": 1
+            },
+            {
+              "v": 20,
+              "n": 1
+            },
+            {
+              "v": 24,
+              "n": 1
+            },
+            {
+              "v": 35,
+              "n": 1
+            },
+            {
+              "v": 37,
+              "n": 1
+            },
+            {
+              "v": 10,
+              "n": 1
+            },
+            {
+              "v": 25,
+              "n": 1
+            },
+            {
+              "v": 33,
+              "n": 1
+            },
+            {
+              "v": 13,
+              "n": 1
+            },
+            {
+              "v": 19,
+              "n": 1
+            },
+            {
+              "v": 23,
+              "n": 1
+            },
+            {
+              "v": 26,
+              "n": 1
+            },
+            {
+              "v": 32,
+              "n": 1
+            },
+            {
+              "v": 38,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            },
+            {
+              "v": 4,
+              "n": 1
+            },
+            {
+              "v": 34,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 6,
+              "n": 1
+            },
+            {
+              "v": 36,
+              "n": 1
+            },
+            {
+              "v": 39,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "OBJECTID",
+          "type": "int",
+          "distinct": 39,
+          "null_frac": 0.0,
+          "min": 0,
+          "max": 38,
+          "top_values": [
+            {
+              "v": 0,
+              "n": 2
+            },
+            {
+              "v": 15,
+              "n": 1
+            },
+            {
+              "v": 12,
+              "n": 1
+            },
+            {
+              "v": 4,
+              "n": 1
+            },
+            {
+              "v": 8,
+              "n": 1
+            },
+            {
+              "v": 16,
+              "n": 1
+            },
+            {
+              "v": 17,
+              "n": 1
+            },
+            {
+              "v": 11,
+              "n": 1
+            },
+            {
+              "v": 14,
+              "n": 1
+            },
+            {
+              "v": 28,
+              "n": 1
+            },
+            {
+              "v": 29,
+              "n": 1
+            },
+            {
+              "v": 34,
+              "n": 1
+            },
+            {
+              "v": 1,
+              "n": 1
+            },
+            {
+              "v": 18,
+              "n": 1
+            },
+            {
+              "v": 22,
+              "n": 1
+            },
+            {
+              "v": 5,
+              "n": 1
+            },
+            {
+              "v": 7,
+              "n": 1
+            },
+            {
+              "v": 9,
+              "n": 1
+            },
+            {
+              "v": 24,
+              "n": 1
+            },
+            {
+              "v": 35,
+              "n": 1
+            },
+            {
+              "v": 37,
+              "n": 1
+            },
+            {
+              "v": 20,
+              "n": 1
+            },
+            {
+              "v": 21,
+              "n": 1
+            },
+            {
+              "v": 36,
+              "n": 1
+            },
+            {
+              "v": 6,
+              "n": 1
+            },
+            {
+              "v": 31,
+              "n": 1
+            },
+            {
+              "v": 2,
+              "n": 1
+            },
+            {
+              "v": 27,
+              "n": 1
+            },
+            {
+              "v": 30,
+              "n": 1
+            },
+            {
+              "v": 10,
+              "n": 1
+            },
+            {
+              "v": 25,
+              "n": 1
+            },
+            {
+              "v": 33,
+              "n": 1
+            },
+            {
+              "v": 13,
+              "n": 1
+            },
+            {
+              "v": 19,
+              "n": 1
+            },
+            {
+              "v": 23,
+              "n": 1
+            },
+            {
+              "v": 26,
+              "n": 1
+            },
+            {
+              "v": 32,
+              "n": 1
+            },
+            {
+              "v": 38,
+              "n": 1
+            },
+            {
+              "v": 3,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "Shape_Leng",
+          "type": "float",
+          "distinct": 39,
+          "null_frac": 0.0,
+          "min": 0.0,
+          "max": 0.318129370143,
+          "top_values": [
+            {
+              "v": 0.0,
+              "n": 2
+            },
+            {
+              "v": 0.0470230964935,
+              "n": 1
+            },
+            {
+              "v": 0.100994909762,
+              "n": 1
+            },
+            {
+              "v": 0.0770454749735,
+              "n": 1
+            },
+            {
+              "v": 0.0430740349323,
+              "n": 1
+            },
+            {
+              "v": 0.0662702025105,
+              "n": 1
+            },
+            {
+              "v": 0.188310973986,
+              "n": 1
+            },
+            {
+              "v": 0.05846851501,
+              "n": 1
+            },
+            {
+              "v": 0.0647718564756,
+              "n": 1
+            },
+            {
+              "v": 0.0518453165504,
+              "n": 1
+            },
+            {
+              "v": 0.0692859597178,
+              "n": 1
+            },
+            {
+              "v": 0.127413315466,
+              "n": 1
+            },
+            {
+              "v": 0.0479002412516,
+              "n": 1
+            },
+            {
+              "v": 0.0988330588752,
+              "n": 1
+            },
+            {
+              "v": 0.12917121079,
+              "n": 1
+            },
+            {
+              "v": 0.0740022872381,
+              "n": 1
+            },
+            {
+              "v": 0.0636672294704,
+              "n": 1
+            },
+            {
+              "v": 0.113422399241,
+              "n": 1
+            },
+            {
+              "v": 0.0727802419436,
+              "n": 1
+            },
+            {
+              "v": 0.0920982730973,
+              "n": 1
+            },
+            {
+              "v": 0.219793479368,
+              "n": 1
+            },
+            {
+              "v": 0.0560370153549,
+              "n": 1
+            },
+            {
+              "v": 0.142487029003,
+              "n": 1
+            },
+            {
+              "v": 0.0548940288479,
+              "n": 1
+            },
+            {
+              "v": 0.116189065563,
+              "n": 1
+            },
+            {
+              "v": 0.176254837448,
+              "n": 1
+            },
+            {
+              "v": 0.0782857867889,
+              "n": 1
+            },
+            {
+              "v": 0.0700373579144,
+              "n": 1
+            },
+            {
+              "v": 0.0430908015255,
+              "n": 1
+            },
+            {
+              "v": 0.147206970603,
+              "n": 1
+            },
+            {
+              "v": 0.0690737308883,
+              "n": 1
+            },
+            {
+              "v": 0.0586524106369,
+              "n": 1
+            },
+            {
+              "v": 0.154172151214,
+              "n": 1
+            },
+            {
+              "v": 0.059146604787,
+              "n": 1
+            },
+            {
+              "v": 0.318129370143,
+              "n": 1
+            },
+            {
+              "v": 0.16640028218,
+              "n": 1
+            },
+            {
+              "v": 0.118249852652,
+              "n": 1
+            },
+            {
+              "v": 0.131861706365,
+              "n": 1
+            },
+            {
+              "v": 0.0473801949858,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "Shape_Area",
+          "type": "float",
+          "distinct": 40,
+          "null_frac": 0.0,
+          "min": 7.39312032324e-05,
+          "max": 0.0038809564025,
+          "top_values": [
+            {
+              "v": 0.000122666909644,
+              "n": 1
+            },
+            {
+              "v": 0.00037923787591,
+              "n": 1
+            },
+            {
+              "v": 0.000357744273246,
+              "n": 1
+            },
+            {
+              "v": 0.000211005107508,
+              "n": 1
+            },
+            {
+              "v": 0.00015579380475,
+              "n": 1
+            },
+            {
+              "v": 0.000265275787313,
+              "n": 1
+            },
+            {
+              "v": 0.000220597307438,
+              "n": 1
+            },
+            {
+              "v": 0.00124874495423,
+              "n": 1
+            },
+            {
+              "v": 0.000942627767658,
+              "n": 1
+            },
+            {
+              "v": 0.000496455077762,
+              "n": 1
+            },
+            {
+              "v": 0.000671876466134,
+              "n": 1
+            },
+            {
+              "v": 8.8107787503e-05,
+              "n": 1
+            },
+            {
+              "v": 0.000115535529605,
+              "n": 1
+            },
+            {
+              "v": 0.00126466001162,
+              "n": 1
+            },
+            {
+              "v": 0.000145251643292,
+              "n": 1
+            },
+            {
+              "v": 0.000233191625049,
+              "n": 1
+            },
+            {
+              "v": 0.000101740419936,
+              "n": 1
+            },
+            {
+              "v": 8.64973505915e-05,
+              "n": 1
+            },
+            {
+              "v": 0.000852204443889,
+              "n": 1
+            },
+            {
+              "v": 0.000158049196102,
+              "n": 1
+            },
+            {
+              "v": 0.000108981831274,
+              "n": 1
+            },
+            {
+              "v": 0.000153872986056,
+              "n": 1
+            },
+            {
+              "v": 0.000402463172289,
+              "n": 1
+            },
+            {
+              "v": 0.000512337338903,
+              "n": 1
+            },
+            {
+              "v": 0.000472878910083,
+              "n": 1
+            },
+            {
+              "v": 0.000550063584367,
+              "n": 1
+            },
+            {
+              "v": 0.000364073461428,
+              "n": 1
+            },
+            {
+              "v": 0.000145024713401,
+              "n": 1
+            },
+            {
+              "v": 0.000435065469108,
+              "n": 1
+            },
+            {
+              "v": 0.000207241525643,
+              "n": 1
+            },
+            {
+              "v": 0.0038809564025,
+              "n": 1
+            },
+            {
+              "v": 7.39312032324e-05,
+              "n": 1
+            },
+            {
+              "v": 0.000465240748011,
+              "n": 1
+            },
+            {
+              "v": 0.000164290188631,
+              "n": 1
+            },
+            {
+              "v": 8.38053795906e-05,
+              "n": 1
+            },
+            {
+              "v": 0.000177030179367,
+              "n": 1
+            },
+            {
+              "v": 0.000108960230033,
+              "n": 1
+            },
+            {
+              "v": 0.000811078423415,
+              "n": 1
+            },
+            {
+              "v": 0.000351074543147,
+              "n": 1
+            },
+            {
+              "v": 0.000350547685459,
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "Ward_No",
+          "type": "string",
+          "distinct": 40,
+          "null_frac": 0.0,
+          "min": "1",
+          "max": "9",
+          "top_values": [
+            {
+              "v": "34",
+              "n": 1
+            },
+            {
+              "v": "21",
+              "n": 1
+            },
+            {
+              "v": "5",
+              "n": 1
+            },
+            {
+              "v": "7",
+              "n": 1
+            },
+            {
+              "v": "9",
+              "n": 1
+            },
+            {
+              "v": "37",
+              "n": 1
+            },
+            {
+              "v": "35",
+              "n": 1
+            },
+            {
+              "v": "24",
+              "n": 1
+            },
+            {
+              "v": "39",
+              "n": 1
+            },
+            {
+              "v": "36",
+              "n": 1
+            },
+            {
+              "v": "6",
+              "n": 1
+            },
+            {
+              "v": "11",
+              "n": 1
+            },
+            {
+              "v": "14",
+              "n": 1
+            },
+            {
+              "v": "29",
+              "n": 1
+            },
+            {
+              "v": "28",
+              "n": 1
+            },
+            {
+              "v": "40",
+              "n": 1
+            },
+            {
+              "v": "38",
+              "n": 1
+            },
+            {
+              "v": "13",
+              "n": 1
+            },
+            {
+              "v": "32",
+              "n": 1
+            },
+            {
+              "v": "19",
+              "n": 1
+            },
+            {
+              "v": "26",
+              "n": 1
+            },
+            {
+              "v": "23",
+              "n": 1
+            },
+            {
+              "v": "15",
+              "n": 1
+            },
+            {
+              "v": "20",
+              "n": 1
+            },
+            {
+              "v": "12",
+              "n": 1
+            },
+            {
+              "v": "8",
+              "n": 1
+            },
+            {
+              "v": "17",
+              "n": 1
+            },
+            {
+              "v": "16",
+              "n": 1
+            },
+            {
+              "v": "2",
+              "n": 1
+            },
+            {
+              "v": "31",
+              "n": 1
+            },
+            {
+              "v": "30",
+              "n": 1
+            },
+            {
+              "v": "27",
+              "n": 1
+            },
+            {
+              "v": "33",
+              "n": 1
+            },
+            {
+              "v": "10",
+              "n": 1
+            },
+            {
+              "v": "25",
+              "n": 1
+            },
+            {
+              "v": "1",
+              "n": 1
+            },
+            {
+              "v": "22",
+              "n": 1
+            },
+            {
+              "v": "18",
+              "n": 1
+            },
+            {
+              "v": "3",
+              "n": 1
+            },
+            {
+              "v": "4",
+              "n": 1
+            }
+          ]
+        },
+        {
+          "name": "geom",
+          "type": "geometry",
+          "distinct": -1,
+          "null_frac": 0
+        }
+      ]
+    },
+    "wards_pcmc": {
+      "row_count": 66,
+      "columns": [
+        {
+          "name": "OGC_FID",
+          "type": "int",
+          "distinct": 66,
+          "null_frac": 0.0,
+          "min": 0,
+          "max": 65
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "distinct": 66,
+          "null_frac": 0.0,
+          "min": "01, Zone F",
+          "max": "64, Zone C_2"
+        },
+        {
+          "name": "zone",
+          "type": "string",
+          "distinct": 6,
+          "null_frac": 0.0,
+          "min": "A",
+          "max": "F",
+          "top_values": [
+            {
+              "v": "C",
+              "n": 14
+            },
+            {
+              "v": "B",
+              "n": 11
+            },
+            {
+              "v": "A",
+              "n": 11
+            },
+            {
+              "v": "E",
+              "n": 10
+            },
+            {
+              "v": "D",
+              "n": 10
+            },
+            {
+              "v": "F",
+              "n": 10
+            }
+          ]
+        },
+        {
+          "name": "wardnum",
+          "type": "string",
+          "distinct": 66,
+          "null_frac": 0.0,
+          "min": "1",
+          "max": "9"
+        },
+        {
+          "name": "geom",
+          "type": "geometry",
+          "distinct": -1,
+          "null_frac": 0
+        }
+      ]
+    },
+    "wards_vijayawada": {
+      "row_count": 77,
+      "columns": [
+        {
+          "name": "OGC_FID",
+          "type": "int",
+          "distinct": 77,
+          "null_frac": 0.0,
+          "min": 0,
+          "max": 76
+        },
+        {
+          "name": "Shape_Leng",
+          "type": "float",
+          "distinct": 76,
+          "null_frac": 0.0,
+          "min": 0.00537361888942,
+          "max": 0.153024829858
+        },
+        {
+          "name": "Shape_Area",
+          "type": "float",
+          "distinct": 76,
+          "null_frac": 0.0,
+          "min": 6.96794667375e-07,
+          "max": 0.00046029591055
+        },
+        {
+          "name": "WARD_NO",
+          "type": "string",
+          "distinct": 77,
+          "null_frac": 0.0,
+          "min": "1",
+          "max": "9"
+        },
+        {
+          "name": "geom",
+          "type": "geometry",
+          "distinct": -1,
+          "null_frac": 0
+        }
+      ]
+    }
+  },
   "download_counts": {},
   "attribution": {
     "LGD": {
@@ -3446,6 +5985,14 @@
     "bharatviz": {
       "name": "bharatviz (Saket Choudhary)",
       "url": "https://bharatviz.org/"
+    },
+    "DataMeet": {
+      "name": "DataMeet India",
+      "url": "https://github.com/datameet/Municipal_Spatial_Data"
+    },
+    "datta07": {
+      "name": "datta07/INDIAN-SHAPEFILES",
+      "url": "https://github.com/datta07/INDIAN-SHAPEFILES"
     },
     "osm-in": {
       "name": "osm-in (community)",
