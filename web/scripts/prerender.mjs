@@ -313,7 +313,7 @@ const LEVEL_ORDER = [...BUILTIN_LEVEL_ORDER, ...externalLevels];
 // Display order for category sections on the home page. Categories not in
 // this list fall to the end in catalog.categories declaration order.
 const CATEGORY_ORDER = [
-  'administrative', 'people', 'environment', 'agriculture',
+  'boundaries', 'city-wards', 'people', 'environment', 'agriculture',
   'transport', 'infrastructure', 'culture', 'health-edu', 'other',
 ];
 
@@ -519,7 +519,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
     `data-level="${esc(level)}"`,
-    `data-category="${esc(primary.category || 'administrative')}"`,
+    `data-category="${esc(primary.category || 'boundaries')}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
     `data-search-primary="${esc(primaryHaystack)}"`,

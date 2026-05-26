@@ -23,12 +23,12 @@ R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
 # Level metadata. `path` is the R2 key prefix (also the upstream release path).
 # `category` is the catalog facet (matches the home-page filter chips).
 LEVELS = {
-    'state':                  {'order': 1,  'plural': 'states',                                 'path': 'admin/states',          'category': 'administrative'},
-    'district':               {'order': 2,  'plural': 'districts',                              'path': 'admin/districts',       'category': 'administrative'},
-    'subdistrict':            {'order': 3,  'plural': 'subdistricts',                           'path': 'admin/subdistricts',    'category': 'administrative'},
-    'block':                  {'order': 4,  'plural': 'blocks',                                 'path': 'admin/blocks',          'category': 'administrative'},
-    'panchayat':              {'order': 5,  'plural': 'panchayats',                             'path': 'admin/panchayats',      'category': 'administrative'},
-    'village':                {'order': 6,  'plural': 'villages',                               'path': 'admin/villages',        'category': 'administrative'},
+    'state':                  {'order': 1,  'plural': 'states',                                 'path': 'admin/states',          'category': 'boundaries'},
+    'district':               {'order': 2,  'plural': 'districts',                              'path': 'admin/districts',       'category': 'boundaries'},
+    'subdistrict':            {'order': 3,  'plural': 'subdistricts',                           'path': 'admin/subdistricts',    'category': 'boundaries'},
+    'block':                  {'order': 4,  'plural': 'blocks',                                 'path': 'admin/blocks',          'category': 'boundaries'},
+    'panchayat':              {'order': 5,  'plural': 'panchayats',                             'path': 'admin/panchayats',      'category': 'boundaries'},
+    'village':                {'order': 6,  'plural': 'villages',                               'path': 'admin/villages',        'category': 'boundaries'},
 
     # Electoral
     'parliament_constituency':{'order': 10, 'plural': 'parliament constituencies',              'path': 'electoral/constituencies', 'category': 'people'},
@@ -72,7 +72,7 @@ LEVELS = {
 
     # Reference layers — base assets used across the platform AND useful
     # standalone (national outline, etc.).
-    'country':                {'order': 0,  'plural': 'national boundary',                      'path': 'reference',             'category': 'administrative'},
+    'country':                {'order': 0,  'plural': 'national boundary',                      'path': 'reference',             'category': 'boundaries'},
 }
 
 # Licences per upstream (yashveeeeeeer/india-geodata): states/districts are
@@ -120,7 +120,8 @@ UPSTREAM_GEOBOUNDARIES = 'https://github.com/wmgeolab/geoBoundaries/raw/9469f09'
 # Order here is the order the chips render in. Keep in sync with
 # web/submit.template.html and the /about page copy.
 CATEGORIES = {
-    'administrative': 'Administrative',
+    'boundaries': 'Boundaries',
+    'city-wards': 'City wards',
     'people': 'People & places',
     'environment': 'Environment',
     'agriculture': 'Agriculture & land use',
@@ -561,7 +562,7 @@ def build():
             'primary': ATTR['LGD'],
             'publisher': None,
         },
-        'category': 'administrative',
+        'category': 'boundaries',
         'provenance': 'curated',
         'fetched_at': mtime_of(BAKED / ib_path / f'{ib_basename}.geojson'),
         'notes': "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source — includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim).",
@@ -623,7 +624,7 @@ def build():
                 'primary': ATTR['geoBoundaries'],
                 'publisher': None,
             },
-            'category': 'administrative',
+            'category': 'boundaries',
             'provenance': 'curated',
             'fetched_at': mtime_of(path),
             'notes': notes,
