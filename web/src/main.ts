@@ -265,3 +265,58 @@ if (searchInput && grid) {
     location.assign('/preview');
   });
 }
+
+// Live download counts — fetched from D1 on page load so badges are
+// always current (no catalog.json drift). Patches the prerendered
+// count spans in-place; if the fetch fails, baked values remain.
+fetch('/api/dl/counts')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((counts: Record<string, Record<string, number> | number> | null) => {
+    if (!counts) return;
+
+    // Patch per-format badges: <span class="count" title="N downloads">N</span>
+    // Each download link lives inside a card with data-id="<layer_id>" and
+    // the link text is the format name (parquet, geojson, kml, shp).
+    const fmtCount = (n: number) => {
+      if (n < 1000) return String(n);
+      if (n < 10000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
+      return Math.round(n / 1000) + 'k';
+    };
+    for (const section of document.querySelectorAll<HTMLElement>('[data-id]')) {
+      const layerId = section.dataset.id || '';
+      const layerCounts = counts[layerId] as Record<string, number> | undefined;
+      if (!layerCounts) continue;
+      for (const link of section.querySelectorAll<HTMLAnchorElement>('a[download]')) {
+        const fmt = link.textContent?.trim() || '';
+        const n = layerCounts[fmt];
+        if (!n) continue;
+        const badge = link.nextElementSibling?.nextElementSibling;
+        if (badge?.classList.contains('count')) {
+          badge.setAttribute('title', `${n.toLocaleString('en-IN')} downloads`);
+          badge.textContent = fmtCount(n);
+        } else {
+          // No badge yet (was 0 at bake time) — inject one.
+          const span = document.createElement('span');
+          span.className = 'count';
+          span.title = `${n.toLocaleString('en-IN')} downloads`;
+          span.textContent = fmtCount(n);
+          // Insert after the size span (link → size-span → count-span)
+          const sizeSpan = link.nextElementSibling;
+          if (sizeSpan) sizeSpan.after(span);
+        }
+      }
+    }
+
+    // Patch global total in search-meta line.
+    const total = typeof counts._total === 'number' ? counts._total : 0;
+    if (total > 0) {
+      const meta = document.getElementById('search-meta');
+      if (meta) {
+        meta.textContent = meta.textContent?.replace(
+          /\d[\d,]* downloads/,
+          `${fmtCount(total)} downloads`,
+        ) || meta.textContent || '';
+      }
+    }
+  })
+  .catch(() => {});
