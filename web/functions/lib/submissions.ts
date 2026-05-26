@@ -13,6 +13,7 @@ export type SubmissionRow = {
   attribution: string;
   /** http(s) URL when is_original=0; free-text 'method' description when 1. */
   source_url: string;
+  data_year: number | null;
   is_original: 0 | 1;
   format: string;
   bytes: number;
@@ -28,9 +29,9 @@ export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Prom
   await db
     .prepare(
       `INSERT INTO submissions
-       (id, created_at, status, name, description, category, license, attribution, source_url, is_original,
+       (id, created_at, status, name, description, category, license, attribution, source_url, data_year, is_original,
         format, bytes, feature_count, geometry_types, content_hash, ip_hash, validation_report, r2_key)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
     .bind(
       row.id,
@@ -42,6 +43,7 @@ export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Prom
       row.license,
       row.attribution,
       row.source_url,
+      row.data_year,
       row.is_original,
       row.format,
       row.bytes,
@@ -108,6 +110,7 @@ export type SubmissionView = {
   license: string;
   attribution: string;
   source_url: string;
+  data_year: number | null;
   is_original: 0 | 1;
   format: string;
   bytes: number;

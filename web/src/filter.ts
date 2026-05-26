@@ -147,7 +147,7 @@ export function mountFilterPanel(
     const field = renderField(col, aff, (filter) => {
       filterState.set(col.name, filter);
       notifyChange();
-    });
+    }, layer.parquet?.url);
     colsEl.appendChild(field);
   }
 
@@ -245,6 +245,7 @@ function renderField(
   col: ColumnStats,
   aff: Affordance,
   onChange: (filter: ActiveFilter | null) => void,
+  parquetUrl?: string,
 ): HTMLElement {
   const field = document.createElement('div');
   field.className = 'filter-panel__field';
@@ -258,7 +259,7 @@ function renderField(
 
   if (aff.kind === 'facet') field.appendChild(renderFacet(col, aff, onChange));
   else if (aff.kind === 'range') field.appendChild(renderRange(col, aff, onChange));
-  else if (aff.kind === 'searchable' || aff.kind === 'search') field.appendChild(renderSearch(col, onChange));
+  else if (aff.kind === 'searchable' || aff.kind === 'search') field.appendChild(renderSearch(col, onChange, parquetUrl));
   else if (aff.kind === 'boolean') field.appendChild(renderBoolean(col, onChange));
   return field;
 }
@@ -332,20 +333,94 @@ function renderRange(
 function renderSearch(
   col: ColumnStats,
   onChange: (filter: ActiveFilter | null) => void,
+  parquetUrl?: string,
 ): HTMLElement {
+  const wrap = document.createElement('div');
+  wrap.className = 'filter-typeahead';
+  wrap.style.position = 'relative';
+
   const input = document.createElement('input');
   input.type = 'search';
   input.placeholder = `Search ${col.distinct.toLocaleString('en-IN')} ${col.name}…`;
   input.className = 'filter-search';
+  input.autocomplete = 'off';
+  wrap.appendChild(input);
+
+  const list = document.createElement('ul');
+  list.className = 'filter-typeahead__list';
+  wrap.appendChild(list);
+
+  const clearBtn = document.createElement('button');
+  clearBtn.type = 'button';
+  clearBtn.className = 'filter-typeahead__clear';
+  clearBtn.textContent = '×';
+  clearBtn.style.display = 'none';
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    clearBtn.style.display = 'none';
+    list.innerHTML = '';
+    onChange(null);
+  });
+  wrap.appendChild(clearBtn);
+
+  function pick(value: string) {
+    input.value = value;
+    clearBtn.style.display = '';
+    list.innerHTML = '';
+    onChange({ col: col.name, kind: 'search', q: value });
+  }
+
   let timer: number | undefined;
+  let abortCtrl: AbortController | null = null;
   input.addEventListener('input', () => {
     window.clearTimeout(timer);
-    timer = window.setTimeout(() => {
-      const q = input.value.trim();
-      onChange(q ? { col: col.name, kind: 'search', q } : null);
-    }, 300);
+    const q = input.value.trim();
+    clearBtn.style.display = q ? '' : 'none';
+
+    if (!q) {
+      list.innerHTML = '';
+      onChange(null);
+      return;
+    }
+
+    // Fire the filter immediately for map feedback
+    onChange({ col: col.name, kind: 'search', q });
+
+    // Typeahead: query DuckDB for matching values (debounced)
+    if (!parquetUrl) return;
+    timer = window.setTimeout(async () => {
+      abortCtrl?.abort();
+      abortCtrl = new AbortController();
+      try {
+        const escaped = q.replace(/'/g, "''");
+        const { escIdent } = await import('./filter-where');
+        const rows = await query<{ v: string }>(
+          `SELECT DISTINCT ${escIdent(col.name)}::VARCHAR AS v
+           FROM '${parquetUrl}'
+           WHERE ${escIdent(col.name)}::VARCHAR ILIKE '%${escaped}%'
+           ORDER BY v LIMIT 8`,
+        );
+        if (abortCtrl.signal.aborted) return;
+        list.innerHTML = '';
+        for (const r of rows) {
+          const li = document.createElement('li');
+          li.className = 'filter-typeahead__item';
+          li.textContent = String(r.v);
+          li.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            pick(String(r.v));
+          });
+          list.appendChild(li);
+        }
+      } catch { /* query failed — degrade to plain search */ }
+    }, 250);
   });
-  return input;
+
+  input.addEventListener('blur', () => {
+    setTimeout(() => { list.innerHTML = ''; }, 200);
+  });
+
+  return wrap;
 }
 
 function renderBoolean(

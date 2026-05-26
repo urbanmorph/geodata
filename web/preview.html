@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Preview · view, verify, or publish a geo file · bharatlas</title>
+    <meta name="description" content="Drop a GeoJSON, KML, KMZ or Parquet file to see it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence." />
+    <link rel="canonical" href="https://bharatlas.com/preview" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Preview · view, verify, or publish a geo file · bharatlas" />
+    <meta property="og:description" content="Drop a GeoJSON, KML, KMZ or Parquet file to see it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence." />
+    <meta property="og:url" content="https://bharatlas.com/preview" />
+    <meta property="og:image" content="https://bharatlas.com/og-preview.png" />
+    <meta property="og:site_name" content="bharatlas" />
+    <meta property="og:locale" content="en_IN" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Preview · view, verify, or publish a geo file · bharatlas" />
+    <meta name="twitter:description" content="Drop a GeoJSON, KML, KMZ or Parquet file to see it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence." />
+    <meta name="twitter:image" content="https://bharatlas.com/og-preview.png" />
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"bharatlas · preview","url":"https://bharatlas.com/preview","applicationCategory":"UtilityApplication","operatingSystem":"Web"}</script>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      
+  :root {
+    --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px;
+    --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px; --fs-display: 36px;
+    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
+    --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
+    --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
+    --bg: #ffffff; --bg-elevated: #fafafa; --bg-card: #f5f5f5;
+    --fg: #0a0a0a; --muted: #525965; --muted-strong: #374151;
+    --subtle: #9ca3af; --line: #e5e7eb; --line-bright: #d1d5db;
+    --accent: #6366f1; --accent-strong: #4f46e5;
+    --accent-fill: #6366f1; --accent-fill-hover: #4f46e5;
+    --ok: #16a34a; --warn: #d97706; --err: #dc2626;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0a0a0a; --bg-elevated: #15151a; --bg-card: #1a1a1f;
+      --fg: #ededed; --muted: #9ca3af; --muted-strong: #d4d4d8;
+      --subtle: #525252; --line: #262626; --line-bright: #404040;
+      --accent: #818cf8; --accent-strong: #6366f1;
+      --accent-fill: #6366f1; --accent-fill-hover: #818cf8;
+      --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
+    }
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
+  body {
+    font: var(--fs-base)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  a:focus-visible, button:focus-visible, [role=button]:focus-visible,
+  input:focus-visible, textarea:focus-visible, select:focus-visible {
+    outline: 2px solid var(--accent-strong) !important;
+    outline-offset: 2px !important;
+    border-radius: var(--radius-sm);
+  }
+  .site-header {
+    display: flex; align-items: baseline; justify-content: space-between;
+    gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
+  }
+  .site-brand {
+    font-size: var(--fs-lg); font-weight: 600; letter-spacing: -.01em;
+    color: var(--fg); text-decoration: none;
+  }
+  .site-brand:hover { text-decoration: none; }
+  .site-brand .mark-accent { color: var(--accent); }
+  .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
+  .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  .site-nav a {
+    color: var(--muted); text-decoration: none; font-size: var(--fs-base);
+    padding: 4px 0;
+  }
+  .site-nav a:hover { color: var(--fg); }
+  .site-nav a[data-active] { color: var(--fg); font-weight: 500; }
+  .site-footer {
+    margin-top: var(--sp-8); padding-top: var(--sp-5);
+    border-top: 1px solid var(--line);
+    color: var(--muted); font-size: var(--fs-sm); line-height: 1.7;
+  }
+  .site-footer p { margin: 0 0 var(--sp-2); }
+  .site-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+  .site-footer a:hover { color: var(--fg); }
+
+      :root { --card-bg: var(--bg-card); }
+      body { max-width: 1100px; margin: 0 auto; padding: 24px 24px 80px; }
+
+      .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 4px; }
+      .page-sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; max-width: 580px; }
+
+      /* === Initial drop state =============================================== */
+      #drop {
+        display: block; max-width: 640px; margin: 0 auto;
+        border: 2px dashed var(--line); border-radius: 14px; padding: 56px 24px;
+        text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
+        background: var(--card-bg);
+      }
+      #drop:hover, #drop.dragover {
+        border-color: var(--accent);
+        background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+      }
+      #drop strong { font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px; }
+      #drop .hint { color: var(--muted); font-size: 13px; }
+      #drop input[type=file] { display: none; }
+
+      /* === Workspace (after a file is loaded) ============================== */
+      /* Single scroll axis = the page itself. Map sticks while the sidebar
+         (which can grow taller than the viewport once the form is open)
+         scrolls past it. No nested scrollbar. */
+      #workspace { display: none; grid-template-columns: minmax(0, 1fr) min(360px, 38%); gap: 20px; align-items: start; }
+      #workspace.show { display: grid; }
+      #map {
+        position: sticky; top: 16px;
+        height: calc(100vh - 80px); min-height: 420px;
+        border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
+        background: var(--card-bg);
+      }
+      .ws-side {
+        background: var(--card-bg);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 16px 18px;
+      }
+      .ws-side h2 {
+        font-size: 11px; font-weight: 600; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--muted); margin: 0 0 12px;
+      }
+      .ws-side .reset {
+        display: block; width: 100%; margin: 14px 0 0;
+        background: transparent; color: var(--muted); border: 1px dashed var(--line);
+        border-radius: 6px; padding: 8px 12px; font: inherit; font-size: 12px; cursor: pointer;
+      }
+      .ws-side .reset:hover { color: var(--fg); border-color: var(--fg); }
+
+      /* === Publish CTA (shown when form is collapsed) ====================== */
+      #publish-cta { display: none; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
+      #publish-cta.show { display: block; }
+      #publish-cta .cta-line { font-size: 13px; font-weight: 500; margin: 0 0 8px; }
+      #publish-cta button.primary {
+        background: var(--accent); color: #fff; border: 0; width: 100%;
+        padding: 10px 14px; border-radius: 6px;
+        font: inherit; font-weight: 500; font-size: 14px; cursor: pointer;
+      }
+      #publish-cta button.primary:hover { opacity: 0.92; }
+      #publish-cta .cta-hint { font-size: 11px; color: var(--muted); margin: 8px 0 0; text-align: center; }
+
+      .view-only { display: block; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
+      .view-only p { font-size: 12px; color: var(--muted); margin: 0; }
+      .view-only a { color: var(--accent); }
+
+      .form-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .form-head h3 { margin: 0; }
+      button.cancel {
+        background: transparent; border: 0; cursor: pointer;
+        color: var(--muted); font-size: 16px; padding: 4px 8px; line-height: 1;
+        border-radius: 4px;
+      }
+      button.cancel:hover { color: var(--err); background: var(--bg); }
+
+      /* === Validation report =============================================== */
+      #report { margin: 0 0 16px; }
+      #report .row {
+        display: flex; gap: 10px; padding: 6px 0; font-size: 13px;
+        border-bottom: 1px solid var(--line);
+      }
+      #report .row:last-child { border-bottom: 0; }
+      #report .row.ok::before { content: "✓"; color: var(--ok); width: 16px; font-weight: 700; }
+      #report .row.warn::before { content: "⚠"; color: var(--warn); width: 16px; font-weight: 700; }
+      #report .row.err::before { content: "✗"; color: var(--err); width: 16px; font-weight: 700; }
+      #report .row .k { flex: 1; }
+      #report .row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+      /* === Metadata form =================================================== */
+      form { margin: 18px 0 0; display: none; padding-top: 16px; border-top: 1px solid var(--line); }
+      form.show { display: block; }
+      form h3 { font-size: 13px; font-weight: 600; margin: 0 0 14px; }
+      .field { margin-bottom: 14px; }
+      .field label { display: block; font-weight: 500; font-size: 12px; margin-bottom: 4px; }
+      .field label .req { color: var(--err); margin-left: 2px; }
+      .field .hint { color: var(--muted); font-size: 11px; margin-top: 3px; line-height: 1.4; }
+      .field input:not([type=radio]):not([type=checkbox]),
+      .field textarea, .field select {
+        width: 100%; padding: 7px 9px; font: inherit; font-size: 13px;
+        background: var(--bg); color: var(--fg);
+        border: 1px solid var(--line); border-radius: 6px;
+      }
+      .field input:not([type=radio]):not([type=checkbox]):focus,
+      .field textarea:focus, .field select:focus {
+        outline: none; border-color: var(--accent);
+      }
+      .field textarea { resize: vertical; min-height: 50px; }
+      .legal {
+        font-size: 11px; color: var(--muted); line-height: 1.5;
+        background: var(--bg); padding: 8px 10px; border-radius: 6px;
+        border-left: 3px solid var(--accent); margin: 12px 0;
+      }
+      .radio-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+      .radio-group label { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 400; cursor: pointer; margin: 0; padding: 2px 0; }
+      .radio-group input[type=radio] { margin: 0; flex-shrink: 0; }
+      #captcha { margin: 12px 0; min-height: 65px; }
+
+      button.primary {
+        background: var(--accent); color: #fff; border: 0;
+        width: 100%; padding: 10px 14px; border-radius: 6px;
+        font: inherit; font-weight: 500; font-size: 14px; cursor: pointer;
+      }
+      button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      button.secondary {
+        background: transparent; color: var(--fg); border: 1px solid var(--line);
+        padding: 7px 12px; border-radius: 6px; font: inherit; font-size: 12px; cursor: pointer;
+      }
+      #submit-status { margin-top: 10px; color: var(--muted); font-size: 12px; min-height: 16px; }
+      #submit-status.err { color: var(--err); }
+
+      /* === Success state =================================================== */
+      #success { display: none; max-width: 640px; margin: 0 auto; }
+      #success.show { display: block; }
+      #success h2 { font-size: 18px; margin: 0 0 4px; color: var(--ok); }
+      #success .ok-line { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
+      #success .warn {
+        background: color-mix(in srgb, var(--warn) 12%, var(--card-bg));
+        border-left: 3px solid var(--warn);
+        padding: 14px 16px; border-radius: 6px; margin: 16px 0;
+      }
+      #success .warn strong { color: var(--warn); }
+      #success .token {
+        font: 13px ui-monospace, SFMono-Regular, Menlo, monospace;
+        background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+        padding: 10px 12px; word-break: break-all; margin: 10px 0;
+      }
+      #success .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 24px; }
+      #success .ok-meta {
+        color: var(--fg); font-size: 13px; font-weight: 500;
+        margin: -16px 0 24px; line-height: 1.5;
+      }
+      #success a.cta {
+        display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+        padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px;
+      }
+      #success a.cta:hover { opacity: 0.92; }
+
+      /* === Map loader overlay (verify gap: validate → render) ============== */
+      .map-loader {
+        position: absolute; inset: 0;
+        display: flex; flex-direction: column;
+        align-items: center; justify-content: center;
+        gap: 14px;
+        backdrop-filter: blur(1px);
+        background: color-mix(in srgb, var(--bg) 70%, transparent);
+        pointer-events: none;
+        z-index: 5;
+        transition: opacity 220ms ease;
+      }
+      .map-loader.fade { opacity: 0; }
+      .map-loader__ring {
+        width: 28px; height: 28px;
+        border: 2px solid color-mix(in srgb, var(--fg) 18%, transparent);
+        border-top-color: var(--accent);
+        border-radius: 50%;
+        animation: ml-spin 0.85s linear infinite;
+      }
+      .map-loader__verb { font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
+      @keyframes ml-spin { to { transform: rotate(360deg); } }
+
+      /* === Your submissions (v4.8) ========================================== */
+      #my-subs {
+        display: block; max-width: 640px; margin: 18px auto 0;
+        background: var(--bg-card); border: 1px solid var(--line);
+        border-radius: 10px; padding: 12px 14px;
+      }
+      #my-subs[hidden] { display: none; }
+      /* When the user has dropped a file (workspace.show), the verify flow
+         takes over the canvas; hide the past-submissions panel so they don't
+         stack and overlap the map. Returns when workspace.show is removed. */
+      body:has(#workspace.show) #my-subs { display: none; }
+      #my-subs h2 {
+        font-size: 11px; font-weight: 600; letter-spacing: .08em;
+        text-transform: uppercase; color: var(--muted); margin: 0 0 8px;
+      }
+      #my-subs-list { display: flex; flex-direction: column; }
+      .my-subs-row {
+        display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+        align-items: center;
+        padding: 8px 4px; font-size: 13px;
+        color: inherit; text-decoration: none;
+        border-bottom: 1px solid var(--line);
+      }
+      .my-subs-row:last-child { border-bottom: 0; }
+      .my-subs-row:hover .my-subs-name { color: var(--accent); }
+      .my-subs-name {
+        overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        font-weight: 500;
+      }
+      .my-subs-pill {
+        font: 10px/1 ui-monospace, SFMono-Regular, Menlo, monospace;
+        letter-spacing: .08em; color: var(--muted-strong, var(--muted));
+        background: var(--bg); border: 1px solid var(--line);
+        padding: 3px 6px; border-radius: 999px;
+      }
+      .my-subs-when {
+        font-size: 11px; color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      #paste-back-toggle {
+        margin-top: 8px;
+        background: transparent; border: 0; cursor: pointer;
+        color: var(--muted); font: inherit; font-size: 12px;
+        padding: 6px 4px;
+      }
+      #paste-back-toggle:hover { color: var(--fg); }
+      #paste-back-form {
+        display: flex; gap: 6px; margin-top: 8px;
+      }
+      #paste-back-form[hidden] { display: none; }
+      #paste-back-form input {
+        flex: 1; padding: 7px 9px; font: inherit; font-size: 13px;
+        background: var(--bg); color: var(--fg);
+        border: 1px solid var(--line); border-radius: 6px;
+      }
+      #paste-back-form input:focus { outline: none; border-color: var(--accent); }
+      #paste-back-form button {
+        background: var(--accent); color: #fff; border: 0;
+        padding: 7px 14px; border-radius: 6px;
+        font: inherit; font-size: 13px; cursor: pointer;
+      }
+      .paste-back-status { font-size: 12px; color: var(--muted); margin-top: 6px; min-height: 16px; }
+      .paste-back-status.err { color: var(--err); }
+      @media (max-width: 720px) {
+        #my-subs { margin-left: 0; margin-right: 0; }
+      }
+
+      .helper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed var(--line); font-size: 12px; color: var(--muted); line-height: 1.6; }
+      .helper code { font: 11px ui-monospace, SFMono-Regular, monospace; background: var(--card-bg); padding: 1px 4px; border-radius: 3px; }
+
+      @media (max-width: 720px) {
+        body { padding: 16px 12px 60px; }
+        #drop { padding: 36px 16px; }
+        #workspace { grid-template-columns: 1fr; }
+        #map { position: relative; top: auto; height: 50vh; min-height: 280px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">India's open atlas</span></a>
+      <nav class="site-nav">
+        <a href="/">catalog</a>
+        <a href="/preview" data-active>contribute</a>
+        <a href="/about">about</a>
+        <a href="https://github.com/urbanmorph/geodata" target="_blank" rel="noopener">github</a>
+      </nav>
+    </header>
+
+    <main>
+    <h1 class="page-title">View, verify, or publish a geo file</h1>
+    <p class="page-sub">Drop a file to render it on a map and check it. Optionally publish to the open catalog. Nothing is uploaded unless you click <strong>Publish</strong>.</p>
+
+    <label id="drop" for="file">
+      <strong>Drop a file or click to choose</strong>
+      <span class="hint">GeoJSON · KML · KMZ · GPX · TCX · Parquet · up to 500 MB</span>
+      <input type="file" id="file" accept=".geojson,.json,.kml,.kmz,.gpx,.tcx,.parquet" />
+    </label>
+
+    <aside id="my-subs" hidden aria-label="Your submissions">
+      <h2>Your submissions</h2>
+      <div id="my-subs-list"></div>
+      <button type="button" id="paste-back-toggle" aria-expanded="false" aria-controls="paste-back-form">+ Add an existing submission by admin URL</button>
+      <form id="paste-back-form" hidden>
+        <input type="text" id="paste-back-url" placeholder="https://bharatlas.com/c/Xa9Kp7n?key=adm_…" autocomplete="off" />
+        <button type="submit">Add</button>
+      </form>
+      <div id="paste-back-status" class="paste-back-status" role="status" aria-live="polite"></div>
+    </aside>
+
+    <section id="workspace" aria-live="polite">
+      <div id="map"></div>
+      <aside class="ws-side">
+        <h2>Validation</h2>
+        <div id="report"></div>
+
+        <!-- Publish CTA — view-by-default; clicking expands the form. -->
+        <div id="publish-cta">
+          <p class="cta-line">Want to share this with others?</p>
+          <button type="button" class="primary" id="publish-open">Publish to catalog →</button>
+          <p class="cta-hint">Or leave it. Nothing has been uploaded.</p>
+        </div>
+
+        <!-- View-only banner shown when the file came from /c/[id] (?url=…) -->
+        <div id="view-only-banner" class="view-only" hidden>
+          <p>You're viewing a layer that's already in the catalog. <a id="vob-source" href="/">Back to catalog →</a></p>
+        </div>
+
+        <form id="meta">
+          <div class="form-head">
+            <h3>Publish to catalog</h3>
+            <button type="button" class="cancel" id="publish-cancel" aria-label="Cancel publish">✕</button>
+          </div>
+
+          <div class="field">
+            <label for="f-name">Name <span class="req">*</span></label>
+            <input id="f-name" name="name" maxlength="120" required placeholder="Bangalore bike lanes" />
+          </div>
+
+          <div class="field">
+            <label for="f-desc">Description</label>
+            <textarea id="f-desc" name="description" maxlength="500" placeholder="What does this layer contain? Where did it come from?"></textarea>
+          </div>
+
+          <div class="field">
+            <label for="f-cat">Category <span class="req">*</span></label>
+            <select id="f-cat" name="category" required>
+              <option value="">pick one</option>
+              <option value="administrative">Administrative boundaries</option>
+              <option value="people">People &amp; places</option>
+              <option value="environment">Environment &amp; nature</option>
+              <option value="agriculture">Agriculture &amp; land use</option>
+              <option value="transport">Transport &amp; mobility</option>
+              <option value="infrastructure">Infrastructure &amp; utilities</option>
+              <option value="culture">Culture &amp; heritage</option>
+              <option value="health-edu">Health &amp; education</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="f-lic">Licence <span class="req">*</span></label>
+            <select id="f-lic" name="license" required>
+              <option value="">pick one</option>
+              <option value="CC0-1.0">CC0 1.0 (Public Domain Dedication)</option>
+              <option value="CC-BY-4.0">CC BY 4.0 (Attribution)</option>
+              <option value="CC-BY-SA-4.0">CC BY-SA 4.0 (Attribution-ShareAlike)</option>
+              <option value="ODbL-1.0">ODbL 1.0 (Open Database License)</option>
+              <option value="ODC-PDDL-1.0">ODC PDDL (Public Domain Dedication)</option>
+              <option value="GODL-India">Government Open Data Licence, India</option>
+            </select>
+            <div class="hint">Only open licences are accepted.</div>
+          </div>
+
+          <div class="field">
+            <label for="f-attr">Attribution <span class="req">*</span></label>
+            <input id="f-attr" name="attribution" minlength="3" maxlength="200" required placeholder="e.g. BBMP Open Data Portal" />
+            <div class="hint">Credit line shown on every card and the view page.</div>
+          </div>
+
+          <div class="field">
+            <label>Provenance <span class="req">*</span></label>
+            <div class="radio-group">
+              <label><input type="radio" name="is_original" value="0" checked /> <span>Republished from a public source</span></label>
+              <label><input type="radio" name="is_original" value="1" /> <span>Original work (I created this)</span></label>
+            </div>
+          </div>
+
+          <div class="field" id="src-field">
+            <label for="f-src"><span id="src-label">Source URL</span> <span class="req" id="src-req">*</span></label>
+            <input id="f-src" name="source_url" type="url" required placeholder="https://example.gov.in/dataset" />
+            <div class="hint" id="src-hint">The page where this data was originally published.</div>
+          </div>
+
+          <div class="field">
+            <label for="f-vintage">Data year <span class="hint-inline">(optional)</span></label>
+            <input id="f-vintage" name="data_year" type="number" min="1900" max="2099" placeholder="e.g. 2024" />
+            <div class="hint">When was this data collected or delimited? Helps users judge freshness.</div>
+          </div>
+
+          <p class="legal">By submitting you confirm you have the right to share this content under the selected open licence. Copyrighted or proprietary data is not accepted.</p>
+
+          <div id="captcha" data-sitekey="0x4AAAAAADS1eNhDCt7ziOuP"></div>
+
+          <button type="submit" class="primary" id="submit-btn" disabled>Publish →</button>
+          <div id="submit-status"></div>
+        </form>
+
+        <button type="button" class="reset" id="reset-btn">↺ drop a different file</button>
+      </aside>
+    </section>
+
+    <section id="success" aria-live="polite">
+      <h2>✓ Your submission is live</h2>
+      <p class="ok-line" id="success-url"></p>
+      <p class="ok-meta">The link works immediately. Your submission will be listed in the home page catalog in the next hour.</p>
+
+      <div class="warn">
+        <strong>Admin token (shown once). Save it.</strong>
+        <div class="token" id="success-token"></div>
+        <div class="actions">
+          <button type="button" class="secondary" id="copy-token">Copy token</button>
+          <button type="button" class="secondary" id="download-token">Download as .txt</button>
+        </div>
+        <div class="hint">Lose this and you can't edit or delete your submission.</div>
+      </div>
+
+      <a href="#" class="cta" id="goto-submission">Take me to my submission →</a>
+    </section>
+
+    <div class="helper">
+      <strong>Accepts:</strong> <code>.geojson</code> · <code>.json</code> · <code>.kml</code> · <code>.kmz</code> · <code>.gpx</code> · <code>.tcx</code> · <code>.parquet</code><br />
+      Files are parsed in your browser. Submit ships them to R2 + records metadata in D1.<br />
+      Rate limit: 5 submissions per hour, 20 per day, per IP.
+    </div>
+    </main>
+
+    <footer class="site-footer">
+      <p>Open licences only. Each layer carries its source link on the card.</p>
+      <p>
+        <a href="/privacy">privacy</a> ·
+        <a href="/terms">terms</a> ·
+        <a href="https://github.com/urbanmorph/geodata">code</a> ·
+        made by <a href="https://urbanmorph.com">urbanmorph</a> ·
+        a digital commons · <a href="https://pdgi.org">pdgi.org</a>
+      </p>
+    </footer>
+
+    <script type="module" src="/src/preview.ts"></script>
+  </body>
+</html>
