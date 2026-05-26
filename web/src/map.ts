@@ -661,8 +661,12 @@ function applyActiveFilters(
   mapFilter: MaplibreFilter,
 ): void {
   if (!map) return;
+  const pointGeomFilter: maplibregl.FilterSpecification = ['==', ['geometry-type'], 'Point'];
   for (const id of ['fill', 'line-halo', 'line', 'point']) {
-    if (map.getLayer(id)) {
+    if (!map.getLayer(id)) continue;
+    if (id === 'point') {
+      map.setFilter(id, mapFilter ? ['all', pointGeomFilter, mapFilter as maplibregl.FilterSpecification] : pointGeomFilter);
+    } else {
       map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
     }
   }
