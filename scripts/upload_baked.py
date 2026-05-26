@@ -24,6 +24,10 @@ from pathlib import Path
 import boto3
 from botocore.config import Config
 
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from build_catalog import R2 as _R2_BASE  # noqa: E402
+
 BUCKET = "geodata-data"
 ROOT = Path(__file__).resolve().parent.parent
 BAKED = ROOT / "data" / "baked"
@@ -73,7 +77,7 @@ def collect_local_files() -> list[tuple[Path, str, int]]:
     if catalog_path.exists():
         catalog = json.loads(catalog_path.read_text())
         sources_dir = ROOT / "sources" / "india-geodata"
-        r2_prefix = "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/"
+        r2_prefix = _R2_BASE + "/"
         seen: set[str] = set()
         for layer in catalog.get("layers", []) or []:
             for fmt in ("parquet", "pmtiles", "geojson"):

@@ -109,19 +109,19 @@ function toUint8Array(v: unknown): Uint8Array | null {
 
 // ----- WKB → GeoJSON parser (ISO WKB, the format DuckDB uses for geometry blobs) -----
 
-type GeomOut =
+type Geometry =
   | { type: 'Point'; coordinates: [number, number] }
   | { type: 'LineString'; coordinates: [number, number][] }
   | { type: 'Polygon'; coordinates: [number, number][][] }
   | { type: 'MultiPoint'; coordinates: [number, number][] }
   | { type: 'MultiLineString'; coordinates: [number, number][][] }
   | { type: 'MultiPolygon'; coordinates: [number, number][][][] }
-  | { type: 'GeometryCollection'; geometries: GeomOut[] };
+  | { type: 'GeometryCollection'; geometries: Geometry[] };
 
-export function parseWKB(buf: Uint8Array): GeomOut {
+export function parseWKB(buf: Uint8Array): Geometry {
   const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
   let p = 0;
-  function readGeom(): GeomOut {
+  function readGeom(): Geometry {
     const le = dv.getUint8(p) === 1; p += 1;
     const typeWithFlags = dv.getUint32(p, le); p += 4;
     // Strip Z/M flags. Two encodings in the wild:
@@ -180,7 +180,7 @@ export function parseWKB(buf: Uint8Array): GeomOut {
       }
       case 7: {
         const n = dv.getUint32(p, le); p += 4;
-        const geoms: GeomOut[] = [];
+        const geoms: Geometry[] = [];
         for (let i = 0; i < n; i++) geoms.push(readGeom());
         return { type: 'GeometryCollection', geometries: geoms };
       }
@@ -214,6 +214,7 @@ export async function exportFilteredKML(
 }
 
 // --- inline GeoJSON → KML conversion (avoids a dep; handles Polygon/MultiPolygon/Point) ---
+// Keep in sync with scripts/bake_extracts.py KML section
 
 // Try most-specific first (village name) so a feature's KML <name> matches
 // the level you're looking at, not its parent.
@@ -258,14 +259,6 @@ function geoJSONFeaturesToKML(
 </kml>`;
 }
 
-type Geom =
-  | { type: 'Point'; coordinates: [number, number] }
-  | { type: 'LineString'; coordinates: [number, number][] }
-  | { type: 'Polygon'; coordinates: [number, number][][] }
-  | { type: 'MultiPolygon'; coordinates: [number, number][][][] }
-  | { type: 'MultiLineString'; coordinates: [number, number][][] }
-  | { type: 'GeometryCollection'; geometries: Geom[] };
-
 function coordPair(c: [number, number]): string {
   return `${c[0]},${c[1]}`;
 }
@@ -283,7 +276,7 @@ function polygon(p: [number, number][][]): string {
 
 function geometryToKML(g: unknown): string {
   if (!g || typeof g !== 'object' || !('type' in g)) return '';
-  const geom = g as Geom;
+  const geom = g as Geometry;
   switch (geom.type) {
     case 'Point':
       return `<Point><coordinates>${coordPair(geom.coordinates)}</coordinates></Point>`;

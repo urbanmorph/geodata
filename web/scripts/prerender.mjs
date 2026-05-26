@@ -19,6 +19,7 @@ if (!existsSync(catalogPath)) {
 const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
 await copyFile(catalogPath, resolve(WEB, 'public', 'catalog.json'));
 
+// Keep in sync with web/src/format-hints.ts:fmtBytes
 function fmtBytes(n) {
   if (n == null) return '—';
   if (n < 1024) return n + ' B';
@@ -54,6 +55,7 @@ function isStale(iso) {
   if (!iso) return false;
   return (Date.now() - new Date(iso).getTime()) / 86400000 > STALE_DAYS;
 }
+// Keep in sync with web/src/util.ts:escapeHtml
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
 // Build-time mirror of web/src/seo.ts. Both produce the same head block;
@@ -185,7 +187,6 @@ const LEVEL_META = {
     label: 'NCLT benches',
     unit: 'NCLT benches',
     description: "National Company Law Tribunal's 15 bench jurisdictions. Dissolved from LGD state polygons per nclt.gov.in bench assignments.",
-    description: 'State legislative assembly constituency polygons across India.',
   },
 
   // Postal
@@ -972,7 +973,7 @@ await renderPage(
     structuredData: {
       '@context': 'https://schema.org',
       '@type': 'WebApplication',
-      name: 'geodata · preview',
+      name: 'bharatlas · preview',
       url: ORIGIN + '/preview',
       applicationCategory: 'UtilityApplication',
       operatingSystem: 'Web',

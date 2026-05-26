@@ -14,6 +14,7 @@ import {
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
 import { getFullCatalog } from './catalog';
 import { escapeHtml } from './util';
+import { fmtBytes } from './format-hints';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
 import {
   buildMaplibreFilter,
@@ -189,7 +190,7 @@ export function mountFilterPanel(
         if (bake?.url) {
           const fn = `${layer.id}__state${code}.${fmt}`;
           downloadUrl(bake.url, fn);
-          status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(fn)} (${formatSize(bake.bytes)}, pre-baked).</span>`;
+          status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(fn)} (${fmtBytes(bake.bytes)}, pre-baked).</span>`;
           return;
         }
       }
@@ -226,7 +227,7 @@ export function mountFilterPanel(
         // /api/dl/ so the Pages Function increments D1.
         const countKey = parquetUrl.replace(/^https?:\/\/[^/]+\//, '').replace(/\.parquet$/, `.${fmt}`);
         fetch(`/api/dl/${countKey}`, { keepalive: true }).catch(() => {});
-        status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(filename)} (${formatSize(blob.size)}).</span>`;
+        status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(filename)} (${fmtBytes(blob.size)}).</span>`;
       } catch (e) {
         clearTimeout(warmTimer);
         loader.dismiss();
@@ -394,10 +395,4 @@ function downloadBlob(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   downloadUrl(url, filename);
   setTimeout(() => URL.revokeObjectURL(url), 30000);
-}
-
-function formatSize(n: number): string {
-  if (n < 1024) return n + ' B';
-  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
-  return (n / 1024 / 1024).toFixed(1) + ' MB';
 }

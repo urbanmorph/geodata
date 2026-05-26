@@ -6,6 +6,7 @@
 
 import { query } from './db';
 import type { ColumnStats, ColumnType } from './filter-schema';
+import { escIdent } from './filter-where';
 
 const DUCKDB_TO_NORM: Record<string, ColumnType> = {
   BOOLEAN: 'bool',
@@ -26,10 +27,6 @@ const MAX_TOP_VALUES = 50;
 function normaliseType(t: string): ColumnType {
   const base = t.split('(')[0].trim().toUpperCase();
   return DUCKDB_TO_NORM[base] ?? 'string';
-}
-
-function escIdent(s: string): string {
-  return `"${s.replace(/"/g, '""')}"`;
 }
 
 // Aggregate column aliases need to be valid SQL identifiers — strip anything

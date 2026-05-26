@@ -144,7 +144,6 @@ def write_geojson_whole(
         # Reuse the manual writer's logic but without the state filter.
         # write_geojson_manual takes (con, src, col, code, out) — we don't
         # have a column filter here, so inline a no-WHERE variant.
-        import json
         schema = con.execute(
             f"DESCRIBE SELECT * FROM '{parquet.as_posix()}' LIMIT 0"
         ).fetchall()
@@ -263,7 +262,7 @@ def curated_layers() -> list[tuple[str, str, str, int]]:
     # etc.) are appended dynamically in build_catalog and appear in
     # catalog.json but not in the hardcoded bc.LAYERS tuple at import time.
     catalog_path = ROOT / "web" / "public" / "catalog.json"
-    r2_base = "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/"
+    r2_base = bc.R2 + "/"
     if catalog_path.exists():
         try:
             catalog = json.loads(catalog_path.read_text())
