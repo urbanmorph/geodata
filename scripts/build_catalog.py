@@ -56,6 +56,7 @@ LEVELS = {
     'reservoir':              {'order': 47, 'plural': 'reservoirs',                               'path': 'water/waterbodies',           'category': 'environment'},
 
     # Transport
+    'airport':                {'order': 47, 'plural': 'airports',                                 'path': 'transport/airports',          'category': 'transport'},
     'national_highway':       {'order': 48, 'plural': 'national highways',                       'path': 'infra/national-highways',     'category': 'transport'},
 
     # Health

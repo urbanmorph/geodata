@@ -256,6 +256,11 @@ const LEVEL_META = {
     unit: 'reservoirs',
     description: 'Reservoir polygons from CWC WRIS. Complements the river basin, sub-basin, and river network layers.',
   },
+  airport: {
+    label: 'Airports',
+    unit: 'airports',
+    description: 'Airports across India. 151 point features with name, type, district, and state. From data.gov.in.',
+  },
   national_highway: {
     label: 'National highways',
     unit: 'highway segments',
@@ -277,7 +282,7 @@ const BUILTIN_LEVEL_ORDER = [
   'pincode',
   'seismic_zone',
   'dam', 'reservoir',
-  'national_highway',
+  'airport', 'national_highway',
   'health_facility',
   'wildlife', 'eco_zone', 'forest',
   'ramsar', 'wetland',
