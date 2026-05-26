@@ -274,10 +274,10 @@ function addFillLayers(sourceId: string, sourceLayer?: string) {
     ...common,
     filter: ['==', ['geometry-type'], 'Point'],
     paint: {
-      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 1, 10, 3, 14, 5],
+      'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 10, 5, 14, 7],
       'circle-color': '#0a58ca',
-      'circle-opacity': 0.7,
-      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 8, 0, 12, 0.5],
+      'circle-opacity': 0.75,
+      'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 10, 1],
       'circle-stroke-color': '#fff',
     },
   });
