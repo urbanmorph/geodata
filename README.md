@@ -2,7 +2,9 @@
 
 [![ci](https://github.com/urbanmorph/geodata/actions/workflows/ci.yml/badge.svg)](https://github.com/urbanmorph/geodata/actions/workflows/ci.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
-[![status: alpha](https://img.shields.io/badge/status-alpha-orange.svg)](#status)
+[![v1.0](https://img.shields.io/badge/release-v1.0-brightgreen.svg)](https://github.com/urbanmorph/geodata/releases)
+[![uptime](https://img.shields.io/website?url=https%3A%2F%2Fbharatlas.com&label=bharatlas.com)](https://bharatlas.com)
+[![Lighthouse: 98+](https://img.shields.io/badge/Lighthouse-98%2B-brightgreen?logo=lighthouse)](https://pagespeed.web.dev/analysis?url=https%3A%2F%2Fbharatlas.com)
 
 A visual catalog, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences.
 
@@ -123,4 +125,4 @@ Pipelines + patterns:
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
 
-**Status:** alpha. Submission flow is live and accepting contributions; the schema and external API may shift before v5. Community submissions are permanent under the open licence the contributor selected.
+**Status:** v1.0. 60+ curated layers, community submissions, dynamic filters, whole-layer downloads in 4 formats. The schema and external API may still shift. Community submissions are permanent under the open licence the contributor selected.
