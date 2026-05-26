@@ -125,7 +125,7 @@ export function mountFilterPanel(
     try {
       const rows = await query<{ n: bigint | number }>(sql);
       window.clearTimeout(warmTimer);
-      if (mySeq !== countSeq) return; // a newer filter superseded us
+      if (mySeq !== countSeq) return;
       countLoader?.dismiss();
       countLoader = undefined;
       engineWarm = true;
