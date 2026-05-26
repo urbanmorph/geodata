@@ -998,6 +998,14 @@ await renderPage('terms', {
   image: ORIGIN + '/og-default.png',
 });
 
+await renderPage('docs', {
+  title: 'API v1',
+  description:
+    "Public JSON API for India's open geo layers. List layers, locate a point across 77 datasets, download in 5 formats. No auth, no API key.",
+  url: ORIGIN + '/docs',
+  image: ORIGIN + '/og-default.png',
+});
+
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
@@ -1005,6 +1013,7 @@ const sitemapUrls = [
   { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
+  { loc: ORIGIN + '/docs', changefreq: 'monthly', priority: '0.7' },
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
