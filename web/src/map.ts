@@ -79,6 +79,11 @@ function setBasemap(id: BasemapId): void {
 }
 
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
+// The layer's data extent — set by attachData from the PMTiles header
+// or geojson source. Every fitBounds in the session uses this instead
+// of hardcoding INDIA_BOUNDS so city-scale layers (wards, BDA) return
+// to their own extent, not to all-India.
+let layerBounds: [number, number, number, number] = INDIA_BOUNDS;
 
 export async function openLayer(layerId: string, opts: { titleEl: HTMLElement }) {
   const cat = (await getCatalog()) as { layers?: Layer[] };
@@ -108,7 +113,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     container,
     style: buildBaseStyle(activeBasemap),
     bounds: INDIA_BOUNDS,
-    fitBoundsOptions: { padding: 20 },
+    fitBoundsOptions: { padding: { top: 60, bottom: 20, left: 20, right: 20 } },
     attributionControl: { compact: true },
     // Required so map.getCanvas().toDataURL() returns pixels for the
     // "Export image (PNG)" menu entry. Tiny perf cost; acceptable here.
@@ -209,10 +214,11 @@ async function attachData(layer: Layer) {
       minzoom: header.minZoom,
       maxzoom: header.maxZoom,
     });
+    layerBounds = [header.minLon, header.minLat, header.maxLon, header.maxLat];
     map.fitBounds([
-      [header.minLon, header.minLat],
-      [header.maxLon, header.maxLat],
-    ], { padding: 20, duration: 0 });
+      [layerBounds[0], layerBounds[1]],
+      [layerBounds[2], layerBounds[3]],
+    ], { padding: { top: 60, bottom: 20, left: 20, right: 20 }, duration: 0 });
     addFillLayers('layer', sourceLayer);
   } else if (layer.geojson?.url) {
     map.addSource('layer', { type: 'geojson', data: layer.geojson.url, attribution: layer.source });
@@ -594,11 +600,19 @@ async function wireFilterButton(layer: Layer) {
             btn.disabled = false;
             btn.textContent = 'Filter & export';
             applyActiveFilters([], null);
+            if (map) map.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding: { top: 60, bottom: 20, left: 20, right: 20 }, duration: 600 });
           },
           onActiveFiltersChange: (filters, mapFilter) => {
             applyActiveFilters(filters, mapFilter, fullCat);
           },
         });
+        // Re-center India for the uncovered viewport now that the
+        // filter panel covers the right side.
+        if (map) {
+          requestAnimationFrame(() => {
+            map!.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding: panelAwarePadding(), duration: 300 });
+          });
+        }
       } catch (e) {
         console.error('filter panel failed to load', e);
       } finally {
@@ -639,33 +653,43 @@ function applyActiveFilters(
   },
 ): void {
   if (!map) return;
-  for (const id of ['fill', 'line-halo', 'line']) {
+  for (const id of ['fill', 'line-halo', 'line', 'point']) {
     if (map.getLayer(id)) {
       map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
     }
   }
   const padding = panelAwarePadding();
 
-  if (fullCatalog?.state_bounds && fullCatalog.states) {
-    const byName = new Map(fullCatalog.states.map((s) => [s.name.toLowerCase(), s.code]));
-    const codes = resolveStateCodes(filters, byName);
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    for (const c of codes) {
-      const b = fullCatalog.state_bounds[String(c)];
-      if (b) {
-        if (b[0] < minX) minX = b[0];
-        if (b[1] < minY) minY = b[1];
-        if (b[2] > maxX) maxX = b[2];
-        if (b[3] > maxY) maxY = b[3];
+  // Zoom to the filtered area. Old approach used LGD state codes which
+  // only worked for LGD-coded layers. New approach: wait for MapLibre to
+  // apply the filter, then compute bbox from the rendered features.
+  // Generic — works for ANY layer regardless of column schema.
+  if (filters.length) {
+    const m = map;
+    const p = padding;
+    // Wait for MapLibre to finish applying the filter + rendering
+    // before computing the bbox from visible features.
+    m.once('idle', () => {
+      const features = m.queryRenderedFeatures(undefined, {
+        layers: ['fill', 'point'].filter((id) => m.getLayer(id)),
+      });
+      if (!features.length) return;
+      const bounds = new maplibregl.LngLatBounds();
+      for (const f of features) {
+        if (f.geometry.type === 'Point') {
+          bounds.extend(f.geometry.coordinates as [number, number]);
+        } else if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
+          const coords = f.geometry.type === 'Polygon'
+            ? f.geometry.coordinates[0]
+            : f.geometry.coordinates[0][0];
+          for (const c of coords) bounds.extend(c as [number, number]);
+        }
       }
-    }
-    if (minX !== Infinity) {
-      map.fitBounds([[minX, minY], [maxX, maxY]], { padding, duration: 600 });
-      return;
-    }
-  }
-
-  if (!filters.length) {
-    map.fitBounds(INDIA_BOUNDS, { padding, duration: 600 });
+      if (!bounds.isEmpty()) {
+        m.fitBounds(bounds, { padding: p, duration: 600 });
+      }
+    });
+  } else {
+    map.fitBounds([[layerBounds[0], layerBounds[1]], [layerBounds[2], layerBounds[3]]], { padding, duration: 600 });
   }
 }
