@@ -5,7 +5,7 @@
 // index.html and rewrite its meta tags via HTMLRewriter. The browser-side
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
 
-import { buildViewDataset, type CatalogLayer, type LevelMeta } from '../lib/view-dataset';
+import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer, type LevelMeta } from '../lib/view-dataset';
 
 type Params = { id: string };
 
@@ -36,14 +36,14 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
     return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
 
+  const levelMeta = resolveLevelMeta(layer, catalog.level_meta);
   const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd } = buildViewDataset(
     layer,
-    catalog.level_meta?.[layer.level],
+    levelMeta,
     origin,
   );
+  const contentHtml = buildViewContent(layer, levelMeta, origin);
 
-  // HTMLRewriter.setAttribute HTML-escapes the value itself — passing pre-escaped
-  // strings produces &amp;quot; etc.
   return new HTMLRewriter()
     .on('title', {
       element(el) { el.setInnerContent(`${title} · bharatlas`); },
@@ -60,11 +60,12 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
     .on('script[type="application/ld+json"]', {
       element(el) {
         el.setInnerContent(JSON.stringify(jsonLd).replace(/</g, '\\u003c'), { html: true });
-        // Multiple JSON-LD blocks on a page are fine — Google ingests each
-        // independently. Append BreadcrumbList right after the Dataset.
         const bc = JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c');
         el.after(`\n    <script type="application/ld+json">${bc}</script>`, { html: true });
       },
+    })
+    .on('body', {
+      element(el) { el.prepend(contentHtml, { html: true }); },
     })
     .transform(new Response(indexResp.body, {
       status: 200,
