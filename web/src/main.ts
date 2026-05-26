@@ -209,7 +209,7 @@ if (searchInput && grid) {
   const saved = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
   if (saved && saved !== 'all') {
     const match = chips.find((c) => c.dataset.cat === saved);
-    if (match && match.dataset.count !== '0') {
+    if (match) {
       chips.forEach((c) => c.classList.toggle('active', c === match));
       activeCat = saved;
       apply();
