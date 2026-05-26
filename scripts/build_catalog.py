@@ -464,8 +464,39 @@ def build_state_counts():
     return out
 
 
+def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
+    """Fill in null bytes, missing baked downloads, and null fetched_at
+    from the previous catalog.json entry for the same layer id. This makes
+    rebuild idempotent even when local baked files have been deleted."""
+    prev = prev_layers.get(layer['id'])
+    if not prev:
+        return
+    if layer.get('parquet') and layer['parquet'].get('bytes') is None:
+        layer['parquet']['bytes'] = (prev.get('parquet') or {}).get('bytes')
+    if layer.get('pmtiles') and layer['pmtiles'].get('bytes') is None:
+        layer['pmtiles']['bytes'] = (prev.get('pmtiles') or {}).get('bytes')
+    for fmt in ('geojson', 'kml', 'shapefile'):
+        if not layer.get(fmt) and prev.get(fmt):
+            layer[fmt] = prev[fmt]
+    if not layer.get('fetched_at') and prev.get('fetched_at'):
+        layer['fetched_at'] = prev['fetched_at']
+
+
+def _load_prev_layers() -> dict[str, dict]:
+    """Load layers from the existing catalog.json as a {id: layer} dict."""
+    prev_path = ROOT / 'catalog.json'
+    if not prev_path.exists():
+        return {}
+    try:
+        prev = json.loads(prev_path.read_text())
+        return {l['id']: l for l in prev.get('layers', [])}
+    except Exception:
+        return {}
+
+
 def build():
     layers = []
+    prev_layers = _load_prev_layers()
 
     for id_, level, source, parquet, pmtiles, rows, licence, notes in LAYERS:
         parquet_path = SRC / parquet
@@ -507,6 +538,7 @@ def build():
             'fetched_at': fetched_at,
             'notes': notes,
         })
+        carry_forward_from_prev(layers[-1], prev_layers)
 
     # India national boundary (osm-in). The same India-correct line that
     # the Bharatlas Minimal basemap renders, exposed as a downloadable
@@ -514,64 +546,67 @@ def build():
     ib_path = 'reference'
     ib_basename = 'india_boundary'
     ib_baked = baked_downloads(ib_path, ib_basename)
-    if ib_baked.get('geojson'):
-        layers.append({
-            'id': 'india_boundary',
-            'level': 'country',
-            'source': 'LGD',
-            'rows': 1,
-            'parquet': None,
-            'pmtiles': None,
-            'geojson': ib_baked.get('geojson'),
-            'kml': ib_baked.get('kml'),
-            'shapefile': ib_baked.get('shapefile'),
-            'licence': LIC_STATE_DIST,
-            'attribution': {
-                'primary': ATTR['LGD'],
-                'publisher': None,
-            },
-            'category': 'administrative',
-            'provenance': 'curated',
-            'fetched_at': mtime_of(BAKED / ib_path / f'{ib_basename}.geojson'),
-            'notes': "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source — includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim).",
-        })
+    ib_layer = {
+        'id': 'india_boundary',
+        'level': 'country',
+        'source': 'LGD',
+        'rows': 1,
+        'parquet': None,
+        'pmtiles': None,
+        'geojson': ib_baked.get('geojson'),
+        'kml': ib_baked.get('kml'),
+        'shapefile': ib_baked.get('shapefile'),
+        'licence': LIC_STATE_DIST,
+        'attribution': {
+            'primary': ATTR['LGD'],
+            'publisher': None,
+        },
+        'category': 'administrative',
+        'provenance': 'curated',
+        'fetched_at': mtime_of(BAKED / ib_path / f'{ib_basename}.geojson'),
+        'notes': "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source — includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim).",
+    }
+    carry_forward_from_prev(ib_layer, prev_layers)
+    if ib_layer.get('geojson'):
+        layers.append(ib_layer)
 
     # India Flood Inventory v3 — single geojson upstream (CC-BY-4.0). 1,006
     # historical flood event polygons 1960s–2020. No parquet/pmtiles upstream;
     # ships as geojson-only (the in-viewer DuckDB path can still load it).
     flood_name = 'INDIA_FLOOD_INVENTORY_V3.geojson'
     flood_local = SRC / flood_name
-    if flood_local.exists():
-        layers.append({
-            'id': 'india_flood_inventory',
-            'level': 'flood_event',
-            'source': 'IndiaFloodInventory',
-            'rows': 1006,
-            'parquet': None,
-            'pmtiles': None,
-            'geojson': {
-                'url': f'{R2}/environment/flood-inventory/{flood_name}',
-                'upstream_url': f'{UPSTREAM_BASE}/environment/flood-inventory/{flood_name}',
-                'bytes': size_of(flood_local),
-            },
-            'kml': None,
-            'shapefile': None,
-            'licence': 'CC-BY-4.0',
-            'attribution': {
-                'primary': ATTR['IndiaFloodInventory'],
-                'publisher': PUBLISHER,
-            },
-            'category': 'environment',
-            'provenance': 'curated',
-            'fetched_at': mtime_of(flood_local),
-            'notes': '1,006 historical flood event polygons across India, 1960s–2020. Compiled for hydrological modelling research; useful as a climate-adaptation reference layer.',
-        })
+    flood_layer = {
+        'id': 'india_flood_inventory',
+        'level': 'flood_event',
+        'source': 'IndiaFloodInventory',
+        'rows': 1006,
+        'parquet': None,
+        'pmtiles': None,
+        'geojson': {
+            'url': f'{R2}/environment/flood-inventory/{flood_name}',
+            'upstream_url': f'{UPSTREAM_BASE}/environment/flood-inventory/{flood_name}',
+            'bytes': size_of(flood_local),
+        } if flood_local.exists() else None,
+        'kml': None,
+        'shapefile': None,
+        'licence': 'CC-BY-4.0',
+        'attribution': {
+            'primary': ATTR['IndiaFloodInventory'],
+            'publisher': PUBLISHER,
+        },
+        'category': 'environment',
+        'provenance': 'curated',
+        'fetched_at': mtime_of(flood_local),
+        'notes': '1,006 historical flood event polygons across India, 1960s-2020. Compiled for hydrological modelling research; useful as a climate-adaptation reference layer.',
+    }
+    carry_forward_from_prev(flood_layer, prev_layers)
+    if flood_layer.get('geojson'):
+        layers.append(flood_layer)
 
     for id_, level, name, rows, notes in GEOBOUNDARIES:
         path = GB / name
-        # geoBoundaries upstream uses ADM<N> level names: IND_ADM1.geojson etc.
         adm = name.replace('IND_', '').replace('.geojson', '').lower()
-        layers.append({
+        gb_layer = {
             'id': id_,
             'level': level,
             'source': 'geoBoundaries',
@@ -592,7 +627,17 @@ def build():
             'provenance': 'curated',
             'fetched_at': mtime_of(path),
             'notes': notes,
-        })
+        }
+        carry_forward_from_prev(gb_layer, prev_layers)
+        layers.append(gb_layer)
+
+    # Carry forward any layers from the previous catalog that this build
+    # didn't produce (e.g. layers added by bake_judiciary.py or one-off
+    # ingest scripts that wrote directly to catalog.json).
+    built_ids = {l['id'] for l in layers}
+    for pid, prev in prev_layers.items():
+        if pid not in built_ids:
+            layers.append(prev)
 
     # per-state geojson extracts under data/boundaries/<level>/lgd_<level>_<state>.geojson
     state_extracts = []
