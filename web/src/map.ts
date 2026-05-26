@@ -548,14 +548,13 @@ async function wireFilterButton(layer: Layer) {
 
   btn.classList.remove('shown');
   document.querySelector('.filter-panel')?.remove();
-
-  const result = await loadFilterColumns(layer, signal);
-  if (!result) return;
-  const { columns: ranked, rowCount } = result;
+  if (!layer.parquet?.url) return;
 
   btn.classList.add('shown');
   btn.textContent = 'Filter & export';
   btn.disabled = false;
+
+  const columnsPromise = loadFilterColumns(layer, signal);
 
   const idle: (cb: () => void) => void =
     'requestIdleCallback' in window
@@ -567,12 +566,30 @@ async function wireFilterButton(layer: Layer) {
     'click',
     async () => {
       if (document.querySelector('.filter-panel')) return;
+      const container = document.getElementById('map')!;
+
+      const { VERBS_ENGINE } = await import('./loading');
+      const panel = document.createElement('div');
+      panel.className = 'filter-panel';
+      panel.innerHTML = `<div style="padding:24px;color:var(--muted);font-size:14px"></div>`;
+      container.appendChild(panel);
+      const msg = panel.firstElementChild!;
+      let vi = 0;
+      msg.textContent = VERBS_ENGINE[0];
+      const timer = setInterval(() => { msg.textContent = VERBS_ENGINE[++vi % VERBS_ENGINE.length]; }, 1800);
+
+      const result = await columnsPromise;
+      clearInterval(timer);
+      panel.remove();
+      if (signal.aborted || !result) return;
+
+      const { columns: ranked, rowCount } = result;
       btn.disabled = true;
       btn.textContent = 'Loading…';
       try {
         const { mountFilterPanel } = await import('./filter');
         if (signal.aborted) return;
-        mountFilterPanel(layer, document.getElementById('map')!, ranked, rowCount, {
+        mountFilterPanel(layer, container, ranked, rowCount, {
           onClose: () => {
             btn.disabled = false;
             btn.textContent = 'Filter & export';
