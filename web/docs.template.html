@@ -40,7 +40,7 @@
   <body>
     <!-- NAV -->
 
-      <h1>API v1 <span class="badge badge--beta">beta</span></h1>
+      <h1>API v1 <span class="badge badge--stable">stable</span></h1>
       <p>Public, read-only JSON API for India's open geo layers. No auth, no API key. All endpoints return JSON with CORS enabled.</p>
       <p>Base URL: <code>https://bharatlas.com/api/v1</code></p>
 
@@ -185,7 +185,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
 
       <h2>Response Format</h2>
       <p>All endpoints return JSON. List endpoints wrap results in:</p>
-      <pre><code>{ "data": [...], "total": 77, "limit": 100, "offset": 0 }</code></pre>
+      <pre><code>{ "data": [...], "total": N, "limit": 100, "offset": 0 }</code></pre>
       <p>Detail endpoints wrap in:</p>
       <pre><code>{ "data": { ... } }</code></pre>
       <p>Errors return:</p>

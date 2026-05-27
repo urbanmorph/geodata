@@ -15,7 +15,7 @@ catalog               → India national boundary (LGD-dissolved)
                         + state · district · subdistrict · block · village (LGD)
                         + cross-source alternates (SOI · Bhuvan · geoBoundaries
                         · PMGSY per level — click "also: ..." on any card)
-                        + city wards (34 layers across 30+ Indian cities)
+                        + city wards across Indian cities
                         + electoral constituencies, wildlife, eco-zones
                         + 63k pincode polygons (bharatviz)
 download              → whole layer as Parquet · PMTiles · GeoJSON · KML ·
@@ -77,7 +77,7 @@ git clone git@github.com:urbanmorph/geodata.git
 cd geodata/web
 npm install
 npm run dev    # http://localhost:5173
-npm test       # 447+ vitest tests
+npm test
 ```
 
 For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.
@@ -92,12 +92,9 @@ For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/
 
 Commit messages: short subject, body explains *why* not *what*. Examples in `git log`.
 
-## Roadmap
+## Changelog
 
-- **Next**: mobile responsive audit; spatial join primitives; npm provenance for MCP
-- **Shipped**: REST API v1 (13 endpoints: layers, schema, query, locate, nearby, categories, levels, counts, downloads, submissions, hierarchy); MCP server ([`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp)) with 8 LLM tools; CSP; catalog with cross-source compare; in-browser filter + slice + typeahead export; whole-layer downloads (Parquet / PMTiles / GeoJSON / KML / Shapefile); data vintage years on all layers; India-correct minimal basemap + national boundary layer; drag-and-drop verify + anonymous contribution; "Your submissions" panel; embed iframe + PNG export; edge-rendered `/view/<id>` + `/c/<id>` with per-layer OG cards; schema-driven dynamic filters with statistical column classification; live category counts; privacy + ToS + disputed-borders policy; a11y refactor; AEO crawler allowlist + JSON-LD (Dataset, BreadcrumbList, FAQPage, Person)
-
-Track active work in [Issues](https://github.com/urbanmorph/geodata/issues) and [Milestones](https://github.com/urbanmorph/geodata/milestones).
+See [releases](https://github.com/urbanmorph/geodata/releases) and [merged PRs](https://github.com/urbanmorph/geodata/pulls?q=is%3Amerged).
 
 ## Security
 
@@ -135,4 +132,4 @@ Pipelines + patterns:
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
 
-**Status:** v1.0. 77 curated layers, community submissions, REST API v1 (13 endpoints), MCP server (8 tools, [npm](https://www.npmjs.com/package/bharatlas-mcp)), dynamic filters with typeahead, whole-layer downloads in 5 formats. API docs at [/docs](https://bharatlas.com/docs), MCP setup at [/mcp](https://bharatlas.com/mcp). Community submissions are permanent under the open licence the contributor selected.
+**Status:** v1.0. Curated layers, community submissions, REST API, MCP server ( [npm](https://www.npmjs.com/package/bharatlas-mcp)), dynamic filters with typeahead, whole-layer downloads in 5 formats. API docs at [/docs](https://bharatlas.com/docs), MCP setup at [/mcp](https://bharatlas.com/mcp). Community submissions are permanent under the open licence the contributor selected.

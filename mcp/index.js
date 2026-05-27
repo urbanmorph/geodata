@@ -10,7 +10,7 @@ import https from "node:https";
 
 const API = process.env.BHARATLAS_API || "https://bharatlas.com/api/v1";
 
-const SERVER_INSTRUCTIONS = `bharatlas MCP server. India's open geo data: 77 curated layers (state to village boundaries, city wards, forests, hospitals, highways, floods, seismic zones) plus community submissions.
+const SERVER_INSTRUCTIONS = `bharatlas MCP server. India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, floods, seismic zones) plus community submissions.
 
 Workflow patterns:
 
