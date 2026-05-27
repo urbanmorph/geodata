@@ -17,5 +17,8 @@ bucket_name = "geodata-data"
 # - TURNSTILE_SECRET — Cloudflare Turnstile secret key
 
 # Local dev fallback for the Turnstile site key — overridden in production via env.
+[alias]
+hyparquet = "hyparquet/src/index.js"
+
 [vars]
 PUBLIC_TURNSTILE_SITEKEY = ""
