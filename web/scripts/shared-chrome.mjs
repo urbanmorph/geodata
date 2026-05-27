@@ -53,10 +53,19 @@ export const TOKENS = `
   .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
   .site-nav a {
     color: var(--muted); text-decoration: none; font-size: var(--fs-base);
-    padding: 4px 0;
+    padding: 6px 2px;
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
   }
   .site-nav a:hover { color: var(--fg); }
   .site-nav a[data-active] { color: var(--fg); font-weight: 500; }
+  @media (max-width: 480px) {
+    .site-header { gap: var(--sp-2); margin-bottom: var(--sp-4); }
+    .site-brand .tagline { display: none; }
+    .site-nav { gap: var(--sp-2); }
+    .site-nav a { font-size: var(--fs-sm); }
+  }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
     border-top: 1px solid var(--line);

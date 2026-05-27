@@ -637,14 +637,46 @@
         }
         .filter-panel__btn .muted { font-size: 10px; }
 
-        /* Bigger touch targets in map header */
+        /* Touch targets: 44px minimum */
         #map-overlay button.close,
         #map-overlay button.filter-toggle,
-        .filter-panel__close { min-height: 38px; padding-left: 14px; padding-right: 14px; }
-        /* Trim the verbose map title on narrow screens */
+        .filter-panel__close { min-height: 44px; padding: 8px 14px; }
+        .filter-panel__select,
+        .filter-search,
+        .filter-range__input { min-height: 44px; padding: 10px 12px; font-size: 16px; }
+
+        /* Map header: title on its own line, buttons wrap evenly below */
+        #map-overlay header.map-bar {
+          flex-wrap: wrap;
+          padding: 8px 12px;
+          gap: 6px;
+        }
         #map-overlay .map-title {
-          font-size: 12px;
+          font-size: 13px;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+          width: 100%;
+          order: -1;
+        }
+        #map-overlay button.close,
+        #map-overlay button.filter-toggle {
+          font-size: 12px;
+          flex: 1;
+          text-align: center;
+        }
+        .map-pop-wrap { flex: 1; }
+        .map-pop-wrap button { width: 100%; }
+
+        /* Popovers: full-width bottom sheet on mobile */
+        .map-popover {
+          position: fixed;
+          left: 0; right: 0; bottom: 0;
+          top: auto;
+          width: 100%;
+          max-height: 60vh;
+          border-radius: 14px 14px 0 0;
+          box-shadow: 0 -8px 24px rgba(0,0,0,0.15);
+          z-index: 20;
+          overflow-y: auto;
         }
       }
 
