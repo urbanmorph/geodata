@@ -63,6 +63,32 @@
       <p>Single layer detail with download URLs, attribution, and column schema.</p>
       <pre><code>curl https://bharatlas.com/api/v1/layers/lgd_states</code></pre>
 
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/schema</span></h3>
+      <p>Column names, types, and sample values. Reads parquet metadata from R2 at runtime. Use this to discover what columns a layer has before querying.</p>
+      <pre><code>curl https://bharatlas.com/api/v1/layers/airports/schema</code></pre>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/query</span></h3>
+      <p>Query layer data with filters and grouping. Reads the parquet from R2 at runtime, no pre-computation needed. Works for curated and community layers.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>select</code></td><td>string</td><td>Comma-separated column names to return</td></tr>
+        <tr><td><code>where</code></td><td>string</td><td>Filters: <code>col1=val1,col2=val2</code></td></tr>
+        <tr><td><code>group_by</code></td><td>string</td><td>Group by column, returns value counts</td></tr>
+        <tr><td><code>limit</code></td><td>int</td><td>Max rows (default 100, max 1000)</td></tr>
+      </table>
+      <pre><code># How many airports in Bengaluru district?
+curl "https://bharatlas.com/api/v1/layers/airports/query?where=district=Bengaluru Urban&amp;select=name,type"
+
+# How many reserve forests in Karnataka?
+curl "https://bharatlas.com/api/v1/layers/soi_forests/query?where=State_LGD=29&amp;group_by=type"
+
+# National parks vs wildlife sanctuaries
+curl "https://bharatlas.com/api/v1/layers/gs_wildlife/query?group_by=type"
+
+# Which blocks are in district 571?
+curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=Dist_LGD=571&amp;select=BNAME,Block_LGD"</code></pre>
+      <p>Columns with geometry data (geom, wkb_geometry) are excluded from results. For large layers, queries may take 1-5 seconds on first call (cached afterward).</p>
+
       <h2>Locate <span class="badge badge--stable">stable</span></h2>
 
       <h3><span class="method">GET</span> <span class="endpoint">/api/v1/locate</span></h3>
