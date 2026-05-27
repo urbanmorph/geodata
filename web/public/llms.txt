@@ -1,0 +1,65 @@
+# bharatlas
+
+> India's open atlas. View, query, and download open geo data from state to village.
+
+bharatlas is a visual catalog, REST API, and MCP server for India's geospatial data. Open-licensed layers covering admin boundaries (state, district, subdistrict, block, village), city wards, forests, wildlife sanctuaries, rivers, reservoirs, dams, eco-sensitive zones, seismic zones, flood history, highways, airports, health facilities, pincodes, electoral constituencies, and community submissions.
+
+## MCP server
+
+Install: `npx bharatlas-mcp`
+
+8 tools: list_layers, get_layer_schema, query_layer, locate, nearby, get_layer_detail, list_categories, list_submissions.
+
+Configuration:
+```json
+{"mcpServers":{"bharatlas":{"command":"npx","args":["-y","bharatlas-mcp"]}}}
+```
+
+The server sends instructions at connection time that teach schema-first querying, source preference (LGD for admin, alternates for cross-reference), concept-to-layer mapping ("water bodies" = rivers + reservoirs + wetlands + ramsar + dams), and spatial join workflows.
+
+## REST API
+
+Base URL: https://bharatlas.com/api/v1
+No auth. No API key. CORS enabled.
+
+Endpoints:
+- GET /api/v1/layers — list layers with ?category, ?level, ?source, ?q, ?limit, ?offset
+- GET /api/v1/layers/:id — single layer detail with download URLs
+- GET /api/v1/layers/:id/schema — column names, types, distinct values
+- GET /api/v1/layers/:id/query — filter, select, group_by on any column
+- GET /api/v1/layers/:id/counts — feature counts with optional grouping
+- GET /api/v1/locate — point-in-polygon across admin layers + zones
+- GET /api/v1/nearby — find features within a radius (points, polygons, lines)
+- GET /api/v1/categories — data categories with layer counts
+- GET /api/v1/levels — admin hierarchy levels
+- GET /api/v1/downloads/counts — download statistics
+- GET /api/v1/submissions — community-contributed layers
+- GET /api/v1/submissions/:id — single submission detail
+
+## What you can ask
+
+- "How many national parks vs wildlife sanctuaries?" — query_layer with group_by
+- "How many villages in Bengaluru Urban district?" — query_layer with where filter
+- "Which airports in Karnataka are near water bodies?" — query_layer + nearby across layers
+- "What state, district, seismic zone is this point in?" — locate
+- "Reservoirs within 50km of Bengaluru?" — nearby
+- "How many health facilities in Bihar?" — query_layer with state filter
+
+## Data sources
+
+LGD (Local Government Directory), SOI (Survey of India), Bhuvan (NRSC/ISRO), OpenCity/Oorvani Foundation, DataMeet, PMGSY, PM GatiShakti, Bharatmaps (NIC), bharatviz, geoBoundaries, CWC (Central Water Commission), data.gov.in.
+
+All open-licensed: CC0, CC-BY, CC-BY-SA, ODbL, GODL-India, MIT.
+
+## Downloads
+
+Every layer available as Parquet, PMTiles, GeoJSON, KML, and Shapefile. Direct URLs from /api/v1/layers/:id.
+
+## Links
+
+- Website: https://bharatlas.com
+- API docs: https://bharatlas.com/docs
+- MCP setup: https://bharatlas.com/mcp
+- npm: https://www.npmjs.com/package/bharatlas-mcp
+- GitHub: https://github.com/urbanmorph/geodata
+- About: https://bharatlas.com/about

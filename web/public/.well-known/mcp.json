@@ -1,0 +1,27 @@
+{
+  "name": "bharatlas",
+  "description": "India's open atlas. Query geo layers, locate points, find nearby features, filter and download data.",
+  "url": "https://bharatlas.com",
+  "version": "1.0.1",
+  "server": {
+    "command": "npx",
+    "args": ["-y", "bharatlas-mcp"],
+    "transport": "stdio"
+  },
+  "tools": [
+    "list_layers",
+    "get_layer_schema",
+    "query_layer",
+    "locate",
+    "nearby",
+    "get_layer_detail",
+    "list_categories",
+    "list_submissions"
+  ],
+  "links": {
+    "npm": "https://www.npmjs.com/package/bharatlas-mcp",
+    "docs": "https://bharatlas.com/docs",
+    "mcp": "https://bharatlas.com/mcp",
+    "github": "https://github.com/urbanmorph/geodata"
+  }
+}
