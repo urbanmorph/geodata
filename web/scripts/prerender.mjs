@@ -1006,6 +1006,14 @@ await renderPage('docs', {
   image: ORIGIN + '/og-default.png',
 });
 
+await renderPage('mcp', {
+  title: 'MCP Server',
+  description:
+    "Ask questions about India's geo data in natural language. Connect Claude, GPT, or any LLM to 77 geo layers via the bharatlas MCP server.",
+  url: ORIGIN + '/mcp',
+  image: ORIGIN + '/og-default.png',
+});
+
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
@@ -1014,6 +1022,7 @@ const sitemapUrls = [
   { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/docs', changefreq: 'monthly', priority: '0.7' },
+  { loc: ORIGIN + '/mcp', changefreq: 'monthly', priority: '0.7' },
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

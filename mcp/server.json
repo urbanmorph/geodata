@@ -1,0 +1,13 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.urbanmorph/bharatlas-mcp",
+  "description": "Query India's open geo data: 77 layers from state to village, city wards, forests, hospitals, highways. Locate points, filter, group, download.",
+  "version": "1.0.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "bharatlas-mcp",
+      "transport": { "type": "stdio" }
+    }
+  ]
+}

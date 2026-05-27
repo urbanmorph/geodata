@@ -32,15 +32,16 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     }
   }
   // Also check for direct column=value params (skip reserved params)
-  const reserved = new Set(['select', 'group_by', 'limit', 'where', 'order_by']);
+  const reserved = new Set(['select', 'group_by', 'limit', 'where', 'order_by', 'include_centroid']);
   for (const [k, v] of url.searchParams.entries()) {
     if (!reserved.has(k) && v) where[k] = v;
   }
+  const includeCentroid = url.searchParams.get('include_centroid') === 'true';
 
   try {
     const start = Date.now();
     const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
-    const result = await query(file, { select, where: Object.keys(where).length ? where : undefined, groupBy, limit });
+    const result = await query(file, { select, where: Object.keys(where).length ? where : undefined, groupBy, limit, includeCentroid });
     const timing = Date.now() - start;
 
     return new Response(safeStringify({ data: result, layer_id: id, timing_ms: timing }), {

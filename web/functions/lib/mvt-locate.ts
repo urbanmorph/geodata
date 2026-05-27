@@ -30,7 +30,7 @@ export function findFeaturesAtPoint(
       const polys = splitMultiPolygon(rings);
       for (const poly of polys) {
         if (pointInPolygon([lng, lat], poly)) {
-          hits.push({ layer_name: layerName, properties: feat.properties });
+          hits.push({ layer_name: layerName, properties: cleanProperties(feat.properties) });
           break;
         }
       }
@@ -81,4 +81,20 @@ function signedArea(ring: [number, number][]): number {
     sum += (ring[j][0] - ring[i][0]) * (ring[j][1] + ring[i][1]);
   }
   return sum;
+}
+
+// FIX #6: strip internal/computed fields from MVT properties
+const JUNK_PROPS = new Set([
+  'shape_leng', 'shape_area', 'shape_length', 'shape.starea()', 'shape.stlength()',
+  'shape_le_1', 'st_area(shape)', 'st_perimeter(shape)',
+  'inpoly_fid', 'simpgnflag', 'maxsimptol', 'minsimptol',
+  'ogc_fid',
+]);
+
+function cleanProperties(props: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(props)) {
+    if (!JUNK_PROPS.has(k.toLowerCase())) out[k] = v;
+  }
+  return out;
 }

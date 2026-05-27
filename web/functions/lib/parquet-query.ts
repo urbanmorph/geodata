@@ -10,7 +10,7 @@ import type { AsyncBuffer } from './parquet-r2';
 export interface ColumnSchema {
   name: string;
   type: string;
-  sample?: unknown[];
+  distinct_values?: unknown[];
 }
 
 export interface QueryResult {
@@ -18,18 +18,32 @@ export interface QueryResult {
   rows: Record<string, unknown>[];
   total: number;
   truncated: boolean;
+  hints?: Record<string, unknown[]>;
 }
 
 export interface GroupByResult {
   column: string;
   counts: Record<string, number>;
   total: number;
+  hints?: Record<string, unknown[]>;
 }
 
 const MAX_ROWS = 1000;
 const MAX_GROUP_BY_VALUES = 500;
-const SAMPLE_SIZE = 5;
+const MAX_DISTINCT_SAMPLE = 20;
 
+const JUNK_COLUMNS = new Set([
+  'shape_leng', 'shape_area', 'shape_length', 'shape.starea()', 'shape.stlength()',
+  'shape_le_1', 'st_area(shape)', 'st_perimeter(shape)',
+  'inpoly_fid', 'simpgnflag', 'maxsimptol', 'minsimptol',
+  'ogc_fid', 'objectid', 'objectid_1', 'objectid_2', 'objectid_3',
+]);
+
+function isJunkColumn(name: string): boolean {
+  return JUNK_COLUMNS.has(name.toLowerCase());
+}
+
+// FIX #5: sample from distinct values, not first N rows
 export async function getSchema(file: AsyncBuffer): Promise<{
   row_count: number;
   columns: ColumnSchema[];
@@ -46,19 +60,24 @@ export async function getSchema(file: AsyncBuffer): Promise<{
     });
   }
 
+  // Read a sample of rows spread across the dataset for distinct value discovery
   if (rowCount > 0 && columns.length > 0) {
     const colNames = columns.map((c) => c.name);
+    const sampleSize = Math.min(200, rowCount);
     const sampleRows = await parquetQuery({
-      compressors,
-      file,
-      columns: colNames,
-      rowEnd: Math.min(SAMPLE_SIZE, rowCount),
+      compressors, file, columns: colNames, rowEnd: sampleSize,
     });
+
     for (const col of columns) {
-      const vals = sampleRows
-        .map((r: Record<string, unknown>) => r[col.name])
-        .filter((v: unknown) => v !== null && v !== undefined);
-      if (vals.length > 0) col.sample = vals.slice(0, SAMPLE_SIZE);
+      const distinct = new Set<string>();
+      for (const r of sampleRows as Record<string, unknown>[]) {
+        const v = r[col.name];
+        if (v !== null && v !== undefined) distinct.add(String(v));
+        if (distinct.size >= MAX_DISTINCT_SAMPLE) break;
+      }
+      if (distinct.size > 0 && distinct.size <= MAX_DISTINCT_SAMPLE) {
+        col.distinct_values = [...distinct].sort();
+      }
     }
   }
 
@@ -72,6 +91,7 @@ export async function query(
     where?: Record<string, string>;
     groupBy?: string;
     limit?: number;
+    includeCentroid?: boolean;
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await parquetMetadataAsync(file);
@@ -84,22 +104,28 @@ export async function query(
   return selectQuery(file, allCols, opts);
 }
 
+// FIX #3: centroid support via bbox columns
+const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
+
 async function selectQuery(
   file: AsyncBuffer,
   allCols: string[],
-  opts: { select?: string[]; where?: Record<string, string>; limit?: number },
+  opts: { select?: string[]; where?: Record<string, string>; limit?: number; includeCentroid?: boolean },
 ): Promise<QueryResult> {
   const selectCols = opts.select?.length
     ? opts.select.filter((c) => allCols.includes(c))
-    : allCols.filter((c) => !c.toLowerCase().includes('geom') && c !== 'wkb_geometry');
+    : allCols.filter((c) => !c.toLowerCase().includes('geom') && c !== 'wkb_geometry' && !isJunkColumn(c));
 
   if (selectCols.length === 0) {
     return { columns: [], rows: [], total: 0, truncated: false };
   }
 
-  // Include where-filter columns in the read set so filtering works
   const readCols = new Set(selectCols);
   if (opts.where) Object.keys(opts.where).forEach((c) => { if (allCols.includes(c)) readCols.add(c); });
+  // FIX #3: include bbox columns if centroid requested and they exist
+  if (opts.includeCentroid) {
+    for (const bc of BBOX_COLS) if (allCols.includes(bc)) readCols.add(bc);
+  }
 
   const limit = Math.min(opts.limit ?? 100, MAX_ROWS);
   const allRows = await parquetQuery({ compressors, file, columns: [...readCols] });
@@ -117,14 +143,38 @@ async function selectQuery(
 
   const total = filtered.length;
   const truncated = total > limit;
-  // Project back to only the requested columns
+
   const rows = filtered.slice(0, limit).map((row) => {
     const out: Record<string, unknown> = {};
     for (const c of selectCols) out[c] = row[c];
+    // FIX #3: compute centroid from bbox if available
+    if (opts.includeCentroid && row.xmin != null && row.ymin != null) {
+      out._lat = (Number(row.ymin) + Number(row.ymax ?? row.ymin)) / 2;
+      out._lng = (Number(row.xmin) + Number(row.xmax ?? row.xmin)) / 2;
+    }
     return out;
   });
 
-  return { columns: selectCols, rows, total, truncated };
+  // FIX #2: on zero results, provide hints (distinct values for filtered columns)
+  let hints: Record<string, unknown[]> | undefined;
+  if (total === 0 && opts.where && Object.keys(opts.where).length > 0) {
+    hints = {};
+    for (const [col] of Object.entries(opts.where)) {
+      if (!allCols.includes(col)) {
+        hints[col] = [`Column "${col}" not found. Available: ${allCols.filter((c) => !c.toLowerCase().includes('geom')).join(', ')}`];
+        continue;
+      }
+      const distinct = new Set<string>();
+      for (const row of allRows as Record<string, unknown>[]) {
+        const v = row[col];
+        if (v !== null && v !== undefined) distinct.add(String(v));
+        if (distinct.size >= 15) break;
+      }
+      hints[col] = [...distinct].sort();
+    }
+  }
+
+  return { columns: selectCols, rows, total, truncated, hints };
 }
 
 async function groupByQuery(
@@ -134,7 +184,7 @@ async function groupByQuery(
   where?: Record<string, string>,
 ): Promise<GroupByResult> {
   if (!allCols.includes(groupCol)) {
-    const available = allCols.filter((c) => !c.toLowerCase().includes('geom') && c !== 'wkb_geometry');
+    const available = allCols.filter((c) => !c.toLowerCase().includes('geom') && c !== 'wkb_geometry' && !isJunkColumn(c));
     throw new Error(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
   }
 
@@ -165,10 +215,26 @@ async function groupByQuery(
     .sort((a, b) => b[1] - a[1])
     .slice(0, MAX_GROUP_BY_VALUES);
 
+  // FIX #2: hints on zero results
+  let hints: Record<string, unknown[]> | undefined;
+  if (filtered.length === 0 && where && Object.keys(where).length > 0) {
+    hints = {};
+    for (const [col] of Object.entries(where)) {
+      const distinct = new Set<string>();
+      for (const row of allRows as Record<string, unknown>[]) {
+        const v = row[col];
+        if (v !== null && v !== undefined) distinct.add(String(v));
+        if (distinct.size >= 15) break;
+      }
+      hints[col] = [...distinct].sort();
+    }
+  }
+
   return {
     column: groupCol,
     counts: Object.fromEntries(sorted),
     total: filtered.length,
+    hints,
   };
 }
 
