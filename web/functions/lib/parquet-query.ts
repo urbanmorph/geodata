@@ -4,6 +4,7 @@
  * No hardcoded layer or column names.
  */
 import { parquetMetadataAsync, parquetQuery } from 'hyparquet';
+import { compressors } from 'hyparquet-compressors';
 import type { AsyncBuffer } from './parquet-r2';
 
 export interface ColumnSchema {
@@ -49,7 +50,7 @@ export async function getSchema(file: AsyncBuffer): Promise<{
   if (rowCount > 0 && columns.length > 0) {
     const colNames = columns.map((c) => c.name);
     const sampleRows: Record<string, unknown>[] = [];
-    await parquetQuery({
+    await parquetQuery({ compressors,
       file,
       columns: colNames,
       rowEnd: Math.min(SAMPLE_SIZE, rowCount),
