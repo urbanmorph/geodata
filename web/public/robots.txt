@@ -55,3 +55,7 @@ User-agent: CCBot
 Allow: /
 
 Sitemap: https://bharatlas.com/sitemap.xml
+
+# LLM discovery
+# https://llmstxt.org
+LLMs: https://bharatlas.com/llms.txt

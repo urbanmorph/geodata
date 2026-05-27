@@ -1,10 +1,11 @@
 {
   "name": "bharatlas-mcp",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "MCP server for India's open geo data. Query layers, locate points, find nearby features, filter and group data.",
   "keywords": ["mcp", "india", "geo", "geospatial", "gis", "boundaries", "parquet", "pmtiles", "llm", "claude", "bharatlas"],
   "repository": { "type": "git", "url": "https://github.com/urbanmorph/geodata", "directory": "mcp" },
   "homepage": "https://bharatlas.com/mcp",
+  "mcpName": "io.github.urbanmorph/bharatlas-mcp",
   "type": "module",
   "main": "index.js",
   "bin": {
