@@ -43,7 +43,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const result = await query(file, { select, where: Object.keys(where).length ? where : undefined, groupBy, limit });
     const timing = Date.now() - start;
 
-    return new Response(JSON.stringify({ data: result, layer_id: id, timing_ms: timing }), {
+    return new Response(safeStringify({ data: result, layer_id: id, timing_ms: timing }), {
       headers: {
         'content-type': 'application/json',
         'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
@@ -56,6 +56,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 };
 
+function safeStringify(obj: unknown): string {
+  return JSON.stringify(obj, (_k, v) => typeof v === 'bigint' ? Number(v) : v);
+}
+
 function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  return new Response(safeStringify(body), { status, headers: { 'content-type': 'application/json' } });
 }

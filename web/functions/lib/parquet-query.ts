@@ -97,8 +97,12 @@ async function selectQuery(
     return { columns: [], rows: [], total: 0, truncated: false };
   }
 
+  // Include where-filter columns in the read set so filtering works
+  const readCols = new Set(selectCols);
+  if (opts.where) Object.keys(opts.where).forEach((c) => { if (allCols.includes(c)) readCols.add(c); });
+
   const limit = Math.min(opts.limit ?? 100, MAX_ROWS);
-  const allRows = await parquetQuery({ compressors, file, columns: selectCols });
+  const allRows = await parquetQuery({ compressors, file, columns: [...readCols] });
 
   let filtered = allRows as Record<string, unknown>[];
   if (opts.where && Object.keys(opts.where).length > 0) {
@@ -113,7 +117,12 @@ async function selectQuery(
 
   const total = filtered.length;
   const truncated = total > limit;
-  const rows = filtered.slice(0, limit);
+  // Project back to only the requested columns
+  const rows = filtered.slice(0, limit).map((row) => {
+    const out: Record<string, unknown> = {};
+    for (const c of selectCols) out[c] = row[c];
+    return out;
+  });
 
   return { columns: selectCols, rows, total, truncated };
 }
