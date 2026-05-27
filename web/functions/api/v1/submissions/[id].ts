@@ -8,12 +8,21 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
     return json(400, { error: 'Invalid submission ID', status: 400 });
   }
 
-  const row = await ctx.env.DB.prepare(
-    `SELECT id, created_at, updated_at, status, name, description, category, license,
-            attribution, source_url, data_year, format, bytes, feature_count,
-            geometry_types, r2_key, useful_count
-     FROM submissions WHERE id = ? AND status = 'accepted'`,
-  ).bind(id).first();
+  let row;
+  try {
+    row = await ctx.env.DB.prepare(
+      `SELECT id, created_at, updated_at, status, name, description, category, license,
+              attribution, source_url, data_year, format, bytes, feature_count,
+              geometry_types, r2_key, useful_count
+       FROM submissions WHERE id = ? AND status = 'accepted'`,
+    ).bind(id).first();
+  } catch {
+    row = await ctx.env.DB.prepare(
+      `SELECT id, created_at, status, name, description, category, license,
+              attribution, source_url, format, bytes, feature_count, geometry_types, r2_key
+       FROM submissions WHERE id = ? AND status = 'accepted'`,
+    ).bind(id).first();
+  }
 
   if (!row) return json(404, { error: 'Submission not found', status: 404 });
 
