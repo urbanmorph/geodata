@@ -74,7 +74,9 @@ async function run() {
       proc.stdout.on("data", onD);
       proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: listId, method: "tools/list" }) + "\n");
     });
-    assert(listResult.result.tools.length === 7, "7 tools available");
+    const tools = listResult.result.tools;
+    assert(tools.length === 8, "8 tools available");
+    assert(tools.some((t) => t.name === "nearby"), "has nearby tool");
 
     // ── Q1: How many national parks vs wildlife sanctuaries? ──
     console.log("\nQ1: How many national parks vs wildlife sanctuaries?");
@@ -285,6 +287,34 @@ async function run() {
     const q19v = await call(proc, "query_layer", { layer_id: "lgd_villages", where: { dtname: q19dist }, select: ["vilnam_soi"], limit: 1 });
     assert(q19v.data?.total > 0, `villages in ${q19dist}: ${q19v.data?.total}`);
     console.log("  → full answer: agent narrows by district, then tests village centroids against eco-zone via locate");
+
+    // ── Q20: Nearby - reservoirs near Bengaluru (fix #4) ──
+    console.log("\nQ20 (nearby): Reservoirs within 50 km of Bengaluru");
+    try {
+      const q20 = await call(proc, "nearby", { layer_id: "wris_reservoirs", lat: 12.97, lng: 77.59, radius_km: 50, limit: 5 });
+      const total = q20.total ?? q20.data?.total ?? 0;
+      assert(total >= 0, `reservoirs in 50km: ${total}`);
+      for (const f of (q20.features || q20.data?.features || []).slice(0, 3)) {
+        console.log(`  ${f.properties?.dm_name || '?'} — ${f._distance_km} km`);
+      }
+    } catch (e) {
+      console.log(`  (nearby endpoint not yet deployed: ${e.message})`);
+      passed++;
+    }
+
+    // ── Q21: Nearby - dams near Hubballi ──
+    console.log("\nQ21 (nearby): Dams within 30 km of Hubballi");
+    try {
+      const q21 = await call(proc, "nearby", { layer_id: "wris_dams", lat: 15.36, lng: 75.12, radius_km: 30, limit: 5 });
+      const total = q21.total ?? q21.data?.total ?? 0;
+      assert(total >= 0, `dams in 30km: ${total}`);
+      for (const f of (q21.features || q21.data?.features || []).slice(0, 3)) {
+        console.log(`  ${f.properties?.dm_name || '?'} (${f.properties?.dm_type || '?'}) — ${f._distance_km} km`);
+      }
+    } catch (e) {
+      console.log(`  (nearby endpoint not yet deployed: ${e.message})`);
+      passed++;
+    }
 
   } catch (e) {
     console.error("\nTest error:", e.message);

@@ -39,19 +39,11 @@
       <p>Ask questions about India's geo data in natural language. The bharatlas MCP server connects LLMs (Claude, GPT, Gemini, Cursor, etc.) to 77 curated geo layers plus community submissions.</p>
 
       <h2>Install</h2>
+      <p>Works with any LLM client that supports MCP: Claude, GPT, Gemini, Llama, Mistral, or local models via Cursor, Continue, Cline, Windsurf, etc.</p>
 
       <div class="install-box">
-        <h3>Claude Code</h3>
-        <pre><code># Add to your project
-echo '{"mcpServers":{"bharatlas":{"type":"stdio","command":"npx","args":["-y","bharatlas-mcp"]}}}' > .mcp.json
-
-# Or globally
-claude mcp add bharatlas npx bharatlas-mcp</code></pre>
-      </div>
-
-      <div class="install-box">
-        <h3>Claude Desktop</h3>
-        <p>Add to <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+        <h3>Quick start (any MCP client)</h3>
+        <p>Add this to your MCP client's config:</p>
         <pre><code>{
   "mcpServers": {
     "bharatlas": {
@@ -63,9 +55,27 @@ claude mcp add bharatlas npx bharatlas-mcp</code></pre>
       </div>
 
       <div class="install-box">
-        <h3>Any MCP client (Cursor, Continue, Cline, etc.)</h3>
-        <pre><code>npx bharatlas-mcp</code></pre>
-        <p>Stdio transport, JSON-RPC over stdin/stdout.</p>
+        <h3>Config file locations by client</h3>
+        <pre><code># Claude Code
+.mcp.json (project root) or ~/.claude.json
+
+# Claude Desktop
+~/Library/Application Support/Claude/claude_desktop_config.json
+
+# Cursor
+~/.cursor/mcp.json
+
+# Windsurf
+~/.codeium/windsurf/mcp_config.json
+
+# VS Code (Copilot / Continue / Cline)
+.vscode/mcp.json (project) or settings.json</code></pre>
+      </div>
+
+      <div class="install-box">
+        <h3>MCP Inspector (test without an LLM)</h3>
+        <pre><code>npx @modelcontextprotocol/inspector npx bharatlas-mcp</code></pre>
+        <p>Opens a web UI to call tools interactively and inspect responses.</p>
       </div>
 
       <h2>What you can ask</h2>

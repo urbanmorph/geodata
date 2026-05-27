@@ -172,6 +172,31 @@ const TOOLS = [
     },
   },
   {
+    name: "nearby",
+    description:
+      "Find features from a layer that are near a given point. Samples a grid of points around the " +
+      "center and checks which hit the target layer via locate. Generic: works for any layer type " +
+      "(polygons, points, lines) without needing coordinate columns. " +
+      "Example: 'reservoirs near Bengaluru' -> layer_id: 'wris_reservoirs', lat: 12.97, lng: 77.59, radius_km: 50.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        layer_id: {
+          type: "string",
+          description: "Layer to search for nearby features",
+        },
+        lat: { type: "number", description: "Center point latitude" },
+        lng: { type: "number", description: "Center point longitude" },
+        radius_km: {
+          type: "number",
+          description: "Search radius in kilometres (default 25, max 200)",
+        },
+        limit: { type: "number", description: "Max results (default 20)" },
+      },
+      required: ["layer_id", "lat", "lng"],
+    },
+  },
+  {
     name: "list_categories",
     description: "List all data categories with layer counts.",
     inputSchema: { type: "object", properties: {} },
@@ -267,6 +292,11 @@ async function handleTool(name, args) {
       if (include_centroid) params.include_centroid = "true";
       if (where) params.where = Object.entries(where).map(([k, v]) => `${k}=${v}`).join(",");
       return callApi(`/layers/${layer_id}/query`, params);
+    }
+
+    case "nearby": {
+      const { layer_id, lat, lng, radius_km = 25, limit = 20 } = args;
+      return callApi("/nearby", { lat, lng, layer: layer_id, radius_km: Math.min(radius_km, 200), limit });
     }
 
     case "locate": {
