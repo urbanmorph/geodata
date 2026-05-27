@@ -22,7 +22,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   try {
     const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
     const schema = await getSchema(file);
-    return new Response(JSON.stringify({ data: schema }), {
+    return new Response(safeStringify({ data: schema }), {
       headers: { 'content-type': 'application/json', 'cache-control': CACHE },
     });
   } catch (e) {
@@ -30,6 +30,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 };
 
+function safeStringify(obj: unknown): string {
+  return JSON.stringify(obj, (_k, v) => typeof v === 'bigint' ? Number(v) : v);
+}
+
 function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+  return new Response(safeStringify(body), { status, headers: { 'content-type': 'application/json' } });
 }
