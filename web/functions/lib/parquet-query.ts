@@ -46,20 +46,18 @@ export async function getSchema(file: AsyncBuffer): Promise<{
     });
   }
 
-  // Read a few rows to get sample values
   if (rowCount > 0 && columns.length > 0) {
     const colNames = columns.map((c) => c.name);
-    const sampleRows: Record<string, unknown>[] = [];
-    await parquetQuery({ compressors,
+    const sampleRows = await parquetQuery({
+      compressors,
       file,
       columns: colNames,
       rowEnd: Math.min(SAMPLE_SIZE, rowCount),
-      onComplete: (rows: Record<string, unknown>[]) => sampleRows.push(...rows),
     });
     for (const col of columns) {
       const vals = sampleRows
-        .map((r) => r[col.name])
-        .filter((v) => v !== null && v !== undefined);
+        .map((r: Record<string, unknown>) => r[col.name])
+        .filter((v: unknown) => v !== null && v !== undefined);
       if (vals.length > 0) col.sample = vals.slice(0, SAMPLE_SIZE);
     }
   }
@@ -74,7 +72,6 @@ export async function query(
     where?: Record<string, string>;
     groupBy?: string;
     limit?: number;
-    orderBy?: string;
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await parquetMetadataAsync(file);
@@ -101,18 +98,11 @@ async function selectQuery(
   }
 
   const limit = Math.min(opts.limit ?? 100, MAX_ROWS);
-  const allRows: Record<string, unknown>[] = [];
+  const allRows = await parquetQuery({ compressors, file, columns: selectCols });
 
-  await parquetQuery({ compressors,
-    file,
-    columns: selectCols,
-    onComplete: (rows: Record<string, unknown>[]) => allRows.push(...rows),
-  });
-
-  // Apply where filters in JS (hyparquet reads all rows, we filter post-hoc)
-  let filtered = allRows;
+  let filtered = allRows as Record<string, unknown>[];
   if (opts.where && Object.keys(opts.where).length > 0) {
-    filtered = allRows.filter((row) =>
+    filtered = filtered.filter((row) =>
       Object.entries(opts.where!).every(([col, val]) => {
         const rv = row[col];
         if (rv === null || rv === undefined) return false;
@@ -139,22 +129,15 @@ async function groupByQuery(
     throw new Error(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
   }
 
-  // Read only the columns needed: groupBy col + any where filter cols
   const readCols = new Set([groupCol]);
   if (where) Object.keys(where).forEach((c) => readCols.add(c));
   const colList = [...readCols].filter((c) => allCols.includes(c));
 
-  const allRows: Record<string, unknown>[] = [];
-  await parquetQuery({ compressors,
-    file,
-    columns: colList,
-    onComplete: (rows: Record<string, unknown>[]) => allRows.push(...rows),
-  });
+  const allRows = await parquetQuery({ compressors, file, columns: colList });
 
-  // Apply where filters
-  let filtered = allRows;
+  let filtered = allRows as Record<string, unknown>[];
   if (where && Object.keys(where).length > 0) {
-    filtered = allRows.filter((row) =>
+    filtered = filtered.filter((row) =>
       Object.entries(where).every(([col, val]) => {
         const rv = row[col];
         if (rv === null || rv === undefined) return false;
@@ -163,14 +146,12 @@ async function groupByQuery(
     );
   }
 
-  // Group by
   const counts: Record<string, number> = {};
   for (const row of filtered) {
     const key = String(row[groupCol] ?? '(null)');
     counts[key] = (counts[key] || 0) + 1;
   }
 
-  // Sort by count descending, cap at MAX_GROUP_BY_VALUES
   const sorted = Object.entries(counts)
     .sort((a, b) => b[1] - a[1])
     .slice(0, MAX_GROUP_BY_VALUES);
