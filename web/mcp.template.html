@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" sizes="any" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      <!-- TOKENS -->
+      :root { --row-hover: var(--bg-card); }
+      body { max-width: 800px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.6; }
+      h1 { font-size: 28px; margin: 0 0 var(--sp-2); font-weight: 700; }
+      h2 { font-size: 20px; margin: var(--sp-6) 0 var(--sp-2); font-weight: 600; color: var(--fg); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+      h3 { font-size: 16px; margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
+      p, li { font-size: 15px; color: var(--muted); }
+      ul { padding-left: 20px; }
+      code { font: 13px ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+      pre { background: var(--row-hover); padding: var(--sp-3); border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+      pre code { background: none; padding: 0; }
+      a { color: var(--accent); text-decoration: none; }
+      a:hover { text-decoration: underline; }
+      .question { font-size: 15px; font-weight: 500; color: var(--fg); margin: 12px 0 4px; }
+      .answer { font-size: 14px; color: var(--muted); margin: 0 0 12px; padding-left: 16px; border-left: 2px solid var(--line); }
+      .install-box { background: var(--row-hover); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+      .install-box h3 { margin-top: 0; }
+      .badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px; font-weight: 500; background: #6366f122; color: var(--accent); }
+    </style>
+  </head>
+  <body>
+    <!-- NAV -->
+
+      <h1>MCP Server <span class="badge">beta</span></h1>
+      <p>Ask questions about India's geo data in natural language. The bharatlas MCP server connects LLMs (Claude, GPT, Gemini, Cursor, etc.) to 77 curated geo layers plus community submissions.</p>
+
+      <h2>Install</h2>
+
+      <div class="install-box">
+        <h3>Claude Code</h3>
+        <pre><code># Add to your project
+echo '{"mcpServers":{"bharatlas":{"type":"stdio","command":"npx","args":["-y","bharatlas-mcp"]}}}' > .mcp.json
+
+# Or globally
+claude mcp add bharatlas npx bharatlas-mcp</code></pre>
+      </div>
+
+      <div class="install-box">
+        <h3>Claude Desktop</h3>
+        <p>Add to <code>~/Library/Application Support/Claude/claude_desktop_config.json</code>:</p>
+        <pre><code>{
+  "mcpServers": {
+    "bharatlas": {
+      "command": "npx",
+      "args": ["-y", "bharatlas-mcp"]
+    }
+  }
+}</code></pre>
+      </div>
+
+      <div class="install-box">
+        <h3>Any MCP client (Cursor, Continue, Cline, etc.)</h3>
+        <pre><code>npx bharatlas-mcp</code></pre>
+        <p>Stdio transport, JSON-RPC over stdin/stdout.</p>
+      </div>
+
+      <h2>What you can ask</h2>
+
+      <h3>Counting and filtering</h3>
+      <p class="question">How many national parks vs wildlife sanctuaries in India?</p>
+      <p class="answer">101 national parks, 560 sanctuaries (from the gs_wildlife layer, grouped by category)</p>
+
+      <p class="question">How many villages are in Bengaluru Urban district?</p>
+      <p class="answer">949 villages (lgd_villages filtered by dtname=BENGALURU URBAN)</p>
+
+      <p class="question">How many health facilities are in Bihar?</p>
+      <p class="answer">8,363 facilities: 3,232 sub-centres, 591 PHCs, 74 CHCs (nic_health filtered by state)</p>
+
+      <p class="question">How many wards does Chennai have vs Pune?</p>
+      <p class="answer">Chennai: 200, Pune: 58 (from wards_chennai and wards_pune layer metadata)</p>
+
+      <h3>Location queries</h3>
+      <p class="question">What state, district, and seismic zone is Bengaluru in?</p>
+      <p class="answer">Karnataka, Bengaluru Urban, Seismic Zone II (locate endpoint checks 12 layers in one call)</p>
+
+      <p class="question">Which blocks are in district 571?</p>
+      <p class="answer">10 blocks: Kunigal, Tumakuru, Gubbi, Turuvekere, Tiptur... (lgd_blocks filtered by dtcode11)</p>
+
+      <h3>Cross-layer queries</h3>
+      <p class="question">How many airports in Bengaluru district? What are their types?</p>
+      <p class="answer">3 airports: HAL (Domestic), Yelahanka AFB (Civil Enclave), Kempegowda International. The MCP locates the district, then filters the airports layer by state and district.</p>
+
+      <p class="question">Which airports in Karnataka are near water bodies?</p>
+      <p class="answer">Hubballi Airport (~3 km from Unkal Lake), Mangalore Airport (between Netravathi and Gurupura rivers), Jindal Vijaynagar (~7 km from JSW Reservoir). Cross-references airports + reservoirs layers.</p>
+
+      <h3>Spatial queries (multi-step)</h3>
+      <p class="question">Which villages in Madhya Pradesh are in eco-sensitive zones?</p>
+      <p class="answer">MP has 4 eco-sensitive zones (Kharmor, Chambal, Orchha, Kheoni). The MCP narrows 47,571 MP villages by district, then tests each against the eco-zone boundaries.</p>
+
+      <p class="question">Which districts does NH-44 pass through?</p>
+      <p class="answer">Delhi, UP, MP, Telangana, Karnataka. The MCP samples points along the route and locates the state at each point.</p>
+
+      <p class="question">How many hospitals are in flood-prone areas of Assam?</p>
+      <p class="answer">3,909 health facilities in Assam (narrowed by state). For precise flood-zone overlap, the MCP tests hospital points against the India Flood Inventory layer.</p>
+
+      <h2>7 tools</h2>
+      <ul>
+        <li><strong>list_layers</strong> -- discover layers by category, level, source, or text search</li>
+        <li><strong>get_layer_schema</strong> -- column names, types, distinct values (call before querying)</li>
+        <li><strong>query_layer</strong> -- filter, select, group by any column, with optional centroid coordinates</li>
+        <li><strong>locate</strong> -- point-in-polygon across all admin layers + zones at once</li>
+        <li><strong>get_layer_detail</strong> -- download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile)</li>
+        <li><strong>list_categories</strong> -- browse by category with layer counts</li>
+        <li><strong>list_submissions</strong> -- community-contributed layers under open licenses</li>
+      </ul>
+
+      <h2>How it works</h2>
+      <p>The MCP server is a thin wrapper over the <a href="/docs">bharatlas REST API</a>. It translates LLM tool calls into API requests and returns structured JSON. No API key needed. All data is read-only and openly licensed.</p>
+      <p>The server sends instructions to the LLM at connection time that teach it:</p>
+      <ul>
+        <li>Schema-first pattern (check column names before querying)</li>
+        <li>Source preference (LGD for admin boundaries, multiple sources for wards)</li>
+        <li>Spatial join workflow (locate for context, query for data, combine)</li>
+        <li>Concept-to-layer mapping ("water bodies" = rivers + reservoirs + wetlands + ramsar)</li>
+      </ul>
+
+      <h2>Data</h2>
+      <p>77 curated layers across 10 categories: admin boundaries (state to village), city wards (34 cities), forests, wildlife, eco-zones, rivers, reservoirs, dams, seismic zones, floods, highways, airports, health facilities, pincodes, electoral constituencies. Plus community submissions.</p>
+      <p>Sources: LGD, SOI, Bhuvan, OpenCity, DataMeet, PMGSY, GatiShakti, Bharatmaps, bharatviz, CWC, data.gov.in. All open-licensed.</p>
+
+      <h2>Source</h2>
+      <p><a href="https://github.com/urbanmorph/geodata/tree/main/mcp">github.com/urbanmorph/geodata/tree/main/mcp</a></p>
+
+    <!-- FOOTER -->
+  </body>
+</html>
