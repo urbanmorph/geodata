@@ -72,11 +72,7 @@
 .vscode/mcp.json (project) or settings.json</code></pre>
       </div>
 
-      <div class="install-box">
-        <h3>MCP Inspector (test without an LLM)</h3>
-        <pre><code>npx @modelcontextprotocol/inspector npx bharatlas-mcp</code></pre>
-        <p>Opens a web UI to call tools interactively and inspect responses.</p>
-      </div>
+      <p style="font-size:13px;color:var(--subtle)">Developers: test tools without an LLM via <code>npx @modelcontextprotocol/inspector npx bharatlas-mcp</code></p>
 
       <h2>What you can ask</h2>
 
@@ -123,6 +119,7 @@
         <li><strong>get_layer_schema</strong> -- column names, types, distinct values (call before querying)</li>
         <li><strong>query_layer</strong> -- filter, select, group by any column, with optional centroid coordinates</li>
         <li><strong>locate</strong> -- point-in-polygon across all admin layers + zones at once</li>
+        <li><strong>nearby</strong> -- find features within a radius (works for points, polygons, and lines)</li>
         <li><strong>get_layer_detail</strong> -- download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile)</li>
         <li><strong>list_categories</strong> -- browse by category with layer counts</li>
         <li><strong>list_submissions</strong> -- community-contributed layers under open licenses</li>
@@ -142,8 +139,12 @@
       <p>77 curated layers across 10 categories: admin boundaries (state to village), city wards (34 cities), forests, wildlife, eco-zones, rivers, reservoirs, dams, seismic zones, floods, highways, airports, health facilities, pincodes, electoral constituencies. Plus community submissions.</p>
       <p>Sources: LGD, SOI, Bhuvan, OpenCity, DataMeet, PMGSY, GatiShakti, Bharatmaps, bharatviz, CWC, data.gov.in. All open-licensed.</p>
 
-      <h2>Source</h2>
-      <p><a href="https://github.com/urbanmorph/geodata/tree/main/mcp">github.com/urbanmorph/geodata/tree/main/mcp</a></p>
+      <h2>Links</h2>
+      <ul>
+        <li><a href="https://www.npmjs.com/package/bharatlas-mcp">npm: bharatlas-mcp</a></li>
+        <li><a href="/docs">REST API reference</a></li>
+        <li><a href="https://github.com/urbanmorph/geodata/tree/main/mcp">GitHub source</a></li>
+      </ul>
 
     <!-- FOOTER -->
   </body>
