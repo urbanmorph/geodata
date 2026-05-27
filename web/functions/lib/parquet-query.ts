@@ -3,7 +3,8 @@
  * Reads only the columns needed, supports where filters and group_by.
  * No hardcoded layer or column names.
  */
-import { parquetMetadataAsync, parquetQuery } from 'hyparquet/src/index.js';
+import { parquetMetadataAsync, parquetQuery } from 'hyparquet';
+import { compressors } from 'hyparquet-compressors';
 import type { AsyncBuffer } from './parquet-r2';
 
 export interface ColumnSchema {
@@ -49,7 +50,7 @@ export async function getSchema(file: AsyncBuffer): Promise<{
   if (rowCount > 0 && columns.length > 0) {
     const colNames = columns.map((c) => c.name);
     const sampleRows: Record<string, unknown>[] = [];
-    await parquetQuery({
+    await parquetQuery({ compressors,
       file,
       columns: colNames,
       rowEnd: Math.min(SAMPLE_SIZE, rowCount),
@@ -102,7 +103,7 @@ async function selectQuery(
   const limit = Math.min(opts.limit ?? 100, MAX_ROWS);
   const allRows: Record<string, unknown>[] = [];
 
-  await parquetQuery({
+  await parquetQuery({ compressors,
     file,
     columns: selectCols,
     onComplete: (rows: Record<string, unknown>[]) => allRows.push(...rows),
@@ -144,7 +145,7 @@ async function groupByQuery(
   const colList = [...readCols].filter((c) => allCols.includes(c));
 
   const allRows: Record<string, unknown>[] = [];
-  await parquetQuery({
+  await parquetQuery({ compressors,
     file,
     columns: colList,
     onComplete: (rows: Record<string, unknown>[]) => allRows.push(...rows),

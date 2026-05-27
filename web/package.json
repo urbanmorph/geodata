@@ -16,6 +16,7 @@
     "@resvg/resvg-wasm": "^2.6.2",
     "@tmcw/togeojson": "^5.8.1",
     "hyparquet": "^1.26.0",
+    "hyparquet-compressors": "^1.1.1",
     "jszip": "^3.10.1",
     "maplibre-gl": "^4.7.1",
     "pbf": "^4.0.2",
