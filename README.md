@@ -6,7 +6,7 @@
 [![uptime](https://img.shields.io/website?url=https%3A%2F%2Fbharatlas.com&label=bharatlas.com)](https://bharatlas.com)
 [![Lighthouse: 98+](https://img.shields.io/badge/Lighthouse-98%2B-brightgreen?logo=lighthouse)](https://pagespeed.web.dev/analysis?url=https%3A%2F%2Fbharatlas.com)
 
-A visual catalog, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences.
+A visual catalog, REST API, MCP server, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences.
 
 **Live**: https://bharatlas.com
 
@@ -28,6 +28,11 @@ view (/view/<id>)     → curated layer with per-layer OG card
 view (/c/<id>)        → community submission, edge-rendered HTML, 👍 useful
                         vote, per-submission OG card
 embed                 → /embed/<id> iframe + PNG export from any map
+API (/api/v1)         → REST API: list, query, filter, group_by any layer;
+                        locate (point-in-polygon across all layers);
+                        nearby (tile-based spatial proximity)
+MCP (npx bharatlas-mcp) → 8 tools for LLMs: list, schema, query, locate,
+                        nearby, categories, submissions, downloads
 ```
 
 ## What's in this repo
@@ -43,6 +48,7 @@ embed                 → /embed/<id> iframe + PNG export from any map
 | `scripts/upload_r2.sh` | Mirrors `sources/` + `data/` to Cloudflare R2 via wrangler. |
 | `scripts/upload_baked.py` | Pushes `data/baked/*` to R2 via boto3 (S3-compat fallback when wrangler is unavailable). |
 | `scripts/admin/cleanup_submission.sh` | Delete community submissions by name pattern (R2 + D1). |
+| `mcp/` | MCP server for LLMs ([npm](https://www.npmjs.com/package/bharatlas-mcp)). 8 tools: list, schema, query, locate, nearby, categories, submissions, downloads. |
 | `catalog.json` | Curated-layer index used by the viewer. Single source of truth. |
 | [/about#caveats](https://bharatlas.com/about#caveats) | Data caveats (cross-source drift, coverage gaps, precision). |
 
@@ -54,7 +60,10 @@ Large data files (`sources/`, `data/`) are not in git — they live in R2. See `
 |---|---|
 | Frontend | Vanilla TypeScript, Vite, MapLibre GL JS, PMTiles, DuckDB-WASM (lazy) |
 | Static hosting | Cloudflare Pages |
-| Edge functions | Cloudflare Pages Functions (`web/functions/`) — submit, vote, sitemap, edge-rendered `/c/<id>` |
+| Edge functions | Cloudflare Pages Functions (`web/functions/`) — REST API v1, submit, vote, sitemap, edge-rendered `/c/<id>` |
+| Parquet query | [hyparquet](https://github.com/hyparam/hyparquet) (pure JS, runtime reads from R2) |
+| Spatial query | PMTiles tile reads + MVT decode + ray-casting PIP / Haversine proximity |
+| MCP server | [`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp) — 8 tools for Claude, GPT, Gemini, Cursor, etc. |
 | Storage | Cloudflare R2 (open data, no egress) |
 | Submissions DB | Cloudflare D1 (SQLite at the edge) |
 | Anti-abuse | Cloudflare Turnstile + per-IP rate limits |
@@ -68,7 +77,7 @@ git clone git@github.com:urbanmorph/geodata.git
 cd geodata/web
 npm install
 npm run dev    # http://localhost:5173
-npm test       # 410+ vitest tests
+npm test       # 447+ vitest tests
 ```
 
 For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.
@@ -85,8 +94,8 @@ Commit messages: short subject, body explains *why* not *what*. Examples in `git
 
 ## Roadmap
 
-- **Next**: REST API + MCP server + Claude Code plugin (v5)
-- **Shipped**: CSP; catalog with cross-source compare; in-browser filter + slice + typeahead export; whole-layer downloads (Parquet / PMTiles / GeoJSON / KML / Shapefile); data vintage years on all layers; India-correct minimal basemap + national boundary layer; drag-and-drop verify + anonymous contribution; "Your submissions" panel; embed iframe + PNG export; edge-rendered `/view/<id>` + `/c/<id>` with per-layer OG cards; schema-driven dynamic filters with statistical column classification; live category counts; privacy + ToS + disputed-borders policy; a11y refactor; AEO crawler allowlist + JSON-LD (Dataset, BreadcrumbList, FAQPage, Person)
+- **Next**: mobile responsive audit; spatial join primitives; npm provenance for MCP
+- **Shipped**: REST API v1 (13 endpoints: layers, schema, query, locate, nearby, categories, levels, counts, downloads, submissions, hierarchy); MCP server ([`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp)) with 8 LLM tools; CSP; catalog with cross-source compare; in-browser filter + slice + typeahead export; whole-layer downloads (Parquet / PMTiles / GeoJSON / KML / Shapefile); data vintage years on all layers; India-correct minimal basemap + national boundary layer; drag-and-drop verify + anonymous contribution; "Your submissions" panel; embed iframe + PNG export; edge-rendered `/view/<id>` + `/c/<id>` with per-layer OG cards; schema-driven dynamic filters with statistical column classification; live category counts; privacy + ToS + disputed-borders policy; a11y refactor; AEO crawler allowlist + JSON-LD (Dataset, BreadcrumbList, FAQPage, Person)
 
 Track active work in [Issues](https://github.com/urbanmorph/geodata/issues) and [Milestones](https://github.com/urbanmorph/geodata/milestones).
 
@@ -126,4 +135,4 @@ Pipelines + patterns:
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
 
-**Status:** v1.0. 77 curated layers, community submissions, dynamic filters with typeahead, whole-layer downloads in 5 formats. The schema and external API may still shift. Community submissions are permanent under the open licence the contributor selected.
+**Status:** v1.0. 77 curated layers, community submissions, REST API v1 (13 endpoints), MCP server (8 tools, [npm](https://www.npmjs.com/package/bharatlas-mcp)), dynamic filters with typeahead, whole-layer downloads in 5 formats. API docs at [/docs](https://bharatlas.com/docs), MCP setup at [/mcp](https://bharatlas.com/mcp). Community submissions are permanent under the open licence the contributor selected.

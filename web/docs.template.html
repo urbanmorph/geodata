@@ -89,7 +89,7 @@ curl "https://bharatlas.com/api/v1/layers/gs_wildlife/query?group_by=type"
 curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=Dist_LGD=571&amp;select=BNAME,Block_LGD"</code></pre>
       <p>Columns with geometry data (geom, wkb_geometry) are excluded from results. For large layers, queries may take 1-5 seconds on first call (cached afterward).</p>
 
-      <h2>Locate <span class="badge badge--stable">stable</span></h2>
+      <h2>Spatial</h2>
 
       <h3><span class="method">GET</span> <span class="endpoint">/api/v1/locate</span></h3>
       <p>Given a lat/lng, returns all polygon layers that contain that point: state, district, ward, pincode, forest, eco-zone, seismic zone, and more. The "where am I?" endpoint.</p>
@@ -116,6 +116,22 @@ curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=Dist_LGD=571&am
   "queried_layers": ["lgd_states", "lgd_districts", ...],
   "timing_ms": 450
 }</code></pre>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/nearby</span></h3>
+      <p>Find features from any layer near a point. Reads PMTiles tiles in a radius, extracts features with computed centroids, filters by Haversine distance. Works for points, polygons, and lines.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Center latitude (6-38)</td></tr>
+        <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Center longitude (68-98)</td></tr>
+        <tr><td><code>layer</code></td><td>string <b>*</b></td><td>Layer ID to search</td></tr>
+        <tr><td><code>radius_km</code></td><td>float</td><td>Search radius in km (default 25, max 200)</td></tr>
+        <tr><td><code>limit</code></td><td>int</td><td>Max results (default 20, max 100)</td></tr>
+      </table>
+      <pre><code># Reservoirs within 50km of Bengaluru
+curl "https://bharatlas.com/api/v1/nearby?lat=12.97&amp;lng=77.59&amp;layer=wris_reservoirs&amp;radius_km=50"
+
+# Wildlife sanctuaries within 100km of Mysuru
+curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_wildlife&amp;radius_km=100"</code></pre>
 
       <h2>Categories and Levels</h2>
 
@@ -175,9 +191,17 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
       <p>Errors return:</p>
       <pre><code>{ "error": "Not found", "status": 404 }</code></pre>
 
-      <h2>Stability</h2>
-      <p>All v1 endpoints follow additive-only evolution: new fields may appear, but existing fields will not be renamed or removed. If a breaking change is needed, it ships as v2.</p>
-      <p>Rate limits: reads are unlimited. Cloudflare DDoS protection applies. Write endpoints (submission, rating) are rate-limited per IP.</p>
+      <h2>Rate Limits</h2>
+      <table>
+        <tr><th>Endpoint</th><th>Limit</th></tr>
+        <tr><td>All read endpoints</td><td>120 requests/minute per IP</td></tr>
+        <tr><td><code>/locate</code>, <code>/nearby</code></td><td>60 requests/minute per IP</td></tr>
+        <tr><td>Submissions (write)</td><td>5/hour, 20/day per IP</td></tr>
+      </table>
+      <p>Exceeded limits return <code>429</code> with a <code>retry-after</code> header. Cloudflare DDoS protection applies to all endpoints.</p>
+
+      <h2>Versioning</h2>
+      <p>All v1 endpoints follow additive-only evolution: new fields may appear, but existing fields will not be renamed or removed. If a breaking change is needed, it ships as v2. All responses include an <code>x-api-version: v1</code> header.</p>
 
       <h2>Download Formats</h2>
       <p>Each layer may offer up to 5 formats. Use the <code>downloads</code> object from <code>/api/v1/layers/:id</code> to get direct URLs:</p>
@@ -189,6 +213,9 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
         <tr><td><code>kml</code></td><td>Google Earth</td></tr>
         <tr><td><code>shapefile</code></td><td>ArcGIS, legacy GIS tools</td></tr>
       </table>
+
+      <h2>For LLMs</h2>
+      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 8 tools with built-in instructions for schema-first querying, spatial joins, and multi-source awareness.</p>
 
     <!-- FOOTER -->
   </body>

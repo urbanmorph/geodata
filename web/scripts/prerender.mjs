@@ -1004,6 +1004,15 @@ await renderPage('docs', {
     "Public JSON API for India's open geo layers. List layers, locate a point across 77 datasets, download in 5 formats. No auth, no API key.",
   url: ORIGIN + '/docs',
   image: ORIGIN + '/og-default.png',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@type': 'WebAPI',
+    name: 'bharatlas API v1',
+    description: "Public JSON API for India's open geo layers. 13 endpoints: list, query, filter, locate, nearby, schema, categories, levels, counts, downloads, submissions.",
+    url: ORIGIN + '/docs',
+    provider: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
+    documentation: ORIGIN + '/docs',
+  },
 });
 
 await renderPage('mcp', {
@@ -1012,6 +1021,17 @@ await renderPage('mcp', {
     "Ask questions about India's geo data in natural language. Connect Claude, GPT, or any LLM to 77 geo layers via the bharatlas MCP server.",
   url: ORIGIN + '/mcp',
   image: ORIGIN + '/og-default.png',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@type': 'SoftwareApplication',
+    name: 'bharatlas-mcp',
+    description: "MCP server for India's open geo data. 8 tools for LLMs: list, schema, query, locate, nearby, categories, submissions, downloads.",
+    url: ORIGIN + '/mcp',
+    applicationCategory: 'DeveloperApplication',
+    operatingSystem: 'Any',
+    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+    softwareRequirements: 'Node.js, any MCP-compatible LLM client',
+  },
 });
 
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
