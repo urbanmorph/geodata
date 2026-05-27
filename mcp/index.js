@@ -239,9 +239,17 @@ const TOOLS = [
   },
 ];
 
+const VERSION = "1.0.2";
+
 function httpGet(url) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const parsed = new URL(url);
+    const options = {
+      hostname: parsed.hostname,
+      path: parsed.pathname + parsed.search,
+      headers: { "User-Agent": `bharatlas-mcp/${VERSION}` },
+    };
+    https.get(options, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
         return httpGet(res.headers.location).then(resolve, reject);
       }
