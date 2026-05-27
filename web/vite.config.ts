@@ -68,6 +68,7 @@ export default defineConfig({
         preview: resolve(__dirname, 'preview.html'),
         privacy: resolve(__dirname, 'privacy.html'),
         terms: resolve(__dirname, 'terms.html'),
+        docs: resolve(__dirname, 'docs.html'),
       },
       output: {
         manualChunks(id) {
