@@ -3,7 +3,7 @@
  * Reads only the columns needed, supports where filters and group_by.
  * No hardcoded layer or column names.
  */
-import { parquetMetadataAsync, parquetQuery } from 'hyparquet';
+import { parquetMetadataAsync, parquetQuery } from 'hyparquet/src/index.js';
 import type { AsyncBuffer } from './parquet-r2';
 
 export interface ColumnSchema {
