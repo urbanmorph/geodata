@@ -101,6 +101,24 @@
       <p>List admin hierarchy levels in order (country, state, district, subdistrict, block, village, ...).</p>
       <pre><code>curl https://bharatlas.com/api/v1/levels</code></pre>
 
+      <h2>Counts and Stats</h2>
+
+      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/counts</span></h3>
+      <p>Feature counts with optional column grouping. Without <code>group_by</code>, returns the total and lists all groupable columns. With <code>group_by</code>, returns value-level counts for that column.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>group_by</code></td><td>string</td><td>Column name to group by (e.g. <code>statename</code>, <code>wardname</code>, <code>zone</code>)</td></tr>
+      </table>
+      <pre><code># List groupable columns
+curl https://bharatlas.com/api/v1/layers/soi_forests/counts
+
+# Count forests per state
+curl https://bharatlas.com/api/v1/layers/soi_forests/counts?group_by=statename
+
+# Count wards per zone in PCMC
+curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code></pre>
+      <p>Columns with fewer than 200 distinct values are pre-computed and available for grouping. The column list is auto-detected from the parquet schema, no hardcoding.</p>
+
       <h2>Downloads</h2>
 
       <h3><span class="method">GET</span> <span class="endpoint">/api/v1/downloads/counts</span></h3>
