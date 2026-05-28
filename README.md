@@ -119,6 +119,7 @@ Data sources, in approximate order of catalog footprint:
 - [OpenCity](https://data.opencity.in/) / [Oorvani Foundation](https://oorvanifoundation.org/) — city-scale layers (ward / corporation / jurisdiction polygons for 20+ cities).
 - [DataMeet](https://github.com/datameet/Municipal_Spatial_Data) — community-curated municipal spatial data (ward boundaries for multiple cities).
 - [datta07/INDIAN-SHAPEFILES](https://github.com/datta07/INDIAN-SHAPEFILES) — metropolitan city ward shapefiles.
+- [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps) — selectively republished layers (WRIS waterbodies, SLUSI watersheds + soil, VEDAS power infrastructure, PMGSY roads + habitations).
 - [PMGSY](https://omms.nic.in/) — Pradhan Mantri Gram Sadak Yojana; rural blocks + roads.
 - [PM GatiShakti](https://gis.pmgatishakti.gov.in/) — wildlife sanctuaries + national parks.
 - [Bharatmaps](https://bharatmaps.gov.in/) (NIC) — eco-sensitive zones.
@@ -129,7 +130,6 @@ Data sources, in approximate order of catalog footprint:
 Pipelines + patterns:
 
 - [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream Parquet + PMTiles re-publisher for LGD, SOI, Bhuvan, PMGSY, GatiShakti, Bharatmaps, CWC, NIC-Health and the India Flood Inventory.
-- [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps) — upstream re-publisher for Google Open Buildings, Microsoft Buildings, VEDAS power infrastructure, WRIS waterbodies, SLUSI soil, PMGSY rural roads + habitations and other layers ingested per the v2 candidate-layers plan.
 - [mdshare](https://mdshare.dev/) — the anonymous-token contribution pattern lineage.
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.

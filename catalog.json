@@ -6126,13 +6126,21 @@
       "name": "India Flood Inventory v3",
       "url": "https://github.com/yashveeeeeeer/india-geodata/releases/tag/environment/flood-inventory"
     },
+    "ramSeraph": {
+      "name": "ramSeraph/indianopenmaps",
+      "url": "https://github.com/ramSeraph/indianopenmaps"
+    },
+    "VEDAS": {
+      "name": "ISRO VEDAS Energymap",
+      "url": "https://vedas.sac.gov.in/energymap/"
+    },
+    "SLUSI": {
+      "name": "SLUSI (Soil & Land Use Survey of India)",
+      "url": "https://slusi.dacnet.nic.in/"
+    },
     "_publisher": {
       "name": "yashveeeeeeer/india-geodata",
       "url": "https://github.com/yashveeeeeeer/india-geodata"
-    },
-    "_publisher_ramseraph": {
-      "name": "ramSeraph/indianopenmaps",
-      "url": "https://github.com/ramSeraph/indianopenmaps"
     }
   },
   "licence_summary": {
