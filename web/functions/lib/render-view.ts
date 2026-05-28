@@ -198,7 +198,7 @@ export function renderViewPage(opts: RenderOpts): string {
       .badge { display: inline-block; font-size: var(--fs-xs); font-weight: 600;
         padding: 2px 6px; border-radius: var(--radius-sm); letter-spacing: .04em; text-transform: uppercase;
         background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
-      h2 { font-size: var(--fs-2xl); line-height: 1.2; margin: 4px 0 var(--sp-2); }
+      h1 { font-size: var(--fs-2xl); line-height: 1.2; margin: 4px 0 var(--sp-2); font-weight: 700; }
       .desc { color: var(--muted); margin: 0 0 var(--sp-6); }
       .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px var(--sp-4); margin: var(--sp-4) 0 var(--sp-6); font-size: var(--fs-base); }
       .kv dt { color: var(--muted); }
@@ -227,7 +227,7 @@ export function renderViewPage(opts: RenderOpts): string {
     ${header}
 
     <span class="badge">community</span>
-    <h2>${esc(s.name)}</h2>
+    <h1>${esc(s.name)}</h1>
     <p class="desc">${esc(description)}</p>
 
     <dl class="kv">

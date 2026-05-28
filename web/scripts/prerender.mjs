@@ -114,6 +114,8 @@ function seoHead(o) {
     `<meta property="og:description" content="${esc(o.description)}" />`,
     `<meta property="og:url" content="${esc(o.url)}" />`,
     `<meta property="og:image" content="${esc(image)}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
     `<meta property="og:site_name" content="bharatlas" />`,
     `<meta property="og:locale" content="en_IN" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
@@ -998,6 +1000,43 @@ await renderPage('terms', {
   image: ORIGIN + '/og-default.png',
 });
 
+// /docs FAQ — mirrors the visible "Common questions" section emitted into
+// docs.template.html. Targets queries an LLM (or a human) is likely to ask
+// before reading the full reference. Keep answers tight and curl-shaped so
+// they're directly copy-pastable.
+const DOCS_FAQ = [
+  {
+    q: 'Do I need an API key to use the bharatlas API?',
+    a: 'No. The API is public, read-only and CORS-enabled. No auth, no signup, no API key. Rate limit is 120 requests per minute per IP for most endpoints, 60/min for /locate and /nearby.',
+  },
+  {
+    q: 'How do I list all geo layers via the API?',
+    a: 'GET https://bharatlas.com/api/v1/layers returns every curated layer with pagination. Optional filters: ?category=, ?level=, ?source=, ?q= for full-text search.',
+  },
+  {
+    q: 'How do I find what state or district a coordinate is in?',
+    a: 'GET https://bharatlas.com/api/v1/locate?lat=12.97&lng=77.59 runs point-in-polygon across 12 admin and zone layers in a single call. Returns state, district, ward, pincode, seismic zone, eco-zone and more.',
+  },
+  {
+    q: 'How do I find features near a point?',
+    a: 'GET https://bharatlas.com/api/v1/nearby?lat=12.97&lng=77.59&layer=wris_reservoirs&radius_km=50 finds features from any layer within a radius. Works for points, polygons and lines via Haversine distance to computed centroids.',
+  },
+  {
+    q: 'How do I query a layer with column filters?',
+    a: 'GET https://bharatlas.com/api/v1/layers/:id/query?where=col=val&select=col1,col2&group_by=col. Reads parquet directly from R2 at runtime. Call /schema first to discover column names.',
+  },
+  {
+    q: 'What download formats does bharatlas support?',
+    a: 'Up to 5 formats per layer: parquet (DuckDB, Pandas, R, Spark), pmtiles (web maps), geojson (QGIS, D3), kml (Google Earth) and shapefile (ArcGIS). Use /api/v1/layers/:id to get direct download URLs.',
+  },
+  {
+    q: 'How do I connect an LLM to the bharatlas API?',
+    a: 'Use the bharatlas MCP server: add bharatlas-mcp to your MCP client config and run npx -y bharatlas-mcp. Connects Claude, GPT, Gemini or any MCP-compatible LLM with 8 tools and built-in instructions for spatial joins and schema-first querying.',
+  },
+];
+
+const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) => `      <h3>${q}</h3>\n      <p>${a}</p>`).join('\n')}\n`;
+
 await renderPage('docs', {
   title: 'API v1',
   description:
@@ -1006,14 +1045,76 @@ await renderPage('docs', {
   image: ORIGIN + '/og-default.png',
   structuredData: {
     '@context': 'https://schema.org',
-    '@type': 'WebAPI',
-    name: 'bharatlas API v1',
-    description: "Public JSON API for India's open geo layers. 13 endpoints: list, query, filter, locate, nearby, schema, categories, levels, counts, downloads, submissions.",
-    url: ORIGIN + '/docs',
-    provider: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
-    documentation: ORIGIN + '/docs',
+    '@graph': [
+      {
+        '@type': 'WebAPI',
+        name: 'bharatlas API v1',
+        description: "Public JSON API for India's open geo layers. 13 endpoints: list, query, filter, locate, nearby, schema, categories, levels, counts, downloads, submissions.",
+        url: ORIGIN + '/docs',
+        provider: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
+        documentation: ORIGIN + '/docs',
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: DOCS_FAQ.map(({ q, a }) => ({
+          '@type': 'Question',
+          name: q,
+          acceptedAnswer: { '@type': 'Answer', text: a },
+        })),
+      },
+    ],
   },
-});
+}, { DOCS_FAQ_HTML: docsFaqHtml });
+
+// /mcp FAQ — kept in sync with the visible <p class="question"> / <p class="answer">
+// pairs in mcp.template.html. FAQPage JSON-LD lights up Google rich results
+// and lets LLM crawlers ingest the Q&A surface cleanly.
+const MCP_FAQ = [
+  {
+    q: 'How many national parks vs wildlife sanctuaries are in India?',
+    a: '101 national parks and 560 wildlife sanctuaries, from the gs_wildlife layer grouped by category. The bharatlas MCP server returns this from a single group-by query against the curated GatiShakti wildlife layer.',
+  },
+  {
+    q: 'How many villages are in Bengaluru Urban district?',
+    a: '949 villages. The lgd_villages layer filtered by dtname=BENGALURU URBAN. Schema-first pattern: get_layer_schema first, then query_layer with the right column name.',
+  },
+  {
+    q: 'How many health facilities are in Bihar?',
+    a: '8,363 facilities: 3,232 sub-centres, 591 PHCs, 74 CHCs and others. From the nic_health layer filtered by state. Sub-typing via the category column gives the breakdown.',
+  },
+  {
+    q: 'How many wards does Chennai have vs Pune?',
+    a: 'Chennai has 200 wards, Pune has 58. From the wards_chennai and wards_pune layers respectively. Each Indian city has its own ward layer because authoritative ward maps come from city corporations, not a central registry.',
+  },
+  {
+    q: 'What state, district, and seismic zone is Bengaluru in?',
+    a: 'Karnataka, Bengaluru Urban district, Seismic Zone II. The MCP locate endpoint runs point-in-polygon against 12 layers in a single call: state, district, ward, pincode, forest, eco-zone, seismic zone and more.',
+  },
+  {
+    q: 'Which blocks are in district 571?',
+    a: '10 community-development blocks including Kunigal, Tumakuru, Gubbi, Turuvekere and Tiptur. From the lgd_blocks layer filtered by dtcode11=571 (Tumakuru district in Karnataka).',
+  },
+  {
+    q: 'How many airports are in Bengaluru district and what types?',
+    a: '3 airports: HAL (Domestic), Yelahanka AFB (Civil Enclave), Kempegowda International. The MCP locates the district from a name, then filters the airports layer by state and district.',
+  },
+  {
+    q: 'Which airports in Karnataka are near water bodies?',
+    a: 'Hubballi Airport (~3 km from Unkal Lake), Mangalore Airport (between Netravathi and Gurupura rivers) and Jindal Vijaynagar (~7 km from JSW Reservoir). The MCP cross-references the airports and reservoirs layers via spatial proximity.',
+  },
+  {
+    q: 'Which villages in Madhya Pradesh are in eco-sensitive zones?',
+    a: 'MP has 4 eco-sensitive zones: Kharmor, Chambal, Orchha and Kheoni. The MCP narrows 47,571 MP villages by district, then tests each candidate against the eco-zone boundaries via point-in-polygon.',
+  },
+  {
+    q: 'Which districts does NH-44 pass through?',
+    a: 'NH-44 runs through Delhi, Uttar Pradesh, Madhya Pradesh, Telangana and Karnataka. The MCP samples points along the route line geometry and runs locate at each sample to assemble the district list.',
+  },
+  {
+    q: 'How many hospitals are in flood-prone areas of Assam?',
+    a: 'Assam has 3,909 health facilities, narrowed by state from the nic_health layer. For precise flood-zone overlap, the MCP tests hospital points against the India Flood Inventory polygons via point-in-polygon.',
+  },
+];
 
 await renderPage('mcp', {
   title: 'MCP Server',
@@ -1023,14 +1124,26 @@ await renderPage('mcp', {
   image: ORIGIN + '/og-default.png',
   structuredData: {
     '@context': 'https://schema.org',
-    '@type': 'SoftwareApplication',
-    name: 'bharatlas-mcp',
-    description: "MCP server for India's open geo data. 8 tools for LLMs: list, schema, query, locate, nearby, categories, submissions, downloads.",
-    url: ORIGIN + '/mcp',
-    applicationCategory: 'DeveloperApplication',
-    operatingSystem: 'Any',
-    offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-    softwareRequirements: 'Node.js, any MCP-compatible LLM client',
+    '@graph': [
+      {
+        '@type': 'SoftwareApplication',
+        name: 'bharatlas-mcp',
+        description: "MCP server for India's open geo data. 8 tools for LLMs: list, schema, query, locate, nearby, categories, submissions, downloads.",
+        url: ORIGIN + '/mcp',
+        applicationCategory: 'DeveloperApplication',
+        operatingSystem: 'Any',
+        offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
+        softwareRequirements: 'Node.js, any MCP-compatible LLM client',
+      },
+      {
+        '@type': 'FAQPage',
+        mainEntity: MCP_FAQ.map(({ q, a }) => ({
+          '@type': 'Question',
+          name: q,
+          acceptedAnswer: { '@type': 'Answer', text: a },
+        })),
+      },
+    ],
   },
 });
 

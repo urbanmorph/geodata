@@ -57,6 +57,12 @@
 /preview
   Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
   CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
+/docs
+  Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
+/mcp
+  Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 # Legal pages — edits are rare and can wait a day to propagate.
 /privacy
   Cache-Control: public, max-age=300, s-maxage=86400, stale-while-revalidate=86400
