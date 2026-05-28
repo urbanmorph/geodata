@@ -32,6 +32,13 @@ describe('renderViewPage', () => {
     expect(html).toMatch(/<title>Mumbai bike lanes · bharatlas<\/title>/);
   });
 
+  it('renders the submission name as a single H1 (SEO)', () => {
+    const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
+    const h1s = html.match(/<h1\b/g) || [];
+    expect(h1s.length).toBe(1);
+    expect(html).toMatch(/<h1[^>]*>Mumbai bike lanes<\/h1>/);
+  });
+
   it('emits a canonical URL pinned to bharatlas.com (not the request origin)', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
     // Canonical must be the public origin regardless of where the request

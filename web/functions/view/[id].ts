@@ -67,6 +67,18 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
     .on('body', {
       element(el) { el.prepend(contentHtml, { html: true }); },
     })
+    // Home hero h1 is left in DOM by index.html so it's there after JS hydrates
+    // and the user closes the map overlay. On /view/<id> the only h1 a crawler
+    // should see is the layer title in <article class="view-seo">. Demote to
+    // <div> (same .hero__title CSS) so styling is preserved when the user
+    // returns to / via the in-page close button.
+    .on('h1.hero__title', {
+      element(el) {
+        el.before('<div class="hero__title">', { html: true });
+        el.after('</div>', { html: true });
+        el.removeAndKeepContent();
+      },
+    })
     .transform(new Response(indexResp.body, {
       status: 200,
       headers: {
