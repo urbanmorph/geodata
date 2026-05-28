@@ -643,14 +643,25 @@ def r2_upload(s3, local: Path, key: str) -> None:
     s3.upload_file(str(local), BUCKET, key, ExtraArgs=extra, Config=transfer)
 
 
-def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int, bakes: dict[str, Path] | None = None) -> None:
-    """Patch catalog.json (root + web/public + web/dist) with the new layer
-    so the live site picks it up before the next build_catalog.py run.
+def merge_layer_into_catalog(
+    catalog: dict,
+    d: Dataset,
+    parquet_bytes: int,
+    pmtiles_bytes: int | None,
+    features: int,
+    bakes_info: dict[str, dict] | None = None,
+) -> dict:
+    """Merge a Dataset ingest result into a catalog dict in place. Returns
+    the same dict (mutated) so callers can chain or test.
 
-    Idempotent on re-ingest: preserves any existing layer fields we don't
-    explicitly set here (whole-layer bakes geojson/kml/shapefile from
-    bake_whole_layer.py, prior fetched_at, etc.). Only fields directly
-    derivable from this ingest get overwritten.
+    Pure function — no file I/O, no Path stat calls. patch_catalog() wraps
+    this with the read-modify-write loop across the three on-disk catalogs.
+    The pure split exists so the round-trip stability of the merge can be
+    asserted in test_catalog_idempotent.py.
+
+    `bakes_info` shape: {fmt: {'name': str, 'bytes': int}} for any
+    whole-layer formats (geojson/kml/shapefile) freshly baked in this run.
+    When absent, prev catalog's bake blocks are carried over.
     """
     parquet_block: dict = {
         'url': f'{R2_PUBLIC}/{d.r2_prefix}/{Path(d.parquet_url).name}',
@@ -688,46 +699,65 @@ def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, fea
         'unit': d.unit,
         'description': d.description,
     }
+
+    catalog.setdefault('layers', [])
+    catalog.setdefault('level_meta', {})
+
+    # Find existing entry (if any) so we can preserve whole-layer bakes
+    # + any other field we're not authoritative over.
+    prev = next((l for l in catalog['layers'] if l.get('id') == d.id), None)
+    merged: dict = dict(prev) if prev else {}
+    merged.update(ingest_owned)
+    # Whole-layer bakes: prefer fresh bakes from this run; otherwise
+    # carry forward whatever previous run (or bake_whole_layer.py) wrote.
+    bakes_local = bakes_info or {}
+    for fmt in ('geojson', 'kml', 'shapefile'):
+        if fmt in bakes_local:
+            merged[fmt] = {
+                'url': f'{R2_PUBLIC}/{d.r2_prefix}/{bakes_local[fmt]["name"]}',
+                'bytes': bakes_local[fmt]['bytes'],
+            }
+        elif prev and prev.get(fmt) is not None:
+            merged[fmt] = prev[fmt]
+        else:
+            merged.setdefault(fmt, None)
+    # fetched_at: leave previous if present, else None for downstream fill.
+    if 'fetched_at' not in merged:
+        merged['fetched_at'] = None
+
+    catalog['layers'] = [l for l in catalog['layers'] if l.get('id') != d.id]
+    catalog['layers'].append(merged)
+    catalog['level_meta'][d.level] = level_meta
+    # The home prerender (web/scripts/prerender.mjs:311) iterates
+    # catalog.level_order to render external level rows; a missing entry
+    # silently hides the layer from the home grid even though catalog.json
+    # has the layer + level_meta. Keep this list in sync on every patch.
+    order = catalog.setdefault('level_order', [])
+    if d.level not in order:
+        order.append(d.level)
+    return catalog
+
+
+def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int, bakes: dict[str, Path] | None = None) -> None:
+    """Patch catalog.json (root + web/public + web/dist) with the new layer
+    so the live site picks it up before the next build_catalog.py run.
+
+    Idempotent on re-ingest: preserves any existing layer fields we don't
+    explicitly set here (whole-layer bakes geojson/kml/shapefile from
+    bake_whole_layer.py, prior fetched_at, etc.). Only fields directly
+    derivable from this ingest get overwritten.
+    """
+    # Resolve Path → {name, bytes} so the merge can stay pure / testable.
+    bakes_info: dict[str, dict] = {
+        fmt: {'name': p.name, 'bytes': p.stat().st_size}
+        for fmt, p in (bakes or {}).items()
+    }
     for p in ['catalog.json', 'web/public/catalog.json', 'web/dist/catalog.json']:
         f = ROOT / p
         if not f.exists():
             continue
         c = json.loads(f.read_text())
-        c.setdefault('layers', [])
-        c.setdefault('level_meta', {})
-
-        # Find existing entry (if any) so we can preserve whole-layer bakes
-        # + any other field we're not authoritative over.
-        prev = next((l for l in c['layers'] if l.get('id') == d.id), None)
-        merged: dict = dict(prev) if prev else {}
-        merged.update(ingest_owned)
-        # Whole-layer bakes: prefer fresh bakes from this run; otherwise
-        # carry forward whatever previous run (or bake_whole_layer.py) wrote.
-        bakes_local = bakes or {}
-        for fmt in ('geojson', 'kml', 'shapefile'):
-            if fmt in bakes_local:
-                merged[fmt] = {
-                    'url': f'{R2_PUBLIC}/{d.r2_prefix}/{bakes_local[fmt].name}',
-                    'bytes': bakes_local[fmt].stat().st_size,
-                }
-            elif prev and prev.get(fmt) is not None:
-                merged[fmt] = prev[fmt]
-            else:
-                merged.setdefault(fmt, None)
-        # fetched_at: leave previous if present, else None for downstream fill.
-        if 'fetched_at' not in merged:
-            merged['fetched_at'] = None
-
-        c['layers'] = [l for l in c['layers'] if l.get('id') != d.id]
-        c['layers'].append(merged)
-        c['level_meta'][d.level] = level_meta
-        # The home prerender (web/scripts/prerender.mjs:311) iterates
-        # catalog.level_order to render external level rows; a missing entry
-        # silently hides the layer from the home grid even though catalog.json
-        # has the layer + level_meta. Keep this list in sync on every patch.
-        order = c.setdefault('level_order', [])
-        if d.level not in order:
-            order.append(d.level)
+        merge_layer_into_catalog(c, d, parquet_bytes, pmtiles_bytes, features, bakes_info)
         f.write_text(json.dumps(c, indent=2) + '\n')
 
 
