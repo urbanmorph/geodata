@@ -53,9 +53,9 @@ describe('renderNav', () => {
     }
   });
 
-  it('opens external github link in a new tab', () => {
+  it('does not include github in nav (moved to footer)', () => {
     const html = renderNav('catalog');
-    expect(html).toMatch(/href="https:\/\/github\.com\/urbanmorph\/geodata"[^>]*target="_blank"[^>]*rel="noopener"/);
+    expect(html).not.toContain('github.com');
   });
 
   it('keeps internal links target-less', () => {

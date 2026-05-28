@@ -82,7 +82,6 @@ export const NAV_LINKS = [
   { k: 'docs', href: '/docs', label: 'docs' },
   { k: 'mcp', href: '/mcp', label: 'mcp' },
   { k: 'about', href: '/about', label: 'about' },
-  { k: 'github', href: 'https://github.com/urbanmorph/geodata', label: 'github' },
 ];
 
 export function renderNav(activeKey) {
