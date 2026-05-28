@@ -138,7 +138,7 @@ const TOOLS = [
         limit: { type: "number", description: "Max rows (default 100, max 1000)" },
         include_centroid: {
           type: "boolean",
-          description: "Include _lat/_lng centroid coordinates in results (from bbox columns). Use for proximity/distance calculations.",
+          description: "Include _lat/_lng centroid coordinates (defaults to true). Set false to exclude.",
         },
       },
       required: ["layer_id"],

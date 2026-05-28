@@ -36,7 +36,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   for (const [k, v] of url.searchParams.entries()) {
     if (!reserved.has(k) && v) where[k] = v;
   }
-  const includeCentroid = url.searchParams.get('include_centroid') === 'true';
+  const includeCentroid = url.searchParams.get('include_centroid') !== 'false';
 
   try {
     const start = Date.now();
