@@ -1,5 +1,9 @@
 """Tests that build_catalog.py preserves existing catalog.json fields
-when local baked files are absent. Run: python3 -m pytest scripts/test_catalog_idempotent.py -v"""
+when local baked files are absent, AND that ingest_ramseraph.py's
+catalog patch is idempotent under re-runs.
+
+Run: python3 -m pytest scripts/test_catalog_idempotent.py -v"""
+import copy
 import json
 import pytest
 from pathlib import Path
@@ -120,3 +124,139 @@ class TestCarryForward:
         carry_forward_from_prev(layer, {})
         assert layer['parquet']['bytes'] is None
         assert layer['geojson'] is None
+
+
+# ─────────────────────────────────────────────────────────────────────
+# ingest_ramseraph.py — round-trip stability of merge_layer_into_catalog.
+# This is the seam that the Wave 1+2 deploys hit a bug on (level_order
+# not appended). The tests below assert that the merge is stable when
+# applied twice to the same input — the second call must be a no-op.
+# ─────────────────────────────────────────────────────────────────────
+
+
+def _ds(over=None):
+    from ingest_ramseraph import Dataset
+    base = dict(
+        id='test_layer',
+        name='Test Layer (2026)',
+        level='test_layer',
+        category='environment',
+        source='CWC',
+        description='A test layer for unit testing merge_layer_into_catalog.',
+        unit='features',
+        license='CC0-1.0',
+        r2_prefix='environment/test-layer',
+        parquet_url='https://github.com/ramSeraph/x/releases/download/y/Test.parquet',
+        pmtiles_url='https://github.com/ramSeraph/x/releases/download/y/Test.pmtiles',
+        source_url='https://example.gov.in/',
+        source_org='Test Org',
+        notes='compiled by ramSeraph from upstream',
+    )
+    base.update(over or {})
+    return Dataset(**base)
+
+
+class TestMergeIdempotent:
+    """ingest_ramseraph.merge_layer_into_catalog: applying it twice to the
+    same input must produce the same output — no creeping arrays, no
+    accumulating duplicates, no rewriting of preserved fields."""
+
+    def test_first_call_populates_empty_catalog(self):
+        from ingest_ramseraph import merge_layer_into_catalog
+        c = {}
+        merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+        assert len(c['layers']) == 1
+        assert c['layers'][0]['id'] == 'test_layer'
+        assert c['level_meta']['test_layer']['label'] == 'Test Layer (2026)'
+        assert c['level_order'] == ['test_layer']
+
+    def test_double_application_is_a_no_op(self):
+        """Round trip: apply once, snapshot, apply again, assert equality."""
+        from ingest_ramseraph import merge_layer_into_catalog
+        c = {}
+        merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+        first = copy.deepcopy(c)
+        merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+        assert c == first, 'second merge mutated the catalog (not idempotent)'
+
+    def test_layers_array_does_not_grow_on_re_run(self):
+        """Re-running the same Dataset must not append a duplicate layer."""
+        from ingest_ramseraph import merge_layer_into_catalog
+        c = {}
+        for _ in range(5):
+            merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+        assert len(c['layers']) == 1
+        assert sum(1 for l in c['layers'] if l['id'] == 'test_layer') == 1
+
+    def test_level_order_does_not_grow_on_re_run(self):
+        """The bug that caused Wave 1+2 to ship with 22 hidden layers."""
+        from ingest_ramseraph import merge_layer_into_catalog
+        c = {}
+        for _ in range(5):
+            merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+        assert c['level_order'] == ['test_layer'], \
+            f'level_order accumulated duplicates: {c["level_order"]}'
+
+    def test_preserved_bakes_survive_re_merge(self):
+        """If bake_whole_layer.py has populated geojson/kml/shapefile,
+        a fresh ingest without bakes_info should NOT clobber them."""
+        from ingest_ramseraph import merge_layer_into_catalog
+        baked = {
+            'url': 'https://r2.example/environment/test-layer/Test.geojson',
+            'bytes': 12345,
+        }
+        c = {'layers': [{
+            'id': 'test_layer',
+            'level': 'test_layer',
+            'parquet': {'url': 'old', 'bytes': 100},
+            'pmtiles': None,
+            'geojson': baked,
+            'kml': {'url': 'old-kml', 'bytes': 999},
+            'shapefile': {'url': 'old-shp', 'bytes': 111},
+            'fetched_at': '2026-05-26T00:00:00Z',
+        }], 'level_meta': {}, 'level_order': ['test_layer']}
+        merge_layer_into_catalog(c, _ds(), 100, 200, 50, bakes_info=None)
+        layer = c['layers'][0]
+        assert layer['geojson'] == baked, 'geojson bake was overwritten'
+        assert layer['kml']['url'] == 'old-kml', 'kml bake was overwritten'
+        assert layer['shapefile']['url'] == 'old-shp', 'shapefile bake was overwritten'
+        assert layer['fetched_at'] == '2026-05-26T00:00:00Z', 'fetched_at was overwritten'
+
+    def test_fresh_bakes_replace_old_bakes(self):
+        """When the ingest re-bakes, fresh outputs win over prev catalog."""
+        from ingest_ramseraph import merge_layer_into_catalog
+        c = {'layers': [{
+            'id': 'test_layer',
+            'level': 'test_layer',
+            'geojson': {'url': 'old', 'bytes': 1},
+        }], 'level_meta': {}, 'level_order': ['test_layer']}
+        bakes_info = {'geojson': {'name': 'Test.geojson', 'bytes': 99999}}
+        merge_layer_into_catalog(c, _ds(), 100, 200, 50, bakes_info=bakes_info)
+        gj = c['layers'][0]['geojson']
+        assert gj['bytes'] == 99999, 'fresh bake bytes did not replace old'
+        assert 'Test.geojson' in gj['url']
+
+    def test_pmtiles_opt_out_round_trip(self):
+        """Some layers (slusi_soil_health) opt out of pmtiles. Stable?"""
+        from ingest_ramseraph import merge_layer_into_catalog
+        d = _ds({'pmtiles_url': ''})
+        c = {}
+        merge_layer_into_catalog(c, d, 100, None, 50)
+        first = copy.deepcopy(c)
+        merge_layer_into_catalog(c, d, 100, None, 50)
+        assert c == first
+        assert c['layers'][0]['pmtiles'] is None
+
+    def test_two_distinct_layers_do_not_interfere(self):
+        """Layer A then layer B then layer A again — order and content stable."""
+        from ingest_ramseraph import merge_layer_into_catalog
+        a = _ds({'id': 'layer_a', 'level': 'layer_a'})
+        b = _ds({'id': 'layer_b', 'level': 'layer_b'})
+        c = {}
+        merge_layer_into_catalog(c, a, 1, 2, 3)
+        merge_layer_into_catalog(c, b, 4, 5, 6)
+        snapshot = copy.deepcopy(c)
+        merge_layer_into_catalog(c, a, 1, 2, 3)
+        assert c['level_order'] == snapshot['level_order'], 'level_order changed'
+        assert len(c['layers']) == 2
+        assert {l['id'] for l in c['layers']} == {'layer_a', 'layer_b'}

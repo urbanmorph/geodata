@@ -779,6 +779,11 @@
       "label": "Cyclone tracks (NDEM)",
       "unit": "cyclone tracks",
       "description": "Historical cyclone track line geometries across the Indian Ocean basins, compiled by NDEM."
+    },
+    "overture_places_india": {
+      "label": "Places \u2014 Overture Maps (Dec 2023)",
+      "unit": "places",
+      "description": "Pan-India points of interest from the Overture Maps Foundation December 2023 release. Names, categories, addresses, websites and confidence scores for restaurants, shops, ATMs, schools, transit, monuments and more."
     }
   },
   "level_order": [
@@ -845,7 +850,30 @@
     "wards_vadodara",
     "wards_faridabad",
     "wards_pcmc",
-    "wards_vijayawada"
+    "wards_vijayawada",
+    "wris_watersheds",
+    "wris_river_polygons",
+    "slusi_soil_health",
+    "wris_waterbodies",
+    "slusi_micro_watersheds",
+    "pmgsy_roads",
+    "vedas_power_plants",
+    "vedas_oil_refineries",
+    "vedas_oil_wells",
+    "vedas_wind_farms",
+    "vedas_ethanol_plants",
+    "vedas_solar_plants",
+    "vedas_solar_panel_areas",
+    "vedas_solar_panels_ai_2023",
+    "vedas_transmission_lines",
+    "pmgsy_habitations",
+    "wris_lakes",
+    "ndem_floods_1998_2022",
+    "gsi_landslide_inventory",
+    "ndem_landslide_hazard",
+    "ngdr_earthquakes",
+    "ndem_cyclone_tracks",
+    "overture_places_india"
   ],
   "layers": [
     {
@@ -4660,6 +4688,37 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.shp.zip",
         "bytes": 186921
       },
+      "fetched_at": null
+    },
+    {
+      "id": "overture_places_india",
+      "level": "overture_places_india",
+      "source": "Overture",
+      "rows": 2744948,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/overture_places_india.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_facilities/releases/download/pois/overture_places_india.parquet",
+        "bytes": 289738241
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/overture_places_india.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_facilities/releases/download/pois/overture_places_india.pmtiles",
+        "bytes": 1207239373
+      },
+      "licence": "CDLA-Permissive-2.0",
+      "attribution": {
+        "primary": {
+          "name": "Overture Maps Foundation",
+          "url": "https://overturemaps.org/overture-december-2023-release-notes/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
       "fetched_at": null
     }
   ],

@@ -1081,5 +1081,24 @@
     "source_url": "https://ndem.nrsc.gov.in/",
     "source_org": "NDEM (NRSC / ISRO)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from NDEM cyclone track lines. Line geometry \u2014 see ndem_cyclones_ctp for the time-step point positions when needed."
+  },
+  {
+    "id": "overture_places_india",
+    "name": "Places \u2014 Overture Maps (Dec 2023)",
+    "level": "overture_places_india",
+    "category": "infrastructure",
+    "source": "Overture",
+    "description": "Pan-India points of interest from the Overture Maps Foundation December 2023 release. Names, categories, addresses, websites and confidence scores for restaurants, shops, ATMs, schools, transit, monuments and more.",
+    "unit": "places",
+    "features": 2744948,
+    "license": "CDLA-Permissive-2.0",
+    "r2_prefix": "pois/overture-places",
+    "parquet_file": "overture_places_india.parquet",
+    "parquet_bytes": 289738241,
+    "pmtiles_file": "overture_places_india.pmtiles",
+    "pmtiles_bytes": 1207239373,
+    "source_url": "https://overturemaps.org/overture-december-2023-release-notes/",
+    "source_org": "Overture Maps Foundation",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases."
   }
 ]
