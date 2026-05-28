@@ -125,7 +125,7 @@
       <ul>
         <li><strong>list_layers</strong> -- discover layers by category, level, source, or text search</li>
         <li><strong>get_layer_schema</strong> -- column names, types, distinct values (call before querying)</li>
-        <li><strong>query_layer</strong> -- filter, select, group by any column, with optional centroid coordinates</li>
+        <li><strong>query_layer</strong> -- filter, select, group by any column; results include <code>_lat</code>/<code>_lng</code> for spatial layers</li>
         <li><strong>locate</strong> -- point-in-polygon across all admin layers + zones at once</li>
         <li><strong>nearby</strong> -- find features within a radius (works for points, polygons, and lines)</li>
         <li><strong>get_layer_detail</strong> -- download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile)</li>
