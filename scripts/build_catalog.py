@@ -100,6 +100,15 @@ ATTR = {
     'NIC-Health':    {'name': 'NIC HealthGIS',               'url': 'https://healthgis.nic.in/'},
     'CWC':           {'name': 'Central Water Commission (WRIS)', 'url': 'https://cwc.gov.in/en/water-resources-information-system-wris'},
     'IndiaFloodInventory': {'name': 'India Flood Inventory v3', 'url': 'https://github.com/yashveeeeeeer/india-geodata/releases/tag/environment/flood-inventory'},
+    # Primary attribution row for selectively republished layers. Each ingested
+    # layer's `attribution.primary` should still point at the actual upstream
+    # (CWC, ISRO/VEDAS, PMGSY, SLUSI, etc.); the `notes` field calls out
+    # ramSeraph as the compiler. This row exists so /about can link them
+    # alongside OpenCity / DataMeet / datta07.
+    'ramSeraph':     {'name': 'ramSeraph/indianopenmaps',     'url': 'https://github.com/ramSeraph/indianopenmaps'},
+    # New primary upstream sources unlocked by the v2 ingest plan.
+    'VEDAS':         {'name': 'ISRO VEDAS Energymap',         'url': 'https://vedas.sac.gov.in/energymap/'},
+    'SLUSI':         {'name': 'SLUSI (Soil & Land Use Survey of India)', 'url': 'https://slusi.dacnet.nic.in/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
@@ -108,8 +117,9 @@ PUBLISHER = {
 
 # Sources whose files are republished via the yashveeeeeeer/india-geodata
 # release archive (so PUBLISHER + UPSTREAM_BASE apply). Other curated sources
-# (bharatviz, etc.) are pulled direct from origin — their entries should not
-# carry the yashveer attribution or upstream_url.
+# (bharatviz, OpenCity, ramSeraph, etc.) are pulled direct from origin or from
+# their own GitHub releases — their entries should not carry the yashveer
+# attribution or upstream_url.
 YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps', 'CWC', 'IndiaFloodInventory', 'data.gov.in', 'NIC-Health'}
 
 # Where to re-fetch each upstream file from. Path under the release base URL.
@@ -478,6 +488,13 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
         layer['parquet']['bytes'] = (prev.get('parquet') or {}).get('bytes')
     if layer.get('pmtiles') and layer['pmtiles'].get('bytes') is None:
         layer['pmtiles']['bytes'] = (prev.get('pmtiles') or {}).get('bytes')
+    # Preserve upstream_url from prev. yashveer-hosted layers regenerate to the
+    # same string; ramSeraph-republished layers (ingest_ramseraph.py) would
+    # otherwise be re-templated to yashveer's base on rebuild and break.
+    for fmt in ('parquet', 'pmtiles'):
+        prev_fmt = prev.get(fmt)
+        if layer.get(fmt) and prev_fmt and prev_fmt.get('upstream_url'):
+            layer[fmt]['upstream_url'] = prev_fmt['upstream_url']
     for fmt in ('geojson', 'kml', 'shapefile'):
         if not layer.get(fmt) and prev.get(fmt):
             layer[fmt] = prev[fmt]

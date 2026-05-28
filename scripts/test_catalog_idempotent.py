@@ -64,6 +64,32 @@ class TestCarryForward:
         carry_forward_from_prev(layer, {prev['id']: prev})
         assert layer['fetched_at'] == '2026-05-01T00:00:00+00:00'
 
+    def test_preserves_parquet_upstream_url(self):
+        """ramSeraph-republished layers carry an upstream_url pointing at a
+        ramSeraph release. A rebuild would otherwise template upstream_url to
+        the yashveer base. Carry-forward keeps the original source-of-truth."""
+        from build_catalog import carry_forward_from_prev
+        prev = make_prev_layer(
+            layer_id='vedas_power_plants',
+            parquet={
+                'url': 'https://r2.example/infra/vedas-power-plants/Vedas_Power_Plants.parquet',
+                'upstream_url': 'https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Power_Plants.parquet',
+                'bytes': 31_559,
+            },
+        )
+        layer = {
+            'id': 'vedas_power_plants',
+            'parquet': {
+                'url': 'https://r2.example/infra/vedas-power-plants/Vedas_Power_Plants.parquet',
+                'upstream_url': 'https://github.com/yashveeeeeeer/india-geodata/releases/download/infra/vedas-power-plants/Vedas_Power_Plants.parquet',
+                'bytes': 31_559,
+            },
+            'pmtiles': None, 'geojson': None, 'kml': None, 'shapefile': None, 'fetched_at': None,
+        }
+        carry_forward_from_prev(layer, {prev['id']: prev})
+        assert layer['parquet']['upstream_url'].startswith('https://github.com/ramSeraph/'), \
+            f"upstream_url not carried forward: {layer['parquet']['upstream_url']}"
+
     def test_local_file_wins_over_prev(self):
         """When local file has bytes, don't overwrite with prev."""
         from build_catalog import carry_forward_from_prev
