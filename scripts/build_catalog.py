@@ -488,6 +488,13 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
         layer['parquet']['bytes'] = (prev.get('parquet') or {}).get('bytes')
     if layer.get('pmtiles') and layer['pmtiles'].get('bytes') is None:
         layer['pmtiles']['bytes'] = (prev.get('pmtiles') or {}).get('bytes')
+    # Preserve upstream_url from prev. yashveer-hosted layers regenerate to the
+    # same string; ramSeraph-republished layers (ingest_ramseraph.py) would
+    # otherwise be re-templated to yashveer's base on rebuild and break.
+    for fmt in ('parquet', 'pmtiles'):
+        prev_fmt = prev.get(fmt)
+        if layer.get(fmt) and prev_fmt and prev_fmt.get('upstream_url'):
+            layer[fmt]['upstream_url'] = prev_fmt['upstream_url']
     for fmt in ('geojson', 'kml', 'shapefile'):
         if not layer.get(fmt) and prev.get(fmt):
             layer[fmt] = prev[fmt]
