@@ -46,6 +46,12 @@ export const OPEN_LICENCES: readonly Licence[] = [
     url: 'https://data.gov.in/government-open-data-license-india',
     requiresAttribution: true,
   },
+  {
+    id: 'CDLA-Permissive-2.0',
+    name: 'CDLA Permissive 2.0 — Community Data Licence',
+    url: 'https://cdla.dev/permissive-2-0/',
+    requiresAttribution: true,
+  },
 ] as const;
 
 const BY_ID = new Map<string, Licence>(OPEN_LICENCES.map((l) => [l.id, l]));
