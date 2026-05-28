@@ -5,6 +5,7 @@
 [![v1.0](https://img.shields.io/badge/release-v1.0-brightgreen.svg)](https://github.com/urbanmorph/geodata/releases)
 [![uptime](https://img.shields.io/website?url=https%3A%2F%2Fbharatlas.com&label=bharatlas.com)](https://bharatlas.com)
 [![Lighthouse: 98+](https://img.shields.io/badge/Lighthouse-98%2B-brightgreen?logo=lighthouse)](https://pagespeed.web.dev/analysis?url=https%3A%2F%2Fbharatlas.com)
+[![npm](https://img.shields.io/npm/v/bharatlas-mcp?label=MCP&color=indigo)](https://npmjs.com/package/bharatlas-mcp)
 
 A visual catalog, REST API, MCP server, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences.
 
