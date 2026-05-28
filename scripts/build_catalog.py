@@ -109,6 +109,10 @@ ATTR = {
     # New primary upstream sources unlocked by the v2 ingest plan.
     'VEDAS':         {'name': 'ISRO VEDAS Energymap',         'url': 'https://vedas.sac.gov.in/energymap/'},
     'SLUSI':         {'name': 'SLUSI (Soil & Land Use Survey of India)', 'url': 'https://slusi.dacnet.nic.in/'},
+    # Wave 2 — natural disasters.
+    'NDEM':          {'name': 'National Database for Emergency Management (NRSC)', 'url': 'https://ndem.nrsc.gov.in/'},
+    'NGDR':          {'name': 'National Geoscience Data Repository (GSI Bhukosh)', 'url': 'https://bhukosh.gsi.gov.in/'},
+    'GSI':           {'name': 'Geological Survey of India',   'url': 'https://gsi.gov.in/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',

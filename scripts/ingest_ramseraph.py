@@ -98,6 +98,10 @@ WATER_HYDRO_BASE = 'https://github.com/ramSeraph/indian_water_features/releases/
 LAND_SOIL_BASE = 'https://github.com/ramSeraph/indian_land_features/releases/download/soil-health'
 PMGSY_ROADS_BASE = 'https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads'
 PMGSY_HAB_BASE = 'https://github.com/ramSeraph/indian_admin_boundaries/releases/download/habitations'
+ND_FLOODS_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/floods'
+ND_LANDSLIDES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides'
+ND_EARTHQUAKES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/earthquakes'
+ND_CYCLONES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/cyclones'
 
 RAMSERAPH_NOTE = 'Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from {src}.'
 
@@ -371,6 +375,88 @@ DATASETS: list[Dataset] = [
         source_org='ISRO VEDAS Energymap',
         notes=RAMSERAPH_NOTE.format(src='ISRO VEDAS energymap'),
     ),
+    # ── Wave 2 — natural disasters (environment category) ──────────────
+    Dataset(
+        id='ndem_floods_1998_2022',
+        name='Flood inundation 1998-2022 (NDEM)',
+        level='ndem_floods_1998_2022',
+        category='environment',
+        source='NDEM',
+        description='Pan-India satellite-derived flood inundation polygons from 1998 to 2022, compiled by NDEM (NRSC/ISRO). Complements the older India Flood Inventory v3 event catalogue.',
+        unit='flood inundation polygons',
+        license='CC0-1.0',
+        r2_prefix='environment/ndem-floods-1998-2022',
+        parquet_url=f'{ND_FLOODS_BASE}/NDEM_All_India_Flood_Innundation_1998_to_2022.parquet',
+        pmtiles_url=f'{ND_FLOODS_BASE}/NDEM_All_India_Flood_Innundation_1998_to_2022.pmtiles',
+        source_url='https://ndem.nrsc.gov.in/',
+        source_org='NDEM (NRSC / ISRO)',
+        notes=RAMSERAPH_NOTE.format(src='NDEM all-India flood inundation 1998-2022'),
+    ),
+    Dataset(
+        id='gsi_landslide_inventory',
+        name='Landslide inventory (GSI)',
+        level='gsi_landslide_inventory',
+        category='environment',
+        source='GSI',
+        description='Geological Survey of India landslide inventory — pan-India catalogue of historical landslide occurrences with metadata.',
+        unit='landslides',
+        license='CC0-1.0',
+        r2_prefix='environment/gsi-landslide-inventory',
+        parquet_url=f'{ND_LANDSLIDES_BASE}/GSI_Landslide_Inventory.parquet',
+        pmtiles_url=f'{ND_LANDSLIDES_BASE}/GSI_Landslide_Inventory.pmtiles',
+        source_url='https://gsi.gov.in/',
+        source_org='Geological Survey of India',
+        notes=RAMSERAPH_NOTE.format(src='GSI landslide inventory'),
+    ),
+    Dataset(
+        id='ndem_landslide_hazard',
+        name='Landslide hazard zones (NDEM)',
+        level='ndem_landslide_hazard',
+        category='environment',
+        source='NDEM',
+        description='Landslide hazard zonation polygons across India from NDEM, classifying terrain by landslide susceptibility.',
+        unit='hazard zones',
+        license='CC0-1.0',
+        r2_prefix='environment/ndem-landslide-hazard',
+        parquet_url=f'{ND_LANDSLIDES_BASE}/NDEM_Landslide_Hazard.parquet',
+        pmtiles_url=f'{ND_LANDSLIDES_BASE}/NDEM_Landslide_Hazard.pmtiles',
+        source_url='https://ndem.nrsc.gov.in/',
+        source_org='NDEM (NRSC / ISRO)',
+        notes=RAMSERAPH_NOTE.format(src='NDEM landslide hazard zonation'),
+    ),
+    Dataset(
+        id='ngdr_earthquakes',
+        name='Earthquake epicentres (NGDR)',
+        level='ngdr_earthquakes',
+        category='environment',
+        source='NGDR',
+        description='Historical earthquake epicentre points across India from the National Geoscience Data Repository (GSI Bhukosh). Complements the BIS IS 1893:2016 seismic hazard zones we already host.',
+        unit='earthquake events',
+        license='CC0-1.0',
+        r2_prefix='environment/ngdr-earthquakes',
+        parquet_url=f'{ND_EARTHQUAKES_BASE}/NGDR_Earthquakes.parquet',
+        pmtiles_url=f'{ND_EARTHQUAKES_BASE}/NGDR_Earthquakes.pmtiles',
+        source_url='https://bhukosh.gsi.gov.in/',
+        source_org='NGDR / GSI Bhukosh',
+        notes=RAMSERAPH_NOTE.format(src='NGDR earthquake epicentres'),
+    ),
+    Dataset(
+        id='ndem_cyclone_tracks',
+        name='Cyclone tracks (NDEM)',
+        level='ndem_cyclone_tracks',
+        category='environment',
+        source='NDEM',
+        description='Historical cyclone track line geometries across the Indian Ocean basins, compiled by NDEM.',
+        unit='cyclone tracks',
+        license='CC0-1.0',
+        r2_prefix='environment/ndem-cyclone-tracks',
+        parquet_url=f'{ND_CYCLONES_BASE}/NDEM_Cyclones_ctl.parquet',
+        pmtiles_url=f'{ND_CYCLONES_BASE}/NDEM_Cyclones_ctl.pmtiles',
+        source_url='https://ndem.nrsc.gov.in/',
+        source_org='NDEM (NRSC / ISRO)',
+        notes=RAMSERAPH_NOTE.format(src='NDEM cyclone track lines') + ' Line geometry — see ndem_cyclones_ctp for the time-step point positions when needed.',
+    ),
+
     Dataset(
         id='vedas_solar_panels_ai_2023',
         name='Solar panels — AI-detected (VEDAS 2023)',
