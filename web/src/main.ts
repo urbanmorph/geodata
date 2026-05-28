@@ -1,7 +1,7 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose } from './embed-snippet';
-import { filterCards, type CardLike } from './catalog-filter';
+import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
 
 document.querySelector('.view-seo')?.remove();
 
@@ -126,17 +126,19 @@ if (searchInput && grid) {
     // every section so the row--collapsed cap doesn't hide matches.
     const forceExpand = !!query || activeCat !== 'all';
 
-    // Per-card visibility = matches query AND in active category.
-    // Track per-section + total visible for section hide + meta line.
+    // Per-card visibility: search query intent overrides category-pill scope
+    // (see cardVisibility doc-comment in catalog-filter.ts). When the user
+    // is typing in the search box, every match across every category renders
+    // — regardless of which pill is active — so cross-category results
+    // ("over" → Overture in Infrastructure with Environment selected) don't
+    // silently get hidden behind "No matches".
+    const visible = cardVisibility(result.matches, cardLikes.map((c) => c.category), activeCat, query);
     const visiblePerSection = new Map<HTMLElement, number>();
     let totalVisible = 0;
     for (let i = 0; i < cardEls.length; i++) {
       const el = cardEls[i];
-      const cat = cardLikes[i].category;
-      const inCat = activeCat === 'all' || cat === activeCat;
-      const visible = result.matches[i] && inCat;
-      el.classList.toggle('hidden', !visible);
-      if (visible) {
+      el.classList.toggle('hidden', !visible[i]);
+      if (visible[i]) {
         totalVisible++;
         const sec = el.closest<HTMLElement>('.category-section');
         if (sec) visiblePerSection.set(sec, (visiblePerSection.get(sec) || 0) + 1);
@@ -146,7 +148,10 @@ if (searchInput && grid) {
       section.classList.toggle('expanded', forceExpand);
       const cat = section.dataset.category || '';
       const sectionVisible = visiblePerSection.get(section) || 0;
-      const catFiltered = activeCat !== 'all' && cat !== activeCat;
+      // Hide a section only when (a) the user has scoped to a different pill
+      // AND isn't searching, OR (b) it has no visible cards. While searching,
+      // sections appear for every category that has matches.
+      const catFiltered = !query && activeCat !== 'all' && cat !== activeCat;
       section.classList.toggle('hidden', catFiltered || sectionVisible === 0);
     }
 

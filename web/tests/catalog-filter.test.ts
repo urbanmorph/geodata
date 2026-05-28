@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterCards, type CardLike } from '../src/catalog-filter';
+import { filterCards, cardVisibility, type CardLike } from '../src/catalog-filter';
 
 // Fixture mirrors real prerender shape: each card carries a high-signal
 // "primary" haystack (title + level + aliases) and a low-signal "body"
@@ -74,5 +74,51 @@ describe('catalog-filter — filterCards', () => {
     expect(r.totalMatches).toBe(1);
     expect(r.countsByCategory.get('environment')).toBe(1);
     expect(r.countsByCategory.get('administrative')).toBeUndefined();
+  });
+});
+
+describe('catalog-filter — cardVisibility (search × active-pill interaction)', () => {
+  // Mirrors the home-grid bug from PR #99 follow-up: typing "over" with
+  // Environment active returned "No matches" because the Overture match
+  // lives in Infrastructure. New rule: when a query is active, the pill
+  // scope is bypassed so search results are never silently hidden.
+  const cats = cards.map((c) => c.category);
+
+  it('empty query, no active pill: respects matches as-is', () => {
+    const matches = cards.map(() => true);
+    const v = cardVisibility(matches, cats, 'all', '');
+    expect(v.every((x: boolean) => x)).toBe(true);
+  });
+
+  it('empty query, active pill: scopes to that category', () => {
+    const matches = cards.map(() => true);
+    const v = cardVisibility(matches, cats, 'people', '');
+    expect(v.filter(Boolean).length).toBe(1); // only the pincode card
+    expect(v[6]).toBe(true);
+  });
+
+  it('non-empty query: ignores active pill, returns every match', () => {
+    // Simulate searching "over" — only the env card matches by index.
+    // With active pill = 'people', earlier behaviour would have returned
+    // 0 visible; new behaviour returns the env card regardless.
+    const matches = cards.map((c, i) => i === 7); // wildlife is index 7
+    const v = cardVisibility(matches, cats, 'people', 'wild');
+    expect(v[7]).toBe(true);
+    expect(v.filter(Boolean).length).toBe(1);
+  });
+
+  it('non-empty query with whitespace only: treated as empty (pill still scopes)', () => {
+    const matches = cards.map(() => true);
+    const v = cardVisibility(matches, cats, 'people', '   ');
+    expect(v.filter(Boolean).length).toBe(1);
+  });
+
+  it('respects matches: cards that did not match the query stay hidden', () => {
+    // Only 2 cards "match" the simulated query.
+    const matches = cards.map((c, i) => i === 0 || i === 7);
+    const v = cardVisibility(matches, cats, 'all', 'whatever');
+    expect(v.filter(Boolean).length).toBe(2);
+    expect(v[0]).toBe(true);
+    expect(v[7]).toBe(true);
   });
 });
