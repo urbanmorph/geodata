@@ -3540,15 +3540,29 @@
       "level": "flood_event",
       "source": "IndiaFloodInventory",
       "rows": 1006,
-      "parquet": null,
-      "pmtiles": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.parquet",
+        "bytes": 5526839,
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.parquet"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.pmtiles",
+        "bytes": 958736,
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.pmtiles"
+      },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.geojson",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.geojson",
         "bytes": 29992356
       },
-      "kml": null,
-      "shapefile": null,
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.kml",
+        "bytes": 23964733
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.shp.zip",
+        "bytes": 7765504
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {

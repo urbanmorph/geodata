@@ -603,24 +603,36 @@ def build():
         layers.append(ib_layer)
 
     # India Flood Inventory v3 — single geojson upstream (CC-BY-4.0). 1,006
-    # historical flood event polygons 1960s–2020. No parquet/pmtiles upstream;
-    # ships as geojson-only (the in-viewer DuckDB path can still load it).
-    flood_name = 'INDIA_FLOOD_INVENTORY_V3.geojson'
-    flood_local = SRC / flood_name
+    # historical flood event polygons 1960s–2020. Originally geojson-only
+    # (the in-viewer DuckDB path loaded it on the fly); re-baked in-tree in
+    # May 2026 to parquet + pmtiles + kml + shapefile so the filter & export
+    # panel, MCP query_layer, and QGIS / Google Earth users all work
+    # consistently with every other curated layer. carry_forward_from_prev
+    # fills in bytes from the live catalog (since the bake outputs aren't
+    # checked into SRC/).
+    flood_basename = 'INDIA_FLOOD_INVENTORY_V3'
+    flood_prefix = 'environment/flood-inventory'
+    flood_local = SRC / f'{flood_basename}.geojson'
     flood_layer = {
         'id': 'india_flood_inventory',
         'level': 'flood_event',
         'source': 'IndiaFloodInventory',
         'rows': 1006,
-        'parquet': None,
-        'pmtiles': None,
+        'parquet': {
+            'url': f'{R2}/{flood_prefix}/{flood_basename}.parquet',
+            'bytes': None,  # carried forward from prev catalog
+        },
+        'pmtiles': {
+            'url': f'{R2}/{flood_prefix}/{flood_basename}.pmtiles',
+            'bytes': None,  # carried forward from prev catalog
+        },
         'geojson': {
-            'url': f'{R2}/environment/flood-inventory/{flood_name}',
-            'upstream_url': f'{UPSTREAM_BASE}/environment/flood-inventory/{flood_name}',
+            'url': f'{R2}/{flood_prefix}/{flood_basename}.geojson',
+            'upstream_url': f'{UPSTREAM_BASE}/{flood_prefix}/{flood_basename}.geojson',
             'bytes': size_of(flood_local),
         } if flood_local.exists() else None,
-        'kml': None,
-        'shapefile': None,
+        'kml': None,       # carry_forward_from_prev copies the whole block from prev
+        'shapefile': None,  # ditto
         'licence': 'CC-BY-4.0',
         'attribution': {
             'primary': ATTR['IndiaFloodInventory'],
