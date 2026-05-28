@@ -31,8 +31,10 @@ AND it's already present in external-ingested.json.
 from __future__ import annotations
 import json
 import os
+import subprocess
 import sys
 import urllib.request
+import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -51,7 +53,17 @@ R2_PUBLIC = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
 CONTENT_TYPES = {
     '.parquet': 'application/vnd.apache.parquet',
     '.pmtiles': 'application/vnd.pmtiles',
+    '.geojson': 'application/geo+json',
+    '.kml':     'application/vnd.google-earth.kml+xml',
+    '.zip':     'application/zip',  # for *.shp.zip
 }
+
+# Size policy lifted from scripts/bake_whole_layer.py: whole-layer
+# geojson/kml/shapefile bakes only run when the source parquet is small
+# enough that the GeoJSON expansion (typically 3-5x parquet) is still
+# tractable as a single download. Anything larger is gated to per-state
+# slices in the viewer.
+WHOLE_LAYER_MAX_MB = int(os.environ.get('WHOLE_LAYER_MAX_MB', '100'))
 
 
 @dataclass
@@ -428,6 +440,71 @@ def rebake_flatten_bbox(src: Path, dst: Path) -> tuple[int, list[str]]:
     return n, non_geom
 
 
+def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
+    """Bake geojson + kml + shapefile.zip from the source parquet so the
+    catalog card surfaces "Download whole layer" buttons. Skips silently if
+    the parquet exceeds WHOLE_LAYER_MAX_MB (default 100). Returns a dict of
+    {format: local_path} for successfully baked outputs.
+
+    Honours the always-bake-parquet rule indirectly: parquet is already
+    uploaded by the time this runs. These extras are nice-to-haves for QGIS
+    / Google Earth / ArcGIS users; failures here don't block the ingest.
+    """
+    pq_bytes = src_parquet.stat().st_size
+    if pq_bytes > WHOLE_LAYER_MAX_MB * 1024 * 1024:
+        print(f'  whole-layer bake skipped (parquet {pq_bytes / 1024 / 1024:.0f} MB > {WHOLE_LAYER_MAX_MB} MB cap)')
+        return {}
+
+    bake_dir = WORK / f'bake_{d.id}'
+    bake_dir.mkdir(exist_ok=True)
+    basename = Path(d.parquet_url).stem
+
+    outputs: dict[str, Path] = {}
+
+    geojson_path = bake_dir / f'{basename}.geojson'
+    try:
+        con = duckdb.connect()
+        con.execute('INSTALL spatial; LOAD spatial;')
+        con.execute(
+            f"COPY (SELECT * FROM read_parquet('{src_parquet}')) "
+            f"TO '{geojson_path}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')"
+        )
+        outputs['geojson'] = geojson_path
+    except Exception as e:
+        print(f'  geojson bake failed: {e}')
+        return {}  # without geojson we can't bake kml or shapefile downstream
+
+    kml_path = bake_dir / f'{basename}.kml'
+    try:
+        subprocess.run(
+            ['ogr2ogr', '-f', 'KML', str(kml_path), str(geojson_path)],
+            check=True, capture_output=True, timeout=600,
+        )
+        outputs['kml'] = kml_path
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        print(f'  kml bake skipped: {e}')
+
+    shp_dir = bake_dir / f'{basename}_shp'
+    shp_zip = bake_dir / f'{basename}.shp.zip'
+    try:
+        shp_dir.mkdir(exist_ok=True)
+        # Clear any prior shapefile pieces (idempotent re-run)
+        for f in shp_dir.iterdir():
+            f.unlink()
+        subprocess.run(
+            ['ogr2ogr', '-f', 'ESRI Shapefile', str(shp_dir / f'{basename}.shp'), str(geojson_path)],
+            check=True, capture_output=True, timeout=600,
+        )
+        with zipfile.ZipFile(shp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+            for f in sorted(shp_dir.iterdir()):
+                zf.write(f, f.name)
+        outputs['shapefile'] = shp_zip
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        print(f'  shapefile bake skipped: {e}')
+
+    return outputs
+
+
 def r2_client():
     return boto3.client(
         's3',
@@ -461,7 +538,7 @@ def r2_upload(s3, local: Path, key: str) -> None:
     s3.upload_file(str(local), BUCKET, key, ExtraArgs=extra, Config=transfer)
 
 
-def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int) -> None:
+def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int, bakes: dict[str, Path] | None = None) -> None:
     """Patch catalog.json (root + web/public + web/dist) with the new layer
     so the live site picks it up before the next build_catalog.py run.
 
@@ -519,10 +596,16 @@ def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, fea
         prev = next((l for l in c['layers'] if l.get('id') == d.id), None)
         merged: dict = dict(prev) if prev else {}
         merged.update(ingest_owned)
-        # Carry forward whole-layer bakes from bake_whole_layer.py (we don't
-        # generate these — they come from a separate downstream step).
+        # Whole-layer bakes: prefer fresh bakes from this run; otherwise
+        # carry forward whatever previous run (or bake_whole_layer.py) wrote.
+        bakes_local = bakes or {}
         for fmt in ('geojson', 'kml', 'shapefile'):
-            if prev and prev.get(fmt) is not None:
+            if fmt in bakes_local:
+                merged[fmt] = {
+                    'url': f'{R2_PUBLIC}/{d.r2_prefix}/{bakes_local[fmt].name}',
+                    'bytes': bakes_local[fmt].stat().st_size,
+                }
+            elif prev and prev.get(fmt) is not None:
                 merged[fmt] = prev[fmt]
             else:
                 merged.setdefault(fmt, None)
@@ -589,9 +672,16 @@ def ingest(d: Dataset) -> None:
     else:
         print('  pmtiles skipped (opted out for this layer)')
 
+    # Whole-layer geojson/kml/shapefile bakes for ≤100 MB layers. Bake from
+    # the flat parquet (geometry survives the bbox-flatten copy). Each baked
+    # output is uploaded under the same r2_prefix as parquet + pmtiles.
+    bakes = bake_whole_layer(d, flat_parquet)
+    for fmt, path in bakes.items():
+        r2_upload(s3, path, f'{d.r2_prefix}/{path.name}')
+
     append_manifest(d, pq_bytes, pm_bytes, features)
-    patch_catalog(d, pq_bytes, pm_bytes, features)
-    print(f'  ✓ {d.id}: catalog + manifest patched')
+    patch_catalog(d, pq_bytes, pm_bytes, features, bakes)
+    print(f'  ✓ {d.id}: catalog + manifest patched ({len(bakes)} extra bakes)')
 
 
 def main(argv: list[str]) -> int:

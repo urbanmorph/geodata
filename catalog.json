@@ -3802,347 +3802,6 @@
       "notes": "Airports across India. 151 point features with name, type, district, state. From data.gov.in."
     },
     {
-      "id": "vedas_power_plants",
-      "level": "vedas_power_plants",
-      "source": "VEDAS",
-      "rows": 534,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-power-plants/Vedas_Power_Plants.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Power_Plants.parquet",
-        "bytes": 31559
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-power-plants/Vedas_Power_Plants.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Power_Plants.pmtiles",
-        "bytes": 29825
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
-    },
-    {
-      "id": "vedas_oil_refineries",
-      "level": "vedas_oil_refineries",
-      "source": "VEDAS",
-      "rows": 23,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-refineries/Vedas_Oil_Refineries.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Refineries.parquet",
-        "bytes": 3769
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-refineries/Vedas_Oil_Refineries.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Refineries.pmtiles",
-        "bytes": 2465
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
-    },
-    {
-      "id": "vedas_oil_wells",
-      "level": "vedas_oil_wells",
-      "source": "VEDAS",
-      "rows": 18949,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-wells/Vedas_Oil_Wells.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Wells.parquet",
-        "bytes": 511735
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-wells/Vedas_Oil_Wells.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Wells.pmtiles",
-        "bytes": 639198
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
-    },
-    {
-      "id": "vedas_wind_farms",
-      "level": "vedas_wind_farms",
-      "source": "VEDAS",
-      "rows": 20,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-wind-farms/Vedas_Wind_Farms.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Wind_Farms.parquet",
-        "bytes": 6341
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-wind-farms/Vedas_Wind_Farms.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Wind_Farms.pmtiles",
-        "bytes": 3643
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
-    },
-    {
-      "id": "vedas_ethanol_plants",
-      "level": "vedas_ethanol_plants",
-      "source": "VEDAS",
-      "rows": 320,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-ethanol-plants/Vedas_Ethanol_Plants.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Ethanol_Plants.parquet",
-        "bytes": 27701
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-ethanol-plants/Vedas_Ethanol_Plants.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Ethanol_Plants.pmtiles",
-        "bytes": 36682
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
-    },
-    {
-      "id": "vedas_solar_plants",
-      "level": "vedas_solar_plants",
-      "source": "VEDAS",
-      "rows": 166,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-plants/Vedas_Solar_Power_Plants.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Power_Plants.parquet",
-        "bytes": 11699
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-plants/Vedas_Solar_Power_Plants.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Power_Plants.pmtiles",
-        "bytes": 12296
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
-    },
-    {
-      "id": "vedas_solar_panel_areas",
-      "level": "vedas_solar_panel_areas",
-      "source": "VEDAS",
-      "rows": 970,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panel-areas/Vedas_Solar_Panel_Areas.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panel_Areas.parquet",
-        "bytes": 54200
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panel-areas/Vedas_Solar_Panel_Areas.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panel_Areas.pmtiles",
-        "bytes": 31004
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
-    },
-    {
-      "id": "vedas_solar_panels_ai_2023",
-      "level": "vedas_solar_panels_ai_2023",
-      "source": "VEDAS",
-      "rows": 2817,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panels-ai-2023/Vedas_Solar_Panels_AI_2023.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panels_AI_2023.parquet",
-        "bytes": 2472522
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panels-ai-2023/Vedas_Solar_Panels_AI_2023.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panels_AI_2023.pmtiles",
-        "bytes": 1164620
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap (AI-derived)."
-    },
-    {
-      "id": "vedas_transmission_lines",
-      "level": "vedas_transmission_lines",
-      "source": "VEDAS",
-      "rows": 27767,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-transmission-lines/Vedas_Power_Transmission_Lines.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-lines/Vedas_Power_Transmission_Lines.parquet",
-        "bytes": 8635596
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-transmission-lines/Vedas_Power_Transmission_Lines.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-lines/Vedas_Power_Transmission_Lines.pmtiles",
-        "bytes": 3755613
-      },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "licence": "ODbL-1.0",
-      "attribution": {
-        "primary": {
-          "name": "ISRO VEDAS Energymap (OSM-derived)",
-          "url": "https://vedas.sac.gov.in/energymap/"
-        },
-        "publisher": null
-      },
-      "category": "infrastructure",
-      "provenance": "curated",
-      "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap (transmission lines). OSM-derived per release body \u2014 ODbL applies."
-    },
-    {
-      "id": "pmgsy_habitations",
-      "level": "pmgsy_habitations",
-      "source": "PMGSY",
-      "rows": 1045400,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/habitations/PMGSY_Habitations.parquet",
-        "bytes": 55189632
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/habitations/PMGSY_Habitations.pmtiles",
-        "bytes": 61937753
-      },
-      "licence": "GODL-India",
-      "attribution": {
-        "primary": {
-          "name": "PMGSY GeoSadak (Ministry of Rural Development)",
-          "url": "https://omms.nic.in/"
-        },
-        "publisher": null
-      },
-      "category": "boundaries",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from PMGSY GeoSadak / OMMS. Updated 20 Oct 2024.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
-      "id": "wris_lakes",
-      "level": "wris_lakes",
-      "source": "CWC",
-      "rows": 158106,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Lakes.parquet",
-        "bytes": 96701402
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Lakes.pmtiles",
-        "bytes": 87040065
-      },
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "Central Water Commission (WRIS)",
-          "url": "https://indiawris.gov.in/"
-        },
-        "publisher": null
-      },
-      "category": "environment",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from CWC WRIS lakes layer.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
       "id": "wris_watersheds",
       "level": "wris_watersheds",
       "source": "CWC",
@@ -4322,6 +3981,446 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
+      "fetched_at": null
+    },
+    {
+      "id": "vedas_power_plants",
+      "level": "vedas_power_plants",
+      "source": "VEDAS",
+      "rows": 534,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-power-plants/Vedas_Power_Plants.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Power_Plants.parquet",
+        "bytes": 31559
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-power-plants/Vedas_Power_Plants.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Power_Plants.pmtiles",
+        "bytes": 29825
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-power-plants/Vedas_Power_Plants.geojson",
+        "bytes": 199835
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-power-plants/Vedas_Power_Plants.kml",
+        "bytes": 397485
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-power-plants/Vedas_Power_Plants.shp.zip",
+        "bytes": 31658
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
+    },
+    {
+      "id": "vedas_oil_refineries",
+      "level": "vedas_oil_refineries",
+      "source": "VEDAS",
+      "rows": 23,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-refineries/Vedas_Oil_Refineries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Refineries.parquet",
+        "bytes": 3769
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-refineries/Vedas_Oil_Refineries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Refineries.pmtiles",
+        "bytes": 2465
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-refineries/Vedas_Oil_Refineries.geojson",
+        "bytes": 8182
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-refineries/Vedas_Oil_Refineries.kml",
+        "bytes": 17826
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-refineries/Vedas_Oil_Refineries.shp.zip",
+        "bytes": 2621
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
+    },
+    {
+      "id": "vedas_oil_wells",
+      "level": "vedas_oil_wells",
+      "source": "VEDAS",
+      "rows": 18949,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-wells/Vedas_Oil_Wells.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Wells.parquet",
+        "bytes": 511735
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-wells/Vedas_Oil_Wells.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Wells.pmtiles",
+        "bytes": 639198
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-wells/Vedas_Oil_Wells.geojson",
+        "bytes": 5567107
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-wells/Vedas_Oil_Wells.kml",
+        "bytes": 11809590
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-oil-wells/Vedas_Oil_Wells.shp.zip",
+        "bytes": 626393
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
+    },
+    {
+      "id": "vedas_wind_farms",
+      "level": "vedas_wind_farms",
+      "source": "VEDAS",
+      "rows": 20,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-wind-farms/Vedas_Wind_Farms.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Wind_Farms.parquet",
+        "bytes": 6341
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-wind-farms/Vedas_Wind_Farms.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Wind_Farms.pmtiles",
+        "bytes": 3643
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-wind-farms/Vedas_Wind_Farms.geojson",
+        "bytes": 12219
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-wind-farms/Vedas_Wind_Farms.kml",
+        "bytes": 26026
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-wind-farms/Vedas_Wind_Farms.shp.zip",
+        "bytes": 3054
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
+    },
+    {
+      "id": "vedas_ethanol_plants",
+      "level": "vedas_ethanol_plants",
+      "source": "VEDAS",
+      "rows": 320,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-ethanol-plants/Vedas_Ethanol_Plants.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Ethanol_Plants.parquet",
+        "bytes": 27701
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-ethanol-plants/Vedas_Ethanol_Plants.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Ethanol_Plants.pmtiles",
+        "bytes": 36682
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-ethanol-plants/Vedas_Ethanol_Plants.geojson",
+        "bytes": 142815
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-ethanol-plants/Vedas_Ethanol_Plants.kml",
+        "bytes": 308060
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-ethanol-plants/Vedas_Ethanol_Plants.shp.zip",
+        "bytes": 25582
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
+    },
+    {
+      "id": "vedas_solar_plants",
+      "level": "vedas_solar_plants",
+      "source": "VEDAS",
+      "rows": 166,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-plants/Vedas_Solar_Power_Plants.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Power_Plants.parquet",
+        "bytes": 11699
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-plants/Vedas_Solar_Power_Plants.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Power_Plants.pmtiles",
+        "bytes": 12296
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-plants/Vedas_Solar_Power_Plants.geojson",
+        "bytes": 56531
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-plants/Vedas_Solar_Power_Plants.kml",
+        "bytes": 124520
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-plants/Vedas_Solar_Power_Plants.shp.zip",
+        "bytes": 9812
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
+    },
+    {
+      "id": "vedas_solar_panel_areas",
+      "level": "vedas_solar_panel_areas",
+      "source": "VEDAS",
+      "rows": 970,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panel-areas/Vedas_Solar_Panel_Areas.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panel_Areas.parquet",
+        "bytes": 54200
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panel-areas/Vedas_Solar_Panel_Areas.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panel_Areas.pmtiles",
+        "bytes": 31004
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panel-areas/Vedas_Solar_Panel_Areas.geojson",
+        "bytes": 277003
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panel-areas/Vedas_Solar_Panel_Areas.kml",
+        "bytes": 584296
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panel-areas/Vedas_Solar_Panel_Areas.shp.zip",
+        "bytes": 49823
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap."
+    },
+    {
+      "id": "vedas_solar_panels_ai_2023",
+      "level": "vedas_solar_panels_ai_2023",
+      "source": "VEDAS",
+      "rows": 2817,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panels-ai-2023/Vedas_Solar_Panels_AI_2023.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panels_AI_2023.parquet",
+        "bytes": 2472522
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panels-ai-2023/Vedas_Solar_Panels_AI_2023.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panels_AI_2023.pmtiles",
+        "bytes": 1164620
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panels-ai-2023/Vedas_Solar_Panels_AI_2023.geojson",
+        "bytes": 6696339
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panels-ai-2023/Vedas_Solar_Panels_AI_2023.kml",
+        "bytes": 6686129
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-solar-panels-ai-2023/Vedas_Solar_Panels_AI_2023.shp.zip",
+        "bytes": 2202927
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap (AI-derived)."
+    },
+    {
+      "id": "vedas_transmission_lines",
+      "level": "vedas_transmission_lines",
+      "source": "VEDAS",
+      "rows": 27767,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-transmission-lines/Vedas_Power_Transmission_Lines.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-lines/Vedas_Power_Transmission_Lines.parquet",
+        "bytes": 8635596
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-transmission-lines/Vedas_Power_Transmission_Lines.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-lines/Vedas_Power_Transmission_Lines.pmtiles",
+        "bytes": 3755613
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-transmission-lines/Vedas_Power_Transmission_Lines.geojson",
+        "bytes": 39666477
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-transmission-lines/Vedas_Power_Transmission_Lines.kml",
+        "bytes": 43996949
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/vedas-transmission-lines/Vedas_Power_Transmission_Lines.shp.zip",
+        "bytes": 9473204
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "ISRO VEDAS Energymap (OSM-derived)",
+          "url": "https://vedas.sac.gov.in/energymap/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": null,
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from ISRO VEDAS energymap (transmission lines). OSM-derived per release body \u2014 ODbL applies."
+    },
+    {
+      "id": "pmgsy_habitations",
+      "level": "pmgsy_habitations",
+      "source": "PMGSY",
+      "rows": 1045400,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/habitations/PMGSY_Habitations.parquet",
+        "bytes": 55189632
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/habitations/PMGSY_Habitations.pmtiles",
+        "bytes": 61937753
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "PMGSY GeoSadak (Ministry of Rural Development)",
+          "url": "https://omms.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "boundaries",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from PMGSY GeoSadak / OMMS. Updated 20 Oct 2024.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.geojson",
+        "bytes": 340678868
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.kml",
+        "bytes": 743158455
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.shp.zip",
+        "bytes": 51203631
+      },
+      "fetched_at": null
+    },
+    {
+      "id": "wris_lakes",
+      "level": "wris_lakes",
+      "source": "CWC",
+      "rows": 158106,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Lakes.parquet",
+        "bytes": 96701402
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Lakes.pmtiles",
+        "bytes": 87040065
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Central Water Commission (WRIS)",
+          "url": "https://indiawris.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from CWC WRIS lakes layer.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.geojson",
+        "bytes": 286677644
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.kml",
+        "bytes": 341288645
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.shp.zip",
+        "bytes": 92667306
+      },
       "fetched_at": null
     }
   ],
