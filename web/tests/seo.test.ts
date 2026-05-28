@@ -213,6 +213,69 @@ describe('SEO — /docs FAQPage + structured-data', () => {
   });
 });
 
+describe('SEO — BreadcrumbList on every prerendered page', () => {
+  // Breadcrumbs reinforce site structure for Google (sitelinks breadcrumb
+  // trail in SERPs) and give LLM crawlers a navigable hierarchy.
+  const PAGES = [
+    { file: 'index.html', last: 'Catalog' },
+    { file: 'about.html', last: 'About' },
+    { file: 'preview.html', last: 'Preview' },
+    { file: 'docs.html', last: 'API v1' },
+    { file: 'mcp.html', last: 'MCP Server' },
+    { file: 'privacy.html', last: 'Privacy' },
+    { file: 'terms.html', last: 'Terms' },
+  ];
+
+  for (const { file, last } of PAGES) {
+    it(`${file} emits a BreadcrumbList ending in "${last}"`, () => {
+      const html = readFileSync(resolve(__dirname, '..', file), 'utf8');
+      const m = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+      expect(m, `${file} no JSON-LD`).not.toBeNull();
+      const data = JSON.parse(m![1].replace(/\\u003c/g, '<'));
+      const graph = data['@graph'] || [data];
+      const bc = graph.find((n: any) => n['@type'] === 'BreadcrumbList');
+      expect(bc, `${file} missing BreadcrumbList`).toBeTruthy();
+      expect(bc.itemListElement?.length, 'breadcrumb needs ≥2 items').toBeGreaterThanOrEqual(2);
+      const tail = bc.itemListElement[bc.itemListElement.length - 1];
+      expect(tail.name).toBe(last);
+    });
+  }
+});
+
+describe('SEO — legal pages carry WebPage JSON-LD', () => {
+  // /privacy and /terms were shipping zero structured data. WebPage with
+  // isPartOf reinforces they belong to the bharatlas WebSite, lifting
+  // entity association in Google's knowledge graph.
+  for (const file of ['privacy.html', 'terms.html']) {
+    it(`${file} emits a WebPage with isPartOf the bharatlas WebSite`, () => {
+      const html = readFileSync(resolve(__dirname, '..', file), 'utf8');
+      const m = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+      expect(m, `${file} no JSON-LD`).not.toBeNull();
+      const data = JSON.parse(m![1].replace(/\\u003c/g, '<'));
+      const graph = data['@graph'] || [data];
+      const wp = graph.find((n: any) => n['@type'] === 'WebPage');
+      expect(wp, `${file} missing WebPage`).toBeTruthy();
+      expect(wp.isPartOf?.['@type']).toBe('WebSite');
+      expect(wp.isPartOf?.url).toMatch(/^https:\/\/bharatlas\.com/);
+    });
+  }
+});
+
+describe('SEO — /about Person.sameAs includes GitHub for entity disambiguation', () => {
+  it('/about Person sameAs contains both linkedin and github', () => {
+    const html = readFileSync(resolve(__dirname, '..', 'about.html'), 'utf8');
+    const m = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    expect(m).not.toBeNull();
+    const data = JSON.parse(m![1].replace(/\\u003c/g, '<'));
+    const graph = data['@graph'] || [data];
+    const person = graph.find((n: any) => n['@type'] === 'Person');
+    expect(person?.sameAs).toEqual(expect.arrayContaining([
+      expect.stringMatching(/linkedin\.com/),
+      expect.stringMatching(/github\.com/),
+    ]));
+  });
+});
+
 describe('SEO — OG image dimensions on prerendered pages', () => {
   // Twitter/Slack/iMessage cards render correctly without dims, but Facebook
   // and LinkedIn need explicit width/height to skip a re-fetch + show the

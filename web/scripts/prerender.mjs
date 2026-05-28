@@ -934,6 +934,13 @@ await renderPage('about', {
     '@context': 'https://schema.org',
     '@graph': [
       {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+          { '@type': 'ListItem', position: 2, name: 'About', item: ORIGIN + '/about' },
+        ],
+      },
+      {
         '@type': 'AboutPage',
         name: 'About bharatlas',
         url: ORIGIN + '/about',
@@ -945,7 +952,10 @@ await renderPage('about', {
         '@id': ORIGIN + '/about#sathya',
         name: 'Sathya Sankaran',
         url: 'https://www.sathyasankaran.com',
-        sameAs: ['https://linkedin.com/in/sathyasankaran'],
+        sameAs: [
+          'https://linkedin.com/in/sathyasankaran',
+          'https://github.com/urbanmorph',
+        ],
         worksFor: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
       },
       {
@@ -974,15 +984,29 @@ await renderPage(
     image: ORIGIN + '/og-preview.png',
     structuredData: {
       '@context': 'https://schema.org',
-      '@type': 'WebApplication',
-      name: 'bharatlas · preview',
-      url: ORIGIN + '/preview',
-      applicationCategory: 'UtilityApplication',
-      operatingSystem: 'Web',
+      '@graph': [
+        {
+          '@type': 'BreadcrumbList',
+          itemListElement: [
+            { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+            { '@type': 'ListItem', position: 2, name: 'Preview', item: ORIGIN + '/preview' },
+          ],
+        },
+        {
+          '@type': 'WebApplication',
+          name: 'bharatlas · preview',
+          url: ORIGIN + '/preview',
+          applicationCategory: 'UtilityApplication',
+          operatingSystem: 'Web',
+        },
+      ],
     },
   },
   { TURNSTILE_SITEKEY },
 );
+
+// Shared minimal WebSite ref for legal pages' isPartOf.
+const WEBSITE_REF = { '@type': 'WebSite', name: 'bharatlas', url: ORIGIN + '/' };
 
 await renderPage('privacy', {
   title: 'Privacy',
@@ -990,6 +1014,25 @@ await renderPage('privacy', {
     "Bharatlas runs without accounts, third-party analytics or tracking cookies. This page explains what we store (very little) and what we don't.",
   url: ORIGIN + '/privacy',
   image: ORIGIN + '/og-default.png',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+          { '@type': 'ListItem', position: 2, name: 'Privacy', item: ORIGIN + '/privacy' },
+        ],
+      },
+      {
+        '@type': 'WebPage',
+        name: 'Privacy',
+        url: ORIGIN + '/privacy',
+        isPartOf: WEBSITE_REF,
+        about: 'Privacy practices for bharatlas: no accounts, no third-party analytics, no tracking cookies.',
+      },
+    ],
+  },
 });
 
 await renderPage('terms', {
@@ -998,6 +1041,25 @@ await renderPage('terms', {
     "Terms for using bharatlas: open-licence content only, no warranty of accuracy, contributor attests right to share. Short and plain-English.",
   url: ORIGIN + '/terms',
   image: ORIGIN + '/og-default.png',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+          { '@type': 'ListItem', position: 2, name: 'Terms', item: ORIGIN + '/terms' },
+        ],
+      },
+      {
+        '@type': 'WebPage',
+        name: 'Terms',
+        url: ORIGIN + '/terms',
+        isPartOf: WEBSITE_REF,
+        about: 'Terms of use for bharatlas: open-licence content only, no warranty of accuracy, contributor attests right to share.',
+      },
+    ],
+  },
 });
 
 // /docs FAQ — mirrors the visible "Common questions" section emitted into
@@ -1046,6 +1108,13 @@ await renderPage('docs', {
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+          { '@type': 'ListItem', position: 2, name: 'API v1', item: ORIGIN + '/docs' },
+        ],
+      },
       {
         '@type': 'WebAPI',
         name: 'bharatlas API v1',
@@ -1125,6 +1194,13 @@ await renderPage('mcp', {
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+          { '@type': 'ListItem', position: 2, name: 'MCP Server', item: ORIGIN + '/mcp' },
+        ],
+      },
       {
         '@type': 'SoftwareApplication',
         name: 'bharatlas-mcp',
