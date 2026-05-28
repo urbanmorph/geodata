@@ -113,6 +113,8 @@ ATTR = {
     'NDEM':          {'name': 'National Database for Emergency Management (NRSC)', 'url': 'https://ndem.nrsc.gov.in/'},
     'NGDR':          {'name': 'National Geoscience Data Repository (GSI Bhukosh)', 'url': 'https://bhukosh.gsi.gov.in/'},
     'GSI':           {'name': 'Geological Survey of India',   'url': 'https://gsi.gov.in/'},
+    # Wave 3 — POIs / general-utility.
+    'Overture':      {'name': 'Overture Maps Foundation',     'url': 'https://overturemaps.org/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
