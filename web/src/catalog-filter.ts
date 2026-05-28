@@ -35,6 +35,31 @@ export type FilterResult = {
   totalMatches: number;
 };
 
+/**
+ * Decide per-card visibility on the home grid.
+ *
+ * Earlier behaviour was `matches AND inActiveCategory` for every card. That
+ * made search results depend on whether the matched layer happened to be
+ * categorised into the currently-selected pill — invisible context to the
+ * user. Typing `over` with `Environment` selected returned "No matches",
+ * even though Overture Places (in `infrastructure`) clearly matched.
+ *
+ * New rule: when the user is searching (query non-empty), the active pill
+ * is ignored — search intent ("find me this thing") overrides scoping
+ * intent ("show me only this category"). When the query is empty, the
+ * pill scopes the catalog as before. Pill counts continue to show
+ * filtered/total in both modes so the distribution stays visible.
+ */
+export function cardVisibility(
+  matches: boolean[],
+  categories: string[],
+  activeCat: string,
+  query: string,
+): boolean[] {
+  const searching = query.trim().length > 0;
+  return matches.map((m, i) => m && (searching || activeCat === 'all' || categories[i] === activeCat));
+}
+
 export function filterCards(cards: CardLike[], query: string): FilterResult {
   const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
