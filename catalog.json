@@ -6129,6 +6129,10 @@
     "_publisher": {
       "name": "yashveeeeeeer/india-geodata",
       "url": "https://github.com/yashveeeeeeer/india-geodata"
+    },
+    "_publisher_ramseraph": {
+      "name": "ramSeraph/indianopenmaps",
+      "url": "https://github.com/ramSeraph/indianopenmaps"
     }
   },
   "licence_summary": {

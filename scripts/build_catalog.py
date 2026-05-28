@@ -106,11 +106,37 @@ PUBLISHER = {
     'url': 'https://github.com/yashveeeeeeer/india-geodata',
 }
 
+# Second upstream republisher — DataMeet-aligned, hosts Google Open Buildings,
+# VEDAS power infrastructure, WRIS waterbodies, SLUSI soil, etc. as GitHub
+# release archives split into PMTiles + parquet shards. Sits on par with
+# yashveer in the credit chain: each layer carries its primary attribution
+# (Google, ISRO/VEDAS, CWC, etc.) plus the republisher we pulled from.
+RAMSERAPH_PUBLISHER = {
+    'name': 'ramSeraph/indianopenmaps',
+    'url': 'https://github.com/ramSeraph/indianopenmaps',
+}
+
 # Sources whose files are republished via the yashveeeeeeer/india-geodata
 # release archive (so PUBLISHER + UPSTREAM_BASE apply). Other curated sources
 # (bharatviz, etc.) are pulled direct from origin — their entries should not
 # carry the yashveer attribution or upstream_url.
 YASHVEER_HOSTED = {'LGD', 'SOI', 'Bhuvan', 'PMGSY', 'GatiShakti', 'Bharatmaps', 'CWC', 'IndiaFloodInventory', 'data.gov.in', 'NIC-Health'}
+
+# Sources whose files are republished via ramSeraph's GitHub release archives
+# (indian_buildings, indian_power_infra, indian_water_features, etc.). Empty
+# at framework rollout — populated as layers are ingested per the
+# project_candidate_layers_ingest v2 plan.
+RAMSERAPH_HOSTED: set[str] = set()
+
+
+def _publisher_for(source: str) -> dict | None:
+    """Return the republisher attribution for a primary source, or None when
+    the file is pulled direct from origin (e.g., bharatviz, OpenCity)."""
+    if source in YASHVEER_HOSTED:
+        return PUBLISHER
+    if source in RAMSERAPH_HOSTED:
+        return RAMSERAPH_PUBLISHER
+    return None
 
 # Where to re-fetch each upstream file from. Path under the release base URL.
 # Kept here so the source registry travels with the catalog and a single
@@ -546,7 +572,7 @@ def build():
             'licence': licence,
             'attribution': {
                 'primary': ATTR[source],
-                'publisher': PUBLISHER if source in YASHVEER_HOSTED else None,
+                'publisher': _publisher_for(source),
             },
             'category': level_meta.get('category', 'administrative'),
             'provenance': 'curated',
@@ -607,7 +633,7 @@ def build():
         'licence': 'CC-BY-4.0',
         'attribution': {
             'primary': ATTR['IndiaFloodInventory'],
-            'publisher': PUBLISHER,
+            'publisher': _publisher_for('IndiaFloodInventory'),
         },
         'category': 'environment',
         'provenance': 'curated',
@@ -636,7 +662,7 @@ def build():
             'licence': LIC_GB,
             'attribution': {
                 'primary': ATTR['geoBoundaries'],
-                'publisher': None,
+                'publisher': _publisher_for('geoBoundaries'),
             },
             'category': 'boundaries',
             'provenance': 'curated',
@@ -699,7 +725,7 @@ def build():
         'extracts': build_extracts(),
         'filter_stats': filter_stats,
         'download_counts': fetch_download_counts() or _prev_catalog.get('download_counts', {}),
-        'attribution': ATTR | {'_publisher': PUBLISHER},
+        'attribution': ATTR | {'_publisher': PUBLISHER, '_publisher_ramseraph': RAMSERAPH_PUBLISHER},
         'licence_summary': {
             'states_districts': LIC_STATE_DIST,
             'subdistricts_blocks_villages': LIC_BELOW,

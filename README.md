@@ -128,7 +128,8 @@ Data sources, in approximate order of catalog footprint:
 
 Pipelines + patterns:
 
-- [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream Parquet + PMTiles re-publisher.
+- [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream Parquet + PMTiles re-publisher for LGD, SOI, Bhuvan, PMGSY, GatiShakti, Bharatmaps, CWC, NIC-Health and the India Flood Inventory.
+- [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps) — upstream re-publisher for Google Open Buildings, Microsoft Buildings, VEDAS power infrastructure, WRIS waterbodies, SLUSI soil, PMGSY rural roads + habitations and other layers ingested per the v2 candidate-layers plan.
 - [mdshare](https://mdshare.dev/) — the anonymous-token contribution pattern lineage.
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
