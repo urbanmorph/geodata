@@ -754,6 +754,31 @@
       "label": "Rural roads (PMGSY 2024)",
       "unit": "road segments",
       "description": "Pan-India rural road network built or in progress under PMGSY-I/II/III. Complements national highways."
+    },
+    "ndem_floods_1998_2022": {
+      "label": "Flood inundation 1998-2022 (NDEM)",
+      "unit": "flood inundation polygons",
+      "description": "Pan-India satellite-derived flood inundation polygons from 1998 to 2022, compiled by NDEM (NRSC/ISRO). Complements the older India Flood Inventory v3 event catalogue."
+    },
+    "gsi_landslide_inventory": {
+      "label": "Landslide inventory (GSI)",
+      "unit": "landslides",
+      "description": "Geological Survey of India landslide inventory \u2014 pan-India catalogue of historical landslide occurrences with metadata."
+    },
+    "ndem_landslide_hazard": {
+      "label": "Landslide hazard zones (NDEM)",
+      "unit": "hazard zones",
+      "description": "Landslide hazard zonation polygons across India from NDEM, classifying terrain by landslide susceptibility."
+    },
+    "ngdr_earthquakes": {
+      "label": "Earthquake epicentres (NGDR)",
+      "unit": "earthquake events",
+      "description": "Historical earthquake epicentre points across India from the National Geoscience Data Repository (GSI Bhukosh). Complements the BIS IS 1893:2016 seismic hazard zones we already host."
+    },
+    "ndem_cyclone_tracks": {
+      "label": "Cyclone tracks (NDEM)",
+      "unit": "cyclone tracks",
+      "description": "Historical cyclone track line geometries across the Indian Ocean basins, compiled by NDEM."
     }
   },
   "level_order": [
@@ -3540,15 +3565,29 @@
       "level": "flood_event",
       "source": "IndiaFloodInventory",
       "rows": 1006,
-      "parquet": null,
-      "pmtiles": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.parquet",
+        "bytes": 5526839,
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.parquet"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.pmtiles",
+        "bytes": 958736,
+        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.pmtiles"
+      },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.geojson",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.geojson",
         "bytes": 29992356
       },
-      "kml": null,
-      "shapefile": null,
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.kml",
+        "bytes": 23964733
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.shp.zip",
+        "bytes": 7765504
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4420,6 +4459,206 @@
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.shp.zip",
         "bytes": 92667306
+      },
+      "fetched_at": null
+    },
+    {
+      "id": "ndem_floods_1998_2022",
+      "level": "ndem_floods_1998_2022",
+      "source": "NDEM",
+      "rows": 122388,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.parquet",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/floods/NDEM_All_India_Flood_Innundation_1998_to_2022.parquet",
+        "bytes": 28309210
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/floods/NDEM_All_India_Flood_Innundation_1998_to_2022.pmtiles",
+        "bytes": 10053234
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "NDEM (NRSC / ISRO)",
+          "url": "https://ndem.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from NDEM all-India flood inundation 1998-2022.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.geojson",
+        "bytes": 91497517
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.kml",
+        "bytes": 145358963
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.shp.zip",
+        "bytes": 30007034
+      },
+      "fetched_at": null
+    },
+    {
+      "id": "gsi_landslide_inventory",
+      "level": "gsi_landslide_inventory",
+      "source": "GSI",
+      "rows": 30842,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-landslide-inventory/GSI_Landslide_Inventory.parquet",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides/GSI_Landslide_Inventory.parquet",
+        "bytes": 2930628
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-landslide-inventory/GSI_Landslide_Inventory.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides/GSI_Landslide_Inventory.pmtiles",
+        "bytes": 5838322
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India",
+          "url": "https://gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from GSI landslide inventory.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-landslide-inventory/GSI_Landslide_Inventory.geojson",
+        "bytes": 54069955
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-landslide-inventory/GSI_Landslide_Inventory.kml",
+        "bytes": 103435171
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-landslide-inventory/GSI_Landslide_Inventory.shp.zip",
+        "bytes": 5193207
+      },
+      "fetched_at": null
+    },
+    {
+      "id": "ndem_landslide_hazard",
+      "level": "ndem_landslide_hazard",
+      "source": "NDEM",
+      "rows": 32837,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-landslide-hazard/NDEM_Landslide_Hazard.parquet",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides/NDEM_Landslide_Hazard.parquet",
+        "bytes": 13180045
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-landslide-hazard/NDEM_Landslide_Hazard.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides/NDEM_Landslide_Hazard.pmtiles",
+        "bytes": 6962128
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "NDEM (NRSC / ISRO)",
+          "url": "https://ndem.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from NDEM landslide hazard zonation.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-landslide-hazard/NDEM_Landslide_Hazard.geojson",
+        "bytes": 49340220
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-landslide-hazard/NDEM_Landslide_Hazard.kml",
+        "bytes": 58525577
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-landslide-hazard/NDEM_Landslide_Hazard.shp.zip",
+        "bytes": 15240523
+      },
+      "fetched_at": null
+    },
+    {
+      "id": "ngdr_earthquakes",
+      "level": "ngdr_earthquakes",
+      "source": "NGDR",
+      "rows": 44698,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ngdr-earthquakes/NGDR_Earthquakes.parquet",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/earthquakes/NGDR_Earthquakes.parquet",
+        "bytes": 1737742
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ngdr-earthquakes/NGDR_Earthquakes.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/earthquakes/NGDR_Earthquakes.pmtiles",
+        "bytes": 2434596
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "NGDR / GSI Bhukosh",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from NGDR earthquake epicentres.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ngdr-earthquakes/NGDR_Earthquakes.geojson",
+        "bytes": 21718979
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ngdr-earthquakes/NGDR_Earthquakes.kml",
+        "bytes": 48960554
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ngdr-earthquakes/NGDR_Earthquakes.shp.zip",
+        "bytes": 2936291
+      },
+      "fetched_at": null
+    },
+    {
+      "id": "ndem_cyclone_tracks",
+      "level": "ndem_cyclone_tracks",
+      "source": "NDEM",
+      "rows": 3657,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.parquet",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/cyclones/NDEM_Cyclones_ctl.parquet",
+        "bytes": 103894
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/cyclones/NDEM_Cyclones_ctl.pmtiles",
+        "bytes": 85997
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "NDEM (NRSC / ISRO)",
+          "url": "https://ndem.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from NDEM cyclone track lines. Line geometry \u2014 see ndem_cyclones_ctp for the time-step point positions when needed.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.geojson",
+        "bytes": 2234277
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.kml",
+        "bytes": 3294778
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.shp.zip",
+        "bytes": 186921
       },
       "fetched_at": null
     }

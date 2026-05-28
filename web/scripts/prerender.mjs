@@ -74,6 +74,7 @@ function licenseUrl(id) {
     'ODbL-1.0':      'https://opendatacommons.org/licenses/odbl/1-0/',
     'ODC-PDDL-1.0':  'https://opendatacommons.org/licenses/pddl/1-0/',
     'GODL-India':    'https://data.gov.in/government-open-data-license-india',
+    'CDLA-Permissive-2.0': 'https://cdla.dev/permissive-2-0/',
     'MIT':           'https://opensource.org/licenses/MIT',
   };
   if (!id) return undefined;
@@ -908,7 +909,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'What licences apply?',
-    a: 'Curated layers carry CC0-1.0, CC-BY-4.0 or GODL-India depending on the upstream source. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL or GODL-India. Proprietary or "all rights reserved" content is rejected at submit.',
+    a: 'Curated layers carry CC0-1.0, CC-BY-4.0 or GODL-India depending on the upstream source. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
   },
   {
     q: 'Is my file uploaded when I drop it?',

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { OPEN_LICENCES, isOpenLicence, requiresAttribution } from '../functions/lib/licenses';
 
 describe('OPEN_LICENCES', () => {
-  it('includes the six expected open licences', () => {
+  it('includes the seven expected open licences', () => {
     const ids = OPEN_LICENCES.map((l) => l.id);
     expect(ids).toEqual([
       'CC0-1.0',
@@ -11,7 +11,18 @@ describe('OPEN_LICENCES', () => {
       'ODbL-1.0',
       'ODC-PDDL-1.0',
       'GODL-India',
+      'CDLA-Permissive-2.0',
     ]);
+  });
+
+  it('marks CDLA-Permissive-2.0 as requiring attribution', () => {
+    // CDLA-Permissive-2.0 = data-licence equivalent of MIT/Apache, but the
+    // permissive variant still asks redistributors to pass along the
+    // attribution + notices file. Required by the upstream text.
+    const cdla = OPEN_LICENCES.find((l) => l.id === 'CDLA-Permissive-2.0');
+    expect(cdla).toBeDefined();
+    expect(cdla?.requiresAttribution).toBe(true);
+    expect(cdla?.url).toMatch(/^https?:\/\/cdla\.(io|dev)\//);
   });
 
   it('marks public-domain dedications as not requiring attribution', () => {
