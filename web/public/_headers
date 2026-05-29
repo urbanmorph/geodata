@@ -19,8 +19,21 @@
   Cache-Control: public, max-age=3600
 
 # Catalog data — fresh-ish, but allow stale-while-revalidate so repeat visits feel instant.
+# CDN-Cache-Control is required for CF Pages to actually edge-cache JSON;
+# without it the response is served as cf-cache-status: DYNAMIC.
 /catalog.json
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
+
+# Sitemap + LLM discovery file — both static, both safe to cache an hour
+# at the edge with stale-while-revalidate so submissions / docs changes
+# show up within a day at worst.
+/sitemap.xml
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+/llms.txt
+  Cache-Control: public, max-age=3600, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=3600, stale-while-revalidate=86400
 
 # India boundary overlay — hand-curated GeoJSON from osm-in. Source rarely
 # changes; safe to cache for a week with stale-while-revalidate so a future
