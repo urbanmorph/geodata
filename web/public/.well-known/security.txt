@@ -1,0 +1,9 @@
+# bharatlas security disclosure
+# https://www.rfc-editor.org/rfc/rfc9116
+
+Contact: mailto:sathya@urbanmorph.com
+Expires: 2027-05-29T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://bharatlas.com/.well-known/security.txt
+Acknowledgments: https://github.com/urbanmorph/geodata
+Policy: https://github.com/urbanmorph/geodata/security/policy

@@ -28,23 +28,49 @@ jobs:
     outputs:
       has-new: ${{ steps.check.outputs.has-new }}
     steps:
-      - name: query D1 for recent accepted submissions
+      - name: query D1 for recent accepted submissions + housekeep rate_limits
         id: check
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # D1 binding-name → database-id mapping. Public identifier — same
+          # value lives in web/wrangler.toml (database_id).
+          D1_DATABASE_ID: c7c0c69e-02aa-482c-ac9a-541b36f21cc4
         run: |
           set -euo pipefail
-          npm install -g wrangler@4 >/dev/null 2>&1
-          RAW=$(wrangler d1 execute geodata-submissions --remote --json \
-            --command "SELECT COUNT(*) AS n FROM submissions WHERE status='accepted' AND created_at >= datetime('now', '-70 minutes')")
-          COUNT=$(echo "$RAW" | jq -r '.[0].results[0].n // 0')
+          # Direct REST call to the CF D1 query API — replaces the
+          # `npm install -g wrangler@4 && wrangler d1 execute` chain that
+          # cost 30+ seconds per cron tick AND occasionally hung for 2
+          # minutes before exiting non-zero. curl + jq are preinstalled on
+          # ubuntu-latest, so this step now runs in ~1 second and has no
+          # silent-install failure mode.
+          d1_query() {
+            curl -sS --fail-with-body --max-time 30 -X POST \
+              "https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/d1/database/$D1_DATABASE_ID/query" \
+              -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" \
+              -H "content-type: application/json" \
+              -d "$1"
+          }
+
+          # 1. Count accepted submissions in the last 70 min (the cron-window
+          #    slack). If >0, trigger a deploy to rebake the home grid.
+          RAW=$(d1_query '{"sql":"SELECT COUNT(*) AS n FROM submissions WHERE status='\''accepted'\'' AND created_at >= datetime('\''now'\'', '\''-70 minutes'\'')"}')
+          COUNT=$(echo "$RAW" | jq -r '.result[0].results[0].n // 0')
           echo "Found $COUNT new submission(s) in the last 70 min"
           if [ "$COUNT" -gt 0 ]; then
             echo "has-new=true" >> "$GITHUB_OUTPUT"
           else
             echo "has-new=false" >> "$GITHUB_OUTPUT"
           fi
+
+          # 2. Housekeeping: the rate_limits table keys per (ip_hash, day);
+          #    each active IP adds a row daily. Without cleanup the table
+          #    grows unbounded — fine for D1 storage in the short term, but
+          #    eventually the index degrades. Hourly DELETE of rows older
+          #    than 2 days keeps it bounded to recent traffic.
+          PRUNED=$(d1_query '{"sql":"DELETE FROM rate_limits WHERE day_window_start < date('\''now'\'', '\''-2 days'\'')"}')
+          DEL_ROWS=$(echo "$PRUNED" | jq -r '.result[0].meta.changes // 0')
+          echo "Pruned $DEL_ROWS stale rate_limits rows"
 
   test-and-deploy:
     needs: [check-community-queue]

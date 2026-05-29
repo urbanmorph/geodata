@@ -5,6 +5,7 @@
 import { getSubmissionForView } from '../lib/submissions';
 import { countVotes } from '../lib/ratings';
 import { renderViewPage } from '../lib/render-view';
+import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import type { Env as MiddlewareEnv } from '../api/_middleware';
 
 type Env = MiddlewareEnv;
@@ -18,7 +19,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   if (!/^[A-Za-z0-9_-]{8,16}$/.test(id)) {
     return new Response(NOT_FOUND_HTML, {
       status: 404,
-      headers: { 'content-type': 'text/html; charset=utf-8' },
+      headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML },
     });
   }
 
@@ -36,6 +37,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
       headers: {
         'content-type': 'text/html; charset=utf-8',
         'cache-control': 'public, max-age=60',
+        ...SECURITY_HEADERS_HTML,
       },
     });
   }
@@ -53,6 +55,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
     headers: {
       'content-type': 'text/html; charset=utf-8',
       'cache-control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+      ...SECURITY_HEADERS_HTML,
     },
   });
 };

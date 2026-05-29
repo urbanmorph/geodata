@@ -6,6 +6,7 @@
 // CF Pages Functions take precedence over static files at the same path.
 
 import type { Env } from './api/_middleware';
+import { SECURITY_HEADERS_NON_HTML } from './lib/security-headers';
 
 const ORIGIN = 'https://bharatlas.com';
 
@@ -82,6 +83,7 @@ ${urls.join('\n')}
     headers: {
       'content-type': 'application/xml; charset=utf-8',
       'cache-control': 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+      ...SECURITY_HEADERS_NON_HTML,
     },
   });
 };

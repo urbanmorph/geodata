@@ -11,10 +11,18 @@ import type { Env } from '../_middleware';
 
 type Params = { path: string[] };
 
+// Tight allowlist: this endpoint exists to serve community-submitted files
+// (see render-view.ts → /api/r2/community/<id>/<filename>). Curated layers
+// are served via the public R2 URL (pub-…r2.dev/…) directly, never through
+// here. Reject any other prefix so a future stray object can't be exfiltrated
+// via the bharatlas-branded same-origin path.
+const ALLOWED_PREFIX = /^community\//;
+
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];
   const key = segs.join('/');
   if (!key) return new Response('missing key', { status: 400 });
+  if (!ALLOWED_PREFIX.test(key)) return new Response('not found', { status: 404 });
 
   const obj = await ctx.env.R2.get(key);
   if (!obj) return new Response('not found', { status: 404 });
