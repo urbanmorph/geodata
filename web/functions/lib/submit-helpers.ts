@@ -43,10 +43,11 @@ export async function ipHashFor(
   salt: string,
   now: () => Date = () => new Date(),
 ): Promise<string> {
-  const ip =
-    request.headers.get('cf-connecting-ip') ||
-    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-    'unknown';
+  // CF-Connecting-IP only — never trust X-Forwarded-For. On Cloudflare Pages
+  // CF-Connecting-IP is always set; the missing case falls through to
+  // 'unknown' so a single shared bucket absorbs any anomaly rather than
+  // attackers minting fresh hashes via XFF rotation.
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
   const material = `${ip}|${todayUTC(now)}|${salt}`;
   return sha256Hex(new TextEncoder().encode(material).buffer as ArrayBuffer);
 }

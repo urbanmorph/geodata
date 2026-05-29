@@ -80,3 +80,70 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
     expect(headersFile).toMatch(/Referrer-Policy:\s*strict-origin-when-cross-origin/i);
   });
 });
+
+import { SECURITY_HEADERS_HTML, SECURITY_HEADERS_NON_HTML } from '../functions/lib/security-headers';
+
+describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)', () => {
+  // CF Pages applies `_headers` only to static assets, not to Pages Function
+  // responses. The HTML-rendering Pages Functions (/c/<id>, /view/<id>)
+  // explicitly spread SECURITY_HEADERS_HTML so they get the same
+  // defense-in-depth posture as prerendered HTML.
+
+  it('sets Strict-Transport-Security', () => {
+    expect(SECURITY_HEADERS_HTML['strict-transport-security']).toMatch(/^max-age=\d+/);
+    expect(SECURITY_HEADERS_HTML['strict-transport-security']).toMatch(/includeSubDomains/);
+  });
+
+  it('sets X-Content-Type-Options: nosniff', () => {
+    expect(SECURITY_HEADERS_HTML['x-content-type-options']).toBe('nosniff');
+  });
+
+  it('sets Referrer-Policy', () => {
+    expect(SECURITY_HEADERS_HTML['referrer-policy']).toBe('strict-origin-when-cross-origin');
+  });
+
+  it('sets Permissions-Policy denying sensitive capabilities', () => {
+    const pp = SECURITY_HEADERS_HTML['permissions-policy'];
+    expect(pp).toMatch(/camera=\(\)/);
+    expect(pp).toMatch(/microphone=\(\)/);
+    expect(pp).toMatch(/geolocation=\(\)/);
+  });
+
+  it('CSP includes frame-ancestors to block clickjacking', () => {
+    // Mirrors `_headers` CSP but adds `frame-ancestors 'self'` so iframe
+    // embeds outside bharatlas are blocked.
+    expect(SECURITY_HEADERS_HTML['content-security-policy']).toMatch(/frame-ancestors\s+'self'/);
+  });
+
+  it("CSP keeps default-src to 'self' and locks object-src", () => {
+    const csp = SECURITY_HEADERS_HTML['content-security-policy'];
+    expect(csp).toMatch(/default-src\s+'self'/);
+    expect(csp).toMatch(/object-src\s+'none'/);
+    expect(csp).toMatch(/base-uri\s+'self'/);
+  });
+
+  it('CSP whitelists the same runtime origins as static _headers', () => {
+    const csp = SECURITY_HEADERS_HTML['content-security-policy'];
+    // Cloudflare Turnstile widget
+    expect(csp).toMatch(/https:\/\/challenges\.cloudflare\.com/);
+    // MapLibre + DuckDB-WASM lazy load
+    expect(csp).toMatch(/https:\/\/cdn\.jsdelivr\.net/);
+    // R2 public reads for layer downloads
+    expect(csp).toMatch(/https:\/\/pub-0429b8e3b5a946e69ea007df844a6f1c\.r2\.dev/);
+  });
+});
+
+describe('Security headers — SECURITY_HEADERS_NON_HTML (sitemap.xml etc.)', () => {
+  // Non-HTML responses don't need CSP but do benefit from HSTS + nosniff.
+
+  it('sets the cheap headers (HSTS, nosniff, RP, PP)', () => {
+    expect(SECURITY_HEADERS_NON_HTML['strict-transport-security']).toBeDefined();
+    expect(SECURITY_HEADERS_NON_HTML['x-content-type-options']).toBe('nosniff');
+    expect(SECURITY_HEADERS_NON_HTML['referrer-policy']).toBeDefined();
+    expect(SECURITY_HEADERS_NON_HTML['permissions-policy']).toBeDefined();
+  });
+
+  it('does NOT set Content-Security-Policy (irrelevant for non-HTML)', () => {
+    expect((SECURITY_HEADERS_NON_HTML as Record<string, string>)['content-security-policy']).toBeUndefined();
+  });
+});

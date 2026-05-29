@@ -3,7 +3,9 @@ import { checkApiRateLimit } from '../../lib/api-ratelimit';
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
-  const ip = ctx.request.headers.get('cf-connecting-ip') || ctx.request.headers.get('x-forwarded-for') || 'unknown';
+  // CF-Connecting-IP only — never trust X-Forwarded-For (attacker-controlled
+  // header; a rotating XFF would let one client mint fresh rate-limit buckets).
+  const ip = ctx.request.headers.get('cf-connecting-ip') || 'unknown';
   const ipHash = await sha256(ip);
 
   const isLocate = url.pathname.endsWith('/locate');

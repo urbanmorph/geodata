@@ -6,6 +6,7 @@
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
 
 import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer, type LevelMeta } from '../lib/view-dataset';
+import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 
 type Params = { id: string };
 
@@ -19,7 +20,7 @@ const NOT_FOUND_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>
 export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+    return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });
   }
   const origin = new URL(ctx.request.url).origin;
 
@@ -33,7 +34,7 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   const catalog = (await catalogResp.json()) as Catalog;
   const layer = catalog.layers?.find((l) => l.id === id);
   if (!layer) {
-    return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
+    return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });
   }
 
   const levelMeta = resolveLevelMeta(layer, catalog.level_meta);
@@ -84,6 +85,7 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
       headers: {
         'content-type': 'text/html; charset=utf-8',
         'cache-control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+        ...SECURITY_HEADERS_HTML,
       },
     }));
 };
