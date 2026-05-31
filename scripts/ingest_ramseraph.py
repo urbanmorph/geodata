@@ -104,7 +104,10 @@ ND_EARTHQUAKES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/rele
 ND_CYCLONES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/cyclones'
 POIS_BASE = 'https://github.com/ramSeraph/indian_facilities/releases/download/pois'
 
-RAMSERAPH_NOTE = 'Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from {src}.'
+RAMSERAPH_NOTE = (
+    'Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps '
+    '(DataMeet community) from {src}.'
+)
 
 
 DATASETS: list[Dataset] = [
