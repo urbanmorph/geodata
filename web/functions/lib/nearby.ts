@@ -1,8 +1,22 @@
-import { PMTiles } from 'pmtiles';
-import { VectorTile } from '@mapbox/vector-tile';
-import Pbf from 'pbf';
-import { R2Source } from './r2-source';
-import { lngLatToTile } from './tile-math';
+// Parquet-backed /api/v1/nearby. Two paths share the same return shape:
+//
+//   parquet-bbox   layer has flat xmin/ymin/xmax/ymax cols (ramSeraph re-bake).
+//                  hyparquet skips row groups whose bbox is wholly outside the
+//                  query bbox; only matching rows are read.
+//
+//   parquet-scan   no bbox cols. We read the full file once, parse WKB to a
+//                  centroid per row, then haversine-filter. Guarded by
+//                  MAX_FULLSCAN_BYTES so we never try this on a layer that
+//                  wouldn't fit Workers' CPU budget — those layers throw and
+//                  the caller hears about it instead of timing out.
+//
+// The PMTiles-based path that lived here through PR #83 is gone: pmtiles drop
+// features at lower zooms (designed for display), which gave wrong results on
+// dense layers like hospitals and POIs. See issue #100.
+import { parquetMetadataAsync, parquetQuery, parquetSchema } from 'hyparquet';
+import { compressors } from 'hyparquet-compressors';
+import { asyncBufferFromR2, r2KeyFromLayer } from './parquet-r2';
+import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 
 export interface NearbyHit {
@@ -15,42 +29,30 @@ export interface NearbyHit {
 export interface NearbyResult {
   center: { lat: number; lng: number };
   radius_km: number;
-  zoom_used: number;
-  tiles_read: number;
   total: number;
   features: NearbyHit[];
   timing_ms: number;
+  _source: 'parquet-bbox' | 'parquet-scan';
+  rows_scanned: number;
 }
 
-function zoomForRadius(radiusKm: number, lat: number): number {
-  const cosLat = Math.cos(lat * Math.PI / 180);
-  const targetTileKm = radiusKm / 2;
-  const z = Math.floor(Math.log2((40075.017 * cosLat) / targetTileKm));
-  return Math.max(4, Math.min(z, 14));
+const KM_PER_DEG_LAT = 111.32;
+const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
+const MAX_FULLSCAN_BYTES = 200 * 1024 * 1024;
+
+const JUNK_PROPS = new Set([
+  'shape_leng', 'shape_area', 'shape_length', 'shape.starea()', 'shape.stlength()',
+  'shape_le_1', 'st_area(shape)', 'st_perimeter(shape)',
+  'inpoly_fid', 'simpgnflag', 'maxsimptol', 'minsimptol', 'ogc_fid',
+]);
+
+export function queryBbox(lat: number, lng: number, radiusKm: number) {
+  const dLat = radiusKm / KM_PER_DEG_LAT;
+  const dLng = radiusKm / (KM_PER_DEG_LAT * Math.max(Math.cos(lat * Math.PI / 180), 0.01));
+  return { xmin: lng - dLng, ymin: lat - dLat, xmax: lng + dLng, ymax: lat + dLat };
 }
 
-function tilesInRadius(lng: number, lat: number, radiusKm: number, zoom: number): { x: number; y: number }[] {
-  const { x: cx, y: cy } = lngLatToTile(lng, lat, zoom);
-  const n = 2 ** zoom;
-  const cosLat = Math.cos(lat * Math.PI / 180);
-  const tileKmX = (40075.017 * cosLat) / n;
-  const tileKmY = 40075.017 / n;
-  const stepsX = Math.ceil(radiusKm / tileKmX);
-  const stepsY = Math.ceil(radiusKm / tileKmY);
-  const margin = Math.sqrt(tileKmX ** 2 + tileKmY ** 2) / 2;
-
-  const tiles: { x: number; y: number }[] = [];
-  for (let dy = -stepsY; dy <= stepsY; dy++) {
-    for (let dx = -stepsX; dx <= stepsX; dx++) {
-      if (Math.sqrt((dx * tileKmX) ** 2 + (dy * tileKmY) ** 2) > radiusKm + margin) continue;
-      const tx = cx + dx, ty = cy + dy;
-      if (tx >= 0 && tx < n && ty >= 0 && ty < n) tiles.push({ x: tx, y: ty });
-    }
-  }
-  return tiles;
-}
-
-function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLng = (lng2 - lng1) * Math.PI / 180;
@@ -60,38 +62,22 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-const JUNK_PROPS = new Set([
-  'shape_leng', 'shape_area', 'shape_length', 'shape.starea()', 'shape.stlength()',
-  'shape_le_1', 'st_area(shape)', 'st_perimeter(shape)',
-  'inpoly_fid', 'simpgnflag', 'maxsimptol', 'minsimptol', 'ogc_fid',
-]);
+function pickGeomCol(cols: string[]): string | null {
+  for (const c of ['geometry', 'wkb_geometry', 'geom']) if (cols.includes(c)) return c;
+  return cols.find((c) => c.toLowerCase().includes('geom')) ?? null;
+}
 
-function cleanProps(props: Record<string, unknown>): Record<string, unknown> {
+function cleanProps(row: Record<string, unknown>, skip: Set<string>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
-  for (const [k, v] of Object.entries(props)) {
-    if (!JUNK_PROPS.has(k.toLowerCase())) out[k] = v;
+  for (const k of Object.keys(row)) {
+    if (skip.has(k) || JUNK_PROPS.has(k.toLowerCase())) continue;
+    out[k] = row[k];
   }
   return out;
 }
 
-function featureCentroid(
-  feat: { loadGeometry(): { x: number; y: number }[][]; type: number },
-  tileX: number, tileY: number, zoom: number, extent: number,
-): [number, number] | null {
-  const geom = feat.loadGeometry();
-  if (!geom.length || !geom[0].length) return null;
-
-  const size = extent * (2 ** zoom);
-  const x0 = extent * tileX;
-  const y0 = extent * tileY;
-
-  const ring = feat.type === 1 ? geom.map((r) => r[0]) : geom[0];
-  let sumLng = 0, sumLat = 0;
-  for (const pt of ring) {
-    sumLng += ((pt.x + x0) * 360) / size - 180;
-    sumLat += (360 / Math.PI) * Math.atan(Math.exp((1 - ((pt.y + y0) * 2) / size) * Math.PI)) - 90;
-  }
-  return [sumLng / ring.length, sumLat / ring.length];
+function round4(n: number): number {
+  return Math.round(n * 10000) / 10000;
 }
 
 export async function nearby(
@@ -101,55 +87,86 @@ export async function nearby(
 ): Promise<NearbyResult> {
   const start = Date.now();
 
-  const layer = catalog.layers.find((l) => l.id === layerId);
-  if (!layer?.pmtiles) throw new Error(`Layer ${layerId} not found or has no PMTiles`);
+  const layer = catalog.layers.find((l) => l.id === layerId) as CatalogLayer | undefined;
+  if (!layer) throw new Error(`Layer ${layerId} not found`);
+  if (!layer.parquet) {
+    throw new Error(`Layer ${layerId} has no parquet — nearby unsupported (only layers with geometry can be queried)`);
+  }
 
-  const r2Key = layer.pmtiles.url.replace(/^https:\/\/[^/]+\//, '');
-  const source = new R2Source(r2, r2Key);
-  const pm = new PMTiles(source);
+  const r2Key = r2KeyFromLayer(layer);
+  if (!r2Key) throw new Error(`Layer ${layerId} has no R2 parquet key`);
 
-  const header = await pm.getHeader();
-  const effectiveZ = Math.min(zoomForRadius(radiusKm, lat), header.maxZoom);
-  const tiles = tilesInRadius(lng, lat, radiusKm, effectiveZ);
+  const file = await asyncBufferFromR2(r2, r2Key);
+  const metadata = await parquetMetadataAsync(file);
+  // Top-level fields only; a flat schema.slice(1) would false-match struct
+  // children like `bbox.{xmin,ymin,xmax,ymax}` as top-level cols.
+  const allCols = parquetSchema(metadata).children.map((c) => c.element.name);
+  const geomCol = pickGeomCol(allCols);
+  if (!geomCol) throw new Error(`Layer ${layerId} parquet has no geometry column`);
 
-  const tileResults = await Promise.allSettled(
-    tiles.map(({ x, y }) => pm.getZxy(effectiveZ, x, y)),
-  );
-
-  const seen = new Set<string>();
+  const hasBboxCols = BBOX_COLS.every((c) => allCols.includes(c));
+  const qbbox = queryBbox(lat, lng, radiusKm);
   const hits: NearbyHit[] = [];
+  let rows: Record<string, unknown>[];
+  let skip: Set<string>;
 
-  for (let i = 0; i < tiles.length; i++) {
-    const result = tileResults[i];
-    if (result.status !== 'fulfilled' || !result.value?.data) continue;
-
-    const { x, y } = tiles[i];
-    const tile = new VectorTile(new Pbf(result.value.data));
-
-    for (const layerName of Object.keys(tile.layers)) {
-      const mvtLayer = tile.layers[layerName];
-      for (let f = 0; f < mvtLayer.length; f++) {
-        const feat = mvtLayer.feature(f);
-        const key = feat.id != null
-          ? `${layerName}:${feat.id}`
-          : `${layerName}:${JSON.stringify(feat.properties)}`;
-        if (seen.has(key)) continue;
-        seen.add(key);
-
-        const center = featureCentroid(feat, x, y, effectiveZ, mvtLayer.extent);
-        if (!center) continue;
-        const [fLng, fLat] = center;
-
-        const dist = haversineKm(lat, lng, fLat, fLng);
-        if (dist > radiusKm) continue;
-
-        hits.push({
-          properties: cleanProps(feat.properties),
-          _lat: Math.round(fLat * 10000) / 10000,
-          _lng: Math.round(fLng * 10000) / 10000,
-          _distance_km: Math.round(dist * 10) / 10,
-        });
-      }
+  if (hasBboxCols) {
+    rows = await parquetQuery({
+      compressors,
+      file,
+      columns: allCols.filter((c) => c !== geomCol),
+      rowFormat: 'object',
+      geoparquet: false,
+      filter: {
+        $and: [
+          { xmin: { $lte: qbbox.xmax } },
+          { xmax: { $gte: qbbox.xmin } },
+          { ymin: { $lte: qbbox.ymax } },
+          { ymax: { $gte: qbbox.ymin } },
+        ],
+      },
+    }) as Record<string, unknown>[];
+    skip = new Set([geomCol, 'xmin', 'ymin', 'xmax', 'ymax', 'bbox']);
+    for (const row of rows) {
+      const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
+      const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
+      const d = haversineKm(lat, lng, cLat, cLng);
+      if (d > radiusKm) continue;
+      hits.push({
+        properties: cleanProps(row, skip),
+        _lat: round4(cLat),
+        _lng: round4(cLng),
+        _distance_km: Math.round(d * 10) / 10,
+      });
+    }
+  } else {
+    const bytes = layer.parquet.bytes ?? 0;
+    if (bytes > MAX_FULLSCAN_BYTES) {
+      throw new Error(
+        `Layer ${layerId} parquet is ${Math.round(bytes / 1e6)} MB without spatial bbox columns; ` +
+        `full-scan nearby is unavailable until the layer is rebaked with xmin/ymin/xmax/ymax.`,
+      );
+    }
+    rows = await parquetQuery({
+      compressors,
+      file,
+      columns: allCols,
+      rowFormat: 'object',
+      geoparquet: false,
+    }) as Record<string, unknown>[];
+    skip = new Set([geomCol]);
+    for (const row of rows) {
+      const c = extractCentroid(row[geomCol]);
+      if (!c) continue;
+      const [cLng, cLat] = c;
+      const d = haversineKm(lat, lng, cLat, cLng);
+      if (d > radiusKm) continue;
+      hits.push({
+        properties: cleanProps(row, skip),
+        _lat: round4(cLat),
+        _lng: round4(cLng),
+        _distance_km: Math.round(d * 10) / 10,
+      });
     }
   }
 
@@ -158,10 +175,10 @@ export async function nearby(
   return {
     center: { lat, lng },
     radius_km: radiusKm,
-    zoom_used: effectiveZ,
-    tiles_read: tileResults.filter((r) => r.status === 'fulfilled' && r.value?.data).length,
     total: hits.length,
     features: hits.slice(0, limit),
     timing_ms: Date.now() - start,
+    _source: hasBboxCols ? 'parquet-bbox' : 'parquet-scan',
+    rows_scanned: rows.length,
   };
 }
