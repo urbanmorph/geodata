@@ -1094,11 +1094,11 @@
     "license": "CDLA-Permissive-2.0",
     "r2_prefix": "pois/overture-places",
     "parquet_file": "overture_places_india.parquet",
-    "parquet_bytes": 289738241,
+    "parquet_bytes": 254030046,
     "pmtiles_file": "overture_places_india.pmtiles",
     "pmtiles_bytes": 1207239373,
     "source_url": "https://overturemaps.org/overture-december-2023-release-notes/",
     "source_org": "Overture Maps Foundation",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases."
   }
 ]

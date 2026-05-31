@@ -514,33 +514,73 @@ def http_download(url: str, dest: Path) -> int:
     return n
 
 
+def row_group_size_for(feature_count: int) -> int | None:
+    """Tighter row groups → tighter per-group bbox stats → more effective
+    /api/v1/nearby pruning. Default (122880) wastes pruning on dense layers
+    because a single group still covers a meaningful chunk of India even
+    after Hilbert sort. Bucket by feature count so each layer ends up with
+    roughly 10-100 groups.
+    Returns None for tiny layers where a single group is fine.
+    """
+    if feature_count < 10_000:    return None
+    if feature_count < 100_000:   return 5_000
+    if feature_count < 1_000_000: return 20_000
+    return 50_000
+
+
 def rebake_flatten_bbox(src: Path, dst: Path) -> tuple[int, list[str]]:
-    """Re-emit parquet with the bbox STRUCT flattened to top-level xmin/ymin/
-    xmax/ymax columns (so parquet-query's centroid logic works unchanged).
+    """Re-emit parquet so /api/v1/nearby can prune efficiently:
+      1. Top-level flat xmin/ymin/xmax/ymax columns — either flattened from
+         an existing `bbox` STRUCT (ramSeraph shape) or synthesised from the
+         geometry's extent when neither is present (own-bake LGD shape).
+      2. Rows ordered along a Hilbert curve over India's bbox so row-group
+         bbox stats are tight enough for hyparquet to skip entire groups.
+
+    Without (1) /nearby falls through to a full WKB scan that's capped at
+    200 MB; without (2) the row-group bbox stats span all of India and no
+    pruning happens regardless of how good the filter is.
+
     Returns (feature_count, non-geom column names).
     """
     con = duckdb.connect()
     con.execute('INSTALL spatial; LOAD spatial;')
-    # Discover the column structure
     cols = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{src}')").fetchall()
     col_names = [c[0] for c in cols]
-    has_bbox = 'bbox' in col_names
+    has_bbox_struct = 'bbox' in col_names
+    has_flat_bbox = all(c in col_names for c in ('xmin', 'ymin', 'xmax', 'ymax'))
+    # ramSeraph parquet stores `geometry` already typed as GEOMETRY; a few
+    # older / simpler files store it as raw BLOB (WKB). Detect which.
+    geom_type = next((c[1] for c in cols if c[0] == 'geometry'), 'BLOB')
+    geom_expr = 'geometry' if 'GEOMETRY' in geom_type else 'ST_GeomFromWKB(geometry)'
+    # India bbox; ST_Hilbert uses this as the curve's domain so the 32-bit
+    # index has max resolution over the country instead of the whole world.
+    india_bbox = "ST_Extent(ST_MakeEnvelope(68, 6, 98, 38))"
 
-    if not has_bbox:
-        # Nothing to flatten — copy through with zstd recompression.
-        con.execute(
-            f"COPY (SELECT * FROM read_parquet('{src}')) TO '{dst}' "
-            "(FORMAT PARQUET, COMPRESSION ZSTD)"
-        )
-    else:
-        # Flatten bbox struct. Drop the struct column; add flat fields.
-        con.execute(
-            f"COPY (SELECT * EXCLUDE (bbox), "
+    if has_bbox_struct:
+        # Flatten the struct into top-level cols, drop the struct itself.
+        bbox_clause = (
+            f"SELECT * EXCLUDE (bbox), "
             f"bbox.xmin AS xmin, bbox.ymin AS ymin, "
-            f"bbox.xmax AS xmax, bbox.ymax AS ymax "
-            f"FROM read_parquet('{src}')) TO '{dst}' "
-            "(FORMAT PARQUET, COMPRESSION ZSTD)"
+            f"bbox.xmax AS xmax, bbox.ymax AS ymax"
         )
+    elif has_flat_bbox:
+        bbox_clause = "SELECT *"
+    else:
+        # No bbox in source; compute from the geometry's extent per row.
+        bbox_clause = (
+            f"SELECT *, "
+            f"ST_XMin({geom_expr}) AS xmin, ST_YMin({geom_expr}) AS ymin, "
+            f"ST_XMax({geom_expr}) AS xmax, ST_YMax({geom_expr}) AS ymax"
+        )
+
+    row_count = con.execute(f"SELECT COUNT(*) FROM read_parquet('{src}')").fetchone()[0]
+    rgs = row_group_size_for(row_count)
+    rgs_clause = f", ROW_GROUP_SIZE {rgs}" if rgs is not None else ""
+    con.execute(
+        f"COPY ({bbox_clause} FROM read_parquet('{src}') "
+        f"ORDER BY ST_Hilbert({geom_expr}, {india_bbox})) TO '{dst}' "
+        f"(FORMAT PARQUET, COMPRESSION ZSTD, COMPRESSION_LEVEL 9{rgs_clause})"
+    )
 
     n = con.execute(f"SELECT COUNT(*) FROM read_parquet('{dst}')").fetchone()[0]
     final_cols = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{dst}')").fetchall()
