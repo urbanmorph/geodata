@@ -101,7 +101,35 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
   });
 });
 
-import { SECURITY_HEADERS_HTML, SECURITY_HEADERS_NON_HTML } from '../functions/lib/security-headers';
+import {
+  SECURITY_HEADERS_HTML,
+  SECURITY_HEADERS_NON_HTML,
+  CSP_STATIC,
+  CSP_HTML,
+} from '../functions/lib/security-headers';
+
+describe('Security headers — sync between _headers and security-headers.ts', () => {
+  // CSP is declared once as a structured allowlist in security-headers.ts.
+  // Both surfaces (static _headers, Pages Function SECURITY_HEADERS_HTML)
+  // derive from that source. These tests catch drift: if someone adds an
+  // origin in one place and forgets the other, CI fails loudly instead of
+  // shipping a half-applied policy.
+  const headersFile = readFileSync(resolve(__dirname, '..', 'public', '_headers'), 'utf8');
+
+  it('_headers CSP matches CSP_STATIC byte-for-byte', () => {
+    expect(headersFile).toContain(`Content-Security-Policy: ${CSP_STATIC}`);
+  });
+
+  it('SECURITY_HEADERS_HTML CSP equals CSP_HTML', () => {
+    expect(SECURITY_HEADERS_HTML['content-security-policy']).toBe(CSP_HTML);
+  });
+
+  it("CSP_HTML differs from CSP_STATIC only by frame-ancestors 'self'", () => {
+    // The Pages Function variant adds clickjacking protection. If they
+    // diverge any further, the audit narrative breaks.
+    expect(CSP_HTML).toContain(CSP_STATIC.replace('object-src', "frame-ancestors 'self'; object-src"));
+  });
+});
 
 describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)', () => {
   // CF Pages applies `_headers` only to static assets, not to Pages Function

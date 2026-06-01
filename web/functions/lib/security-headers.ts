@@ -2,37 +2,80 @@
 // the static-asset `_headers` policy (CF Pages applies `_headers` only to
 // static assets — Function responses override).
 //
-// Mirrors the CSP/HSTS/Permissions-Policy block in web/public/_headers so
-// the curated and edge-rendered pages have the same defense-in-depth posture.
-// `frame-ancestors 'self'` is the only addition vs `_headers` — it locks out
-// clickjacking on Pages Function pages without breaking the same-origin embed
-// mode (/c/<id>?embed=1).
+// CSP is declared as a structured allowlist below and serialised twice:
+//   CSP_STATIC  — mirrors web/public/_headers verbatim (no frame-ancestors,
+//                 since classic Pages can't set it via _headers reliably).
+//   CSP_HTML    — Pages Function variant; adds `frame-ancestors 'self'` to
+//                 lock out clickjacking on /c/<id>, /view/<id>, etc.
+//
+// Why structured: PR-A (#103) introduced a strict CSP, and two latent
+// allowlist gaps surfaced later (CF Web Analytics in #111, the DuckDB
+// extensions CDN in #114). Both required updating two files in lockstep.
+// With a single source of truth here + a sync assertion in
+// tests/security-headers.test.ts, adding an origin is one diff and a
+// drift between the files fails CI instead of shipping silently.
 //
 // Apply by spreading into the Response init headers:
 //   return new Response(html, {
 //     headers: { ...SECURITY_HEADERS_HTML, 'content-type': 'text/html; ...' },
 //   });
 
-// Single source of truth for the CSP string — match _headers verbatim where
-// possible so /about, /c/<id>, /view/<id> all look identical to a browser.
-const CSP =
-  "default-src 'self'; " +
-  // static.cloudflareinsights.com is the Cloudflare Web Analytics beacon
-  // (auto-injected by CF when the feature is enabled on the account).
-  "script-src 'self' blob: https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com 'wasm-unsafe-eval'; " +
-  "worker-src 'self' blob:; " +
-  // extensions.duckdb.org is fetched at runtime by DuckDB-WASM the first
-  // time the Filter & export panel queries a parquet (it lazy-loads the
-  // `parquet` extension). Without the allow, DuckDB silently fails with
-  // "table index is out of bounds".
-  "connect-src 'self' blob: https://cdn.jsdelivr.net https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://challenges.cloudflare.com https://extensions.duckdb.org; " +
-  "img-src 'self' blob: data: https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://services.arcgisonline.com https://*.tile.opentopomap.org https://avatars.githubusercontent.com; " +
-  "style-src 'self' 'unsafe-inline'; " +
-  "font-src 'self'; " +
-  "frame-src https://challenges.cloudflare.com; " +
-  "frame-ancestors 'self'; " +
-  "object-src 'none'; " +
-  "base-uri 'self'";
+// Each directive lists its allowed sources in deployment order. The trailing
+// per-line comments are the audit log — any reviewer can scan WHY a host is
+// reachable from the browser.
+const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
+  ['default-src', ["'self'"]],
+  ['script-src', [
+    "'self'",
+    'blob:',                                  // DuckDB-WASM worker bootstrap
+    'https://cdn.jsdelivr.net',               // DuckDB-WASM + MapLibre bundle
+    'https://challenges.cloudflare.com',      // Turnstile widget
+    'https://static.cloudflareinsights.com',  // CF Web Analytics beacon (auto-injected)
+    "'wasm-unsafe-eval'",                     // DuckDB-WASM WebAssembly execution
+  ]],
+  ['worker-src', ["'self'", 'blob:']],        // DuckDB-WASM workers
+  ['connect-src', [
+    "'self'",
+    'blob:',
+    'https://cdn.jsdelivr.net',                                     // DuckDB-WASM bundle fetches
+    'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev',          // R2 public bucket — catalog parquets, pmtiles
+    'https://challenges.cloudflare.com',                            // Turnstile API
+    'https://extensions.duckdb.org',                                // DuckDB-WASM lazy `parquet` extension fetch
+  ]],
+  ['img-src', [
+    "'self'",
+    'blob:',
+    'data:',                                       // inline data URIs (favicons, svg)
+    'https://*.basemaps.cartocdn.com',             // Carto Light/Dark basemap tiles
+    'https://tile.openstreetmap.org',              // OSM basemap tiles
+    'https://services.arcgisonline.com',           // Esri World Imagery basemap tiles
+    'https://*.tile.opentopomap.org',              // OpenTopoMap basemap tiles
+    'https://avatars.githubusercontent.com',       // GitHub avatars in /about credits
+  ]],
+  ['style-src', ["'self'", "'unsafe-inline'"]],   // inline <style> in prerendered HTML
+  ['font-src', ["'self'"]],
+  ['frame-src', ['https://challenges.cloudflare.com']],  // Turnstile iframe
+  ['object-src', ["'none'"]],
+  ['base-uri', ["'self'"]],
+];
+
+function serialise(directives: Array<[string, string[]]>): string {
+  return directives.map(([d, s]) => `${d} ${s.join(' ')}`).join('; ');
+}
+
+/** CSP string mirrored to web/public/_headers. */
+export const CSP_STATIC: string = serialise(CSP_DIRECTIVES);
+
+/** CSP string used by Pages Function HTML responses. Adds frame-ancestors
+ *  'self' between frame-src and object-src to block clickjacking while
+ *  keeping the same-origin embed mode (/c/<id>?embed=1) working. */
+export const CSP_HTML: string = serialise(
+  CSP_DIRECTIVES.flatMap(([d, s]) =>
+    d === 'object-src'
+      ? ([['frame-ancestors', ["'self'"]], [d, s]] as Array<[string, string[]]>)
+      : ([[d, s]] as Array<[string, string[]]>),
+  ),
+);
 
 const SHARED = {
   'strict-transport-security': 'max-age=31536000; includeSubDomains',
@@ -45,7 +88,7 @@ const SHARED = {
 /** Full block for HTML-rendering Pages Functions (/c/<id>, /view/<id>). */
 export const SECURITY_HEADERS_HTML = {
   ...SHARED,
-  'content-security-policy': CSP,
+  'content-security-policy': CSP_HTML,
 } as const;
 
 /** Non-HTML responses (sitemap.xml, future XML/JSON) — CSP is irrelevant
