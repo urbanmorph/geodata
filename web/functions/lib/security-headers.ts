@@ -21,7 +21,11 @@ const CSP =
   // (auto-injected by CF when the feature is enabled on the account).
   "script-src 'self' blob: https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com 'wasm-unsafe-eval'; " +
   "worker-src 'self' blob:; " +
-  "connect-src 'self' blob: https://cdn.jsdelivr.net https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://challenges.cloudflare.com; " +
+  // extensions.duckdb.org is fetched at runtime by DuckDB-WASM the first
+  // time the Filter & export panel queries a parquet (it lazy-loads the
+  // `parquet` extension). Without the allow, DuckDB silently fails with
+  // "table index is out of bounds".
+  "connect-src 'self' blob: https://cdn.jsdelivr.net https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://challenges.cloudflare.com https://extensions.duckdb.org; " +
   "img-src 'self' blob: data: https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://services.arcgisonline.com https://*.tile.opentopomap.org https://avatars.githubusercontent.com; " +
   "style-src 'self' 'unsafe-inline'; " +
   "font-src 'self'; " +

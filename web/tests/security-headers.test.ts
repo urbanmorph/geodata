@@ -74,6 +74,17 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
     expect(csp![1]).toContain('https://static.cloudflareinsights.com');
   });
 
+  it('CSP connect-src allows the DuckDB extensions CDN', () => {
+    // DuckDB-WASM lazily fetches the `parquet` extension from
+    // extensions.duckdb.org the first time the Filter & export panel
+    // queries a parquet. Without an explicit connect-src allow the
+    // browser blocks the fetch and DuckDB errors with the cryptic
+    // "table index is out of bounds" — the codec never loaded.
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
+    expect(csp).not.toBeNull();
+    expect(csp![1]).toContain('https://extensions.duckdb.org');
+  });
+
   it('CSP does not use unsafe-eval (only wasm-unsafe-eval)', () => {
     const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
     expect(csp).not.toBeNull();
@@ -147,6 +158,14 @@ describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)'
     // an explicit allow the browser blocks it on every Pages Function page.
     expect(SECURITY_HEADERS_HTML['content-security-policy'])
       .toContain('https://static.cloudflareinsights.com');
+  });
+
+  it('CSP connect-src allows the DuckDB extensions CDN', () => {
+    // DuckDB-WASM lazily fetches extensions from extensions.duckdb.org
+    // when the Filter & export panel queries a parquet for the first
+    // time. Blocked = silent "table index out of bounds" runtime error.
+    expect(SECURITY_HEADERS_HTML['content-security-policy'])
+      .toContain('https://extensions.duckdb.org');
   });
 });
 

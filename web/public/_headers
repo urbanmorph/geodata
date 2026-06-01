@@ -8,7 +8,7 @@
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' blob: https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: https://cdn.jsdelivr.net https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://challenges.cloudflare.com; img-src 'self' blob: data: https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://services.arcgisonline.com https://*.tile.opentopomap.org https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'
+  Content-Security-Policy: default-src 'self'; script-src 'self' blob: https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com 'wasm-unsafe-eval'; worker-src 'self' blob:; connect-src 'self' blob: https://cdn.jsdelivr.net https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://challenges.cloudflare.com https://extensions.duckdb.org; img-src 'self' blob: data: https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://services.arcgisonline.com https://*.tile.opentopomap.org https://avatars.githubusercontent.com; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'self'
 
 # Hashed Vite assets — safe to cache forever.
 /assets/*
