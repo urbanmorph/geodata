@@ -393,7 +393,7 @@
     "wards_bengaluru_gba": {
       "label": "Greater Bengaluru Wards (2025)",
       "unit": "wards",
-      "description": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025.",
+      "description": "Greater Bengaluru Authority — 369 final wards across 5 corporations, notified Nov 2025.",
       "source_url": "https://data.opencity.in/dataset/gba-wards-delimitation-2025",
       "source_org": "Greater Bengaluru Authority",
       "notes": "Latest GBA delimitation. Pair with the 5-corp polygons for parent grouping."
@@ -409,7 +409,7 @@
     "wards_bengaluru_bbmp_2022": {
       "label": "BBMP Wards (2022, historical)",
       "unit": "wards",
-      "description": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme.",
+      "description": "Bruhat Bengaluru Mahanagara Palike — 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme.",
       "source_url": "https://data.opencity.in/dataset/bbmp-wards",
       "source_org": "BBMP",
       "notes": "Use the GBA 2025 layer for current ward boundaries."
@@ -433,7 +433,7 @@
     "wards_chennai": {
       "label": "Chennai (GCC) Wards",
       "unit": "wards",
-      "description": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones.",
+      "description": "Greater Chennai Corporation — 200 ward boundaries across the 15 zones.",
       "source_url": "https://data.opencity.in/dataset/gcc-ward-information",
       "source_org": "Greater Chennai Corporation",
       "notes": ""
@@ -441,7 +441,7 @@
     "wards_hyderabad": {
       "label": "Hyderabad (GHMC) Wards",
       "unit": "wards",
-      "description": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones.",
+      "description": "Greater Hyderabad Municipal Corporation — 145 wards across 6 zones.",
       "source_url": "https://data.opencity.in/dataset/hyderabad-wards-info",
       "source_org": "Greater Hyderabad Municipal Corporation",
       "notes": ""
@@ -449,7 +449,7 @@
     "wards_mumbai": {
       "label": "Mumbai (BMC) Wards",
       "unit": "wards",
-      "description": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread).",
+      "description": "Brihanmumbai Municipal Corporation — 24 administrative wards (A–T plus the city-island spread).",
       "source_url": "https://data.opencity.in/dataset/mumbai-wards",
       "source_org": "Brihanmumbai Municipal Corporation",
       "notes": ""
@@ -465,7 +465,7 @@
     "wards_kolkata": {
       "label": "Kolkata (KMC) Wards",
       "unit": "wards",
-      "description": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs.",
+      "description": "Kolkata Municipal Corporation — 141 ward boundaries across the 16 boroughs.",
       "source_url": "https://data.opencity.in/dataset/kolkata-wards",
       "source_org": "Kolkata Municipal Corporation",
       "notes": ""
@@ -473,7 +473,7 @@
     "wards_pune": {
       "label": "Pune (PMC) Wards",
       "unit": "wards",
-      "description": "Pune Municipal Corporation \u2014 58 administrative wards.",
+      "description": "Pune Municipal Corporation — 58 administrative wards.",
       "source_url": "https://data.opencity.in/dataset/pune-wards",
       "source_org": "Pune Municipal Corporation",
       "notes": ""
@@ -481,7 +481,7 @@
     "wards_ahmedabad": {
       "label": "Ahmedabad (AMC) Wards",
       "unit": "wards",
-      "description": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones.",
+      "description": "Ahmedabad Municipal Corporation — 48 wards across the 7 zones.",
       "source_url": "https://data.opencity.in/dataset/ahmedabad-wards",
       "source_org": "Ahmedabad Municipal Corporation",
       "notes": ""
@@ -489,7 +489,7 @@
     "wards_jaipur": {
       "label": "Jaipur (JMC) Wards",
       "unit": "wards",
-      "description": "Jaipur Municipal Corporation \u2014 150 ward boundaries.",
+      "description": "Jaipur Municipal Corporation — 150 ward boundaries.",
       "source_url": "https://data.opencity.in/dataset/jaipur-wards",
       "source_org": "Jaipur Municipal Corporation",
       "notes": ""
@@ -497,7 +497,7 @@
     "wards_gurugram": {
       "label": "Gurugram (MCG) Wards",
       "unit": "wards",
-      "description": "Municipal Corporation of Gurugram \u2014 35 ward boundaries.",
+      "description": "Municipal Corporation of Gurugram — 35 ward boundaries.",
       "source_url": "https://data.opencity.in/dataset/gurugram-wards",
       "source_org": "Municipal Corporation of Gurugram",
       "notes": ""
@@ -505,7 +505,7 @@
     "wards_kochi": {
       "label": "Kochi (KMC) Wards",
       "unit": "wards",
-      "description": "Kochi Municipal Corporation ward boundaries \u2014 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal.",
+      "description": "Kochi Municipal Corporation ward boundaries — 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal.",
       "source_url": "https://data.opencity.in/dataset/kochi-wards",
       "source_org": "Kochi Municipal Corporation",
       "notes": ""
@@ -513,7 +513,7 @@
     "wards_bhubaneshwar": {
       "label": "Bhubaneshwar (BMC) Wards",
       "unit": "wards",
-      "description": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal.",
+      "description": "Bhubaneshwar Municipal Corporation ward boundaries — 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal.",
       "source_url": "https://data.opencity.in/dataset/bhubaneshwar-wards",
       "source_org": "Bhubaneshwar Municipal Corporation",
       "notes": ""
@@ -521,7 +521,7 @@
     "wards_vizag": {
       "label": "Visakhapatnam (GVMC) Wards",
       "unit": "wards",
-      "description": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards.",
+      "description": "Greater Visakhapatnam Municipal Corporation — 98 wards.",
       "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards",
       "source_org": "Greater Visakhapatnam Municipal Corporation",
       "notes": ""
@@ -529,7 +529,7 @@
     "wards_thane": {
       "label": "Thane (TMC) Wards",
       "unit": "wards",
-      "description": "Thane Municipal Corporation \u2014 47 wards across the city.",
+      "description": "Thane Municipal Corporation — 47 wards across the city.",
       "source_url": "https://data.opencity.in/dataset/thane-wards",
       "source_org": "Thane Municipal Corporation",
       "notes": ""
@@ -545,7 +545,7 @@
     "wards_indore": {
       "label": "Indore (IMC) Wards (2024)",
       "unit": "wards",
-      "description": "Indore Municipal Corporation \u2014 85 ward boundaries. 2024 delimitation.",
+      "description": "Indore Municipal Corporation — 85 ward boundaries. 2024 delimitation.",
       "source_url": "https://data.opencity.in/dataset/indore-wards-map",
       "source_org": "Indore Municipal Corporation",
       "notes": ""
@@ -553,7 +553,7 @@
     "wards_coimbatore": {
       "label": "Coimbatore (CCMC) Wards (2011)",
       "unit": "wards",
-      "description": "Coimbatore City Municipal Corporation \u2014 100 ward boundaries. Census 2011 reorganization.",
+      "description": "Coimbatore City Municipal Corporation — 100 ward boundaries. Census 2011 reorganization.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore",
       "source_org": "DataMeet",
       "notes": ""
@@ -561,7 +561,7 @@
     "wards_madurai": {
       "label": "Madurai (MCM) Wards (2024)",
       "unit": "wards",
-      "description": "Madurai City Municipal Corporation \u2014 100 ward boundaries. 2024 delimitation.",
+      "description": "Madurai City Municipal Corporation — 100 ward boundaries. 2024 delimitation.",
       "source_url": "https://data.opencity.in/dataset/madurai-wards-map",
       "source_org": "Madurai City Municipal Corporation",
       "notes": ""
@@ -569,7 +569,7 @@
     "wards_navi_mumbai": {
       "label": "Navi Mumbai (NMMC) Wards (2024)",
       "unit": "wards",
-      "description": "Navi Mumbai Municipal Corporation \u2014 111 ward boundaries. 2024 delimitation.",
+      "description": "Navi Mumbai Municipal Corporation — 111 ward boundaries. 2024 delimitation.",
       "source_url": "https://data.opencity.in/dataset/navi-mumbai-wards-map",
       "source_org": "Navi Mumbai Municipal Corporation",
       "notes": ""
@@ -577,7 +577,7 @@
     "wards_guwahati": {
       "label": "Guwahati (GMC) Wards (2022)",
       "unit": "wards",
-      "description": "Guwahati Municipal Corporation \u2014 60 ward boundaries. 2022 delimitation.",
+      "description": "Guwahati Municipal Corporation — 60 ward boundaries. 2022 delimitation.",
       "source_url": "https://data.opencity.in/dataset/guwahati-wards-information",
       "source_org": "Guwahati Municipal Corporation",
       "notes": ""
@@ -585,7 +585,7 @@
     "wards_mysuru": {
       "label": "Mysuru (MCC) Wards",
       "unit": "wards",
-      "description": "Mysuru City Corporation \u2014 65 ward boundaries.",
+      "description": "Mysuru City Corporation — 65 ward boundaries.",
       "source_url": "https://data.opencity.in/dataset/mysuru-city-corporation-wards-info",
       "source_org": "Mysuru City Corporation",
       "notes": ""
@@ -593,7 +593,7 @@
     "wards_bhopal": {
       "label": "Bhopal (BMC) Wards (2024)",
       "unit": "wards",
-      "description": "Bhopal Municipal Corporation \u2014 86 ward boundaries. 2024 delimitation.",
+      "description": "Bhopal Municipal Corporation — 86 ward boundaries. 2024 delimitation.",
       "source_url": "https://data.opencity.in/dataset/bhopal-wards-map",
       "source_org": "Bhopal Municipal Corporation",
       "notes": ""
@@ -601,7 +601,7 @@
     "wards_chandigarh": {
       "label": "Chandigarh (MC) Wards",
       "unit": "wards",
-      "description": "Municipal Corporation of Chandigarh \u2014 28 ward boundaries.",
+      "description": "Municipal Corporation of Chandigarh — 28 ward boundaries.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chandigarh",
       "source_org": "Municipal Corporation of Chandigarh",
       "notes": ""
@@ -609,7 +609,7 @@
     "wards_lucknow": {
       "label": "Lucknow (LMC) Wards",
       "unit": "wards",
-      "description": "Lucknow Municipal Corporation \u2014 112 ward boundaries.",
+      "description": "Lucknow Municipal Corporation — 112 ward boundaries.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow",
       "source_org": "Lucknow Municipal Corporation",
       "notes": ""
@@ -617,7 +617,7 @@
     "wards_kanpur": {
       "label": "Kanpur (KMC) Wards",
       "unit": "wards",
-      "description": "Kanpur Municipal Corporation \u2014 58 ward boundaries.",
+      "description": "Kanpur Municipal Corporation — 58 ward boundaries.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur",
       "source_org": "Kanpur Municipal Corporation",
       "notes": ""
@@ -625,7 +625,7 @@
     "wards_patna": {
       "label": "Patna (PMC) Wards (~2019)",
       "unit": "wards",
-      "description": "Patna Municipal Corporation \u2014 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names.",
+      "description": "Patna Municipal Corporation — 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names.",
       "source_url": "https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES",
       "source_org": "datta07/INDIAN-SHAPEFILES",
       "notes": ""
@@ -633,7 +633,7 @@
     "wards_surat": {
       "label": "Surat (SMC) Wards (~2019)",
       "unit": "wards",
-      "description": "Surat Municipal Corporation \u2014 30 ward boundaries with named wards.",
+      "description": "Surat Municipal Corporation — 30 ward boundaries with named wards.",
       "source_url": "https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES",
       "source_org": "datta07/INDIAN-SHAPEFILES",
       "notes": ""
@@ -641,7 +641,7 @@
     "wards_vadodara": {
       "label": "Vadodara (VMC) Wards",
       "unit": "wards",
-      "description": "Vadodara Municipal Corporation \u2014 12 administrative ward boundaries.",
+      "description": "Vadodara Municipal Corporation — 12 administrative ward boundaries.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vadodara",
       "source_org": "DataMeet",
       "notes": ""
@@ -649,7 +649,7 @@
     "wards_faridabad": {
       "label": "Faridabad (MCF) Wards",
       "unit": "wards",
-      "description": "Municipal Corporation of Faridabad \u2014 40 ward boundaries.",
+      "description": "Municipal Corporation of Faridabad — 40 ward boundaries.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Faridabad",
       "source_org": "DataMeet",
       "notes": ""
@@ -657,7 +657,7 @@
     "wards_pcmc": {
       "label": "Pimpri-Chinchwad (PCMC) Electoral Wards",
       "unit": "wards",
-      "description": "Pimpri-Chinchwad Municipal Corporation \u2014 66 electoral ward boundaries across 6 zones.",
+      "description": "Pimpri-Chinchwad Municipal Corporation — 66 electoral ward boundaries across 6 zones.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/PCMC",
       "source_org": "DataMeet",
       "notes": ""
@@ -665,7 +665,7 @@
     "wards_vijayawada": {
       "label": "Vijayawada (VMC) Wards",
       "unit": "wards",
-      "description": "Vijayawada Municipal Corporation \u2014 77 ward boundaries.",
+      "description": "Vijayawada Municipal Corporation — 77 ward boundaries.",
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vijayawada",
       "source_org": "DataMeet",
       "notes": ""
@@ -706,14 +706,14 @@
       "description": "Solar panel array polygon boundaries across India."
     },
     "vedas_solar_panels_ai_2023": {
-      "label": "Solar panels \u2014 AI-detected (VEDAS 2023)",
+      "label": "Solar panels — AI-detected (VEDAS 2023)",
       "unit": "solar panels",
       "description": "AI-derived solar panel footprints across India from VEDAS, 2023 snapshot. Complements the manually curated solar plants layer."
     },
     "vedas_transmission_lines": {
       "label": "Power transmission lines (VEDAS)",
       "unit": "transmission line segments",
-      "description": "High-voltage transmission line geometry across India. Licence differs from the rest of the VEDAS family \u2014 ODbL because the source is OSM-derived."
+      "description": "High-voltage transmission line geometry across India. Licence differs from the rest of the VEDAS family — ODbL because the source is OSM-derived."
     },
     "pmgsy_habitations": {
       "label": "Rural habitations (PMGSY 2024)",
@@ -728,12 +728,12 @@
     "wris_watersheds": {
       "label": "Watersheds (WRIS 2024)",
       "unit": "watersheds",
-      "description": "Watershed boundary polygons from CWC WRIS \u2014 the tier below sub-basin in the hydrology hierarchy."
+      "description": "Watershed boundary polygons from CWC WRIS — the tier below sub-basin in the hydrology hierarchy."
     },
     "wris_river_polygons": {
       "label": "River polygons (WRIS 2024)",
       "unit": "river polygons",
-      "description": "Rivers as polygon geometry from CWC WRIS \u2014 complements the existing line-geometry river network for area-based queries."
+      "description": "Rivers as polygon geometry from CWC WRIS — complements the existing line-geometry river network for area-based queries."
     },
     "slusi_soil_health": {
       "label": "Soil health (SLUSI 2020-23 snapshot)",
@@ -743,12 +743,12 @@
     "wris_waterbodies": {
       "label": "Waterbodies (WRIS 2024)",
       "unit": "waterbodies",
-      "description": "Surface waterbody polygons from CWC WRIS \u2014 covers ponds, tanks, reservoirs and natural waterbodies beyond named lakes."
+      "description": "Surface waterbody polygons from CWC WRIS — covers ponds, tanks, reservoirs and natural waterbodies beyond named lakes."
     },
     "slusi_micro_watersheds": {
       "label": "Micro-watersheds (SLUSI)",
       "unit": "micro-watersheds",
-      "description": "Micro-watershed boundary polygons across India from the Soil and Land Use Survey of India \u2014 the finest watershed delineation in the hydrology hierarchy."
+      "description": "Micro-watershed boundary polygons across India from the Soil and Land Use Survey of India — the finest watershed delineation in the hydrology hierarchy."
     },
     "pmgsy_roads": {
       "label": "Rural roads (PMGSY 2024)",
@@ -763,7 +763,7 @@
     "gsi_landslide_inventory": {
       "label": "Landslide inventory (GSI)",
       "unit": "landslides",
-      "description": "Geological Survey of India landslide inventory \u2014 pan-India catalogue of historical landslide occurrences with metadata."
+      "description": "Geological Survey of India landslide inventory — pan-India catalogue of historical landslide occurrences with metadata."
     },
     "ndem_landslide_hazard": {
       "label": "Landslide hazard zones (NDEM)",
@@ -781,7 +781,7 @@
       "description": "Historical cyclone track line geometries across the Indian Ocean basins, compiled by NDEM."
     },
     "overture_places_india": {
-      "label": "Places \u2014 Overture Maps (Dec 2023)",
+      "label": "Places — Overture Maps (Dec 2023)",
       "unit": "places",
       "description": "Pan-India points of interest from the Overture Maps Foundation December 2023 release. Names, categories, addresses, websites and confidence scores for restaurants, shops, ATMs, schools, transit, monuments and more."
     }
@@ -1345,7 +1345,7 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/panchayats/LGD_panchayats.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/panchayats/LGD_panchayats.parquet",
-        "bytes": 368147580
+        "bytes": 344831603
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/panchayats/LGD_Panchayats.pmtiles",
@@ -1379,7 +1379,7 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/LGD_Villages.parquet",
-        "bytes": 474332457
+        "bytes": 437980882
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.pmtiles",
@@ -1489,7 +1489,7 @@
       "category": "people",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:31:10.501660+00:00",
-      "notes": "Lok Sabha constituencies \u2014 543 polygons covering the entire country. Latest delimitation."
+      "notes": "Lok Sabha constituencies — 543 polygons covering the entire country. Latest delimitation."
     },
     {
       "id": "lgd_assembly",
@@ -1606,7 +1606,7 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-23T17:18:45.854281+00:00",
-      "notes": "India Post pincode boundary polygons (simplified). 63,864 polygons. \u00a9 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz."
+      "notes": "India Post pincode boundary polygons (simplified). 63,864 polygons. © 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz."
     },
     {
       "id": "gs_wildlife",
@@ -1782,7 +1782,7 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.parquet",
-        "bytes": 412598012
+        "bytes": 285534264
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.pmtiles",
@@ -1926,7 +1926,7 @@
       "category": "environment",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:09:37.777020+00:00",
-      "notes": "India's river network from CWC WRIS \u2014 line geometry for streams and rivers."
+      "notes": "India's river network from CWC WRIS — line geometry for streams and rivers."
     },
     {
       "id": "seismic_zones",
@@ -2206,7 +2206,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025."
+      "notes": "Greater Bengaluru Authority — 369 final wards across 5 corporations, notified Nov 2025."
     },
     {
       "id": "corporation_bengaluru",
@@ -2283,7 +2283,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme."
+      "notes": "Bruhat Bengaluru Mahanagara Palike — 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme."
     },
     {
       "id": "bda_jurisdiction",
@@ -2400,7 +2400,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones."
+      "notes": "Greater Chennai Corporation — 200 ward boundaries across the 15 zones."
     },
     {
       "id": "wards_hyderabad",
@@ -2440,7 +2440,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones."
+      "notes": "Greater Hyderabad Municipal Corporation — 145 wards across 6 zones."
     },
     {
       "id": "wards_mumbai",
@@ -2480,7 +2480,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread)."
+      "notes": "Brihanmumbai Municipal Corporation — 24 administrative wards (A–T plus the city-island spread)."
     },
     {
       "id": "electoral_wards_mumbai_2017",
@@ -2557,7 +2557,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs."
+      "notes": "Kolkata Municipal Corporation — 141 ward boundaries across the 16 boroughs."
     },
     {
       "id": "wards_pune",
@@ -2597,7 +2597,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Pune Municipal Corporation \u2014 58 administrative wards."
+      "notes": "Pune Municipal Corporation — 58 administrative wards."
     },
     {
       "id": "wards_ahmedabad",
@@ -2637,7 +2637,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones."
+      "notes": "Ahmedabad Municipal Corporation — 48 wards across the 7 zones."
     },
     {
       "id": "wards_jaipur",
@@ -2677,7 +2677,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Jaipur Municipal Corporation \u2014 150 ward boundaries."
+      "notes": "Jaipur Municipal Corporation — 150 ward boundaries."
     },
     {
       "id": "wards_gurugram",
@@ -2717,7 +2717,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Municipal Corporation of Gurugram \u2014 35 ward boundaries."
+      "notes": "Municipal Corporation of Gurugram — 35 ward boundaries."
     },
     {
       "id": "wards_kochi",
@@ -2757,7 +2757,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Kochi Municipal Corporation ward boundaries \u2014 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal."
+      "notes": "Kochi Municipal Corporation ward boundaries — 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal."
     },
     {
       "id": "wards_bhubaneshwar",
@@ -2794,7 +2794,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal."
+      "notes": "Bhubaneshwar Municipal Corporation ward boundaries — 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal."
     },
     {
       "id": "wards_vizag",
@@ -2834,7 +2834,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards."
+      "notes": "Greater Visakhapatnam Municipal Corporation — 98 wards."
     },
     {
       "id": "wards_thane",
@@ -2874,7 +2874,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Thane Municipal Corporation \u2014 47 wards across the city."
+      "notes": "Thane Municipal Corporation — 47 wards across the city."
     },
     {
       "id": "wards_delhi",
@@ -2954,7 +2954,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Indore Municipal Corporation \u2014 85 ward boundaries. 2024 delimitation."
+      "notes": "Indore Municipal Corporation — 85 ward boundaries. 2024 delimitation."
     },
     {
       "id": "wards_coimbatore",
@@ -2994,7 +2994,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Coimbatore City Municipal Corporation \u2014 100 ward boundaries. Census 2011 reorganization."
+      "notes": "Coimbatore City Municipal Corporation — 100 ward boundaries. Census 2011 reorganization."
     },
     {
       "id": "wards_madurai",
@@ -3034,7 +3034,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Madurai City Municipal Corporation \u2014 100 ward boundaries. 2024 delimitation."
+      "notes": "Madurai City Municipal Corporation — 100 ward boundaries. 2024 delimitation."
     },
     {
       "id": "wards_navi_mumbai",
@@ -3074,7 +3074,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Navi Mumbai Municipal Corporation \u2014 111 ward boundaries. 2024 delimitation."
+      "notes": "Navi Mumbai Municipal Corporation — 111 ward boundaries. 2024 delimitation."
     },
     {
       "id": "wards_guwahati",
@@ -3114,7 +3114,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Guwahati Municipal Corporation \u2014 60 ward boundaries. 2022 delimitation."
+      "notes": "Guwahati Municipal Corporation — 60 ward boundaries. 2022 delimitation."
     },
     {
       "id": "wards_mysuru",
@@ -3154,7 +3154,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Mysuru City Corporation \u2014 65 ward boundaries."
+      "notes": "Mysuru City Corporation — 65 ward boundaries."
     },
     {
       "id": "wards_bhopal",
@@ -3194,7 +3194,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Bhopal Municipal Corporation \u2014 86 ward boundaries. 2024 delimitation."
+      "notes": "Bhopal Municipal Corporation — 86 ward boundaries. 2024 delimitation."
     },
     {
       "id": "wards_chandigarh",
@@ -3234,7 +3234,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Municipal Corporation of Chandigarh \u2014 28 ward boundaries."
+      "notes": "Municipal Corporation of Chandigarh — 28 ward boundaries."
     },
     {
       "id": "wards_lucknow",
@@ -3274,7 +3274,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Lucknow Municipal Corporation \u2014 112 ward boundaries."
+      "notes": "Lucknow Municipal Corporation — 112 ward boundaries."
     },
     {
       "id": "wards_kanpur",
@@ -3314,7 +3314,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Kanpur Municipal Corporation \u2014 58 ward boundaries."
+      "notes": "Kanpur Municipal Corporation — 58 ward boundaries."
     },
     {
       "id": "wards_patna",
@@ -3354,7 +3354,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.109170+00:00",
-      "notes": "Patna Municipal Corporation \u2014 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names."
+      "notes": "Patna Municipal Corporation — 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names."
     },
     {
       "id": "wards_surat",
@@ -3394,7 +3394,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.110005+00:00",
-      "notes": "Surat Municipal Corporation \u2014 30 ward boundaries with named wards."
+      "notes": "Surat Municipal Corporation — 30 ward boundaries with named wards."
     },
     {
       "id": "wards_vadodara",
@@ -3434,7 +3434,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.110706+00:00",
-      "notes": "Vadodara Municipal Corporation \u2014 12 administrative ward boundaries."
+      "notes": "Vadodara Municipal Corporation — 12 administrative ward boundaries."
     },
     {
       "id": "wards_faridabad",
@@ -3474,7 +3474,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.111326+00:00",
-      "notes": "Municipal Corporation of Faridabad \u2014 40 ward boundaries."
+      "notes": "Municipal Corporation of Faridabad — 40 ward boundaries."
     },
     {
       "id": "wards_pcmc",
@@ -3514,7 +3514,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.112003+00:00",
-      "notes": "Pimpri-Chinchwad Municipal Corporation \u2014 66 electoral ward boundaries across 6 zones."
+      "notes": "Pimpri-Chinchwad Municipal Corporation — 66 electoral ward boundaries across 6 zones."
     },
     {
       "id": "wards_vijayawada",
@@ -3554,7 +3554,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.112629+00:00",
-      "notes": "Vijayawada Municipal Corporation \u2014 77 ward boundaries."
+      "notes": "Vijayawada Municipal Corporation — 77 ward boundaries."
     },
     {
       "id": "india_boundary",
@@ -3586,7 +3586,7 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-24T13:16:39.947047+00:00",
-      "notes": "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source \u2014 includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim)."
+      "notes": "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source — includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim)."
     },
     {
       "id": "india_flood_inventory",
@@ -3730,7 +3730,7 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:50:55.916651+00:00",
-      "notes": "mislabeled in upstream \u2014 block-equivalent, not village"
+      "notes": "mislabeled in upstream — block-equivalent, not village"
     },
     {
       "id": "high_courts",
@@ -3952,99 +3952,6 @@
       "category": "agriculture",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI Soil Health Card layer. Parquet-only; pmtiles deferred (1.77 GB; oversized for the viewer).",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
-      "id": "wris_waterbodies",
-      "level": "wris_waterbodies",
-      "source": "CWC",
-      "rows": 851093,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.parquet",
-        "bytes": 413114978
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.pmtiles",
-        "bytes": 339169658
-      },
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "Central Water Commission (WRIS)",
-          "url": "https://indiawris.gov.in/"
-        },
-        "publisher": null
-      },
-      "category": "environment",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS waterbodies layer.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
-      "id": "slusi_micro_watersheds",
-      "level": "slusi_micro_watersheds",
-      "source": "SLUSI",
-      "rows": 321763,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.parquet",
-        "bytes": 496419346
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.pmtiles",
-        "bytes": 158542307
-      },
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "SLUSI (Soil & Land Use Survey of India)",
-          "url": "https://slusi.dacnet.nic.in/"
-        },
-        "publisher": null
-      },
-      "category": "environment",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
-      "id": "pmgsy_roads",
-      "level": "pmgsy_roads",
-      "source": "PMGSY",
-      "rows": 1102083,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.parquet",
-        "bytes": 1239245395
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.pmtiles",
-        "bytes": 412589839
-      },
-      "licence": "GODL-India",
-      "attribution": {
-        "primary": {
-          "name": "PMGSY GeoSadak (Ministry of Rural Development)",
-          "url": "https://omms.nic.in/"
-        },
-        "publisher": null
-      },
-      "category": "transport",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PMGSY GeoSadak / OMMS.",
       "geojson": null,
       "kml": null,
       "shapefile": null,
@@ -4408,7 +4315,7 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": null,
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (transmission lines). OSM-derived per release body \u2014 ODbL applies."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (transmission lines). OSM-derived per release body — ODbL applies."
     },
     {
       "id": "pmgsy_habitations",
@@ -4675,7 +4582,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from NDEM cyclone track lines. Line geometry \u2014 see ndem_cyclones_ctp for the time-step point positions when needed.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from NDEM cyclone track lines. Line geometry — see ndem_cyclones_ctp for the time-step point positions when needed.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.geojson",
         "bytes": 2234277
@@ -4715,7 +4622,100 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot — refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": null
+    },
+    {
+      "id": "wris_waterbodies",
+      "level": "wris_waterbodies",
+      "source": "CWC",
+      "rows": 851093,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.parquet",
+        "bytes": 304155180
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.pmtiles",
+        "bytes": 339169658
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Central Water Commission (WRIS)",
+          "url": "https://indiawris.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS waterbodies layer.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": null
+    },
+    {
+      "id": "slusi_micro_watersheds",
+      "level": "slusi_micro_watersheds",
+      "source": "SLUSI",
+      "rows": 321763,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.parquet",
+        "bytes": 474854958
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.pmtiles",
+        "bytes": 158542307
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "SLUSI (Soil & Land Use Survey of India)",
+          "url": "https://slusi.dacnet.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": null
+    },
+    {
+      "id": "pmgsy_roads",
+      "level": "pmgsy_roads",
+      "source": "PMGSY",
+      "rows": 1102083,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.parquet",
+        "bytes": 831269104
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.pmtiles",
+        "bytes": 412589839
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "PMGSY GeoSadak (Ministry of Rural Development)",
+          "url": "https://omms.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PMGSY GeoSadak / OMMS.",
       "geojson": null,
       "kml": null,
       "shapefile": null,
