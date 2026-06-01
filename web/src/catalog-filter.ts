@@ -27,6 +27,10 @@ export type CardLike = {
   category: string;
   primary: string;
   body: string;
+  /** 'curated' | 'community'. The community pill filters on this instead
+   *  of category because community submissions inherit a content category
+   *  (environment, infrastructure, etc.) for the section they render in. */
+  provenance?: string;
 };
 
 export type FilterResult = {
@@ -38,26 +42,39 @@ export type FilterResult = {
 /**
  * Decide per-card visibility on the home grid.
  *
- * Earlier behaviour was `matches AND inActiveCategory` for every card. That
- * made search results depend on whether the matched layer happened to be
- * categorised into the currently-selected pill — invisible context to the
- * user. Typing `over` with `Environment` selected returned "No matches",
- * even though Overture Places (in `infrastructure`) clearly matched.
+ * Rules:
+ *   - When the user is searching (query non-empty), the active pill is
+ *     ignored — search intent overrides scoping so cross-category matches
+ *     don't get silently hidden (e.g. typing "over" with Environment
+ *     selected must still surface Overture in Infrastructure).
+ *   - When activeCat === 'community', filter by provenance instead of
+ *     content category; community submissions inherit a content category
+ *     for sectioning, so the pill would otherwise match nothing.
+ *   - Otherwise, scope by content category as before.
  *
- * New rule: when the user is searching (query non-empty), the active pill
- * is ignored — search intent ("find me this thing") overrides scoping
- * intent ("show me only this category"). When the query is empty, the
- * pill scopes the catalog as before. Pill counts continue to show
- * filtered/total in both modes so the distribution stays visible.
+ * Second arg accepts either a string[] (legacy: category per card) or a
+ * CardLike[] (richer: category + provenance). The provenance lookup needs
+ * the richer shape; string[] is kept for callers that don't need it.
  */
 export function cardVisibility(
   matches: boolean[],
-  categories: string[],
+  cards: string[] | CardLike[],
   activeCat: string,
   query: string,
 ): boolean[] {
   const searching = query.trim().length > 0;
-  return matches.map((m, i) => m && (searching || activeCat === 'all' || categories[i] === activeCat));
+  const asLike = (i: number): { category: string; provenance: string } => {
+    const c = cards[i];
+    return typeof c === 'string' ? { category: c, provenance: '' } : { category: c.category, provenance: c.provenance || '' };
+  };
+  return matches.map((m, i) => {
+    if (!m) return false;
+    if (searching) return true;
+    if (activeCat === 'all') return true;
+    const { category, provenance } = asLike(i);
+    if (activeCat === 'community') return provenance === 'community';
+    return category === activeCat;
+  });
 }
 
 export function filterCards(cards: CardLike[], query: string): FilterResult {

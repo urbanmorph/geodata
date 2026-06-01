@@ -115,6 +115,7 @@ if (searchInput && grid) {
     category: el.dataset.category || el.closest<HTMLElement>('.category-section')?.dataset.category || '',
     primary: el.dataset.searchPrimary || '',
     body: el.dataset.searchBody || '',
+    provenance: el.dataset.provenance || '',
   }));
   let activeCat = 'all';
   let query = '';
@@ -132,7 +133,7 @@ if (searchInput && grid) {
     // — regardless of which pill is active — so cross-category results
     // ("over" → Overture in Infrastructure with Environment selected) don't
     // silently get hidden behind "No matches".
-    const visible = cardVisibility(result.matches, cardLikes.map((c) => c.category), activeCat, query);
+    const visible = cardVisibility(result.matches, cardLikes, activeCat, query);
     const visiblePerSection = new Map<HTMLElement, number>();
     let totalVisible = 0;
     for (let i = 0; i < cardEls.length; i++) {
@@ -151,19 +152,31 @@ if (searchInput && grid) {
       // Hide a section only when (a) the user has scoped to a different pill
       // AND isn't searching, OR (b) it has no visible cards. While searching,
       // sections appear for every category that has matches.
-      const catFiltered = !query && activeCat !== 'all' && cat !== activeCat;
+      // 'community' is a provenance pill, not a content category — every
+      // section that has at least one visible community card should show.
+      // Existing rule covers that via sectionVisible === 0 below; we just
+      // need to skip the category-mismatch hide.
+      const catFiltered = !query && activeCat !== 'all' && activeCat !== 'community' && cat !== activeCat;
       section.classList.toggle('hidden', catFiltered || sectionVisible === 0);
     }
 
     // Pill counts: filtered/total when a query is active, bare total when idle.
     // 'all' chip aggregates across categories; per-cat chips read their own.
     const filtering = !!query;
+    // 'community' chip's filtered count comes from provenance, not category;
+    // filterCards groups countsByCategory under content categories so it
+    // doesn't know about the community pill.
+    const communityFiltered = result.matches.reduce(
+      (n, m, i) => n + (m && cardLikes[i].provenance === 'community' ? 1 : 0), 0,
+    );
     for (const chip of chips) {
       const cat = chip.dataset.cat || '';
       const total = Number(chip.dataset.total || '0');
       const filtered = cat === 'all'
         ? result.totalMatches
-        : (result.countsByCategory.get(cat) || 0);
+        : cat === 'community'
+          ? communityFiltered
+          : (result.countsByCategory.get(cat) || 0);
       const span = chip.querySelector<HTMLElement>('.count');
       if (span) span.textContent = filtering ? `${filtered}/${total}` : String(total);
       // data-count drives the [data-count="0"] dim style + click guard.

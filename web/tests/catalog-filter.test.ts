@@ -122,3 +122,44 @@ describe('catalog-filter — cardVisibility (search × active-pill interaction)'
     expect(v[7]).toBe(true);
   });
 });
+
+describe('catalog-filter — community pill (provenance filter)', () => {
+  // Community submissions inherit a content category (environment / etc.)
+  // for sectioning, so a "community" pill can't just match data-category.
+  // It must match on provenance. When activeCat='community', show only
+  // cards with provenance='community' regardless of content category.
+  const mixed: CardLike[] = [
+    { category: 'environment',   primary: 'wildlife',         body: '...', provenance: 'curated' },
+    { category: 'environment',   primary: 'goa landuse',      body: '...', provenance: 'community' },
+    { category: 'infrastructure', primary: 'roads',           body: '...', provenance: 'curated' },
+    { category: 'infrastructure', primary: 'bangalore lanes', body: '...', provenance: 'community' },
+  ];
+
+  it("activeCat='community' shows only provenance='community' cards", () => {
+    const matches = mixed.map(() => true);
+    const v = cardVisibility(matches, mixed, 'community', '');
+    expect(v).toEqual([false, true, false, true]);
+  });
+
+  it("activeCat='community' bypasses content-category scoping across all categories", () => {
+    const matches = mixed.map(() => true);
+    const v = cardVisibility(matches, mixed, 'community', '');
+    // Both community cards visible — one in environment, one in infrastructure.
+    expect(v[1]).toBe(true);
+    expect(v[3]).toBe(true);
+  });
+
+  it("activeCat='community' + search query: still respects search matches", () => {
+    // Search hit only on the Goa card (index 1).
+    const matches = mixed.map((_c, i) => i === 1);
+    const v = cardVisibility(matches, mixed, 'community', 'goa');
+    expect(v).toEqual([false, true, false, false]);
+  });
+
+  it("activeCat='environment' (content category) still uses category match, not provenance", () => {
+    const matches = mixed.map(() => true);
+    const v = cardVisibility(matches, mixed, 'environment', '');
+    // Both environment cards visible regardless of provenance.
+    expect(v).toEqual([true, true, false, false]);
+  });
+});
