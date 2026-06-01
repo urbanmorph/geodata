@@ -148,6 +148,17 @@ describe('renderViewPage', () => {
     expect(html).toContain('MB');
     expect(html).toContain('geojson');
   });
+
+  it('wires the upvote handler via an external script (CSP-safe, no inline body)', () => {
+    // The vote button click handler used to live in an inline <script>{...}</script>
+    // which got blocked by our strict CSP (script-src 'self' …, no 'unsafe-inline').
+    // The handler now lives in /c-vote.js, referenced via a self-source script tag.
+    const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
+    expect(html).toMatch(/<script[^>]+src="\/c-vote\.js"/);
+    // No inline script bodies for app behaviour (JSON-LD blobs are data, not code).
+    const inlineScripts = [...html.matchAll(/<script(?![^>]+src=)(?![^>]+type="application\/ld\+json")[^>]*>([\s\S]*?)<\/script>/g)];
+    expect(inlineScripts).toHaveLength(0);
+  });
 });
 
 describe('renderViewPage — OG/Twitter image meta (v4.7 per-submission)', () => {

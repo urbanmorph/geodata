@@ -266,40 +266,7 @@ export function renderViewPage(opts: RenderOpts): string {
       Verify provenance via the source link above.</p>
     </footer>
 
-    <script>
-      (() => {
-        const id = document.body.dataset.submissionId;
-        const btn = document.getElementById('vote-useful');
-        const count = document.getElementById('vote-count');
-        if (!btn || !count) return;
-
-        // Display count = up votes only. Existing legacy downvotes in D1
-        // are ignored in the UI per task #61 (single-direction Useful vote).
-        let myVote = 0;
-        const apply = (s) => {
-          count.textContent = String(s.up || 0);
-          myVote = s.myVote === 1 ? 1 : 0;
-          btn.setAttribute('aria-pressed', myVote === 1 ? 'true' : 'false');
-        };
-
-        fetch('/api/c/' + id + '/rate').then(r => r.ok ? r.json() : null).then(s => s && apply(s)).catch(() => {});
-
-        const send = async (vote) => {
-          btn.disabled = true;
-          try {
-            const r = await fetch('/api/c/' + id + '/rate', {
-              method: 'POST',
-              headers: { 'content-type': 'application/json' },
-              body: JSON.stringify({ vote }),
-            });
-            if (r.ok) apply(await r.json());
-          } catch {}
-          btn.disabled = false;
-        };
-        // Click to mark useful; click again to clear.
-        btn.addEventListener('click', () => send(myVote === 1 ? 0 : 1));
-      })();
-    </script>
+    <script src="/c-vote.js" defer></script>
   </body>
 </html>`;
 }

@@ -17,7 +17,9 @@
 // possible so /about, /c/<id>, /view/<id> all look identical to a browser.
 const CSP =
   "default-src 'self'; " +
-  "script-src 'self' blob: https://cdn.jsdelivr.net https://challenges.cloudflare.com 'wasm-unsafe-eval'; " +
+  // static.cloudflareinsights.com is the Cloudflare Web Analytics beacon
+  // (auto-injected by CF when the feature is enabled on the account).
+  "script-src 'self' blob: https://cdn.jsdelivr.net https://challenges.cloudflare.com https://static.cloudflareinsights.com 'wasm-unsafe-eval'; " +
   "worker-src 'self' blob:; " +
   "connect-src 'self' blob: https://cdn.jsdelivr.net https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://challenges.cloudflare.com; " +
   "img-src 'self' blob: data: https://*.basemaps.cartocdn.com https://tile.openstreetmap.org https://services.arcgisonline.com https://*.tile.opentopomap.org https://avatars.githubusercontent.com; " +
