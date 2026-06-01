@@ -64,17 +64,19 @@ let turnstileWidgetId: string | number | null = null;
 const viewOnly = new URLSearchParams(location.search).has('url');
 
 // ---------- Map -----------------------------------------------------------
+// Use the Bharatlas Minimal basemap (same as the catalog viewer) instead
+// of a raw OSM tile dependency. OSM's tile server can throttle public
+// embeds without warning, and ad-blockers / corporate firewalls often
+// block tile.openstreetmap.org outright — symptom is a dark canvas with
+// no labels and no land/water distinction. Minimal is bundled GeoJSON
+// from /world-land.geojson + /india-outline.geojson, served same-origin
+// from R2/Pages so it's reliable.
+import { BASEMAPS } from './basemaps';
+const minimal = BASEMAPS.find((b) => b.id === 'minimal') ?? BASEMAPS[0];
 const BASE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
-  sources: {
-    osm: {
-      type: 'raster',
-      tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
-      tileSize: 256,
-      attribution: '© OpenStreetMap',
-    },
-  },
-  layers: [{ id: 'osm', type: 'raster', source: 'osm' }],
+  sources: minimal.sources,
+  layers: minimal.layers,
 };
 
 const map = new maplibregl.Map({

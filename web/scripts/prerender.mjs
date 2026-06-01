@@ -763,10 +763,13 @@ function renderCommunityCard(s, opts = {}) {
   const cat = s.category || 'other';
   const collapsed = opts.collapsed ? ' row--collapsed' : '';
   // Two-tier haystack (matches curated cards). Title is the only field
-  // we trust as "this card is about X"; the rest is body.
-  const primaryHaystack = expandAliases(s.name || '').toLowerCase();
+  // we trust as "this card is about X"; the rest is body. We also lift
+  // 'community' and 'submission' into primary so searching either word
+  // surfaces community-provenance cards alongside any curated card with
+  // 'community' in its title (e.g. Community-development Blocks).
+  const primaryHaystack = expandAliases([s.name || '', 'community submission'].join(' ')).toLowerCase();
   const bodyHaystack = expandAliases(
-    [s.description || '', s.attribution || '', cat, s.format || '', 'community'].join(' '),
+    [s.description || '', s.attribution || '', cat, s.format || ''].join(' '),
   ).toLowerCase();
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
@@ -819,8 +822,16 @@ const chips = [
     ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}" data-total="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
   ),
 ];
+// Community pill: appears only when there's at least one community submission.
+// It filters on provenance, not category — cardVisibility special-cases the
+// activeCat='community' lookup so cards from any content category surface.
+if (community.length > 0) {
+  chips.push(
+    `<button class="catalog-chip" data-cat="community" data-count="${community.length}" data-total="${community.length}">Community <span class="count">${community.length}</span></button>`,
+  );
+}
 // Only render chips when there's more than one category to switch between.
-const chipsHtml = activeCats.length > 1 ? chips.join('') : '';
+const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('') : '';
 
 // Render one section per non-empty category. Inside each: curated level rows
 // first (in LEVEL_ORDER), then community cards (newest first). Both are
