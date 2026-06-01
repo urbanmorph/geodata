@@ -108,7 +108,13 @@ jobs:
         # just verifying the build doesn't break).
         env:
           TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY || '1x00000000000000000000AA' }}
-          COMMUNITY_FROM: ${{ (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule' && 'remote' || 'local' }}
+          # Operator precedence in GH expressions: && binds tighter than ||,
+          # so the obvious shape `A || B || C && 'remote' || 'local'` parses as
+          # `A || B || (C && 'remote') || 'local'` and short-circuits to the
+          # boolean `true` on push-to-main. wrangler then gets `--true` and the
+          # try/catch in prerender swallows the error → empty community list.
+          # Group all deploy events first, THEN AND with 'remote'.
+          COMMUNITY_FROM: ${{ ((github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && 'remote' || 'local' }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npm run build
