@@ -694,10 +694,23 @@ for (const lvl of LEVEL_ORDER) {
   categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
 }
 
-// Community submissions: query D1 (local by default; --remote in prod build
-// once that's wired). Silently empty on failure so a missing wrangler /
-// missing DB doesn't break the build.
-const COMMUNITY_FROM = process.env.COMMUNITY_FROM || 'local'; // local | remote
+// Community submissions: query D1 (local for dev, --remote for the
+// deployed main build). Returns [] on failure so dev / PR builds don't
+// break when wrangler / D1 aren't reachable, but warns loudly to stderr
+// so CI logs surface a regression instead of shipping an empty grid.
+// Validate the env var up front: any value other than 'local' or 'remote'
+// (e.g. the literal string "true" produced by a botched workflow YAML
+// expression) gets caught here rather than handed to wrangler as a bogus
+// --flag that silently errors.
+const RAW_COMMUNITY_FROM = process.env.COMMUNITY_FROM || 'local';
+const COMMUNITY_FROM = ['local', 'remote'].includes(RAW_COMMUNITY_FROM) ? RAW_COMMUNITY_FROM : null;
+if (!COMMUNITY_FROM) {
+  console.warn(
+    `[prerender] COMMUNITY_FROM=${JSON.stringify(RAW_COMMUNITY_FROM)} is not 'local' or 'remote'. ` +
+    `Falling back to 'local'. Community submissions will NOT appear in this build.`,
+  );
+}
+const COMMUNITY_SCOPE = COMMUNITY_FROM ?? 'local';
 // Prefer a PATH-resolved wrangler (mise / homebrew) over npx, which has
 // hit a workerd arch mismatch on this machine's npx cache.
 import { execFileSync } from 'node:child_process';
@@ -709,7 +722,7 @@ const wranglerPrefix = WRANGLER_BIN || 'npx --yes wrangler';
 function fetchCommunitySubmissions() {
   try {
     const out = execSync(
-      `${wranglerPrefix} d1 execute geodata-submissions --${COMMUNITY_FROM} --json --command "${
+      `${wranglerPrefix} d1 execute geodata-submissions --${COMMUNITY_SCOPE} --json --command "${
         'SELECT s.id, s.name, s.description, s.category, s.attribution, s.is_original, ' +
         's.format, s.bytes, s.feature_count, s.r2_key, s.created_at, ' +
         "COALESCE(SUM(CASE WHEN r.vote = 1 THEN 1 ELSE 0 END), 0) AS up_count, " +
@@ -717,16 +730,27 @@ function fetchCommunitySubmissions() {
         'FROM submissions s LEFT JOIN submission_ratings r ON r.submission_id = s.id ' +
         "WHERE s.status='accepted' GROUP BY s.id ORDER BY s.created_at DESC LIMIT 200"
       }"`,
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] },
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
     );
     const data = JSON.parse(out);
-    return (data?.[0]?.results || []).map((r) => ({
+    const rows = (data?.[0]?.results || []).map((r) => ({
       ...r,
       up_count: Number(r.up_count) || 0,
       down_count: Number(r.down_count) || 0,
       score: (Number(r.up_count) || 0) - (Number(r.down_count) || 0),
     }));
-  } catch {
+    if (COMMUNITY_SCOPE === 'remote' && rows.length === 0) {
+      console.warn(
+        '[prerender] community fetch (remote) returned 0 rows. ' +
+        'If submissions exist in D1, this is a regression — check wrangler auth or the SQL.',
+      );
+    }
+    return rows;
+  } catch (err) {
+    console.warn(
+      `[prerender] community fetch (${COMMUNITY_SCOPE}) failed: ${err.message || err}. ` +
+      'Build continues with empty community grid.',
+    );
     return [];
   }
 }
