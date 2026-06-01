@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { queryBbox, haversineKm } from '../functions/lib/nearby';
+import { queryBbox, haversineKm, pickNearestBboxRows } from '../functions/lib/nearby';
 import { wkbCentroid, geoJSONCentroid, extractCentroid } from '../functions/lib/wkb-centroid';
 
 describe('queryBbox', () => {
@@ -138,6 +138,62 @@ describe('geoJSONCentroid', () => {
   it('returns null for null/empty geometry', () => {
     expect(geoJSONCentroid(null)).toBeNull();
     expect(geoJSONCentroid({})).toBeNull();
+  });
+});
+
+describe('pickNearestBboxRows (top-K + cap)', () => {
+  // Build N rows scattered between two latitudes. row[0] is closest to (lat0, lng0).
+  function scatter(n: number, lat0: number, lng0: number): Array<Record<string, unknown>> {
+    const rows = [];
+    for (let i = 0; i < n; i++) {
+      const dy = (i / n) * 1.0;  // up to 1 deg north
+      rows.push({ xmin: lng0, xmax: lng0, ymin: lat0 + dy, ymax: lat0 + dy, _id: i });
+    }
+    return rows;
+  }
+
+  it('returns at most `limit` winners ordered by distance', () => {
+    const rows = scatter(50, 12.97, 77.59);
+    const r = pickNearestBboxRows(rows, 12.97, 77.59, 200, 5);
+    expect(r.winners.length).toBe(5);
+    expect(r.winners[0].d).toBeLessThan(r.winners[4].d);
+    expect(r.total).toBe(50);
+  });
+
+  it('drops rows outside the radius from total', () => {
+    const rows = [
+      { xmin: 77.59, xmax: 77.59, ymin: 12.97, ymax: 12.97 },  // exact center
+      { xmin: 77.59, xmax: 77.59, ymin: 14.00, ymax: 14.00 },  // ~115 km north
+    ];
+    const r = pickNearestBboxRows(rows, 12.97, 77.59, 50, 10);
+    expect(r.total).toBe(1);
+    expect(r.winners.length).toBe(1);
+  });
+
+  it('does NOT materialise props on losing rows (allocation-bounded)', () => {
+    // The whole point of extracting this helper: when 100k rows are in the
+    // bbox prune but we only return `limit`, only `limit` row objects should
+    // appear in winners — the rest must be discarded so the caller can keep
+    // its expensive cleanProps work bounded by `limit`.
+    const rows = scatter(10_000, 12.97, 77.59);
+    const r = pickNearestBboxRows(rows, 12.97, 77.59, 500, 20);
+    expect(r.winners.length).toBe(20);
+    expect(r.total).toBe(10_000);
+    // every winner carries its row reference so caller can hydrate props
+    for (const w of r.winners) expect(w.row).toBeDefined();
+  });
+
+  it('reports total accurately even when far above limit', () => {
+    const rows = scatter(5000, 12.97, 77.59);
+    const r = pickNearestBboxRows(rows, 12.97, 77.59, 1000, 10);
+    expect(r.total).toBe(5000);
+    expect(r.winners.length).toBe(10);
+  });
+
+  it('empty input → empty winners', () => {
+    const r = pickNearestBboxRows([], 12.97, 77.59, 10, 5);
+    expect(r.winners).toEqual([]);
+    expect(r.total).toBe(0);
   });
 });
 

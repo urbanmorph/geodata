@@ -34,6 +34,7 @@ export interface NearbyResult {
   timing_ms: number;
   _source: 'parquet-bbox' | 'parquet-scan';
   rows_scanned: number;
+  _truncated?: boolean;
 }
 
 const KM_PER_DEG_LAT = 111.32;
@@ -80,6 +81,40 @@ function round4(n: number): number {
   return Math.round(n * 10000) / 10000;
 }
 
+// Top-K-by-distance over bbox-pruned rows. Returns winners + total count of
+// rows inside the radius. Kept separate so the caller can defer the
+// expensive cleanProps() to just the K winners — without this, dense metros
+// like Bangalore Overture allocate 100k+ output objects and blow the
+// Workers CPU budget. `total` is the true within-radius count, not just
+// winners.length.
+export interface BboxWinner {
+  row: Record<string, unknown>;
+  cLat: number; cLng: number; d: number;
+}
+
+function topKByDistance(winners: BboxWinner[], limit: number): BboxWinner[] {
+  winners.sort((a, b) => a.d - b.d);
+  if (winners.length > limit) winners.length = limit;
+  return winners;
+}
+
+export function pickNearestBboxRows(
+  rows: Array<Record<string, unknown>>,
+  lat: number, lng: number, radiusKm: number, limit: number,
+): { winners: BboxWinner[]; total: number } {
+  let total = 0;
+  const winners: BboxWinner[] = [];
+  for (const row of rows) {
+    const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
+    const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
+    const d = haversineKm(lat, lng, cLat, cLng);
+    if (d > radiusKm) continue;
+    total++;
+    winners.push({ row, cLat, cLng, d });
+  }
+  return { winners: topKByDistance(winners, limit), total };
+}
+
 export async function nearby(
   lat: number, lng: number, radiusKm: number,
   layerId: string, catalog: CatalogData, r2: R2Bucket,
@@ -106,9 +141,10 @@ export async function nearby(
 
   const hasBboxCols = BBOX_COLS.every((c) => allCols.includes(c));
   const qbbox = queryBbox(lat, lng, radiusKm);
-  const hits: NearbyHit[] = [];
   let rows: Record<string, unknown>[];
   let skip: Set<string>;
+  let total: number;
+  let winners: BboxWinner[];
 
   if (hasBboxCols) {
     rows = await parquetQuery({
@@ -127,18 +163,9 @@ export async function nearby(
       },
     }) as Record<string, unknown>[];
     skip = new Set([geomCol, 'xmin', 'ymin', 'xmax', 'ymax', 'bbox']);
-    for (const row of rows) {
-      const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
-      const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
-      const d = haversineKm(lat, lng, cLat, cLng);
-      if (d > radiusKm) continue;
-      hits.push({
-        properties: cleanProps(row, skip),
-        _lat: round4(cLat),
-        _lng: round4(cLng),
-        _distance_km: Math.round(d * 10) / 10,
-      });
-    }
+    const r = pickNearestBboxRows(rows, lat, lng, radiusKm, limit);
+    winners = r.winners;
+    total = r.total;
   } else {
     const bytes = layer.parquet.bytes ?? 0;
     if (bytes > MAX_FULLSCAN_BYTES) {
@@ -155,30 +182,37 @@ export async function nearby(
       geoparquet: false,
     }) as Record<string, unknown>[];
     skip = new Set([geomCol]);
+    // Scan path computes the centroid from WKB per row (no bbox cols).
+    // Same top-K shape as the bbox path; just a different distance source.
+    total = 0;
+    const allWinners: BboxWinner[] = [];
     for (const row of rows) {
       const c = extractCentroid(row[geomCol]);
       if (!c) continue;
       const [cLng, cLat] = c;
       const d = haversineKm(lat, lng, cLat, cLng);
       if (d > radiusKm) continue;
-      hits.push({
-        properties: cleanProps(row, skip),
-        _lat: round4(cLat),
-        _lng: round4(cLng),
-        _distance_km: Math.round(d * 10) / 10,
-      });
+      total++;
+      allWinners.push({ row, cLat, cLng, d });
     }
+    winners = topKByDistance(allWinners, limit);
   }
 
-  hits.sort((a, b) => a._distance_km - b._distance_km);
+  const features: NearbyHit[] = winners.map((w) => ({
+    properties: cleanProps(w.row, skip),
+    _lat: round4(w.cLat),
+    _lng: round4(w.cLng),
+    _distance_km: Math.round(w.d * 10) / 10,
+  }));
 
   return {
     center: { lat, lng },
     radius_km: radiusKm,
-    total: hits.length,
-    features: hits.slice(0, limit),
+    total,
+    features,
     timing_ms: Date.now() - start,
     _source: hasBboxCols ? 'parquet-bbox' : 'parquet-scan',
     rows_scanned: rows.length,
+    _truncated: total > features.length,
   };
 }
