@@ -519,13 +519,18 @@ def row_group_size_for(feature_count: int) -> int | None:
     /api/v1/nearby pruning. Default (122880) wastes pruning on dense layers
     because a single group still covers a meaningful chunk of India even
     after Hilbert sort. Bucket by feature count so each layer ends up with
-    roughly 10-100 groups.
+    enough groups that even Hilbert curve discontinuities (zigzag points
+    that span large bboxes) only pull in ~120k rows post-prune.
+
     Returns None for tiny layers where a single group is fine.
+
+    Cap at 20k: a 50k tier was tried for >1M-row layers and left Mumbai
+    and Delhi Overture queries 503-ing because 5-6 row groups matched
+    their bbox including a Hilbert outlier spanning half of west India.
     """
     if feature_count < 10_000:    return None
     if feature_count < 100_000:   return 5_000
-    if feature_count < 1_000_000: return 20_000
-    return 50_000
+    return 20_000
 
 
 def rebake_flatten_bbox(src: Path, dst: Path) -> tuple[int, list[str]]:

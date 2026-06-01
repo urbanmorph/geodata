@@ -134,7 +134,13 @@ def test_rebake_handles_geometry_typed_column(tmp_path: Path) -> None:
 
 def test_row_group_size_for_scales_with_density() -> None:
     """Dense layers want many small groups (tight Hilbert chunks per group);
-    sparse layers want one or two big groups. Spec the buckets."""
+    sparse layers want one or two big groups. Spec the buckets.
+
+    Cap at 20k for everything >100k: the 50k tier was tried for >1M-row layers
+    but left Mumbai/Delhi Overture queries hitting 5-6 row groups (including a
+    Hilbert curve outlier spanning half of west India), exhausting the Workers
+    CPU budget. 20k keeps every metro under ~120k post-prune rows.
+    """
     from ingest_ramseraph import row_group_size_for
     assert row_group_size_for(100) is None         # single group is fine
     assert row_group_size_for(9_999) is None
@@ -142,8 +148,8 @@ def test_row_group_size_for_scales_with_density() -> None:
     assert row_group_size_for(99_999) == 5_000
     assert row_group_size_for(500_000) == 20_000   # ~25 groups
     assert row_group_size_for(999_999) == 20_000
-    assert row_group_size_for(2_700_000) == 50_000  # Overture: ~54 groups
-    assert row_group_size_for(5_000_000) == 50_000
+    assert row_group_size_for(2_700_000) == 20_000  # Overture: ~135 groups
+    assert row_group_size_for(5_000_000) == 20_000
 
 
 def test_rebake_uses_tight_row_groups_for_dense_layers(tmp_path: Path) -> None:
