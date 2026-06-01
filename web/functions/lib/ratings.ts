@@ -50,6 +50,20 @@ export async function countVotes(db: RunnableD1, submissionId: string): Promise<
   return { up, down, score: up - down };
 }
 
+// Bulk up-vote tally for the home grid patcher. Returns a Map keyed by
+// submission_id with the count of vote=1 rows. Legacy vote=-1 rows are
+// ignored to match the rest of the UI (single-direction Useful vote).
+// Submissions with zero useful votes aren't included — the caller treats
+// missing entries as 0, matching the baked default.
+export async function countAllUpVotes(db: RunnableD1): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  const rows = await db
+    .prepare(`SELECT submission_id, COUNT(*) AS up FROM submission_ratings WHERE vote = 1 GROUP BY submission_id`)
+    .all<{ submission_id: string; up: number }>();
+  for (const r of rows.results ?? []) out.set(r.submission_id, Number(r.up) || 0);
+  return out;
+}
+
 export async function getMyVote(
   db: RunnableD1,
   submissionId: string,

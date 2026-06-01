@@ -352,3 +352,25 @@ fetch('/api/dl/counts')
     }
   })
   .catch(() => {});
+
+// Live useful-vote counts for community cards. Mirrors the download-counts
+// pattern above: baked values render at build time; this fetch patches
+// each .comm-card's 👍 N span on page load so newly-cast votes show up
+// without waiting for the next prerender. Missing entries mean 0 votes —
+// leave the baked default alone.
+fetch('/api/c/useful-counts')
+  .then((r) => (r.ok ? r.json() : null))
+  .then((counts: Record<string, number> | null) => {
+    if (!counts) return;
+    for (const card of document.querySelectorAll<HTMLElement>('.comm-card[data-id]')) {
+      const id = card.dataset.id || '';
+      const n = counts[id];
+      if (n == null) continue;
+      card.dataset.useful = String(n);
+      const span = card.querySelector<HTMLElement>('.useful');
+      if (span) span.textContent = `👍 ${n}`;
+      const score = card.querySelector<HTMLElement>('.comm-card__score');
+      if (score) score.title = `${n} found this useful`;
+    }
+  })
+  .catch(() => {});
