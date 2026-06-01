@@ -19,8 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
-Note: this licence covers the code in this repository only. Each data layer
-in the catalog carries its own open licence (CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0,
-ODbL-1.0, ODC-PDDL-1.0, GODL-India). See the per-card line on the catalog at
-https://bharatlas.com/ for the licence applicable to a given layer.
