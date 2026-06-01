@@ -11,6 +11,8 @@ A visual catalog, REST API, MCP server, drag-drop verifier, and anonymous contri
 
 **Live**: https://bharatlas.com
 
+[![bharatlas — India's open atlas](https://bharatlas.com/og-default.png)](https://bharatlas.com)
+
 ```
 catalog               → India national boundary (LGD-dissolved)
                         + state · district · subdistrict · block · village (LGD)
@@ -81,7 +83,38 @@ npm run dev    # http://localhost:5173
 npm test
 ```
 
-For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/full-dev.md](./docs/full-dev.md) (TODO) or read `wrangler.toml` + `.dev.vars.example`.
+For the full submission flow (D1 + R2 + Turnstile + Pages Functions), read `wrangler.toml` + `.dev.vars.example`.
+
+## API in 30 seconds
+
+REST: `https://bharatlas.com/api/v1` — no API key, rate-limited per IP. Full docs at [bharatlas.com/docs](https://bharatlas.com/docs).
+
+```bash
+# list every catalog layer (curated + accepted community)
+curl 'https://bharatlas.com/api/v1/layers'
+
+# inspect a layer's schema before querying
+curl 'https://bharatlas.com/api/v1/layers/lgd_districts/schema'
+
+# filter + group: how many districts per state?
+curl 'https://bharatlas.com/api/v1/layers/lgd_districts/query?group_by=stname'
+
+# point-in-polygon: every admin boundary at (lat, lng)
+curl 'https://bharatlas.com/api/v1/locate?lat=12.9716&lng=77.5946'
+
+# nearest features within a radius
+curl 'https://bharatlas.com/api/v1/nearby?lat=12.9716&lng=77.5946&layer=nic_health&radius_km=10'
+```
+
+MCP for LLMs (Claude, GPT, Gemini, Cursor): one-line install, 8 tools. Setup at [bharatlas.com/mcp](https://bharatlas.com/mcp).
+
+```bash
+# Claude Code
+claude mcp add bharatlas npx bharatlas-mcp
+
+# Claude Desktop / other clients (claude_desktop_config.json)
+{ "mcpServers": { "bharatlas": { "command": "npx", "args": ["bharatlas-mcp"] } } }
+```
 
 ## Contributing
 
@@ -92,10 +125,6 @@ For the full submission flow (D1 + R2 + Turnstile + Pages Functions), see [docs/
 5. The maintainer reviews and merges. Merge to main = auto-deploy.
 
 Commit messages: short subject, body explains *why* not *what*. Examples in `git log`.
-
-## Changelog
-
-See [releases](https://github.com/urbanmorph/geodata/releases) and [merged PRs](https://github.com/urbanmorph/geodata/pulls?q=is%3Amerged).
 
 ## Security
 
