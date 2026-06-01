@@ -3958,99 +3958,6 @@
       "fetched_at": null
     },
     {
-      "id": "wris_waterbodies",
-      "level": "wris_waterbodies",
-      "source": "CWC",
-      "rows": 851093,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.parquet",
-        "bytes": 413114978
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.pmtiles",
-        "bytes": 339169658
-      },
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "Central Water Commission (WRIS)",
-          "url": "https://indiawris.gov.in/"
-        },
-        "publisher": null
-      },
-      "category": "environment",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS waterbodies layer.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
-      "id": "slusi_micro_watersheds",
-      "level": "slusi_micro_watersheds",
-      "source": "SLUSI",
-      "rows": 321763,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.parquet",
-        "bytes": 496419346
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.pmtiles",
-        "bytes": 158542307
-      },
-      "licence": "CC0-1.0",
-      "attribution": {
-        "primary": {
-          "name": "SLUSI (Soil & Land Use Survey of India)",
-          "url": "https://slusi.dacnet.nic.in/"
-        },
-        "publisher": null
-      },
-      "category": "environment",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
-      "id": "pmgsy_roads",
-      "level": "pmgsy_roads",
-      "source": "PMGSY",
-      "rows": 1102083,
-      "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.parquet",
-        "bytes": 1239245395
-      },
-      "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.pmtiles",
-        "bytes": 412589839
-      },
-      "licence": "GODL-India",
-      "attribution": {
-        "primary": {
-          "name": "PMGSY GeoSadak (Ministry of Rural Development)",
-          "url": "https://omms.nic.in/"
-        },
-        "publisher": null
-      },
-      "category": "transport",
-      "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PMGSY GeoSadak / OMMS.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
-      "fetched_at": null
-    },
-    {
       "id": "vedas_power_plants",
       "level": "vedas_power_plants",
       "source": "VEDAS",
@@ -4716,6 +4623,99 @@
       "category": "infrastructure",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": null
+    },
+    {
+      "id": "wris_waterbodies",
+      "level": "wris_waterbodies",
+      "source": "CWC",
+      "rows": 851093,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.parquet",
+        "bytes": 304155180
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.pmtiles",
+        "bytes": 339169658
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Central Water Commission (WRIS)",
+          "url": "https://indiawris.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS waterbodies layer.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": null
+    },
+    {
+      "id": "slusi_micro_watersheds",
+      "level": "slusi_micro_watersheds",
+      "source": "SLUSI",
+      "rows": 321763,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.parquet",
+        "bytes": 474854958
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.pmtiles",
+        "bytes": 158542307
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "SLUSI (Soil & Land Use Survey of India)",
+          "url": "https://slusi.dacnet.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": null
+    },
+    {
+      "id": "pmgsy_roads",
+      "level": "pmgsy_roads",
+      "source": "PMGSY",
+      "rows": 1102083,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.parquet",
+        "bytes": 831269104
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.pmtiles",
+        "bytes": 412589839
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "PMGSY GeoSadak (Ministry of Rural Development)",
+          "url": "https://omms.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PMGSY GeoSadak / OMMS.",
       "geojson": null,
       "kml": null,
       "shapefile": null,

@@ -130,6 +130,7 @@ Data sources, in approximate order of catalog footprint:
 Pipelines + patterns:
 
 - [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) — upstream Parquet + PMTiles re-publisher for LGD, SOI, Bhuvan, PMGSY, GatiShakti, Bharatmaps, CWC, NIC-Health and the India Flood Inventory.
+- [ramSeraph](https://github.com/ramSeraph) — architectural guidance on geoparquet for spatial queries ([issue #100](https://github.com/urbanmorph/geodata/issues/100)). Hilbert sort + flat bbox cols + density-aware row groups in our /api/v1/nearby came directly from this review.
 - [mdshare](https://mdshare.dev/) — the anonymous-token contribution pattern lineage.
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
