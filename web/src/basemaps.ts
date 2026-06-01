@@ -109,6 +109,20 @@ export const BASEMAPS: Basemap[] = [
           'fill-outline-color': '#d0c8be', // subtle taupe coast outline
         },
       },
+      // Fill India with the SAME warm off-white using the LGD-dissolved
+      // polygon, on top of world-land. Natural Earth's 1:110m coastline
+      // disagrees with LGD by several km along the Konkan / Coromandel
+      // coast, so the ocean colour was leaking through inside the outline
+      // ("water seeping past the boundaries"). Stacking this India fill
+      // on top closes the gap exactly to the outline that's drawn next.
+      {
+        id: 'minimal-india-fill',
+        type: 'fill',
+        source: 'india-outline',
+        paint: {
+          'fill-color': '#f5f3ef',
+        },
+      },
       // Complete India outline from the LGD-dissolved polygon. Renders
       // the full coast + all land borders as a single stroke — the osm-in
       // file only had claim lines (J&K, Aksai Chin, Arunachal) so the
