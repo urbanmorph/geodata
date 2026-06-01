@@ -65,6 +65,15 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
     expect(csp![1]).toContain('https://challenges.cloudflare.com');
   });
 
+  it('CSP allows Cloudflare Web Analytics beacon', () => {
+    // CF auto-injects <script src="https://static.cloudflareinsights.com/beacon.min.js/...">
+    // when Web Analytics is enabled at the account level. Without explicit allow
+    // it gets blocked and the console fills with CSP violations.
+    const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
+    expect(csp).not.toBeNull();
+    expect(csp![1]).toContain('https://static.cloudflareinsights.com');
+  });
+
   it('CSP does not use unsafe-eval (only wasm-unsafe-eval)', () => {
     const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
     expect(csp).not.toBeNull();
@@ -130,6 +139,14 @@ describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)'
     expect(csp).toMatch(/https:\/\/cdn\.jsdelivr\.net/);
     // R2 public reads for layer downloads
     expect(csp).toMatch(/https:\/\/pub-0429b8e3b5a946e69ea007df844a6f1c\.r2\.dev/);
+  });
+
+  it('CSP allows the Cloudflare Web Analytics beacon', () => {
+    // CF auto-injects <script src="https://static.cloudflareinsights.com/...">
+    // on every response from a domain with Web Analytics enabled. Without
+    // an explicit allow the browser blocks it on every Pages Function page.
+    expect(SECURITY_HEADERS_HTML['content-security-policy'])
+      .toContain('https://static.cloudflareinsights.com');
   });
 });
 
