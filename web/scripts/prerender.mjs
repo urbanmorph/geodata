@@ -554,6 +554,7 @@ function renderRow(level, layersForLevel, opts = {}) {
             <p class="row__desc">${esc(meta.description)}</p>
             ${sourceLine}
             ${primary.licence ? `<p class="row__lic-line">Licence: <code>${esc(primary.licence)}</code></p>` : ''}
+            ${primary.fetched_at ? `<p class="row__updated">Updated: <time datetime="${esc(primary.fetched_at.slice(0, 10))}">${esc(primary.fetched_at.slice(0, 10))}</time></p>` : ''}
             ${dlInline ? `<p class="row__downloads">Download: ${dlInline}</p>` : ''}
             ${viewerHint}
             ${altSection}
@@ -656,12 +657,20 @@ const homeSeo = seoHead({
           const layers = byLevel[lvl];
           const l = pickPrimary(layers);
           const meta = LEVEL_META[lvl] || {};
+          // Keywords for Google Dataset Search query matching. Dedup +
+          // filter empties so we always emit a clean array; tests pin
+          // ≥3 items including 'India'.
+          const keywords = [...new Set([
+            lvl, meta.label, l.source, l.category, 'India',
+          ].filter((x) => typeof x === 'string' && x.length > 0))];
           return {
             '@type': 'Dataset',
             name: `${meta.label ?? l.id} (${l.source})`,
             description: padDatasetDescription(meta.description ?? l.notes ?? '', meta.label ?? l.id, l.source),
             url: ORIGIN + '/#' + lvl,
             license: licenseUrl(l.licence),
+            isAccessibleForFree: true,
+            keywords,
             creator: l.attribution?.primary
               ? { '@type': 'Organization', name: l.attribution.primary.name, url: l.attribution.primary.url }
               : undefined,

@@ -138,9 +138,16 @@
          (0,3,0) specificity, and placed after it so source-order also
          tips ties its way. Without this, collapsed rows below the cap
          stay visible when search expands their section. */
+      .row__updated { color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+      .row__updated time { font-variant-numeric: tabular-nums; }
       .row--collapsed { display: none; }
       .category-section.expanded .row--collapsed { display: block; }
       .category-section .row.hidden { display: none; }
+      /* Pre-paint the expanded state when the URL has ?q=… so main.ts's
+         apply() doesn't have to mutate every section after first paint
+         (was the CLS source attributed to .category-section.expanded).
+         /q-precheck.js sets html.has-query before paint. */
+      html.has-query .row--collapsed { display: block; }
 
       .row {
         padding: 4px 0;
@@ -181,7 +188,7 @@
       .row--compact .row__summary::marker { content: ""; }
       .row--compact .row__summary:hover { background: var(--row-hover); }
       .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-      .row--compact .row__summary > .row__source { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .row--compact .row__summary > .row__source { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       /* display: block so text-overflow ellipsis applies to the combined
          num + unit text flow (spans inside default to inline; inline elems
          ignore overflow:hidden + text-overflow:ellipsis). */
@@ -222,7 +229,7 @@
           font-size: 12px;
           padding: 8px 4px;
         }
-        .row--compact .row__summary > .row__count { font-size: 11px; }
+        .row--compact .row__summary > .row__count { font-size: 12px; }
         .row--compact .row__head { gap: 8px; }
       }
 
@@ -284,7 +291,7 @@
       .row__freshness.stale { color: #d97706; }
       .badge {
         display: inline-block;
-        font-size: 10px;
+        font-size: 12px;
         font-weight: 500;
         letter-spacing: .04em;
         text-transform: uppercase;
@@ -326,7 +333,7 @@
       .dl-inline .dot { color: var(--line); }
       .dl-inline .count {
         font-variant-numeric: tabular-nums;
-        font-size: 10px;
+        font-size: 12px;
         padding: 1px 5px;
         margin-left: 4px;
         border-radius: 999px;
@@ -362,7 +369,7 @@
       .alt__row .links a { color: var(--fg); }
       .alt__row .links .dot { color: var(--line); margin: 0 4px; }
       .alt__row--primary { padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
-      .alt__row .tag { font-size: 10px; padding: 1px 6px; background: var(--accent); color: #fff; border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
+      .alt__row .tag { font-size: 12px; padding: 1px 6px; background: var(--accent); color: #fff; border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
 
       footer { margin-top: 56px; color: var(--muted); font-size: 12px; line-height: 1.7; }
       footer p { margin: 6px 0; }
@@ -428,7 +435,7 @@
       }
       .map-popover.open { display: block; }
       .map-popover__title {
-        font-size: 11px; color: var(--muted);
+        font-size: 12px; color: var(--muted);
         text-transform: uppercase; letter-spacing: .06em;
         padding: 8px 10px 6px;
       }
@@ -457,7 +464,7 @@
         padding: 8px 10px;
         margin-top: 4px;
         border-top: 1px solid var(--line);
-        font-size: 11px; color: var(--muted); line-height: 1.5;
+        font-size: 12px; color: var(--muted); line-height: 1.5;
       }
 
       /* Filter panel (v2 — DuckDB-WASM in-browser slicing) */
@@ -508,7 +515,7 @@
         transition: background 120ms ease, border-color 120ms ease;
       }
       .filter-panel__btn .fmt { font-weight: 600; }
-      .filter-panel__btn .muted { color: var(--muted); font-weight: 400; font-size: 11px; }
+      .filter-panel__btn .muted { color: var(--muted); font-weight: 400; font-size: 12px; }
       .filter-panel__btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
       .filter-panel__btn:hover:not(:disabled) .muted { color: var(--accent); opacity: .7; }
       .filter-panel__btn--primary {
@@ -538,7 +545,7 @@
         transition: background 120ms ease, border-color 120ms ease;
       }
       .filter-chip:hover { border-color: var(--accent); color: var(--accent); }
-      .filter-chip__n { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+      .filter-chip__n { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
       .filter-chip.is-active {
         background: var(--fg);
         color: var(--bg);
@@ -635,7 +642,7 @@
           padding: 10px 6px;
           min-height: 56px;
         }
-        .filter-panel__btn .muted { font-size: 10px; }
+        .filter-panel__btn .muted { font-size: 12px; }
 
         /* Touch targets: 44px minimum */
         #map-overlay button.close,
@@ -740,9 +747,12 @@
       }
       .geo-popup .maplibregl-popup-tip { border-top-color: #ffffff; border-bottom-color: #ffffff; }
       .geo-popup__row { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; padding: 2px 0; }
-      .geo-popup__k { color: #6b7280; font-size: 11px; text-transform: lowercase; letter-spacing: .02em; white-space: nowrap; }
+      .geo-popup__k { color: #6b7280; font-size: 12px; text-transform: lowercase; letter-spacing: .02em; white-space: nowrap; }
       .geo-popup__v { color: #111; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; word-break: break-word; }
     </style>
+    <!-- Pre-paint URL-driven filter state to avoid post-hydration CLS.
+         Must be synchronous + before first paint; see /q-precheck.js. -->
+    <script src="/q-precheck.js"></script>
   </head>
   <body>
     <!-- NAV -->
