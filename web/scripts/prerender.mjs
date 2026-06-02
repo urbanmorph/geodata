@@ -6,6 +6,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
+import { renderCommunityActions } from './community-card.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '..');
@@ -570,6 +571,11 @@ function renderRow(level, layersForLevel, opts = {}) {
 // Group layers by level (used by renderRow's primary + alternates logic).
 const byLevel = {};
 for (const l of catalog.layers) {
+  // Community-baked layers (c_<id>, provenance:'community') render via the
+  // community-card path, never as a curated level row. They have no admin
+  // level, so keep them out of byLevel entirely — this isolates them from
+  // every curated loop (rows, JSON-LD, category counts) in one place.
+  if (l.provenance === 'community') continue;
   (byLevel[l.level] ||= []).push(l);
 }
 
@@ -765,6 +771,16 @@ function fetchCommunitySubmissions() {
 }
 const community = fetchCommunitySubmissions();
 
+// Submissions a maintainer has baked into the catalog (scripts/bake_community.py)
+// carry a c_<id> provenance:'community' entry with parquet/pmtiles/geojson/kml
+// blocks. Those graduate from the lightweight /preview path to the full
+// /view/<id> curated viewer + multi-format downloads. Key by submission id.
+const bakedCommunity = new Map(
+  catalog.layers
+    .filter((l) => l.provenance === 'community')
+    .map((l) => [String(l.id).replace(/^c_/, ''), l]),
+);
+
 function renderCommunityCard(s, opts = {}) {
   // Single-direction "Useful" voting (task #61). Display + sort key both
   // use up_count only; existing down_count rows in D1 are ignored here.
@@ -790,17 +806,15 @@ function renderCommunityCard(s, opts = {}) {
     `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
-  // Inline View map + Download for parity with curated rows. Community
-  // files are stored as-is in R2 under community/<id>/<filename>, so the
-  // download is single-format (not the curated multi-format strip).
-  // /api/r2/community/... is the allowlisted same-origin proxy that
-  // streams the R2 object (PR-A locked the prefix down to community/*).
-  // /preview?url=… pipes the same file into the drag-drop verify viewer
-  // so the user gets the map view we already render there.
-  const r2Path = `/api/r2/${esc(s.r2_key)}`;
-  const previewUrl = `/preview?url=${encodeURIComponent('/api/r2/' + s.r2_key)}`;
-  const filename = s.r2_key.split('/').pop() || `${s.id}.${s.format}`;
-  return `<article class="comm-card${collapsed}" ${dataAttrs}>
+  // View map + Download. The action targets depend on whether the submission
+  // has been baked (communityCardActions decides):
+  //   unbaked → /preview on the raw R2 file + a single raw download.
+  //   baked   → /view/c_<id> (the identical full curated viewer) + the curated
+  //             multi-format strip from the catalog entry.
+  // /api/r2/community/... is the allowlisted same-origin proxy that streams
+  // the R2 object (PR-A locked the prefix down to community/*).
+  const baked = bakedCommunity.get(s.id);
+  return `<article class="comm-card${collapsed}${baked ? ' comm-card--baked' : ''}" ${dataAttrs}>
     <div class="comm-card__head">
       <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge badge--community">community</span></div>
       <div class="comm-card__score" title="${useful} found this useful">
@@ -809,10 +823,7 @@ function renderCommunityCard(s, opts = {}) {
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
     <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit}</div>
-    <div class="comm-card__actions">
-      <a class="btn comm-card__view" href="${previewUrl}">View on map →</a>
-      <a class="btn comm-card__dl" href="${r2Path}" download="${esc(filename)}">Download .${esc(s.format)}<span class="size">${s.bytes != null ? fmtBytes(s.bytes) : ''}</span></a>
-    </div>
+    ${renderCommunityActions(s, baked, { esc, fmtBytes })}
   </article>`;
 }
 

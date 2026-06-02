@@ -17,6 +17,25 @@ describe('buildViewDataset', () => {
     expect(buildViewDataset(layer, undefined, ORIGIN).title).toBe('lgd villages');
   });
 
+  it('prefers layer.name over humanised id for level-less community layers', () => {
+    const community: CatalogLayer = {
+      id: 'c_nL7zNStsW3',
+      level: null,
+      name: 'Goa Landuse Zone Change Applications',
+      description: 'Parcels for landuse zone change under section 39A.',
+      source: 'Community',
+      rows: 779,
+      licence: 'CC0-1.0',
+    };
+    const meta = resolveLevelMeta(community, undefined); // undefined — no level
+    expect(meta).toBeUndefined();
+    const v = buildViewDataset(community, meta, ORIGIN);
+    expect(v.title).toBe('Goa Landuse Zone Change Applications');
+    // SEO description seeds from the submitted description, not a humanised id.
+    expect(v.description).toContain('Parcels for landuse zone change');
+    expect(buildViewContent(community, meta, ORIGIN)).toContain('Goa Landuse Zone Change Applications');
+  });
+
   it('builds canonical + ogImage from origin + layer id', () => {
     const v = buildViewDataset(layer, undefined, ORIGIN);
     expect(v.canonical).toBe('https://bharatlas.com/view/lgd_villages');

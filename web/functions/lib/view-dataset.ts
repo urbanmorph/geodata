@@ -4,12 +4,18 @@
 
 export type CatalogLayer = {
   id: string;
-  level: string;
+  /** null for community layers, which sit outside the admin-level ladder. */
+  level: string | null;
   source: string;
   rows: number | null;
+  /** Display name for layers without a LEVEL_META entry (e.g. community). */
+  name?: string;
+  description?: string;
+  provenance?: string;
   licence?: string;
   notes?: string;
   parquet?: { url: string; bytes: number } | null;
+  pmtiles?: { url: string; bytes: number } | null;
   geojson?: { url: string; bytes: number } | null;
   kml?: { url: string; bytes: number } | null;
   shapefile?: { url: string; bytes: number } | null;
@@ -72,7 +78,7 @@ export function resolveLevelMeta(
   layer: CatalogLayer,
   catalogLevelMeta: Record<string, LevelMeta> | undefined,
 ): LevelMeta | undefined {
-  return catalogLevelMeta?.[layer.id] ?? BUILTIN_LEVEL_META[layer.level];
+  return catalogLevelMeta?.[layer.id] ?? (layer.level ? BUILTIN_LEVEL_META[layer.level] : undefined);
 }
 
 function mapLicenceUrl(licence: string): string {
@@ -88,12 +94,12 @@ export function buildViewDataset(
   levelMeta: LevelMeta | undefined,
   origin: string,
 ): ViewDataset {
-  const title = levelMeta?.label || layer.id.replace(/_/g, ' ');
+  const title = levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
   const unit = levelMeta?.unit || 'features';
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
   const baseDescription =
     levelMeta?.description ??
-    `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`;
+    (layer.description || `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
   const description = baseDescription.slice(0, META_DESC_MAX);
   // Same padding template as prerender's homeSeo Dataset block: lifts
   // terse base descriptions over the ≥50 floor and seeds format/provenance
@@ -151,10 +157,10 @@ export function buildViewContent(
   levelMeta: LevelMeta | undefined,
   origin: string,
 ): string {
-  const title = levelMeta?.label || layer.id.replace(/_/g, ' ');
+  const title = levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
   const unit = levelMeta?.unit || 'features';
-  const desc = levelMeta?.description || layer.notes || '';
+  const desc = levelMeta?.description || layer.description || layer.notes || '';
 
   const downloads: string[] = [];
   for (const [fmt, label] of [['parquet', 'Parquet'], ['geojson', 'GeoJSON'], ['kml', 'KML'], ['shapefile', 'Shapefile']]) {

@@ -508,6 +508,21 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
         layer['fetched_at'] = prev['fetched_at']
 
 
+def carry_forward_unbuilt(layers: list[dict], prev_layers: dict[str, dict]) -> list[dict]:
+    """Append any previous-catalog layer this build didn't produce, so a full
+    rebuild from curated sources never drops entries written directly to
+    catalog.json -- above all community submissions (c_<id>, provenance:
+    'community') baked by bake_community.py, plus bake_judiciary.py and similar
+    one-offs. Freshly-built layers win for ids they produced (prev is only a
+    fallback). Mutates and returns `layers`. Pinned by
+    test_build_catalog_community.py."""
+    built_ids = {l['id'] for l in layers}
+    for pid, prev in prev_layers.items():
+        if pid not in built_ids:
+            layers.append(prev)
+    return layers
+
+
 def _load_prev_catalog() -> dict:
     """Load the full previous catalog.json for carry-forward."""
     prev_path = ROOT / 'catalog.json'
@@ -682,12 +697,12 @@ def build():
         layers.append(gb_layer)
 
     # Carry forward any layers from the previous catalog that this build
-    # didn't produce (e.g. layers added by bake_judiciary.py or one-off
-    # ingest scripts that wrote directly to catalog.json).
-    built_ids = {l['id'] for l in layers}
-    for pid, prev in prev_layers.items():
-        if pid not in built_ids:
-            layers.append(prev)
+    # didn't produce. Critically this includes community submissions baked by
+    # bake_community.py (c_<id>, provenance:'community') plus bake_judiciary.py
+    # and other one-off scripts that write directly to catalog.json. Without
+    # this, a full rebuild would silently drop every such entry. See
+    # test_build_catalog_community.py.
+    carry_forward_unbuilt(layers, prev_layers)
 
     # per-state geojson extracts under data/boundaries/<level>/lgd_<level>_<state>.geojson
     state_extracts = []

@@ -13,9 +13,10 @@ import { type ActiveFilter, type MaplibreFilter } from './filter-where';
 
 type Layer = {
   id: string;
-  level: string;
+  level: string | null;
   source: string;
   rows: number | null;
+  name?: string;
   parquet?: { url: string; bytes: number } | null;
   pmtiles?: { url: string; bytes: number } | null;
   geojson?: { url: string; bytes: number } | null;
@@ -627,7 +628,12 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     opts.titleEl.textContent = `unknown layer: ${layerId}`;
     return;
   }
-  opts.titleEl.textContent = `${layer.level} · ${layer.source} · ${layer.rows?.toLocaleString('en-IN') ?? '—'} rows`;
+  // Community layers have no admin level; lead with their submitted name so
+  // the viewer header reads sensibly instead of "undefined · …".
+  const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
+  opts.titleEl.textContent = layer.level
+    ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
+    : `${layer.name ?? layer.source} · ${rowsLabel} features`;
 
   wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
   wireDownloadButton(layer);

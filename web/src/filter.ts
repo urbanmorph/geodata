@@ -27,7 +27,7 @@ import {
 type Layer = {
   id: string;
   parquet?: { url: string } | null;
-  level: string;
+  level: string | null;
   source: string;
 };
 
@@ -163,7 +163,7 @@ export function mountFilterPanel(
   let stateNameToCode = new Map<string, number>();
   getFullCatalog()
     .then((c) => {
-      extracts = c.extracts?.[layer.level] || {};
+      extracts = (layer.level ? c.extracts?.[layer.level] : undefined) || {};
       if (c.states) {
         stateNameToCode = new Map(c.states.map((s) => [s.name.toLowerCase(), s.code]));
       }
