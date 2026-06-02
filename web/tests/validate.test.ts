@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normaliseFC, validate, detectCRS, visitCoords } from '../src/validate';
+import { normaliseFC, validate, detectCRS, visitCoords, featureCollectionBounds, type FC } from '../src/validate';
 
 describe('normaliseFC', () => {
   it('passes through a FeatureCollection', () => {
@@ -197,5 +197,34 @@ describe('validate', () => {
     };
     const r = validate(fc);
     expect(r.invalid).toBe(2);
+  });
+});
+
+describe('featureCollectionBounds (fits the geojson-path view to the data)', () => {
+  const fc = (features: FC['features']): FC => ({ type: 'FeatureCollection', features });
+  const feat = (geometry: unknown): FC['features'][number] => ({ type: 'Feature', geometry, properties: null });
+
+  it('returns null for an empty collection', () => {
+    expect(featureCollectionBounds(fc([]))).toBeNull();
+  });
+
+  it('a single Point collapses to a degenerate bbox', () => {
+    expect(featureCollectionBounds(fc([feat({ type: 'Point', coordinates: [73.9, 15.4] })]))).toEqual([73.9, 15.4, 73.9, 15.4]);
+  });
+
+  it('unions Point + MultiPolygon across features (the Goa shape)', () => {
+    const b = featureCollectionBounds(fc([
+      feat({ type: 'Point', coordinates: [73.85, 15.45] }),
+      feat({ type: 'MultiPolygon', coordinates: [[[[73.7, 14.9], [74.1, 14.9], [74.1, 15.8], [73.7, 15.8], [73.7, 14.9]]]] }),
+    ]));
+    expect(b).toEqual([73.7, 14.9, 74.1, 15.8]);
+  });
+
+  it('ignores features with no geometry', () => {
+    const b = featureCollectionBounds(fc([
+      feat(null),
+      feat({ type: 'Point', coordinates: [77, 28] }),
+    ]));
+    expect(b).toEqual([77, 28, 77, 28]);
   });
 });

@@ -141,11 +141,16 @@ describe('CLS regression guards (Web Vitals)', () => {
   //      first paint, expanding every section.
   // These tests pin the fixes so we don't reintroduce either silently.
 
-  it("main.ts does NOT remove .view-seo on hydrate (body shift fix)", () => {
+  it("main.ts removes .view-seo only on map close (hideMap), never on hydrate", () => {
     const main = readFileSync(resolve(__dirname, '..', 'src', 'main.ts'), 'utf8');
-    // The original line was `document.querySelector('.view-seo')?.remove();`.
-    // It can stay in comments for context but must not execute.
-    expect(main).not.toMatch(/^\s*document\.querySelector\(['"]\.view-seo['"]\)\?\.remove\(\);?\s*$/m);
+    // CLS regression: the removal must NOT run on hydrate — i.e. not as a
+    // top-level (column-0) statement. That was the original body-shift bug.
+    expect(main).not.toMatch(/^document\.querySelector\(['"]\.view-seo['"]\)\??\.remove\(\)/m);
+    // But it SHOULD run when the user closes the overlay, so the crawler-only
+    // article doesn't linger above the catalog view (URL already rewritten to
+    // '/'). A close is a user gesture, so that removal is excluded from CLS.
+    const hideMap = main.slice(main.indexOf('async function hideMap'), main.indexOf('function handleHash'));
+    expect(hideMap).toMatch(/document\.querySelector\(['"]\.view-seo['"]\)\??\.remove\(\)/);
   });
 
   it('q-precheck.js exists in public/ and adds .has-query for ?q=…', () => {
@@ -180,34 +185,48 @@ describe('CLS regression guards (Web Vitals)', () => {
 });
 
 describe('Community cards have parity with curated rows (View + Download)', () => {
-  // Earlier community cards only linked to /c/<id> (the share page); to
-  // see them on the map or grab the file you had to click through. Curated
-  // rows have inline "View map" + multi-format Download links. We can't
-  // give community parity on multi-format (we don't bake them) or on the
-  // filter affordance (no LGD chain), but View + single-format Download
-  // are cheap to surface and remove a click for every community visit.
-  it('every comm-card on home has a "View map" link to /preview?url=/api/r2/community/...', () => {
+  // Community cards carry inline "View map" + Download. The targets depend on
+  // whether the submission has been baked (scripts/bake_community.py):
+  //   unbaked → /preview on the raw R2 file + a single raw download.
+  //   baked   → /view/c_<id> (the full curated viewer, comm-card--baked class)
+  //             + the curated multi-format /api/dl strip.
+  // Both link to the same .btn-primary "View map" pill as curated rows.
+  it('every comm-card has a "View map" link (baked → /view/c_<id>, else /preview)', () => {
     const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
     const cards = html.match(/<article class="comm-card[^>]+>[\s\S]*?<\/article>/g) || [];
     if (cards.length === 0) return; // no community submissions yet — vacuous pass
     for (const card of cards) {
       const id = card.match(/data-id="([^"]+)"/)![1];
-      expect(card, `comm-card ${id} missing View map link`).toMatch(
-        /href="\/preview\?url=[^"]*%2Fapi%2Fr2%2Fcommunity%2F[^"]+"/,
-      );
+      if (/comm-card--baked/.test(card)) {
+        expect(card, `baked comm-card ${id} → /view/c_<id>`).toMatch(
+          new RegExp(`href="/view/c_${id}"`),
+        );
+      } else {
+        expect(card, `comm-card ${id} missing /preview View link`).toMatch(
+          /href="\/preview\?url=[^"]*%2Fapi%2Fr2%2Fcommunity%2F[^"]+"/,
+        );
+      }
+      // Visual parity: same pill class as curated rows.
+      expect(card, `comm-card ${id} uses .btn-primary View pill`).toMatch(/class="btn-primary comm-card__view"/);
       expect(card, `comm-card ${id} View map text`).toMatch(/View on map|View map/);
     }
   });
 
-  it('every comm-card has an inline Download link to /api/r2/community/<id>/<filename>', () => {
+  it('every comm-card has inline downloads (baked → /api/dl multi-format, else single /api/r2)', () => {
     const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
     const cards = html.match(/<article class="comm-card[^>]+>[\s\S]*?<\/article>/g) || [];
     if (cards.length === 0) return;
     for (const card of cards) {
       const id = card.match(/data-id="([^"]+)"/)![1];
-      expect(card, `comm-card ${id} missing inline Download link`).toMatch(
-        /href="\/api\/r2\/community\/[^"]+"[^>]*download/,
-      );
+      if (/comm-card--baked/.test(card)) {
+        expect(card, `baked comm-card ${id} multi-format downloads`).toMatch(
+          /href="\/api\/dl\/community\/[^"]+"/,
+        );
+      } else {
+        expect(card, `comm-card ${id} missing inline Download link`).toMatch(
+          /href="\/api\/r2\/community\/[^"]+"[^>]*download/,
+        );
+      }
     }
   });
 });

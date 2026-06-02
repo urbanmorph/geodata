@@ -10,12 +10,14 @@ import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
 import { type ActiveFilter, type MaplibreFilter } from './filter-where';
+import { featureCollectionBounds, type FC } from './validate';
 
 type Layer = {
   id: string;
-  level: string;
+  level: string | null;
   source: string;
   rows: number | null;
+  name?: string;
   parquet?: { url: string; bytes: number } | null;
   pmtiles?: { url: string; bytes: number } | null;
   geojson?: { url: string; bytes: number } | null;
@@ -84,6 +86,7 @@ function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, 
   const layerArea = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]);
   return layerArea / indiaArea > 0.5 ? INDIA_BOUNDS : bounds;
 }
+
 
 function panelAwarePadding(): { top: number; bottom: number; left: number; right: number } {
   const base = 20;
@@ -262,7 +265,25 @@ async function attachData(layer: Layer) {
     flyTo(layerBounds, { padding: BASE_PADDING, duration: 0 });
     addDataLayers('layer', sourceLayer);
   } else if (layer.geojson?.url) {
-    map.addSource('layer', { type: 'geojson', data: layer.geojson.url, attribution: layer.source });
+    // No pmtiles header to read bounds from. Fetch the geojson once, derive its
+    // extent, and fit the view to it — same outcome as the pmtiles path above.
+    // Passing the parsed data to addSource avoids a second fetch.
+    let data: unknown = layer.geojson.url;
+    try {
+      const resp = await fetch(layer.geojson.url);
+      if (resp.ok) {
+        const fc = (await resp.json()) as FC;
+        data = fc;
+        const b = featureCollectionBounds(fc);
+        if (b) {
+          layerBounds = snapToIndiaIfLarge(b);
+          flyTo(layerBounds, { padding: BASE_PADDING, duration: 0 });
+        }
+      }
+    } catch {
+      // network/parse failure → fall back to the URL load + India bounds
+    }
+    map.addSource('layer', { type: 'geojson', data: data as never, attribution: layer.source });
     addDataLayers('layer');
   } else {
     throw new Error('no renderable source for ' + layer.id);
@@ -627,7 +648,12 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     opts.titleEl.textContent = `unknown layer: ${layerId}`;
     return;
   }
-  opts.titleEl.textContent = `${layer.level} · ${layer.source} · ${layer.rows?.toLocaleString('en-IN') ?? '—'} rows`;
+  // Community layers have no admin level; lead with their submitted name so
+  // the viewer header reads sensibly instead of "undefined · …".
+  const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
+  opts.titleEl.textContent = layer.level
+    ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
+    : `${layer.name ?? layer.source} · ${rowsLabel} features`;
 
   wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
   wireDownloadButton(layer);

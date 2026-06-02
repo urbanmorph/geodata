@@ -52,6 +52,21 @@ export function visitCoords(g: unknown, cb: (x: number, y: number) => void): voi
   if (Array.isArray(geoms)) for (const sub of geoms) visitCoords(sub, cb);
 }
 
+/** Bounding box [minLon, minLat, maxLon, maxLat] over every feature, or null
+ * when the collection has no coordinates. Used to fit the map view to a
+ * geojson layer's extent (the pmtiles path reads its bounds from the header). */
+export function featureCollectionBounds(fc: FC): [number, number, number, number] | null {
+  let b: [number, number, number, number] | null = null;
+  for (const f of fc.features ?? []) {
+    visitCoords(f.geometry, (x, y) => {
+      b = b
+        ? [Math.min(b[0], x), Math.min(b[1], y), Math.max(b[2], x), Math.max(b[3], y)]
+        : [x, y, x, y];
+    });
+  }
+  return b;
+}
+
 export function validate(fc: FC, raw?: unknown): Report {
   const byType: Record<string, number> = {};
   let invalid = 0;

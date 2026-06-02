@@ -4720,6 +4720,39 @@
       "kml": null,
       "shapefile": null,
       "fetched_at": null
+    },
+    {
+      "id": "c_nL7zNStsW3",
+      "level": null,
+      "name": "Goa Landuse Zone Change Applications",
+      "description": "Parcels for which landuse zone change applications have been received under section 39A of the Goa TCP Act",
+      "source": "Community",
+      "rows": 779,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/community/nL7zNStsW3/nL7zNStsW3.parquet",
+        "bytes": 251476
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/community/nL7zNStsW3/nL7zNStsW3.geojson",
+        "bytes": 1687231
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/community/nL7zNStsW3/nL7zNStsW3.kml",
+        "bytes": 2112588
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Goa Gazette, Goa Bhunaksha",
+          "url": "https://goaprintingpress.gov.in/search-by-date/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "community",
+      "submission_id": "nL7zNStsW3",
+      "is_original": false,
+      "fetched_at": "2026-05-25T11:30:45.719Z"
     }
   ],
   "state_extracts": [],
