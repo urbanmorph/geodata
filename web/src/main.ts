@@ -3,7 +3,13 @@
 import { isEmbedPath, isViewPath, nextStateOnClose } from './embed-snippet';
 import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
 
-document.querySelector('.view-seo')?.remove();
+// Earlier we removed `.view-seo` here on hydrate to clean up the
+// crawler-only SEO article that /view/<id>'s Pages Function injects.
+// That removal shrank the body and was the dominant CLS source on
+// /view/<id> pages (CWV poor). The article sits behind the
+// position:fixed map overlay anyway, and when the user closes the
+// overlay, a readable layer description is a feature not a wart. So
+// we leave it in the DOM.
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;

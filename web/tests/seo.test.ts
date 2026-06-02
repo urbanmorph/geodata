@@ -111,6 +111,94 @@ describe('SEO — home JSON-LD enrichments', () => {
       ).toBeGreaterThanOrEqual(50);
     }
   });
+
+  it('every Dataset declares isAccessibleForFree:true', () => {
+    // Small but free Google Dataset Search signal — explicitly marking the
+    // data as free helps rank vs paywalled alternates.
+    const datasets = loadGraph().filter((n) => n['@type'] === 'Dataset');
+    for (const d of datasets) {
+      expect(d.isAccessibleForFree, `${d.name} missing isAccessibleForFree`).toBe(true);
+    }
+  });
+
+  it('every Dataset has keywords (array, ≥3 items)', () => {
+    // Google Dataset Search uses keywords for query matching.
+    // We derive: [level, label, source, category, 'India'].
+    const datasets = loadGraph().filter((n) => n['@type'] === 'Dataset');
+    for (const d of datasets) {
+      expect(Array.isArray(d.keywords), `${d.name} keywords not an array`).toBe(true);
+      expect(d.keywords.length, `${d.name} too few keywords`).toBeGreaterThanOrEqual(3);
+      expect(d.keywords).toContain('India');
+    }
+  });
+});
+
+describe('CLS regression guards (Web Vitals)', () => {
+  // Two CLS sources fixed in the same PR:
+  //   1. main.ts used to remove `.view-seo` on hydrate, shrinking the body
+  //      on /view/<id> pages.
+  //   2. `?q=…` URL params triggered apply() with forceExpand=true after
+  //      first paint, expanding every section.
+  // These tests pin the fixes so we don't reintroduce either silently.
+
+  it("main.ts does NOT remove .view-seo on hydrate (body shift fix)", () => {
+    const main = readFileSync(resolve(__dirname, '..', 'src', 'main.ts'), 'utf8');
+    // The original line was `document.querySelector('.view-seo')?.remove();`.
+    // It can stay in comments for context but must not execute.
+    expect(main).not.toMatch(/^\s*document\.querySelector\(['"]\.view-seo['"]\)\?\.remove\(\);?\s*$/m);
+  });
+
+  it('q-precheck.js exists in public/ and adds .has-query for ?q=…', () => {
+    const js = readFileSync(resolve(__dirname, '..', 'public', 'q-precheck.js'), 'utf8');
+    expect(js).toMatch(/URLSearchParams/);
+    expect(js).toMatch(/has-query/);
+  });
+
+  it("index.html loads q-precheck.js synchronously in <head> before any main script", () => {
+    // index.html in web/ root is the prerender output (dev path `/src/main.ts`).
+    // After `vite build`, dist/index.html has the hashed `/assets/main-XXX.js`.
+    // Either way, q-precheck.js must be in <head> and precede every other script.
+    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const head = html.match(/<head[^>]*>([\s\S]*?)<\/head>/)?.[1] ?? '';
+    expect(head, 'q-precheck.js must be inside <head>').toContain('q-precheck.js');
+
+    const precheckIdx = html.indexOf('q-precheck.js');
+    // First "real" script tag (excludes <script type="application/ld+json">
+    // and <script type="application/json"> data blobs).
+    const firstScript = html.search(/<script(?![^>]+type="application\/)[^>]*src=/);
+    expect(precheckIdx, 'q-precheck must precede every other script tag').toBeLessThan(firstScript);
+
+    const tag = html.match(/<script[^>]*\/q-precheck\.js[^>]*>/);
+    expect(tag).not.toBeNull();
+    expect(tag![0]).not.toMatch(/\bdefer\b|\basync\b/);
+  });
+
+  it('CSS preempts the expand on html.has-query (no JS mutation needed)', () => {
+    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    expect(html).toMatch(/html\.has-query[^{]*\.row--collapsed\s*{[^}]*display:\s*block/);
+  });
+});
+
+describe('SEO/AEO — curated cards expose data vintage on the home grid', () => {
+  // Every curated card SHOULD surface either a "fetched" or "vintage"
+  // line so users (and AEO consumers) can judge freshness. Today only
+  // the ~37 yashveer-republished layers carry fetched_at in catalog.json;
+  // ramSeraph + own-baked + city-ward layers don't yet (older bake
+  // scripts didn't set it). New layers MUST set it — see memory rule
+  // "new-layers-need-fetched-at". Threshold reflects the honest state
+  // and ratchets up as ingest scripts get the backfill.
+  it('at least 25% of visible rows have a date string in the description', () => {
+    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const sections = html.match(/<section class="row row--curated[^>]+>[\s\S]*?<\/section>/g) || [];
+    expect(sections.length).toBeGreaterThan(0);
+    let withDate = 0;
+    for (const sec of sections) {
+      // Match the "Updated:" + ISO date pattern emitted by prerender,
+      // tolerant of intervening HTML (the date is wrapped in <time>).
+      if (/(updated|vintage|fetched)[\s\S]*?\d{4}-\d{2}-\d{2}/i.test(sec)) withDate++;
+    }
+    expect(withDate / sections.length).toBeGreaterThanOrEqual(0.25);
+  });
 });
 
 describe('SEO — /about FAQPage', () => {
