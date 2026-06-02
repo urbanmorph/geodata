@@ -141,11 +141,16 @@ describe('CLS regression guards (Web Vitals)', () => {
   //      first paint, expanding every section.
   // These tests pin the fixes so we don't reintroduce either silently.
 
-  it("main.ts does NOT remove .view-seo on hydrate (body shift fix)", () => {
+  it("main.ts removes .view-seo only on map close (hideMap), never on hydrate", () => {
     const main = readFileSync(resolve(__dirname, '..', 'src', 'main.ts'), 'utf8');
-    // The original line was `document.querySelector('.view-seo')?.remove();`.
-    // It can stay in comments for context but must not execute.
-    expect(main).not.toMatch(/^\s*document\.querySelector\(['"]\.view-seo['"]\)\?\.remove\(\);?\s*$/m);
+    // CLS regression: the removal must NOT run on hydrate — i.e. not as a
+    // top-level (column-0) statement. That was the original body-shift bug.
+    expect(main).not.toMatch(/^document\.querySelector\(['"]\.view-seo['"]\)\??\.remove\(\)/m);
+    // But it SHOULD run when the user closes the overlay, so the crawler-only
+    // article doesn't linger above the catalog view (URL already rewritten to
+    // '/'). A close is a user gesture, so that removal is excluded from CLS.
+    const hideMap = main.slice(main.indexOf('async function hideMap'), main.indexOf('function handleHash'));
+    expect(hideMap).toMatch(/document\.querySelector\(['"]\.view-seo['"]\)\??\.remove\(\)/);
   });
 
   it('q-precheck.js exists in public/ and adds .has-query for ?q=…', () => {

@@ -3,13 +3,13 @@
 import { isEmbedPath, isViewPath, nextStateOnClose } from './embed-snippet';
 import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
 
-// Earlier we removed `.view-seo` here on hydrate to clean up the
-// crawler-only SEO article that /view/<id>'s Pages Function injects.
-// That removal shrank the body and was the dominant CLS source on
-// /view/<id> pages (CWV poor). The article sits behind the
-// position:fixed map overlay anyway, and when the user closes the
-// overlay, a readable layer description is a feature not a wart. So
-// we leave it in the DOM.
+// The crawler-only `.view-seo` article that /view/<id>'s Pages Function
+// injects is NOT removed on hydrate — doing so shrank the body and was the
+// dominant CLS source on /view/<id> pages (CWV poor). It sits behind the
+// position:fixed map overlay. It IS removed when the user closes the overlay
+// (see hideMap), otherwise it lingers above the catalog view once the URL is
+// rewritten to '/'. That close-time removal is inside a user gesture, so it's
+// excluded from CLS.
 
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
@@ -60,6 +60,12 @@ async function hideMap() {
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   (await loadMap()).closeLayer();
+  // The crawler-only SEO article (.view-seo, server-injected on /view/<id>)
+  // must not linger above the catalog view once the map is closed and the URL
+  // is rewritten back to '/'. Removing it here is inside a user gesture, so
+  // it's excluded from CLS — unlike removing it on hydrate, which was the
+  // CWV regression that made us stop touching it on load.
+  document.querySelector('.view-seo')?.remove();
   // Snapshot location BEFORE any mutation. The earlier two-call version
   // (urlAfterCloseMap + replaceState, then titleAfterCloseMap) read the
   // post-mutation '/' pathname for the title decision and stuck the tab
