@@ -179,6 +179,39 @@ describe('CLS regression guards (Web Vitals)', () => {
   });
 });
 
+describe('Community cards have parity with curated rows (View + Download)', () => {
+  // Earlier community cards only linked to /c/<id> (the share page); to
+  // see them on the map or grab the file you had to click through. Curated
+  // rows have inline "View map" + multi-format Download links. We can't
+  // give community parity on multi-format (we don't bake them) or on the
+  // filter affordance (no LGD chain), but View + single-format Download
+  // are cheap to surface and remove a click for every community visit.
+  it('every comm-card on home has a "View map" link to /preview?url=/api/r2/community/...', () => {
+    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const cards = html.match(/<article class="comm-card[^>]+>[\s\S]*?<\/article>/g) || [];
+    if (cards.length === 0) return; // no community submissions yet — vacuous pass
+    for (const card of cards) {
+      const id = card.match(/data-id="([^"]+)"/)![1];
+      expect(card, `comm-card ${id} missing View map link`).toMatch(
+        /href="\/preview\?url=[^"]*%2Fapi%2Fr2%2Fcommunity%2F[^"]+"/,
+      );
+      expect(card, `comm-card ${id} View map text`).toMatch(/View on map|View map/);
+    }
+  });
+
+  it('every comm-card has an inline Download link to /api/r2/community/<id>/<filename>', () => {
+    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const cards = html.match(/<article class="comm-card[^>]+>[\s\S]*?<\/article>/g) || [];
+    if (cards.length === 0) return;
+    for (const card of cards) {
+      const id = card.match(/data-id="([^"]+)"/)![1];
+      expect(card, `comm-card ${id} missing inline Download link`).toMatch(
+        /href="\/api\/r2\/community\/[^"]+"[^>]*download/,
+      );
+    }
+  });
+});
+
 describe('SEO/AEO — curated cards expose data vintage on the home grid', () => {
   // Every curated card SHOULD surface either a "fetched" or "vintage"
   // line so users (and AEO consumers) can judge freshness. Today only

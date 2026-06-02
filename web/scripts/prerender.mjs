@@ -790,6 +790,16 @@ function renderCommunityCard(s, opts = {}) {
     `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
+  // Inline View map + Download for parity with curated rows. Community
+  // files are stored as-is in R2 under community/<id>/<filename>, so the
+  // download is single-format (not the curated multi-format strip).
+  // /api/r2/community/... is the allowlisted same-origin proxy that
+  // streams the R2 object (PR-A locked the prefix down to community/*).
+  // /preview?url=… pipes the same file into the drag-drop verify viewer
+  // so the user gets the map view we already render there.
+  const r2Path = `/api/r2/${esc(s.r2_key)}`;
+  const previewUrl = `/preview?url=${encodeURIComponent('/api/r2/' + s.r2_key)}`;
+  const filename = s.r2_key.split('/').pop() || `${s.id}.${s.format}`;
   return `<article class="comm-card${collapsed}" ${dataAttrs}>
     <div class="comm-card__head">
       <div class="comm-card__title"><a href="/c/${esc(s.id)}">${esc(s.name)}</a><span class="badge badge--community">community</span></div>
@@ -799,6 +809,10 @@ function renderCommunityCard(s, opts = {}) {
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
     <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit}</div>
+    <div class="comm-card__actions">
+      <a class="btn comm-card__view" href="${previewUrl}">View on map →</a>
+      <a class="btn comm-card__dl" href="${r2Path}" download="${esc(filename)}">Download .${esc(s.format)}<span class="size">${s.bytes != null ? fmtBytes(s.bytes) : ''}</span></a>
+    </div>
   </article>`;
 }
 
