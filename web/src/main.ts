@@ -15,6 +15,11 @@ const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
 const mapCloseBtn = document.getElementById('map-close') as HTMLButtonElement;
 
+// Re-applies the saved category filter. Assigned by the catalog block below
+// (where the chips + apply() live). hideMap() calls it so closing the map
+// returns you to your filtered catalog (breadcrumb) instead of "all".
+let restoreSavedCategory: (() => void) | null = null;
+
 // Dynamic imports are cached by the loader, so we don't need our own cache.
 const loadMap = () => import('./map');
 
@@ -56,6 +61,12 @@ async function showMap(layerId: string) {
 const HOME_TITLE = "India's open atlas · view, verify, contribute · bharatlas";
 
 async function hideMap() {
+  // Re-apply the saved category filter BEFORE revealing the catalog, so closing
+  // the map returns to the user's filtered view (breadcrumb), not "all", and
+  // with no flash of the unfiltered grid. A close is a user gesture, so any
+  // resulting shift is excluded from CLS — which is why we restore here rather
+  // than on the /view/<id> load (that would shift content Chrome still counts).
+  restoreSavedCategory?.();
   overlay.classList.remove('open');
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
@@ -235,22 +246,24 @@ if (searchInput && grid) {
     });
   }
 
-  // Breadcrumb restore: re-apply the saved category ONLY when the user returns
-  // from a /view/ via back/forward — not on a fresh load or refresh. That keeps
-  // the first paint shift-free (no post-paint apply()/section-expand → no CLS)
-  // for direct + search arrivals, which are the common case. See
-  // shouldRestoreCategory. (bfcache often restores the filtered DOM as-is on
-  // back, making this just the fallback for when bfcache doesn't fire.)
-  const navType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
-  const saved = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
-  if (shouldRestoreCategory(navType, saved)) {
+  // Breadcrumb restore. Re-applies the saved category pill + filter. Used in
+  // two CLS-safe spots: (a) here on a back/forward navigation (browser back to
+  // the catalog — bfcache usually handles this, this is the fallback), and
+  // (b) from hideMap() when the map overlay is closed (a user gesture). It is
+  // deliberately NOT called on a fresh load or refresh, which keeps the first
+  // paint shift-free for direct + search arrivals (the common case).
+  restoreSavedCategory = () => {
+    const saved = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
+    if (!saved || saved === 'all') return;
     const match = chips.find((c) => c.dataset.cat === saved);
-    if (match) {
-      chips.forEach((c) => c.classList.toggle('active', c === match));
-      activeCat = saved!;
-      apply();
-    }
-  }
+    if (!match) return;
+    chips.forEach((c) => c.classList.toggle('active', c === match));
+    activeCat = saved;
+    apply();
+  };
+  const navType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
+  const savedCat = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
+  if (shouldRestoreCategory(navType, savedCat)) restoreSavedCategory();
 
   // "show all N <category>" toggle inside dense category sections.
   // Toggles `.expanded` on the parent <section>; CSS in index.template.html
