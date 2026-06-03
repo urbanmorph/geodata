@@ -1,5 +1,26 @@
 import { describe, it, expect } from 'vitest';
-import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap, nextStateOnClose } from '../src/embed-snippet';
+import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap, nextStateOnClose, shouldRestoreCategory } from '../src/embed-snippet';
+
+describe('shouldRestoreCategory (breadcrumb restore, CLS-safe first paint)', () => {
+  it('restores on back/forward with a saved non-all category', () => {
+    expect(shouldRestoreCategory('back_forward', 'environment')).toBe(true);
+  });
+
+  it('does NOT restore on a fresh navigate or a reload — keeps first paint shift-free', () => {
+    expect(shouldRestoreCategory('navigate', 'environment')).toBe(false);
+    expect(shouldRestoreCategory('reload', 'environment')).toBe(false);
+  });
+
+  it('does NOT restore when nothing is saved or it is the default "all"', () => {
+    expect(shouldRestoreCategory('back_forward', null)).toBe(false);
+    expect(shouldRestoreCategory('back_forward', '')).toBe(false);
+    expect(shouldRestoreCategory('back_forward', 'all')).toBe(false);
+  });
+
+  it('does NOT restore when the navigation type is unknown', () => {
+    expect(shouldRestoreCategory(undefined, 'environment')).toBe(false);
+  });
+});
 
 describe('embed-snippet — embedIframeHtml', () => {
   it('emits a sane iframe snippet with the encoded layer id', () => {
