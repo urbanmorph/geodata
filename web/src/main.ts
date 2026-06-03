@@ -1,6 +1,6 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
-import { isEmbedPath, isViewPath, nextStateOnClose } from './embed-snippet';
+import { isEmbedPath, isViewPath, nextStateOnClose, shouldRestoreCategory } from './embed-snippet';
 import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
@@ -235,13 +235,19 @@ if (searchInput && grid) {
     });
   }
 
-  // Restore category from sessionStorage (survives back-navigation from /view/).
+  // Breadcrumb restore: re-apply the saved category ONLY when the user returns
+  // from a /view/ via back/forward — not on a fresh load or refresh. That keeps
+  // the first paint shift-free (no post-paint apply()/section-expand → no CLS)
+  // for direct + search arrivals, which are the common case. See
+  // shouldRestoreCategory. (bfcache often restores the filtered DOM as-is on
+  // back, making this just the fallback for when bfcache doesn't fire.)
+  const navType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
   const saved = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
-  if (saved && saved !== 'all') {
+  if (shouldRestoreCategory(navType, saved)) {
     const match = chips.find((c) => c.dataset.cat === saved);
     if (match) {
       chips.forEach((c) => c.classList.toggle('active', c === match));
-      activeCat = saved;
+      activeCat = saved!;
       apply();
     }
   }
