@@ -17,6 +17,35 @@ describe('buildViewDataset', () => {
     expect(buildViewDataset(layer, undefined, ORIGIN).title).toBe('lgd villages');
   });
 
+  it('prefers seo_title over label for the page <title> (ward SEO override)', () => {
+    const v = buildViewDataset(
+      layer,
+      { label: 'Ahmedabad (AMC) Wards', seo_title: 'Ahmedabad Ward Map: 48 wards (AMC)' },
+      ORIGIN,
+    );
+    expect(v.title).toBe('Ahmedabad Ward Map: 48 wards (AMC)');
+    expect(v.jsonLd.name).toBe('Ahmedabad Ward Map: 48 wards (AMC)');
+  });
+
+  it('prefers seo_description over description for the meta description', () => {
+    const v = buildViewDataset(
+      layer,
+      {
+        label: 'Ahmedabad (AMC) Wards',
+        description: 'Ahmedabad Municipal Corporation — 48 wards across the 7 zones.',
+        seo_description: 'Interactive map of all 48 wards in Ahmedabad (AMC). View ward boundaries and numbers.',
+      },
+      ORIGIN,
+    );
+    expect(v.description).toContain('Interactive map of all 48 wards in Ahmedabad');
+  });
+
+  it('falls back to label/description when seo_* are absent', () => {
+    const v = buildViewDataset(layer, { label: 'Villages', description: 'Revenue villages.' }, ORIGIN);
+    expect(v.title).toBe('Villages');
+    expect(v.description).toContain('Revenue villages.');
+  });
+
   it('prefers layer.name over humanised id for level-less community layers', () => {
     const community: CatalogLayer = {
       id: 'c_nL7zNStsW3',
@@ -141,6 +170,22 @@ describe('buildViewContent', () => {
   it('falls back to humanised id when no levelMeta', () => {
     const html = buildViewContent(layer, undefined, ORIGIN);
     expect(html).toContain('lgd villages');
+  });
+
+  it('uses seo_title in the h1 when present, keeping the richer body description', () => {
+    const html = buildViewContent(
+      layer,
+      {
+        label: 'Ahmedabad (AMC) Wards',
+        seo_title: 'Ahmedabad Ward Map: 48 wards (AMC)',
+        description: 'Ahmedabad Municipal Corporation — 48 wards across the 7 zones.',
+      },
+      ORIGIN,
+    );
+    expect(html).toContain('<h1');
+    expect(html).toContain('Ahmedabad Ward Map: 48 wards (AMC)');
+    // body paragraph keeps the official-name description, not the SEO line
+    expect(html).toContain('Ahmedabad Municipal Corporation');
   });
 
   it('includes feature count formatted with Indian locale', () => {
