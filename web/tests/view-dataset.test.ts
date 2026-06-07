@@ -136,6 +136,43 @@ describe('buildViewDataset', () => {
   });
 });
 
+describe('buildViewDataset — Dataset distribution (Google Dataset Search)', () => {
+  const withDownloads: CatalogLayer = {
+    ...layer,
+    parquet: { url: 'https://r2.example.com/x.parquet', bytes: 7000000 },
+    geojson: { url: 'https://r2.example.com/x.geojson', bytes: 2000000 },
+    kml: { url: 'https://r2.example.com/x.kml', bytes: 1500000 },
+  };
+
+  it('emits a DataDownload per available format with contentUrl + encodingFormat', () => {
+    const dist = buildViewDataset(withDownloads, { label: 'X' }, ORIGIN).jsonLd.distribution as Array<
+      Record<string, unknown>
+    >;
+    expect(dist).toHaveLength(3);
+    expect(dist).toContainEqual({
+      '@type': 'DataDownload',
+      encodingFormat: 'application/vnd.apache.parquet',
+      contentUrl: 'https://r2.example.com/x.parquet',
+      contentSize: '7000000',
+    });
+    expect(dist.map((d) => d.encodingFormat)).toEqual([
+      'application/vnd.apache.parquet',
+      'application/geo+json',
+      'application/vnd.google-earth.kml+xml',
+    ]);
+  });
+
+  it('omits distribution entirely when the layer has no download files', () => {
+    expect(buildViewDataset(layer, { label: 'X' }, ORIGIN).jsonLd.distribution).toBeUndefined();
+  });
+
+  it('marks the dataset free and names the publisher', () => {
+    const v = buildViewDataset(layer, { label: 'X' }, ORIGIN);
+    expect(v.jsonLd.isAccessibleForFree).toBe(true);
+    expect(v.jsonLd.publisher).toMatchObject({ '@type': 'Organization', name: 'bharatlas' });
+  });
+});
+
 describe('resolveLevelMeta', () => {
   it('returns catalog level_meta by layer.id for external layers', () => {
     const ext = { wards_bengaluru_gba: { label: 'GBA Wards', unit: 'wards' } };

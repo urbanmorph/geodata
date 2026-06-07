@@ -22,7 +22,13 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
     return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });
   }
+  // Same-origin fetches use the request host so this works on previews, dev
+  // (:8788) and the pages.dev fallback. SEO URLs (canonical / OG / JSON-LD)
+  // must always be the primary apex, so www.* and pages.dev variants
+  // consolidate there instead of self-referencing as canonical and splitting
+  // the ranking signal. Mirrors render-view.ts's PUBLIC_ORIGIN.
   const origin = new URL(ctx.request.url).origin;
+  const CANONICAL_ORIGIN = 'https://bharatlas.com';
 
   const [catalogResp, indexResp] = await Promise.all([
     fetch(`${origin}/catalog.json`),
@@ -41,9 +47,9 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd } = buildViewDataset(
     layer,
     levelMeta,
-    origin,
+    CANONICAL_ORIGIN,
   );
-  const contentHtml = buildViewContent(layer, levelMeta, origin);
+  const contentHtml = buildViewContent(layer, levelMeta, CANONICAL_ORIGIN);
 
   return new HTMLRewriter()
     .on('title', {
