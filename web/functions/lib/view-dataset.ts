@@ -94,6 +94,36 @@ function mapLicenceUrl(licence: string): string {
   return licence;
 }
 
+// schema.org DataDownload entries for every format the layer publishes. This
+// is the field Google Dataset Search keys on to surface the actual files —
+// without it a Dataset is eligible but has no downloads to show.
+const DISTRIBUTION_FORMATS: Array<[
+  'parquet' | 'pmtiles' | 'geojson' | 'kml' | 'shapefile',
+  string,
+]> = [
+  ['parquet', 'application/vnd.apache.parquet'],
+  ['pmtiles', 'application/vnd.pmtiles'],
+  ['geojson', 'application/geo+json'],
+  ['kml', 'application/vnd.google-earth.kml+xml'],
+  ['shapefile', 'application/zip'],
+];
+
+function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> {
+  const out: Array<Record<string, unknown>> = [];
+  for (const [key, encodingFormat] of DISTRIBUTION_FORMATS) {
+    const ref = layer[key] as { url: string; bytes: number } | null | undefined;
+    if (ref?.url) {
+      out.push({
+        '@type': 'DataDownload',
+        encodingFormat,
+        contentUrl: ref.url,
+        ...(ref.bytes ? { contentSize: String(ref.bytes) } : {}),
+      });
+    }
+  }
+  return out;
+}
+
 export function buildViewDataset(
   layer: CatalogLayer,
   levelMeta: LevelMeta | undefined,
@@ -117,6 +147,7 @@ export function buildViewDataset(
       : `${baseDescription} Free to view, slice and download as Parquet, PMTiles, GeoJSON or KML. Open atlas of India by Urban Morph, sourced from ${layer.source}.`;
   const canonical = `${origin}/view/${layer.id}`;
   const ogImage = `${origin}/og/view/${layer.id}.png`;
+  const distribution = buildDistribution(layer);
 
   return {
     title,
@@ -131,8 +162,11 @@ export function buildViewDataset(
       description: ldDescription,
       url: canonical,
       license: layer.licence ? mapLicenceUrl(layer.licence) : undefined,
+      isAccessibleForFree: true,
       creator: { '@type': 'Organization', name: layer.source },
+      publisher: { '@type': 'Organization', name: 'bharatlas', url: 'https://bharatlas.com' },
       spatialCoverage: { '@type': 'Place', name: 'India' },
+      ...(distribution.length ? { distribution } : {}),
     },
     // Sibling JSON-LD block. Google honors multiple <script type="application/
     // ld+json"> blocks on one page and de-dupes by @type. Surfaces breadcrumb
