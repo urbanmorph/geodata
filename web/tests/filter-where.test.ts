@@ -116,12 +116,33 @@ describe('buildMaplibreFilter — empty + skipped kinds', () => {
     expect(buildMaplibreFilter([])).toBeNull();
   });
 
-  it('returns null when only a search filter is active', () => {
-    expect(buildMaplibreFilter([{ col: 'name', kind: 'search', q: 'a' }])).toBeNull();
+  it('returns null when a search filter is empty/whitespace only', () => {
+    expect(buildMaplibreFilter([{ col: 'name', kind: 'search', q: '   ' }])).toBeNull();
   });
 
   it('skips IN filters with no values', () => {
     expect(buildMaplibreFilter([{ col: 'zone', kind: 'in', values: [] }])).toBeNull();
+  });
+});
+
+describe('buildMaplibreFilter — search (case-insensitive contains)', () => {
+  it('translates a search filter to downcase + in so the match isolates on the map', () => {
+    expect(
+      buildMaplibreFilter([{ col: 'KGISWardName', kind: 'search', q: 'Sanjaya Nagar' }]),
+    ).toEqual(['in', 'sanjaya nagar', ['downcase', ['to-string', ['get', 'KGISWardName']]]]);
+  });
+
+  it('composes a search filter with an IN filter under all', () => {
+    expect(
+      buildMaplibreFilter([
+        { col: 'zone', kind: 'in', values: ['East'] },
+        { col: 'KGISWardName', kind: 'search', q: 'Adyar' },
+      ]),
+    ).toEqual([
+      'all',
+      ['in', ['get', 'zone'], ['literal', ['East']]],
+      ['in', 'adyar', ['downcase', ['to-string', ['get', 'KGISWardName']]]],
+    ]);
   });
 });
 

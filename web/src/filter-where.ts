@@ -100,9 +100,13 @@ export function buildMaplibreFilter(filters: ActiveFilter[]): MaplibreFilter {
       else if (conds.length > 1) exprs.push(['all', ...conds]);
     } else if (f.kind === 'bool') {
       exprs.push(['==', ['get', f.col], f.v]);
+    } else if (f.kind === 'search') {
+      // Case-insensitive "contains", mirroring the SQL ILIKE '%q%'. MapLibre's
+      // `["in", needle, haystack]` does substring matching when haystack is a
+      // string; downcase both sides so the in-tile repaint isolates the match.
+      const q = f.q.trim().toLowerCase();
+      if (q) exprs.push(['in', q, ['downcase', ['to-string', ['get', f.col]]]]);
     }
-    // 'search' (ILIKE) is intentionally skipped — no equivalent in MapLibre
-    // tile filters. Caller falls back to the tier-2 ID-list path.
   }
   if (!exprs.length) return null;
   if (exprs.length === 1) return exprs[0];
