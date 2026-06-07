@@ -405,7 +405,17 @@ function applyActiveFilters(
       const features = m.queryRenderedFeatures(undefined, {
         layers: (['fill', 'point'] as string[]).filter((id) => m.getLayer(id)),
       });
-      if (!features.length) return;
+      // Nothing rendered while a filter is active means the in-tile filter
+      // matched no features — usually the filtered column isn't carried as a
+      // PMTiles property on this layer. Don't strand the user on a blank map:
+      // drop the map filter (the DuckDB count/export still reflect the filter).
+      if (!features.length) {
+        for (const id of DATA_LAYERS) {
+          if (!m.getLayer(id)) continue;
+          m.setFilter(id, id === 'point' ? POINT_GEOM_FILTER : null);
+        }
+        return;
+      }
       const bounds = new maplibregl.LngLatBounds();
       for (const f of features) {
         if (f.geometry.type === 'Point') {

@@ -25,6 +25,11 @@ export type LevelMeta = {
   label: string;
   unit?: string;
   description?: string;
+  /** SEO-tuned <title>/<h1>, overrides the short display `label` on the
+   * /view page only (home-page cards keep `label`). Used for ward layers. */
+  seo_title?: string;
+  /** SEO-tuned meta description, overrides `description` on the /view page. */
+  seo_description?: string;
 };
 
 export type ViewDataset = {
@@ -94,10 +99,11 @@ export function buildViewDataset(
   levelMeta: LevelMeta | undefined,
   origin: string,
 ): ViewDataset {
-  const title = levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
+  const title = levelMeta?.seo_title || levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
   const unit = levelMeta?.unit || 'features';
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
   const baseDescription =
+    levelMeta?.seo_description ??
     levelMeta?.description ??
     (layer.description || `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
   const description = baseDescription.slice(0, META_DESC_MAX);
@@ -157,7 +163,9 @@ export function buildViewContent(
   levelMeta: LevelMeta | undefined,
   origin: string,
 ): string {
-  const title = levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
+  // H1 uses the SEO title (keyword-aligned with the <title>); the body
+  // paragraph keeps the richer `description` (official corp name + zones).
+  const title = levelMeta?.seo_title || levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
   const unit = levelMeta?.unit || 'features';
   const desc = levelMeta?.description || layer.description || layer.notes || '';
