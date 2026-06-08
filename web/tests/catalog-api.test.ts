@@ -36,6 +36,7 @@ const SAMPLE_CATALOG: CatalogData = {
       kml: null, shapefile: null,
       licence: 'GODL-India', attribution: { primary: { name: 'data.gov.in', url: 'https://data.gov.in' } },
       category: 'environment', provenance: 'curated', notes: 'BIS seismic zones',
+      tags: ['hazard', 'earthquake', 'tremor'],
     },
   ],
   categories: {
@@ -91,6 +92,12 @@ describe('filterLayers', () => {
     expect(filterLayers(SAMPLE_CATALOG.layers, { q: 'seismic' })).toHaveLength(1);
     expect(filterLayers(SAMPLE_CATALOG.layers, { q: 'LGD' })).toHaveLength(1);
     expect(filterLayers(SAMPLE_CATALOG.layers, { q: 'State boundaries' })).toHaveLength(1);
+  });
+
+  it('text query matches per-layer tags (e.g. groundwater finds an aquifer layer)', () => {
+    // "earthquake"/"tremor" appear only in tags, not id/source/notes/category/level.
+    expect(filterLayers(SAMPLE_CATALOG.layers, { q: 'earthquake' })).toHaveLength(1);
+    expect(filterLayers(SAMPLE_CATALOG.layers, { q: 'tremor' })[0].id).toBe('seismic_zones');
   });
 
   it('combines multiple filters (AND)', () => {

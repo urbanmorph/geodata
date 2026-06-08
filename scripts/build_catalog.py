@@ -41,19 +41,21 @@ LEVELS = {
     'wildlife':               {'order': 30, 'plural': 'wildlife sanctuaries + national parks',  'path': 'environment/forests',         'category': 'environment'},
     'eco_zone':               {'order': 31, 'plural': 'eco-sensitive zones',                    'path': 'environment/forests',         'category': 'environment'},
     'forest':                 {'order': 32, 'plural': 'forest boundaries',                      'path': 'environment/forests',         'category': 'environment'},
-    'ramsar':                 {'order': 33, 'plural': 'ramsar wetlands',                        'path': 'water/wetlands',              'category': 'environment'},
-    'wetland':                {'order': 34, 'plural': 'wetland boundaries',                    'path': 'water/wetlands',              'category': 'environment'},
-    'river_basin':            {'order': 35, 'plural': 'river basins',                           'path': 'water/hydro-boundaries',      'category': 'environment'},
-    'river_subbasin':         {'order': 36, 'plural': 'river sub-basins',                       'path': 'water/hydro-boundaries',      'category': 'environment'},
-    'river':                  {'order': 37, 'plural': 'rivers + streams',                       'path': 'water/rivers',                'category': 'environment'},
-    'flood_event':            {'order': 38, 'plural': 'historical flood polygons',              'path': 'environment/flood-inventory', 'category': 'environment'},
+
+    # Water (surface water, wetlands, basins, floods, irrigation)
+    'ramsar':                 {'order': 33, 'plural': 'ramsar wetlands',                        'path': 'water/wetlands',              'category': 'water'},
+    'wetland':                {'order': 34, 'plural': 'wetland boundaries',                    'path': 'water/wetlands',              'category': 'water'},
+    'river_basin':            {'order': 35, 'plural': 'river basins',                           'path': 'water/hydro-boundaries',      'category': 'water'},
+    'river_subbasin':         {'order': 36, 'plural': 'river sub-basins',                       'path': 'water/hydro-boundaries',      'category': 'water'},
+    'river':                  {'order': 37, 'plural': 'rivers + streams',                       'path': 'water/rivers',                'category': 'water'},
+    'flood_event':            {'order': 38, 'plural': 'historical flood polygons',              'path': 'environment/flood-inventory', 'category': 'water'},
 
     # Disaster risk
     'seismic_zone':           {'order': 45, 'plural': 'seismic zones',                           'path': 'environment/seismic',         'category': 'environment'},
 
     # Water infrastructure
-    'dam':                    {'order': 46, 'plural': 'dams',                                    'path': 'water/irrigation',            'category': 'environment'},
-    'reservoir':              {'order': 47, 'plural': 'reservoirs',                               'path': 'water/waterbodies',           'category': 'environment'},
+    'dam':                    {'order': 46, 'plural': 'dams',                                    'path': 'water/irrigation',            'category': 'water'},
+    'reservoir':              {'order': 47, 'plural': 'reservoirs',                               'path': 'water/waterbodies',           'category': 'water'},
 
     # Transport
     'airport':                {'order': 48, 'plural': 'airports',                                 'path': 'transport/airports',          'category': 'transport'},
@@ -115,6 +117,14 @@ ATTR = {
     'GSI':           {'name': 'Geological Survey of India',   'url': 'https://gsi.gov.in/'},
     # Wave 3 — POIs / general-utility.
     'Overture':      {'name': 'Overture Maps Foundation',     'url': 'https://overturemaps.org/'},
+    # v3 — CoRE Stack republished layers. attribution.primary points at the
+    # original authority; CoRE Stack is credited in each layer's `notes`, the
+    # README and /about (same pattern as ramSeraph above).
+    'CGWB':          {'name': 'Central Ground Water Board',   'url': 'https://cgwb.gov.in/'},
+    'NBSS':          {'name': 'ICAR-NBSS&LUP',                'url': 'https://www.nbsslup.in/'},
+    'PlanningCommission': {'name': 'Planning Commission of India', 'url': 'https://niti.gov.in/'},
+    'WII':           {'name': 'Wildlife Institute of India',  'url': 'https://wii.gov.in/'},
+    'CoREStack':     {'name': 'CoRE Stack',                   'url': 'https://core-stack.org/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
@@ -142,6 +152,7 @@ CATEGORIES = {
     'city-wards': 'City wards',
     'people': 'People & places',
     'environment': 'Environment',
+    'water': 'Water',
     'agriculture': 'Agriculture & land use',
     'transport': 'Transport & mobility',
     'infrastructure': 'Infrastructure & utilities',
@@ -219,6 +230,7 @@ LAYERS = [
 EXTERNAL_MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 EXTERNAL_LEVEL_META: dict[str, dict] = {}  # level_id -> {label, unit, description, source_url, source_org}
 EXTERNAL_BYTES: dict[str, dict[str, int | None]] = {}  # layer_id -> {'parquet': bytes, 'pmtiles': bytes}
+EXTERNAL_TAGS: dict[str, list[str]] = {}  # layer_id -> search tags (optional, manifest-provided)
 
 if EXTERNAL_MANIFEST.exists():
     _external = json.loads(EXTERNAL_MANIFEST.read_text())
@@ -262,6 +274,8 @@ if EXTERNAL_MANIFEST.exists():
             'parquet': x.get('parquet_bytes'),
             'pmtiles': x.get('pmtiles_bytes'),
         }
+        if x.get('tags'):
+            EXTERNAL_TAGS[x['id']] = x['tags']
 
 # Reverse map: directory uses plural ("districts"), catalog uses singular ("district").
 # Computed once after LEVELS is finalised (including external-ingested additions).
@@ -506,6 +520,8 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
             layer[fmt] = prev[fmt]
     if not layer.get('fetched_at') and prev.get('fetched_at'):
         layer['fetched_at'] = prev['fetched_at']
+    if not layer.get('tags') and prev.get('tags'):
+        layer['tags'] = prev['tags']
 
 
 def carry_forward_unbuilt(layers: list[dict], prev_layers: dict[str, dict]) -> list[dict]:
@@ -591,6 +607,11 @@ def build():
             'fetched_at': fetched_at,
             'notes': notes,
         })
+        # Optional search tags from the external manifest (groundwater, canal,
+        # agro-ecological, etc.). prerender.mjs folds these into the card's
+        # search body haystack. Only emitted when present.
+        if EXTERNAL_TAGS.get(id_):
+            layers[-1]['tags'] = EXTERNAL_TAGS[id_]
         carry_forward_from_prev(layers[-1], prev_layers)
 
     # India national boundary (osm-in). The same India-correct line that

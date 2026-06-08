@@ -13,6 +13,7 @@ export interface CatalogLayer {
   category: string;
   provenance: string;
   notes?: string;
+  tags?: string[];
   fetched_at?: string | null;
 }
 
@@ -66,7 +67,8 @@ export function filterLayers(layers: CatalogLayer[], filter: LayerFilter): Catal
     if (filter.source && l.source !== filter.source) return false;
     if (filter.q) {
       const q = filter.q.toLowerCase();
-      const hay = `${l.id} ${l.source} ${l.notes || ''} ${l.category} ${l.level}`.toLowerCase();
+      const tags = (l.tags || []).join(' ');
+      const hay = `${l.id} ${l.source} ${l.notes || ''} ${l.category} ${l.level} ${tags}`.toLowerCase();
       if (!hay.includes(q)) return false;
     }
     return true;

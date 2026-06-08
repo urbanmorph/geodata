@@ -848,6 +848,36 @@
       "label": "Places \u2014 Overture Maps (Dec 2023)",
       "unit": "places",
       "description": "Pan-India points of interest from the Overture Maps Foundation December 2023 release. Names, categories, addresses, websites and confidence scores for restaurants, shops, ATMs, schools, transit, monuments and more."
+    },
+    "cgwb_aquifers": {
+      "label": "Aquifers (CGWB)",
+      "unit": "aquifer polygons",
+      "description": "Principal aquifer systems of India from the Central Ground Water Board, classified by rock type, age, yield and depth to water."
+    },
+    "cgwb_gw_extraction": {
+      "label": "Groundwater Extraction (CGWB)",
+      "unit": "assessment units",
+      "description": "Block and taluk-level stage of groundwater extraction from the Central Ground Water Board: Safe, Semi-Critical, Critical and Over-Exploited units with recharge and draft figures."
+    },
+    "wris_canals": {
+      "label": "Canals (WRIS)",
+      "unit": "canals",
+      "description": "Irrigation canal network across India from the Central Water Commission Water Resources Information System, with command area, project and canal-type attributes."
+    },
+    "agro_ecological_zones": {
+      "label": "Agro-Ecological Zones",
+      "unit": "regions",
+      "description": "India's 20 agro-ecological regions classified by ICAR-NBSS&LUP from physiography, soils, bioclimate and length of growing period."
+    },
+    "agro_climatic_zones": {
+      "label": "Agro-Climatic Zones",
+      "unit": "regions",
+      "description": "India's 15 agro-climatic zones defined by the Planning Commission for agricultural planning, with temperature, rainfall, soil and major-crop attributes."
+    },
+    "biogeographic_zones": {
+      "label": "Biogeographic Zones",
+      "unit": "provinces",
+      "description": "India's biogeographic classification (10 zones across 26 provinces) from the Wildlife Institute of India: Himalaya, Western Ghats, Deccan Peninsula, Desert, Gangetic Plain and more."
     }
   },
   "level_order": [
@@ -937,7 +967,13 @@
     "ndem_landslide_hazard",
     "ngdr_earthquakes",
     "ndem_cyclone_tracks",
-    "overture_places_india"
+    "overture_places_india",
+    "cgwb_aquifers",
+    "cgwb_gw_extraction",
+    "wris_canals",
+    "agro_ecological_zones",
+    "agro_climatic_zones",
+    "biogeographic_zones"
   ],
   "layers": [
     {
@@ -1833,7 +1869,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:04:20.351555+00:00",
       "notes": "India's Ramsar Convention wetland sites of international importance, sourced via Bharatmaps Parivesh."
@@ -1867,7 +1903,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:06:28.606557+00:00",
       "notes": "All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh."
@@ -1910,7 +1946,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:08:20.595360+00:00",
       "notes": "India's major river basin polygons from the Central Water Commission Water Resources Information System (WRIS)."
@@ -1953,7 +1989,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:08:29.132672+00:00",
       "notes": "River sub-basin polygons (one tier under basins) from CWC WRIS."
@@ -1987,7 +2023,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:09:37.777020+00:00",
       "notes": "India's river network from CWC WRIS \u2014 line geometry for streams and rivers."
@@ -2070,7 +2106,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Dam point locations across India from Bharatmaps."
@@ -2113,7 +2149,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Dam point locations from CWC WRIS. Compare with Bharatmaps dams for cross-source coverage."
@@ -2156,7 +2192,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": null,
       "notes": "Reservoir polygons from CWC WRIS. Complements the river basin and river network layers."
@@ -3691,7 +3727,7 @@
           "url": "https://github.com/yashveeeeeeer/india-geodata"
         }
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:04:19.168604+00:00",
       "notes": "1,006 historical flood event polygons across India, 1960s-2020. Compiled for hydrological modelling research; useful as a climate-adaptation reference layer."
@@ -3955,7 +3991,7 @@
         },
         "publisher": null
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS watersheds layer.",
       "geojson": null,
@@ -3986,7 +4022,7 @@
         },
         "publisher": null
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS river polygons layer.",
       "geojson": null,
@@ -4444,7 +4480,7 @@
         },
         "publisher": null
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS lakes layer.",
       "geojson": {
@@ -4484,7 +4520,7 @@
         },
         "publisher": null
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from NDEM all-India flood inundation 1998-2022.",
       "geojson": {
@@ -4684,7 +4720,7 @@
         },
         "publisher": null
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS waterbodies layer.",
       "geojson": null,
@@ -4715,7 +4751,7 @@
         },
         "publisher": null
       },
-      "category": "environment",
+      "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries.",
       "geojson": null,
@@ -4817,6 +4853,305 @@
       "submission_id": "nL7zNStsW3",
       "is_original": false,
       "fetched_at": "2026-05-25T11:30:45.719Z"
+    },
+    {
+      "id": "cgwb_aquifers",
+      "level": "cgwb_aquifers",
+      "source": "CGWB",
+      "rows": 518,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Aquifers.parquet",
+        "bytes": 28324146,
+        "upstream_url": "https://drive.google.com/file/d/10jFqXmhDtHtb1j3lLtQivMPSWi6bX_ve/view"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Aquifers.pmtiles",
+        "bytes": 7615352,
+        "upstream_url": "https://drive.google.com/file/d/10jFqXmhDtHtb1j3lLtQivMPSWi6bX_ve/view"
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Aquifers.geojson",
+        "bytes": 105973742
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Aquifers.kml",
+        "bytes": 95552208
+      },
+      "shapefile": null,
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Central Ground Water Board",
+          "url": "https://cgwb.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "fetched_at": "2026-06-08",
+      "notes": "Principal aquifer mapping from the Central Ground Water Board. Sourced via CoRE Stack (core-stack.org).",
+      "tags": [
+        "groundwater",
+        "aquifer",
+        "hydrogeology",
+        "water table",
+        "borewell",
+        "principal aquifer",
+        "yield",
+        "CGWB"
+      ]
+    },
+    {
+      "id": "cgwb_gw_extraction",
+      "level": "cgwb_gw_extraction",
+      "source": "CGWB",
+      "rows": 7274,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Groundwater_Extraction.parquet",
+        "bytes": 68510484,
+        "upstream_url": "https://drive.google.com/file/d/1DGdHOojdBqTO65YjPbcUW_cpotlTGFm9/view"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Groundwater_Extraction.pmtiles",
+        "bytes": 28786536,
+        "upstream_url": "https://drive.google.com/file/d/1DGdHOojdBqTO65YjPbcUW_cpotlTGFm9/view"
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Groundwater_Extraction.geojson",
+        "bytes": 271141567
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Groundwater_Extraction.kml",
+        "bytes": 244549580
+      },
+      "shapefile": null,
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Central Ground Water Board",
+          "url": "https://cgwb.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "fetched_at": "2026-06-08",
+      "notes": "CGWB dynamic groundwater resource assessment (stage of extraction). Sourced via CoRE Stack (core-stack.org).",
+      "tags": [
+        "groundwater",
+        "over-exploited",
+        "critical",
+        "semi-critical",
+        "dark zone",
+        "water table",
+        "recharge",
+        "extraction",
+        "SOGE",
+        "block assessment",
+        "CGWB"
+      ]
+    },
+    {
+      "id": "wris_canals",
+      "level": "wris_canals",
+      "source": "CWC",
+      "rows": 5205,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/canals/WRIS_Canals.parquet",
+        "bytes": 18049171,
+        "upstream_url": "https://drive.google.com/file/d/1c7A7_0EzkOzAAWL8evTdVSmQqzHwU-In/view"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/canals/WRIS_Canals.pmtiles",
+        "bytes": 5721432,
+        "upstream_url": "https://drive.google.com/file/d/1c7A7_0EzkOzAAWL8evTdVSmQqzHwU-In/view"
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/canals/WRIS_Canals.geojson",
+        "bytes": 49542252
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/canals/WRIS_Canals.kml",
+        "bytes": 46875302
+      },
+      "shapefile": null,
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Central Water Commission (WRIS)",
+          "url": "https://indiawris.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "fetched_at": "2026-06-08",
+      "notes": "Canal network from CWC WRIS. Sourced via CoRE Stack (core-stack.org).",
+      "tags": [
+        "canal",
+        "irrigation",
+        "command area",
+        "distributary",
+        "water infrastructure",
+        "CCA",
+        "WRIS"
+      ]
+    },
+    {
+      "id": "agro_ecological_zones",
+      "level": "agro_ecological_zones",
+      "source": "NBSS",
+      "rows": 20,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-ecological-zones/Agro_Ecological_Zones.parquet",
+        "bytes": 3873774,
+        "upstream_url": "https://drive.google.com/drive/folders/1URv9Zmo9-X4Zd4Apf9GlzCqYw78_J9jd"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-ecological-zones/Agro_Ecological_Zones.pmtiles",
+        "bytes": 1751159,
+        "upstream_url": "https://drive.google.com/drive/folders/1URv9Zmo9-X4Zd4Apf9GlzCqYw78_J9jd"
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-ecological-zones/Agro_Ecological_Zones.geojson",
+        "bytes": 13751148
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-ecological-zones/Agro_Ecological_Zones.kml",
+        "bytes": 10690462
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-ecological-zones/Agro_Ecological_Zones.shp.zip",
+        "bytes": 3581123
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "ICAR-NBSS&LUP",
+          "url": "https://www.nbsslup.in/"
+        },
+        "publisher": null
+      },
+      "category": "agriculture",
+      "provenance": "curated",
+      "fetched_at": "2026-06-08",
+      "notes": "Agro-ecological regions per ICAR-NBSS&LUP. Sourced via CoRE Stack (core-stack.org).",
+      "tags": [
+        "agro-ecological",
+        "AEZ",
+        "agroecology",
+        "soil",
+        "bioclimate",
+        "cropping zone",
+        "growing period",
+        "land use planning",
+        "NBSS",
+        "ICAR"
+      ]
+    },
+    {
+      "id": "agro_climatic_zones",
+      "level": "agro_climatic_zones",
+      "source": "PlanningCommission",
+      "rows": 15,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-climatic-zones/Agro_Climatic_Zones.parquet",
+        "bytes": 4227967,
+        "upstream_url": "https://drive.google.com/drive/folders/1_aCnajTQ02tXAZ6yhe38fn2loStczmcl"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-climatic-zones/Agro_Climatic_Zones.pmtiles",
+        "bytes": 1411572,
+        "upstream_url": "https://drive.google.com/drive/folders/1_aCnajTQ02tXAZ6yhe38fn2loStczmcl"
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-climatic-zones/Agro_Climatic_Zones.geojson",
+        "bytes": 14776105
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-climatic-zones/Agro_Climatic_Zones.kml",
+        "bytes": 11483548
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-climatic-zones/Agro_Climatic_Zones.shp.zip",
+        "bytes": 3865905
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Planning Commission of India",
+          "url": "https://niti.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "agriculture",
+      "provenance": "curated",
+      "fetched_at": "2026-06-08",
+      "notes": "Agro-climatic regional planning zones per the Planning Commission of India. Sourced via CoRE Stack (core-stack.org).",
+      "tags": [
+        "agro-climatic",
+        "ACZ",
+        "agriculture",
+        "rainfall",
+        "temperature",
+        "soil",
+        "cropping",
+        "farming zone",
+        "crop planning",
+        "planning commission"
+      ]
+    },
+    {
+      "id": "biogeographic_zones",
+      "level": "biogeographic_zones",
+      "source": "WII",
+      "rows": 26,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/biogeographic/Biogeographic_Zones.parquet",
+        "bytes": 4002631,
+        "upstream_url": "https://drive.google.com/file/d/1JSh2h2wHnOpWH8tZj61MXomwwURvvSwC/view"
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/biogeographic/Biogeographic_Zones.pmtiles",
+        "bytes": 1212765,
+        "upstream_url": "https://drive.google.com/file/d/1JSh2h2wHnOpWH8tZj61MXomwwURvvSwC/view"
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/biogeographic/Biogeographic_Zones.geojson",
+        "bytes": 13330705
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/biogeographic/Biogeographic_Zones.kml",
+        "bytes": 10355735
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/biogeographic/Biogeographic_Zones.shp.zip",
+        "bytes": 3664341
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Wildlife Institute of India",
+          "url": "https://wii.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "fetched_at": "2026-06-08",
+      "notes": "Biogeographic zones and provinces per the Wildlife Institute of India (Rodgers, Panwar & Mathur). Sourced via CoRE Stack (core-stack.org).",
+      "tags": [
+        "biogeographic",
+        "biogeography",
+        "ecology",
+        "biotic province",
+        "Western Ghats",
+        "Deccan",
+        "Himalaya",
+        "ecoregion",
+        "conservation",
+        "WII"
+      ]
     }
   ],
   "state_extracts": [],
@@ -4825,6 +5160,7 @@
     "city-wards": "City wards",
     "people": "People & places",
     "environment": "Environment",
+    "water": "Water",
     "agriculture": "Agriculture & land use",
     "transport": "Transport & mobility",
     "infrastructure": "Infrastructure & utilities",
@@ -7243,6 +7579,26 @@
     "_publisher": {
       "name": "yashveeeeeeer/india-geodata",
       "url": "https://github.com/yashveeeeeeer/india-geodata"
+    },
+    "CGWB": {
+      "name": "Central Ground Water Board",
+      "url": "https://cgwb.gov.in/"
+    },
+    "NBSS": {
+      "name": "ICAR-NBSS&LUP",
+      "url": "https://www.nbsslup.in/"
+    },
+    "PlanningCommission": {
+      "name": "Planning Commission of India",
+      "url": "https://niti.gov.in/"
+    },
+    "WII": {
+      "name": "Wildlife Institute of India",
+      "url": "https://wii.gov.in/"
+    },
+    "CoREStack": {
+      "name": "CoRE Stack",
+      "url": "https://core-stack.org/"
     }
   },
   "licence_summary": {

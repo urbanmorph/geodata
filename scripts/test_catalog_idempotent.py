@@ -68,6 +68,22 @@ class TestCarryForward:
         carry_forward_from_prev(layer, {prev['id']: prev})
         assert layer['fetched_at'] == '2026-05-01T00:00:00+00:00'
 
+    def test_preserves_tags(self):
+        """Per-layer search tags survive a rebuild even when the freshly-built
+        layer dict omits them (e.g. patched directly into catalog.json)."""
+        from build_catalog import carry_forward_from_prev
+        prev = make_prev_layer(tags=['groundwater', 'aquifer', 'water table'])
+        layer = {'id': 'lgd_states', 'parquet': {'url': 'x', 'bytes': None}, 'pmtiles': None, 'geojson': None, 'kml': None, 'shapefile': None, 'fetched_at': None}
+        carry_forward_from_prev(layer, {prev['id']: prev})
+        assert layer['tags'] == ['groundwater', 'aquifer', 'water table']
+
+    def test_does_not_clobber_existing_tags(self):
+        from build_catalog import carry_forward_from_prev
+        prev = make_prev_layer(tags=['old'])
+        layer = {'id': 'lgd_states', 'parquet': {'url': 'x', 'bytes': None}, 'pmtiles': None, 'geojson': None, 'kml': None, 'shapefile': None, 'fetched_at': None, 'tags': ['new']}
+        carry_forward_from_prev(layer, {prev['id']: prev})
+        assert layer['tags'] == ['new']
+
     def test_preserves_parquet_upstream_url(self):
         """ramSeraph-republished layers carry an upstream_url pointing at a
         ramSeraph release. A rebuild would otherwise template upstream_url to
