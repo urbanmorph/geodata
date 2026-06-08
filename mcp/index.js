@@ -10,7 +10,7 @@ import https from "node:https";
 
 const API = process.env.BHARATLAS_API || "https://bharatlas.com/api/v1";
 
-const SERVER_INSTRUCTIONS = `bharatlas MCP server. India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, floods, seismic zones) plus community submissions.
+const SERVER_INSTRUCTIONS = `bharatlas MCP server. India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, rivers, canals, groundwater, agro-climatic zones, floods, seismic zones) plus community submissions.
 
 Workflow patterns:
 
@@ -42,8 +42,10 @@ Cross-layer queries (combining data from different layers):
 - Never assume one layer is enough. Think about what layers need to be combined to answer the question fully.
 - Use locate as the bridge: find what's at a point across ALL relevant layers in one call by passing multiple layer IDs.
 - **Map user concepts to multiple layers.** Users say "water bodies" not "wris_rivers." Translate:
-  - "water bodies/water" → wris_rivers, wris_reservoirs, bp_wetlands, bp_ramsar, wris_basin, wris_subbasin
-  - "forests/green cover" → soi_forests, gs_wildlife, bm_eco_zones
+  - "water bodies/water" → wris_rivers, wris_reservoirs, bp_wetlands, bp_ramsar, wris_basin, wris_subbasin, wris_canals
+  - "groundwater/aquifer/water table" → cgwb_aquifers, cgwb_gw_extraction
+  - "forests/green cover/ecology" → soi_forests, gs_wildlife, bm_eco_zones, biogeographic_zones
+  - "agriculture/farming/cropping zones" → agro_ecological_zones, agro_climatic_zones
   - "hazards/risks" → seismic_zones, india_flood_inventory
   - "health/medical" → nic_health
   - "boundaries/admin" → lgd_states, lgd_districts, lgd_subdistricts, lgd_blocks, lgd_villages
@@ -62,14 +64,14 @@ const TOOLS = [
     description:
       "List available geo layers. Use to discover what data bharatlas has. " +
       "Returns layer IDs, names, row counts, categories, and download formats. " +
-      "Filter by category (boundaries, city-wards, environment, transport, etc.), " +
+      "Filter by category (boundaries, city-wards, environment, water, agriculture, transport, etc.), " +
       "admin level (state, district, block, village, etc.), source, or text search.",
     inputSchema: {
       type: "object",
       properties: {
         category: {
           type: "string",
-          description: "Filter by category: boundaries, city-wards, people, environment, transport, infrastructure, health-edu",
+          description: "Filter by category: boundaries, city-wards, people, environment, water, agriculture, transport, infrastructure, health-edu",
         },
         level: {
           type: "string",

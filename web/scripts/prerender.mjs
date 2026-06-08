@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { renderCommunityActions } from './community-card.mjs';
+import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '..');
@@ -321,52 +322,10 @@ const CATEGORY_ORDER = [
   'transport', 'infrastructure', 'culture', 'health-edu', 'other',
 ];
 
-// Search-index alias dictionary. If any KEY (case-insensitive) appears in a
-// card's text, the EXPANSIONS get appended to its haystack. Lets users find
-// PMGSY by typing "rural roads", LGD by typing the long name, etc.
-// Keep tight — these add bytes to every page. No fuzzy / NLP, just synonyms.
-const SEARCH_ALIASES = {
-  'PMGSY':       ['Pradhan Mantri Gram Sadak Yojana', 'rural roads'],
-  'LGD':         ['Local Government Directory'],
-  'SOI':         ['Survey of India'],
-  'NRSC':        ['ISRO Bhuvan', 'national remote sensing centre'],
-  'MoRTH':       ['Ministry of Road Transport Highways', 'NHAI', 'highways'],
-  'MoEFCC':      ['Ministry of Environment Forest Climate Change'],
-  'ESZ':         ['eco sensitive zone'],
-  'CRZ':         ['coastal regulation zone'],
-  // pincode + wildlife aliases moved below (merged with court/ward block)
-  'parliament':  ['lok sabha', 'PC', 'constituency', 'election', 'vote', 'MP'],
-  'assembly':    ['vidhan sabha', 'AC', 'MLA', 'election', 'vote'],
-  'ward':        ['municipality', 'corporation', 'municipal', 'city', 'urban'],
-  'pincode':     ['pin code', 'postal code', 'zip', 'post office'],
-  'wildlife':    ['national park', 'sanctuary', 'reserve forest', 'protected area'],
-  'eco':         ['protected area', 'environment', 'pollution'],
-  'country':     ['India outline', 'national boundary', 'India map'],
-  'GatiShakti':  ['PM GatiShakti'],
-  'Bharatmaps':  ['NIC', 'national informatics centre'],
-  'CC0':         ['public domain'],
-  'CC-BY':       ['attribution'],
-  'ODbL':        ['open database license'],
-  'district':    ['district court', 'district courts', 'sessions court', 'magistrate court', 'consumer forum', 'consumer commission', 'courts'],
-  'subdistrict': ['tehsil court', 'tehsil courts', 'revenue court', 'taluk court', 'courts'],
-  'state':       ['state consumer commission', 'courts'],
-  'high_court':  ['high court', 'high courts', 'HC', 'appellate court'],
-  'NGT':         ['national green tribunal', 'environment tribunal', 'green court', 'courts'],
-  'NCLT':        ['national company law tribunal', 'company court', 'courts', 'insolvency', 'IBC'],
-  'parquet':     ['arrow', 'columnar'],
-  'pmtiles':     ['vector tiles', 'maplibre'],
-  'geojson':     ['gis', 'qgis'],
-  'kml':         ['google earth'],
-};
-
-function expandAliases(text) {
-  const lower = text.toLowerCase();
-  const hits = [];
-  for (const [key, expansions] of Object.entries(SEARCH_ALIASES)) {
-    if (lower.includes(key.toLowerCase())) hits.push(...expansions);
-  }
-  return hits.length ? text + ' ' + hits.join(' ') : text;
-}
+// Search-index alias dictionary + haystack builders live in
+// ../src/search-aliases.mjs so they have a red-green unit test
+// (web/tests/search-aliases.test.ts) and can fold per-layer `tags` into the
+// body. expandAliases / buildBodyHaystack are imported at the top.
 
 // Available download formats as a space-joined haystack token list.
 // Reflects what the catalog card actually advertises so search ("kml",
@@ -505,20 +464,20 @@ function renderRow(level, layersForLevel, opts = {}) {
   // Districts / Sub-districts / Blocks whose descriptions explain how they
   // join to villages. See src/catalog-filter.ts for the matcher.
   const primaryHaystack = expandAliases([meta.label, level].join(' ')).toLowerCase();
-  const bodyHaystack = expandAliases(
-    [
-      meta.description,
-      primary.attribution?.primary?.name || '',
-      primary.notes || '',
-      primary.source || '',
-      primary.licence || '',
-      primary.category || '',
-      formatTokens(primary),
-      // Source codes from alt layers — so a card surfaces when searching
-      // for any of its providers (e.g. "Bhuvan" on the States row).
-      layersForLevel.map((l) => l.source).join(' '),
-    ].join(' '),
-  ).toLowerCase();
+  const bodyHaystack = buildBodyHaystack({
+    description: meta.description,
+    attributionName: primary.attribution?.primary?.name || '',
+    notes: primary.notes || '',
+    source: primary.source || '',
+    licence: primary.licence || '',
+    category: primary.category || '',
+    formats: formatTokens(primary),
+    // Source codes from alt layers — so a card surfaces when searching
+    // for any of its providers (e.g. "Bhuvan" on the States row).
+    altSources: layersForLevel.map((l) => l.source).join(' '),
+    // Per-layer search tags (groundwater, over-exploited, agro-ecological…).
+    tags: primary.tags,
+  });
 
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
@@ -974,7 +933,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'What data sources does bharatlas use?',
-    a: 'Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC) and data.gov.in. Community submissions credit their own source on every card.',
+    a: 'Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC) and data.gov.in. Water, groundwater and agro-zone layers are republished via CoRE Stack (core-stack.org). Community submissions credit their own source on every card.',
   },
   {
     q: 'What licences apply?',

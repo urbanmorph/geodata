@@ -149,6 +149,7 @@ Data sources, in approximate order of catalog footprint:
 - [DataMeet](https://github.com/datameet/Municipal_Spatial_Data) — community-curated municipal spatial data (ward boundaries for multiple cities).
 - [datta07/INDIAN-SHAPEFILES](https://github.com/datta07/INDIAN-SHAPEFILES) — metropolitan city ward shapefiles.
 - [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps) — selectively republished layers (WRIS waterbodies, SLUSI watersheds + soil, VEDAS power infrastructure, PMGSY roads + habitations).
+- [CoRE Stack](https://core-stack.org/): republished water and agriculture layers, namely CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, and Wildlife Institute of India biogeographic zones.
 - [PMGSY](https://omms.nic.in/) — Pradhan Mantri Gram Sadak Yojana; rural blocks + roads.
 - [PM GatiShakti](https://gis.pmgatishakti.gov.in/) — wildlife sanctuaries + national parks.
 - [Bharatmaps](https://bharatmaps.gov.in/) (NIC) — eco-sensitive zones.
