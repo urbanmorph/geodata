@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/bharatlas-mcp)](https://www.npmjs.com/package/bharatlas-mcp)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 
-Ask questions about India's geo data in natural language. This MCP server connects any LLM to bharatlas: open-licensed layers covering admin boundaries (state to village), city wards, forests, wildlife sanctuaries, rivers, reservoirs, dams, eco-sensitive zones, seismic zones, flood history, highways, airports, health facilities, pincodes, electoral constituencies, and community submissions.
+Ask questions about India's geo data in natural language. This MCP server connects any LLM to bharatlas: open-licensed layers covering admin boundaries (state to village), city wards, forests, wildlife sanctuaries, rivers, canals, reservoirs, dams, groundwater (aquifers, extraction), eco-sensitive zones, agro-climatic and biogeographic zones, seismic zones, flood history, highways, airports, health facilities, pincodes, electoral constituencies, and community submissions.
 
 ## Install
 
@@ -68,7 +68,7 @@ Thin wrapper over the [bharatlas REST API](https://bharatlas.com/docs). Each too
 The server sends instructions to the LLM at connection time that teach:
 - **Schema-first pattern**: check column names and sample values before querying (column names vary: `state` vs `State_LGD` vs `stname`)
 - **Source preference**: LGD for admin boundaries, with SOI/Bhuvan/geoBoundaries as alternates
-- **Concept-to-layer mapping**: "water bodies" = rivers + reservoirs + wetlands + ramsar sites + dams
+- **Concept-to-layer mapping**: "water bodies" = rivers + canals + reservoirs + wetlands + ramsar sites + dams; "groundwater" = aquifers + extraction stage
 - **Spatial join workflow**: locate for context, query for data, nearby for proximity
 
 ## Links
