@@ -327,7 +327,7 @@
         transition: background 140ms ease;
         white-space: nowrap;
       }
-      .btn-primary:hover { background: var(--accent); color: #fff; text-decoration: none; }
+      .btn-primary:hover { background: var(--accent-fill); color: #fff; text-decoration: none; }
       .btn-primary.disabled { background: transparent; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
 
       .dl-inline { display: inline-flex; gap: 16px; align-items: center; font-size: 13px; color: var(--muted); }
@@ -352,6 +352,7 @@
         line-height: 1.5;
       }
       .row__viewer-hint strong { color: var(--fg); font-weight: 500; }
+      .row__source a, .row__downloads a { text-decoration: none; }
 
       details.alt { margin-top: 10px; font-size: 12px; }
       details.alt > summary {
@@ -372,7 +373,7 @@
       .alt__row .links a { color: var(--fg); }
       .alt__row .links .dot { color: var(--line); margin: 0 4px; }
       .alt__row--primary { padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
-      .alt__row .tag { font-size: 12px; padding: 1px 6px; background: var(--accent); color: #fff; border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
+      .alt__row .tag { font-size: 12px; padding: 1px 6px; background: var(--accent-fill); color: #fff; border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
 
       footer { margin-top: 56px; color: var(--muted); font-size: 12px; line-height: 1.7; }
       footer p { margin: 6px 0; }
@@ -527,7 +528,7 @@
         border-color: var(--fg);
       }
       .filter-panel__btn--primary .muted { color: color-mix(in srgb, var(--bg) 70%, var(--fg)); }
-      .filter-panel__btn--primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: #fff; }
+      .filter-panel__btn--primary:hover:not(:disabled) { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
       .filter-panel__btn--primary:hover:not(:disabled) .muted { color: rgba(255,255,255,0.7); }
       .filter-panel__btn:disabled { background: transparent; color: var(--muted); border-color: var(--line); cursor: not-allowed; opacity: .55; }
       .filter-panel__hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
@@ -589,7 +590,7 @@
       .filter-typeahead__item {
         padding: 6px 11px; cursor: pointer; font-size: 13px; color: var(--fg);
       }
-      .filter-typeahead__item:hover { background: var(--accent); color: #fff; }
+      .filter-typeahead__item:hover { background: var(--accent-fill); color: #fff; }
       .filter-typeahead__clear {
         position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
         background: none; border: none; color: var(--muted); cursor: pointer;
@@ -759,7 +760,7 @@
   </head>
   <body>
     <!-- NAV -->
-    <main>
+    <main id="main">
     <header class="hero">
       <h1 class="hero__title">Find a map. Or share one.</h1>
       <p class="hero__sub">

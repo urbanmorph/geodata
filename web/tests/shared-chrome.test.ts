@@ -9,8 +9,11 @@ describe('TOKENS', () => {
     expect(TOKENS).toContain('--fs-display: 36px');
   });
 
-  it('uses the mdshare-aligned indigo accent in both modes', () => {
-    expect(TOKENS).toContain('--accent: #6366f1');
+  it('uses a WCAG-AA indigo accent in both modes', () => {
+    // Light accent darkened #6366f1 -> #4f46e5 so link/button text clears 4.5:1
+    // (diverges from mdshare's #6366f1; see contrast.test.ts for the proof).
+    // Dark accent #818cf8 already passes as text on #0a0a0a.
+    expect(TOKENS).toContain('--accent: #4f46e5');
     expect(TOKENS).toContain('--accent: #818cf8'); // dark-mode variant
   });
 
