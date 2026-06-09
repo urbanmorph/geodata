@@ -13,64 +13,45 @@ A visual catalog, REST API, MCP server, drag-drop verifier, and anonymous contri
 
 [![bharatlas — India's open atlas](https://bharatlas.com/og-default.png)](https://bharatlas.com)
 
-```
-catalog               → India national boundary (LGD-dissolved)
-                        + state · district · subdistrict · block · village (LGD)
-                        + cross-source alternates (SOI · Bhuvan · geoBoundaries
-                        · PMGSY per level — click "also: ..." on any card)
-                        + city wards across Indian cities
-                        + electoral constituencies, wildlife, eco-zones
-                        + 63k pincode polygons (bharatviz)
-download              → whole layer as Parquet · PMTiles · GeoJSON · KML ·
-                        Shapefile, direct from the card
-filter & slice        → dynamic facets / range / typeahead search per
-                        layer schema; export the slice in any format above
-preview               → drop GeoJSON · KML · KMZ · GPX · TCX · Parquet →
-                        render + validate → optional Publish
-view (/view/<id>)     → curated layer with per-layer OG card
-view (/c/<id>)        → community submission, edge-rendered HTML, 👍 useful
-                        vote, per-submission OG card
-embed                 → /embed/<id> iframe + PNG export from any map
-API (/api/v1)         → REST API: list, query, filter, group_by any layer;
-                        locate (point-in-polygon across all layers);
-                        nearby (tile-based spatial proximity)
-MCP (npx bharatlas-mcp) → 8 tools for LLMs: list, schema, query, locate,
-                        nearby, categories, submissions, downloads
-```
+- **Catalog**: India national boundary (LGD-dissolved), plus state · district · subdistrict · block · village (LGD), cross-source alternates (SOI · Bhuvan · geoBoundaries · PMGSY per level, click "also: ..." on any card), city wards across Indian cities, electoral constituencies, wildlife, eco-zones, and 63k pincode polygons (bharatviz).
+- **Download**: whole layer as Parquet · PMTiles · GeoJSON · KML · Shapefile, direct from the card.
+- **Filter & slice**: dynamic facets / range / typeahead search per layer schema; export the slice in any format above.
+- **Preview**: drop GeoJSON · KML · KMZ · GPX · TCX · Parquet, render + validate, optional Publish.
+- **View** (`/view/<id>`): curated layer with per-layer OG card.
+- **Community view** (`/c/<id>`): community submission, edge-rendered HTML, 👍 useful vote, per-submission OG card.
+- **Embed** (`/embed/<id>`): iframe + PNG export from any map.
+- **API** (`/api/v1`): REST list, query, filter, group_by any layer; locate (point-in-polygon across all layers); nearby (tile-based spatial proximity).
+- **MCP** (`npx bharatlas-mcp`): 8 tools for LLMs: list, schema, query, locate, nearby, categories, submissions, downloads.
 
 ## What's in this repo
 
-| Path | Contents |
-|---|---|
-| `web/` | Vanilla TypeScript + Vite viewer + Cloudflare Pages Functions (`web/functions/`). |
-| `web/migrations/` | D1 SQL migrations: submissions, tokens, ratings, votes, originals. |
-| `web/tests/` | vitest unit tests for pure functions (validators, tokens, view rendering, votes). |
-| `scripts/fetch.sh` | Pulls parquets + PMTiles from [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) releases. |
-| `scripts/extract_per_state.py` | Slices pan-India parquets into per-state GeoJSON via DuckDB-spatial. |
-| `scripts/bake_whole_layer.py` | Bakes whole-layer GeoJSON / KML / Shapefile per curated layer (parquet ≤ 100 MB). |
-| `scripts/upload_r2.sh` | Mirrors `sources/` + `data/` to Cloudflare R2 via wrangler. |
-| `scripts/upload_baked.py` | Pushes `data/baked/*` to R2 via boto3 (S3-compat fallback when wrangler is unavailable). |
-| `scripts/admin/cleanup_submission.sh` | Delete community submissions by name pattern (R2 + D1). |
-| `mcp/` | MCP server for LLMs ([npm](https://www.npmjs.com/package/bharatlas-mcp)). 8 tools: list, schema, query, locate, nearby, categories, submissions, downloads. |
-| `catalog.json` | Curated-layer index used by the viewer. Single source of truth. |
-| [/about#caveats](https://bharatlas.com/about#caveats) | Data caveats (cross-source drift, coverage gaps, precision). |
+- **`web/`**: Vanilla TypeScript + Vite viewer + Cloudflare Pages Functions (`web/functions/`).
+- **`web/migrations/`**: D1 SQL migrations: submissions, tokens, ratings, votes, originals.
+- **`web/tests/`**: vitest unit tests for pure functions (validators, tokens, view rendering, votes).
+- **`scripts/fetch.sh`**: Pulls parquets + PMTiles from [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) releases.
+- **`scripts/extract_per_state.py`**: Slices pan-India parquets into per-state GeoJSON via DuckDB-spatial.
+- **`scripts/bake_whole_layer.py`**: Bakes whole-layer GeoJSON / KML / Shapefile per curated layer (parquet ≤ 100 MB).
+- **`scripts/upload_r2.sh`**: Mirrors `sources/` + `data/` to Cloudflare R2 via wrangler.
+- **`scripts/upload_baked.py`**: Pushes `data/baked/*` to R2 via boto3 (S3-compat fallback when wrangler is unavailable).
+- **`scripts/admin/cleanup_submission.sh`**: Delete community submissions by name pattern (R2 + D1).
+- **`mcp/`**: MCP server for LLMs ([npm](https://www.npmjs.com/package/bharatlas-mcp)). 8 tools: list, schema, query, locate, nearby, categories, submissions, downloads.
+- **`catalog.json`**: Curated-layer index used by the viewer. Single source of truth.
+- **[/about#caveats](https://bharatlas.com/about#caveats)**: Data caveats (cross-source drift, coverage gaps, precision).
 
 Large data files (`sources/`, `data/`) are not in git — they live in R2. See `scripts/fetch.sh` to rebuild locally.
 
 ## Stack
 
-| Layer | Tech |
-|---|---|
-| Frontend | Vanilla TypeScript, Vite, MapLibre GL JS, PMTiles, DuckDB-WASM (lazy) |
-| Static hosting | Cloudflare Pages |
-| Edge functions | Cloudflare Pages Functions (`web/functions/`) — REST API v1, submit, vote, sitemap, edge-rendered `/c/<id>` |
-| Parquet query | [hyparquet](https://github.com/hyparam/hyparquet) (pure JS, runtime reads from R2) |
-| Spatial query | PMTiles tile reads + MVT decode + ray-casting PIP / Haversine proximity |
-| MCP server | [`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp) — 8 tools for Claude, GPT, Gemini, Cursor, etc. |
-| Storage | Cloudflare R2 (open data, no egress) |
-| Submissions DB | Cloudflare D1 (SQLite at the edge) |
-| Anti-abuse | Cloudflare Turnstile + per-IP rate limits |
-| CI/CD | GitHub Actions — tests + build + auto-deploy on push to `main` |
+- **Frontend**: Vanilla TypeScript, Vite, MapLibre GL JS, PMTiles, DuckDB-WASM (lazy)
+- **Static hosting**: Cloudflare Pages
+- **Edge functions**: Cloudflare Pages Functions (`web/functions/`), running REST API v1, submit, vote, sitemap, edge-rendered `/c/<id>`
+- **Parquet query**: [hyparquet](https://github.com/hyparam/hyparquet) (pure JS, runtime reads from R2)
+- **Spatial query**: PMTiles tile reads + MVT decode + ray-casting PIP / Haversine proximity
+- **MCP server**: [`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp), 8 tools for Claude, GPT, Gemini, Cursor, etc.
+- **Storage**: Cloudflare R2 (open data, no egress)
+- **Submissions DB**: Cloudflare D1 (SQLite at the edge)
+- **Anti-abuse**: Cloudflare Turnstile + per-IP rate limits
+- **CI/CD**: GitHub Actions, running tests + build + auto-deploy on push to `main`
 
 ## Develop
 
