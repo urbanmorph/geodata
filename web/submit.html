@@ -32,8 +32,8 @@
     --bg: #ffffff; --bg-elevated: #fafafa; --bg-card: #f5f5f5;
     --fg: #0a0a0a; --muted: #6b7280; --muted-strong: #374151;
     --subtle: #9ca3af; --line: #e5e7eb; --line-bright: #d1d5db;
-    --accent: #6366f1; --accent-strong: #4f46e5;
-    --accent-fill: #6366f1; --accent-fill-hover: #4f46e5;
+    --accent: #4f46e5; --accent-strong: #4338ca;
+    --accent-fill: #4f46e5; --accent-fill-hover: #4338ca;
     --ok: #16a34a; --warn: #d97706; --err: #dc2626;
   }
   @media (prefers-color-scheme: dark) {
@@ -42,7 +42,7 @@
       --fg: #ededed; --muted: #9ca3af; --muted-strong: #d4d4d8;
       --subtle: #525252; --line: #262626; --line-bright: #404040;
       --accent: #818cf8; --accent-strong: #6366f1;
-      --accent-fill: #6366f1; --accent-fill-hover: #818cf8;
+      --accent-fill: #4f46e5; --accent-fill-hover: #4338ca;
       --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
     }
   }
@@ -59,6 +59,14 @@
     outline-offset: 2px !important;
     border-radius: var(--radius-sm);
   }
+  .skip-link {
+    position: absolute; left: -9999px; top: var(--sp-2);
+    background: var(--bg); color: var(--accent);
+    padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line);
+    border-radius: var(--radius-md); z-index: 100;
+  }
+  .skip-link:focus { left: var(--sp-2); }
+  .page-title { font-size: var(--fs-xl); font-weight: 600; letter-spacing: -.01em; margin: 0 0 var(--sp-5); }
   .site-header {
     display: flex; align-items: baseline; justify-content: space-between;
     gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
@@ -150,7 +158,7 @@
       #captcha { margin: 16px 0; min-height: 65px; }
 
       button.primary {
-        background: var(--accent); color: #fff; border: 0;
+        background: var(--accent-fill); color: #fff; border: 0;
         padding: 10px 20px; border-radius: 6px; font: inherit; font-weight: 500; font-size: 14px;
         cursor: pointer;
       }
@@ -183,7 +191,7 @@
       }
       #success .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 24px; }
       #success a.cta {
-        display: inline-block; background: var(--accent); color: #fff; text-decoration: none;
+        display: inline-block; background: var(--accent-fill); color: #fff; text-decoration: none;
         padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: 14px;
       }
       #success a.cta:hover { opacity: 0.92; }
@@ -204,6 +212,7 @@
     </style>
   </head>
   <body>
+    <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">India's open atlas</span></a>
       <nav class="site-nav">
@@ -214,6 +223,9 @@
         <a href="https://github.com/urbanmorph/geodata" target="_blank" rel="noopener">github</a>
       </nav>
     </header>
+
+    <main id="main">
+    <h1 class="page-title">Submit a geo layer</h1>
 
     <label id="drop" for="file">
       <strong>Drop a file or click to choose</strong>
@@ -319,6 +331,7 @@
       Files are parsed in your browser before upload — no server-side processing.<br />
       Rate limit: 5 submissions per hour, 20 per day, per IP.
     </div>
+    </main>
 
     <footer class="site-footer">
       <p>Open licences only. Each layer carries its source link on the card.</p>

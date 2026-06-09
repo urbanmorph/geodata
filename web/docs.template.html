@@ -50,6 +50,7 @@
   <body>
     <!-- NAV -->
 
+    <main id="main">
       <h1>API v1 <span class="badge badge--stable">stable</span></h1>
       <p>Public, read-only JSON API for India's open geo layers. No auth, no API key. All endpoints return JSON with CORS enabled.</p>
       <p>Base URL: <code>https://bharatlas.com/api/v1</code></p>
@@ -227,6 +228,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
 <!-- DOCS_FAQ_HTML -->
       <h2>For LLMs</h2>
       <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 8 tools with built-in instructions for schema-first querying, spatial joins, and multi-source awareness.</p>
+    </main>
 
     <!-- FOOTER -->
   </body>
