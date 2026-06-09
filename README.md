@@ -119,6 +119,10 @@ Code: [MIT](./LICENSE). Data: each layer carries its own open licence — see th
 
 Provided as-is, no warranty. For legal/administrative use, go to the upstream source. Full disclaimers: [/about → Use of data](https://bharatlas.com/about#use-of-data).
 
+## Principles
+
+bharatlas is built on [People's Digital Goods and Infrastructure (PDGI)](https://pdgi.org/) principles. [PDGI.md](./PDGI.md) is a public, honest scorecard of how each one is implemented, and where we still fall short.
+
 ## Credits
 
 Data sources, in approximate order of catalog footprint:
