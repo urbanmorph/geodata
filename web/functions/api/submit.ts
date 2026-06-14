@@ -14,6 +14,7 @@ import { insertSubmission, insertToken, findDuplicateByHash } from '../lib/submi
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
 import { nanoid, sha256Hex, sanitizeFilename, ipHashFor } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
+import { attemptRowFromResult, attemptRowReject, logAttempt, type AttemptRow } from '../lib/submit-log';
 
 type Env = MiddlewareEnv & {
   TURNSTILE_SECRET: string;
@@ -68,7 +69,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const filename = sanitizeFilename(file.name);
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
   const ALLOWED = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
+
+  // Funnel instrumentation — record every attempt outcome so the drop-off past
+  // /submit is measurable. Best-effort + non-blocking (ctx.waitUntil).
+  const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
+  const logMeta = { ext, bytes: file.size, ipHash };
+  const log = (row: AttemptRow) => ctx.waitUntil(logAttempt(ctx.env.DB, row));
+
   if (!ALLOWED.has(ext)) {
+    log(attemptRowReject('format', `unsupported extension .${ext}`, logMeta));
     return j(415, {
       error: `unsupported file extension .${ext} — accepts: ${[...ALLOWED].join(', ')}`,
     });
@@ -88,15 +97,17 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       const fcField = form.get('fc_json');
       const fcText =
         fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
-      if (!fcText) return j(400, { error: 'missing fc_json for non-GeoJSON upload' });
+      if (!fcText) {
+        log(attemptRowReject('parse', 'missing fc_json for non-GeoJSON upload', logMeta));
+        return j(400, { error: 'missing fc_json for non-GeoJSON upload' });
+      }
       rawJson = JSON.parse(fcText);
       fc = normaliseFC(rawJson);
     }
   } catch (e) {
+    log(attemptRowReject('parse', 'failed to parse FeatureCollection', logMeta));
     return j(400, { error: 'failed to parse FeatureCollection', detail: (e as Error).message });
   }
-
-  const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
 
   const result = await validateSubmission(
     {
@@ -123,6 +134,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   );
 
   if (!result.accept) {
+    log(attemptRowFromResult(result, logMeta));
     return j(codeForReason(result.reason), { error: result.reason, report: result.report });
   }
 
@@ -168,8 +180,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       }),
     ]);
   } catch (e) {
+    log(attemptRowReject('persist', 'failed to persist submission', logMeta));
     return j(500, { error: 'failed to persist submission', detail: (e as Error).message });
   }
+
+  log(attemptRowFromResult(result, logMeta));
 
   const origin = new URL(ctx.request.url).origin;
   return j(200, {
