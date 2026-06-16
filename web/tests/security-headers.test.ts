@@ -131,6 +131,41 @@ describe('Security headers — sync between _headers and security-headers.ts', (
   });
 });
 
+describe('Security headers — CSP connect-src reaches the basemap tile CDNs', () => {
+  // MapLibre GL fetches raster basemap tiles with the Fetch API, so the tile
+  // hosts must be in connect-src. Listing them only in img-src (as we did
+  // originally) is not enough — the real fetch() is blocked, so Carto Light /
+  // OpenTopoMap / Esri Imagery render blank while the same-origin Minimal
+  // basemap is fine. Regression guard for the "base maps won't load" report.
+  const TILE_HOSTS = [
+    'https://*.basemaps.cartocdn.com', // Carto Light
+    'https://*.tile.opentopomap.org', // OpenTopoMap
+    'https://services.arcgisonline.com', // Esri World Imagery
+  ];
+
+  const connectSources = (csp: string): string[] => {
+    const seg = csp
+      .split(';')
+      .map((s) => s.trim())
+      .find((s) => s.startsWith('connect-src '));
+    return seg ? seg.split(/\s+/).slice(1) : [];
+  };
+
+  it('CSP_STATIC connect-src lists every external basemap tile host', () => {
+    const sources = connectSources(CSP_STATIC);
+    for (const host of TILE_HOSTS) {
+      expect(sources, `connect-src missing ${host}`).toContain(host);
+    }
+  });
+
+  it('CSP_HTML connect-src lists every external basemap tile host', () => {
+    const sources = connectSources(CSP_HTML);
+    for (const host of TILE_HOSTS) {
+      expect(sources, `connect-src missing ${host}`).toContain(host);
+    }
+  });
+});
+
 describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)', () => {
   // CF Pages applies `_headers` only to static assets, not to Pages Function
   // responses. The HTML-rendering Pages Functions (/c/<id>, /view/<id>)
