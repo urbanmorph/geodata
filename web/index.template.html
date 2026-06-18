@@ -694,17 +694,23 @@
           display: flex;
           position: fixed; left: 0; right: 0; bottom: 0;
           gap: 6px;
-          padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+          padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
           background: var(--bg);
           border-top: 1px solid var(--line);
           z-index: 15;
         }
         .map-actions .map-pop-wrap { flex: 1; display: flex; }
-        .map-actions .map-pop-wrap > button,
-        .map-actions > #map-filter {
+        /* #map-overlay-prefixed so these win over the id-specificity desktop
+           rules (#map-overlay button.filter-toggle { font: inherit; padding }).
+           12px + tight padding shrinks "Filter & export" so it sits comfortably
+           inside its grown flex slot at >=360px (content-sized, no min-width:0,
+           so no ellipsis) and can't spill past the button to clip at the edge. */
+        #map-overlay .map-actions .map-pop-wrap > button,
+        #map-overlay .map-actions > #map-filter {
           flex: 1; width: 100%;
           min-height: 44px;
-          font-size: 13px;
+          font-size: 12px;
+          padding: 6px 8px;
           white-space: nowrap;
           text-align: center;
         }
