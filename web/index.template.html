@@ -426,6 +426,15 @@
       #map-overlay button.filter-toggle:hover { border-color: var(--accent); color: var(--accent); }
       #map-overlay button.filter-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
 
+      /* Action group. display:contents on desktop is a passthrough — the
+         buttons flow in the header exactly as before. On mobile (max-width:640px)
+         it becomes the fixed bottom toolbar. */
+      .map-actions { display: contents; }
+
+      /* Scrim behind an open mobile sheet. Inert on desktop (popovers dismiss on
+         outside-click); only the mobile block flips .open to visible. */
+      .map-scrim { position: fixed; inset: 0; z-index: 14; background: rgba(0,0,0,0.35); display: none; }
+
       /* Popover (download menu + basemap toggle) */
       .map-pop-wrap { position: relative; display: inline-block; }
       .map-popover {
@@ -614,15 +623,22 @@
 
       /* ───── Mobile (narrow) ───── */
       @media (max-width: 640px) {
-        /* Filter panel becomes a bottom sheet */
+        /* Height of the fixed bottom toolbar; sheets sit on top of it. */
+        #map-overlay { --map-toolbar-h: calc(60px + env(safe-area-inset-bottom)); }
+        /* Filter panel becomes a bottom sheet. It's position:absolute inside
+           #map, which already has margin-bottom = toolbar height, so bottom:0
+           seats it flush on the toolbar. (Using var(--map-toolbar-h) here would
+           double-count that reservation and leave a ~60px gap — unlike the
+           popover, which is position:fixed against the viewport.) */
         .filter-panel {
           top: auto; left: 0; right: 0; bottom: 0;
-          width: 100%; height: 62vh;
+          width: 100%; height: 52vh;
           border-left: none;
           border-top: 1px solid var(--line);
           border-top-left-radius: 14px;
           border-top-right-radius: 14px;
           box-shadow: 0 -8px 24px rgba(0,0,0,0.10);
+          z-index: 16;
           animation: filter-slide-up 220ms ease;
         }
         @keyframes filter-slide-up { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -656,39 +672,71 @@
         .filter-search,
         .filter-range__input { min-height: 44px; padding: 10px 12px; font-size: 16px; }
 
-        /* Map header: title on its own line, buttons wrap evenly below */
+        /* Slim top bar: title + back only. The action buttons relocate to the
+           bottom toolbar below, so the bar can never overflow. */
         #map-overlay header.map-bar {
-          flex-wrap: wrap;
-          padding: 8px 12px;
-          gap: 6px;
+          padding: 10px 12px;
+          gap: 10px;
         }
         #map-overlay .map-title {
-          font-size: 13px;
+          flex: 1; min-width: 0;
+          font-size: 14px;
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-          width: 100%;
-          order: -1;
         }
-        #map-overlay button.close,
-        #map-overlay button.filter-toggle {
+        #map-overlay button.close { flex: 0 0 auto; font-size: 13px; }
+
+        /* Leave room at the bottom for the toolbar so the map (and its
+           attribution) isn't covered; the fixed toolbar fills the gap. */
+        #map-overlay #map { margin-bottom: var(--map-toolbar-h); }
+
+        /* Secondary actions become a fixed bottom toolbar in the thumb zone. */
+        .map-actions {
+          display: flex;
+          position: fixed; left: 0; right: 0; bottom: 0;
+          gap: 6px;
+          padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
+          background: var(--bg);
+          border-top: 1px solid var(--line);
+          z-index: 15;
+        }
+        .map-actions .map-pop-wrap { flex: 1; display: flex; }
+        /* #map-overlay-prefixed so these win over the id-specificity desktop
+           rules (#map-overlay button.filter-toggle { font: inherit; padding }).
+           12px + tight padding shrinks "Filter & export" so it sits comfortably
+           inside its grown flex slot at >=360px (content-sized, no min-width:0,
+           so no ellipsis) and can't spill past the button to clip at the edge. */
+        #map-overlay .map-actions .map-pop-wrap > button,
+        #map-overlay .map-actions > #map-filter {
+          flex: 1; width: 100%;
+          min-height: 44px;
           font-size: 12px;
-          flex: 1;
+          padding: 6px 8px;
+          white-space: nowrap;
           text-align: center;
         }
-        .map-pop-wrap { flex: 1; }
-        .map-pop-wrap button { width: 100%; }
 
-        /* Popovers: full-width bottom sheet on mobile */
+        /* Basemap / Download render as bottom sheets sitting on the toolbar.
+           The single-open controller (map.ts) guarantees only one shows. */
         .map-popover {
           position: fixed;
-          left: 0; right: 0; bottom: 0;
-          top: auto;
+          left: 0; right: 0; top: auto;
+          bottom: var(--map-toolbar-h);
           width: 100%;
-          max-height: 60vh;
+          max-height: 52vh;
           border-radius: 14px 14px 0 0;
-          box-shadow: 0 -8px 24px rgba(0,0,0,0.15);
-          z-index: 20;
+          box-shadow: 0 -8px 24px rgba(0,0,0,0.18);
+          z-index: 16;
           overflow-y: auto;
         }
+
+        /* Scrim is shown only while a sheet is open (toggled in map.ts). */
+        .map-scrim.open { display: block; }
+
+        /* While a sheet is open, hide MapLibre's control layer (zoom +
+           attribution) so it doesn't paint over the sheet — its stacking
+           context fights the fixed sheet. Both return when the sheet closes,
+           so the attribution stays visible in the default state. */
+        #map-overlay.sheet-open .maplibregl-control-container { display: none; }
       }
 
       /* Map popups are a single look — fed by hover on pointer devices and
@@ -797,18 +845,21 @@
     <div id="map-overlay" aria-hidden="true">
       <header class="map-bar">
         <span class="map-title" id="map-title">map</span>
-        <div class="map-pop-wrap">
-          <button class="filter-toggle" id="map-basemap" aria-label="Choose base map" aria-expanded="false" aria-haspopup="menu">Base map</button>
-          <div class="map-popover" id="map-basemap-popover" role="menu"></div>
+        <div class="map-actions">
+          <div class="map-pop-wrap">
+            <button class="filter-toggle" id="map-basemap" aria-label="Choose base map" aria-expanded="false" aria-haspopup="menu">Base map</button>
+            <div class="map-popover" id="map-basemap-popover" role="menu"></div>
+          </div>
+          <div class="map-pop-wrap">
+            <button class="filter-toggle" id="map-download" aria-label="Download this layer" aria-expanded="false" aria-haspopup="menu">Download</button>
+            <div class="map-popover" id="map-download-popover" role="menu"></div>
+          </div>
+          <button class="filter-toggle" id="map-filter">Filter &amp; export</button>
         </div>
-        <div class="map-pop-wrap">
-          <button class="filter-toggle" id="map-download" aria-label="Download this layer" aria-expanded="false" aria-haspopup="menu">Download</button>
-          <div class="map-popover" id="map-download-popover" role="menu"></div>
-        </div>
-        <button class="filter-toggle" id="map-filter">Filter &amp; export</button>
         <button class="close" id="map-close">← back</button>
       </header>
       <div id="map"><div id="map-loading">loading map…</div></div>
+      <div class="map-scrim" id="map-scrim" aria-hidden="true"></div>
     </div>
 
     <!-- CATALOG_INLINE -->

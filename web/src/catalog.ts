@@ -35,8 +35,20 @@ export type LayerFilterStats = {
   column_groups?: Array<{ canonical: string; members: string[] }>;
 };
 
+/** Per-layer (or per-level) display metadata. Inlined in the page catalog so
+ *  the viewer can resolve a friendly title without a network round-trip. The
+ *  edge (functions/lib/view-dataset.ts) reads the same field for /view SEO. */
+export type LevelMeta = {
+  label?: string;
+  seo_title?: string;
+  unit?: string;
+  description?: string;
+  seo_description?: string;
+};
+
 export type Catalog = {
   layers?: Layer[];
+  level_meta?: Record<string, LevelMeta>;
   states?: Array<{ code: number; name: string }>;
   state_counts?: Record<string, Record<string, number>>;
   state_bounds?: Record<string, [number, number, number, number]>;

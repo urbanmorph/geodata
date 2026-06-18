@@ -11,6 +11,9 @@ import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
 import { type ActiveFilter, type MaplibreFilter } from './filter-where';
 import { featureCollectionBounds, type FC } from './validate';
+import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
+import { displayTitle } from './layer-display';
+import { paddingForPanelRect, type Padding } from './map-padding';
 
 type Layer = {
   id: string;
@@ -43,6 +46,98 @@ let map: MlMap | null = null;
 let filterAbort: AbortController | null = null;
 let activeBasemap: BasemapId = 'minimal';
 let layerBounds: [number, number, number, number] = INDIA_BOUNDS;
+
+// ---------------------------------------------------------------------------
+// Single-open overlay controller
+// ---------------------------------------------------------------------------
+//
+// The map chrome has three secondary surfaces — basemap picker, download menu,
+// filter/export — that used to toggle independently, so on mobile (where each
+// is a bottom sheet) opening one left the others stacked behind it. The pure
+// reducer in view-overlays.ts is the single source of truth for which surface
+// is open; this DOM layer applies that state. See spec-view-mobile-controls.md.
+
+type SurfaceHandle = { btn: HTMLElement | null; show: () => void; hide: () => void };
+const surfaceHandles: Partial<Record<Surface, SurfaceHandle>> = {};
+let overlayState: OverlayState = initialOverlayState;
+
+const isMobileViewport = (): boolean =>
+  typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+
+function applyOverlay(prevActive: Surface | null): void {
+  const active = overlayState.active;
+  if (prevActive && prevActive !== active) surfaceHandles[prevActive]?.hide();
+  if (active) surfaceHandles[active]?.show();
+  document.getElementById('map-scrim')?.classList.toggle('open', active !== null);
+  // `sheet-open` hides MapLibre's control layer on mobile so the attribution +
+  // zoom controls don't paint over the open sheet (their stacking context
+  // fights the fixed sheet). See the max-width:640px block in the template.
+  document.getElementById('map-overlay')?.classList.toggle('sheet-open', active !== null);
+  for (const name of Object.keys(surfaceHandles) as Surface[]) {
+    surfaceHandles[name]?.btn?.setAttribute('aria-expanded', String(name === active));
+  }
+  map?.resize();
+}
+
+function dispatchOverlay(action: OverlayAction): void {
+  const next = reduceOverlay(overlayState, action);
+  if (next === overlayState) return;
+  const prev = overlayState.active;
+  overlayState = next;
+  applyOverlay(prev);
+}
+
+function resetOverlays(): void {
+  const prev = overlayState.active;
+  overlayState = initialOverlayState;
+  if (prev) surfaceHandles[prev]?.hide();
+  document.getElementById('map-scrim')?.classList.remove('open');
+  document.getElementById('map-overlay')?.classList.remove('sheet-open');
+}
+
+// A surface that dismisses itself (e.g. the filter panel's own close button)
+// tells the controller so without re-triggering its hide(): the DOM is already
+// gone, we just clear the state + chrome.
+function notifyOverlayClosed(name: Surface): void {
+  if (overlayState.active !== name) return;
+  overlayState = initialOverlayState;
+  document.getElementById('map-scrim')?.classList.remove('open');
+  document.getElementById('map-overlay')?.classList.remove('sheet-open');
+  surfaceHandles[name]?.btn?.setAttribute('aria-expanded', 'false');
+}
+
+// Outside-click dismisses the transient menus (basemap / download). Buttons and
+// popovers stopPropagation, so this only fires on a true outside click. The
+// filter panel and the scrim manage their own dismissal.
+document.addEventListener(
+  'click',
+  () => {
+    if (overlayState.active === 'basemap' || overlayState.active === 'download') {
+      dispatchOverlay({ type: 'close' });
+    }
+  },
+  { passive: true },
+);
+// Tapping the scrim (mobile) closes whatever sheet is open.
+document.getElementById('map-scrim')?.addEventListener('click', () =>
+  dispatchOverlay({ type: 'close' }),
+);
+
+// Register a popover-style surface (basemap, download). The button toggles it;
+// returns a close fn for callers that complete an action and want to dismiss.
+function registerPopover(name: Surface, btn: HTMLButtonElement, popover: HTMLElement): () => void {
+  surfaceHandles[name] = {
+    btn,
+    show: () => popover.classList.add('open'),
+    hide: () => popover.classList.remove('open'),
+  };
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    dispatchOverlay({ type: 'toggle', surface: name });
+  };
+  popover.onclick = (e) => e.stopPropagation();
+  return () => dispatchOverlay({ type: 'close' });
+}
 
 // ---------------------------------------------------------------------------
 // PMTiles protocol + archive cache
@@ -88,17 +183,12 @@ function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, 
 }
 
 
-function panelAwarePadding(): { top: number; bottom: number; left: number; right: number } {
+function panelAwarePadding(): Padding {
   const base = 20;
   const panel = document.querySelector<HTMLElement>('.filter-panel');
   if (!panel) return { top: base, bottom: base, left: base, right: base };
   const r = panel.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  if (r.bottom >= vh - 1 && r.width >= vw * 0.7) {
-    return { top: base, bottom: base + r.height, left: base, right: base };
-  }
-  return { top: base, bottom: base, left: base, right: base + r.width };
+  return paddingForPanelRect(r, window.innerWidth, base);
 }
 
 // ---------------------------------------------------------------------------
@@ -437,29 +527,6 @@ function applyActiveFilters(
 }
 
 // ---------------------------------------------------------------------------
-// Popover helper
-// ---------------------------------------------------------------------------
-
-function bindPopover(btn: HTMLButtonElement, popover: HTMLElement): () => void {
-  const close = () => {
-    popover.classList.remove('open');
-    btn.setAttribute('aria-expanded', 'false');
-  };
-  const open = () => {
-    for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
-    popover.classList.add('open');
-    btn.setAttribute('aria-expanded', 'true');
-  };
-  btn.onclick = (e) => {
-    e.stopPropagation();
-    popover.classList.contains('open') ? close() : open();
-  };
-  popover.onclick = (e) => e.stopPropagation();
-  document.addEventListener('click', close, { passive: true });
-  return close;
-}
-
-// ---------------------------------------------------------------------------
 // Header button wiring
 // ---------------------------------------------------------------------------
 
@@ -536,7 +603,7 @@ function wireDownloadButton(layer: Layer): void {
       }
     }
   });
-  bindPopover(btn, popover);
+  registerPopover('download', btn, popover);
 }
 
 function wireBasemapButton(): void {
@@ -544,7 +611,7 @@ function wireBasemapButton(): void {
   const popover = document.getElementById('map-basemap-popover');
   if (!btn || !popover) return;
   btn.classList.add('shown');
-  const closePopover = bindPopover(btn, popover);
+  const closePopover = registerPopover('basemap', btn, popover);
   const render = () => {
     popover.innerHTML =
       `<div class="map-popover__title">Base map</div>` +
@@ -577,6 +644,7 @@ async function wireFilterButton(layer: Layer) {
   filterAbort = new AbortController();
   const signal = filterAbort.signal;
 
+  delete surfaceHandles.filter;
   btn.classList.remove('shown');
   document.querySelector('.filter-panel')?.remove();
   if (!layer.parquet?.url) return;
@@ -593,56 +661,87 @@ async function wireFilterButton(layer: Layer) {
       : (cb) => setTimeout(cb, 1500);
   idle(() => import('./filter'));
 
+  const resetFilterChrome = () => {
+    btn.disabled = false;
+    btn.textContent = 'Filter & export';
+    applyActiveFilters([], null);
+    flyTo(layerBounds, { padding: BASE_PADDING });
+  };
+
+  // Switching surfaces on mobile tears the sheet down (direct removal mirrors
+  // closeLayer); the user's filters reset, same as the panel's own close.
+  const dismissFilterPanel = () => {
+    if (!document.querySelector('.filter-panel')) return;
+    document.querySelector('.filter-panel')?.remove();
+    resetFilterChrome();
+  };
+
+  const openFilterPanel = async () => {
+    if (document.querySelector('.filter-panel')) return; // already open
+    const container = document.getElementById('map')!;
+
+    const { VERBS_ENGINE } = await import('./loading');
+    const panel = document.createElement('div');
+    panel.className = 'filter-panel';
+    panel.innerHTML = `<div style="padding:24px;color:var(--muted);font-size:14px"></div>`;
+    container.appendChild(panel);
+    const msg = panel.firstElementChild!;
+    let vi = 0;
+    msg.textContent = VERBS_ENGINE[0];
+    const timer = setInterval(() => { msg.textContent = VERBS_ENGINE[++vi % VERBS_ENGINE.length]; }, 1800);
+
+    const result = await columnsPromise;
+    clearInterval(timer);
+    panel.remove();
+    if (signal.aborted || !result) {
+      notifyOverlayClosed('filter');
+      return;
+    }
+
+    const { columns: ranked, rowCount } = result;
+    btn.disabled = true;
+    btn.textContent = 'Loading…';
+    try {
+      const { mountFilterPanel } = await import('./filter');
+      if (signal.aborted) {
+        notifyOverlayClosed('filter');
+        return;
+      }
+      mountFilterPanel(layer, container, ranked, rowCount, {
+        onClose: () => {
+          resetFilterChrome();
+          notifyOverlayClosed('filter');
+        },
+        onActiveFiltersChange: (filters, mapFilter) => {
+          applyActiveFilters(filters, mapFilter);
+        },
+      });
+      if (map) {
+        requestAnimationFrame(() => {
+          flyTo(layerBounds, { padding: panelAwarePadding(), duration: 300 });
+        });
+      }
+    } catch (e) {
+      console.error('filter panel failed to load', e);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Filter & export';
+    }
+  };
+
+  // The filter panel is a persistent workspace, not a transient menu: on
+  // desktop it coexists with the basemap/download dropdowns (hide is a no-op,
+  // matching today). On mobile every surface is a bottom sheet competing for
+  // the same space, so switching away tears it down.
+  surfaceHandles.filter = {
+    btn,
+    show: () => { void openFilterPanel(); },
+    hide: () => { if (isMobileViewport()) dismissFilterPanel(); },
+  };
+
   btn.addEventListener(
     'click',
-    async () => {
-      if (document.querySelector('.filter-panel')) return;
-      const container = document.getElementById('map')!;
-
-      const { VERBS_ENGINE } = await import('./loading');
-      const panel = document.createElement('div');
-      panel.className = 'filter-panel';
-      panel.innerHTML = `<div style="padding:24px;color:var(--muted);font-size:14px"></div>`;
-      container.appendChild(panel);
-      const msg = panel.firstElementChild!;
-      let vi = 0;
-      msg.textContent = VERBS_ENGINE[0];
-      const timer = setInterval(() => { msg.textContent = VERBS_ENGINE[++vi % VERBS_ENGINE.length]; }, 1800);
-
-      const result = await columnsPromise;
-      clearInterval(timer);
-      panel.remove();
-      if (signal.aborted || !result) return;
-
-      const { columns: ranked, rowCount } = result;
-      btn.disabled = true;
-      btn.textContent = 'Loading…';
-      try {
-        const { mountFilterPanel } = await import('./filter');
-        if (signal.aborted) return;
-        mountFilterPanel(layer, container, ranked, rowCount, {
-          onClose: () => {
-            btn.disabled = false;
-            btn.textContent = 'Filter & export';
-            applyActiveFilters([], null);
-            flyTo(layerBounds, { padding: BASE_PADDING });
-          },
-          onActiveFiltersChange: (filters, mapFilter) => {
-            applyActiveFilters(filters, mapFilter);
-          },
-        });
-        if (map) {
-          requestAnimationFrame(() => {
-            flyTo(layerBounds, { padding: panelAwarePadding(), duration: 300 });
-          });
-        }
-      } catch (e) {
-        console.error('filter panel failed to load', e);
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Filter & export';
-      }
-    },
+    () => dispatchOverlay({ type: 'toggle', surface: 'filter' }),
     { signal },
   );
 }
@@ -652,18 +751,25 @@ async function wireFilterButton(layer: Layer) {
 // ---------------------------------------------------------------------------
 
 export async function openLayer(layerId: string, opts: { titleEl: HTMLElement }) {
-  const cat = (await getCatalog()) as { layers?: Layer[] };
+  resetOverlays();
+  const cat = (await getCatalog()) as { layers?: Layer[]; level_meta?: Record<string, { label?: string; seo_title?: string }> };
   const layer = cat.layers?.find((l) => l.id === layerId);
   if (!layer) {
     opts.titleEl.textContent = `unknown layer: ${layerId}`;
     return;
   }
-  // Community layers have no admin level; lead with their submitted name so
-  // the viewer header reads sensibly instead of "undefined · …".
+  // Prefer the friendly title from level_meta (e.g. "Greater Bengaluru Wards
+  // (2025)") so the bar never shows a raw id like "wards_bengaluru_gba". Layers
+  // without a level_meta entry (most standard admin levels resolve theirs only
+  // on the edge via BUILTIN_LEVEL_META) keep the level · source · rows line.
+  const levelMeta = cat.level_meta?.[layerId];
   const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
-  opts.titleEl.textContent = layer.level
-    ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
-    : `${layer.name ?? layer.source} · ${rowsLabel} features`;
+  const friendly = (levelMeta?.label || levelMeta?.seo_title || layer.name || '').trim();
+  opts.titleEl.textContent = friendly
+    ? displayTitle({ id: layerId, name: layer.name }, levelMeta)
+    : layer.level
+      ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
+      : `${layer.source} · ${rowsLabel} features`;
 
   wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
   wireDownloadButton(layer);
@@ -711,6 +817,7 @@ export function closeLayer() {
   }
   filterAbort?.abort();
   filterAbort = null;
+  resetOverlays();
   const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
   if (btn) btn.classList.remove('shown');
   document.querySelector('.filter-panel')?.remove();
