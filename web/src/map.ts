@@ -69,6 +69,10 @@ function applyOverlay(prevActive: Surface | null): void {
   if (prevActive && prevActive !== active) surfaceHandles[prevActive]?.hide();
   if (active) surfaceHandles[active]?.show();
   document.getElementById('map-scrim')?.classList.toggle('open', active !== null);
+  // `sheet-open` hides MapLibre's control layer on mobile so the attribution +
+  // zoom controls don't paint over the open sheet (their stacking context
+  // fights the fixed sheet). See the max-width:640px block in the template.
+  document.getElementById('map-overlay')?.classList.toggle('sheet-open', active !== null);
   for (const name of Object.keys(surfaceHandles) as Surface[]) {
     surfaceHandles[name]?.btn?.setAttribute('aria-expanded', String(name === active));
   }
@@ -88,6 +92,7 @@ function resetOverlays(): void {
   overlayState = initialOverlayState;
   if (prev) surfaceHandles[prev]?.hide();
   document.getElementById('map-scrim')?.classList.remove('open');
+  document.getElementById('map-overlay')?.classList.remove('sheet-open');
 }
 
 // A surface that dismisses itself (e.g. the filter panel's own close button)
@@ -97,6 +102,7 @@ function notifyOverlayClosed(name: Surface): void {
   if (overlayState.active !== name) return;
   overlayState = initialOverlayState;
   document.getElementById('map-scrim')?.classList.remove('open');
+  document.getElementById('map-overlay')?.classList.remove('sheet-open');
   surfaceHandles[name]?.btn?.setAttribute('aria-expanded', 'false');
 }
 

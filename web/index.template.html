@@ -721,6 +721,12 @@
 
         /* Scrim is shown only while a sheet is open (toggled in map.ts). */
         .map-scrim.open { display: block; }
+
+        /* While a sheet is open, hide MapLibre's control layer (zoom +
+           attribution) so it doesn't paint over the sheet — its stacking
+           context fights the fixed sheet. Both return when the sheet closes,
+           so the attribution stays visible in the default state. */
+        #map-overlay.sheet-open .maplibregl-control-container { display: none; }
       }
 
       /* Map popups are a single look — fed by hover on pointer devices and
