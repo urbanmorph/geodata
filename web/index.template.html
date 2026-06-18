@@ -625,9 +625,13 @@
       @media (max-width: 640px) {
         /* Height of the fixed bottom toolbar; sheets sit on top of it. */
         #map-overlay { --map-toolbar-h: calc(60px + env(safe-area-inset-bottom)); }
-        /* Filter panel becomes a bottom sheet, above the toolbar */
+        /* Filter panel becomes a bottom sheet. It's position:absolute inside
+           #map, which already has margin-bottom = toolbar height, so bottom:0
+           seats it flush on the toolbar. (Using var(--map-toolbar-h) here would
+           double-count that reservation and leave a ~60px gap — unlike the
+           popover, which is position:fixed against the viewport.) */
         .filter-panel {
-          top: auto; left: 0; right: 0; bottom: var(--map-toolbar-h);
+          top: auto; left: 0; right: 0; bottom: 0;
           width: 100%; height: 52vh;
           border-left: none;
           border-top: 1px solid var(--line);
