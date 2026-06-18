@@ -13,6 +13,7 @@ import { type ActiveFilter, type MaplibreFilter } from './filter-where';
 import { featureCollectionBounds, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
 import { displayTitle } from './layer-display';
+import { paddingForPanelRect, type Padding } from './map-padding';
 
 type Layer = {
   id: string;
@@ -176,17 +177,12 @@ function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, 
 }
 
 
-function panelAwarePadding(): { top: number; bottom: number; left: number; right: number } {
+function panelAwarePadding(): Padding {
   const base = 20;
   const panel = document.querySelector<HTMLElement>('.filter-panel');
   if (!panel) return { top: base, bottom: base, left: base, right: base };
   const r = panel.getBoundingClientRect();
-  const vw = window.innerWidth;
-  const vh = window.innerHeight;
-  if (r.bottom >= vh - 1 && r.width >= vw * 0.7) {
-    return { top: base, bottom: base + r.height, left: base, right: base };
-  }
-  return { top: base, bottom: base, left: base, right: base + r.width };
+  return paddingForPanelRect(r, window.innerWidth, base);
 }
 
 // ---------------------------------------------------------------------------
