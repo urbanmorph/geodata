@@ -554,9 +554,12 @@ def rebake_flatten_bbox(src: Path, dst: Path) -> tuple[int, list[str]]:
     has_bbox_struct = 'bbox' in col_names
     has_flat_bbox = all(c in col_names for c in ('xmin', 'ymin', 'xmax', 'ymax'))
     # ramSeraph parquet stores `geometry` already typed as GEOMETRY; a few
-    # older / simpler files store it as raw BLOB (WKB). Detect which.
-    geom_type = next((c[1] for c in cols if c[0] == 'geometry'), 'BLOB')
-    geom_expr = 'geometry' if 'GEOMETRY' in geom_type else 'ST_GeomFromWKB(geometry)'
+    # older / simpler files store it as raw BLOB (WKB) or name the column
+    # `geom` / `wkb_geometry` (e.g. own-bake point layers like nic_health).
+    # Detect the column name + its type rather than assuming `geometry`.
+    geom_col = next((c[0] for c in cols if c[0] in ('geometry', 'wkb_geometry', 'geom')), 'geometry')
+    geom_type = next((c[1] for c in cols if c[0] == geom_col), 'BLOB')
+    geom_expr = geom_col if 'GEOMETRY' in geom_type else f'ST_GeomFromWKB({geom_col})'
     # India bbox; ST_Hilbert uses this as the curve's domain so the 32-bit
     # index has max resolution over the country instead of the whole world.
     india_bbox = "ST_Extent(ST_MakeEnvelope(68, 6, 98, 38))"

@@ -54,7 +54,10 @@ def patch_catalog_bytes(catalog_path: Path, layer_id: str, new_bytes: int) -> No
     cat = json.loads(catalog_path.read_text())
     layer = find_layer(cat, layer_id)
     layer.setdefault('parquet', {})['bytes'] = new_bytes
-    catalog_path.write_text(json.dumps(cat, indent=2, ensure_ascii=False))
+    # Match build_catalog.py's encoding exactly (ensure_ascii default + trailing
+    # newline) so a one-field patch stays a one-line diff instead of re-encoding
+    # every \uXXXX escape in the file.
+    catalog_path.write_text(json.dumps(cat, indent=2) + '\n')
 
 
 def rebake(layer_id: str, s3) -> None:

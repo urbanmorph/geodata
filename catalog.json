@@ -2245,7 +2245,7 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.parquet",
-        "bytes": 4999642
+        "bytes": 7792134
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.pmtiles",

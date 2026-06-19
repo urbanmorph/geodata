@@ -216,7 +216,7 @@ async function maybeFetchUrlParam(): Promise<void> {
 {
   const cat = new URLSearchParams(location.search).get('category');
   if (cat) {
-    const select = document.getElementById('f-cat') as HTMLSelectElement;
+    const select = document.getElementById('f-cat') as HTMLSelectElement | null;
     if (select && [...select.options].some((o) => o.value === cat)) select.value = cat;
   }
 }

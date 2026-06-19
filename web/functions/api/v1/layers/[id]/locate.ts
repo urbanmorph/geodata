@@ -71,6 +71,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         ...base,
         mode: 'nearest',
         feature: { properties: f.properties },
+        feature_point: { lat: f._lat, lng: f._lng }, // so the client can zoom to it
         distance_km: f._distance_km,
         bearing: bearingLabel(lat, lng, f._lat, f._lng),
       });

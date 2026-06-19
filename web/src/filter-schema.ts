@@ -85,7 +85,7 @@ export function pickAffordance(col: ColumnStats, rowCount: number): Affordance {
 
   // High-precision floats that are unique per row are computed geometry
   // stats (area, length, perimeter) regardless of column name.
-  if ((col.type === 'float' || col.type === 'double') && rowCount >= 10) {
+  if (col.type === 'float' && rowCount >= 10) {
     const nonNull = rowCount * (1 - col.nullFrac);
     if (nonNull > 0 && col.distinct / nonNull > 0.9) {
       return { kind: 'drop', reason: 'per-row float (likely computed stat)' };
