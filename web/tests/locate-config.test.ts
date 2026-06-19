@@ -24,9 +24,14 @@ describe('resolveLocateConfig', () => {
     expect(resolveLocateConfig({ id: 'bm_eco_zones', level: 'eco_zone' })).toEqual({ label: 'Eco-zone', mode: 'contains' });
   });
 
+  it('enables point layers as nearest (1c)', () => {
+    expect(resolveLocateConfig({ id: 'nic_health', level: 'health_facility' })).toEqual({ label: 'Nearest PHC', mode: 'nearest' });
+    expect(resolveLocateConfig({ id: 'airports', level: 'airport' })).toEqual({ label: 'Nearest airport', mode: 'nearest' });
+  });
+
   it('does NOT enable state (too obvious) or unmapped levels', () => {
     expect(resolveLocateConfig({ id: 'lgd_states', level: 'state' })).toBeNull();
-    expect(resolveLocateConfig({ id: 'airports', level: 'airport' })).toBeNull();
+    expect(resolveLocateConfig({ id: 'bm_dams', level: 'dam' })).toBeNull();
   });
 
   it('level_meta.locate_label still overrides a level built-in', () => {

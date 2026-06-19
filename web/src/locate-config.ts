@@ -31,6 +31,10 @@ const LEVEL_LOCATE: Record<string, LocateConfig> = {
   parliament_constituency: { label: 'My MP', mode: 'contains' },
   seismic_zone: { label: 'Seismic zone', mode: 'contains' },
   eco_zone: { label: 'Eco-zone', mode: 'contains' },
+  // 1c: point layers use `nearest` (a GPS fix is never *inside* a point) — the
+  // endpoint returns the closest feature + distance + bearing.
+  health_facility: { label: 'Nearest PHC', mode: 'nearest' },
+  airport: { label: 'Nearest airport', mode: 'nearest' },
 };
 
 export function resolveLocateConfig(layer: LocateLayer, levelMeta?: LocateLevelMeta): LocateConfig | null {
