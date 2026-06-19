@@ -23,17 +23,21 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
   });
 
   it('sets Permissions-Policy to deny sensitive capabilities by default', () => {
-    // We're a read-only map atlas. No camera, no mic, no geolocation —
-    // explicit deny keeps the user privacy floor high + improves
-    // Best Practices score.
+    // We're a read-only map atlas: camera, mic, payment etc. stay fully denied.
+    // geolocation is the exception — it's `(self)`, not `()`, so the in-app
+    // "Find my location" feature can call navigator.geolocation (first-party
+    // only; embeds/third parties still can't).
     const pp = headersFile.match(/Permissions-Policy:\s*([^\n]+)/);
     expect(pp, 'Permissions-Policy missing').not.toBeNull();
     const v = pp![1];
-    for (const feature of ['camera', 'microphone', 'geolocation', 'payment']) {
+    for (const feature of ['camera', 'microphone', 'payment']) {
       expect(v, `Permissions-Policy missing deny for ${feature}`).toMatch(
         new RegExp(`${feature}=\\(\\)`),
       );
     }
+    expect(v, 'geolocation should be (self), not (), for Find my location').toMatch(
+      /geolocation=\(self\)/,
+    );
   });
 
   it('sets Content-Security-Policy', () => {
@@ -189,7 +193,7 @@ describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)'
     const pp = SECURITY_HEADERS_HTML['permissions-policy'];
     expect(pp).toMatch(/camera=\(\)/);
     expect(pp).toMatch(/microphone=\(\)/);
-    expect(pp).toMatch(/geolocation=\(\)/);
+    expect(pp).toMatch(/geolocation=\(self\)/);
   });
 
   it('CSP includes frame-ancestors to block clickjacking', () => {
