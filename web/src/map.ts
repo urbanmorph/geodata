@@ -15,6 +15,11 @@ import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayActi
 import { displayTitle } from './layer-display';
 import { paddingForPanelRect, type Padding } from './map-padding';
 import { resolveLocateConfig } from './locate-config';
+// Static (not dynamic) import: geolocation must be requested synchronously
+// inside the tap handler. A dynamic import() pushes getCurrentPosition past the
+// user-gesture window, which mobile Chrome silently drops (no prompt, no sheet).
+// locate is tiny and folds into this already-lazy map chunk.
+import { openLocate, closeLocate } from './locate';
 
 type Layer = {
   id: string;
@@ -780,18 +785,13 @@ function wireLocateButton(
     btn,
     show: () => {
       btn.classList.add('locating');
-      import('./locate')
-        .then(({ openLocate }) =>
-          openLocate({ layerId: layer.id, config, sheet, btn, onClose: () => dispatchOverlay({ type: 'close' }) }),
-        )
-        .catch((e) => {
-          console.error('locate failed to load', e);
-          btn.classList.remove('locating');
-        });
+      // Synchronous: opens the sheet ("Locating you…") and fires
+      // getCurrentPosition in the same tap, so the prompt actually appears.
+      openLocate({ layerId: layer.id, config, sheet, btn, onClose: () => dispatchOverlay({ type: 'close' }) });
     },
     hide: () => {
       btn.classList.remove('locating');
-      import('./locate').then(({ closeLocate }) => closeLocate(sheet)).catch(() => {});
+      closeLocate(sheet);
     },
   };
 
