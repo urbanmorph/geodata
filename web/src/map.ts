@@ -14,6 +14,7 @@ import { featureCollectionBounds, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
 import { displayTitle } from './layer-display';
 import { paddingForPanelRect, type Padding } from './map-padding';
+import { resolveLocateConfig } from './locate-config';
 
 type Layer = {
   id: string;
@@ -137,6 +138,14 @@ function registerPopover(name: Surface, btn: HTMLButtonElement, popover: HTMLEle
   };
   popover.onclick = (e) => e.stopPropagation();
   return () => dispatchOverlay({ type: 'close' });
+}
+
+// Toolbar buttons hold an icon + a .tb-label span; set the text on the span so
+// the icon survives (plain textContent would wipe it).
+function setToolLabel(btn: HTMLElement, text: string): void {
+  const label = btn.querySelector('.tb-label');
+  if (label) label.textContent = text;
+  else btn.textContent = text;
 }
 
 // ---------------------------------------------------------------------------
@@ -650,7 +659,7 @@ async function wireFilterButton(layer: Layer) {
   if (!layer.parquet?.url) return;
 
   btn.classList.add('shown');
-  btn.textContent = 'Filter & export';
+  setToolLabel(btn, 'Filter');
   btn.disabled = false;
 
   const columnsPromise = loadFilterColumns(layer, signal);
@@ -663,7 +672,7 @@ async function wireFilterButton(layer: Layer) {
 
   const resetFilterChrome = () => {
     btn.disabled = false;
-    btn.textContent = 'Filter & export';
+    setToolLabel(btn, 'Filter');
     applyActiveFilters([], null);
     flyTo(layerBounds, { padding: BASE_PADDING });
   };
@@ -700,7 +709,7 @@ async function wireFilterButton(layer: Layer) {
 
     const { columns: ranked, rowCount } = result;
     btn.disabled = true;
-    btn.textContent = 'Loading…';
+    setToolLabel(btn, 'Loading…');
     try {
       const { mountFilterPanel } = await import('./filter');
       if (signal.aborted) {
@@ -725,7 +734,7 @@ async function wireFilterButton(layer: Layer) {
       console.error('filter panel failed to load', e);
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Filter & export';
+      setToolLabel(btn, 'Filter');
     }
   };
 
@@ -746,13 +755,62 @@ async function wireFilterButton(layer: Layer) {
   );
 }
 
+// Find-my-location toolbar item. Shows only on locate-enabled layers (ward
+// layers built-in for now; others opt in via level_meta.locate_label). Uses the
+// reserved `findward` overlay surface; the flow + result sheet live in locate.ts.
+function wireLocateButton(
+  layer: Layer,
+  levelMeta: { locate_label?: string; locate_mode?: string } | undefined,
+): void {
+  const btn = document.getElementById('map-locate') as HTMLButtonElement | null;
+  const sheet = document.getElementById('locate-sheet');
+  if (!btn || !sheet) return;
+
+  delete surfaceHandles.findward;
+  btn.classList.remove('shown', 'locating');
+
+  const config = resolveLocateConfig(layer, levelMeta);
+  if (!config) return; // layer not locate-enabled → no item in the bar
+
+  setToolLabel(btn, config.label);
+  btn.setAttribute('aria-label', config.label);
+  btn.classList.add('shown');
+
+  surfaceHandles.findward = {
+    btn,
+    show: () => {
+      btn.classList.add('locating');
+      import('./locate')
+        .then(({ openLocate }) =>
+          openLocate({ layerId: layer.id, config, sheet, btn, onClose: () => dispatchOverlay({ type: 'close' }) }),
+        )
+        .catch((e) => {
+          console.error('locate failed to load', e);
+          btn.classList.remove('locating');
+        });
+    },
+    hide: () => {
+      btn.classList.remove('locating');
+      import('./locate').then(({ closeLocate }) => closeLocate(sheet)).catch(() => {});
+    },
+  };
+
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    dispatchOverlay({ type: 'toggle', surface: 'findward' });
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
 
 export async function openLayer(layerId: string, opts: { titleEl: HTMLElement }) {
   resetOverlays();
-  const cat = (await getCatalog()) as { layers?: Layer[]; level_meta?: Record<string, { label?: string; seo_title?: string }> };
+  const cat = (await getCatalog()) as {
+    layers?: Layer[];
+    level_meta?: Record<string, { label?: string; seo_title?: string; locate_label?: string; locate_mode?: string }>;
+  };
   const layer = cat.layers?.find((l) => l.id === layerId);
   if (!layer) {
     opts.titleEl.textContent = `unknown layer: ${layerId}`;
@@ -774,6 +832,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
   wireDownloadButton(layer);
   wireBasemapButton();
+  wireLocateButton(layer, levelMeta);
 
   const container = document.getElementById('map')!;
   container.innerHTML = '';
@@ -788,11 +847,22 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     style: buildBaseStyle(activeBasemap),
     bounds: INDIA_BOUNDS,
     fitBoundsOptions: { padding: BASE_PADDING },
-    attributionControl: { compact: true },
+    attributionControl: false,
     preserveDrawingBuffer: true,
   });
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
-  map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
+  // Attribution as a compact (i) docked top-left, off the bottom bar; it expands
+  // on tap (satisfies the licence). Scale is desktop-only — on mobile it just
+  // clutters the bottom edge where the toolbar now lives.
+  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
+  if (!isMobileViewport()) map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
+  // MapLibre opens the compact attribution on load (a full-width credit strip
+  // over the map top). Collapse it to just the (i); it still expands on tap.
+  map.once('load', () => {
+    const a = container.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact');
+    a?.classList.remove('maplibregl-compact-show');
+    a?.removeAttribute('open');
+  });
 
   map.on('load', async () => {
     try {
@@ -820,6 +890,10 @@ export function closeLayer() {
   resetOverlays();
   const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
   if (btn) btn.classList.remove('shown');
+  const locateBtn = document.getElementById('map-locate');
+  locateBtn?.classList.remove('shown', 'locating');
+  const locateSheet = document.getElementById('locate-sheet');
+  if (locateSheet) { locateSheet.classList.remove('open'); locateSheet.innerHTML = ''; }
   document.querySelector('.filter-panel')?.remove();
   for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
 }

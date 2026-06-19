@@ -426,6 +426,44 @@
       #map-overlay button.filter-toggle:hover { border-color: var(--accent); color: var(--accent); }
       #map-overlay button.filter-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
 
+      /* Toolbar buttons carry an icon + a label. The desktop top bar shows the
+         label only (icon hidden) and reads exactly as before; the mobile bottom
+         toolbar (max-width:640px) stacks the icon over the label. */
+      .tbtn .tb-ico { display: none; }
+      .tbtn .tb-ico svg { width: 21px; height: 21px; display: block; }
+      .tb-pulse { display: none; position: absolute; inset: 0; }
+
+      /* Find-my-location result sheet. Hidden until JS opens it; a small fixed
+         card on desktop, a bottom sheet on mobile (see the 640px block). */
+      .locate-sheet { display: none; }
+      #map-overlay .locate-sheet.open {
+        display: block; position: absolute; left: 16px; bottom: 16px; z-index: 16;
+        width: min(340px, calc(100% - 32px));
+        background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.18); padding: 16px 18px;
+      }
+      .ls-kicker { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+        display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+      .ls-kicker svg { width: 14px; height: 14px; color: var(--accent); flex: 0 0 auto; }
+      .ls-name { font-size: 20px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 2px; line-height: 1.2; }
+      .ls-sub { color: var(--muted); margin: 0; font-size: 13px; }
+      .ls-dist { color: var(--accent); font-weight: 600; }
+      .ls-caveat { margin: 8px 0 0; font-size: 12px; color: var(--muted);
+        background: var(--card-bg); border-radius: 6px; padding: 8px 11px; }
+      .ls-actions { display: flex; gap: 8px; margin-top: 14px; }
+      .ls-actions button { flex: 1; min-height: 44px; cursor: pointer;
+        font: 600 13px/1 ui-sans-serif, system-ui, sans-serif; border-radius: 6px;
+        border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+      .ls-actions button:hover { border-color: var(--accent); color: var(--accent); }
+      .ls-actions button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+      .ls-close { position: absolute; top: 8px; right: 12px; background: none; border: none;
+        color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }
+      .ls-msg { color: var(--muted); font-size: 14px; }
+      .ls-spinner { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px;
+        border: 2px solid var(--line); border-top-color: var(--accent); border-radius: 50%;
+        animation: ls-spin .8s linear infinite; }
+      @keyframes ls-spin { to { transform: rotate(360deg); } }
+
       /* Action group. display:contents on desktop is a passthrough — the
          buttons flow in the header exactly as before. On mobile (max-width:640px)
          it becomes the fixed bottom toolbar. */
@@ -700,19 +738,43 @@
           z-index: 15;
         }
         .map-actions .map-pop-wrap { flex: 1; display: flex; }
-        /* #map-overlay-prefixed so these win over the id-specificity desktop
-           rules (#map-overlay button.filter-toggle { font: inherit; padding }).
-           12px + tight padding shrinks "Filter & export" so it sits comfortably
-           inside its grown flex slot at >=360px (content-sized, no min-width:0,
-           so no ellipsis) and can't spill past the button to clip at the edge. */
-        #map-overlay .map-actions .map-pop-wrap > button,
-        #map-overlay .map-actions > #map-filter {
-          flex: 1; width: 100%;
-          min-height: 44px;
-          font-size: 12px;
-          padding: 6px 8px;
-          white-space: nowrap;
-          text-align: center;
+        /* All four toolbar items are icon-over-label, borderless, equal-width.
+           `#map-overlay ... button.tbtn` beats the id-specificity rules
+           `#map-overlay button.filter-toggle.shown { display:inline-block }`
+           and `{ font:inherit; padding }`, so display:flex + our sizing win. */
+        #map-overlay .map-actions > button.tbtn { flex: 1; }
+        #map-overlay .map-actions button.tbtn {
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          gap: 3px; width: 100%; min-height: 48px;
+          border: none; background: transparent; padding: 4px 2px;
+          font-size: 11px; color: var(--fg); white-space: nowrap;
+        }
+        #map-overlay .map-actions button.tbtn .tb-ico { display: grid; place-items: center; position: relative; }
+        #map-overlay .map-actions button.tbtn .tb-ico svg { color: var(--muted); }
+        #map-overlay .map-actions button.tbtn:hover { background: var(--card-bg); }
+        #map-overlay .map-actions button.tbtn:hover .tb-ico svg,
+        #map-overlay .map-actions button.tbtn[aria-expanded="true"] .tb-ico svg { color: var(--accent); }
+        #map-overlay .map-actions button.tbtn[aria-expanded="true"] { color: var(--accent); }
+
+        /* locate radar ping while geolocating */
+        #map-locate.locating .tb-ico svg { color: var(--accent); }
+        #map-locate.locating .tb-pulse { display: block; }
+        #map-locate.locating .tb-pulse::before,
+        #map-locate.locating .tb-pulse::after {
+          content: ""; position: absolute; left: 50%; top: 50%; width: 18px; height: 18px; margin: -9px;
+          border-radius: 50%; border: 2px solid var(--accent);
+          animation: tb-ping 1.3s ease-out infinite;
+        }
+        #map-locate.locating .tb-pulse::after { animation-delay: .65s; }
+        @keyframes tb-ping { 0% { transform: scale(.35); opacity: .9; } 100% { transform: scale(2.4); opacity: 0; } }
+
+        /* locate result sheet → bottom sheet above the toolbar */
+        #map-overlay .locate-sheet.open {
+          left: 0; right: 0; bottom: var(--map-toolbar-h); width: 100%;
+          border: none; border-top: 1px solid var(--line);
+          border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,0.18);
+          padding: 14px 18px calc(18px + env(safe-area-inset-bottom));
+          animation: filter-slide-up 220ms ease;
         }
 
         /* Basemap / Download render as bottom sheets sitting on the toolbar.
@@ -847,19 +909,21 @@
         <span class="map-title" id="map-title">map</span>
         <div class="map-actions">
           <div class="map-pop-wrap">
-            <button class="filter-toggle" id="map-basemap" aria-label="Choose base map" aria-expanded="false" aria-haspopup="menu">Base map</button>
+            <button class="filter-toggle tbtn" id="map-basemap" aria-label="Choose base map" aria-expanded="false" aria-haspopup="menu"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tb-label">Base map</span></button>
             <div class="map-popover" id="map-basemap-popover" role="menu"></div>
           </div>
           <div class="map-pop-wrap">
-            <button class="filter-toggle" id="map-download" aria-label="Download this layer" aria-expanded="false" aria-haspopup="menu">Download</button>
+            <button class="filter-toggle tbtn" id="map-download" aria-label="Download this layer" aria-expanded="false" aria-haspopup="menu"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg></span><span class="tb-label">Download</span></button>
             <div class="map-popover" id="map-download-popover" role="menu"></div>
           </div>
-          <button class="filter-toggle" id="map-filter">Filter &amp; export</button>
+          <button class="filter-toggle tbtn" id="map-filter"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="tb-label">Filter</span></button>
+          <button class="filter-toggle tbtn locate-btn" id="map-locate"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg><span class="tb-pulse" aria-hidden="true"></span></span><span class="tb-label">Locate</span></button>
         </div>
         <button class="close" id="map-close">← back</button>
       </header>
       <div id="map"><div id="map-loading">loading map…</div></div>
       <div class="map-scrim" id="map-scrim" aria-hidden="true"></div>
+      <div class="locate-sheet" id="locate-sheet" role="dialog" aria-modal="false" aria-hidden="true"></div>
     </div>
 
     <!-- CATALOG_INLINE -->
