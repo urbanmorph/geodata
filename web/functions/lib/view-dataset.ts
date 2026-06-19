@@ -43,6 +43,9 @@ export type ViewDataset = {
   ogImage: string;
   jsonLd: Record<string, unknown>;
   breadcrumbJsonLd: Record<string, unknown>;
+  /** Ward pages only: a HowTo "find your ward number" block for AEO / the
+   * "how to find my ward number in <city>" query. Omitted elsewhere. */
+  howToJsonLd?: Record<string, unknown>;
 };
 
 const META_DESC_MAX = 158;
@@ -124,6 +127,36 @@ function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> 
   return out;
 }
 
+// Ward pages get a task-framed snippet + a HowTo, matching the real GSC
+// queries ("which ward is my location", "[city] ward map", "ward number/name",
+// "how to find my ward number in <city>") instead of the dataset-framed
+// "Map of N wards… download GeoJSON" that was leaking the click. `subject` is
+// the seo_title's "<City> Ward Map" prefix (split on ":"); `place` is that minus
+// "Ward Map". Kept ≤158 chars by construction so the snippet never truncates.
+export function wardSeo(seoTitle: string, count: string | null): {
+  description: string;
+  howTo: Record<string, unknown>;
+} {
+  const subject = seoTitle.split(':')[0].trim() || seoTitle.trim();
+  const place = subject.replace(/\s*ward map\s*$/i, '').trim() || subject;
+  const n = count ? `${count} ` : '';
+  return {
+    description:
+      `Which ward is your location in? Tap the map for your ward number and name. ` +
+      `${n}${place} wards with area names, free to view or download.`,
+    howTo: {
+      '@context': 'https://schema.org',
+      '@type': 'HowTo',
+      name: `How to find your ward number in ${place}`,
+      step: [
+        { '@type': 'HowToStep', name: 'Open the ward map', text: `Open the ${subject} on bharatlas.` },
+        { '@type': 'HowToStep', name: 'Tap your location', text: 'Tap "My ward" and allow location access.' },
+        { '@type': 'HowToStep', name: 'Read your ward', text: 'Your ward number and name appear on the map.' },
+      ],
+    },
+  };
+}
+
 export function buildViewDataset(
   layer: CatalogLayer,
   levelMeta: LevelMeta | undefined,
@@ -132,7 +165,12 @@ export function buildViewDataset(
   const title = levelMeta?.seo_title || levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
   const unit = levelMeta?.unit || 'features';
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
+  // Ward layers are the #1 search intent ("which ward am I in"); override the
+  // dataset-framed snippet with a task-framed one + HowTo. Titles stay as-is —
+  // they already match the dominant "<city> ward map" / "<corp> ward map" query.
+  const ward = /^wards_/.test(layer.id) ? wardSeo(title, count) : null;
   const baseDescription =
+    ward?.description ??
     levelMeta?.seo_description ??
     levelMeta?.description ??
     (layer.description || `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
@@ -181,6 +219,7 @@ export function buildViewDataset(
         { '@type': 'ListItem', position: 3, name: title, item: canonical },
       ],
     },
+    ...(ward ? { howToJsonLd: ward.howTo } : {}),
   };
 }
 
