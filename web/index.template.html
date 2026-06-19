@@ -81,10 +81,16 @@
         background: transparent;
         color: var(--muted);
         cursor: pointer;
+        touch-action: manipulation;
         transition: all 120ms ease;
         white-space: nowrap;
       }
-      .catalog-chip:hover { color: var(--fg); border-color: var(--fg); }
+      /* :hover only on real pointers. On iOS the first tap lands as a hover, not
+         a click, so the pill highlighted (white outline) but never filtered —
+         the click was swallowed. Removing touch :hover lets the first tap fire. */
+      @media (hover: hover) {
+        .catalog-chip:hover { color: var(--fg); border-color: var(--fg); }
+      }
       .catalog-chip.active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
       .catalog-chip[data-count="0"] { opacity: .4; cursor: not-allowed; }
       .catalog-chip .count { color: inherit; margin-left: 4px; font-variant-numeric: tabular-nums; font-weight: 500; }
