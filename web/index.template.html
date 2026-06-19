@@ -457,10 +457,14 @@
       .ls-caveat { margin: 8px 0 0; font-size: 12px; color: var(--muted);
         background: var(--card-bg); border-radius: 6px; padding: 8px 11px; }
       .ls-actions { display: flex; gap: 8px; margin-top: 14px; }
-      .ls-actions button { flex: 1; min-height: 44px; cursor: pointer;
+      .ls-actions button { flex: 1; min-height: 44px; cursor: pointer; touch-action: manipulation;
         font: 600 13px/1 ui-sans-serif, system-ui, sans-serif; border-radius: 6px;
         border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
-      .ls-actions button:hover { border-color: var(--accent); color: var(--accent); }
+      /* :hover only on real pointers — on iOS the first tap would land as hover,
+         not a click (same trap that broke the catalog pills). */
+      @media (hover: hover) {
+        .ls-actions button:hover { border-color: var(--accent); color: var(--accent); }
+      }
       .ls-actions button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
       .ls-close { position: absolute; top: 8px; right: 12px; background: none; border: none;
         color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }

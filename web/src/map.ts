@@ -20,6 +20,7 @@ import { resolveLocateConfig } from './locate-config';
 // user-gesture window, which mobile Chrome silently drops (no prompt, no sheet).
 // locate is tiny and folds into this already-lazy map chunk.
 import { openLocate, closeLocate } from './locate';
+import { buildFeatureFilter, parseAtParam } from './locate-actions';
 
 type Layer = {
   id: string;
@@ -52,6 +53,24 @@ let map: MlMap | null = null;
 let filterAbort: AbortController | null = null;
 let activeBasemap: BasemapId = 'minimal';
 let layerBounds: [number, number, number, number] = INDIA_BOUNDS;
+// Source-layer + level of the open layer, used by the locate "Zoom to it"
+// highlight (filter the same source; pick a sensible arrival zoom by level).
+let currentSourceLayer: string | undefined;
+let currentLayerLevel: string | null = null;
+// Coords from a shared ?at=lat,lng link, consumed by the next locate show()
+// so the deep-link reproduces the result without the visitor's own GPS.
+let pendingLocateCoords: { lat: number; lng: number } | null = null;
+
+// Arrival zoom for "Zoom to it", keyed by layer level. A best-effort fitBounds
+// then tightens to the actual feature; this just gets us close enough that the
+// feature's tiles are loaded for that fit. Wards default to 13, else 11.
+const LEVEL_ZOOM: Record<string, number> = {
+  state: 6, district: 9, subdistrict: 10, block: 11, panchayat: 12, village: 13,
+  assembly_constituency: 9, parliament_constituency: 8, seismic_zone: 7, eco_zone: 7,
+  health_facility: 14, airport: 11,
+};
+const arrivalZoom = (level: string | null): number =>
+  (level && LEVEL_ZOOM[level]) || (level && /^wards_/.test(level) ? 13 : 11);
 
 // ---------------------------------------------------------------------------
 // Single-open overlay controller
@@ -181,7 +200,7 @@ function asBounds(b: [number, number, number, number]): [[number, number], [numb
 
 function flyTo(
   bounds: [number, number, number, number],
-  opts?: { padding?: Record<string, number>; duration?: number },
+  opts?: { padding?: Padding; duration?: number },
 ): void {
   if (!map) return;
   map.fitBounds(asBounds(bounds), {
@@ -283,6 +302,65 @@ function addDataLayers(sourceId: string, sourceLayer?: string) {
 }
 
 // ---------------------------------------------------------------------------
+// Locate "Zoom to it" — highlight the located feature + frame it
+// ---------------------------------------------------------------------------
+
+const HL_LAYERS = ['locate-hl-fill', 'locate-hl-line', 'locate-hl-circle'];
+const HL_ACCENT = '#f59e0b'; // amber — stands out against the blue data layers
+
+function clearLocateHighlight(): void {
+  if (!map) return;
+  for (const id of HL_LAYERS) if (map.getLayer(id)) map.removeLayer(id);
+}
+
+// Highlight the located feature in accent so it reads as "this one" among its
+// neighbours (which stay rendered normally), then fly to it. Polygon → fill +
+// line; point → circle (whichever the geometry matches paints; the others are
+// no-ops). Called from the result sheet's "Zoom to it" with the user's point
+// (contains) or the feature's point (nearest).
+function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: number): void {
+  if (!map) return;
+  clearLocateHighlight();
+  const filter = buildFeatureFilter(props);
+  const common = currentSourceLayer ? { 'source-layer': currentSourceLayer } : {};
+  if (filter) {
+    map.addLayer({ id: 'locate-hl-fill', type: 'fill', source: 'layer', ...common, filter: filter as never,
+      paint: { 'fill-color': HL_ACCENT, 'fill-opacity': 0.3 } });
+    map.addLayer({ id: 'locate-hl-line', type: 'line', source: 'layer', ...common, filter: filter as never,
+      paint: { 'line-color': HL_ACCENT, 'line-opacity': 1,
+        'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 12, 3.5] } });
+    // Circle only for point geometries — otherwise it beads every polygon vertex.
+    map.addLayer({ id: 'locate-hl-circle', type: 'circle', source: 'layer', ...common,
+      filter: ['all', POINT_GEOM_FILTER, ...filter.slice(1)] as never,
+      paint: { 'circle-color': HL_ACCENT, 'circle-stroke-width': 2, 'circle-stroke-color': '#fff',
+        'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 6, 14, 11] } });
+  }
+
+  const z = arrivalZoom(currentLayerLevel);
+  map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), z), duration: 700 });
+
+  // Best-effort tighten to the feature's real bounds once tiles settle.
+  // querySourceFeatures returns tile-clipped geometry, but the union bbox frames
+  // the feature well when its tiles are loaded (they are, after the flyTo). A
+  // point's bbox is ~zero-area, so we leave the flyTo zoom in that case.
+  if (!filter) return;
+  map.once('idle', () => {
+    if (!map) return;
+    try {
+      const feats = map.querySourceFeatures('layer', {
+        ...(currentSourceLayer ? { sourceLayer: currentSourceLayer } : {}),
+        filter: filter as never,
+      });
+      if (!feats.length) return;
+      const b = featureCollectionBounds({ type: 'FeatureCollection', features: feats } as unknown as FC);
+      if (!b) return;
+      if (b[2] - b[0] < 1e-4 && b[3] - b[1] < 1e-4) return; // a point — already framed
+      map.fitBounds(asBounds(b), { padding: panelAwarePadding(), maxZoom: 15, duration: 500 });
+    } catch { /* query/fit is best-effort */ }
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Popup
 // ---------------------------------------------------------------------------
 
@@ -357,6 +435,7 @@ async function attachData(layer: Layer) {
     const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
     if (!vlayers.length) throw new Error('pmtiles has no vector_layers');
     const sourceLayer = vlayers[0].id;
+    currentSourceLayer = sourceLayer;
 
     map.addSource('layer', {
       type: 'vector',
@@ -387,6 +466,7 @@ async function attachData(layer: Layer) {
     } catch {
       // network/parse failure → fall back to the URL load + India bounds
     }
+    currentSourceLayer = undefined;
     map.addSource('layer', { type: 'geojson', data: data as never, attribution: layer.source });
     addDataLayers('layer');
   } else {
@@ -495,7 +575,7 @@ function applyActiveFilters(
   for (const id of DATA_LAYERS) {
     if (!map.getLayer(id)) continue;
     if (id === 'point') {
-      map.setFilter(id, mapFilter ? ['all', POINT_GEOM_FILTER, mapFilter as maplibregl.FilterSpecification] : POINT_GEOM_FILTER);
+      map.setFilter(id, mapFilter ? (['all', POINT_GEOM_FILTER, mapFilter] as unknown as maplibregl.FilterSpecification) : POINT_GEOM_FILTER);
     } else {
       map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
     }
@@ -787,7 +867,13 @@ function wireLocateButton(
       btn.classList.add('locating');
       // Synchronous: opens the sheet ("Locating you…") and fires
       // getCurrentPosition in the same tap, so the prompt actually appears.
-      openLocate({ layerId: layer.id, config, sheet, btn, onClose: () => dispatchOverlay({ type: 'close' }) });
+      openLocate({
+        layerId: layer.id, config, sheet, btn,
+        onZoom: highlightAndZoom,
+        coords: pendingLocateCoords ?? undefined,
+        onClose: () => dispatchOverlay({ type: 'close' }),
+      });
+      pendingLocateCoords = null;
     },
     hide: () => {
       btn.classList.remove('locating');
@@ -832,6 +918,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
   wireDownloadButton(layer);
   wireBasemapButton();
+  currentLayerLevel = layer.level;
   wireLocateButton(layer, levelMeta);
 
   const container = document.getElementById('map')!;
@@ -868,7 +955,17 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     try {
       await attachData(layer);
       await addLgdOverlay(cat.layers ?? [], layer.id);
-      map.once('idle', () => loader.dismiss());
+      if (!map) return; // closeLayer may have run during the awaits
+      map.once('idle', () => {
+        loader.dismiss();
+        // ?at=lat,lng deep-link (from Share): reproduce the located result and
+        // zoom/highlight using the shared coords, not the visitor's own GPS.
+        const at = parseAtParam(new URLSearchParams(location.search).get('at'));
+        if (at && surfaceHandles.findward) {
+          pendingLocateCoords = at;
+          dispatchOverlay({ type: 'toggle', surface: 'findward' });
+        }
+      });
     } catch (e) {
       console.error('attachData failed', e);
       const c = document.getElementById('map')!;
