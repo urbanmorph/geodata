@@ -33,7 +33,7 @@ const LEVEL_LOCATE: Record<string, LocateConfig> = {
   eco_zone: { label: 'Eco-zone', mode: 'contains' },
   // 1c: point layers use `nearest` (a GPS fix is never *inside* a point) — the
   // endpoint returns the closest feature + distance + bearing.
-  health_facility: { label: 'Nearest PHC', mode: 'nearest' },
+  health_facility: { label: 'Health nearby', mode: 'nearest' },
   airport: { label: 'Nearest airport', mode: 'nearest' },
 };
 

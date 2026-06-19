@@ -25,7 +25,7 @@ describe('resolveLocateConfig', () => {
   });
 
   it('enables point layers as nearest (1c)', () => {
-    expect(resolveLocateConfig({ id: 'nic_health', level: 'health_facility' })).toEqual({ label: 'Nearest PHC', mode: 'nearest' });
+    expect(resolveLocateConfig({ id: 'nic_health', level: 'health_facility' })).toEqual({ label: 'Health nearby', mode: 'nearest' });
     expect(resolveLocateConfig({ id: 'airports', level: 'airport' })).toEqual({ label: 'Nearest airport', mode: 'nearest' });
   });
 
