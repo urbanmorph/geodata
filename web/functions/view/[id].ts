@@ -44,7 +44,7 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   }
 
   const levelMeta = resolveLevelMeta(layer, catalog.level_meta);
-  const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd } = buildViewDataset(
+  const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd, howToJsonLd } = buildViewDataset(
     layer,
     levelMeta,
     CANONICAL_ORIGIN,
@@ -69,6 +69,10 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
         el.setInnerContent(JSON.stringify(jsonLd).replace(/</g, '\\u003c'), { html: true });
         const bc = JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c');
         el.after(`\n    <script type="application/ld+json">${bc}</script>`, { html: true });
+        if (howToJsonLd) {
+          const ht = JSON.stringify(howToJsonLd).replace(/</g, '\\u003c');
+          el.after(`\n    <script type="application/ld+json">${ht}</script>`, { html: true });
+        }
       },
     })
     .on('body', {
