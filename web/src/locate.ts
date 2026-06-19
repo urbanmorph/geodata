@@ -5,6 +5,7 @@
 
 import { pickFeatureName } from './locate-format';
 import type { LocateConfig } from './locate-config';
+import { escapeHtml } from './util';
 
 type LocateApiResponse = {
   mode: 'contains' | 'nearest';
@@ -13,9 +14,6 @@ type LocateApiResponse = {
   bearing?: string;
   out_of_coverage?: boolean;
 };
-
-const esc = (s: string): string =>
-  s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c] as string);
 
 const PIN =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>';
@@ -36,8 +34,13 @@ export function openLocate(opts: {
     sheet.innerHTML = `<button class="ls-close" type="button" aria-label="Close">×</button>${html}`;
     sheet.querySelector('.ls-close')?.addEventListener('click', onClose);
   };
-  const msg = (t: string) => `<p class="ls-msg">${esc(t)}</p>`;
-  const kicker = (t: string) => `<div class="ls-kicker">${PIN}<span>${esc(t)}</span></div>`;
+  const msg = (t: string) => `<p class="ls-msg">${escapeHtml(t)}</p>`;
+  // The result card is always kicker + name heading + optional sub line; only
+  // the copy changes (a hit, a miss, or "outside coverage"). nameHtml/subHtml
+  // are pre-escaped by the caller since each varies in what it wraps.
+  const result = (kickerText: string, nameHtml: string, subHtml = '') =>
+    render(`<div class="ls-kicker">${PIN}<span>${escapeHtml(kickerText)}</span></div>` +
+      `<h2 class="ls-name">${nameHtml}</h2>${subHtml}`);
 
   render(`<p class="ls-msg"><span class="ls-spinner"></span>Locating you…</p>`);
 
@@ -57,8 +60,7 @@ export function openLocate(opts: {
         );
         if (r.status === 400) {
           // outside India bbox — the only 400 the endpoint returns for valid coords
-          render(kicker('Outside coverage') +
-            `<h2 class="ls-name">You're outside this layer's area</h2>` +
+          result('Outside coverage', "You're outside this layer's area",
             `<p class="ls-sub">This data covers India.</p>`);
           return;
         }
@@ -78,18 +80,17 @@ export function openLocate(opts: {
   );
 
   function renderResult(data: LocateApiResponse) {
+    const isNearest = data.mode === 'nearest';
     if (!data.feature) {
-      render(kicker(data.mode === 'nearest' ? 'Nothing nearby' : 'Not found') +
-        `<h2 class="ls-name">You're outside this layer's area</h2>` +
-        `<p class="ls-sub">No feature ${data.mode === 'nearest' ? 'within range' : 'contains your location'} here.</p>`);
+      result(isNearest ? 'Nothing nearby' : 'Not found', "You're outside this layer's area",
+        `<p class="ls-sub">No feature ${isNearest ? 'within range' : 'contains your location'} here.</p>`);
       return;
     }
-    const name = pickFeatureName(data.feature.properties);
-    const sub = data.mode === 'nearest' && data.distance_km != null
-      ? `<p class="ls-sub"><span class="ls-dist">${data.distance_km} km${data.bearing ? ' ' + esc(data.bearing) : ''}</span></p>`
+    const name = escapeHtml(pickFeatureName(data.feature.properties));
+    const sub = isNearest && data.distance_km != null
+      ? `<p class="ls-sub"><span class="ls-dist">${data.distance_km} km${data.bearing ? ' ' + escapeHtml(data.bearing) : ''}</span></p>`
       : '';
-    render(kicker(data.mode === 'nearest' ? 'Nearest to you' : 'You are here') +
-      `<h2 class="ls-name">${esc(name)}</h2>${sub}`);
+    result(isNearest ? 'Nearest to you' : 'You are here', name, sub);
   }
 }
 
