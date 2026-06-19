@@ -133,17 +133,25 @@ function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> 
 // "Map of N wards… download GeoJSON" that was leaking the click. `subject` is
 // the seo_title's "<City> Ward Map" prefix (split on ":"); `place` is that minus
 // "Ward Map". Kept ≤158 chars by construction so the snippet never truncates.
-export function wardSeo(seoTitle: string, count: string | null): {
+// `origDescription` is the layer's hand-authored seo_description — its
+// "boundaries and names" vs "…and numbers" wording is the only signal we have
+// (the catalog carries no column schema) for whether the layer actually has
+// area names. Only claim "name" / "area names" when it's there; never promise
+// data the layer doesn't have. Data is what it is.
+export function wardSeo(seoTitle: string, count: string | null, origDescription?: string): {
   description: string;
   howTo: Record<string, unknown>;
 } {
   const subject = seoTitle.split(':')[0].trim() || seoTitle.trim();
   const place = subject.replace(/\s*ward map\s*$/i, '').trim() || subject;
   const n = count ? `${count} ` : '';
+  const named = /\bnames?\b/i.test(origDescription || '');
+  const youGet = named ? 'ward number and name' : 'ward number';
+  const tail = named ? `${n}${place} wards with area names` : `${n}${place} wards`;
   return {
     description:
-      `Which ward is your location in? Tap the map for your ward number and name. ` +
-      `${n}${place} wards with area names, free to view or download.`,
+      `Which ward is your location in? Tap the map for your ${youGet}. ` +
+      `${tail}, free to view or download.`,
     howTo: {
       '@context': 'https://schema.org',
       '@type': 'HowTo',
@@ -151,7 +159,8 @@ export function wardSeo(seoTitle: string, count: string | null): {
       step: [
         { '@type': 'HowToStep', name: 'Open the ward map', text: `Open the ${subject} on bharatlas.` },
         { '@type': 'HowToStep', name: 'Tap your location', text: 'Tap "My ward" and allow location access.' },
-        { '@type': 'HowToStep', name: 'Read your ward', text: 'Your ward number and name appear on the map.' },
+        { '@type': 'HowToStep', name: 'Read your ward',
+          text: named ? 'Your ward number and name appear on the map.' : 'Your ward number appears on the map.' },
       ],
     },
   };
@@ -168,7 +177,7 @@ export function buildViewDataset(
   // Ward layers are the #1 search intent ("which ward am I in"); override the
   // dataset-framed snippet with a task-framed one + HowTo. Titles stay as-is —
   // they already match the dominant "<city> ward map" / "<corp> ward map" query.
-  const ward = /^wards_/.test(layer.id) ? wardSeo(title, count) : null;
+  const ward = /^wards_/.test(layer.id) ? wardSeo(title, count, levelMeta?.seo_description) : null;
   const baseDescription =
     ward?.description ??
     levelMeta?.seo_description ??
