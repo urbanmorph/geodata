@@ -333,8 +333,8 @@ if (searchInput && grid) {
 // always current (no catalog.json drift). Patches the prerendered
 // count spans in-place; if the fetch fails, baked values remain.
 fetch('/api/dl/counts')
-  .then((r) => (r.ok ? r.json() : null))
-  .then((counts: Record<string, Record<string, number> | number> | null) => {
+  .then((r) => (r.ok ? (r.json() as Promise<Record<string, Record<string, number> | number>>) : null))
+  .then((counts) => {
     if (!counts) return;
 
     // Patch per-format badges: <span class="count" title="N downloads">N</span>
@@ -365,7 +365,7 @@ fetch('/api/dl/counts')
           span.textContent = fmtCount(n);
           // Insert after the size span (link → size-span → count-span)
           const sizeSpan = link.nextElementSibling;
-          if (sizeSpan) sizeSpan.after(span);
+          if (sizeSpan) sizeSpan.insertAdjacentElement('afterend', span);
         }
       }
     }
@@ -390,8 +390,8 @@ fetch('/api/dl/counts')
 // without waiting for the next prerender. Missing entries mean 0 votes —
 // leave the baked default alone.
 fetch('/api/c/useful-counts')
-  .then((r) => (r.ok ? r.json() : null))
-  .then((counts: Record<string, number> | null) => {
+  .then((r) => (r.ok ? (r.json() as Promise<Record<string, number>>) : null))
+  .then((counts) => {
     if (!counts) return;
     for (const card of document.querySelectorAll<HTMLElement>('.comm-card[data-id]')) {
       const id = card.dataset.id || '';

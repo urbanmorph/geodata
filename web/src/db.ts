@@ -47,7 +47,7 @@ export async function exportFilteredParquet(selectSql: string, basename: string)
     await conn.query(`COPY (${selectSql}) TO '${tmp}' (FORMAT PARQUET, COMPRESSION ZSTD)`);
     const buf = await db.copyFileToBuffer(tmp);
     await db.dropFile(tmp);
-    return new Blob([buf], { type: 'application/octet-stream' });
+    return new Blob([buf as BlobPart], { type: 'application/octet-stream' });
   } finally {
     await conn.close();
   }
