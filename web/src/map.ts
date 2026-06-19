@@ -69,8 +69,13 @@ const LEVEL_ZOOM: Record<string, number> = {
   assembly_constituency: 9, parliament_constituency: 8, seismic_zone: 7, eco_zone: 7,
   health_facility: 14, airport: 11,
 };
-const arrivalZoom = (level: string | null): number =>
-  (level && LEVEL_ZOOM[level]) || (level && /^wards_/.test(level) ? 13 : 11);
+function arrivalZoom(level: string | null): number {
+  if (!level) return 11;
+  const z = LEVEL_ZOOM[level]; // own-prop number, or inherited junk like toString
+  if (typeof z === 'number') return z;
+  if (/^wards_/.test(level)) return 13; // ward layers aren't in the table
+  return 11;
+}
 
 // ---------------------------------------------------------------------------
 // Single-open overlay controller
@@ -336,8 +341,8 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 6, 14, 11] } });
   }
 
-  const z = arrivalZoom(currentLayerLevel);
-  map.flyTo({ center: [lng, lat], zoom: Math.max(map.getZoom(), z), duration: 700 });
+  const targetZoom = Math.max(map.getZoom(), arrivalZoom(currentLayerLevel));
+  map.flyTo({ center: [lng, lat], zoom: targetZoom, duration: 700 });
 
   // Best-effort tighten to the feature's real bounds once tiles settle.
   // querySourceFeatures returns tile-clipped geometry, but the union bbox frames
