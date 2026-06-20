@@ -2,6 +2,7 @@
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose, shouldRestoreCategory } from './embed-snippet';
 import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
+import { blurFocusWithin } from './focus-utils';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
 // injects is NOT removed on hydrate — doing so shrank the body and was the
@@ -67,6 +68,10 @@ async function hideMap() {
   // resulting shift is excluded from CLS — which is why we restore here rather
   // than on the /view/<id> load (that would shift content Chrome still counts).
   restoreSavedCategory?.();
+  // Move focus out of the overlay BEFORE hiding it from assistive tech — closing
+  // via #map-close leaves focus on a descendant, and aria-hidden on its ancestor
+  // is blocked by the browser (see focus-utils).
+  blurFocusWithin(overlay);
   overlay.classList.remove('open');
   overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';

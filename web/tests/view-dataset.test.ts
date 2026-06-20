@@ -264,6 +264,15 @@ describe('buildViewContent', () => {
     expect(html).toContain('&lt;script&gt;');
   });
 
+  it('uses theme-aware .view-seo classes, never hardcoded inline colors', () => {
+    // Hardcoded light-theme hex (color:#444 / #0a58ca) failed WCAG contrast in
+    // dark mode and gave no-JS readers low-contrast text. Styling now lives in
+    // the .view-seo CSS (var(--fg)/--muted/--accent). Guard against regressing.
+    const html = buildViewContent(layer, { label: 'X', description: 'd' }, ORIGIN);
+    expect(html).toContain('class="view-seo"');
+    expect(html).not.toMatch(/color:\s*#/i);
+  });
+
   it('includes canonical link to the view page', () => {
     const html = buildViewContent(layer, undefined, ORIGIN);
     expect(html).toContain(`${ORIGIN}/view/lgd_villages`);

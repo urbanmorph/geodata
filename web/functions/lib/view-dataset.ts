@@ -260,9 +260,12 @@ export function buildViewContent(
     }
   }
 
-  return `<article class="view-seo" style="max-width:720px;margin:80px auto;padding:0 24px;font:15px/1.6 ui-sans-serif,system-ui,sans-serif;color:#444">
-  <p style="font-size:13px;color:#888"><a href="/" style="color:#0a58ca">bharatlas</a> / <a href="/" style="color:#0a58ca">catalog</a> / ${esc(title)}</p>
-  <h1 style="font-size:24px;font-weight:600;margin:8px 0">${esc(title)}</h1>
+  // Colors/layout live in the .view-seo CSS in index.template.html (theme-aware
+  // via tokens) — NOT inline hex, which fails contrast in dark mode and gives
+  // no-JS readers low-contrast text. Links are underlined there too.
+  return `<article class="view-seo">
+  <p class="view-seo__crumb"><a href="/">bharatlas</a> / <a href="/">catalog</a> / ${esc(title)}</p>
+  <h1>${esc(title)}</h1>
   <p>${count ? `<strong>${count}</strong> ${esc(unit)}` : ''} ${layer.source ? `· Source: ${esc(layer.source)}` : ''} ${layer.licence ? `· Licence: ${esc(layer.licence)}` : ''}</p>
   ${desc ? `<p>${esc(desc)}</p>` : ''}
   ${downloads.length ? `<p>Download: ${downloads.join(' · ')}</p>` : ''}
