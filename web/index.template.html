@@ -414,6 +414,17 @@
         .catalog-chip { padding: 6px 13px; }
       }
 
+      /* Crawler / no-JS SEO article injected on /view/<id> (sits behind the map
+         overlay). Theme-aware tokens so it meets WCAG contrast in dark mode and
+         reads correctly for no-JS users; links underlined to be distinguishable
+         from body text (was hardcoded #444/#0a58ca inline — failed both). */
+      .view-seo { max-width: 720px; margin: 80px auto; padding: 0 24px;
+        font: 15px/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--fg); }
+      .view-seo h1 { font-size: 24px; font-weight: 600; margin: 8px 0; }
+      .view-seo p { margin: 8px 0; }
+      .view-seo__crumb { font-size: 13px; color: var(--muted); }
+      .view-seo a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+
       /* Map overlay */
       #map-overlay {
         position: fixed; inset: 0; background: var(--bg); z-index: 10;

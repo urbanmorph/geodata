@@ -8,6 +8,7 @@ import { pickFeatureName } from './locate-format';
 import type { LocateConfig } from './locate-config';
 import { escapeHtml } from './util';
 import { shareUrl } from './locate-actions';
+import { blurFocusWithin } from './focus-utils';
 
 type LocateApiResponse = {
   mode: 'contains' | 'nearest';
@@ -139,6 +140,9 @@ export function openLocate(opts: {
 }
 
 export function closeLocate(sheet: HTMLElement): void {
+  // Blur the focused control (share/close button) before hiding the sheet from
+  // assistive tech — same browser block as the map overlay (see focus-utils).
+  blurFocusWithin(sheet);
   sheet.classList.remove('open');
   sheet.setAttribute('aria-hidden', 'true');
   sheet.innerHTML = '';
