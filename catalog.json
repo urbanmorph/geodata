@@ -398,7 +398,7 @@
       "source_org": "Greater Bengaluru Authority",
       "notes": "Latest GBA delimitation. Pair with the 5-corp polygons for parent grouping.",
       "seo_title": "Bengaluru Ward Map: 369 wards (GBA 2025)",
-      "seo_description": "Map of all 369 Greater Bengaluru wards (GBA, notified Nov 2025) across 5 corporations. View boundaries and download as GeoJSON, KML or Parquet."
+      "seo_description": "Map of all 369 Greater Bengaluru wards (GBA, notified Nov 2025) across 5 corporations. View ward boundaries and names; download as GeoJSON, KML or Parquet."
     },
     "corporation_bengaluru": {
       "label": "Greater Bengaluru Corporations (2025)",
@@ -416,7 +416,7 @@
       "source_org": "BBMP",
       "notes": "Use the GBA 2025 layer for current ward boundaries.",
       "seo_title": "BBMP Ward Map: 243 wards (Bengaluru, 2022)",
-      "seo_description": "Map of 243 BBMP wards from Bengaluru's 2022 draft delimitation (historical, superseded by the 2025 GBA scheme). Download as GeoJSON or KML."
+      "seo_description": "Map of 243 BBMP wards from Bengaluru's 2022 draft delimitation (historical, superseded by the 2025 GBA scheme). View ward boundaries and names; download as GeoJSON or KML."
     },
     "bda_jurisdiction": {
       "label": "BDA Jurisdiction",
@@ -452,7 +452,7 @@
       "source_org": "Greater Hyderabad Municipal Corporation",
       "notes": "",
       "seo_title": "Hyderabad Ward Map: 145 wards (GHMC)",
-      "seo_description": "Interactive map of all 145 wards in Hyderabad (GHMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 145 wards in Hyderabad (GHMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_mumbai": {
       "label": "Mumbai (BMC) Wards",
@@ -462,7 +462,7 @@
       "source_org": "Brihanmumbai Municipal Corporation",
       "notes": "",
       "seo_title": "Mumbai Ward Map: 24 wards (BMC)",
-      "seo_description": "Interactive map of all 24 wards in Mumbai (BMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 24 wards in Mumbai (BMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "electoral_wards_mumbai_2017": {
       "label": "Mumbai Electoral Wards (2017)",
@@ -492,7 +492,7 @@
       "source_org": "Pune Municipal Corporation",
       "notes": "",
       "seo_title": "Pune Ward Map: 58 wards (PMC)",
-      "seo_description": "Interactive map of all 58 wards in Pune (PMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 58 wards in Pune (PMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_ahmedabad": {
       "label": "Ahmedabad (AMC) Wards",
@@ -502,7 +502,7 @@
       "source_org": "Ahmedabad Municipal Corporation",
       "notes": "",
       "seo_title": "Ahmedabad Ward Map: 48 wards (AMC)",
-      "seo_description": "Interactive map of all 48 wards in Ahmedabad (AMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 48 wards in Ahmedabad (AMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_jaipur": {
       "label": "Jaipur (JMC) Wards",
@@ -532,7 +532,7 @@
       "source_org": "Kochi Municipal Corporation",
       "notes": "",
       "seo_title": "Kochi Ward Map: 74 wards (KMC)",
-      "seo_description": "Interactive map of all 74 wards in Kochi (KMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 74 wards in Kochi (KMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_bhubaneshwar": {
       "label": "Bhubaneshwar (BMC) Wards",
@@ -572,7 +572,7 @@
       "source_org": "DataMeet",
       "notes": "",
       "seo_title": "Delhi Ward Map: 290 wards (MCD, NDMC, Cantt)",
-      "seo_description": "Interactive map of all 290 Delhi municipal wards (MCD, NDMC and Cantonment). View ward boundaries and numbers, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 290 Delhi municipal wards (MCD, NDMC and Cantonment). View ward boundaries and names, and download as GeoJSON, KML or Parquet."
     },
     "wards_indore": {
       "label": "Indore (IMC) Wards (2024)",
@@ -582,7 +582,7 @@
       "source_org": "Indore Municipal Corporation",
       "notes": "",
       "seo_title": "Indore Ward Map: 85 wards (IMC)",
-      "seo_description": "Interactive map of all 85 wards in Indore (IMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 85 wards in Indore (IMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_coimbatore": {
       "label": "Coimbatore (CCMC) Wards (2011)",
@@ -632,7 +632,7 @@
       "source_org": "Mysuru City Corporation",
       "notes": "",
       "seo_title": "Mysuru Ward Map: 65 wards (MCC)",
-      "seo_description": "Interactive map of all 65 wards in Mysuru (MCC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 65 wards in Mysuru (MCC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_bhopal": {
       "label": "Bhopal (BMC) Wards (2024)",
@@ -642,7 +642,7 @@
       "source_org": "Bhopal Municipal Corporation",
       "notes": "",
       "seo_title": "Bhopal Ward Map: 86 wards (BMC)",
-      "seo_description": "Interactive map of all 86 wards in Bhopal (BMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 86 wards in Bhopal (BMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_chandigarh": {
       "label": "Chandigarh (MC) Wards",
@@ -662,7 +662,7 @@
       "source_org": "Lucknow Municipal Corporation",
       "notes": "",
       "seo_title": "Lucknow Ward Map: 112 wards (LMC)",
-      "seo_description": "Interactive map of all 112 wards in Lucknow (LMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 112 wards in Lucknow (LMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_kanpur": {
       "label": "Kanpur (KMC) Wards",
@@ -672,7 +672,7 @@
       "source_org": "Kanpur Municipal Corporation",
       "notes": "",
       "seo_title": "Kanpur Ward Map: 58 wards (KMC)",
-      "seo_description": "Interactive map of all 58 wards in Kanpur (KMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 58 wards in Kanpur (KMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_patna": {
       "label": "Patna (PMC) Wards (~2019)",
@@ -682,7 +682,7 @@
       "source_org": "datta07/INDIAN-SHAPEFILES",
       "notes": "",
       "seo_title": "Patna Ward Map: 628 wards (PMC)",
-      "seo_description": "Interactive map of all 628 wards in Patna (PMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 628 wards in Patna (PMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_surat": {
       "label": "Surat (SMC) Wards (~2019)",
@@ -702,7 +702,7 @@
       "source_org": "DataMeet",
       "notes": "",
       "seo_title": "Vadodara Ward Map: 12 wards (VMC)",
-      "seo_description": "Interactive map of all 12 wards in Vadodara (VMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_description": "Interactive map of all 12 wards in Vadodara (VMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_faridabad": {
       "label": "Faridabad (MCF) Wards",
