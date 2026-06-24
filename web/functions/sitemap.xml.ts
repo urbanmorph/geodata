@@ -23,6 +23,15 @@ const STATIC: Array<{ loc: string; changefreq: string; priority: string }> = [
 const escXml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 
+/** A <lastmod> line (leading newline + indent) when `date` is an ISO-ish date
+ *  we can trust, else ''. Only ~a third of curated layers carry fetched_at;
+ *  emitting lastmod only where it's real keeps the sitemap honest — a
+ *  fabricated date erodes crawl trust more than an absent one does. */
+export function lastmodLine(date?: string | null): string {
+  const d = (date || '').slice(0, 10);
+  return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `\n    <lastmod>${d}</lastmod>` : '';
+}
+
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   let community: Array<{ id: string; created_at: string; updated_at: string | null }> = [];
   try {
@@ -37,13 +46,13 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   // Curated layers come from catalog.json (fetched same-origin). v4.7 introduced
   // /view/<id> as the canonical share URL with layer-specific OG cards.
-  let curated: Array<string> = [];
+  let curated: Array<{ id: string; fetched_at?: string }> = [];
   try {
     const origin = new URL(ctx.request.url).origin;
     const r = await fetch(`${origin}/catalog.json`);
     if (r.ok) {
-      const cat = (await r.json()) as { layers?: Array<{ id: string }> };
-      curated = (cat.layers || []).map((l) => l.id);
+      const cat = (await r.json()) as { layers?: Array<{ id: string; fetched_at?: string }> };
+      curated = (cat.layers || []).map((l) => ({ id: l.id, fetched_at: l.fetched_at }));
     }
   } catch {
     // curated /view URLs are nice-to-have for sitemap; fall through quietly
@@ -58,8 +67,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   </url>`,
     ),
     ...curated.map(
-      (id) => `  <url>
-    <loc>${escXml(ORIGIN + '/view/' + id)}</loc>
+      (l) => `  <url>
+    <loc>${escXml(ORIGIN + '/view/' + l.id)}</loc>${lastmodLine(l.fetched_at)}
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>`,
