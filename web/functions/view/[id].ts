@@ -5,7 +5,7 @@
 // index.html and rewrite its meta tags via HTMLRewriter. The browser-side
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
 
-import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer, type LevelMeta } from '../lib/view-dataset';
+import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 
 type Params = { id: string };
@@ -30,12 +30,21 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   const origin = new URL(ctx.request.url).origin;
   const CANONICAL_ORIGIN = 'https://bharatlas.com';
 
-  const [catalogResp, indexResp] = await Promise.all([
+  // Ward pages fetch their answer-table sidecar in parallel. It's absent for
+  // number-only cities (and any city whose parquet hasn't been processed) — a
+  // cached 404 we tolerate, leaving the page table-less.
+  const isWard = /^wards_/.test(id);
+  const [catalogResp, indexResp, wardResp] = await Promise.all([
     fetch(`${origin}/catalog.json`),
     fetch(`${origin}/index.html`),
+    isWard ? fetch(`${origin}/ward-index/${id}.json`).catch(() => null) : Promise.resolve(null),
   ]);
   if (!catalogResp.ok || !indexResp.ok) {
     return new Response('upstream unavailable', { status: 503 });
+  }
+  let wardIndex: WardIndex | null = null;
+  if (wardResp && wardResp.ok) {
+    wardIndex = await wardResp.json<WardIndex>().catch(() => null);
   }
   const catalog = (await catalogResp.json()) as Catalog;
   const layer = catalog.layers?.find((l) => l.id === id);
@@ -44,12 +53,13 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   }
 
   const levelMeta = resolveLevelMeta(layer, catalog.level_meta);
-  const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd, howToJsonLd } = buildViewDataset(
+  const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd, howToJsonLd, wardListJsonLd } = buildViewDataset(
     layer,
     levelMeta,
     CANONICAL_ORIGIN,
+    wardIndex,
   );
-  const contentHtml = buildViewContent(layer, levelMeta, CANONICAL_ORIGIN);
+  const contentHtml = buildViewContent(layer, levelMeta, CANONICAL_ORIGIN, wardIndex);
 
   return new HTMLRewriter()
     .on('title', {
@@ -72,6 +82,10 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
         if (howToJsonLd) {
           const ht = JSON.stringify(howToJsonLd).replace(/</g, '\\u003c');
           el.after(`\n    <script type="application/ld+json">${ht}</script>`, { html: true });
+        }
+        if (wardListJsonLd) {
+          const wl = JSON.stringify(wardListJsonLd).replace(/</g, '\\u003c');
+          el.after(`\n    <script type="application/ld+json">${wl}</script>`, { html: true });
         }
       },
     })
