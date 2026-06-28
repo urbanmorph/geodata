@@ -424,6 +424,19 @@
       .view-seo p { margin: 8px 0; }
       .view-seo__crumb { font-size: 13px; color: var(--muted); }
       .view-seo a { color: var(--accent); text-decoration: underline; text-underline-offset: 2px; }
+      /* Ward#→area answer table + city cross-links (theme-aware via tokens). */
+      .view-seo .ward-index { width: 100%; border-collapse: collapse; margin: 16px 0;
+        font-size: 14px; }
+      .view-seo .ward-index caption { text-align: left; color: var(--muted);
+        font-size: 13px; margin-bottom: 6px; }
+      .view-seo .ward-index th, .view-seo .ward-index td {
+        text-align: left; padding: 6px 10px; border-bottom: 1px solid var(--line);
+        vertical-align: top; }
+      .view-seo .ward-index th { font-weight: 600; }
+      .view-seo .ward-index td:first-child { white-space: nowrap; width: 1%;
+        color: var(--muted); }
+      .view-seo .ward-index__src { color: var(--muted); }
+      .view-seo__wards { margin: 16px 0; font-size: 14px; color: var(--muted); }
 
       /* Map overlay */
       #map-overlay {

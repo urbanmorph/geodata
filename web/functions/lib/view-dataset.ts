@@ -46,6 +46,9 @@ export type ViewDataset = {
   /** Ward pages only: a HowTo "find your ward number" block for AEO / the
    * "how to find my ward number in <city>" query. Omitted elsewhere. */
   howToJsonLd?: Record<string, unknown>;
+  /** Ward pages with an area-name index only: an ItemList of ward→area pairs,
+   * the structured answer for the "ward N <city> area name" query cluster. */
+  wardListJsonLd?: Record<string, unknown>;
 };
 
 const META_DESC_MAX = 158;
@@ -166,10 +169,76 @@ export function wardSeo(seoTitle: string, count: string | null, origDescription?
   };
 }
 
+export type WardRow = { no: string; name: string };
+
+// A ward layer's resolved number↔area pairs, baked by scripts/build_ward_index.py
+// (which reads the parquet and maps each layer's idiosyncratic columns down to
+// {no, name}). Served as a per-layer sidecar at /ward-index/<id>.json and fetched
+// by the /view edge function for ward pages only — kept OUT of catalog.json so it
+// never bloats the home document.
+export type WardIndex = {
+  id: string;
+  /** Friendly city name for the caption/heading, e.g. "Ahmedabad". */
+  place: string;
+  /** Bake-snapshot date (YYYY-MM-DD); shown as the table's source line. */
+  updated?: string;
+  /** Header for the name column ("Area"/"Locality"/…); null when the source is
+   *  number-only (Kolkata, Mumbai) and carries no area name. */
+  nameLabel: string | null;
+  /** Pre-sorted ward rows; `name` is '' when the layer has no name for it. */
+  rows: WardRow[];
+};
+
+// The crawlable ward#→area answer table. This is the payload for the loudest
+// 0-click GSC cluster ("ward 22 ahmedabad area name", "vmc ward list area wise
+// vadodara") that a map page can't satisfy in the SERP. Renders ONLY the columns
+// the layer actually carries: a number-only layer gets a number list and no
+// ItemList JSON-LD — we never invent an area name. Data is what it is.
+export function buildWardTable(idx: WardIndex | null | undefined): {
+  html: string;
+  jsonLd: Record<string, unknown> | null;
+} {
+  if (!idx || !idx.rows?.length) return { html: '', jsonLd: null };
+  const hasNames = idx.nameLabel != null && idx.rows.some((r) => r.name);
+  const label = hasNames ? idx.nameLabel! : null;
+  const caption = hasNames
+    ? `${idx.place} ward numbers and ${label!.toLowerCase()} names`
+    : `${idx.place} ward numbers`;
+  const head = hasNames
+    ? `<tr><th scope="col">Ward</th><th scope="col">${esc(label!)}</th></tr>`
+    : `<tr><th scope="col">Ward</th></tr>`;
+  const body = idx.rows
+    .map((r) =>
+      hasNames
+        ? `<tr><td>${esc(r.no)}</td><td>${esc(r.name)}</td></tr>`
+        : `<tr><td>${esc(r.no)}</td></tr>`,
+    )
+    .join('');
+  const updated = idx.updated ? ` <span class="ward-index__src">Source snapshot: ${esc(idx.updated)}.</span>` : '';
+  const html =
+    `<table class="ward-index"><caption>${esc(caption)}.${updated}</caption>` +
+    `<thead>${head}</thead><tbody>${body}</tbody></table>`;
+  const jsonLd = hasNames
+    ? {
+        '@context': 'https://schema.org',
+        '@type': 'ItemList',
+        name: caption,
+        numberOfItems: idx.rows.length,
+        itemListElement: idx.rows.map((r, i) => ({
+          '@type': 'ListItem',
+          position: i + 1,
+          name: `Ward ${r.no}: ${r.name}`,
+        })),
+      }
+    : null;
+  return { html, jsonLd };
+}
+
 export function buildViewDataset(
   layer: CatalogLayer,
   levelMeta: LevelMeta | undefined,
   origin: string,
+  wardIndex?: WardIndex | null,
 ): ViewDataset {
   const title = levelMeta?.seo_title || levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
   const unit = levelMeta?.unit || 'features';
@@ -195,6 +264,7 @@ export function buildViewDataset(
   const canonical = `${origin}/view/${layer.id}`;
   const ogImage = `${origin}/og/view/${layer.id}.png`;
   const distribution = buildDistribution(layer);
+  const wardListJsonLd = buildWardTable(wardIndex).jsonLd;
 
   return {
     title,
@@ -229,6 +299,7 @@ export function buildViewDataset(
       ],
     },
     ...(ward ? { howToJsonLd: ward.howTo } : {}),
+    ...(wardListJsonLd ? { wardListJsonLd } : {}),
   };
 }
 
@@ -240,10 +311,32 @@ function fmtSize(n: number | null | undefined): string {
   return `${(n / 1024 / 1024).toFixed(1)} MB`;
 }
 
+// Prominent city ward maps, cross-linked from every ward page so the cluster
+// shares internal link equity — the lever for the ward pages stuck at GSC pos
+// 8-10 (Ahmedabad, Kolkata, Mumbai, Vadodara, Bhubaneswar, Surat) which each
+// convert ~0% because nothing points authority at them. Crawlable, additive,
+// ~1 KB. Labels are the plain city name the query uses ("kolkata ward map").
+const WARD_SIBLINGS: ReadonlyArray<readonly [string, string]> = [
+  ['wards_ahmedabad', 'Ahmedabad'], ['wards_mumbai', 'Mumbai'], ['wards_delhi', 'Delhi'],
+  ['wards_bengaluru_gba', 'Bengaluru'], ['wards_hyderabad', 'Hyderabad'], ['wards_chennai', 'Chennai'],
+  ['wards_kolkata', 'Kolkata'], ['wards_pune', 'Pune'], ['wards_surat', 'Surat'],
+  ['wards_vadodara', 'Vadodara'], ['wards_bhubaneshwar', 'Bhubaneswar'], ['wards_indore', 'Indore'],
+];
+
+// The "Ward maps for other cities" nav, omitting the current layer.
+function renderWardCrosslinks(currentId: string): string {
+  const links = WARD_SIBLINGS.filter(([id]) => id !== currentId).map(
+    ([id, label]) => `<a href="/view/${esc(id)}">${esc(label)} ward map</a>`,
+  );
+  if (!links.length) return '';
+  return `<nav class="view-seo__wards" aria-label="Ward maps for other cities"><p>Ward maps for other cities: ${links.join(' · ')}</p></nav>`;
+}
+
 export function buildViewContent(
   layer: CatalogLayer,
   levelMeta: LevelMeta | undefined,
   origin: string,
+  wardIndex?: WardIndex | null,
 ): string {
   // H1 uses the SEO title (keyword-aligned with the <title>); the body
   // paragraph keeps the richer `description` (official corp name + zones).
@@ -260,6 +353,13 @@ export function buildViewContent(
     }
   }
 
+  // Ward pages only: the crawlable ward→area answer table (when the layer
+  // carries names) and the city cross-link cluster. Both are empty strings on
+  // non-ward layers, so the article shape is unchanged there.
+  const isWard = /^wards_/.test(layer.id);
+  const wardTable = isWard ? buildWardTable(wardIndex).html : '';
+  const crosslinks = isWard ? renderWardCrosslinks(layer.id) : '';
+
   // Colors/layout live in the .view-seo CSS in index.template.html (theme-aware
   // via tokens) — NOT inline hex, which fails contrast in dark mode and gives
   // no-JS readers low-contrast text. Links are underlined there too.
@@ -269,7 +369,9 @@ export function buildViewContent(
   <p>${count ? `<strong>${count}</strong> ${esc(unit)}` : ''} ${layer.source ? `· Source: ${esc(layer.source)}` : ''} ${layer.licence ? `· Licence: ${esc(layer.licence)}` : ''}</p>
   ${desc ? `<p>${esc(desc)}</p>` : ''}
   ${downloads.length ? `<p>Download: ${downloads.join(' · ')}</p>` : ''}
+  ${wardTable}
   <p>View this layer on an interactive map at <a href="${esc(origin)}/view/${esc(layer.id)}">${esc(origin)}/view/${esc(layer.id)}</a>. Filter by what the data contains and export as Parquet, GeoJSON, or KML.</p>
+  ${crosslinks}
   <p><a href="/">Browse all layers on bharatlas</a></p>
 </article>`;
 }
