@@ -183,12 +183,16 @@ export async function validateSubmission(
     info: { outsideIndia: v.outsideIndia, bbox: v.bbox },
   };
 
+  // A byte-identical file already accepted => hard reject. Keys on content_hash,
+  // so a double-tap / retry can't create a second community entry, while an
+  // edited dataset (new bytes => new hash) still lands. matchId is kept on the
+  // report so the client can point the user at the existing submission.
   const matchId = await deps.findDuplicate(input.contentHash);
-  report.duplicate = {
-    ok: true,
-    warn: !!matchId,
-    info: matchId ? { matchId } : undefined,
-  };
+  if (matchId) {
+    report.duplicate = { ok: false, info: { matchId } };
+    return reject(report, 'duplicate', 'duplicate of an already-accepted submission');
+  }
+  report.duplicate = { ok: true };
 
   return { accept: true, report };
 }
