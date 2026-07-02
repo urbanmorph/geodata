@@ -31,6 +31,7 @@ const codeForReason = (reason: string): number => {
   if (/rate/i.test(reason)) return 429;
   if (/size/i.test(reason)) return 413;
   if (/format/i.test(reason)) return 415;
+  if (/duplicate/i.test(reason)) return 409;
   return 400;
 };
 

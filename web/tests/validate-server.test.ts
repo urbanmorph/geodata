@@ -137,6 +137,18 @@ describe('validateSubmission — hard reject gates', () => {
     expect(r.accept).toBe(false);
     if (!r.accept) expect(r.reason).toMatch(/filename/i);
   });
+
+  it('rejects a byte-identical duplicate of an already-accepted submission', async () => {
+    // The same file submitted twice (a double-tap, or a retry) must not create a
+    // second community entry. The guard keys on content_hash, so it fires only on
+    // truly identical bytes — an updated dataset gets a new hash and still lands.
+    const r = await validateSubmission(input(), deps({ findDuplicate: async () => 'ABC123XYZ0' }));
+    expect(r.accept).toBe(false);
+    if (!r.accept) {
+      expect(r.reason).toMatch(/duplicate/i);
+      expect(r.report.duplicate?.info?.matchId).toBe('ABC123XYZ0');
+    }
+  });
 });
 
 describe('validateSubmission — original-creator path', () => {
@@ -184,13 +196,10 @@ describe('validateSubmission — soft warnings (accept with flags)', () => {
     if (r.accept) expect(r.report.extent?.warn).toBe(true);
   });
 
-  it('accepts but warns when a duplicate content_hash exists', async () => {
-    const r = await validateSubmission(input(), deps({ findDuplicate: async () => 'ABC123XYZ0' }));
+  it('records duplicate=ok on the report when no content_hash match exists', async () => {
+    const r = await validateSubmission(input(), deps({ findDuplicate: async () => null }));
     expect(r.accept).toBe(true);
-    if (r.accept) {
-      expect(r.report.duplicate?.warn).toBe(true);
-      expect(r.report.duplicate?.info?.matchId).toBe('ABC123XYZ0');
-    }
+    if (r.accept) expect(r.report.duplicate?.ok).toBe(true);
   });
 });
 
