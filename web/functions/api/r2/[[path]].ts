@@ -18,9 +18,23 @@ type Params = { path: string[] };
 // via the bharatlas-branded same-origin path.
 const ALLOWED_PREFIX = /^community\//;
 
+// Pages delivers catch-all segments still percent-encoded: a space in a
+// community filename (e.g. "TEMPLE IN AHMEDABAD JDSM.kml") arrives as "%20".
+// Decode each segment so the reconstructed key matches the literal R2 object
+// key — otherwise env.R2.get() misses and every spaced filename 404s. Returns
+// null on a malformed escape (a lone '%' throws in decodeURIComponent).
+export function reconstructKey(segs: string[]): string | null {
+  try {
+    return segs.map((s) => decodeURIComponent(s)).join('/');
+  } catch {
+    return null;
+  }
+}
+
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];
-  const key = segs.join('/');
+  const key = reconstructKey(segs);
+  if (key === null) return new Response('bad key', { status: 400 });
   if (!key) return new Response('missing key', { status: 400 });
   if (!ALLOWED_PREFIX.test(key)) return new Response('not found', { status: 404 });
 
