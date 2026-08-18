@@ -16,4 +16,4 @@ binding = "R2"
 bucket_name = "geodata-data"                            # the shared R2
 
 [vars]
-PUBLIC_TURNSTILE_SITEKEY = ""
+PUBLIC_TURNSTILE_SITEKEY = "0x4AAAAAAEUVQ4gS3xN4W2l1"   # collect Turnstile widget (public sitekey)
