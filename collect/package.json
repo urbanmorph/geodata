@@ -1,0 +1,22 @@
+{
+  "name": "collect",
+  "private": true,
+  "type": "module",
+  "description": "collect.bharatlas.com — crowd map-capture, publishes to the bharatlas catalogue",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.functions.json",
+    "dev": "vite",
+    "build": "vitest run && npm run typecheck && vite build"
+  },
+  "dependencies": {
+    "maplibre-gl": "^4.7.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260520.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.9"
+  }
+}
