@@ -250,7 +250,7 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
   }));
   const fc = { type: 'FeatureCollection', features };
   const bytes = new TextEncoder().encode(JSON.stringify(fc));
-  const contentHash = await sha256Hex(bytes.buffer);
+  const contentHash = await sha256Hex(bytes.buffer as ArrayBuffer);
 
   // R6: refuse a republish with byte-identical content ("nothing new since v{N}").
   const version = await db.nextVersion(env.DB, id);
