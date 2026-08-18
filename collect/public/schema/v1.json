@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://collect.bharatlas.com/schema/v1.json",
+  "title": "collect field-definition (schema document) v1",
+  "type": "object",
+  "required": ["version", "geometry", "fields"],
+  "additionalProperties": false,
+  "properties": {
+    "version": { "const": 1 },
+    "geometry": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["point", "line", "polygon"] }
+    },
+    "reference_layers": {
+      "type": "array",
+      "maxItems": 3,
+      "items": { "type": "string" }
+    },
+    "fields": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "object",
+        "required": ["key", "label", "type"],
+        "properties": {
+          "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "label": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["text", "paragraph", "number", "select", "multiselect", "date", "url"] },
+          "required": { "type": "boolean" },
+          "options": { "type": "array", "items": { "type": "string" } },
+          "min": { "type": "number" },
+          "max": { "type": "number" },
+          "integer": { "type": "boolean" },
+          "maxLength": { "type": "number" },
+          "deleted": { "type": "boolean" },
+          "render": { "enum": ["chips"] }
+        },
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "enum": ["select", "multiselect"] } } },
+            "then": { "required": ["options"], "properties": { "options": { "minItems": 1 } } }
+          }
+        ]
+      }
+    }
+  }
+}
