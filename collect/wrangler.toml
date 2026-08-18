@@ -1,0 +1,19 @@
+# collect.bharatlas.com — Cloudflare Pages project (root dir: collect/).
+# Binds the SAME shared D1 + R2 as web (the geodata project); the origin
+# differs, the data is shared underneath. See supporting-docs/spec-collect.md
+# → "Cloudflare setup".
+name = "collect"
+compatibility_date = "2026-05-20"
+pages_build_output_dir = "./dist"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "geodata-submissions"
+database_id = "c7c0c69e-02aa-482c-ac9a-541b36f21cc4"   # the shared D1
+
+[[r2_buckets]]
+binding = "R2"
+bucket_name = "geodata-data"                            # the shared R2
+
+[vars]
+PUBLIC_TURNSTILE_SITEKEY = ""
