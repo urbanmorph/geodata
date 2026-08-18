@@ -6,6 +6,7 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { BASEMAP, INDIA_CENTER } from './basemap';
 import { parseCtx, apiJson, type Ctx } from './api';
+import { turnstileToken } from './turnstile';
 
 interface Field {
   key: string; label: string; type: string; required?: boolean; options?: string[]; deleted?: boolean;
@@ -133,9 +134,10 @@ function captureSheet(): void {
       }
       const c = map.getCenter();
       const contributor = (document.getElementById('contributor') as HTMLInputElement).value;
+      const turnstile_token = await turnstileToken();
       await apiJson(`/collections/${ctx.id}/records`, ctx.token, {
         method: 'POST',
-        body: JSON.stringify({ geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: props, contributor }),
+        body: JSON.stringify({ geometry: { type: 'Point', coordinates: [c.lng, c.lat] }, properties: props, contributor, turnstile_token }),
       });
       marker([c.lng, c.lat]);
       toast(meta.moderation ? 'Added — pending review ✓' : 'Added ✓');

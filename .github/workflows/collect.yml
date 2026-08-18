@@ -1,0 +1,45 @@
+name: collect
+
+# Separate from ci.yml (which builds/deploys the geodata/web project) so a
+# collect change never rebuilds web and vice versa — the deploy isolation the
+# subdomain exists for. Path-filtered to collect's own tree.
+on:
+  push:
+    branches: [main]
+    paths: ['collect/**', 'shared/**', '.github/workflows/collect.yml']
+  pull_request:
+    branches: [main]
+    paths: ['collect/**', 'shared/**', '.github/workflows/collect.yml']
+  workflow_dispatch:
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: collect
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: collect/package-lock.json
+
+      - name: install
+        run: npm ci
+
+      - name: build (vitest + typecheck + vite)
+        env:
+          # Public sitekey; the default is the live collect widget key.
+          VITE_TURNSTILE_SITEKEY: ${{ secrets.COLLECT_TURNSTILE_SITEKEY || '0x4AAAAAAEUVQ4gS3xN4W2l1' }}
+        run: npm run build
+
+      # Deploy only on push-to-main / manual. PRs build but don't deploy.
+      - name: deploy to cloudflare pages
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+        run: npx wrangler pages deploy dist --project-name=collect --branch=main

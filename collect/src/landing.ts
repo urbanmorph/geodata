@@ -1,6 +1,7 @@
 // Create-a-map landing. Phase 1 uses a fixed 2-field schema (the schema builder
 // is Phase 2); the author picks name / purpose / geometry / licence.
 import { apiJson } from './api';
+import { turnstileToken } from './turnstile';
 
 const OPEN_LICENCES: [string, string][] = [
   ['CC-BY-4.0', 'CC BY 4.0 (credit required)'],
@@ -62,6 +63,7 @@ function render() {
     btn.disabled = true;
     const year = (app.querySelector<HTMLInputElement>('#year')!.value || '').trim();
     try {
+      const turnstile_token = await turnstileToken();
       const links = (await apiJson<{ id: string; links: Record<string, string> }>('/collections', '', {
         method: 'POST',
         body: JSON.stringify({
@@ -70,6 +72,7 @@ function render() {
           license: app.querySelector<HTMLSelectElement>('#license')!.value,
           data_year: year ? Number(year) : undefined,
           schema_doc: defaultSchema([...geom]),
+          turnstile_token,
         }),
       })).links;
       done(links);
