@@ -1,0 +1,16 @@
+{
+  "name": "collect",
+  "private": true,
+  "type": "module",
+  "description": "collect.bharatlas.com — crowd map-capture, publishes to the bharatlas catalogue",
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260520.1",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
+  }
+}
