@@ -165,6 +165,8 @@ function viewPanel(): void {
 }
 
 let recordShapes: GeoJSON.Feature[] = [];
+let reviewFeats: Feature[] = [];               // the admin review list, for tap-to-review
+let reviewMarker: maplibregl.Marker | undefined; // highlight on the map during review
 
 // The non-point records overlay: one accumulating source for existing +
 // just-added lines/polygons. Points are plain markers.
@@ -425,12 +427,18 @@ async function editSettings(): Promise<void> {
       toast('Settings saved ✓');
       if (mapChanged) { location.reload(); return; } // reload to apply the new basemap/overlay
       meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
+      // Reflect a rename in the topbar AND the saved "Your maps" list (localStorage
+      // was the stale surface — it doesn't re-read the server on refresh).
+      const nameEl = document.querySelector('.topbar span');
+      if (nameEl) nameEl.textContent = meta.name;
+      rememberMap(ctx.id, meta.name, 'owner', location.href);
       void manageSheet();
     } catch (e) { toast((e as Error).message); btn.disabled = false; }
   };
 }
 
 async function manageSheet(): Promise<void> {
+  clearHighlight(); // leaving a review detail clears the map highlight
   meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token).catch(() => meta);
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
@@ -680,65 +688,101 @@ function cardTitle(props: Record<string, unknown>): string {
 // approve/reject (moderation), edit (opens the record editor with the admin
 // token), delete. Read = list; Update = edit link; Delete = delete; Create =
 // the "+ Add points" button (capture) or a contributor's own add.
+// Compact, tappable list — scales to hundreds of points. Titles wrap (never
+// truncate). Per-point actions live in the review detail, not the row.
 async function renderPoints(): Promise<void> {
   const q = document.getElementById('points');
   if (!q) return;
   const status = activeFilter();
   q.innerHTML = '<p class="hint">Loading…</p>';
   try {
-    const qs = status ? `?status=${status}&limit=300` : '?limit=300';
+    const qs = status ? `?status=${status}&limit=1000` : '?limit=1000';
     const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records${qs}`, ctx.token);
-    const feats = fc.features || [];
-    if (!feats.length) { q.innerHTML = '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>'; return; }
-    q.innerHTML = feats.map((f) => {
-      const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string };
-      const st = p._status || 'published';
-      const origin = p._source ? `⇪ ${escapeHtml(p._source)}` : escapeHtml(p._contributor || 'anonymous');
-      const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `<span class="hint">${nounFor(f.geometry.type)}</span> ` : '';
-      // Two action rows (max two buttons each) so labels never wrap: moderation
-      // on top, then edit/delete. Better hierarchy, and it fits at 360px.
-      const mod = [
-        st !== 'published' ? `<button data-act="published" data-id="${f.id}">✓ Approve</button>` : '',
-        st === 'pending' ? `<button class="danger" data-act="rejected" data-id="${f.id}">✗ Reject</button>` : '',
-      ].filter(Boolean).join('');
-      const crud = `<button data-edit="${f.id}">✎ Edit</button><button class="danger" data-del="${f.id}">🗑 Delete</button>`;
-      return `<div class="card" data-id="${f.id}">
-        <div class="row" style="justify-content:space-between;align-items:center;gap:6px">
-          <strong style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${geom}${escapeHtml(cardTitle(f.properties))}</strong>
-          <span class="badge badge--${st}">${st}</span>
-        </div>
-        <div class="hint">${origin}${fmtAdminCtx(p._admin_ctx ?? null)}</div>
-        ${mod ? `<div class="row" style="margin-top:8px">${mod}</div>` : ''}
-        <div class="row" style="margin-top:8px">${crud}</div>
-      </div>`;
+    reviewFeats = fc.features || [];
+    if (!reviewFeats.length) { q.innerHTML = '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>'; return; }
+    q.innerHTML = reviewFeats.map((f, i) => {
+      const st = (f.properties as { _status?: string })._status || 'published';
+      const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `${nounFor(f.geometry.type)} · ` : '';
+      return `<button type="button" class="point-row" data-idx="${i}">
+        <span class="point-row__title">${escapeHtml(geom)}${escapeHtml(cardTitle(f.properties))}</span>
+        <span class="badge badge--${st}">${st}</span>
+        <span class="point-row__chev" aria-hidden="true">›</span>
+      </button>`;
     }).join('');
-
-    q.querySelectorAll<HTMLButtonElement>('button[data-act]').forEach((b) => {
-      b.onclick = async () => {
-        try {
-          await apiJson(`/records/${b.dataset.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: b.dataset.act }) });
-          await refreshCounts();
-          void renderPoints();
-        } catch (e) { toast((e as Error).message); }
-      };
-    });
-    q.querySelectorAll<HTMLButtonElement>('button[data-edit]').forEach((b) => {
-      b.onclick = () => { location.href = `/c/${ctx.id}/r/${b.dataset.edit}#${ctx.token}`; };
-    });
-    q.querySelectorAll<HTMLButtonElement>('button[data-del]').forEach((b) => {
-      let armed = false;
-      b.onclick = async () => {
-        if (!armed) { armed = true; b.textContent = 'Tap to confirm'; return; }
-        try {
-          await apiJson(`/records/${b.dataset.del}`, ctx.token, { method: 'DELETE' });
-          await refreshCounts();
-          void renderPoints();
-        } catch (e) { toast((e as Error).message); }
-      };
+    q.querySelectorAll<HTMLButtonElement>('.point-row').forEach((b) => {
+      b.onclick = () => openReview(Number(b.dataset.idx));
     });
   } catch (e) {
     q.innerHTML = `<p class="warn">${escapeHtml((e as Error).message)}</p>`;
   }
+}
+
+const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? '—' : String(v));
+
+function clearHighlight(): void {
+  if (reviewMarker) { reviewMarker.remove(); reviewMarker = undefined; }
+}
+
+// Tap a point → see it on the map (fly + highlight) + every attribute, and
+// verify: approve / reject / edit / delete right there.
+function openReview(idx: number): void {
+  const f = reviewFeats[idx];
+  if (!f) return;
+  const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; [k: string]: unknown };
+  const st = p._status || 'published';
+  const fields = meta.schema.fields.filter((x) => !x.deleted);
+
+  const c = representativeCoord(f.geometry);
+  clearHighlight();
+  if (c) {
+    reviewMarker = new maplibregl.Marker({ color: '#d97706' }).setLngLat(c).addTo(map);
+    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: [0, -70] });
+  }
+
+  const attrs = fields
+    .map((fl) => `<div class="attr"><span class="attr__k">${escapeHtml(fl.label)}</span><span class="attr__v">${escapeHtml(fmtVal(p[fl.key]))}</span></div>`)
+    .join('');
+  const origin = p._source ? `⇪ from ${escapeHtml(p._source)}` : `by ${escapeHtml(p._contributor || 'anonymous')}`;
+  const panel = document.getElementById('panel')!;
+  panel.innerHTML = `<div class="sheet">
+    <div class="body">
+      <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px">
+        <strong style="flex:1">${escapeHtml(cardTitle(p))}</strong>
+        <span class="badge badge--${st}">${st}</span>
+      </div>
+      <p class="hint">${origin}${fmtAdminCtx(p._admin_ctx ?? null)}</p>
+      <div class="attrs">${attrs || '<p class="hint">No fields on this map.</p>'}</div>
+    </div>
+    <div class="foot">
+      ${st === 'pending'
+        ? `<div class="row" style="margin-bottom:8px"><button class="danger" id="rv-reject" style="flex:1">✗ Reject</button><button class="primary" id="rv-approve" style="flex:1">✓ Approve</button></div>`
+        : st === 'rejected'
+          ? `<button class="primary" id="rv-approve" style="width:100%;margin-bottom:8px">✓ Approve</button>`
+          : ''}
+      <div class="row">
+        <button id="rv-back" style="flex:1">← List</button>
+        <button id="rv-edit" style="flex:1">✎ Edit</button>
+        <button class="danger" id="rv-delete" style="flex:1">🗑 Delete</button>
+      </div>
+    </div>
+  </div>`;
+
+  const back = () => { clearHighlight(); void manageSheet(); };
+  (document.getElementById('rv-back') as HTMLButtonElement).onclick = back;
+  (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = `/c/${ctx.id}/r/${f.id}#${ctx.token}`; };
+  const moderate = async (s: string) => {
+    try { await apiJson(`/records/${f.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: s }) }); await refreshCounts(); back(); }
+    catch (e) { toast((e as Error).message); }
+  };
+  document.getElementById('rv-approve')?.addEventListener('click', () => void moderate('published'));
+  document.getElementById('rv-reject')?.addEventListener('click', () => void moderate('rejected'));
+  let armed = false;
+  (document.getElementById('rv-delete') as HTMLButtonElement).onclick = async (ev) => {
+    const b = ev.currentTarget as HTMLButtonElement;
+    if (!armed) { armed = true; b.textContent = 'Tap to confirm'; return; }
+    try { await apiJson(`/records/${f.id}`, ctx.token, { method: 'DELETE' }); await refreshCounts(); back(); }
+    catch (e) { toast((e as Error).message); }
+  };
 }
 
 async function doPublish(ev: Event): Promise<void> {
