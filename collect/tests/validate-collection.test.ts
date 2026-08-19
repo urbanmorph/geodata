@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateNewCollection, validateSchemaDoc } from '../src/schema/validate-collection';
+import { validateNewCollection, validateSchemaDoc, validateCollectionEdit } from '../src/schema/validate-collection';
 
 const goodSchema = {
   version: 1,
@@ -87,5 +87,32 @@ describe('validateSchemaDoc (the meta-schema check)', () => {
     expect(validateSchemaDoc({ ...goodSchema, reference_layer: { id: 'soi_forests', pmtiles_url: 'https://r2.dev/x.pmtiles' } }).ok).toBe(true);
     expect(validateSchemaDoc({ ...goodSchema, reference_layer: { id: 'x', pmtiles_url: 'http://insecure' } }).ok).toBe(false);
     expect(validateSchemaDoc({ ...goodSchema, reference_layer: { id: 'x' } }).ok).toBe(false);
+  });
+});
+
+describe('validateCollectionEdit', () => {
+  const noRecs = { hasRecords: false, currentLicense: 'CC-BY-4.0' };
+  it('splits a valid edit into column + schema patches', () => {
+    const r = validateCollectionEdit({ name: 'Fixed name', category: 'water', data_year: 2023, description: '' }, noRecs);
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      expect(r.value.col).toEqual({ name: 'Fixed name', data_year: 2023, description: null });
+      expect(r.value.schema).toEqual({ category: 'water' });
+    }
+  });
+  it('rejects a too-short name and an unknown category', () => {
+    expect(validateCollectionEdit({ name: 'ab' }, noRecs).ok).toBe(false);
+    expect(validateCollectionEdit({ category: 'nope' }, noRecs).ok).toBe(false);
+  });
+  it('locks the licence once the map has records', () => {
+    expect(validateCollectionEdit({ license: 'CC0-1.0' }, { hasRecords: true, currentLicense: 'CC-BY-4.0' }).ok).toBe(false);
+    expect(validateCollectionEdit({ license: 'CC0-1.0' }, { hasRecords: false, currentLicense: 'CC-BY-4.0' }).ok).toBe(true);
+    expect(validateCollectionEdit({ license: 'CC-BY-4.0' }, { hasRecords: true, currentLicense: 'CC-BY-4.0' }).ok).toBe(true); // same licence ok
+  });
+  it('clears the reference layer with null, rejects an empty patch', () => {
+    const r = validateCollectionEdit({ reference_layer: null }, noRecs);
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.value.schema).toEqual({ reference_layer: null });
+    expect(validateCollectionEdit({}, noRecs).ok).toBe(false);
   });
 });

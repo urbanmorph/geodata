@@ -11,31 +11,7 @@ import { inferSchema } from './import/infer';
 import { autoMapping, buildRecords } from './import/build';
 import type { Field } from './schema/validate-record';
 import { myMaps, saveOwnedMap, replaceMaps, openLink, type SavedMap, type MapRole } from './maps-store';
-
-// Catalogue facets a published map slots into ('other' first = the default).
-const CATEGORIES: [string, string][] = [
-  ['other', 'Other'],
-  ['boundaries', 'Boundaries'],
-  ['city-wards', 'City wards'],
-  ['people', 'People & places'],
-  ['environment', 'Environment'],
-  ['water', 'Water'],
-  ['agriculture', 'Agriculture & land use'],
-  ['transport', 'Transport & mobility'],
-  ['infrastructure', 'Infrastructure & utilities'],
-  ['culture', 'Culture & heritage'],
-  ['health-edu', 'Health & education'],
-];
-
-const OPEN_LICENCES: [string, string][] = [
-  ['CC-BY-4.0', 'CC BY 4.0 (credit required)'],
-  ['CC0-1.0', 'CC0 (public domain)'],
-  ['CC-BY-SA-4.0', 'CC BY-SA 4.0'],
-  ['ODbL-1.0', 'ODbL 1.0'],
-  ['ODC-PDDL-1.0', 'PDDL 1.0'],
-  ['GODL-India', 'GODL India'],
-  ['CDLA-Permissive-2.0', 'CDLA Permissive 2.0'],
-];
+import { CATEGORIES, OPEN_LICENCES } from './options';
 
 const app = document.getElementById('app')!;
 
@@ -68,6 +44,10 @@ function home() {
       <label class="btn wide" style="cursor:pointer">⬆ Restore map links<input id="import" type="file" accept="application/json" hidden></label>
       <p class="hint">This file holds the <strong>links</strong> to your maps (your admin access), not the points people collect. With no accounts, it's how you reach your maps again from another device or browser.</p>
       <p id="imp-err" class="warn"></p>
+      <footer class="foot-note">
+        <span>Part of <a href="https://bharatlas.com">bharatlas</a>, built for the field and optimised for mobile.</span>
+        <span><a href="https://bharatlas.com/about">About</a> · <a href="https://bharatlas.com/terms">Terms</a></span>
+      </footer>
     </div>`;
   app.querySelector<HTMLButtonElement>('#start')!.onclick = createForm;
 

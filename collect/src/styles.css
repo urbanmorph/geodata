@@ -245,6 +245,11 @@ textarea { min-height: 92px; line-height: 1.5; }
 .badge--published { color: var(--accent); }
 .badge--rejected { color: var(--danger); }
 
+/* home footer */
+.foot-note { display: flex; flex-direction: column; gap: 4px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.foot-note a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
+.foot-note a:hover { color: var(--accent); }
+
 /* role pill on "Your maps" (Owner / Collect / View) */
 .pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); vertical-align: middle; white-space: nowrap; }
 .pill--owner { background: var(--accent-fill); color: var(--accent); }

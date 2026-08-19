@@ -13,7 +13,7 @@ import { checkCreateRate, checkRecordRate } from './ratelimit';
 import { logCollectAttempt } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
 import * as db from './db';
-import { validateNewCollection } from '../../src/schema/validate-collection';
+import { validateNewCollection, validateCollectionEdit } from '../../src/schema/validate-collection';
 import { validateRecordProperties, type Field } from '../../src/schema/validate-record';
 import { checkIndiaBounds } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
@@ -144,6 +144,32 @@ export async function getCollectionMeta(env: Env, req: Request, id: string): Pro
     schema: JSON.parse(c.schema_doc),
     counts,
   });
+}
+
+// ---- PATCH /collections/:id ------------------------------------------------
+// Admin "Edit map settings": name/description/purpose/data_year/category/basemap/
+// reference_layer (+ licence only while the map has no records). Fields untouched.
+
+export async function editCollection(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const c = await db.getCollection(env.DB, id);
+  if (!c) return bad(404, 'not found');
+  const body = await readJson(req);
+  if (!body) return bad(400, 'invalid JSON body');
+
+  const counts = await db.statusCounts(env.DB, id);
+  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license });
+  if (!v.ok) return bad(400, v.error);
+
+  let schemaDoc: string | undefined;
+  if (Object.keys(v.value.schema).length) {
+    const cur = JSON.parse(c.schema_doc) as Record<string, unknown>;
+    for (const [k, val] of Object.entries(v.value.schema)) { if (val === null) delete cur[k]; else cur[k] = val; }
+    schemaDoc = JSON.stringify(cur);
+  }
+  await db.updateCollection(env.DB, id, v.value.col, schemaDoc);
+  return json(200, { ok: true });
 }
 
 // ---- POST /collections/:id/tokens ------------------------------------------
