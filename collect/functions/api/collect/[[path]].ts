@@ -37,7 +37,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   if (p[0] === 'collections' && p[1]) {
     const id = p[1];
     if (p.length === 2) {
-      return method === 'GET' ? h.getCollectionMeta(env, request, id) : bad(405, 'method not allowed');
+      if (method === 'GET') return h.getCollectionMeta(env, request, id);
+      if (method === 'PATCH') return h.editCollection(env, request, id);
+      return bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'records') {
       if (method === 'GET') return h.listRecords(env, request, id);

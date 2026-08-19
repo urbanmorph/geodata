@@ -9,11 +9,11 @@ import type { Env } from '../types';
 import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, atLeast } from './auth';
-import { checkCreateRate, checkRecordRate } from './ratelimit';
+import { checkCreateRate, checkRecordRate, checkKeyDayRate } from './ratelimit';
 import { logCollectAttempt } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
 import * as db from './db';
-import { validateNewCollection } from '../../src/schema/validate-collection';
+import { validateNewCollection, validateCollectionEdit } from '../../src/schema/validate-collection';
 import { validateRecordProperties, type Field } from '../../src/schema/validate-record';
 import { checkIndiaBounds } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
@@ -77,18 +77,42 @@ async function readJson(req: Request): Promise<Record<string, unknown> | null> {
 
 // ---- POST /collections -----------------------------------------------------
 
+// Programmatic-abuse gate: verify an X-API-Key (prefix lookup + constant-time
+// hash compare, not revoked). Returns the key's id + daily limit + stored hash.
+async function verifyApiKey(env: Env, key: string): Promise<{ id: string; daily_limit: number; hash: string } | null> {
+  const rows = await db.apiKeysByPrefix(env.DB, tokenPrefix(key));
+  for (const r of rows) {
+    if (await verifyToken(key, r.key_hash)) return { id: r.id, daily_limit: r.daily_limit, hash: r.key_hash };
+  }
+  return null;
+}
+
 export async function createCollection(env: Env, req: Request): Promise<Response> {
   const ipHash = await ipHashFor(req, salt(env));
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
-  if (!(await turnstileOk(env, body.turnstile_token))) {
-    void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
-    return bad(403, 'captcha failed');
-  }
-  if (!(await checkCreateRate(env.DB, ipHash))) {
-    void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
-    return bad(429, 'rate limit: 5 collections per day');
+  // Programmatic callers (MCP/REST) present an API key instead of Turnstile.
+  const apiKey = req.headers.get('x-api-key');
+  if (apiKey) {
+    const k = await verifyApiKey(env, apiKey);
+    if (!k) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'apiKey', ip_hash: ipHash });
+      return bad(401, 'invalid API key');
+    }
+    if (!(await checkKeyDayRate(env.DB, k.hash, k.daily_limit))) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
+      return bad(429, `API key daily limit (${k.daily_limit}) reached`);
+    }
+  } else {
+    if (!(await turnstileOk(env, body.turnstile_token))) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
+      return bad(403, 'captcha failed');
+    }
+    if (!(await checkCreateRate(env.DB, ipHash))) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
+      return bad(429, 'rate limit: 5 collections per day');
+    }
   }
 
   const v = validateNewCollection(body);
@@ -144,6 +168,32 @@ export async function getCollectionMeta(env: Env, req: Request, id: string): Pro
     schema: JSON.parse(c.schema_doc),
     counts,
   });
+}
+
+// ---- PATCH /collections/:id ------------------------------------------------
+// Admin "Edit map settings": name/description/purpose/data_year/category/basemap/
+// reference_layer (+ licence only while the map has no records). Fields untouched.
+
+export async function editCollection(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const c = await db.getCollection(env.DB, id);
+  if (!c) return bad(404, 'not found');
+  const body = await readJson(req);
+  if (!body) return bad(400, 'invalid JSON body');
+
+  const counts = await db.statusCounts(env.DB, id);
+  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license });
+  if (!v.ok) return bad(400, v.error);
+
+  let schemaDoc: string | undefined;
+  if (Object.keys(v.value.schema).length) {
+    const cur = JSON.parse(c.schema_doc) as Record<string, unknown>;
+    for (const [k, val] of Object.entries(v.value.schema)) { if (val === null) delete cur[k]; else cur[k] = val; }
+    schemaDoc = JSON.stringify(cur);
+  }
+  await db.updateCollection(env.DB, id, v.value.col, schemaDoc);
+  return json(200, { ok: true });
 }
 
 // ---- POST /collections/:id/tokens ------------------------------------------

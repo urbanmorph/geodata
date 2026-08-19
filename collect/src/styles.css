@@ -8,18 +8,22 @@
      · toggle / filter — pill, --radius-pill                     (.chip)
      · segmented       — one rounded track, equal cells          (.seg) */
 
+/* Tokens shared with bharatlas.com (web/scripts/shared-chrome.mjs) for brand
+   parity — same bg/fg/line/muted/accent hex. Extra collect-only tokens (surface,
+   radius, control height, tints, shadows) sit alongside. */
 :root {
   color-scheme: light dark;
   --bg: #ffffff;
-  --surface: #f4f6f8;        /* raised sections, code chips */
+  --surface: #f5f5f5;        /* = apex --bg-card; raised sections */
   --card: #ffffff;
-  --fg: #0f1115;
-  --muted: #59606e;          /* AA on --bg */
-  --line: #e5e8ed;
-  --line-strong: #d2d7df;
-  --accent: #4f46e5;         /* indigo — text, borders, links */
-  --accent-strong: #4f46e5;  /* fill under WHITE text (AA both themes) */
-  --accent-fill: #eef2ff;
+  --fg: #0a0a0a;             /* apex */
+  --muted: #525965;          /* apex */
+  --line: #e5e7eb;           /* apex */
+  --line-strong: #d1d5db;    /* apex --line-bright */
+  --accent: #4f46e5;         /* apex — indigo text/borders/links */
+  --accent-strong: #4338ca;  /* apex */
+  --accent-solid: #4f46e5;   /* = apex --accent-fill; solid indigo under WHITE text, AA both themes */
+  --accent-fill: #eef2ff;    /* collect tint for chips (not apex's solid fill) */
   --danger: #dc2626;
   --amber: #b45309;
   --sheet: #ffffff;
@@ -33,19 +37,20 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b0d10;
-    --surface: #171b21;
-    --card: #14171d;
-    --fg: #eceef2;
-    --muted: #99a1af;        /* AA on --bg */
-    --line: #262c35;
-    --line-strong: #39414d;
-    --accent: #818cf8;
-    --accent-strong: #4f46e5;
-    --accent-fill: #1e1b4b;
+    --bg: #0a0a0a;           /* apex */
+    --surface: #1a1a1f;      /* = apex --bg-card */
+    --card: #1a1a1f;
+    --fg: #ededed;           /* apex */
+    --muted: #9ca3af;        /* apex */
+    --line: #262626;         /* apex */
+    --line-strong: #404040;  /* apex --line-bright */
+    --accent: #818cf8;       /* apex */
+    --accent-strong: #6366f1;/* apex */
+    --accent-solid: #4f46e5; /* = apex --accent-fill (same both themes) */
+    --accent-fill: #1e1b4b;  /* collect tint */
     --danger: #f87171;
     --amber: #fbbf24;
-    --sheet: #14171d;
+    --sheet: #15151a;        /* = apex --bg-elevated */
     --shadow-sheet: 0 -10px 34px rgba(0, 0, 0, .6);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .35);
     --shadow-pop: 0 6px 22px rgba(0, 0, 0, .5);
@@ -58,7 +63,7 @@ html, body { margin: 0; height: 100%; }
 body {
   background: var(--bg);
   color: var(--fg);
-  font: 400 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: 400 16px/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
 }
@@ -75,25 +80,30 @@ strong { font-weight: 650; letter-spacing: -.01em; }
 .topbar a { color: var(--fg); text-decoration: none; font-size: 20px; line-height: 1; }
 .topbar > span:first-of-type { font-size: 17px; }
 .topbar .muted { color: var(--muted); font-weight: 400; font-size: 13px; letter-spacing: 0; }
+/* bharatlas wordmark — matches apex: bhar + accent "atlas" */
+.topbar .brand { margin-left: auto; font-size: 16px; font-weight: 600; letter-spacing: -.01em; color: var(--fg); text-decoration: none; }
+.topbar .brand-accent { color: var(--accent); }
 
 /* ── action buttons: one shape, one height ─────────────────────────────── */
 button, .btn {
   min-height: var(--ctl-h); padding: 0 16px; border-radius: var(--radius);
   border: 1px solid var(--line-strong); background: var(--card); color: var(--fg);
-  font-size: 15px; font-weight: 600; line-height: 1; cursor: pointer;
+  font-size: 14px; font-weight: 500; line-height: 1; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   text-decoration: none; box-sizing: border-box; white-space: nowrap;
-  transition: transform .06s ease, background .15s ease, border-color .15s ease, box-shadow .15s ease, opacity .15s ease;
+  transition: transform .06s ease, background .14s ease, border-color .14s ease, color .14s ease, box-shadow .14s ease, opacity .15s ease;
 }
 button:active, .btn:active { transform: translateY(1px); }
+/* apex focus ring: solid 2px accent-strong, offset 2px */
 button:focus-visible, .btn:focus-visible,
-input:focus-visible, select:focus-visible, textarea:focus-visible { outline: none; box-shadow: var(--ring); }
+input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 button:disabled, .btn:disabled { opacity: .5; cursor: default; transform: none; }
 
+/* Primary = apex .btn-primary model: monochrome default, indigo on hover. */
 button.primary, .btn.primary {
-  background: var(--accent-strong); border-color: var(--accent-strong); color: #fff;
-  width: 100%; box-shadow: 0 1px 2px rgba(79, 70, 229, .35);
+  background: var(--fg); border-color: var(--fg); color: var(--bg); width: 100%;
 }
+button.primary:hover, .btn.primary:hover { background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; }
 button.ghost { background: transparent; border-color: var(--line); }
 button.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-fill); }
 button.danger { border-color: var(--line-strong); color: var(--danger); background: var(--card); }
@@ -132,7 +142,7 @@ textarea { min-height: 92px; line-height: 1.5; }
   min-height: 34px; border: 0; border-radius: 9px; background: transparent;
   font-size: 14px; font-weight: 600; padding: 0 16px; color: var(--muted);
 }
-.seg button.on { background: var(--accent-strong); color: #fff; box-shadow: var(--shadow-card); }
+.seg button.on { background: var(--accent-solid); color: #fff; box-shadow: var(--shadow-card); }
 
 /* landing / form pages scroll */
 .pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); overflow: auto; }
@@ -234,6 +244,16 @@ textarea { min-height: 92px; line-height: 1.5; }
 .badge--pending { color: var(--amber); }
 .badge--published { color: var(--accent); }
 .badge--rejected { color: var(--danger); }
+
+/* home footer */
+.foot-note { display: flex; flex-direction: column; gap: 4px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+.foot-note a { color: var(--muted); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
+.foot-note a:hover { color: var(--accent); }
+
+/* role pill on "Your maps" (Owner / Collect / View) */
+.pill { display: inline-block; font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); vertical-align: middle; white-space: nowrap; }
+.pill--owner { background: var(--accent-fill); color: var(--accent); }
+.pill--collect, .pill--view { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
 
 /* toast — direction, not decoration */
 .toast {

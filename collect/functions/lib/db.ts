@@ -54,6 +54,19 @@ export async function touchCollection(db: DB, id: string): Promise<void> {
   await db.prepare(`UPDATE collections SET updated_at = ? WHERE id = ?`).bind(now(), id).run();
 }
 
+// Admin edit of collection metadata. `col` keys are trusted column names from
+// validateCollectionEdit (name/purpose/description/data_year/license); schema_doc
+// is a pre-serialised merge.
+export async function updateCollection(db: DB, id: string, col: Record<string, unknown>, schemaDoc?: string): Promise<void> {
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  for (const [k, v] of Object.entries(col)) { sets.push(`${k} = ?`); binds.push(v); }
+  if (schemaDoc !== undefined) { sets.push('schema_doc = ?'); binds.push(schemaDoc); }
+  sets.push('updated_at = ?'); binds.push(now());
+  binds.push(id);
+  await db.prepare(`UPDATE collections SET ${sets.join(', ')} WHERE id = ?`).bind(...binds).run();
+}
+
 // ---- tokens ----------------------------------------------------------------
 
 export async function addCollectionToken(
@@ -82,6 +95,19 @@ export async function tokensForCollection(
     .bind(collectionId, prefix)
     .all();
   return (res.results ?? []) as unknown as { token_hash: string; permission: 'admin' | 'edit' | 'view'; is_active: number }[];
+}
+
+// ---- API keys (programmatic create gate) -----------------------------------
+
+export async function apiKeysByPrefix(
+  db: DB,
+  prefix: string,
+): Promise<{ id: string; key_hash: string; daily_limit: number }[]> {
+  const res = await db
+    .prepare(`SELECT id, key_hash, daily_limit FROM collect_api_keys WHERE key_prefix = ? AND revoked = 0`)
+    .bind(prefix)
+    .all();
+  return (res.results ?? []) as unknown as { id: string; key_hash: string; daily_limit: number }[];
 }
 
 // ---- records ---------------------------------------------------------------

@@ -40,7 +40,7 @@ def main():
     checks = []
     tl = tables(conn)
     for t in ("collections", "collection_tokens", "records",
-              "publications", "collect_attempts"):
+              "publications", "collect_attempts", "collect_api_keys"):
         checks.append((f"table {t} exists", t in tl))
 
     c = cols(conn, "collections")

@@ -90,6 +90,68 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
   return { ok: true, value: doc };
 }
 
+// Validate a partial edit to an existing collection (admin "Edit map settings").
+// Returns the column patch (col) + the schema_doc merge (schema). Licence can
+// only change while the map has no records; fields/geometry are not editable here.
+export function validateCollectionEdit(
+  input: unknown,
+  ctx: { hasRecords: boolean; currentLicense: string },
+): Result<{ col: Record<string, unknown>; schema: Record<string, unknown> }> {
+  if (!input || typeof input !== 'object') return fail('body must be an object');
+  const b = input as Record<string, unknown>;
+  const col: Record<string, unknown> = {};
+  const schema: Record<string, unknown> = {};
+
+  if (b.name !== undefined) {
+    const name = isStr(b.name) ? b.name.trim() : '';
+    if (name.length < 3 || name.length > 120) return fail('name must be 3-120 characters');
+    col.name = name;
+  }
+  if (b.purpose !== undefined) {
+    const p = isStr(b.purpose) ? b.purpose.trim() : '';
+    if (p.length < 1 || p.length > 2000) return fail('purpose is required');
+    col.purpose = p;
+  }
+  if (b.description !== undefined) {
+    const d = isStr(b.description) ? b.description.trim() : '';
+    if (d.length > 2000) return fail('description is too long');
+    col.description = d === '' ? null : d;
+  }
+  if (b.data_year !== undefined) {
+    if (b.data_year === null || b.data_year === '') col.data_year = null;
+    else {
+      const y = typeof b.data_year === 'number' ? b.data_year : Number(b.data_year);
+      if (!Number.isInteger(y) || y < 1800 || y > 2100) return fail('data_year must be a year 1800-2100');
+      col.data_year = y;
+    }
+  }
+  if (b.license !== undefined) {
+    if (!isStr(b.license) || !isOpenLicence(b.license)) return fail('license must be an accepted open licence');
+    if (ctx.hasRecords && b.license !== ctx.currentLicense) return fail('the licence is locked once the map has points');
+    col.license = b.license;
+  }
+  if (b.category !== undefined) {
+    if (!CATEGORY_IDS.includes(b.category as (typeof CATEGORY_IDS)[number])) return fail(`unknown category: ${String(b.category)}`);
+    schema.category = b.category;
+  }
+  if (b.basemap !== undefined) {
+    if (!BASEMAP_IDS.includes(b.basemap as (typeof BASEMAP_IDS)[number])) return fail(`unknown basemap: ${String(b.basemap)}`);
+    schema.basemap = b.basemap;
+  }
+  if (b.reference_layer !== undefined) {
+    if (b.reference_layer === null) schema.reference_layer = null;
+    else {
+      const r = b.reference_layer as Record<string, unknown>;
+      if (typeof r !== 'object' || Array.isArray(r) || !isStr(r.id) || !isStr(r.pmtiles_url) || !r.pmtiles_url.startsWith('https://')) {
+        return fail('reference_layer needs id and an https pmtiles_url');
+      }
+      schema.reference_layer = { id: r.id, pmtiles_url: r.pmtiles_url };
+    }
+  }
+  if (Object.keys(col).length === 0 && Object.keys(schema).length === 0) return fail('nothing to update');
+  return { ok: true, value: { col, schema } };
+}
+
 export function validateNewCollection(input: unknown): Result<NewCollection> {
   if (!input || typeof input !== 'object') return fail('body must be an object');
   const b = input as Record<string, unknown>;

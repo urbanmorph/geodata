@@ -4,8 +4,10 @@
 // — for admin — a review queue + publish. Mobile-first.
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { styleFor, INDIA_CENTER } from './basemap';
+import { styleFor, BASEMAPS, INDIA_CENTER } from './basemap';
 import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
+import { searchLayers, type RefLayer } from './geo/catalog';
+import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, apiJson, type Ctx } from './api';
 import { turnstileToken } from './turnstile';
 import { validateRecordProperties, type Field } from './schema/validate-record';
@@ -15,10 +17,11 @@ import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
+import { rememberMap } from './maps-store';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
-  id: string; name: string; purpose: string; status: string; moderation: number; license: string;
-  schema: { geometry: string[]; fields: Field[]; basemap?: string; reference_layer?: { id: string; pmtiles_url: string } | null }; counts: Counts;
+  id: string; name: string; purpose: string; description: string | null; data_year: number | null; status: string; moderation: number; license: string;
+  schema: { geometry: string[]; fields: Field[]; category?: string; basemap?: string; reference_layer?: { id: string; pmtiles_url: string } | null }; counts: Counts;
 }
 interface Feature { id: string; geometry: { type: string; coordinates: number[] }; properties: Record<string, unknown>; }
 
@@ -87,6 +90,8 @@ async function boot(): Promise<void> {
   meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
   const isView = ctx.mode === 'view';
   const isAdmin = ctx.mode === 'admin';
+  // Autosave to "Your maps" so a shared collect/view link is one tap to reopen.
+  rememberMap(ctx.id, meta.name, isAdmin ? 'owner' : isView ? 'view' : 'collect', location.href);
 
   app.innerHTML = `
     <div class="topbar">
@@ -344,13 +349,97 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   };
 }
 
+// Admin "Edit map settings" — fix the name/description/purpose/category/data
+// year + map background/reference layer. Licence editable only with no records.
+async function editSettings(): Promise<void> {
+  const panel = document.getElementById('panel')!;
+  const s = meta.schema;
+  const locked = meta.counts.total > 0;
+  const sel = (v: string, cur: string): string => (v === cur ? ' selected' : '');
+  panel.innerHTML = `<div class="sheet">
+    <form class="body" id="editform">
+      <strong>Edit map settings</strong>
+      <label>Name</label><input id="e-name" maxlength="120" value="${escapeHtml(meta.name)}" required />
+      <label>What's it for?</label><textarea id="e-purpose" maxlength="2000">${escapeHtml(meta.purpose)}</textarea>
+      <label>Description <span class="hint">(optional)</span></label><input id="e-desc" maxlength="2000" value="${escapeHtml(meta.description || '')}" />
+      <label>Category</label><select id="e-category">${CATEGORIES.map(([id, l]) => `<option value="${id}"${sel(id, s.category || 'other')}>${l}</option>`).join('')}</select>
+      <label>Data year <span class="hint">(optional)</span></label><input id="e-year" inputmode="numeric" value="${meta.data_year ?? ''}" />
+      <label>Map background</label><select id="e-basemap">${BASEMAPS.map((b) => `<option value="${b.id}"${sel(b.id, s.basemap || 'positron')}>${b.name}</option>`).join('')}</select>
+      <label>Reference layer</label>
+      <div id="e-refnow">${s.reference_layer ? `<div class="link-box"><code>${escapeHtml(s.reference_layer.id)}</code><button type="button" id="e-ref-remove">Remove</button></div>` : '<p class="hint">None.</p>'}</div>
+      <input id="e-ref-search" placeholder="Search to change: forest, wards…" autocomplete="off" />
+      <div id="e-ref-results" class="ref-results"></div>
+      <label>Licence</label>
+      ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}
+    </form>
+    <div class="foot row">
+      <button type="button" id="e-cancel">← Back</button>
+      <button class="primary" id="e-save" style="flex:1">Save settings</button>
+    </div>
+  </div>`;
+
+  // reference change: undefined = leave as-is; null = remove; RefLayer = replace
+  let refChange: RefLayer | null | undefined;
+  const refNow = document.getElementById('e-refnow')!;
+  (document.getElementById('e-ref-remove') as HTMLButtonElement | null)?.addEventListener('click', () => {
+    refChange = null; refNow.innerHTML = '<p class="hint">Will be removed on save.</p>';
+  });
+  const results = document.getElementById('e-ref-results')!;
+  const searchEl = document.getElementById('e-ref-search') as HTMLInputElement;
+  let timer: number | undefined; let last: RefLayer[] = [];
+  searchEl.oninput = () => {
+    clearTimeout(timer);
+    const q = searchEl.value.trim();
+    if (!q) { results.innerHTML = ''; return; }
+    timer = window.setTimeout(async () => {
+      try {
+        last = await searchLayers(q);
+        results.innerHTML = last.slice(0, 8).map((l, i) => `<button type="button" class="ref-opt" data-i="${i}">${escapeHtml(l.label)}<span class="hint">${escapeHtml(l.category)}</span></button>`).join('') || '<p class="hint">No layers.</p>';
+        results.querySelectorAll<HTMLButtonElement>('.ref-opt').forEach((b) => {
+          b.onclick = () => { refChange = last[Number(b.dataset.i)]; results.innerHTML = ''; searchEl.value = ''; refNow.innerHTML = `<div class="link-box"><code>${escapeHtml(refChange!.label)}</code></div>`; };
+        });
+      } catch { results.innerHTML = '<p class="hint">Couldn\'t reach the catalogue.</p>'; }
+    }, 300);
+  };
+
+  (document.getElementById('e-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
+  (document.getElementById('e-save') as HTMLButtonElement).onclick = async (ev) => {
+    const btn = ev.currentTarget as HTMLButtonElement;
+    if (!(document.getElementById('editform') as HTMLFormElement).reportValidity()) return;
+    const newBasemap = (document.getElementById('e-basemap') as HTMLSelectElement).value;
+    const yr = (document.getElementById('e-year') as HTMLInputElement).value.trim();
+    const patch: Record<string, unknown> = {
+      name: (document.getElementById('e-name') as HTMLInputElement).value,
+      purpose: (document.getElementById('e-purpose') as HTMLTextAreaElement).value,
+      description: (document.getElementById('e-desc') as HTMLInputElement).value,
+      category: (document.getElementById('e-category') as HTMLSelectElement).value,
+      basemap: newBasemap,
+      data_year: yr === '' ? null : Number(yr),
+    };
+    if (!locked) patch.license = (document.getElementById('e-license') as HTMLSelectElement).value;
+    if (refChange !== undefined) patch.reference_layer = refChange ? { id: refChange.id, pmtiles_url: refChange.pmtiles_url } : null;
+    const mapChanged = newBasemap !== (s.basemap || 'positron') || refChange !== undefined;
+    btn.disabled = true;
+    try {
+      await apiJson(`/collections/${ctx.id}`, ctx.token, { method: 'PATCH', body: JSON.stringify(patch) });
+      toast('Settings saved ✓');
+      if (mapChanged) { location.reload(); return; } // reload to apply the new basemap/overlay
+      meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
+      void manageSheet();
+    } catch (e) { toast((e as Error).message); btn.disabled = false; }
+  };
+}
+
 async function manageSheet(): Promise<void> {
   meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token).catch(() => meta);
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
     <div class="body">
-      <strong>Manage map</strong>
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <strong>Manage map</strong>
+        <button id="edit-settings" style="min-height:36px;font-size:13px">✎ Settings</button>
+      </div>
       <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
       <div class="row" id="pfilter" style="margin:8px 0 4px">
         <button type="button" class="chip on" data-s="">All ${c.total}</button>
@@ -386,6 +475,7 @@ async function manageSheet(): Promise<void> {
   </div>`;
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
   (document.getElementById('publish') as HTMLButtonElement).onclick = doPublish;
+  (document.getElementById('edit-settings') as HTMLButtonElement).onclick = () => void editSettings();
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
       document.querySelectorAll('#pfilter .chip').forEach((x) => x.classList.remove('on'));

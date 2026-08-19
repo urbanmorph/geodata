@@ -1,0 +1,32 @@
+{
+  "name": "collect-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for collect.bharatlas.com — design a map form, moderate contributions, and publish to the bharatlas atlas. Author-side only.",
+  "keywords": [
+    "mcp",
+    "bharatlas",
+    "collect",
+    "maps",
+    "crowdsourcing",
+    "india",
+    "geo",
+    "llm",
+    "claude"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/urbanmorph/geodata",
+    "directory": "mcp-collect"
+  },
+  "homepage": "https://bharatlas.com/mcp",
+  "mcpName": "io.github.urbanmorph/collect-mcp",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "collect-mcp": "index.js"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.30.0"
+  },
+  "license": "MIT"
+}

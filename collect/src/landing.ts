@@ -10,63 +10,29 @@ import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { inferSchema } from './import/infer';
 import { autoMapping, buildRecords } from './import/build';
 import type { Field } from './schema/validate-record';
-
-// Catalogue facets a published map slots into ('other' first = the default).
-const CATEGORIES: [string, string][] = [
-  ['other', 'Other'],
-  ['boundaries', 'Boundaries'],
-  ['city-wards', 'City wards'],
-  ['people', 'People & places'],
-  ['environment', 'Environment'],
-  ['water', 'Water'],
-  ['agriculture', 'Agriculture & land use'],
-  ['transport', 'Transport & mobility'],
-  ['infrastructure', 'Infrastructure & utilities'],
-  ['culture', 'Culture & heritage'],
-  ['health-edu', 'Health & education'],
-];
-
-const OPEN_LICENCES: [string, string][] = [
-  ['CC-BY-4.0', 'CC BY 4.0 (credit required)'],
-  ['CC0-1.0', 'CC0 (public domain)'],
-  ['CC-BY-SA-4.0', 'CC BY-SA 4.0'],
-  ['ODbL-1.0', 'ODbL 1.0'],
-  ['ODC-PDDL-1.0', 'PDDL 1.0'],
-  ['GODL-India', 'GODL India'],
-  ['CDLA-Permissive-2.0', 'CDLA Permissive 2.0'],
-];
+import { myMaps, saveOwnedMap, replaceMaps, openLink, type SavedMap, type MapRole } from './maps-store';
+import { CATEGORIES, OPEN_LICENCES } from './options';
 
 const app = document.getElementById('app')!;
 
-interface SavedMap { name: string; links: Record<string, string>; at: string; }
-
-function myMaps(): SavedMap[] {
-  try { return JSON.parse(localStorage.getItem('collect:maps') || '[]'); } catch { return []; }
-}
-function saveMap(name: string, links: Record<string, string>): void {
-  try {
-    const store = myMaps();
-    store.unshift({ name: name || 'Untitled map', links, at: new Date().toISOString() });
-    localStorage.setItem('collect:maps', JSON.stringify(store.slice(0, 50)));
-  } catch { /* per-device convenience only */ }
-}
+const ROLE_PILL: Record<MapRole, string> = { owner: 'Owner', collect: 'Collect', view: 'View' };
 
 function mapsSection(): string {
   const maps = myMaps();
   return `<label>Your maps <span class="hint">(saved on this device)</span></label>
     ${maps.length
       ? maps.map((m) => `<div class="link-box">
-          <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.name || 'Untitled map')}</span>
-          <a class="btn" href="${m.links.edit}">Open</a>
-          <a class="btn" href="${m.links.admin}">Admin</a>
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.name || 'Untitled map')} <span class="pill pill--${m.role}">${ROLE_PILL[m.role]}</span></span>
+          <a class="btn" href="${openLink(m) || '#'}">Open</a>
+          ${m.links.admin ? `<a class="btn" href="${m.links.admin}">Manage</a>` : ''}
         </div>`).join('')
-      : '<p class="empty">No maps yet. Make one above, and it will appear here to reopen anytime.</p>'}`;
+      : '<p class="empty">No maps yet. Make one above, or open a link someone shared, and it will appear here to reopen anytime.</p>'}`;
 }
 
 // The landing: a list of your maps + a "start collecting" CTA into the create form.
 function home() {
   app.innerHTML = `
-    <div class="topbar"><span>collect</span><span class="muted" style="margin-left:auto">bharatlas</span></div>
+    <div class="topbar"><span>collect</span><a class="brand" href="https://bharatlas.com">bhar<span class="brand-accent">atlas</span></a></div>
     <div class="pad">
       <h1>Make a map, collect together</h1>
       <p class="hint">Here you <strong>design</strong> a small form. Share the collect link and anyone <strong>adds points</strong> on the map, no accounts. Publish to the bharatlas atlas when it's ready.</p>
@@ -78,6 +44,10 @@ function home() {
       <label class="btn wide" style="cursor:pointer">⬆ Restore map links<input id="import" type="file" accept="application/json" hidden></label>
       <p class="hint">This file holds the <strong>links</strong> to your maps (your admin access), not the points people collect. With no accounts, it's how you reach your maps again from another device or browser.</p>
       <p id="imp-err" class="warn"></p>
+      <footer class="foot-note">
+        <span>Part of <a href="https://bharatlas.com">bharatlas</a>, built for the field and optimised for mobile.</span>
+        <span><a href="https://bharatlas.com/about">About</a> · <a href="https://bharatlas.com/terms">Terms</a></span>
+      </footer>
     </div>`;
   app.querySelector<HTMLButtonElement>('#start')!.onclick = createForm;
 
@@ -95,12 +65,12 @@ function home() {
       if (!Array.isArray(incoming)) throw new Error('not a maps file');
       const seen = new Set<string>();
       const merged = [...incoming, ...myMaps()].filter((m) => {
-        const key = m?.links?.admin || m?.links?.edit || '';
+        const key = m?.id || m?.links?.admin || m?.links?.edit || m?.links?.view || '';
         if (!key || seen.has(key)) return false;
         seen.add(key);
         return true;
       });
-      localStorage.setItem('collect:maps', JSON.stringify(merged.slice(0, 100)));
+      replaceMaps(merged);
       home();
     } catch (ex) {
       app.querySelector('#imp-err')!.textContent = `Couldn't import: ${(ex as Error).message}`;
@@ -276,7 +246,7 @@ function createForm() {
           body: JSON.stringify({ records: seedImport.records, source: seedImport.source, rights_confirmed: true }),
         }).catch(() => { /* map is created; the rows can still be imported from Manage */ });
       }
-      saveMap(name, res.links);
+      saveOwnedMap(res.id, name, res.links);
       done(res.links);
     } catch (e) {
       err.textContent = (e as Error).message;
