@@ -96,16 +96,17 @@ export interface NewRecordRow {
   contributor: string | null;
   edit_token_hash: string;
   ip_hash: string;
+  source?: string | null; // NULL = field-collected; set = imported from
 }
 
 export async function insertRecord(db: DB, r: NewRecordRow): Promise<void> {
   await db
     .prepare(
       `INSERT INTO records
-       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash)
+    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null)
     .run();
 }
 
@@ -119,6 +120,7 @@ export interface RecordRow {
   admin_ctx: string | null;
   contributor: string | null;
   edit_token_hash: string | null;
+  source: string | null;
 }
 
 export async function listRecords(

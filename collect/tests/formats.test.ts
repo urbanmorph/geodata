@@ -30,8 +30,8 @@ describe('toGeoJSON', () => {
 describe('toCSV', () => {
   it('has a header + one row per feature, with representative lng/lat', () => {
     const rows = toCSV(FEATURES, FIELDS).split('\n');
-    expect(rows[0]).toBe('lng,lat,geometry_type,name,cond,tags,contributor,status,state,district');
-    expect(rows[1]).toBe('77.61,12.98,Point,MG Road,Good,a|b,Ravi,published,KARNATAKA,Bengaluru Urban');
+    expect(rows[0]).toBe('lng,lat,geometry_type,name,cond,tags,contributor,source,status,state,district');
+    expect(rows[1]).toBe('77.61,12.98,Point,MG Road,Good,a|b,Ravi,,published,KARNATAKA,Bengaluru Urban');
     expect(rows).toHaveLength(3);
   });
   it('quotes cells with commas/quotes and uses the line first vertex', () => {

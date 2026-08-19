@@ -17,7 +17,7 @@ import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
-  id: string; name: string; purpose: string; status: string; moderation: number;
+  id: string; name: string; purpose: string; status: string; moderation: number; license: string;
   schema: { geometry: string[]; fields: Field[]; basemap?: string; reference_layer?: { id: string; pmtiles_url: string } | null }; counts: Counts;
 }
 interface Feature { id: string; geometry: { type: string; coordinates: number[] }; properties: Record<string, unknown>; }
@@ -480,7 +480,10 @@ async function importFlow(file: File): Promise<void> {
     <div class="maplabel">Fields <span class="hint">(which column fills each)</span></div>
     ${fields.map((f) => `<div class="maprow"><span>${escapeHtml(f.label)}${f.required ? ' *' : ''}</span><select data-field="${f.key}">${opts(guess.fields[f.key])}</select></div>`).join('')}
     <div id="map-preview" class="hint" style="margin:10px 0"></div>
-    <button class="primary" id="do-import">Import all ${n} rows</button>
+    <div class="maplabel">Where's this data from? <span class="hint">(the source, shown in the published credit)</span></div>
+    <input id="imp-source" placeholder="e.g. SOI Forest Atlas 2021, or a link" maxlength="200" />
+    <label class="chip" style="gap:8px;margin-top:10px;align-items:flex-start;border-radius:12px;padding:10px 12px"><input type="checkbox" id="imp-rights" style="width:auto;min-height:auto;margin-top:3px"><span style="white-space:normal;font-weight:400;font-size:13px">I have the right to publish this under the map's licence (${escapeHtml(meta.license)}): it's my own data, or from a source whose terms allow it.</span></label>
+    <button class="primary" id="do-import" style="margin-top:12px">Import all ${n} rows</button>
     <div id="import-result"></div>`;
 
   const readMapping = (): Mapping => {
@@ -512,6 +515,10 @@ async function importFlow(file: File): Promise<void> {
 
   (document.getElementById('do-import') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
+    const source = (document.getElementById('imp-source') as HTMLInputElement).value.trim();
+    const rights = (document.getElementById('imp-rights') as HTMLInputElement).checked;
+    if (!rights) { toast('Tick the box: you can publish this under the map licence'); return; }
+    if (!source) { toast('Name where this data comes from'); return; }
     const { records, errors } = buildRecords(parsed.features, readMapping(), fields, meta.schema.geometry);
     const result = document.getElementById('import-result')!;
     if (!records.length) {
@@ -521,7 +528,7 @@ async function importFlow(file: File): Promise<void> {
     }
     btn.disabled = true;
     try {
-      const res = await apiJson<{ imported: number; errors: unknown[] }>(`/collections/${ctx.id}/import`, ctx.token, { method: 'POST', body: JSON.stringify({ records }) });
+      const res = await apiJson<{ imported: number; errors: unknown[] }>(`/collections/${ctx.id}/import`, ctx.token, { method: 'POST', body: JSON.stringify({ records, source, rights_confirmed: true }) });
       await refreshCounts();
       void renderPoints();
       toast(`Imported ${res.imported} point${res.imported === 1 ? '' : 's'} ✓`);
@@ -594,8 +601,9 @@ async function renderPoints(): Promise<void> {
     const feats = fc.features || [];
     if (!feats.length) { q.innerHTML = '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>'; return; }
     q.innerHTML = feats.map((f) => {
-      const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx };
+      const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string };
       const st = p._status || 'published';
+      const origin = p._source ? `⇪ ${escapeHtml(p._source)}` : escapeHtml(p._contributor || 'anonymous');
       const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `<span class="hint">${nounFor(f.geometry.type)}</span> ` : '';
       // Two action rows (max two buttons each) so labels never wrap: moderation
       // on top, then edit/delete. Better hierarchy, and it fits at 360px.
@@ -609,7 +617,7 @@ async function renderPoints(): Promise<void> {
           <strong style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${geom}${escapeHtml(cardTitle(f.properties))}</strong>
           <span class="badge badge--${st}">${st}</span>
         </div>
-        <div class="hint">${escapeHtml(p._contributor || 'anonymous')}${fmtAdminCtx(p._admin_ctx ?? null)}</div>
+        <div class="hint">${origin}${fmtAdminCtx(p._admin_ctx ?? null)}</div>
         ${mod ? `<div class="row" style="margin-top:8px">${mod}</div>` : ''}
         <div class="row" style="margin-top:8px">${crud}</div>
       </div>`;

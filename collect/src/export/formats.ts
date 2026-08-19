@@ -15,6 +15,7 @@ function tidyProps(p: Record<string, unknown>, fieldKeys: string[]): Record<stri
   const out: Record<string, unknown> = {};
   for (const k of fieldKeys) if (p[k] != null) out[k] = p[k];
   if (p._contributor) out.contributor = p._contributor;
+  if (p._source) out.source = p._source;
   if (p._status) out.status = p._status;
   const ctx = p._admin_ctx as Record<string, string> | null | undefined;
   if (ctx) for (const [k, v] of Object.entries(ctx)) if (!(k in out)) out[k] = v;
@@ -36,7 +37,7 @@ function csvCell(v: unknown): string {
 }
 
 export function toCSV(features: ExportFeature[], fieldKeys: string[]): string {
-  const cols = ['lng', 'lat', 'geometry_type', ...fieldKeys, 'contributor', 'status', 'state', 'district'];
+  const cols = ['lng', 'lat', 'geometry_type', ...fieldKeys, 'contributor', 'source', 'status', 'state', 'district'];
   const lines = [cols.map(csvCell).join(',')];
   for (const f of features) {
     const p = f.properties || {};
@@ -45,7 +46,7 @@ export function toCSV(features: ExportFeature[], fieldKeys: string[]): string {
     const row = [
       c ? c[0] : '', c ? c[1] : '', f.geometry?.type ?? '',
       ...fieldKeys.map((k) => p[k]),
-      p._contributor ?? '', p._status ?? '', ctx.state ?? '', ctx.district ?? '',
+      p._contributor ?? '', p._source ?? '', p._status ?? '', ctx.state ?? '', ctx.district ?? '',
     ];
     lines.push(row.map(csvCell).join(','));
   }

@@ -65,6 +65,7 @@ def main():
     checks += [
         ("records has edit_token_hash", "edit_token_hash" in r),
         ("records has admin_ctx", "admin_ctx" in r),
+        ("records gained source (0008)", "source" in r),
     ]
 
     idx = conn.execute(

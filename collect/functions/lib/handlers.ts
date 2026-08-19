@@ -199,6 +199,7 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
       _contributor: r.contributor,
       _created_at: r.created_at,
       _admin_ctx: r.admin_ctx ? JSON.parse(r.admin_ctx) : null,
+      _source: r.source,
     },
   }));
   return json(200, { type: 'FeatureCollection', features });
@@ -397,6 +398,13 @@ export async function importRecords(env: Env, req: Request, id: string): Promise
   if (!Array.isArray(recs)) return bad(400, 'records must be an array');
   if (recs.length > 5000) return bad(413, 'import at most 5000 records per request');
 
+  // Rights gate (Phase 5): the importer must attest the right to publish this
+  // data under the map's open licence, and name the source (per-record provenance).
+  if (body.rights_confirmed !== true) return bad(400, 'confirm you have the right to publish this data under the map licence');
+  const source = typeof body.source === 'string' ? body.source.trim() : '';
+  if (!source) return bad(400, 'name the data source (where this data comes from)');
+  if (source.length > 200) return bad(400, 'source must be under 200 characters');
+
   const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
   const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
   const status: 'pending' | 'published' = c.moderation ? 'pending' : 'published';
@@ -417,7 +425,7 @@ export async function importRecords(env: Env, req: Request, id: string): Promise
       geometry: JSON.stringify(r.geometry), properties: JSON.stringify(v.properties),
       admin_ctx: null, contributor,
       edit_token_hash: await hashToken(generateRecordToken()), // discarded — no owner
-      ip_hash: ipHash,
+      ip_hash: ipHash, source, // per-record provenance
     });
     imported++;
   }
@@ -463,7 +471,13 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
     if (prev?.content_hash === contentHash) return bad(409, `nothing new since v${version - 1}`);
   }
 
-  const attribution = composeAttribution(c.name, c.license, rows.map((r) => r.contributor));
+  // Imported records are credited via their source, not the contributor tally;
+  // field records (no source) feed the contributor credit.
+  const attribution = composeAttribution(
+    c.name, c.license,
+    rows.filter((r) => !r.source).map((r) => r.contributor),
+    rows.map((r) => r.source),
+  );
   const geomTypes = [...new Set(features.map((f) => (f.geometry as { type: string }).type))].join(',');
 
   const submissionId = nanoid(10);
@@ -479,6 +493,7 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
     JSON.stringify({
       attribution: attribution.line,
       contributors: attribution.contributors,
+      sources: attribution.sources,
       collection_url: `${new URL(req.url).origin}/c/${id}`,
       version,
     }),
