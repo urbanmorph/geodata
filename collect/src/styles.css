@@ -50,6 +50,9 @@ button, .btn {
   border: 1px solid var(--line); background: var(--bg); color: var(--fg);
   font-size: 16px; font-weight: 600; cursor: pointer;
 }
+/* .btn on <a>/<label>: center text in the 44px box + drop the anchor underline
+   so link-buttons (Open/Admin) sit level with adjacent text. */
+.btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; box-sizing: border-box; }
 button.primary, .btn.primary {
   background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; width: 100%;
 }
