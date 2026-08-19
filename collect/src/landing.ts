@@ -39,7 +39,7 @@ function mapsSection(): string {
           <a class="btn" href="${m.links.edit}">Open</a>
           <a class="btn" href="${m.links.admin}">Admin</a>
         </div>`).join('')
-      : '<p class="hint">Your created maps will appear here.</p>'}`;
+      : '<p class="empty">No maps yet. Make one above, and it will appear here to reopen anytime.</p>'}`;
 }
 
 // The landing: a list of your maps + a "start collecting" CTA into the create form.
@@ -53,9 +53,9 @@ function home() {
       <div style="height:18px"></div>
       ${mapsSection()}
       <div style="height:14px"></div>
-      <button id="export" class="wide">⬇ Back up my maps to a file</button>
-      <label class="btn wide" style="cursor:pointer">⬆ Restore maps from a backup<input id="import" type="file" accept="application/json" hidden></label>
-      <p class="hint">There are no accounts, so a backup file is the only way to keep your admin links if you change device or browser.</p>
+      <button id="export" class="wide">⬇ Save my map links</button>
+      <label class="btn wide" style="cursor:pointer">⬆ Restore map links<input id="import" type="file" accept="application/json" hidden></label>
+      <p class="hint">This file holds the <strong>links</strong> to your maps (your admin access), not the points people collect. With no accounts, it's how you reach your maps again from another device or browser.</p>
       <p id="imp-err" class="warn"></p>
     </div>`;
   app.querySelector<HTMLButtonElement>('#start')!.onclick = createForm;
@@ -63,7 +63,7 @@ function home() {
   app.querySelector<HTMLButtonElement>('#export')!.onclick = () => {
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([JSON.stringify(myMaps(), null, 2)], { type: 'application/json' }));
-    a.download = 'collect-maps.json';
+    a.download = 'collect-map-links.json';
     a.click();
   };
   app.querySelector<HTMLInputElement>('#import')!.onchange = async (e) => {
