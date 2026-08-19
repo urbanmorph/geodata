@@ -1,18 +1,21 @@
 // Client-side helpers: parse the collection id + mode + token from the URL
 // (token rides the fragment, never sent in a request line), and call the API.
 
-export type Mode = 'capture' | 'admin' | 'view';
+export type Mode = 'capture' | 'admin' | 'view' | 'record';
 
 export interface Ctx {
   id: string;
   mode: Mode;
   token: string;
+  recordId?: string;
 }
 
 export function parseCtx(): Ctx | null {
+  const token = location.hash.replace(/^#/, '');
+  const rec = location.pathname.match(/^\/c\/([A-Za-z0-9_-]{6,})\/r\/([A-Za-z0-9_-]{6,})\/?$/);
+  if (rec) return { id: rec[1], mode: 'record', token, recordId: rec[2] };
   const m = location.pathname.match(/^\/c\/([A-Za-z0-9_-]{6,})(?:\/(admin|view))?\/?$/);
   if (!m) return null;
-  const token = location.hash.replace(/^#/, '');
   let mode: Mode = 'capture';
   if (m[2] === 'admin' || token.startsWith('adm_')) mode = 'admin';
   else if (m[2] === 'view' || token.startsWith('viw_')) mode = 'view';

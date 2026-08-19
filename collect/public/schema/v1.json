@@ -28,6 +28,7 @@
           "label": { "type": "string", "minLength": 1 },
           "type": { "enum": ["text", "paragraph", "number", "select", "multiselect", "date", "url"] },
           "required": { "type": "boolean" },
+          "hint": { "type": "string" },
           "options": { "type": "array", "items": { "type": "string" } },
           "min": { "type": "number" },
           "max": { "type": "number" },

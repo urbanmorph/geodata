@@ -11,6 +11,7 @@ export interface Field {
   label: string;
   type: FieldType;
   required?: boolean;
+  hint?: string;        // help text shown under the field (all types)
   options?: string[];   // select / multiselect
   min?: number;         // number
   max?: number;         // number

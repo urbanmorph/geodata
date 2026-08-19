@@ -7,4 +7,7 @@ export interface Env {
   TURNSTILE_SECRET?: string;
   PUBLIC_TURNSTILE_SITEKEY?: string;
   IP_SALT?: string;
+  // Origin for locate enrichment (defaults to https://bharatlas.com); override
+  // in tests to point at a stub. Phase 4.
+  LOCATE_ORIGIN?: string;
 }

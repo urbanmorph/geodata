@@ -167,6 +167,30 @@ export async function setRecordStatus(
   await db.prepare(`UPDATE records SET status = ?, rejection_reason = ? WHERE id = ?`).bind(status, reason, id).run();
 }
 
+export async function updateRecord(
+  db: DB,
+  id: string,
+  patch: { geometry?: string; properties?: string; status?: string; admin_ctx?: string | null },
+): Promise<void> {
+  const sets: string[] = [];
+  const binds: unknown[] = [];
+  if (patch.geometry !== undefined) { sets.push('geometry = ?'); binds.push(patch.geometry); }
+  if (patch.properties !== undefined) { sets.push('properties = ?'); binds.push(patch.properties); }
+  if (patch.status !== undefined) { sets.push('status = ?'); binds.push(patch.status); }
+  if (patch.admin_ctx !== undefined) { sets.push('admin_ctx = ?'); binds.push(patch.admin_ctx); }
+  if (!sets.length) return;
+  binds.push(id);
+  await db.prepare(`UPDATE records SET ${sets.join(', ')} WHERE id = ?`).bind(...binds).run();
+}
+
+export async function deleteRecord(db: DB, id: string): Promise<void> {
+  await db.prepare(`DELETE FROM records WHERE id = ?`).bind(id).run();
+}
+
+export async function deidentifyRecord(db: DB, id: string): Promise<void> {
+  await db.prepare(`UPDATE records SET contributor = NULL WHERE id = ?`).bind(id).run();
+}
+
 // ---- publications ----------------------------------------------------------
 
 export async function nextVersion(db: DB, collectionId: string): Promise<number> {

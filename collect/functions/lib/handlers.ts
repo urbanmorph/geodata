@@ -7,7 +7,7 @@
 
 import type { Env } from '../types';
 import { bad, json } from './http';
-import { generateToken, tokenPrefix, hashToken, generateRecordToken } from './tokens';
+import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, atLeast } from './auth';
 import { checkCreateRate, checkRecordRate } from './ratelimit';
 import { logCollectAttempt } from './collect-log';
@@ -16,11 +16,42 @@ import * as db from './db';
 import { validateNewCollection } from '../../src/schema/validate-collection';
 import { validateRecordProperties, type Field } from '../../src/schema/validate-record';
 import { checkIndiaBounds } from '../../src/geo/bounds';
+import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
 import { composeAttribution } from '../../src/publish/attribution';
 
 const BHARATLAS_ORIGIN = 'https://bharatlas.com';
 
 const salt = (env: Env) => env.IP_SALT || 'collect-v1';
+
+// Locate enrichment (Phase 4). Best-effort: ask bharatlas /api/v1/locate for the
+// admin context at a record's representative vertex. Any error (network, timeout,
+// bad shape) resolves to null. Callers run this OFF the write path (via
+// waitUntil) so a slow locate never delays the contributor's "Add".
+async function enrich(env: Env, geometry: unknown): Promise<string | null> {
+  const c = representativeCoord(geometry);
+  if (!c) return null;
+  const origin = env.LOCATE_ORIGIN || BHARATLAS_ORIGIN;
+  try {
+    const res = await fetch(`${origin}/api/v1/locate?lat=${c[1]}&lng=${c[0]}`, {
+      signal: AbortSignal.timeout(4000),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { results?: unknown };
+    const ctx = distillAdminCtx(data?.results);
+    return ctx ? JSON.stringify(ctx) : null;
+  } catch {
+    return null;
+  }
+}
+
+// Enrich a stored record's admin_ctx out of band. Only overwrites on a
+// successful locate — a transient failure never clears an existing context.
+async function enrichRecord(env: Env, recordId: string, geometry: unknown): Promise<void> {
+  const ctx = await enrich(env, geometry);
+  if (ctx) await db.updateRecord(env.DB, recordId, { admin_ctx: ctx });
+}
+
+type Defer = (p: Promise<unknown>) => void;
 
 // Turnstile: verify when a secret is configured (prod); skip in local dev.
 async function turnstileOk(env: Env, token: unknown): Promise<boolean> {
@@ -115,6 +146,32 @@ export async function getCollectionMeta(env: Env, req: Request, id: string): Pro
   });
 }
 
+// ---- POST /collections/:id/tokens ------------------------------------------
+// Mint a fresh edit or view link (admin only). The originals are hash-only and
+// can't be re-shown, so "share another collect link" = mint a new one.
+
+export async function mintToken(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const c = await db.getCollection(env.DB, id);
+  if (!c) return bad(404, 'not found');
+
+  const body = await readJson(req);
+  const want = body?.permission;
+  if (want !== 'edit' && want !== 'view') return bad(400, 'permission must be edit or view');
+
+  const token = generateToken(want);
+  await db.addCollectionToken(env.DB, {
+    collectionId: id,
+    prefix: tokenPrefix(token),
+    hash: await hashToken(token),
+    permission: want,
+  });
+  const origin = new URL(req.url).origin;
+  const link = want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`;
+  return json(200, { permission: want, token, link });
+}
+
 // ---- GET /collections/:id/records ------------------------------------------
 
 export async function listRecords(env: Env, req: Request, id: string): Promise<Response> {
@@ -141,6 +198,7 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
       _status: r.status,
       _contributor: r.contributor,
       _created_at: r.created_at,
+      _admin_ctx: r.admin_ctx ? JSON.parse(r.admin_ctx) : null,
     },
   }));
   return json(200, { type: 'FeatureCollection', features });
@@ -148,7 +206,7 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
 
 // ---- POST /collections/:id/records -----------------------------------------
 
-export async function addRecord(env: Env, req: Request, id: string): Promise<Response> {
+export async function addRecord(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const ipHash = await ipHashFor(req, salt(env));
   const perm = await permissionFor(env.DB, id, bearer(req));
   if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised — need the edit or admin link');
@@ -199,12 +257,15 @@ export async function addRecord(env: Env, req: Request, id: string): Promise<Res
     status,
     geometry: JSON.stringify(geometry),
     properties: JSON.stringify(validated.properties),
-    admin_ctx: null, // enrichment is Phase 4
+    admin_ctx: null, // filled out of band below (never blocks the write)
     contributor,
     edit_token_hash: await hashToken(recToken),
     ip_hash: ipHash,
   });
   await db.touchCollection(env.DB, id);
+
+  const task = enrichRecord(env, recId, geometry).catch(() => {});
+  if (defer) defer(task); else await task;
 
   void logCollectAttempt(env.DB, { event: 'contribute', outcome: 'ok', collection_id: id, ip_hash: ipHash });
   return json(200, { id: recId, status, edit_token: recToken });
@@ -228,6 +289,95 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
   return json(200, { id: recordId, status });
 }
 
+// ---- record-owner ops (rec_ token or admin): get / edit / delete / de-identify
+
+async function recordAuth(
+  env: Env,
+  req: Request,
+  recordId: string,
+): Promise<{ record: db.RecordRow; isAdmin: boolean } | null> {
+  const record = await db.getRecord(env.DB, recordId);
+  if (!record) return null;
+  const token = bearer(req);
+  if (!token) return null;
+  const perm = await permissionFor(env.DB, record.collection_id, token);
+  if (atLeast(perm, 'admin')) return { record, isAdmin: true };
+  if (record.edit_token_hash && (await verifyToken(token, record.edit_token_hash))) {
+    return { record, isAdmin: false };
+  }
+  return null;
+}
+
+export async function getRecordForEdit(env: Env, req: Request, recordId: string): Promise<Response> {
+  const auth = await recordAuth(env, req, recordId);
+  if (!auth) return bad(401, 'unauthorised');
+  const c = await db.getCollection(env.DB, auth.record.collection_id);
+  if (!c) return bad(404, 'not found');
+  const r = auth.record;
+  return json(200, {
+    id: r.id,
+    status: r.status,
+    contributor: r.contributor,
+    geometry: JSON.parse(r.geometry),
+    properties: JSON.parse(r.properties),
+    schema: JSON.parse(c.schema_doc),
+    collection_name: c.name,
+  });
+}
+
+export async function editRecord(env: Env, req: Request, recordId: string, defer?: Defer): Promise<Response> {
+  const auth = await recordAuth(env, req, recordId);
+  if (!auth) return bad(401, 'unauthorised');
+  const c = await db.getCollection(env.DB, auth.record.collection_id);
+  if (!c) return bad(404, 'not found');
+  const body = await readJson(req);
+  if (!body) return bad(400, 'invalid JSON body');
+
+  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
+  const patch: { geometry?: string; properties?: string; status?: string } = {};
+  let movedGeometry: unknown;
+
+  if (body.geometry !== undefined) {
+    const bounds = checkIndiaBounds(body.geometry);
+    if (!bounds.ok) return bad(400, bounds.error);
+    const bucket = geomBucket((body.geometry as { type: string }).type);
+    if (!bucket || !schema.geometry.includes(bucket)) {
+      return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
+    }
+    patch.geometry = JSON.stringify(body.geometry);
+    movedGeometry = body.geometry;
+  }
+  if (body.properties !== undefined) {
+    const v = validateRecordProperties(schema.fields, body.properties);
+    if (!v.ok) return bad(400, v.error);
+    patch.properties = JSON.stringify(v.properties);
+  }
+  // R3: a contributor edit goes back to pending for re-review (when moderated).
+  if (!auth.isAdmin && c.moderation) patch.status = 'pending';
+  await db.updateRecord(env.DB, recordId, patch);
+
+  // Re-enrich a moved shape out of band — only overwrites admin_ctx on success.
+  if (movedGeometry !== undefined) {
+    const task = enrichRecord(env, recordId, movedGeometry).catch(() => {});
+    if (defer) defer(task); else await task;
+  }
+  return json(200, { id: recordId, status: patch.status ?? auth.record.status });
+}
+
+export async function deleteRecordHandler(env: Env, req: Request, recordId: string): Promise<Response> {
+  const auth = await recordAuth(env, req, recordId);
+  if (!auth) return bad(401, 'unauthorised');
+  await db.deleteRecord(env.DB, recordId);
+  return json(200, { id: recordId, deleted: true });
+}
+
+export async function deidentifyRecordHandler(env: Env, req: Request, recordId: string): Promise<Response> {
+  const auth = await recordAuth(env, req, recordId);
+  if (!auth) return bad(401, 'unauthorised');
+  await db.deidentifyRecord(env.DB, recordId);
+  return json(200, { id: recordId, contributor: null });
+}
+
 // ---- POST /collections/:id/publish -----------------------------------------
 
 export async function publish(env: Env, req: Request, id: string): Promise<Response> {
@@ -243,10 +393,13 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
     return bad(409, 'nothing approved to publish yet');
   }
 
+  // Flatten locate enrichment into the published properties (state, district…),
+  // so the catalogue layer is filterable by admin area. Author fields win on any
+  // key collision; enrichment only fills keys the author did not define.
   const features = rows.map((r) => ({
     type: 'Feature' as const,
     geometry: JSON.parse(r.geometry),
-    properties: JSON.parse(r.properties),
+    properties: mergeAdminCtx(JSON.parse(r.properties), r.admin_ctx),
   }));
   const fc = { type: 'FeatureCollection', features };
   const bytes = new TextEncoder().encode(JSON.stringify(fc));
@@ -263,7 +416,7 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
   }
 
   const attribution = composeAttribution(c.name, c.license, rows.map((r) => r.contributor));
-  const geomTypes = [...new Set(rows.map((r) => (JSON.parse(r.geometry) as { type: string }).type))].join(',');
+  const geomTypes = [...new Set(features.map((f) => (f.geometry as { type: string }).type))].join(',');
 
   const submissionId = nanoid(10);
   const r2Key = `community/${submissionId}/${submissionId}.geojson`;
