@@ -9,9 +9,18 @@ const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789
 
 /** `rec_` + 32 URL-safe chars (~192 bits), same shape as the collection tokens. */
 export function generateRecordToken(): string {
+  return randomToken('rec');
+}
+
+/** `cak_` collect API key — programmatic create gate. Same shape/entropy. */
+export function generateApiKey(): string {
+  return randomToken('cak');
+}
+
+function randomToken(prefix: string): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   let out = '';
   for (const b of bytes) out += ALPHABET[b & 0x3f];
-  return `rec_${out}`;
+  return `${prefix}_${out}`;
 }

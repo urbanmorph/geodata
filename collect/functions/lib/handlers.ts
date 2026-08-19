@@ -9,7 +9,7 @@ import type { Env } from '../types';
 import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, atLeast } from './auth';
-import { checkCreateRate, checkRecordRate } from './ratelimit';
+import { checkCreateRate, checkRecordRate, checkKeyDayRate } from './ratelimit';
 import { logCollectAttempt } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
 import * as db from './db';
@@ -77,18 +77,42 @@ async function readJson(req: Request): Promise<Record<string, unknown> | null> {
 
 // ---- POST /collections -----------------------------------------------------
 
+// Programmatic-abuse gate: verify an X-API-Key (prefix lookup + constant-time
+// hash compare, not revoked). Returns the key's id + daily limit + stored hash.
+async function verifyApiKey(env: Env, key: string): Promise<{ id: string; daily_limit: number; hash: string } | null> {
+  const rows = await db.apiKeysByPrefix(env.DB, tokenPrefix(key));
+  for (const r of rows) {
+    if (await verifyToken(key, r.key_hash)) return { id: r.id, daily_limit: r.daily_limit, hash: r.key_hash };
+  }
+  return null;
+}
+
 export async function createCollection(env: Env, req: Request): Promise<Response> {
   const ipHash = await ipHashFor(req, salt(env));
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
-  if (!(await turnstileOk(env, body.turnstile_token))) {
-    void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
-    return bad(403, 'captcha failed');
-  }
-  if (!(await checkCreateRate(env.DB, ipHash))) {
-    void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
-    return bad(429, 'rate limit: 5 collections per day');
+  // Programmatic callers (MCP/REST) present an API key instead of Turnstile.
+  const apiKey = req.headers.get('x-api-key');
+  if (apiKey) {
+    const k = await verifyApiKey(env, apiKey);
+    if (!k) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'apiKey', ip_hash: ipHash });
+      return bad(401, 'invalid API key');
+    }
+    if (!(await checkKeyDayRate(env.DB, k.hash, k.daily_limit))) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
+      return bad(429, `API key daily limit (${k.daily_limit}) reached`);
+    }
+  } else {
+    if (!(await turnstileOk(env, body.turnstile_token))) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
+      return bad(403, 'captcha failed');
+    }
+    if (!(await checkCreateRate(env.DB, ipHash))) {
+      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
+      return bad(429, 'rate limit: 5 collections per day');
+    }
   }
 
   const v = validateNewCollection(body);

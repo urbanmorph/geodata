@@ -58,3 +58,5 @@ async function bump(db: DB, ipHash: string, window: 'hour' | 'day', limit: numbe
 
 export const checkRecordRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, ipHash, 'hour', 200);
 export const checkCreateRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, ipHash, 'day', 5);
+// Per-API-key day window (its own rate_limits row, keyed by the key hash).
+export const checkKeyDayRate = (db: DB, keyHash: string, limit: number): Promise<boolean> => bump(db, keyHash, 'day', limit);

@@ -97,6 +97,19 @@ export async function tokensForCollection(
   return (res.results ?? []) as unknown as { token_hash: string; permission: 'admin' | 'edit' | 'view'; is_active: number }[];
 }
 
+// ---- API keys (programmatic create gate) -----------------------------------
+
+export async function apiKeysByPrefix(
+  db: DB,
+  prefix: string,
+): Promise<{ id: string; key_hash: string; daily_limit: number }[]> {
+  const res = await db
+    .prepare(`SELECT id, key_hash, daily_limit FROM collect_api_keys WHERE key_prefix = ? AND revoked = 0`)
+    .bind(prefix)
+    .all();
+  return (res.results ?? []) as unknown as { id: string; key_hash: string; daily_limit: number }[];
+}
+
 // ---- records ---------------------------------------------------------------
 
 export interface NewRecordRow {
