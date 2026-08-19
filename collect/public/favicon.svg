@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="bharatlas">
+  <!-- bharatlas favicon — indigo rounded square with white 'b' wordmark seed.
+       Indigo matches the in-product accent (#6366f1). Same mark for light +
+       dark mode; rendered solid so it reads at 16x16 tab size. -->
+  <rect width="64" height="64" rx="14" fill="#6366f1"/>
+  <!-- 'b' as a path so it renders identically regardless of system fonts. -->
+  <path
+    d="M 22 13
+       L 22 51
+       L 28 51
+       L 28 47
+       Q 31 52 38 52
+       Q 50 52 50 38
+       Q 50 24 38 24
+       Q 31 24 28 29
+       L 28 13
+       Z
+       M 36 30
+       Q 44 30 44 38
+       Q 44 46 36 46
+       Q 28 46 28 38
+       Q 28 30 36 30 Z"
+    fill="#ffffff"
+    fill-rule="evenodd"/>
+</svg>

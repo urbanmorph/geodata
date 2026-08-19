@@ -15,6 +15,7 @@ import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
+import { rememberMap } from './maps-store';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
   id: string; name: string; purpose: string; status: string; moderation: number; license: string;
@@ -87,6 +88,8 @@ async function boot(): Promise<void> {
   meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
   const isView = ctx.mode === 'view';
   const isAdmin = ctx.mode === 'admin';
+  // Autosave to "Your maps" so a shared collect/view link is one tap to reopen.
+  rememberMap(ctx.id, meta.name, isAdmin ? 'owner' : isView ? 'view' : 'collect', location.href);
 
   app.innerHTML = `
     <div class="topbar">
