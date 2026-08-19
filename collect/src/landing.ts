@@ -39,7 +39,7 @@ function mapsSection(): string {
           <a class="btn" href="${m.links.edit}">Open</a>
           <a class="btn" href="${m.links.admin}">Admin</a>
         </div>`).join('')
-      : '<p class="hint">Your created maps will appear here.</p>'}`;
+      : '<p class="empty">No maps yet. Make one above, and it will appear here to reopen anytime.</p>'}`;
 }
 
 // The landing: a list of your maps + a "start collecting" CTA into the create form.

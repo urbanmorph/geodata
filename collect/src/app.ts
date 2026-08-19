@@ -196,39 +196,41 @@ const CAP_HELP: Record<GeomMode, string> = {
   polygon: 'Pan the map so the crosshair sits on a corner, then tap "Add point here", going around the area.',
 };
 
+const cap = (s: string): string => s[0].toUpperCase() + s.slice(1);
+let lastContributor = '';
+let lastAdded = '';
+
+// Capture is two steps so the MAP is the centre-piece while marking:
+//   1. renderPlaceBar — a compact bar; position the crosshair and place the shape
+//   2. detailsSheet   — the form slides up only once a shape is placed
 function captureSheet(): void {
-  const fields = meta.schema.fields.filter((f) => !f.deleted);
   const modes = orderedModes(meta.schema.geometry);
   drawMode = modes[0];
   verts = [];
   redrawDraw();
+  renderPlaceBar(modes);
+}
+
+function renderPlaceBar(modes: GeomMode[]): void {
   const panel = document.getElementById('panel')!;
   const seg = modes.length > 1
-    ? `<div class="seg" id="modesw">${modes.map((m) => `<button type="button" data-m="${m}"${m === drawMode ? ' class="on"' : ''}>${NOUN[m][0].toUpperCase()}${NOUN[m].slice(1)}</button>`).join('')}</div>`
+    ? `<div class="seg" id="modesw">${modes.map((m) => `<button type="button" data-m="${m}"${m === drawMode ? ' class="on"' : ''}>${cap(NOUN[m])}</button>`).join('')}</div>`
     : '';
-  panel.innerHTML = `<div class="sheet">
-    <form class="body" id="capform">
-      <strong>Add a <span id="cap-noun">${NOUN[drawMode]}</span></strong>
-      ${seg}
-      <p class="hint" id="cap-help">${CAP_HELP[drawMode]}</p>
-      <div class="row" id="drawctl" style="display:none;align-items:center">
-        <button type="button" id="vadd" class="accent">+ Add point here</button>
-        <button type="button" id="vundo">Undo</button>
-        <span class="hint" id="vcount"></span>
-      </div>
-      ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
-      <label>Your name <span class="hint">(optional, published with the data)</span></label>
-      <input id="contributor" />
-    </form>
-    <div class="foot"><button class="primary" id="add">Add ${NOUN[drawMode]}</button></div>
-    <div id="lastadded" class="hint" style="padding:0 16px 10px"></div>
+  panel.innerHTML = `<div class="bar">
+    ${seg}
+    <p class="hint" id="cap-help">${CAP_HELP[drawMode]}</p>
+    <div class="row" id="drawctl" style="display:none;align-items:center">
+      <button type="button" id="vadd" class="accent">+ Add point here</button>
+      <button type="button" id="vundo">Undo</button>
+      <span class="hint" id="vcount"></span>
+    </div>
+    <button class="primary" id="place">Add ${NOUN[drawMode]}</button>
+    <div id="lastadded" class="hint">${lastAdded}</div>
   </div>`;
-  panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => c.classList.toggle('on'); });
 
   const syncDrawUI = (): void => {
-    document.getElementById('cap-noun')!.textContent = NOUN[drawMode];
     document.getElementById('cap-help')!.textContent = CAP_HELP[drawMode];
-    (document.getElementById('add') as HTMLButtonElement).textContent = `Add ${NOUN[drawMode]}`;
+    (document.getElementById('place') as HTMLButtonElement).textContent = `Add ${NOUN[drawMode]}`;
     document.getElementById('drawctl')!.style.display = drawMode === 'point' ? 'none' : 'flex';
     const need = drawMode === 'line' ? 2 : 3;
     const n = verts.length;
@@ -236,7 +238,6 @@ function captureSheet(): void {
       n < need ? `${n} point${n === 1 ? '' : 's'} · add ${need - n} more`
                : `${n} points · tap "Add ${NOUN[drawMode]}" when ready`;
     document.querySelectorAll('#modesw button').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.m === drawMode));
-    // Emphasise the crosshair while drawing so the "here" in the button reads clearly.
     document.querySelector('.crosshair')?.classList.toggle('crosshair--draw', drawMode !== 'point');
   };
   syncDrawUI();
@@ -250,54 +251,73 @@ function captureSheet(): void {
   (document.getElementById('vundo') as HTMLButtonElement).onclick = () => {
     verts.pop(); redrawDraw(); syncDrawUI();
   };
-
-  (document.getElementById('add') as HTMLButtonElement).onclick = async (ev) => {
-    const btn = ev.currentTarget as HTMLButtonElement;
-    const form = document.getElementById('capform') as HTMLFormElement;
-    if (!form.reportValidity()) return; // native: required, URL format, number min/max
+  (document.getElementById('place') as HTMLButtonElement).onclick = () => {
     const c = map.getCenter();
     const geometry = drawGeometry(drawMode, verts, [c.lng, c.lat]);
     if (!geometry) { toast(`A ${NOUN[drawMode]} needs ${drawMode === 'line' ? '2' : '3'} points or more`); return; }
+    detailsSheet(geometry, modes);
+  };
+}
+
+function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
+  const fields = meta.schema.fields.filter((f) => !f.deleted);
+  const noun = NOUN[drawMode];
+  const panel = document.getElementById('panel')!;
+  panel.innerHTML = `<div class="sheet">
+    <form class="body" id="capform">
+      <strong>${cap(noun)} details</strong>
+      <p class="hint">Placed on the map. Add the details, then save.</p>
+      ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
+      <label>Your name <span class="hint">(optional, published with the data)</span></label>
+      <input id="contributor" />
+    </form>
+    <div class="foot row">
+      <button type="button" id="cancel">← Back</button>
+      <button class="primary" id="save" style="flex:1">Save ${noun}</button>
+    </div>
+  </div>`;
+  (document.getElementById('contributor') as HTMLInputElement).value = lastContributor;
+  panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => c.classList.toggle('on'); });
+  // Back keeps a line/area's vertices so drawing work isn't lost.
+  (document.getElementById('cancel') as HTMLButtonElement).onclick = () => renderPlaceBar(modes);
+
+  (document.getElementById('save') as HTMLButtonElement).onclick = async (ev) => {
+    const btn = ev.currentTarget as HTMLButtonElement;
+    const form = document.getElementById('capform') as HTMLFormElement;
+    if (!form.reportValidity()) return;
+    const raw: Record<string, unknown> = {};
+    for (const f of fields) {
+      const el = panel.querySelector(`[data-k="${f.key}"]`);
+      if (!el) continue;
+      if (f.type === 'multiselect') {
+        const on = [...el.querySelectorAll('.chip.on')].map((c2) => (c2 as HTMLElement).dataset.v);
+        if (on.length) raw[f.key] = on;
+      } else {
+        const val = (el as HTMLInputElement).value;
+        if (val) raw[f.key] = val;
+      }
+    }
+    const valid = validateRecordProperties(fields, raw);
+    if (!valid.ok) { toast(valid.error); return; }
     btn.disabled = true;
     try {
-      const raw: Record<string, unknown> = {};
-      for (const f of fields) {
-        const el = panel.querySelector(`[data-k="${f.key}"]`);
-        if (!el) continue;
-        if (f.type === 'multiselect') {
-          const on = [...el.querySelectorAll('.chip.on')].map((c2) => (c2 as HTMLElement).dataset.v);
-          if (on.length) raw[f.key] = on;
-        } else {
-          const val = (el as HTMLInputElement).value;
-          if (val) raw[f.key] = val;
-        }
-      }
-      // Same validator the server uses — immediate feedback, no wasted round-trip.
-      const valid = validateRecordProperties(fields, raw);
-      if (!valid.ok) { toast(valid.error); btn.disabled = false; return; }
-      const contributor = (document.getElementById('contributor') as HTMLInputElement).value;
+      lastContributor = (document.getElementById('contributor') as HTMLInputElement).value;
       const turnstile_token = await turnstileToken();
       const res = await apiJson<{ id: string; edit_token: string }>(`/collections/${ctx.id}/records`, ctx.token, {
         method: 'POST',
-        body: JSON.stringify({ geometry, properties: valid.properties, contributor, turnstile_token }),
+        body: JSON.stringify({ geometry, properties: valid.properties, contributor: lastContributor, turnstile_token }),
       });
-      if (geometry.type === 'Point') marker(geometry.coordinates);
+      if (geometry.type === 'Point') marker((geometry as GeoJSON.Point).coordinates as number[]);
       else addRecordShape(geometry);
-      verts = []; redrawDraw(); syncDrawUI();
-      toast(meta.moderation ? `Added, pending review ✓` : 'Added ✓');
+      verts = []; redrawDraw();
+      toast(meta.moderation ? 'Added, pending review ✓' : 'Added ✓');
       const editUrl = `${location.origin}/c/${ctx.id}/r/${res.id}#${res.edit_token}`;
-      const la = document.getElementById('lastadded');
-      if (la) la.innerHTML = `✓ Added. <a href="${editUrl}">edit this ${NOUN[drawMode]}</a>`;
-      // Keep #contributor — one surveyor adds many points and shouldn't re-type their name.
-      panel.querySelectorAll('input:not(#contributor),textarea,select').forEach((el) => { (el as HTMLInputElement).value = ''; });
-      panel.querySelectorAll('.chip.on').forEach((c2) => c2.classList.remove('on'));
-      btn.textContent = `Add ${NOUN[drawMode]}`;
+      lastAdded = `✓ Added. <a href="${editUrl}">edit this ${noun}</a>`;
+      renderPlaceBar(modes); // back to the map, ready for the next one
     } catch (e) {
-      // Field resilience (spec): keep the entry on failure, offer a retry.
-      toast(`Couldn't save: ${(e as Error).message}. Your entry is kept, tap Retry.`);
-      btn.textContent = 'Retry';
+      toast(`Couldn't save: ${(e as Error).message}. Your details are kept, tap Save to retry.`);
+      btn.disabled = false;
     }
-    btn.disabled = false;
   };
 }
 
@@ -412,24 +432,26 @@ async function renderPoints(): Promise<void> {
     const qs = status ? `?status=${status}&limit=300` : '?limit=300';
     const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records${qs}`, ctx.token);
     const feats = fc.features || [];
-    if (!feats.length) { q.innerHTML = '<p class="hint">No points here yet.</p>'; return; }
+    if (!feats.length) { q.innerHTML = '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>'; return; }
     q.innerHTML = feats.map((f) => {
       const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx };
       const st = p._status || 'published';
       const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `<span class="hint">${nounFor(f.geometry.type)}</span> ` : '';
-      const acts = [
+      // Two action rows (max two buttons each) so labels never wrap: moderation
+      // on top, then edit/delete. Better hierarchy, and it fits at 360px.
+      const mod = [
         st !== 'published' ? `<button data-act="published" data-id="${f.id}">✓ Approve</button>` : '',
-        st === 'pending' ? `<button data-act="rejected" data-id="${f.id}">✗ Reject</button>` : '',
-        `<button data-edit="${f.id}">✎ Edit</button>`,
-        `<button data-del="${f.id}">🗑 Delete</button>`,
+        st === 'pending' ? `<button class="danger" data-act="rejected" data-id="${f.id}">✗ Reject</button>` : '',
       ].filter(Boolean).join('');
+      const crud = `<button data-edit="${f.id}">✎ Edit</button><button class="danger" data-del="${f.id}">🗑 Delete</button>`;
       return `<div class="card" data-id="${f.id}">
         <div class="row" style="justify-content:space-between;align-items:center;gap:6px">
           <strong style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${geom}${escapeHtml(cardTitle(f.properties))}</strong>
           <span class="badge badge--${st}">${st}</span>
         </div>
         <div class="hint">${escapeHtml(p._contributor || 'anonymous')}${fmtAdminCtx(p._admin_ctx ?? null)}</div>
-        <div class="row" style="margin-top:8px">${acts}</div>
+        ${mod ? `<div class="row" style="margin-top:8px">${mod}</div>` : ''}
+        <div class="row" style="margin-top:8px">${crud}</div>
       </div>`;
     }).join('');
 
