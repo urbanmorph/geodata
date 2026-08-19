@@ -239,6 +239,24 @@ textarea { min-height: 92px; line-height: 1.5; }
   background: var(--card); box-shadow: var(--shadow-card);
 }
 .card .row button { flex: 1; min-height: 42px; font-size: 14px; padding: 0 8px; }
+
+/* compact review list — one tappable row per point, title wraps, actions live
+   in the review detail (scales to hundreds of points) */
+.point-row {
+  width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
+  padding: 11px 12px; margin: 6px 0; min-height: 48px;
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+}
+.point-row:hover { border-color: var(--line-strong); }
+.point-row__title { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; color: var(--fg); font-weight: 500; font-size: 14px; }
+.point-row__chev { color: var(--muted); font-size: 18px; line-height: 1; flex: 0 0 auto; }
+
+/* review detail — one attribute per row */
+.attrs { margin-top: 14px; }
+.attr { display: flex; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+.attr:last-child { border-bottom: 1px solid var(--line); }
+.attr__k { flex: 0 0 40%; color: var(--muted); font-size: 13px; }
+.attr__v { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .badge {
   font-size: 11px; font-weight: 700; letter-spacing: .01em; padding: 2px 9px;
   border-radius: var(--radius-pill); border: 1px solid currentColor; white-space: nowrap; text-transform: capitalize;
