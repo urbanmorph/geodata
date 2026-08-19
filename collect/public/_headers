@@ -1,0 +1,11 @@
+# Cloudflare Pages security headers for collect. CSP allows exactly what the app
+# needs: self, Turnstile (challenges.cloudflare.com), and CARTO raster tiles.
+# noindex keeps unlisted collections off search (spec). Verify in prod after
+# the first deploy — a too-strict CSP would break the map or Turnstile.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  X-Robots-Tag: noindex
+  Permissions-Policy: geolocation=(self), camera=()
+  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.basemaps.cartocdn.com; connect-src 'self' https://*.basemaps.cartocdn.com https://challenges.cloudflare.com; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; form-action 'self'

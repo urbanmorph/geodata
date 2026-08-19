@@ -2,24 +2,26 @@
    dark via prefers-color-scheme. 44px touch targets; safe-area insets. */
 :root {
   --bg: #ffffff;
-  --fg: #16181d;
-  --line: #e3e6ea;
+  --fg: #0a0a0a;
+  --line: #e5e7eb;
   --muted: #6b7280;
-  --accent: #1a7f5a;
-  --accent-fill: #eaf6f0;
+  --accent: #4f46e5;        /* bharatlas indigo — text, borders, links */
+  --accent-strong: #4f46e5; /* solid fill under WHITE text (AA ≥ 4.5:1 both themes) */
+  --accent-fill: #eef2ff;   /* indigo-50 tint */
   --sheet: #ffffff;
   --shadow: 0 -6px 24px rgba(0, 0, 0, 0.12);
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e1013;
-    --fg: #e8eaed;
-    --line: #2a2e35;
-    --muted: #9aa1ab;
-    --accent: #3ecf8e;
-    --accent-fill: #10261d;
-    --sheet: #14171c;
-    --shadow: 0 -6px 24px rgba(0, 0, 0, 0.5);
+    --bg: #0a0a0a;
+    --fg: #ededed;
+    --line: #262626;
+    --muted: #9ca3af;
+    --accent: #818cf8;        /* bharatlas indigo (dark) — text, borders, links */
+    --accent-strong: #4f46e5; /* keep the darker fill so WHITE button text stays AA */
+    --accent-fill: #1e1b4b;   /* deep indigo tint */
+    --sheet: #171717;
+    --shadow: 0 -6px 24px rgba(0, 0, 0, 0.6);
   }
 }
 
@@ -49,10 +51,13 @@ button, .btn {
   font-size: 16px; font-weight: 600; cursor: pointer;
 }
 button.primary, .btn.primary {
-  background: var(--accent); border-color: var(--accent); color: #fff; width: 100%;
+  background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; width: 100%;
 }
 button.ghost { background: transparent; }
 button:disabled { opacity: 0.5; }
+/* equal full-width stacked actions (e.g. Back up / Restore) */
+.wide { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.wide + .wide { margin-top: 8px; }
 label { display: block; font-size: 13px; color: var(--muted); margin: 12px 0 4px; }
 input, textarea, select {
   width: 100%; min-height: 44px; padding: 10px 12px; font-size: 16px;
@@ -63,6 +68,12 @@ textarea { min-height: 88px; }
 .chip { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px;
   border: 1px solid var(--line); border-radius: 999px; }
 .chip.on { background: var(--accent-fill); border-color: var(--accent); color: var(--accent); }
+
+/* segmented geometry-mode switcher (capture, Phase 4) */
+.seg { display: inline-flex; gap: 0; margin: 4px 0 2px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.seg button { min-height: 38px; border: 0; border-radius: 0; border-left: 1px solid var(--line); background: var(--bg); font-size: 14px; padding: 0 14px; }
+.seg button:first-child { border-left: 0; }
+.seg button.on { background: var(--accent-strong); color: #fff; }
 
 /* landing / form pages scroll */
 .pad { padding: 16px; overflow: auto; }
@@ -96,3 +107,12 @@ textarea { min-height: 88px; }
   background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px;
   font-size: 14px; z-index: 20; opacity: 0; transition: opacity .2s; }
 .toast.show { opacity: 1; }
+
+/* loading states */
+.center { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; text-align: center; }
+.spinner { width: 20px; height: 20px; border: 3px solid var(--line); border-top-color: var(--accent);
+  border-radius: 50%; display: inline-block; vertical-align: middle; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.map-loading { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4;
+  background: var(--sheet); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px;
+  font-size: 14px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
