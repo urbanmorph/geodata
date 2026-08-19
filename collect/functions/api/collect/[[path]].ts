@@ -47,6 +47,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     if (p.length === 3 && p[2] === 'publish') {
       return method === 'POST' ? h.publish(env, request, id) : bad(405, 'method not allowed');
     }
+    if (p.length === 3 && p[2] === 'import') {
+      return method === 'POST' ? h.importRecords(env, request, id) : bad(405, 'method not allowed');
+    }
     if (p.length === 3 && p[2] === 'tokens') {
       return method === 'POST' ? h.mintToken(env, request, id) : bad(405, 'method not allowed');
     }

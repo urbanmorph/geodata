@@ -199,6 +199,7 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
       _contributor: r.contributor,
       _created_at: r.created_at,
       _admin_ctx: r.admin_ctx ? JSON.parse(r.admin_ctx) : null,
+      _source: r.source,
     },
   }));
   return json(200, { type: 'FeatureCollection', features });
@@ -378,6 +379,61 @@ export async function deidentifyRecordHandler(env: Env, req: Request, recordId: 
   return json(200, { id: recordId, contributor: null });
 }
 
+// ---- POST /collections/:id/import ------------------------------------------
+// Bulk import (admin only) — Phase 5. Server re-validates every record (never
+// trusts the client); admin-authed so it skips the per-contributor rate limit.
+// A throwaway edit-token hash means imported records have no contributor owner
+// (admin manages them). Enrichment is skipped in bulk (admin_ctx stays null).
+
+export async function importRecords(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const c = await db.getCollection(env.DB, id);
+  if (!c) return bad(404, 'not found');
+  if (c.status === 'closed') return bad(403, 'this collection is closed');
+
+  const body = await readJson(req);
+  if (!body) return bad(400, 'invalid JSON body');
+  const recs = body.records;
+  if (!Array.isArray(recs)) return bad(400, 'records must be an array');
+  if (recs.length > 5000) return bad(413, 'import at most 5000 records per request');
+
+  // Rights gate (Phase 5): the importer must attest the right to publish this
+  // data under the map's open licence, and name the source (per-record provenance).
+  if (body.rights_confirmed !== true) return bad(400, 'confirm you have the right to publish this data under the map licence');
+  const source = typeof body.source === 'string' ? body.source.trim() : '';
+  if (!source) return bad(400, 'name the data source (where this data comes from)');
+  if (source.length > 200) return bad(400, 'source must be under 200 characters');
+
+  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
+  const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
+  const status: 'pending' | 'published' = c.moderation ? 'pending' : 'published';
+  const ipHash = await ipHashFor(req, salt(env));
+
+  let imported = 0;
+  const errors: Array<{ index: number; error: string }> = [];
+  for (let i = 0; i < recs.length; i++) {
+    const r = recs[i] as { geometry?: unknown; properties?: unknown };
+    const bounds = checkIndiaBounds(r?.geometry);
+    if (!bounds.ok) { errors.push({ index: i, error: bounds.error }); continue; }
+    const bucket = geomBucket((r.geometry as { type: string }).type);
+    if (!bucket || !schema.geometry.includes(bucket)) { errors.push({ index: i, error: `geometry not allowed here` }); continue; }
+    const v = validateRecordProperties(schema.fields, r?.properties);
+    if (!v.ok) { errors.push({ index: i, error: v.error }); continue; }
+    await db.insertRecord(env.DB, {
+      id: nanoid(10), collectionId: id, status,
+      geometry: JSON.stringify(r.geometry), properties: JSON.stringify(v.properties),
+      admin_ctx: null, contributor,
+      edit_token_hash: await hashToken(generateRecordToken()), // discarded — no owner
+      ip_hash: ipHash, source, // per-record provenance
+    });
+    imported++;
+  }
+  await db.touchCollection(env.DB, id);
+  void logCollectAttempt(env.DB, { event: 'import', outcome: imported ? 'ok' : 'rejected', collection_id: id, ip_hash: ipHash });
+  return json(200, { imported, errors });
+}
+
 // ---- POST /collections/:id/publish -----------------------------------------
 
 export async function publish(env: Env, req: Request, id: string): Promise<Response> {
@@ -415,7 +471,13 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
     if (prev?.content_hash === contentHash) return bad(409, `nothing new since v${version - 1}`);
   }
 
-  const attribution = composeAttribution(c.name, c.license, rows.map((r) => r.contributor));
+  // Imported records are credited via their source, not the contributor tally;
+  // field records (no source) feed the contributor credit.
+  const attribution = composeAttribution(
+    c.name, c.license,
+    rows.filter((r) => !r.source).map((r) => r.contributor),
+    rows.map((r) => r.source),
+  );
   const geomTypes = [...new Set(features.map((f) => (f.geometry as { type: string }).type))].join(',');
 
   const submissionId = nanoid(10);
@@ -431,6 +493,7 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
     JSON.stringify({
       attribution: attribution.line,
       contributors: attribution.contributors,
+      sources: attribution.sources,
       collection_url: `${new URL(req.url).origin}/c/${id}`,
       version,
     }),
@@ -442,7 +505,7 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
     status: 'accepted',
     name: c.name,
     description: c.description,
-    category: 'other', // collections carry no category in v1
+    category: (JSON.parse(c.schema_doc) as { category?: string }).category || 'other',
     license: c.license,
     attribution: attribution.line,
     source_url: `https://collect.bharatlas.com/c/${id}`,

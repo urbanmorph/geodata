@@ -29,4 +29,15 @@ describe('composeAttribution', () => {
     const { contributors } = composeAttribution('S', 'CC-BY-4.0', ['B', 'A', 'A', 'C', 'C']);
     expect(contributors.map((c) => c.name)).toEqual(['A', 'C', 'B']);
   });
+
+  it('credits distinct imported sources alongside field contributors', () => {
+    const r = composeAttribution('Trees', 'CC-BY-4.0', ['Asha', null], ['SOI Atlas', 'SOI Atlas', 'FSI']);
+    expect(r.sources).toEqual(['SOI Atlas', 'FSI']);
+    expect(r.line).toBe('Trees — 1 contributor + anonymous (CC-BY-4.0). Includes data from SOI Atlas, FSI');
+  });
+
+  it('names the source even when there are no field contributors', () => {
+    const r = composeAttribution('Trees', 'CC-BY-4.0', [], ['FSI']);
+    expect(r.line).toBe('Trees (CC-BY-4.0). Includes data from FSI');
+  });
 });

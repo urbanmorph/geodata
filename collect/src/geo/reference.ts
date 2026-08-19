@@ -6,7 +6,9 @@
 import maplibregl from 'maplibre-gl';
 import { Protocol, PMTiles } from 'pmtiles';
 
-const ACCENT = '#4f46e5';
+// A distinct teal (not the indigo of the user's own markers) + a light fill,
+// so a reference layer reads as background context, never as collected data.
+const REF = '#0e7490';
 
 let protocol: Protocol | null = null;
 function proto(): Protocol {
@@ -28,9 +30,9 @@ export async function addReferenceOverlay(map: maplibregl.Map, pmtilesUrl: strin
   if (!sourceLayer) return;
   const header = await pm.getHeader();
   map.addSource('ref', { type: 'vector', url: `pmtiles://${pmtilesUrl}`, minzoom: header.minZoom, maxzoom: header.maxZoom });
-  map.addLayer({ id: 'ref-fill', type: 'fill', source: 'ref', 'source-layer': sourceLayer, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.07 } });
-  map.addLayer({ id: 'ref-line', type: 'line', source: 'ref', 'source-layer': sourceLayer, paint: { 'line-color': ACCENT, 'line-width': 1.2, 'line-opacity': 0.5 } });
-  map.addLayer({ id: 'ref-pt', type: 'circle', source: 'ref', 'source-layer': sourceLayer, filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 3, 'circle-color': ACCENT, 'circle-opacity': 0.55 } });
+  map.addLayer({ id: 'ref-fill', type: 'fill', source: 'ref', 'source-layer': sourceLayer, filter: ['==', ['geometry-type'], 'Polygon'], paint: { 'fill-color': REF, 'fill-opacity': 0.04 } });
+  map.addLayer({ id: 'ref-line', type: 'line', source: 'ref', 'source-layer': sourceLayer, paint: { 'line-color': REF, 'line-width': 1.4, 'line-opacity': 0.7 } });
+  map.addLayer({ id: 'ref-pt', type: 'circle', source: 'ref', 'source-layer': sourceLayer, filter: ['==', ['geometry-type'], 'Point'], paint: { 'circle-radius': 3, 'circle-color': REF, 'circle-opacity': 0.6 } });
 }
 
 export function setReferenceVisible(map: maplibregl.Map, on: boolean): void {

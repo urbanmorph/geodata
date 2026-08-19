@@ -6,6 +6,25 @@ import { mountSchemaBuilder } from './schema-builder';
 import { escapeHtml } from './util';
 import { BASEMAPS } from './basemap';
 import { searchLayers, type RefLayer } from './geo/catalog';
+import { detectFormat, parseImport, type Parsed } from './import/parse';
+import { inferSchema } from './import/infer';
+import { autoMapping, buildRecords } from './import/build';
+import type { Field } from './schema/validate-record';
+
+// Catalogue facets a published map slots into ('other' first = the default).
+const CATEGORIES: [string, string][] = [
+  ['other', 'Other'],
+  ['boundaries', 'Boundaries'],
+  ['city-wards', 'City wards'],
+  ['people', 'People & places'],
+  ['environment', 'Environment'],
+  ['water', 'Water'],
+  ['agriculture', 'Agriculture & land use'],
+  ['transport', 'Transport & mobility'],
+  ['infrastructure', 'Infrastructure & utilities'],
+  ['culture', 'Culture & heritage'],
+  ['health-edu', 'Health & education'],
+];
 
 const OPEN_LICENCES: [string, string][] = [
   ['CC-BY-4.0', 'CC BY 4.0 (credit required)'],
@@ -93,10 +112,15 @@ function createForm() {
   app.innerHTML = `
     <div class="topbar"><a href="#" id="tohome" aria-label="Back to your maps">←</a><span>New map</span><span class="muted" style="margin-left:auto">collect</span></div>
     <div class="pad">
+      <label>Start from a file <span class="hint">(optional, we read the columns for you)</span></label>
+      <label class="btn wide" style="cursor:pointer">⬆ Choose CSV, GeoJSON or KML<input id="seed-file" type="file" accept=".csv,.geojson,.json,.kml" hidden></label>
+      <p id="seed-note" class="hint"></p>
       <label>Name your map</label>
       <input id="name" maxlength="120" placeholder="Bengaluru footpath survey" />
       <label>What's it for? <span class="hint">(shown to contributors)</span></label>
       <textarea id="purpose" maxlength="2000" placeholder="Mapping footpath condition across the ward"></textarea>
+      <label>Category <span class="hint">(where it slots in the atlas when published)</span></label>
+      <select id="category">${CATEGORIES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('')}</select>
       <label>What contributors fill in <span class="hint">(the form for each point)</span></label>
       <div id="fields-builder"></div>
       <label>Contributors add <span class="hint">(pick one or more)</span></label>
@@ -115,18 +139,27 @@ function createForm() {
       <select id="license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('')}</select>
       <label>Data year <span class="hint">(optional)</span></label>
       <input id="year" inputmode="numeric" placeholder="2026" />
+      <div id="seed-import" style="display:none">
+        <label>Where's this data from? <span class="hint">(source, shown in the published credit)</span></label>
+        <input id="seed-source" maxlength="200" placeholder="e.g. SOI Forest Atlas 2021, or a link" />
+        <label class="chip" style="gap:8px;margin-top:8px;align-items:flex-start;border-radius:12px;padding:10px 12px"><input type="checkbox" id="seed-rights" style="width:auto;min-height:auto;margin-top:3px"><span style="white-space:normal;font-weight:400;font-size:13px">I have the right to publish this data under the map's licence, and to load it here.</span></label>
+      </div>
       <div style="height:16px"></div>
+      <p class="hint">Map <strong>public places and assets</strong>, not people or private details. You're responsible for what's collected and published. <a href="https://bharatlas.com/terms" target="_blank" rel="noopener">Terms</a>.</p>
       <button class="primary" id="create">Create map</button>
       <p id="err" class="warn"></p>
     </div>`;
 
   app.querySelector<HTMLAnchorElement>('#tohome')!.onclick = (e) => { e.preventDefault(); home(); };
 
-  const builder = mountSchemaBuilder(app.querySelector<HTMLElement>('#fields-builder')!, [
+  let builder = mountSchemaBuilder(app.querySelector<HTMLElement>('#fields-builder')!, [
     { key: 'name', label: 'Name of the place', type: 'text', required: true },
   ]);
 
   const geom = new Set(['point']);
+  const syncGeomChips = (): void => {
+    app.querySelectorAll<HTMLButtonElement>('#geom .chip').forEach((c) => c.classList.toggle('on', geom.has(c.dataset.g!)));
+  };
   app.querySelectorAll<HTMLButtonElement>('#geom .chip').forEach((c) => {
     c.onclick = () => {
       const g = c.dataset.g!;
@@ -134,6 +167,29 @@ function createForm() {
       else { geom.add(g); c.classList.add('on'); }
     };
   });
+
+  // "Start from a file": discover columns → seed the builder + geometry.
+  let seeded: { parsed: Parsed; format: string } | null = null;
+  app.querySelector<HTMLInputElement>('#seed-file')!.onchange = async (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    const note = app.querySelector('#seed-note')!;
+    if (!file) return;
+    const format = detectFormat(file.name);
+    if (!format) { note.textContent = 'Use a .csv, .geojson or .kml file.'; return; }
+    try {
+      const parsed = parseImport(await file.text(), format);
+      if (!parsed.features.length) { note.textContent = 'No rows found in that file.'; return; }
+      const inf = inferSchema(parsed, format);
+      seeded = { parsed, format };
+      builder = mountSchemaBuilder(app.querySelector<HTMLElement>('#fields-builder')!, inf.fields);
+      geom.clear(); inf.geometry.forEach((t) => geom.add(t)); syncGeomChips();
+      app.querySelector<HTMLElement>('#seed-import')!.style.display = '';
+      (app.querySelector('#create') as HTMLButtonElement).textContent = `Create map & import ${parsed.features.length} rows`;
+      note.innerHTML = `Read <strong>${parsed.features.length}</strong> row${parsed.features.length === 1 ? '' : 's'} and guessed <strong>${inf.fields.length}</strong> field${inf.fields.length === 1 ? '' : 's'}. Review them below, then create.`;
+    } catch (err) {
+      note.textContent = `Couldn't read the file: ${(err as Error).message}`;
+    }
+  };
 
   // Reference-layer picker: search the bharatlas catalogue, choose at most one.
   let chosenRef: RefLayer | null = null;
@@ -182,8 +238,21 @@ function createForm() {
       if (dataYear !== undefined && !Number.isInteger(dataYear)) {
         err.textContent = 'Data year must be a whole number like 2026.'; btn.disabled = false; return;
       }
+
+      // Seeded from a file: validate the disclaimers + build the rows up front.
+      let seedImport: { source: string; records: unknown[] } | null = null;
+      if (seeded) {
+        const source = (app.querySelector('#seed-source') as HTMLInputElement).value.trim();
+        const rights = (app.querySelector('#seed-rights') as HTMLInputElement).checked;
+        if (!rights) { err.textContent = 'Tick the box confirming you can publish this data under the licence.'; btn.disabled = false; return; }
+        if (!source) { err.textContent = 'Name where this data comes from.'; btn.disabled = false; return; }
+        const f = fields as unknown as Field[];
+        const built = buildRecords(seeded.parsed.features, autoMapping(f, seeded.parsed.columns), f, [...geom]);
+        seedImport = { source, records: built.records };
+      }
+
       const turnstile_token = await turnstileToken();
-      const links = (await apiJson<{ id: string; links: Record<string, string> }>('/collections', '', {
+      const res = await apiJson<{ id: string; links: Record<string, string>; tokens: { admin: string } }>('/collections', '', {
         method: 'POST',
         body: JSON.stringify({
           name,
@@ -194,14 +263,21 @@ function createForm() {
             version: 1,
             geometry: [...geom],
             fields,
+            category: app.querySelector<HTMLSelectElement>('#category')!.value,
             basemap: app.querySelector<HTMLSelectElement>('#basemap')!.value,
             reference_layer: chosenRef ? { id: chosenRef.id, pmtiles_url: chosenRef.pmtiles_url } : undefined,
           },
           turnstile_token,
         }),
-      })).links;
-      saveMap(name, links);
-      done(links);
+      });
+      if (seedImport && seedImport.records.length) {
+        await apiJson(`/collections/${res.id}/import`, res.tokens.admin, {
+          method: 'POST',
+          body: JSON.stringify({ records: seedImport.records, source: seedImport.source, rights_confirmed: true }),
+        }).catch(() => { /* map is created; the rows can still be imported from Manage */ });
+      }
+      saveMap(name, res.links);
+      done(res.links);
     } catch (e) {
       err.textContent = (e as Error).message;
       btn.disabled = false;

@@ -10,6 +10,11 @@ export const FIELD_TYPES = [
 ] as const;
 export const GEOMETRY_TYPES = ['point', 'line', 'polygon'] as const;
 export const BASEMAP_IDS = ['positron', 'satellite', 'topo'] as const;
+// Catalogue facets a published collection can slot into (mirrors catalog.json).
+export const CATEGORY_IDS = [
+  'boundaries', 'city-wards', 'people', 'environment', 'water',
+  'agriculture', 'transport', 'infrastructure', 'culture', 'health-edu', 'other',
+] as const;
 
 const KEY_RE = /^[a-z][a-z0-9_]*$/;
 const MAX_FIELDS = 20;
@@ -64,6 +69,10 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
   if (refs !== undefined) {
     if (!Array.isArray(refs) || !refs.every(isStr)) return fail('reference_layers must be a string array');
     if (refs.length > MAX_REF_LAYERS) return fail(`too many reference layers (max ${MAX_REF_LAYERS})`);
+  }
+
+  if (doc.category !== undefined && !CATEGORY_IDS.includes(doc.category as (typeof CATEGORY_IDS)[number])) {
+    return fail(`unknown category: ${String(doc.category)}`);
   }
 
   // Map options (Phase 4/5): an author-chosen basemap + one bharatlas overlay.

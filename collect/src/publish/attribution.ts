@@ -12,12 +12,14 @@ export interface ContributorTally {
 export interface ComposedAttribution {
   line: string;
   contributors: ContributorTally[];
+  sources: string[]; // distinct imported-data sources (field data has none)
 }
 
 export function composeAttribution(
   projectName: string,
   license: string,
   contributorNames: readonly (string | null | undefined)[],
+  importSources: readonly (string | null | undefined)[] = [],
 ): ComposedAttribution {
   const counts = new Map<string, number>();
   let anon = 0;
@@ -42,6 +44,12 @@ export function composeAttribution(
     if (anon > 0) who += ' + anonymous';
   }
 
-  const line = who ? `${projectName} — ${who} (${license})` : projectName;
-  return { line, contributors };
+  const sources = [...new Set(importSources.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean))];
+
+  let line = who ? `${projectName} — ${who} (${license})` : projectName;
+  if (sources.length) {
+    if (!who) line = `${projectName} (${license})`; // still needs the licence
+    line += `. Includes data from ${sources.join(', ')}`;
+  }
+  return { line, contributors, sources };
 }
