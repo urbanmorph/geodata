@@ -57,6 +57,7 @@ button.primary, .btn.primary {
   background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; width: 100%;
 }
 button.ghost { background: transparent; }
+button.accent { border-color: var(--accent); color: var(--accent); flex: 1; }
 button:disabled { opacity: 0.5; }
 /* equal full-width stacked actions (e.g. Back up / Restore) */
 .wide { width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; }
@@ -95,6 +96,9 @@ textarea { min-height: 88px; }
 .crosshair::before, .crosshair::after { content: ""; position: absolute; background: var(--accent); }
 .crosshair::before { left: 16px; top: 0; width: 2px; height: 34px; }
 .crosshair::after { top: 16px; left: 0; height: 2px; width: 34px; }
+/* while drawing a line/area, ring the crosshair so "Add point here" reads clearly */
+.crosshair--draw::after, .crosshair--draw::before { background: var(--accent-strong); }
+.crosshair--draw { outline: 2px solid var(--accent-strong); outline-offset: 6px; border-radius: 50%; }
 .locate { position: absolute; right: 12px; bottom: 12px; z-index: 6;
   min-width: 44px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
 
@@ -106,6 +110,11 @@ textarea { min-height: 88px; }
 .sheet .foot { padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line); }
 
 .card { border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 10px 0; }
+.card .row button { flex: 1; min-height: 40px; font-size: 14px; padding: 0 10px; }
+.badge { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; border: 1px solid currentColor; white-space: nowrap; text-transform: capitalize; }
+.badge--pending { color: #d97706; }
+.badge--published { color: var(--accent); }
+.badge--rejected { color: #dc2626; }
 .toast { position: fixed; left: 50%; bottom: 80px; transform: translateX(-50%);
   background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 999px;
   font-size: 14px; z-index: 20; opacity: 0; transition: opacity .2s; }

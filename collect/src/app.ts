@@ -115,10 +115,13 @@ async function boot(): Promise<void> {
         { enableHighAccuracy: true, timeout: 8000 },
       );
     };
-    captureSheet();
-  }
-  if (isAdmin) {
-    (document.getElementById('manage') as HTMLButtonElement).onclick = manageSheet;
+    if (isAdmin) {
+      // Admin lands on Manage (review + CRUD + publish); the ⚙ button returns here.
+      (document.getElementById('manage') as HTMLButtonElement).onclick = manageSheet;
+      void manageSheet();
+    } else {
+      captureSheet();
+    }
   }
   if (isView) viewPanel();
 }
@@ -189,8 +192,8 @@ function nounFor(geometryType: string): string {
 }
 const CAP_HELP: Record<GeomMode, string> = {
   point: 'Move the map so the crosshair sits on the spot.',
-  line: 'Pan so the crosshair is on each point, then tap + vertex. Need 2 or more.',
-  polygon: 'Pan the crosshair to each corner, then tap + vertex. Need 3 or more.',
+  line: 'Pan the map so the crosshair sits on a point, then tap "Add point here". Repeat along the line.',
+  polygon: 'Pan the map so the crosshair sits on a corner, then tap "Add point here", going around the area.',
 };
 
 function captureSheet(): void {
@@ -209,7 +212,7 @@ function captureSheet(): void {
       ${seg}
       <p class="hint" id="cap-help">${CAP_HELP[drawMode]}</p>
       <div class="row" id="drawctl" style="display:none;align-items:center">
-        <button type="button" id="vadd">+ vertex</button>
+        <button type="button" id="vadd" class="accent">+ Add point here</button>
         <button type="button" id="vundo">Undo</button>
         <span class="hint" id="vcount"></span>
       </div>
@@ -227,8 +230,14 @@ function captureSheet(): void {
     document.getElementById('cap-help')!.textContent = CAP_HELP[drawMode];
     (document.getElementById('add') as HTMLButtonElement).textContent = `Add ${NOUN[drawMode]}`;
     document.getElementById('drawctl')!.style.display = drawMode === 'point' ? 'none' : 'flex';
-    document.getElementById('vcount')!.textContent = `${verts.length} point${verts.length === 1 ? '' : 's'}`;
+    const need = drawMode === 'line' ? 2 : 3;
+    const n = verts.length;
+    document.getElementById('vcount')!.textContent =
+      n < need ? `${n} point${n === 1 ? '' : 's'} · add ${need - n} more`
+               : `${n} points · tap "Add ${NOUN[drawMode]}" when ready`;
     document.querySelectorAll('#modesw button').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.m === drawMode));
+    // Emphasise the crosshair while drawing so the "here" in the button reads clearly.
+    document.querySelector('.crosshair')?.classList.toggle('crosshair--draw', drawMode !== 'point');
   };
   syncDrawUI();
 
@@ -293,14 +302,20 @@ function captureSheet(): void {
 }
 
 async function manageSheet(): Promise<void> {
-  const fresh = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token).catch(() => meta);
-  const counts = fresh.counts;
+  meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token).catch(() => meta);
+  const c = meta.counts;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
     <div class="body">
       <strong>Manage map</strong>
-      <p class="hint">${counts.published} approved · ${counts.pending} pending · ${counts.total} total</p>
-      <div id="queue"><p class="hint">Loading pending…</p></div>
+      <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
+      <div class="row" id="pfilter" style="margin:8px 0 4px">
+        <button type="button" class="chip on" data-s="">All ${c.total}</button>
+        <button type="button" class="chip" data-s="pending">Pending ${c.pending}</button>
+        <button type="button" class="chip" data-s="published">Approved ${c.published}</button>
+        ${c.rejected ? `<button type="button" class="chip" data-s="rejected">Rejected ${c.rejected}</button>` : ''}
+      </div>
+      <div id="points"><p class="hint">Loading points…</p></div>
       <strong style="display:block;margin-top:14px">Share links</strong>
       <p class="hint">Mint a fresh link to share. The original links can't be shown again.</p>
       <div class="row">
@@ -310,12 +325,19 @@ async function manageSheet(): Promise<void> {
       <div id="minted"></div>
     </div>
     <div class="foot row">
-      <button id="back">← Capture</button>
+      <button id="back">+ Add points</button>
       <button class="primary" id="publish" style="flex:1">Publish → atlas</button>
     </div>
   </div>`;
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
   (document.getElementById('publish') as HTMLButtonElement).onclick = doPublish;
+  document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
+    b.onclick = () => {
+      document.querySelectorAll('#pfilter .chip').forEach((x) => x.classList.remove('on'));
+      b.classList.add('on');
+      void renderPoints();
+    };
+  });
 
   const mint = async (permission: 'edit' | 'view') => {
     try {
@@ -325,7 +347,8 @@ async function manageSheet(): Promise<void> {
       const box = document.getElementById('minted')!;
       const row = document.createElement('div');
       row.className = 'link-box';
-      row.innerHTML = `<code>${res.link}</code><button>Copy</button>`;
+      row.innerHTML = `<code></code><button>Copy</button>`;
+      row.querySelector('code')!.textContent = res.link; // textContent — never innerHTML a URL
       const btn = row.querySelector('button')!;
       btn.onclick = () => { navigator.clipboard?.writeText(res.link); btn.textContent = '✓'; };
       box.prepend(row);
@@ -336,7 +359,26 @@ async function manageSheet(): Promise<void> {
   (document.getElementById('mint-edit') as HTMLButtonElement).onclick = () => mint('edit');
   (document.getElementById('mint-view') as HTMLButtonElement).onclick = () => mint('view');
 
-  renderQueue();
+  void renderPoints();
+}
+
+function activeFilter(): string {
+  return (document.querySelector('#pfilter .chip.on') as HTMLElement | null)?.dataset.s || '';
+}
+
+// Refresh the counts line + filter-chip totals after a moderation/delete.
+async function refreshCounts(): Promise<void> {
+  try {
+    meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
+    const c = meta.counts;
+    const line = document.getElementById('mcounts');
+    if (line) line.textContent = `${c.published} approved · ${c.pending} pending · ${c.rejected} rejected`;
+    const label: Record<string, string> = { '': `All ${c.total}`, pending: `Pending ${c.pending}`, published: `Approved ${c.published}`, rejected: `Rejected ${c.rejected}` };
+    document.querySelectorAll<HTMLElement>('#pfilter .chip').forEach((b) => {
+      const t = label[b.dataset.s || ''];
+      if (t) b.textContent = t;
+    });
+  } catch { /* leave stale counts */ }
 }
 
 type AdminCtx = { state?: string; district?: string; subdistrict?: string } | null;
@@ -357,33 +399,65 @@ function cardTitle(props: Record<string, unknown>): string {
   return '(no name)';
 }
 
-async function renderQueue(): Promise<void> {
-  const q = document.getElementById('queue');
+// The admin point manager: every marked point (filtered) with per-point CRUD —
+// approve/reject (moderation), edit (opens the record editor with the admin
+// token), delete. Read = list; Update = edit link; Delete = delete; Create =
+// the "+ Add points" button (capture) or a contributor's own add.
+async function renderPoints(): Promise<void> {
+  const q = document.getElementById('points');
   if (!q) return;
+  const status = activeFilter();
+  q.innerHTML = '<p class="hint">Loading…</p>';
   try {
-    const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records?status=pending&limit=25`, ctx.token);
+    const qs = status ? `?status=${status}&limit=300` : '?limit=300';
+    const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records${qs}`, ctx.token);
     const feats = fc.features || [];
-    if (!feats.length) { q.innerHTML = '<p class="hint">Nothing pending.</p>'; return; }
-    q.innerHTML = feats.map((f) => `<div class="card" data-id="${f.id}">
-        <div>${escapeHtml(cardTitle(f.properties))}</div>
-        <div class="hint">${escapeHtml((f.properties as { _contributor?: string })._contributor || 'anonymous')}${fmtAdminCtx((f.properties as { _admin_ctx?: AdminCtx })._admin_ctx ?? null)}</div>
-        <div class="row" style="margin-top:8px">
-          <button data-act="rejected" style="flex:1">✗ Reject</button>
-          <button class="primary" data-act="published" style="flex:1">✓ Approve</button>
-        </div></div>`).join('');
+    if (!feats.length) { q.innerHTML = '<p class="hint">No points here yet.</p>'; return; }
+    q.innerHTML = feats.map((f) => {
+      const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx };
+      const st = p._status || 'published';
+      const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `<span class="hint">${nounFor(f.geometry.type)}</span> ` : '';
+      const acts = [
+        st !== 'published' ? `<button data-act="published" data-id="${f.id}">✓ Approve</button>` : '',
+        st === 'pending' ? `<button data-act="rejected" data-id="${f.id}">✗ Reject</button>` : '',
+        `<button data-edit="${f.id}">✎ Edit</button>`,
+        `<button data-del="${f.id}">🗑 Delete</button>`,
+      ].filter(Boolean).join('');
+      return `<div class="card" data-id="${f.id}">
+        <div class="row" style="justify-content:space-between;align-items:center;gap:6px">
+          <strong style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${geom}${escapeHtml(cardTitle(f.properties))}</strong>
+          <span class="badge badge--${st}">${st}</span>
+        </div>
+        <div class="hint">${escapeHtml(p._contributor || 'anonymous')}${fmtAdminCtx(p._admin_ctx ?? null)}</div>
+        <div class="row" style="margin-top:8px">${acts}</div>
+      </div>`;
+    }).join('');
+
     q.querySelectorAll<HTMLButtonElement>('button[data-act]').forEach((b) => {
       b.onclick = async () => {
-        const card = b.closest('.card') as HTMLElement;
         try {
-          await apiJson(`/records/${card.dataset.id}/moderate`, ctx.token, {
-            method: 'POST', body: JSON.stringify({ status: b.dataset.act }),
-          });
-          card.remove();
+          await apiJson(`/records/${b.dataset.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: b.dataset.act }) });
+          await refreshCounts();
+          void renderPoints();
+        } catch (e) { toast((e as Error).message); }
+      };
+    });
+    q.querySelectorAll<HTMLButtonElement>('button[data-edit]').forEach((b) => {
+      b.onclick = () => { location.href = `/c/${ctx.id}/r/${b.dataset.edit}#${ctx.token}`; };
+    });
+    q.querySelectorAll<HTMLButtonElement>('button[data-del]').forEach((b) => {
+      let armed = false;
+      b.onclick = async () => {
+        if (!armed) { armed = true; b.textContent = 'Tap to confirm'; return; }
+        try {
+          await apiJson(`/records/${b.dataset.del}`, ctx.token, { method: 'DELETE' });
+          await refreshCounts();
+          void renderPoints();
         } catch (e) { toast((e as Error).message); }
       };
     });
   } catch (e) {
-    q.innerHTML = `<p class="warn">${(e as Error).message}</p>`;
+    q.innerHTML = `<p class="warn">${escapeHtml((e as Error).message)}</p>`;
   }
 }
 
