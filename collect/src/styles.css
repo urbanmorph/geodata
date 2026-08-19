@@ -99,11 +99,13 @@ button:focus-visible, .btn:focus-visible,
 input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 button:disabled, .btn:disabled { opacity: .5; cursor: default; transform: none; }
 
-/* Primary = apex .btn-primary model: monochrome default, indigo on hover. */
+/* Primary = solid indigo. Mobile has no hover, so the brand CTA colour shows
+   permanently (this is exactly what apex's monochrome primary becomes on hover);
+   --accent-solid keeps white text AA in both themes. Darkens on desktop hover. */
 button.primary, .btn.primary {
-  background: var(--fg); border-color: var(--fg); color: var(--bg); width: 100%;
+  background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; width: 100%;
 }
-button.primary:hover, .btn.primary:hover { background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; }
+button.primary:hover, .btn.primary:hover { background: #4338ca; border-color: #4338ca; }
 button.ghost { background: transparent; border-color: var(--line); }
 button.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-fill); }
 button.danger { border-color: var(--line-strong); color: var(--danger); background: var(--card); }
