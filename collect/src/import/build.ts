@@ -75,7 +75,7 @@ export function buildRecords(
   return { records, errors };
 }
 
-/** An error CSV the author can fix + re-upload: source columns + a `_error` column. */
+/** A CSV of just the rejected rows the author can fix + re-upload: source columns + a `why` column. */
 export function errorsToCSV(errors: ImportError[]): string {
   if (!errors.length) return '';
   const cols = [...new Set(errors.flatMap((e) => Object.keys(e.source)))];
@@ -83,7 +83,7 @@ export function errorsToCSV(errors: ImportError[]): string {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const lines = [[...cols, '_error'].map(cell).join(',')];
+  const lines = [[...cols, 'why'].map(cell).join(',')];
   for (const e of errors) lines.push([...cols.map((c) => e.source[c] ?? ''), e.error].map(cell).join(','));
   return lines.join('\n');
 }

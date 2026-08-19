@@ -467,27 +467,56 @@ async function importFlow(file: File): Promise<void> {
   const needsLngLat = format === 'csv';
   const guess = autoMapping(fields, parsed.columns);
   const opts = (sel?: string): string =>
-    `<option value="">— none —</option>` + parsed.columns.map((c) => `<option${c === sel ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+    `<option value="">— choose a column —</option>` + parsed.columns.map((c) => `<option${c === sel ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+  const n = parsed.features.length;
+  // A column map (applies to ALL rows), not a single-record form.
   panel.innerHTML = `
-    <p class="hint">${parsed.features.length} rows in ${format.toUpperCase()}. Match columns to your fields.</p>
-    ${needsLngLat ? `<label>Longitude column</label><select data-map="lng">${opts(guess.lng)}</select><label>Latitude column</label><select data-map="lat">${opts(guess.lat)}</select>` : ''}
-    ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label><select data-field="${f.key}">${opts(guess.fields[f.key])}</select>`).join('')}
-    <button class="primary" id="do-import" style="margin-top:12px">Import ${parsed.features.length} rows</button>
+    <p class="hint"><strong>${n} row${n === 1 ? '' : 's'}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file — this applies to <strong>all ${n}</strong> at once, not one point.</p>
+    ${needsLngLat
+      ? `<div class="maplabel">Location <span class="hint">(a CSV keeps coordinates in columns)</span></div>
+         <div class="maprow"><span>Longitude</span><select data-map="lng">${opts(guess.lng)}</select></div>
+         <div class="maprow"><span>Latitude</span><select data-map="lat">${opts(guess.lat)}</select></div>`
+      : `<p class="hint">Locations come from the file's own geometry, so there's nothing to match for coordinates.</p>`}
+    <div class="maplabel">Fields <span class="hint">(which column fills each)</span></div>
+    ${fields.map((f) => `<div class="maprow"><span>${escapeHtml(f.label)}${f.required ? ' *' : ''}</span><select data-field="${f.key}">${opts(guess.fields[f.key])}</select></div>`).join('')}
+    <div id="map-preview" class="hint" style="margin:10px 0"></div>
+    <button class="primary" id="do-import">Import all ${n} rows</button>
     <div id="import-result"></div>`;
 
-  (document.getElementById('do-import') as HTMLButtonElement).onclick = async (ev) => {
-    const btn = ev.currentTarget as HTMLButtonElement;
+  const readMapping = (): Mapping => {
     const m: Mapping = { fields: {} };
     if (needsLngLat) {
       m.lng = (panel.querySelector('[data-map="lng"]') as HTMLSelectElement).value || undefined;
       m.lat = (panel.querySelector('[data-map="lat"]') as HTMLSelectElement).value || undefined;
     }
     panel.querySelectorAll<HTMLSelectElement>('[data-field]').forEach((s) => { if (s.value) m.fields[s.dataset.field!] = s.value; });
-    const { records, errors } = buildRecords(parsed.features, m, fields, meta.schema.geometry);
+    return m;
+  };
+  // Live preview of the first row so the mapping is tangible (bulk, not entry).
+  const preview = (): void => {
+    const el = document.getElementById('map-preview');
+    if (!el) return;
+    const { records, errors } = buildRecords(parsed.features.slice(0, 1), readMapping(), fields, meta.schema.geometry);
+    if (records.length) {
+      const g = records[0].geometry as { type: string; coordinates: number[] };
+      const props = records[0].properties as Record<string, unknown>;
+      const label = String(props.name ?? Object.values(props)[0] ?? '(unnamed)');
+      const where = g.type === 'Point' ? `${g.coordinates[0]}, ${g.coordinates[1]}` : g.type.toLowerCase();
+      el.innerHTML = `Preview · row 1 → <strong>${escapeHtml(label)}</strong> at ${escapeHtml(where)}`;
+    } else {
+      el.innerHTML = `<span class="warn">Row 1 won't import: ${escapeHtml(errors[0]?.error || 'check the mapping')}</span>`;
+    }
+  };
+  panel.querySelectorAll('select').forEach((s) => { (s as HTMLSelectElement).onchange = preview; });
+  preview();
+
+  (document.getElementById('do-import') as HTMLButtonElement).onclick = async (ev) => {
+    const btn = ev.currentTarget as HTMLButtonElement;
+    const { records, errors } = buildRecords(parsed.features, readMapping(), fields, meta.schema.geometry);
     const result = document.getElementById('import-result')!;
     if (!records.length) {
-      result.innerHTML = `<p class="warn">Nothing valid to import — ${errors.length} row${errors.length === 1 ? '' : 's'} had problems.</p><button id="dl-errors">Download error file</button>`;
-      (document.getElementById('dl-errors') as HTMLButtonElement).onclick = () => downloadText(errorsToCSV(errors), 'import-errors.csv', 'text/csv');
+      result.innerHTML = `<p class="warn">Nothing valid to import — ${errors.length} row${errors.length === 1 ? '' : 's'} had problems.</p>${errorsBlock()}`;
+      wireErrorDownload(errors);
       return;
     }
     btn.disabled = true;
@@ -496,11 +525,21 @@ async function importFlow(file: File): Promise<void> {
       await refreshCounts();
       void renderPoints();
       toast(`Imported ${res.imported} point${res.imported === 1 ? '' : 's'} ✓`);
-      result.innerHTML = `<p class="hint">Imported ${res.imported}.${errors.length ? ` ${errors.length} row${errors.length === 1 ? '' : 's'} skipped (bad data).` : ''}</p>`
-        + (errors.length ? `<button id="dl-errors">Download error file</button>` : '');
-      if (errors.length) (document.getElementById('dl-errors') as HTMLButtonElement).onclick = () => downloadText(errorsToCSV(errors), 'import-errors.csv', 'text/csv');
+      result.innerHTML = `<p class="hint">Imported ${res.imported}.${errors.length ? ` ${errors.length} row${errors.length === 1 ? '' : 's'} couldn't be read.` : ''}</p>`
+        + (errors.length ? errorsBlock() : '');
+      wireErrorDownload(errors);
     } catch (e) { toast((e as Error).message); btn.disabled = false; }
   };
+}
+
+// The rejected rows, as a spreadsheet to fix + re-import (with a plain-words prompt).
+function errorsBlock(): string {
+  return `<button id="dl-errors">Download the rows to fix</button>
+    <p class="hint" style="margin-top:6px">A spreadsheet of only the skipped rows, each with a <code>why</code> column. Fix them, delete that column, and import the file again.</p>`;
+}
+function wireErrorDownload(errors: { row: number; error: string; source: Record<string, string> }[]): void {
+  const b = document.getElementById('dl-errors') as HTMLButtonElement | null;
+  if (b) b.onclick = () => downloadText(errorsToCSV(errors), 'rows-to-fix.csv', 'text/csv');
 }
 
 function activeFilter(): string {

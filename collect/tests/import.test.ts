@@ -69,7 +69,7 @@ describe('buildRecords', () => {
 describe('errorsToCSV', () => {
   it('produces a re-uploadable file with an _error column', () => {
     const csv = errorsToCSV([{ row: 0, error: 'bad', source: { name: 'A', lng: '10' } }]);
-    expect(csv.split('\n')[0]).toBe('name,lng,_error');
+    expect(csv.split('\n')[0]).toBe('name,lng,why');
     expect(csv.split('\n')[1]).toBe('A,10,bad');
   });
 });

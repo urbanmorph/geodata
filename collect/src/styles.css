@@ -150,6 +150,13 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 .link-box .btn, .link-box button { min-height: 40px; padding: 0 12px; }
 
+/* import column-mapping rows (field ← column) */
+.maplabel { font-size: 13px; font-weight: 600; color: var(--fg); margin: 14px 0 6px; }
+.maplabel .hint { font-weight: 400; }
+.maprow { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+.maprow > span { flex: 0 0 42%; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.maprow > select { flex: 1; min-width: 0; }
+
 /* reference-layer search results (create form) */
 .ref-results { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-height: 230px; overflow: auto; }
 .ref-opt { width: 100%; justify-content: space-between; gap: 10px; }
