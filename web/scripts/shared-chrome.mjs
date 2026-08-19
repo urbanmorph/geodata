@@ -68,11 +68,21 @@ export const TOKENS = `
   }
   .site-nav a:hover { color: var(--fg); }
   .site-nav a[data-active] { color: var(--fg); font-weight: 500; }
-  @media (max-width: 480px) {
-    .site-header { gap: var(--sp-2); margin-bottom: var(--sp-4); }
+  /* mobile hamburger (CSS-only, checkbox toggle) */
+  .nav-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
+  .nav-burger {
+    display: none; align-items: center; justify-content: center;
+    min-width: 44px; min-height: 44px; font-size: 20px; line-height: 1;
+    color: var(--fg); cursor: pointer; border: 1px solid var(--line); border-radius: var(--radius-md);
+  }
+  .nav-toggle:focus-visible ~ .nav-burger { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+  @media (max-width: 640px) {
+    .site-header { gap: var(--sp-2); margin-bottom: var(--sp-4); position: relative; align-items: center; }
     .site-brand .tagline { display: none; }
-    .site-nav { gap: var(--sp-2); }
-    .site-nav a { font-size: var(--fs-sm); }
+    .nav-burger { display: inline-flex; }
+    .site-nav { display: none; flex-direction: column; align-items: stretch; gap: 0; width: 100%; margin-top: var(--sp-2); }
+    .nav-toggle:checked ~ .site-nav { display: flex; }
+    .site-nav a { width: 100%; padding: 12px 4px; min-height: 48px; border-top: 1px solid var(--line); }
   }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
@@ -87,6 +97,7 @@ export const TOKENS = `
 export const NAV_LINKS = [
   { k: 'catalog', href: '/', label: 'catalog' },
   { k: 'preview', href: '/preview', label: 'contribute' },
+  { k: 'collect', href: 'https://collect.bharatlas.com', label: 'collect' },
   { k: 'docs', href: '/docs', label: 'docs' },
   { k: 'mcp', href: '/mcp', label: 'mcp' },
   { k: 'about', href: '/about', label: 'about' },
@@ -96,7 +107,9 @@ export function renderNav(activeKey) {
   return `<a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">India's open atlas</span></a>
-      <nav class="site-nav">
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" />
+      <label for="nav-toggle" class="nav-burger" aria-label="Menu">☰</label>
+      <nav class="site-nav" id="site-nav" aria-label="Primary">
         ${NAV_LINKS.map(
           (l) =>
             `<a href="${l.href}"${l.k === activeKey ? ' data-active' : ''}${l.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${l.label}</a>`,
