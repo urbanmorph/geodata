@@ -11,7 +11,8 @@
     "build": "vitest run && npm run typecheck && vite build"
   },
   "dependencies": {
-    "maplibre-gl": "^4.7.1"
+    "maplibre-gl": "^4.7.1",
+    "pmtiles": "^3.2.1"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260520.1",

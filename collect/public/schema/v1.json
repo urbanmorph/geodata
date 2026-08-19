@@ -17,6 +17,15 @@
       "maxItems": 3,
       "items": { "type": "string" }
     },
+    "basemap": { "enum": ["positron", "satellite", "topo"] },
+    "reference_layer": {
+      "type": "object",
+      "required": ["id", "pmtiles_url"],
+      "properties": {
+        "id": { "type": "string" },
+        "pmtiles_url": { "type": "string", "pattern": "^https://" }
+      }
+    },
     "fields": {
       "type": "array",
       "maxItems": 20,
