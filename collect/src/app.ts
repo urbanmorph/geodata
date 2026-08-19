@@ -4,17 +4,19 @@
 // — for admin — a review queue + publish. Mobile-first.
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { BASEMAP, INDIA_CENTER } from './basemap';
+import { styleFor, INDIA_CENTER } from './basemap';
+import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
 import { parseCtx, apiJson, type Ctx } from './api';
 import { turnstileToken } from './turnstile';
 import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { escapeHtml } from './util';
+import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
   id: string; name: string; purpose: string; status: string; moderation: number;
-  schema: { geometry: string[]; fields: Field[] }; counts: Counts;
+  schema: { geometry: string[]; fields: Field[]; basemap?: string; reference_layer?: { id: string; pmtiles_url: string } | null }; counts: Counts;
 }
 interface Feature { id: string; geometry: { type: string; coordinates: number[] }; properties: Record<string, unknown>; }
 
@@ -86,12 +88,13 @@ async function boot(): Promise<void> {
       <div class="crosshair" aria-hidden="true" ${isView ? 'style="display:none"' : ''}></div>
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isView ? '' : '<button class="locate" id="locate" aria-label="Use my location">◎</button>'}
+      ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-pressed="true" style="left:12px;top:12px;right:auto;bottom:auto;width:auto;padding:0 12px">◪ Layer</button>' : ''}
       ${isAdmin ? `<button class="locate" id="manage" aria-label="Manage map${meta.counts.pending ? `, ${meta.counts.pending} pending review` : ''}" style="left:12px;right:auto;bottom:76px;width:auto;padding:0 14px">⚙${meta.counts.pending ? ` ${meta.counts.pending}` : ''}</button>` : ''}
     </div>
     <div id="panel"></div>`;
 
   map = new maplibregl.Map({
-    container: 'map', style: BASEMAP, center: INDIA_CENTER, zoom: 4,
+    container: 'map', style: styleFor(meta.schema.basemap), center: INDIA_CENTER, zoom: 4,
     attributionControl: false,
   });
   // Attribution bottom-left so it never sits under the locate button (bottom-right).
@@ -102,8 +105,17 @@ async function boot(): Promise<void> {
   map.on('load', () => {
     document.getElementById('maploading')?.remove();
     if (!isView && allowsShapes) setupDrawLayers();
+    if (meta.schema.reference_layer) void addReferenceOverlay(map, meta.schema.reference_layer.pmtiles_url).catch(() => {});
     void loadRecords();
   });
+
+  const reftoggle = document.getElementById('reftoggle') as HTMLButtonElement | null;
+  if (reftoggle) reftoggle.onclick = () => {
+    const on = reftoggle.getAttribute('aria-pressed') !== 'true';
+    reftoggle.setAttribute('aria-pressed', String(on));
+    reftoggle.style.opacity = on ? '1' : '0.55';
+    setReferenceVisible(map, on);
+  };
 
   if (!isView) {
     const locate = document.getElementById('locate') as HTMLButtonElement;
@@ -343,6 +355,13 @@ async function manageSheet(): Promise<void> {
         <button id="mint-view">+ View-only link</button>
       </div>
       <div id="minted"></div>
+      <strong style="display:block;margin-top:14px">Download the data</strong>
+      <p class="hint">Every collected point, to use anywhere.</p>
+      <div class="row">
+        <button data-dl="geojson">GeoJSON</button>
+        <button data-dl="csv">CSV</button>
+        <button data-dl="kml">KML</button>
+      </div>
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
@@ -378,8 +397,35 @@ async function manageSheet(): Promise<void> {
   };
   (document.getElementById('mint-edit') as HTMLButtonElement).onclick = () => mint('edit');
   (document.getElementById('mint-view') as HTMLButtonElement).onclick = () => mint('view');
+  document.querySelectorAll<HTMLButtonElement>('button[data-dl]').forEach((b) => {
+    b.onclick = () => void downloadData(b.dataset.dl as 'geojson' | 'csv' | 'kml');
+  });
 
   void renderPoints();
+}
+
+const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
+
+// Fetch every record and hand the author a file — no server round-trip.
+async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
+  try {
+    const fc = await apiJson<{ features: ExportFeature[] }>(`/collections/${ctx.id}/records?limit=100000`, ctx.token);
+    const features = fc.features || [];
+    if (!features.length) { toast('No points to download yet'); return; }
+    const keys = meta.schema.fields.filter((f) => !f.deleted).map((f) => f.key);
+    const [content, mime, ext] =
+      format === 'geojson' ? [toGeoJSON(features, keys), 'application/geo+json', 'geojson']
+      : format === 'csv' ? [toCSV(features, keys), 'text/csv', 'csv']
+      : [toKML(features, keys, meta.name), 'application/vnd.google-earth.kml+xml', 'kml'];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+    a.download = `${slug(meta.name)}.${ext}`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast(`Downloaded ${features.length} point${features.length === 1 ? '' : 's'} as ${ext.toUpperCase()}`);
+  } catch (e) {
+    toast((e as Error).message);
+  }
 }
 
 function activeFilter(): string {
@@ -511,7 +557,7 @@ async function recordEditor(): Promise<void> {
     id: string; status: string; contributor: string | null;
     geometry: { type: string; coordinates: number[] };
     properties: Record<string, unknown>;
-    schema: { geometry: string[]; fields: Field[] }; collection_name: string;
+    schema: { geometry: string[]; fields: Field[]; basemap?: string }; collection_name: string;
   }>(`/records/${ctx.recordId}`, ctx.token);
   const fields = rec.schema.fields.filter((f) => !f.deleted);
   const isPoint = rec.geometry.type === 'Point';
@@ -541,7 +587,7 @@ async function recordEditor(): Promise<void> {
       </div>
     </div></div>`;
 
-  map = new maplibregl.Map({ container: 'map', style: BASEMAP, center, zoom: isPoint ? 16 : 14, attributionControl: false });
+  map = new maplibregl.Map({ container: 'map', style: styleFor(rec.schema.basemap), center, zoom: isPoint ? 16 : 14, attributionControl: false });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.on('load', () => {
     document.getElementById('maploading')?.remove();

@@ -9,6 +9,7 @@ export const FIELD_TYPES = [
   'text', 'paragraph', 'number', 'select', 'multiselect', 'date', 'url',
 ] as const;
 export const GEOMETRY_TYPES = ['point', 'line', 'polygon'] as const;
+export const BASEMAP_IDS = ['positron', 'satellite', 'topo'] as const;
 
 const KEY_RE = /^[a-z][a-z0-9_]*$/;
 const MAX_FIELDS = 20;
@@ -63,6 +64,19 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
   if (refs !== undefined) {
     if (!Array.isArray(refs) || !refs.every(isStr)) return fail('reference_layers must be a string array');
     if (refs.length > MAX_REF_LAYERS) return fail(`too many reference layers (max ${MAX_REF_LAYERS})`);
+  }
+
+  // Map options (Phase 4/5): an author-chosen basemap + one bharatlas overlay.
+  if (doc.basemap !== undefined && !BASEMAP_IDS.includes(doc.basemap as (typeof BASEMAP_IDS)[number])) {
+    return fail(`unknown basemap: ${String(doc.basemap)}`);
+  }
+  const ref = doc.reference_layer;
+  if (ref !== undefined && ref !== null) {
+    if (typeof ref !== 'object' || Array.isArray(ref)) return fail('reference_layer must be an object');
+    const r = ref as Record<string, unknown>;
+    if (!isStr(r.id) || !isStr(r.pmtiles_url) || !r.pmtiles_url.startsWith('https://')) {
+      return fail('reference_layer needs id and an https pmtiles_url');
+    }
   }
   return { ok: true, value: doc };
 }

@@ -75,4 +75,12 @@ describe('validateSchemaDoc (the meta-schema check)', () => {
     expect(validateSchemaDoc({ ...goodSchema, fields: many }).ok).toBe(false);
     expect(validateSchemaDoc({ ...goodSchema, reference_layers: ['a', 'b', 'c', 'd'] }).ok).toBe(false);
   });
+
+  it('accepts a valid basemap + reference_layer, rejects bad ones', () => {
+    expect(validateSchemaDoc({ ...goodSchema, basemap: 'satellite' }).ok).toBe(true);
+    expect(validateSchemaDoc({ ...goodSchema, basemap: 'streets' }).ok).toBe(false);
+    expect(validateSchemaDoc({ ...goodSchema, reference_layer: { id: 'soi_forests', pmtiles_url: 'https://r2.dev/x.pmtiles' } }).ok).toBe(true);
+    expect(validateSchemaDoc({ ...goodSchema, reference_layer: { id: 'x', pmtiles_url: 'http://insecure' } }).ok).toBe(false);
+    expect(validateSchemaDoc({ ...goodSchema, reference_layer: { id: 'x' } }).ok).toBe(false);
+  });
 });

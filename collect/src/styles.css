@@ -150,6 +150,11 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 .link-box .btn, .link-box button { min-height: 40px; padding: 0 12px; }
 
+/* reference-layer search results (create form) */
+.ref-results { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-height: 230px; overflow: auto; }
+.ref-opt { width: 100%; justify-content: space-between; gap: 10px; }
+.ref-opt .hint { font-weight: 400; text-transform: capitalize; }
+
 /* empty state — an invitation, not a dead end */
 .empty {
   text-align: center; color: var(--muted); font-size: 14px; line-height: 1.5;
