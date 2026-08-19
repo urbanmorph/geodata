@@ -7,6 +7,21 @@ import { escapeHtml } from './util';
 import { BASEMAPS } from './basemap';
 import { searchLayers, type RefLayer } from './geo/catalog';
 
+// Catalogue facets a published map slots into ('other' first = the default).
+const CATEGORIES: [string, string][] = [
+  ['other', 'Other'],
+  ['boundaries', 'Boundaries'],
+  ['city-wards', 'City wards'],
+  ['people', 'People & places'],
+  ['environment', 'Environment'],
+  ['water', 'Water'],
+  ['agriculture', 'Agriculture & land use'],
+  ['transport', 'Transport & mobility'],
+  ['infrastructure', 'Infrastructure & utilities'],
+  ['culture', 'Culture & heritage'],
+  ['health-edu', 'Health & education'],
+];
+
 const OPEN_LICENCES: [string, string][] = [
   ['CC-BY-4.0', 'CC BY 4.0 (credit required)'],
   ['CC0-1.0', 'CC0 (public domain)'],
@@ -97,6 +112,8 @@ function createForm() {
       <input id="name" maxlength="120" placeholder="Bengaluru footpath survey" />
       <label>What's it for? <span class="hint">(shown to contributors)</span></label>
       <textarea id="purpose" maxlength="2000" placeholder="Mapping footpath condition across the ward"></textarea>
+      <label>Category <span class="hint">(where it slots in the atlas when published)</span></label>
+      <select id="category">${CATEGORIES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('')}</select>
       <label>What contributors fill in <span class="hint">(the form for each point)</span></label>
       <div id="fields-builder"></div>
       <label>Contributors add <span class="hint">(pick one or more)</span></label>
@@ -116,6 +133,7 @@ function createForm() {
       <label>Data year <span class="hint">(optional)</span></label>
       <input id="year" inputmode="numeric" placeholder="2026" />
       <div style="height:16px"></div>
+      <p class="hint">Map <strong>public places and assets</strong>, not people or private details. You're responsible for what's collected and published. <a href="https://bharatlas.com/terms" target="_blank" rel="noopener">Terms</a>.</p>
       <button class="primary" id="create">Create map</button>
       <p id="err" class="warn"></p>
     </div>`;
@@ -194,6 +212,7 @@ function createForm() {
             version: 1,
             geometry: [...geom],
             fields,
+            category: app.querySelector<HTMLSelectElement>('#category')!.value,
             basemap: app.querySelector<HTMLSelectElement>('#basemap')!.value,
             reference_layer: chosenRef ? { id: chosenRef.id, pmtiles_url: chosenRef.pmtiles_url } : undefined,
           },

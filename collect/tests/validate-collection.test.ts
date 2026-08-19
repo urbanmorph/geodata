@@ -76,6 +76,11 @@ describe('validateSchemaDoc (the meta-schema check)', () => {
     expect(validateSchemaDoc({ ...goodSchema, reference_layers: ['a', 'b', 'c', 'd'] }).ok).toBe(false);
   });
 
+  it('accepts a known category, rejects an unknown one', () => {
+    expect(validateSchemaDoc({ ...goodSchema, category: 'environment' }).ok).toBe(true);
+    expect(validateSchemaDoc({ ...goodSchema, category: 'made-up' }).ok).toBe(false);
+  });
+
   it('accepts a valid basemap + reference_layer, rejects bad ones', () => {
     expect(validateSchemaDoc({ ...goodSchema, basemap: 'satellite' }).ok).toBe(true);
     expect(validateSchemaDoc({ ...goodSchema, basemap: 'streets' }).ok).toBe(false);

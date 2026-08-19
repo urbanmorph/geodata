@@ -17,6 +17,7 @@
       "maxItems": 3,
       "items": { "type": "string" }
     },
+    "category": { "enum": ["boundaries", "city-wards", "people", "environment", "water", "agriculture", "transport", "infrastructure", "culture", "health-edu", "other"] },
     "basemap": { "enum": ["positron", "satellite", "topo"] },
     "reference_layer": {
       "type": "object",

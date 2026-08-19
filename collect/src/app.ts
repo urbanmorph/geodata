@@ -13,6 +13,8 @@ import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/dra
 import { representativeCoord } from './geo/admin-ctx';
 import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
+import { detectFormat, parseImport, type Parsed } from './import/parse';
+import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
   id: string; name: string; purpose: string; status: string; moderation: number;
@@ -70,6 +72,14 @@ function toast(msg: string): void {
 
 function marker(coords: number[], color = ACCENT): void {
   if (coords.length >= 2) new maplibregl.Marker({ color }).setLngLat([coords[0], coords[1]]).addTo(map);
+}
+
+const TERMS = 'https://bharatlas.com/terms';
+// Content-safety: a report/takedown path (mailto, no accounts) + terms link.
+function safetyFooter(): string {
+  const subject = encodeURIComponent(`Report: collect map ${ctx.id}`);
+  const body = encodeURIComponent(`Reporting this map:\n${location.origin}/c/${ctx.id}\n\nReason:\n`);
+  return `<p class="hint" style="margin-top:12px">Public places and assets only, not people. <a href="mailto:sathya@urbanmorph.com?subject=${subject}&body=${body}">Report this map</a> · <a href="${TERMS}" target="_blank" rel="noopener">Terms</a></p>`;
 }
 
 async function boot(): Promise<void> {
@@ -145,6 +155,7 @@ function viewPanel(): void {
     <strong>${escapeHtml(meta.name)}</strong>
     ${meta.purpose ? `<p class="hint">${escapeHtml(meta.purpose)}</p>` : ''}
     <p class="hint">${n ? `${n} point${n === 1 ? '' : 's'} on the map.` : 'No points published yet.'}</p>
+    ${safetyFooter()}
   </div></div>`;
 }
 
@@ -278,7 +289,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   panel.innerHTML = `<div class="sheet">
     <form class="body" id="capform">
       <strong>${cap(noun)} details</strong>
-      <p class="hint">Placed on the map. Add the details, then save.</p>
+      <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
       ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
       <label>Your name <span class="hint">(optional, published with the data)</span></label>
       <input id="contributor" />
@@ -362,6 +373,11 @@ async function manageSheet(): Promise<void> {
         <button data-dl="csv">CSV</button>
         <button data-dl="kml">KML</button>
       </div>
+      <strong style="display:block;margin-top:14px">Import data</strong>
+      <p class="hint">Add many points at once from a CSV, GeoJSON or KML file.</p>
+      <label class="btn wide" style="cursor:pointer">⬆ Choose a file<input id="import-file" type="file" accept=".csv,.geojson,.json,.kml" hidden></label>
+      <div id="import-panel"></div>
+      ${safetyFooter()}
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
@@ -400,11 +416,23 @@ async function manageSheet(): Promise<void> {
   document.querySelectorAll<HTMLButtonElement>('button[data-dl]').forEach((b) => {
     b.onclick = () => void downloadData(b.dataset.dl as 'geojson' | 'csv' | 'kml');
   });
+  (document.getElementById('import-file') as HTMLInputElement).onchange = (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (file) void importFlow(file);
+  };
 
   void renderPoints();
 }
 
 const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
+
+function downloadText(content: string, filename: string, mime: string): void {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
 
 // Fetch every record and hand the author a file — no server round-trip.
 async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
@@ -417,15 +445,62 @@ async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
       format === 'geojson' ? [toGeoJSON(features, keys), 'application/geo+json', 'geojson']
       : format === 'csv' ? [toCSV(features, keys), 'text/csv', 'csv']
       : [toKML(features, keys, meta.name), 'application/vnd.google-earth.kml+xml', 'kml'];
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([content], { type: mime }));
-    a.download = `${slug(meta.name)}.${ext}`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+    downloadText(content, `${slug(meta.name)}.${ext}`, mime);
     toast(`Downloaded ${features.length} point${features.length === 1 ? '' : 's'} as ${ext.toUpperCase()}`);
   } catch (e) {
     toast((e as Error).message);
   }
+}
+
+// Import (Phase 5): parse a file → map columns to fields → validate → bulk POST.
+async function importFlow(file: File): Promise<void> {
+  const panel = document.getElementById('import-panel');
+  if (!panel) return;
+  const format = detectFormat(file.name);
+  if (!format) { panel.innerHTML = '<p class="warn">Use a .csv, .geojson or .kml file.</p>'; return; }
+  let parsed: Parsed;
+  try { parsed = parseImport(await file.text(), format); }
+  catch (e) { panel.innerHTML = `<p class="warn">Couldn't read the file: ${escapeHtml((e as Error).message)}</p>`; return; }
+  if (!parsed.features.length) { panel.innerHTML = '<p class="hint">No rows found in the file.</p>'; return; }
+
+  const fields = meta.schema.fields.filter((f) => !f.deleted);
+  const needsLngLat = format === 'csv';
+  const guess = autoMapping(fields, parsed.columns);
+  const opts = (sel?: string): string =>
+    `<option value="">— none —</option>` + parsed.columns.map((c) => `<option${c === sel ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+  panel.innerHTML = `
+    <p class="hint">${parsed.features.length} rows in ${format.toUpperCase()}. Match columns to your fields.</p>
+    ${needsLngLat ? `<label>Longitude column</label><select data-map="lng">${opts(guess.lng)}</select><label>Latitude column</label><select data-map="lat">${opts(guess.lat)}</select>` : ''}
+    ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label><select data-field="${f.key}">${opts(guess.fields[f.key])}</select>`).join('')}
+    <button class="primary" id="do-import" style="margin-top:12px">Import ${parsed.features.length} rows</button>
+    <div id="import-result"></div>`;
+
+  (document.getElementById('do-import') as HTMLButtonElement).onclick = async (ev) => {
+    const btn = ev.currentTarget as HTMLButtonElement;
+    const m: Mapping = { fields: {} };
+    if (needsLngLat) {
+      m.lng = (panel.querySelector('[data-map="lng"]') as HTMLSelectElement).value || undefined;
+      m.lat = (panel.querySelector('[data-map="lat"]') as HTMLSelectElement).value || undefined;
+    }
+    panel.querySelectorAll<HTMLSelectElement>('[data-field]').forEach((s) => { if (s.value) m.fields[s.dataset.field!] = s.value; });
+    const { records, errors } = buildRecords(parsed.features, m, fields, meta.schema.geometry);
+    const result = document.getElementById('import-result')!;
+    if (!records.length) {
+      result.innerHTML = `<p class="warn">Nothing valid to import — ${errors.length} row${errors.length === 1 ? '' : 's'} had problems.</p><button id="dl-errors">Download error file</button>`;
+      (document.getElementById('dl-errors') as HTMLButtonElement).onclick = () => downloadText(errorsToCSV(errors), 'import-errors.csv', 'text/csv');
+      return;
+    }
+    btn.disabled = true;
+    try {
+      const res = await apiJson<{ imported: number; errors: unknown[] }>(`/collections/${ctx.id}/import`, ctx.token, { method: 'POST', body: JSON.stringify({ records }) });
+      await refreshCounts();
+      void renderPoints();
+      toast(`Imported ${res.imported} point${res.imported === 1 ? '' : 's'} ✓`);
+      result.innerHTML = `<p class="hint">Imported ${res.imported}.${errors.length ? ` ${errors.length} row${errors.length === 1 ? '' : 's'} skipped (bad data).` : ''}</p>`
+        + (errors.length ? `<button id="dl-errors">Download error file</button>` : '');
+      if (errors.length) (document.getElementById('dl-errors') as HTMLButtonElement).onclick = () => downloadText(errorsToCSV(errors), 'import-errors.csv', 'text/csv');
+    } catch (e) { toast((e as Error).message); btn.disabled = false; }
+  };
 }
 
 function activeFilter(): string {

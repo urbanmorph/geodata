@@ -2,7 +2,7 @@
 // attempt (spec → Deployment checklist item 8). Coarse facts only — no field
 // values, no names. Best-effort; never blocks the request.
 
-export type CollectEvent = 'create' | 'contribute' | 'publish';
+export type CollectEvent = 'create' | 'contribute' | 'publish' | 'import';
 
 export interface CollectAttempt {
   event: CollectEvent;
