@@ -478,7 +478,7 @@ async function manageSheet(): Promise<void> {
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
-      <button class="primary" id="publish" style="flex:1">Publish → atlas</button>
+      <button class="primary" id="publish" style="flex:1">Publish → catalog</button>
     </div>
   </div>`;
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
@@ -795,7 +795,7 @@ async function doPublish(ev: Event): Promise<void> {
     toast(`Published v${res.version} · ${res.feature_count} features`);
     const panel = document.getElementById('panel')!;
     panel.innerHTML = `<div class="sheet"><div class="body">
-      <strong>Published to the atlas 🎉</strong>
+      <strong>Published to the catalog 🎉</strong>
       <p class="hint">Version ${res.version} · ${res.feature_count} features.</p>
       <a class="btn primary" href="${res.share_url}" target="_blank" rel="noopener">View on bharatlas →</a>
       </div><div class="foot"><button id="back">← Back to capture</button></div></div>`;

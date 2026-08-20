@@ -50,7 +50,7 @@ function home() {
     <div class="topbar"><span>collect</span><a class="brand" href="https://bharatlas.com">bhar<span class="brand-accent">atlas</span></a></div>
     <div class="pad">
       <h1>Make a map, collect together</h1>
-      <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Publish to the bharatlas atlas when it's ready.</p>
+      <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Download the data, or publish it to the bharatlas catalog when it's ready.</p>
       <p id="masthead-stat" class="masthead-stat"></p>
       <button class="primary" id="start">＋ Make a new map</button>
       <div style="height:18px"></div>
@@ -106,7 +106,7 @@ function createForm() {
       <input id="name" maxlength="120" placeholder="Bengaluru footpath survey" />
       <label>What's it for? <span class="hint">(shown to contributors)</span></label>
       <textarea id="purpose" maxlength="2000" placeholder="Mapping footpath condition across the ward"></textarea>
-      <label>Category <span class="hint">(where it slots in the atlas when published)</span></label>
+      <label>Category <span class="hint">(where it slots in the catalog when published)</span></label>
       <select id="category">${CATEGORIES.map(([id, l]) => `<option value="${id}">${l}</option>`).join('')}</select>
       <label>What contributors fill in <span class="hint">(the form for each point)</span></label>
       <div id="fields-builder"></div>
