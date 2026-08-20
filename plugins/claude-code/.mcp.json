@@ -1,0 +1,6 @@
+{
+  "bharatlas": {
+    "command": "npx",
+    "args": ["-y", "bharatlas-mcp@1.1.1"]
+  }
+}
