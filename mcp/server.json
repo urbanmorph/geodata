@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.urbanmorph/bharatlas-mcp",
-  "description": "Query India's open geo data (locate, filter, nearby), and author collect maps: register a share link, moderate contributions, and publish to the catalog.",
+  "description": "Query India's open geo data, and author collect maps: register a link, moderate, publish.",
   "version": "1.1.0",
   "packages": [
     {
