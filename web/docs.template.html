@@ -225,24 +225,37 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
         <tr><td><code>shapefile</code></td><td>ArcGIS, legacy GIS tools</td></tr>
       </table>
 
-<!-- DOCS_FAQ_HTML -->
       <h2>collect API (write) <span class="badge badge--stable">stable</span></h2>
-      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and publish into this catalog. Separate origin, token-authed, its own contract.</p>
+      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and publish approved points into this catalog. It runs as a separate service with its own origin and auth, so it has its own section here rather than sitting under <code>/api/v1</code> above.</p>
       <p>Base URL: <code>https://collect.bharatlas.com/api/collect/v1</code></p>
       <p>Auth is a bearer token in the URL fragment of each share link (kept out of server logs); the field-definition contract is the public meta-schema at <code>https://collect.bharatlas.com/schema/v1.json</code>. Creating a map programmatically needs an API key (the anti-abuse gate) via the <code>X-API-Key</code> header, since there is no browser Turnstile.</p>
       <table>
         <tr><th>Method</th><th>Endpoint</th><th>What</th></tr>
-        <tr><td>POST</td><td class="endpoint">/collections</td><td>create a map (Turnstile or X-API-Key); returns admin / collect / view links</td></tr>
-        <tr><td>GET</td><td class="endpoint">/collections/:id</td><td>map metadata + counts</td></tr>
-        <tr><td>PATCH</td><td class="endpoint">/collections/:id</td><td>edit settings (admin)</td></tr>
-        <tr><td>POST</td><td class="endpoint">/collections/:id/records</td><td>add one point (contributor)</td></tr>
-        <tr><td>GET</td><td class="endpoint">/collections/:id/records</td><td>records as GeoJSON (scoped by token)</td></tr>
-        <tr><td>POST</td><td class="endpoint">/collections/:id/import</td><td>bulk import with a source + rights attestation (admin)</td></tr>
-        <tr><td>POST</td><td class="endpoint">/records/:id/moderate</td><td>approve / reject (admin)</td></tr>
-        <tr><td>POST</td><td class="endpoint">/collections/:id/publish</td><td>bake approved points into a catalog submission (admin)</td></tr>
+        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections</td><td>create a map (X-API-Key, or Turnstile in the browser); returns admin / collect / view links</td></tr>
+        <tr><td><span class="method">GET</span></td><td class="endpoint">/collections/:id</td><td>map metadata + counts</td></tr>
+        <tr><td><span class="method">PATCH</span></td><td class="endpoint">/collections/:id</td><td>edit settings (admin)</td></tr>
+        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/records</td><td>add one point (contributor)</td></tr>
+        <tr><td><span class="method">GET</span></td><td class="endpoint">/collections/:id/records</td><td>records as GeoJSON, scoped by token</td></tr>
+        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/import</td><td>bulk import with a source + rights attestation (admin)</td></tr>
+        <tr><td><span class="method">POST</span></td><td class="endpoint">/records/:id/moderate</td><td>approve / reject one point (admin)</td></tr>
+        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/publish</td><td>bake approved points into a catalog submission (admin)</td></tr>
       </table>
-      <p>Or drive it from an LLM with the <a href="/mcp">collect MCP</a> (<code>npx collect-mcp</code>), the author-side counterpart to the read-only bharatlas MCP.</p>
+      <pre><code># 1. Create a map (needs an API key; body follows the meta-schema)
+curl -X POST https://collect.bharatlas.com/api/collect/v1/collections \
+  -H "X-API-Key: cak_..." -H "content-type: application/json" \
+  -d '{ ...map definition per /schema/v1.json... }'
+# returns admin / collect / view links; each link's token lives in its URL fragment
 
+# 2. Review incoming points (admin token from the returned admin link)
+curl https://collect.bharatlas.com/api/collect/v1/collections/ID/records \
+  -H "authorization: Bearer adm_..."
+
+# 3. Publish approved points into the catalog (admin token)
+curl -X POST https://collect.bharatlas.com/api/collect/v1/collections/ID/publish \
+  -H "authorization: Bearer adm_..."</code></pre>
+      <p>Field contributors add points from the browser via the shared collect link (Turnstile-gated), so that step is a tap, not a curl. Or drive the whole flow from an LLM with the <a href="/mcp">collect MCP</a> (<code>npx collect-mcp</code>), the author-side counterpart to the read-only bharatlas MCP.</p>
+
+<!-- DOCS_FAQ_HTML -->
       <h2>For LLMs</h2>
       <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 8 tools with built-in instructions for schema-first querying, spatial joins, and multi-source awareness.</p>
     </main>

@@ -124,7 +124,7 @@ const TOOLS = [
     description: 'Bulk-import records you already hold (not synthetic). Requires a named source + rights confirmation; each row lands with that source as provenance.',
     inputSchema: { type: 'object', required: ['id', 'records', 'source', 'rights_confirmed'], properties: { id: { type: 'string' }, records: { type: 'array', items: { type: 'object' }, description: 'GeoJSON-like {geometry, properties}' }, source: { type: 'string' }, rights_confirmed: { type: 'boolean', description: 'you have the right to publish this under the map licence' } } },
   },
-  { name: 'publish', description: 'Bake approved records into a bharatlas catalogue submission.', inputSchema: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } },
+  { name: 'publish', description: 'Bake approved records into a bharatlas catalog submission.', inputSchema: { type: 'object', required: ['id'], properties: { id: { type: 'string' } } } },
 ];
 
 async function dispatch(name, a) {

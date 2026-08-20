@@ -147,7 +147,7 @@
   }
 }</code></pre>
       </div>
-      <p style="font-size:13px;color:var(--muted)">Tools: create_collection, edit_collection, list_records, moderate_record, import_records, publish. Creating maps needs an API key (the anti-abuse gate). It is deliberately not a bulk-contribution surface: human field contributors are the source, and published maps then show up here via <code>list_submissions</code>.</p>
+      <p style="font-size:13px;color:var(--muted)">Tools: create_collection, list_my_collections, get_collection, edit_collection, list_records, moderate_record, import_records, publish. Creating maps needs an API key (the anti-abuse gate). It is deliberately not a bulk-contribution surface: human field contributors are the source, and published maps then show up here via <code>list_submissions</code>.</p>
 
       <h2>How it works</h2>
       <p>The MCP server is a thin wrapper over the <a href="/docs">bharatlas REST API</a>. It translates LLM tool calls into API requests and returns structured JSON. No API key needed. All data is read-only and openly licensed.</p>
