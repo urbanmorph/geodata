@@ -171,6 +171,14 @@ describe('buildViewDataset — Dataset distribution (Google Dataset Search)', ()
     expect(v.jsonLd.isAccessibleForFree).toBe(true);
     expect(v.jsonLd.publisher).toMatchObject({ '@type': 'Organization', name: 'bharatlas' });
   });
+
+  it('carries machine-readable rights (creditText, conditionsOfAccess, usageInfo)', () => {
+    const v = buildViewDataset({ ...layer, source: 'LGD', licence: 'CC-BY-4.0' }, { label: 'X' }, ORIGIN);
+    expect(v.jsonLd.creditText).toContain('Source: LGD');
+    expect(v.jsonLd.creditText).toContain('Licence: CC-BY-4.0');
+    expect(v.jsonLd.conditionsOfAccess).toBe('Free and open. No account or API key required.');
+    expect(v.jsonLd.usageInfo).toBe(`${ORIGIN}/terms`);
+  });
 });
 
 describe('resolveLevelMeta', () => {
