@@ -62,7 +62,7 @@
     <ul>
       <li><strong>Google Maps</strong> is for finding a coffee shop, getting directions, seeing what's around you.</li>
       <li><strong>OpenStreetMap</strong> is for adding a road, a building or a shop to the world's map. That's where Google and bharatlas both source the base map.</li>
-      <li><strong>bharatlas</strong> is for taking data you already have, a list of districts you cover, the forests in your project area, the rivers in your watershed, the wards your NGO works in, and showing it on a map of India. Drop a GeoJSON, KML or Parquet file, see it rendered, share the link or download in another format.</li>
+      <li><strong>bharatlas</strong> is for taking data you already have, a list of districts you cover, the forests in your project area, the rivers in your watershed, the wards your NGO works in, and showing it on a map of India. Drop a GeoJSON, KML or Parquet file, see it rendered, share the link or download in another format. Don't have the data yet? Gather it from the field with a shared form anyone can fill on their phone.</li>
     </ul>
     <p>Concretely, this gets used by:</p>
     <ul>
@@ -87,13 +87,23 @@
       layer carries its source, licence and freshness on the same card.
     </p>
 
+    <h2>Show, and gather</h2>
+    <p>
+      bharatlas began as a place to <em>show</em> data you already have. <strong>collect</strong> is
+      the other half: a place to <em>gather</em> data you don't. Share one link and people add points
+      from the field on their phones, no accounts, no app to install. You review what comes in and
+      publish it to the catalog with attribution, or just download it. It's how a hundred people
+      mapping footpaths, ward assets or water points become one clean layer. See
+      <a href="https://collect.bharatlas.com">collect.bharatlas.com</a>.
+    </p>
+
     <h2>What you can do today</h2>
     <ul>
       <li>View <strong>India's national boundary</strong>, every admin level from <strong>state</strong> to <strong>village</strong>, plus city wards across Indian cities, constituencies, wildlife sanctuaries, forests, rivers, reservoirs, dams, hospitals, highways, airports, flood zones, seismic zones, eco-sensitive areas, and pincode polygons.</li>
       <li>Compare what each authoritative source (LGD vs SOI vs Bhuvan vs geoBoundaries) says about the same admin level by clicking the alternate-source links on any card.</li>
       <li>Download any layer whole as <strong>Parquet</strong>, <strong>PMTiles</strong>, <strong>GeoJSON</strong>, <strong>KML</strong> or <strong>Shapefile</strong> direct from the card. Or filter by what the columns actually contain (state, zone, area) and export just the slice.</li>
       <li><a href="/preview">Drop a file</a> to see it on a map and validate it. Optionally publish under an open licence. No signup; you get an admin token to keep forever.</li>
-      <li><a href="https://collect.bharatlas.com">Make a map anyone can add to</a> with <strong>collect</strong>: design a small form, share a link, and people add points in the field with no accounts. Review what comes in and publish it to the atlas. Built for the phone.</li>
+      <li><strong>Collect points in the field</strong> with <a href="https://collect.bharatlas.com">collect</a>: design a small form, share the link, and anyone who has it adds points on their phone, no accounts. Review what comes in, then download it or publish to the catalog.</li>
       <li>Embed any map in a blog post or report (iframe snippet + PNG export, one click each).</li>
       <li><strong>Ask questions</strong> instead of downloading maps. Connect your AI assistant to the <a href="/mcp">bharatlas MCP server</a> and ask: "How many villages in my district?", "Which hospitals are near me?", "What flood zone is this area in?"</li>
       <li>Query any layer programmatically via the <a href="/docs">REST API</a>: filter, group, locate a point, find nearby features.</li>
@@ -119,6 +129,9 @@
 
       <dt>Is my file uploaded when I drop it?</dt>
       <dd>No, not until you click <strong>Publish</strong>. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.</dd>
+
+      <dt>What's the difference between dropping a file and collect?</dt>
+      <dd>Dropping a file (<a href="/preview">/preview</a>) is for data you already have as one complete file: validate it, then publish it. <a href="https://collect.bharatlas.com">collect</a> is for data you don't have yet: make a form, many people add points from the field over time, then you review and publish the result. One publishes; the other gathers.</dd>
 
       <dt>How can I trust community submissions?</dt>
       <dd>Each carries a source URL, attribution and an open licence on the card and the view page. The platform auto-moderates licence, attribution and basic geometry validity, but it does not verify accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.</dd>

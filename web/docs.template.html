@@ -227,7 +227,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
 
 <!-- DOCS_FAQ_HTML -->
       <h2>collect API (write) <span class="badge badge--stable">stable</span></h2>
-      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and publish into this catalogue. Separate origin, token-authed, its own contract.</p>
+      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and publish into this catalog. Separate origin, token-authed, its own contract.</p>
       <p>Base URL: <code>https://collect.bharatlas.com/api/collect/v1</code></p>
       <p>Auth is a bearer token in the URL fragment of each share link (kept out of server logs); the field-definition contract is the public meta-schema at <code>https://collect.bharatlas.com/schema/v1.json</code>. Creating a map programmatically needs an API key (the anti-abuse gate) via the <code>X-API-Key</code> header, since there is no browser Turnstile.</p>
       <table>
@@ -239,7 +239,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
         <tr><td>GET</td><td class="endpoint">/collections/:id/records</td><td>records as GeoJSON (scoped by token)</td></tr>
         <tr><td>POST</td><td class="endpoint">/collections/:id/import</td><td>bulk import with a source + rights attestation (admin)</td></tr>
         <tr><td>POST</td><td class="endpoint">/records/:id/moderate</td><td>approve / reject (admin)</td></tr>
-        <tr><td>POST</td><td class="endpoint">/collections/:id/publish</td><td>bake approved points into a catalogue submission (admin)</td></tr>
+        <tr><td>POST</td><td class="endpoint">/collections/:id/publish</td><td>bake approved points into a catalog submission (admin)</td></tr>
       </table>
       <p>Or drive it from an LLM with the <a href="/mcp">collect MCP</a> (<code>npx collect-mcp</code>), the author-side counterpart to the read-only bharatlas MCP.</p>
 
