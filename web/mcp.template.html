@@ -134,20 +134,23 @@
         <li><strong>list_submissions</strong> -- community-contributed layers under open licenses</li>
       </ul>
 
-      <h2>Also: collect MCP (write side)</h2>
-      <p>This server is <strong>read-only</strong>. Its author-side counterpart, <strong>collect-mcp</strong>, drives <a href="https://collect.bharatlas.com">collect</a>: design a map form, review contributions, and publish into this catalogue, all from your LLM.</p>
+      <h2>Author your own maps (collect)</h2>
+      <p>The <strong>same</strong> <code>bharatlas-mcp</code> (no second package) also drives <a href="https://collect.bharatlas.com">collect</a>, the crowd map-capture tool. Read stays the default; authoring is opt-in per map. You <strong>create maps online</strong> at collect.bharatlas.com (no account, no key), then paste a share link into the MCP with <code>register_map</code>. The link's token scope sets what you can do:</p>
+      <ul>
+        <li><strong>view link</strong> &rarr; read / query / export that map's published points (<code>get_map</code>, <code>get_records</code>)</li>
+        <li><strong>collect link</strong> &rarr; the above; field capture itself is a tap in the browser on a phone</li>
+        <li><strong>admin link</strong> &rarr; <code>edit_map</code>, <code>moderate_record</code>, <code>import_points</code>, and <code>publish</code></li>
+      </ul>
+      <p><code>publish</code> bakes approved points into a bharatlas catalog submission, then queryable via <code>list_submissions</code> / <code>query_layer</code> above: gather &rarr; moderate &rarr; publish &rarr; query, all in one server. The link is the credential, so the server can only touch maps you hold a link to. No config change is needed for authoring; creating a map <em>programmatically</em> (instead of online) is optional and needs a request-only <code>COLLECT_API_KEY</code>:</p>
       <div class="install-box">
-        <pre><code>{
-  "mcpServers": {
-    "collect": {
-      "command": "npx",
-      "args": ["-y", "collect-mcp"],
-      "env": { "COLLECT_API_KEY": "cak_…" }
-    }
-  }
+        <pre><code>// same "bharatlas" server as Install above; add an env key only to create headlessly
+"bharatlas": {
+  "command": "npx",
+  "args": ["-y", "bharatlas-mcp"],
+  "env": { "COLLECT_API_KEY": "cak_…" }
 }</code></pre>
       </div>
-      <p style="font-size:13px;color:var(--muted)">Tools: create_collection, edit_collection, list_records, moderate_record, import_records, publish. Creating maps needs an API key (the anti-abuse gate). It is deliberately not a bulk-contribution surface — human field contributors are the source; published maps then show up here via <code>list_submissions</code>.</p>
+      <p style="font-size:13px;color:var(--muted)">Authoring tools: register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish (plus optional create_map). It is deliberately not a bulk-contribution surface: human field contributors are the source, and published maps show up here via <code>list_submissions</code>.</p>
 
       <h2>How it works</h2>
       <p>The MCP server is a thin wrapper over the <a href="/docs">bharatlas REST API</a>. It translates LLM tool calls into API requests and returns structured JSON. No API key needed. All data is read-only and openly licensed.</p>
