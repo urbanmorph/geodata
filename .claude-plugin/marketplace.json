@@ -1,0 +1,19 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "bharatlas",
+  "description": "Plugins from UrbanMorph for bharatlas, India's open geo atlas: query layers, locate points, and author your own collect maps from your LLM.",
+  "owner": {
+    "name": "UrbanMorph",
+    "email": "sathya@urbanmorph.com"
+  },
+  "plugins": [
+    {
+      "name": "bharatlas",
+      "description": "India's open geo data plus map authoring via MCP. Query curated layers (state to village boundaries, city wards, forests, rivers, hospitals, highways, floods, seismic zones) and community submissions, locate a point across all admin levels and zones, find nearby features, download in 5 formats, and author your own collect maps (register a share link, review contributions, publish to the catalog). No API key for reads.",
+      "category": "productivity",
+      "source": "./plugins/claude-code",
+      "homepage": "https://bharatlas.com",
+      "tags": ["india", "geo", "gis", "maps", "boundaries", "mcp", "collect"]
+    }
+  ]
+}
