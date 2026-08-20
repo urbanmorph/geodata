@@ -1040,7 +1040,7 @@ const WEBSITE_REF = { '@type': 'WebSite', name: 'bharatlas', url: ORIGIN + '/' }
 await renderPage('privacy', {
   title: 'Privacy',
   description:
-    "Bharatlas runs without accounts, third-party analytics or tracking cookies. This page explains what we store (very little) and what we don't.",
+    "Bharatlas runs without accounts, ad-tech or tracking cookies (only cookieless, aggregate traffic counts). This page explains what we store (very little) and what we don't.",
   url: ORIGIN + '/privacy',
   image: ORIGIN + '/og-default.png',
   structuredData: {
@@ -1058,7 +1058,7 @@ await renderPage('privacy', {
         name: 'Privacy',
         url: ORIGIN + '/privacy',
         isPartOf: WEBSITE_REF,
-        about: 'Privacy practices for bharatlas: no accounts, no third-party analytics, no tracking cookies.',
+        about: 'Privacy practices for bharatlas: no accounts, no ad-tech, no tracking cookies, cookieless aggregate analytics only.',
       },
     ],
   },

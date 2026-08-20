@@ -25,16 +25,16 @@ MIT code. Open data under open licences only: the submission form rejects propri
 Evidence: [LICENSE](./LICENSE), the open-licence allowlist in the submit flow.
 
 ### Privacy — ✅
-No third-party analytics, no tracking, no ad tech; first-party metrics only. Contribution is anonymous: no account, no email, no personal data collected.
-Evidence: [/about](https://bharatlas.com/about) ("no tracking, no third-party analytics"), the anonymous token flow.
+No ad-tech, no behavioural or cross-site tracking, no tracking cookies, no fingerprinting. The only measurement is Cloudflare Web Analytics: cookieless, aggregate page counts with no personal data, disclosed on the privacy page. Contribution is anonymous: no account, no email, no personal data collected.
+Evidence: [/privacy](https://bharatlas.com/privacy), the anonymous token flow.
 
 ### Platform cooperativism — ✅
 Anyone can publish open geo data here for free and anonymously. Community layers are permanent and credited to the contributor, on their terms.
 Evidence: the submit flow, community cards, contributor attribution.
 
-### Humans in the loop (AI does not cut people out) — 🟡
-The MCP server and REST API expose data to AI agents with their source and licence, and the published-page provenance lets answers trace back to the origin. But the machine-readable rights signals that make this enforceable (attribution that travels with the data, an honor-the-terms norm for agents) are not shipped yet.
-Direction: add schema.org `creditText`, `conditionsOfAccess` and `usageInfo` to the view-page structured data, one line in the MCP instructions, and a usage stanza in `robots.txt`. A small change that closes this gap.
+### Humans in the loop (AI does not cut people out) — ✅
+The MCP server and REST API expose data to AI agents with their source and licence, and the published-page provenance lets answers trace back to the origin. The machine-readable rights signals now travel with the data: every /view page's Dataset JSON-LD carries `creditText` (the credit to reproduce), `conditionsOfAccess` and `usageInfo` (a link to the terms); `robots.txt` states the reuse-and-attribution norm for crawlers; and the MCP instructions tell agents to credit the source and honor the licence.
+Evidence: the /view page Dataset structured data, [/robots.txt](https://bharatlas.com/robots.txt), the MCP server instructions.
 
 ### A non-digital alternative must exist — 🟡
 Every layer is downloadable as files you can use offline and print, and view pages are plain HTML readable without JavaScript. But bharatlas is a data tool, not a citizen-facing service, so the true non-digital fallback for an end-need (for example, "which ward am I in") is the government office, not us.

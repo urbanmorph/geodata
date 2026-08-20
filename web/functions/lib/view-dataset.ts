@@ -265,6 +265,10 @@ export function buildViewDataset(
   const ogImage = `${origin}/og/view/${layer.id}.png`;
   const distribution = buildDistribution(layer);
   const wardListJsonLd = buildWardTable(wardIndex).jsonLd;
+  // Machine-readable rights that travel with the data to AI agents and dataset
+  // crawlers (PDGI "humans in the loop"): the credit to reproduce, that access
+  // is unrestricted, and where the usage terms live.
+  const creditText = `Source: ${layer.source}. Published via bharatlas (bharatlas.com).${layer.licence ? ` Licence: ${layer.licence}.` : ''}`;
 
   return {
     title,
@@ -280,6 +284,9 @@ export function buildViewDataset(
       url: canonical,
       license: layer.licence ? mapLicenceUrl(layer.licence) : undefined,
       isAccessibleForFree: true,
+      creditText,
+      conditionsOfAccess: 'Free and open. No account or API key required.',
+      usageInfo: `${origin}/terms`,
       creator: { '@type': 'Organization', name: layer.source },
       publisher: { '@type': 'Organization', name: 'bharatlas', url: 'https://bharatlas.com' },
       spatialCoverage: { '@type': 'Place', name: 'India' },

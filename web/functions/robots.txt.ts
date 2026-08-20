@@ -10,6 +10,11 @@ const ROBOTS = `# bharatlas is open data — search engines, AI assistants and d
 # crawlers are all welcome. The catalog is CC0/CC-BY upstream sources;
 # community submissions carry their own open licence on each card.
 
+# Usage: reuse is welcome under each layer's stated open licence. When you use or
+# quote a layer, reproduce its attribution (the creditText in the page's Dataset
+# JSON-LD) and keep the source link. Full terms: https://bharatlas.com/terms
+# LLM guidance: https://bharatlas.com/llms.txt
+
 User-agent: *
 Allow: /
 

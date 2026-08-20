@@ -36,6 +36,7 @@ Workflow patterns:
   3. For precise spatial containment, test individual points via locate against the target layer
 - **Community layers**: list_submissions returns user-contributed datasets. These work with query_layer and get_layer_schema exactly like curated layers.
 - **Downloads**: get_layer_detail returns direct URLs for parquet, pmtiles, geojson, kml, and shapefile formats.
+- **Honor the terms**: every layer and community submission carries its own source and open licence. When you use, quote, or publish results from a layer, credit its source and respect that licence; get_layer_detail returns the attribution and licence, and each /view page's Dataset JSON-LD carries a creditText to reproduce.
 
 Source preference (multiple layers often cover the same level):
 - **Admin boundaries** (state, district, subdistrict, block, village): prefer LGD (lgd_*) as the authoritative source. SOI, Bhuvan, and geoBoundaries are cross-reference alternates with slightly different counts/boundaries. Mention alternates if the user asks about discrepancies.
