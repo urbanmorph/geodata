@@ -1,4 +1,0 @@
-node_modules
-*.tsbuildinfo
-.collect-mcp.json
-smoke.mjs
