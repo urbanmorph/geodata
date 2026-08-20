@@ -25,8 +25,8 @@ MIT code. Open data under open licences only: the submission form rejects propri
 Evidence: [LICENSE](./LICENSE), the open-licence allowlist in the submit flow.
 
 ### Privacy — ✅
-No third-party analytics, no tracking, no ad tech; first-party metrics only. Contribution is anonymous: no account, no email, no personal data collected.
-Evidence: [/about](https://bharatlas.com/about) ("no tracking, no third-party analytics"), the anonymous token flow.
+No ad-tech, no behavioural or cross-site tracking, no tracking cookies, no fingerprinting. The only measurement is Cloudflare Web Analytics: cookieless, aggregate page counts with no personal data, disclosed on the privacy page. Contribution is anonymous: no account, no email, no personal data collected.
+Evidence: [/privacy](https://bharatlas.com/privacy), the anonymous token flow.
 
 ### Platform cooperativism — ✅
 Anyone can publish open geo data here for free and anonymously. Community layers are permanent and credited to the contributor, on their terms.
