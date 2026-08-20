@@ -1,6 +1,7 @@
 # Cloudflare Pages security headers for collect. CSP allows exactly what the app
 # needs: self, Turnstile, the basemap tile hosts (CARTO / Esri imagery / OpenTopo),
-# the bharatlas catalogue API + its R2 host for pmtiles reference overlays.
+# the bharatlas catalogue API + its R2 host for pmtiles reference overlays, and the
+# Cloudflare Web Analytics beacon (edge-injected script + its cross-origin report).
 # noindex keeps unlisted collections off search (spec). Verify in prod after
 # the first deploy — a too-strict CSP would break the map, tiles, or Turnstile.
 /*
@@ -9,4 +10,4 @@
   X-Frame-Options: DENY
   X-Robots-Tag: noindex
   Permissions-Policy: geolocation=(self), camera=()
-  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://services.arcgisonline.com https://*.tile.opentopomap.org; connect-src 'self' https://*.basemaps.cartocdn.com https://challenges.cloudflare.com https://bharatlas.com https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://services.arcgisonline.com https://*.tile.opentopomap.org; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; form-action 'self'
+  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://services.arcgisonline.com https://*.tile.opentopomap.org; connect-src 'self' https://*.basemaps.cartocdn.com https://challenges.cloudflare.com https://cloudflareinsights.com https://bharatlas.com https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://services.arcgisonline.com https://*.tile.opentopomap.org; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; form-action 'self'
