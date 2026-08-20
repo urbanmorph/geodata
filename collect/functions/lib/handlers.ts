@@ -170,6 +170,25 @@ export async function getCollectionMeta(env: Env, req: Request, id: string): Pro
   });
 }
 
+// ---- GET /stats ------------------------------------------------------------
+// Public aggregate counts for the home masthead (no PII: distinct ip_hash only).
+// Edge-cached so the home page load never waits on a fresh count.
+
+export async function getStats(env: Env): Promise<Response> {
+  const row = (await env.DB.prepare(
+    `SELECT
+       (SELECT COUNT(*) FROM collections) AS maps,
+       (SELECT COUNT(*) FROM records WHERE status = 'published') AS points,
+       (SELECT COUNT(DISTINCT ip_hash) FROM records) AS contributors,
+       (SELECT COUNT(DISTINCT json_extract(admin_ctx, '$.state')) FROM records
+          WHERE admin_ctx IS NOT NULL AND json_extract(admin_ctx, '$.state') IS NOT NULL) AS states`,
+  ).first()) as { maps: number; points: number; contributors: number; states: number } | null;
+  return new Response(
+    JSON.stringify({ maps: row?.maps ?? 0, points: row?.points ?? 0, contributors: row?.contributors ?? 0, states: row?.states ?? 0 }),
+    { status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=300' } },
+  );
+}
+
 // ---- PATCH /collections/:id ------------------------------------------------
 // Admin "Edit map settings": name/description/purpose/data_year/category/basemap/
 // reference_layer (+ licence only while the map has no records). Fields untouched.

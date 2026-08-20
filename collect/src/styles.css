@@ -150,6 +150,9 @@ textarea { min-height: 92px; line-height: 1.5; }
 .pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); overflow: auto; }
 .pad h1 { font-size: 23px; font-weight: 700; letter-spacing: -.025em; line-height: 1.15; margin: 6px 0 8px; }
 .hint { color: var(--muted); font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
+.masthead-stat { color: var(--muted); font-size: 13px; margin: 2px 0 14px; }
+.masthead-stat:empty { display: none; }
+.masthead-stat strong { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 .warn { color: var(--danger); font-size: 13px; line-height: 1.5; }
 
 .link-box {
