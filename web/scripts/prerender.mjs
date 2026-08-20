@@ -1122,15 +1122,19 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I connect an LLM to the bharatlas API?',
-    a: 'Use the bharatlas MCP server: add bharatlas-mcp to your MCP client config and run npx -y bharatlas-mcp. Connects Claude, GPT, Gemini or any MCP-compatible LLM with 8 tools and built-in instructions for spatial joins and schema-first querying.',
+    a: 'Use the bharatlas MCP server: add bharatlas-mcp to your MCP client config and run npx -y bharatlas-mcp. Connects Claude, GPT, Gemini or any MCP-compatible LLM to query the catalog (schema-first querying, spatial joins) and, with a collect share link, to author your own maps.',
   },
   {
     q: 'How do I collect map data from the field with a shared form?',
     a: 'Use collect (collect.bharatlas.com), the write side. Design a small form, share a link, and anyone who has it adds points from their phone with no account. You review incoming points and publish approved ones into this catalog. API base: https://collect.bharatlas.com/api/collect/v1.',
   },
   {
+    q: 'How do I manage or publish a collect map from an LLM?',
+    a: 'Create the map online at collect.bharatlas.com (no account, no key), then use the bharatlas MCP (npx bharatlas-mcp): register_map with a share link. The link scope sets what you can do: view reads and exports published points, collect adds in the browser, admin can edit, moderate, import and publish. The link is the credential, so no API key is needed for maps you made online.',
+  },
+  {
     q: 'How do I create a collect map programmatically?',
-    a: 'POST https://collect.bharatlas.com/api/collect/v1/collections with an X-API-Key header (the anti-abuse gate; the browser flow uses Turnstile instead). It returns admin, collect and view links whose tokens live in the URL fragment. Then GET /collections/:id/records to review and POST /collections/:id/publish to bake approved points into this catalog. Or use the collect MCP: npx collect-mcp.',
+    a: 'POST https://collect.bharatlas.com/api/collect/v1/collections with an X-API-Key header (the anti-abuse gate; the browser flow uses Turnstile instead). It returns admin, collect and view links whose tokens live in the URL fragment. Then GET /collections/:id/records to review and POST /collections/:id/publish to bake approved points into this catalog. Or from an LLM: the bharatlas MCP (npx bharatlas-mcp) authors collect maps too, register your share link with register_map then moderate and publish.',
   },
   {
     q: 'Where do published collect maps show up?',

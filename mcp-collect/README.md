@@ -1,8 +1,15 @@
-# collect-mcp
+# collect-mcp (DEPRECATED — folded into bharatlas-mcp v1.1.0)
+
+> **This package is retired.** Its authoring tools now live in the main
+> [`bharatlas-mcp`](../mcp) server (v1.1.0+), which drives both the read-only
+> catalog and collect authoring in one server. Create maps online at
+> collect.bharatlas.com, then `register_map` a share link — the link's token
+> scope (view / collect / admin) sets what you can do. This directory is kept
+> only for reference and should be removed.
 
 MCP server for [collect.bharatlas.com](https://collect.bharatlas.com) — the crowd
 map-capture tool in the bharatlas suite. **Author-side only**: design a map form,
-review contributions, edit settings, and publish to the bharatlas atlas.
+review contributions, edit settings, and publish to the bharatlas catalog.
 
 It is deliberately **not** a bulk-contribution surface — human field contributors
 are the source of truth. Bulk-from-existing-data is `import_records`, which
