@@ -15,6 +15,21 @@ import { CATEGORIES, OPEN_LICENCES } from './options';
 
 const app = document.getElementById('app')!;
 
+// Public masthead counter (like the atlas's download counts): points collected
+// so far, best-effort. Hidden until there's something to show.
+async function fillMasthead(): Promise<void> {
+  try {
+    const s = await apiJson<{ points: number; contributors: number; states: number }>('/stats', '');
+    const el = document.getElementById('masthead-stat');
+    if (!el || !s.points) return;
+    const n = (x: number): string => x.toLocaleString('en-IN');
+    const parts = [`<strong>${n(s.points)}</strong> point${s.points === 1 ? '' : 's'} collected`];
+    if (s.contributors > 1) parts.push(`by ${n(s.contributors)} people`);
+    if (s.states > 1) parts.push(`across ${n(s.states)} states`);
+    el.innerHTML = parts.join(' · ');
+  } catch { /* best-effort */ }
+}
+
 const ROLE_PILL: Record<MapRole, string> = { owner: 'Owner', collect: 'Collect', view: 'View' };
 
 function mapsSection(): string {
@@ -35,7 +50,8 @@ function home() {
     <div class="topbar"><span>collect</span><a class="brand" href="https://bharatlas.com">bhar<span class="brand-accent">atlas</span></a></div>
     <div class="pad">
       <h1>Make a map, collect together</h1>
-      <p class="hint">Here you <strong>design</strong> a small form. Share the collect link and anyone <strong>adds points</strong> on the map, no accounts. Publish to the bharatlas atlas when it's ready.</p>
+      <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Publish to the bharatlas atlas when it's ready.</p>
+      <p id="masthead-stat" class="masthead-stat"></p>
       <button class="primary" id="start">＋ Make a new map</button>
       <div style="height:18px"></div>
       ${mapsSection()}
@@ -50,6 +66,7 @@ function home() {
       </footer>
     </div>`;
   app.querySelector<HTMLButtonElement>('#start')!.onclick = createForm;
+  void fillMasthead();
 
   app.querySelector<HTMLButtonElement>('#export')!.onclick = () => {
     const a = document.createElement('a');

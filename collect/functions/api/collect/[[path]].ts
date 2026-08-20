@@ -28,6 +28,11 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   const { env, request } = ctx;
   const defer = (promise: Promise<unknown>): void => ctx.waitUntil(promise);
 
+  // /v1/stats — public masthead counts
+  if (p.length === 1 && p[0] === 'stats') {
+    return method === 'GET' ? h.getStats(env) : bad(405, 'method not allowed');
+  }
+
   // /v1/collections
   if (p.length === 1 && p[0] === 'collections') {
     return method === 'POST' ? h.createCollection(env, request) : bad(405, 'method not allowed');
