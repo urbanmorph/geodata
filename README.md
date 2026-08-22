@@ -7,7 +7,7 @@
 [![Lighthouse: 98+](https://img.shields.io/badge/Lighthouse-98%2B-brightgreen?logo=lighthouse)](https://pagespeed.web.dev/analysis?url=https%3A%2F%2Fbharatlas.com)
 [![npm](https://img.shields.io/npm/v/bharatlas-mcp?label=MCP&color=indigo)](https://npmjs.com/package/bharatlas-mcp)
 
-A visual catalog, REST API, MCP server, drag-drop verifier, and anonymous contribution flow for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences.
+A visual catalog, REST API, MCP server, drag-drop verifier, anonymous contribution flow, and a mobile crowd map-capture tool (collect) for India's geo data. Admin boundaries from state to village, plus community-submitted layers under open licences.
 
 **Live**: https://bharatlas.com
 
@@ -20,12 +20,14 @@ A visual catalog, REST API, MCP server, drag-drop verifier, and anonymous contri
 - **View** (`/view/<id>`): curated layer with per-layer OG card.
 - **Community view** (`/c/<id>`): community submission, edge-rendered HTML, 👍 useful vote, per-submission OG card.
 - **Embed** (`/embed/<id>`): iframe + PNG export from any map.
-- **API** (`/api/v1`): REST list, query, filter, group_by any layer; locate (point-in-polygon across all layers); nearby (tile-based spatial proximity).
-- **MCP** (`npx bharatlas-mcp`): 8 tools for LLMs: list, schema, query, locate, nearby, categories, submissions, downloads.
+- **Collect** ([collect.bharatlas.com](https://collect.bharatlas.com)): mobile crowd map-capture. Design a small form, share a link, and anyone with it plots points, lines and areas from their phone with no account. Review contributions, then download or publish to the catalog. Token-scoped (view / collect / admin), like [mdshare](https://mdshare.live).
+- **API** (`/api/v1`): REST list, query, filter, group_by any layer; locate (point-in-polygon across all layers); nearby (tile-based spatial proximity). Plus a token-authed collect write API at `collect.bharatlas.com/api/collect/v1`.
+- **MCP** (`npx bharatlas-mcp`): 17 tools for LLMs. Read (list, schema, query, locate, nearby, categories, submissions, downloads) + collect authoring (register a map share link, moderate, import, publish). Also shipped as a Claude Code plugin.
 
 ## What's in this repo
 
 - **`web/`**: Vanilla TypeScript + Vite viewer + Cloudflare Pages Functions (`web/functions/`).
+- **`collect/`**: the collect crowd map-capture app ([collect.bharatlas.com](https://collect.bharatlas.com)) + its token-authed Pages Functions API (`collect/functions/`). Deploys as a separate Pages project.
 - **`web/migrations/`**: D1 SQL migrations: submissions, tokens, ratings, votes, originals.
 - **`web/tests/`**: vitest unit tests for pure functions (validators, tokens, view rendering, votes).
 - **`scripts/fetch.sh`**: Pulls parquets + PMTiles from [yashveeeeeeer/india-geodata](https://github.com/yashveeeeeeer/india-geodata) releases.
@@ -34,7 +36,8 @@ A visual catalog, REST API, MCP server, drag-drop verifier, and anonymous contri
 - **`scripts/upload_r2.sh`**: Mirrors `sources/` + `data/` to Cloudflare R2 via wrangler.
 - **`scripts/upload_baked.py`**: Pushes `data/baked/*` to R2 via boto3 (S3-compat fallback when wrangler is unavailable).
 - **`scripts/admin/cleanup_submission.sh`**: Delete community submissions by name pattern (R2 + D1).
-- **`mcp/`**: MCP server for LLMs ([npm](https://www.npmjs.com/package/bharatlas-mcp)). 8 tools: list, schema, query, locate, nearby, categories, submissions, downloads.
+- **`mcp/`**: MCP server for LLMs ([npm](https://www.npmjs.com/package/bharatlas-mcp), [registry](https://registry.modelcontextprotocol.io)). 17 tools: read (list, schema, query, locate, nearby, categories, submissions, downloads) + collect authoring (register_map, get/list records, moderate, import, edit, publish).
+- **`plugins/claude-code/`** + **`.claude-plugin/marketplace.json`**: the Claude Code plugin that ships the MCP with auto-updates (`/plugin marketplace add urbanmorph/geodata`).
 - **`catalog.json`**: Curated-layer index used by the viewer. Single source of truth.
 - **[/about#caveats](https://bharatlas.com/about#caveats)**: Data caveats (cross-source drift, coverage gaps, precision).
 
@@ -47,7 +50,7 @@ Large data files (`sources/`, `data/`) are not in git — they live in R2. See `
 - **Edge functions**: Cloudflare Pages Functions (`web/functions/`), running REST API v1, submit, vote, sitemap, edge-rendered `/c/<id>`
 - **Parquet query**: [hyparquet](https://github.com/hyparam/hyparquet) (pure JS, runtime reads from R2)
 - **Spatial query**: PMTiles tile reads + MVT decode + ray-casting PIP / Haversine proximity
-- **MCP server**: [`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp), 8 tools for Claude, GPT, Gemini, Cursor, etc.
+- **MCP server**: [`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp), 17 tools (read + collect authoring) for Claude, GPT, Gemini, Cursor, etc.; also a Claude Code plugin
 - **Storage**: Cloudflare R2 (open data, no egress)
 - **Submissions DB**: Cloudflare D1 (SQLite at the edge)
 - **Anti-abuse**: Cloudflare Turnstile + per-IP rate limits
@@ -87,10 +90,14 @@ curl 'https://bharatlas.com/api/v1/locate?lat=12.9716&lng=77.5946'
 curl 'https://bharatlas.com/api/v1/nearby?lat=12.9716&lng=77.5946&layer=nic_health&radius_km=10'
 ```
 
-MCP for LLMs (Claude, GPT, Gemini, Cursor): one-line install, 8 tools. Setup at [bharatlas.com/mcp](https://bharatlas.com/mcp).
+MCP for LLMs (Claude, GPT, Gemini, Cursor): one-line install, 17 tools (read + collect authoring). Setup at [bharatlas.com/mcp](https://bharatlas.com/mcp). Read tools need no auth; collect authoring acts only on maps whose share link you register.
 
 ```bash
-# Claude Code
+# Claude Code (as a plugin, auto-updates)
+/plugin marketplace add urbanmorph/geodata
+/plugin install bharatlas@bharatlas
+
+# Claude Code (as a plain MCP server)
 claude mcp add bharatlas npx bharatlas-mcp
 
 # Claude Desktop / other clients (claude_desktop_config.json)
@@ -150,4 +157,4 @@ Pipelines + patterns:
 
 Built by [Urban Morph](https://urbanmorph.com) · [Sathya Sankaran](https://www.sathyasankaran.com). Drop a ⭐ if you find it useful.
 
-**Status:** v1.0. Curated layers, community submissions, REST API, MCP server ( [npm](https://www.npmjs.com/package/bharatlas-mcp)), dynamic filters with typeahead, whole-layer downloads in 5 formats. API docs at [/docs](https://bharatlas.com/docs), MCP setup at [/mcp](https://bharatlas.com/mcp). Community submissions are permanent under the open licence the contributor selected.
+**Status:** live and maintained. Curated layers, community submissions, the **collect** crowd map-capture tool, a REST API, an MCP server (17 tools, read + collect authoring; [npm](https://www.npmjs.com/package/bharatlas-mcp), [MCP registry](https://registry.modelcontextprotocol.io), and a Claude Code plugin), dynamic filters with typeahead, and whole-layer downloads in 5 formats. API docs at [/docs](https://bharatlas.com/docs), MCP setup at [/mcp](https://bharatlas.com/mcp). Community submissions are permanent under the open licence the contributor selected.
