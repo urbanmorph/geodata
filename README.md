@@ -10,7 +10,7 @@ A visual catalog, REST API, MCP server, drag-drop verifier, anonymous contributi
 
 **Live**: https://bharatlas.com · collect at https://collect.bharatlas.com
 
-[![bharatlas — India's open atlas](https://bharatlas.com/og-default.png)](https://bharatlas.com)
+[![bharatlas, India's open atlas](https://bharatlas.com/og-default.png)](https://bharatlas.com)
 
 - **Catalog** – India national boundary (LGD-dissolved), plus state · district · subdistrict · block · village (LGD), cross-source alternates (SOI · Bhuvan · geoBoundaries · PMGSY per level, click "also: ..." on any card), city wards across Indian cities, electoral constituencies, wildlife, eco-zones, and 63k pincode polygons (bharatviz).
 - **Download** – whole layer as Parquet · PMTiles · GeoJSON · KML · Shapefile, direct from the card.
@@ -40,7 +40,7 @@ A visual catalog, REST API, MCP server, drag-drop verifier, anonymous contributi
 - **`catalog.json`** – Curated-layer index used by the viewer. Single source of truth.
 - **[/about#caveats](https://bharatlas.com/about#caveats)** – Data caveats (cross-source drift, coverage gaps, precision).
 
-Large data files (`sources/`, `data/`) are not in git — they live in R2. See `scripts/fetch.sh` to rebuild locally.
+Large data files (`sources/`, `data/`) are not in git. They live in R2. See `scripts/fetch.sh` to rebuild locally.
 
 ## Stack
 
@@ -70,7 +70,7 @@ For the full submission flow (D1 + R2 + Turnstile + Pages Functions), read `wran
 
 ## API in 30 seconds
 
-REST: `https://bharatlas.com/api/v1` — no API key, rate-limited per IP. Full docs at [bharatlas.com/docs](https://bharatlas.com/docs).
+REST: `https://bharatlas.com/api/v1` (no API key, rate-limited per IP). Full docs at [bharatlas.com/docs](https://bharatlas.com/docs).
 
 ```bash
 # list every catalog layer (curated + accepted community)
@@ -119,7 +119,7 @@ Report vulnerabilities to **sathya@urbanmorph.com** instead of opening a public 
 
 ## Licence
 
-Code: [MIT](./LICENSE). Data: each layer carries its own open licence — see the per-card line on the [catalog](https://bharatlas.com/). Curated data is sourced under CC0-1.0 / CC-BY-4.0 / GODL-India depending on provider.
+Code: [MIT](./LICENSE). Data: each layer carries its own open licence. See the per-card line on the [catalog](https://bharatlas.com/). Curated data is sourced under CC0-1.0 / CC-BY-4.0 / GODL-India depending on provider.
 
 ## Use of data
 
