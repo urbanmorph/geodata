@@ -10,7 +10,7 @@ import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, atLeast } from './auth';
 import { checkCreateRate, checkRecordRate, checkKeyDayRate } from './ratelimit';
-import { logCollectAttempt } from './collect-log';
+import { deferLog } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
 import * as db from './db';
 import { validateNewCollection, validateCollectionEdit } from '../../src/schema/validate-collection';
@@ -87,7 +87,7 @@ async function verifyApiKey(env: Env, key: string): Promise<{ id: string; daily_
   return null;
 }
 
-export async function createCollection(env: Env, req: Request): Promise<Response> {
+export async function createCollection(env: Env, req: Request, defer?: Defer): Promise<Response> {
   const ipHash = await ipHashFor(req, salt(env));
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
@@ -97,27 +97,27 @@ export async function createCollection(env: Env, req: Request): Promise<Response
   if (apiKey) {
     const k = await verifyApiKey(env, apiKey);
     if (!k) {
-      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'apiKey', ip_hash: ipHash });
+      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'apiKey', ip_hash: ipHash });
       return bad(401, 'invalid API key');
     }
     if (!(await checkKeyDayRate(env.DB, k.hash, k.daily_limit))) {
-      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
+      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
       return bad(429, `API key daily limit (${k.daily_limit}) reached`);
     }
   } else {
     if (!(await turnstileOk(env, body.turnstile_token))) {
-      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
+      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
       return bad(403, 'captcha failed');
     }
     if (!(await checkCreateRate(env.DB, ipHash))) {
-      void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
+      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
       return bad(429, 'rate limit: 5 collections per day');
     }
   }
 
   const v = validateNewCollection(body);
   if (!v.ok) {
-    void logCollectAttempt(env.DB, { event: 'create', outcome: 'rejected', gate: 'schema', reason: v.error, ip_hash: ipHash });
+    deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'schema', reason: v.error, ip_hash: ipHash });
     return bad(400, v.error);
   }
 
@@ -135,7 +135,7 @@ export async function createCollection(env: Env, req: Request): Promise<Response
     });
   }
 
-  void logCollectAttempt(env.DB, { event: 'create', outcome: 'ok', collection_id: id, ip_hash: ipHash });
+  deferLog(defer, env.DB, { event: 'create', outcome: 'ok', collection_id: id, ip_hash: ipHash });
   const origin = new URL(req.url).origin;
   return json(200, {
     id,
@@ -289,18 +289,18 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   if (!body) return bad(400, 'invalid JSON body');
 
   if (!(await turnstileOk(env, body.turnstile_token))) {
-    void logCollectAttempt(env.DB, { event: 'contribute', outcome: 'rejected', gate: 'captcha', collection_id: id, ip_hash: ipHash });
+    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'captcha', collection_id: id, ip_hash: ipHash });
     return bad(403, 'captcha failed');
   }
   if (!(await checkRecordRate(env.DB, ipHash))) {
-    void logCollectAttempt(env.DB, { event: 'contribute', outcome: 'rejected', gate: 'rateLimit', collection_id: id, ip_hash: ipHash });
+    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'rateLimit', collection_id: id, ip_hash: ipHash });
     return bad(429, 'rate limit: 200 records per hour');
   }
 
   const geometry = body.geometry;
   const bounds = checkIndiaBounds(geometry);
   if (!bounds.ok) {
-    void logCollectAttempt(env.DB, { event: 'contribute', outcome: 'rejected', gate: 'bounds', reason: bounds.error, collection_id: id, ip_hash: ipHash });
+    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'bounds', reason: bounds.error, collection_id: id, ip_hash: ipHash });
     return bad(400, bounds.error);
   }
 
@@ -312,7 +312,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
 
   const validated = validateRecordProperties(schema.fields, body.properties);
   if (!validated.ok) {
-    void logCollectAttempt(env.DB, { event: 'contribute', outcome: 'rejected', gate: 'schema', reason: validated.error, collection_id: id, ip_hash: ipHash });
+    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'schema', reason: validated.error, collection_id: id, ip_hash: ipHash });
     return bad(400, validated.error);
   }
 
@@ -337,7 +337,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   const task = enrichRecord(env, recId, geometry).catch(() => {});
   if (defer) defer(task); else await task;
 
-  void logCollectAttempt(env.DB, { event: 'contribute', outcome: 'ok', collection_id: id, ip_hash: ipHash });
+  deferLog(defer, env.DB, { event: 'contribute', outcome: 'ok', collection_id: id, ip_hash: ipHash });
   return json(200, { id: recId, status, edit_token: recToken });
 }
 
@@ -454,7 +454,7 @@ export async function deidentifyRecordHandler(env: Env, req: Request, recordId: 
 // A throwaway edit-token hash means imported records have no contributor owner
 // (admin manages them). Enrichment is skipped in bulk (admin_ctx stays null).
 
-export async function importRecords(env: Env, req: Request, id: string): Promise<Response> {
+export async function importRecords(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
   if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
   const c = await db.getCollection(env.DB, id);
@@ -499,13 +499,13 @@ export async function importRecords(env: Env, req: Request, id: string): Promise
     imported++;
   }
   await db.touchCollection(env.DB, id);
-  void logCollectAttempt(env.DB, { event: 'import', outcome: imported ? 'ok' : 'rejected', collection_id: id, ip_hash: ipHash });
+  deferLog(defer, env.DB, { event: 'import', outcome: imported ? 'ok' : 'rejected', collection_id: id, ip_hash: ipHash });
   return json(200, { imported, errors });
 }
 
 // ---- POST /collections/:id/publish -----------------------------------------
 
-export async function publish(env: Env, req: Request, id: string): Promise<Response> {
+export async function publish(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
   if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
 
@@ -514,7 +514,7 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
 
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: 100000, offset: 0 });
   if (rows.length === 0) {
-    void logCollectAttempt(env.DB, { event: 'publish', outcome: 'rejected', gate: 'empty', collection_id: id });
+    deferLog(defer, env.DB, { event: 'publish', outcome: 'rejected', gate: 'empty', collection_id: id });
     return bad(409, 'nothing approved to publish yet');
   }
 
@@ -607,7 +607,7 @@ export async function publish(env: Env, req: Request, id: string): Promise<Respo
     r2Key,
   });
 
-  void logCollectAttempt(env.DB, { event: 'publish', outcome: 'ok', collection_id: id });
+  deferLog(defer, env.DB, { event: 'publish', outcome: 'ok', collection_id: id });
   return json(200, {
     version,
     submission_id: submissionId,
