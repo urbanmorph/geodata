@@ -35,7 +35,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
 
   // /v1/collections
   if (p.length === 1 && p[0] === 'collections') {
-    return method === 'POST' ? h.createCollection(env, request) : bad(405, 'method not allowed');
+    return method === 'POST' ? h.createCollection(env, request, defer) : bad(405, 'method not allowed');
   }
 
   // /v1/collections/:id[/records|/publish]
@@ -52,10 +52,10 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       return bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'publish') {
-      return method === 'POST' ? h.publish(env, request, id) : bad(405, 'method not allowed');
+      return method === 'POST' ? h.publish(env, request, id, defer) : bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'import') {
-      return method === 'POST' ? h.importRecords(env, request, id) : bad(405, 'method not allowed');
+      return method === 'POST' ? h.importRecords(env, request, id, defer) : bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'tokens') {
       return method === 'POST' ? h.mintToken(env, request, id) : bad(405, 'method not allowed');
