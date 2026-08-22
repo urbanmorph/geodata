@@ -565,11 +565,11 @@ async function importFlow(file: File): Promise<void> {
   const needsLngLat = format === 'csv';
   const guess = autoMapping(fields, parsed.columns);
   const opts = (sel?: string): string =>
-    `<option value="">— choose a column —</option>` + parsed.columns.map((c) => `<option${c === sel ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
+    `<option value="">choose a column</option>` + parsed.columns.map((c) => `<option${c === sel ? ' selected' : ''}>${escapeHtml(c)}</option>`).join('');
   const n = parsed.features.length;
   // A column map (applies to ALL rows), not a single-record form.
   panel.innerHTML = `
-    <p class="hint"><strong>${n} row${n === 1 ? '' : 's'}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file — this applies to <strong>all ${n}</strong> at once, not one point.</p>
+    <p class="hint"><strong>${n} row${n === 1 ? '' : 's'}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file. This applies to <strong>all ${n}</strong> at once, not one point.</p>
     ${needsLngLat
       ? `<div class="maplabel">Location <span class="hint">(a CSV keeps coordinates in columns)</span></div>
          <div class="maprow"><span>Longitude</span><select data-map="lng">${opts(guess.lng)}</select></div>
@@ -620,7 +620,7 @@ async function importFlow(file: File): Promise<void> {
     const { records, errors } = buildRecords(parsed.features, readMapping(), fields, meta.schema.geometry);
     const result = document.getElementById('import-result')!;
     if (!records.length) {
-      result.innerHTML = `<p class="warn">Nothing valid to import — ${errors.length} row${errors.length === 1 ? '' : 's'} had problems.</p>${errorsBlock()}`;
+      result.innerHTML = `<p class="warn">Nothing valid to import. ${errors.length} row${errors.length === 1 ? '' : 's'} had problems.</p>${errorsBlock()}`;
       wireErrorDownload(errors);
       return;
     }
