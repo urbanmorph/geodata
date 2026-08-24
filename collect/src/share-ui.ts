@@ -34,11 +34,13 @@ export async function toggleQr(slot: HTMLElement, url: string): Promise<void> {
   slot.removeAttribute('hidden');
   slot.innerHTML = '<div class="qr"><span class="spinner"></span></div>';
   try {
+    const svg = await qrSvg(url);
+    if (slot.hasAttribute('hidden')) return; // closed again while the encoder loaded
     slot.innerHTML =
-      `<div class="qr">${await qrSvg(url)}</div>` +
+      `<div class="qr">${svg}</div>` +
       `<p class="hint" style="text-align:center;margin:6px 0 0">Point a phone camera here to open on another device.</p>`;
   } catch {
-    slot.innerHTML = '<p class="hint">Could not draw the QR code.</p>';
+    if (!slot.hasAttribute('hidden')) slot.innerHTML = '<p class="hint">Could not draw the QR code.</p>';
   }
 }
 
