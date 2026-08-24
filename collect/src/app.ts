@@ -15,7 +15,7 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions } from './review';
 import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
@@ -350,24 +350,58 @@ function clearSelection(): void {
   clearRowSelection();
 }
 
-// The on-map attribute tooltip for a record, with a "Review" button into the
-// full detail + moderation sheet.
+// The on-map attribute tooltip for a record. It carries the record's moderation
+// actions inline (approve / reject / open) so an admin with hundreds of points
+// can pan, tap a marker, and act on just that one — no list scrolling. "Open"
+// drops into the full detail sheet (edit / delete / every attribute).
 function showRecordPopup(idx: number, coord: [number, number]): void {
   const f = reviewFeats[idx];
   if (!f) return;
   const p = f.properties as { _status?: string; [k: string]: unknown };
   const st = p._status || 'published';
   const rows = attrRowsHtml(p, 'pop-attr');
+  const actions = popupActions(st)
+    .map((a) => `<button type="button" class="pop-btn ${a.cls}" data-act="${a.act}">${escapeHtml(a.label)}</button>`)
+    .join('');
   const html = `<div class="pop">
       <div class="pop-head"><strong>${escapeHtml(cardTitle(p))}</strong><span class="badge badge--${st}">${st}</span></div>
       <div class="pop-attrs">${rows || '<p class="hint" style="margin:0">No fields on this map.</p>'}</div>
-      <button type="button" class="pop-review">Review${st === 'pending' ? ' / moderate' : ''} →</button>
+      <div class="pop-actions">${actions}</div>
     </div>`;
   recordPopup?.remove();
-  recordPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '260px', offset: 14, className: 'record-popup' })
+  recordPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '280px', offset: 14, className: 'record-popup' })
     .setLngLat(coord).setHTML(html).addTo(map);
-  recordPopup.getElement()?.querySelector('.pop-review')?.addEventListener('click', () => openReview(idx));
+  recordPopup.getElement()?.querySelectorAll<HTMLButtonElement>('.pop-actions .pop-btn').forEach((b) => {
+    const act = b.dataset.act!;
+    b.addEventListener('click', () => (act === 'open' ? openReview(idx) : void moderateFromMap(String(f.id), act)));
+  });
   recordPopup.on('close', () => { if (selectedIdx === idx) clearSelection(); });
+}
+
+// Moderate a record straight from its map tooltip, then repaint in place and stay
+// on the map (the fast field-review path). Errors surface as a toast.
+async function moderateFromMap(id: string, status: string): Promise<void> {
+  try {
+    await apiJson(`/records/${id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status }) });
+    toast(status === 'published' ? 'Approved ✓' : 'Rejected');
+    await refreshReviewSurfaces();
+  } catch (e) { toast((e as Error).message); }
+}
+
+// Repaint whatever review surfaces are live after a mutation: always the map
+// layer, plus the list + counts when the manage sheet is showing. Clears the
+// tooltip/highlight so the just-moderated point doesn't keep a stale popup.
+async function refreshReviewSurfaces(): Promise<void> {
+  invalidateReview();
+  await ensureReviewData(true);
+  if (document.getElementById('points')) {
+    updateReviewCounts(meta.counts);
+    renderPoints();            // recomputes reviewFeats for the active filter + repaints the layer (also clears the selection)
+  } else {
+    reviewFeats = filterByStatus(allFeats, activeFilter());
+    syncReviewLayer();
+    clearSelection();
+  }
 }
 
 // A marker/shape was tapped: highlight it, pop the tooltip, and highlight +
