@@ -76,7 +76,7 @@ Collect (author your own map): this server also drives collect.bharatlas.com, th
   - view link  -> get_map, get_records: read / query / export that map's published points (analyse or back up what has been collected).
   - collect link -> the above; field capture itself is done in the browser on a phone via the collect link.
   - admin link -> everything: edit_map (settings), moderate_record (approve/reject), import_points (bulk data you already hold, with a source + rights), and publish.
-- publish bakes approved points into a bharatlas catalog submission. It is then queryable through the read tools above (list_submissions, query_layer, locate) — the full loop, gather -> moderate -> publish -> query, in one server.
+- publish submits a collect map's approved points to the bharatlas catalog FOR REVIEW — nothing is auto-approved. A bharatlas maintainer approves the submission before it goes live; the response's status is "pending" until then. Once approved it is queryable through the read tools above (list_submissions, query_layer, locate).
 - No accounts: the link is the credential. A tool that needs more than your link allows will say which link you need. create_map is optional and needs COLLECT_API_KEY (request-only); prefer creating online.`;
 
 const TOOLS = [
@@ -343,8 +343,9 @@ const TOOLS = [
   {
     name: "publish",
     description:
-      "Bake a collect map's approved points into a bharatlas catalog submission (needs the admin link). " +
-      "Once published it is queryable via list_submissions / query_layer / locate above.",
+      "Submit a collect map's approved points to the bharatlas catalog for review (needs the admin link). " +
+      "Nothing goes live automatically — a maintainer approves the submission first; the response status is 'pending' until then. " +
+      "Once approved it is queryable via list_submissions / query_layer / locate above.",
     inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
   },
   {

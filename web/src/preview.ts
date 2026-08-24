@@ -562,7 +562,7 @@ function renderSuccess(payload: SuccessPayload): void {
   // keeps everything on one host so the back button works.
   const shareUrl = `${location.origin}/c/${payload.id}`;
   (document.getElementById('success-url') as HTMLElement).innerHTML =
-    `at <a href="${escapeHtml(shareUrl)}">${escapeHtml(shareUrl)}</a>`;
+    `It'll appear at <a href="${escapeHtml(shareUrl)}">${escapeHtml(shareUrl)}</a> once a maintainer approves it.`;
   (document.getElementById('success-token') as HTMLElement).textContent = payload.admin_token;
 
   const copyBtn = document.getElementById('copy-token')!;
@@ -595,7 +595,7 @@ function renderSuccess(payload: SuccessPayload): void {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
 
-  (document.getElementById('goto-submission') as HTMLAnchorElement).href = shareUrl;
+  (document.getElementById('goto-submission') as HTMLAnchorElement).href = '/';
 
   successEl.classList.add('show');
   window.scrollTo({ top: 0, behavior: 'smooth' });
