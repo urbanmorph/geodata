@@ -167,6 +167,17 @@ textarea { min-height: 92px; line-height: 1.5; }
   background: var(--surface); padding: 9px 11px; border-radius: 9px; font-size: 12px; color: var(--muted);
 }
 .link-box .btn, .link-box button { min-height: 40px; padding: 0 12px; }
+/* schema builder: a saved field's name is a button — tap it to edit the field */
+.link-box--editing { border-color: var(--accent); background: var(--accent-fill); }
+.sb-name {
+  flex: 1; min-width: 0; justify-content: flex-start; text-align: left; gap: 6px;
+  background: transparent; border: 0; padding: 8px 4px; min-height: 40px; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.sb-name:hover { color: var(--accent); }
+.sb-name .hint { font-weight: 400; }
+/* the inline editor that opens directly under the field being edited */
+.sb-edit { margin: -2px 0 12px; border-color: var(--accent); }
 
 /* ── share a link to another device (Copy / Share / QR) ────────────────── */
 .share-item {
@@ -307,6 +318,8 @@ textarea { min-height: 92px; line-height: 1.5; }
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
 }
 .point-row:hover { border-color: var(--line-strong); }
+/* the row linked to the marker selected on the map */
+.point-row--sel { border-color: var(--accent); background: var(--accent-fill); box-shadow: inset 3px 0 0 var(--accent); }
 .point-row__title { flex: 1; min-width: 0; white-space: normal; overflow-wrap: anywhere; color: var(--fg); font-weight: 500; font-size: 14px; }
 .point-row__chev { color: var(--muted); font-size: 18px; line-height: 1; flex: 0 0 auto; }
 
@@ -323,6 +336,32 @@ textarea { min-height: 92px; line-height: 1.5; }
 .badge--pending { color: var(--amber); }
 .badge--published { color: var(--accent); }
 .badge--rejected { color: var(--danger); }
+
+/* ── map tooltip (record attributes, linked to the list) ───────────────── */
+/* theme MapLibre's popup (it ships light-only) */
+.maplibregl-popup-content {
+  background: var(--sheet); color: var(--fg); border: 1px solid var(--line);
+  border-radius: 14px; box-shadow: var(--shadow-pop); padding: 12px 14px;
+}
+.maplibregl-popup-close-button { color: var(--muted); font-size: 20px; padding: 0 6px; }
+.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--sheet); }
+.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--sheet); }
+.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--sheet); }
+.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--sheet); }
+.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip { border-right-color: var(--sheet); }
+.maplibregl-popup-anchor-top-right .maplibregl-popup-tip,
+.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-left-color: var(--sheet); }
+
+.pop { min-width: 168px; }
+.pop-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.pop-head strong { font-size: 14px; }
+.pop-attrs { display: flex; flex-direction: column; max-height: 38vh; overflow: auto; }
+.pop-attr { display: flex; gap: 10px; font-size: 12px; padding: 4px 0; border-top: 1px solid var(--line); }
+.pop-attr:first-child { border-top: 0; }
+.pop-attr__k { flex: 0 0 42%; color: var(--muted); }
+.pop-attr__v { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pop-review { margin-top: 10px; width: 100%; min-height: 40px; }
 
 /* home footer */
 .foot-note { display: flex; flex-direction: column; gap: 4px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }
