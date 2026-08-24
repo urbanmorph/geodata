@@ -195,7 +195,8 @@ async function boot(): Promise<void> {
     document.getElementById('maploading')?.remove();
     if (!isView && allowsShapes) setupDrawLayers();
     if (meta.schema.reference_layer) void addReferenceOverlay(map, meta.schema.reference_layer.pmtiles_url).catch(() => {});
-    void loadRecords();
+    if (isAdmin) syncReviewLayer();   // admin: the clickable, status-coloured review layer (driven by the list)
+    else void loadRecords();          // view / collect: published points as context
   });
 
   const reftoggle = document.getElementById('reftoggle') as HTMLButtonElement | null;
@@ -241,6 +242,110 @@ function viewPanel(): void {
 let recordShapes: GeoJSON.Feature[] = [];
 let reviewFeats: Feature[] = [];               // the admin review list, for tap-to-review
 let reviewMarker: maplibregl.Marker | undefined; // highlight on the map during review
+let selectedIdx: number | null = null;         // the linked map<->list selection
+let recordPopup: maplibregl.Popup | undefined; // the on-map attribute tooltip
+
+// ── linked map <-> list (admin review) ───────────────────────────────────
+// The review features get their own clickable, status-coloured layer keyed to the
+// list rows, so clicking a marker highlights + scrolls its entry (and pops a
+// tooltip), and clicking a row flies to and highlights the marker.
+const STATUS_COLOR = ['match', ['get', 'status'], 'pending', '#d97706', 'rejected', '#dc2626', ACCENT] as maplibregl.ExpressionSpecification;
+
+function reviewFC(): GeoJSON.FeatureCollection {
+  return {
+    type: 'FeatureCollection',
+    features: reviewFeats.map((f, idx) => ({
+      type: 'Feature',
+      id: idx, // numeric id so feature-state (the selection highlight) works
+      geometry: f.geometry as GeoJSON.Geometry,
+      properties: { idx, status: (f.properties as { _status?: string })._status || 'published' },
+    })),
+  };
+}
+
+// Draw / update the review layer from reviewFeats. Safe to call before the style
+// loads (it no-ops, and the map-load handler calls it again) or repeatedly.
+function syncReviewLayer(): void {
+  if (!map.isStyleLoaded()) return;
+  const src = map.getSource('review') as maplibregl.GeoJSONSource | undefined;
+  if (src) { src.setData(reviewFC()); return; }
+  map.addSource('review', { type: 'geojson', data: reviewFC() });
+  map.addLayer({
+    id: 'review-fill', type: 'fill', source: 'review', filter: ['==', '$type', 'Polygon'],
+    paint: { 'fill-color': STATUS_COLOR, 'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.3, 0.12] },
+  });
+  map.addLayer({
+    id: 'review-line', type: 'line', source: 'review', filter: ['!=', '$type', 'Point'],
+    paint: { 'line-color': STATUS_COLOR, 'line-width': ['case', ['boolean', ['feature-state', 'sel'], false], 4, 2] },
+  });
+  map.addLayer({
+    id: 'review-pt', type: 'circle', source: 'review', filter: ['==', '$type', 'Point'],
+    paint: {
+      'circle-radius': ['case', ['boolean', ['feature-state', 'sel'], false], 9, 6],
+      'circle-color': STATUS_COLOR,
+      'circle-stroke-color': '#ffffff',
+      'circle-stroke-width': ['case', ['boolean', ['feature-state', 'sel'], false], 3, 2],
+    },
+  });
+  for (const id of ['review-pt', 'review-fill', 'review-line']) {
+    map.on('click', id, (e) => {
+      const idx = e.features?.[0]?.properties?.idx;
+      if (typeof idx === 'number') selectFromMap(idx);
+    });
+    map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
+    map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
+  }
+}
+
+// Set (or clear, with null) the map-side selection highlight via feature-state.
+function selectReviewFeature(idx: number | null): void {
+  if (map.getSource('review')) {
+    if (selectedIdx !== null) map.removeFeatureState({ source: 'review', id: selectedIdx }, 'sel');
+    if (idx !== null) map.setFeatureState({ source: 'review', id: idx }, { sel: true });
+  }
+  selectedIdx = idx;
+}
+
+function clearSelection(): void {
+  recordPopup?.remove();
+  recordPopup = undefined;
+  selectReviewFeature(null);
+  clearRowSelection();
+}
+
+// The on-map attribute tooltip for a record, with a "Review" button into the
+// full detail + moderation sheet.
+function showRecordPopup(idx: number, coord: [number, number]): void {
+  const f = reviewFeats[idx];
+  if (!f) return;
+  const p = f.properties as { _status?: string; [k: string]: unknown };
+  const st = p._status || 'published';
+  const rows = attrRowsHtml(p, 'pop-attr');
+  const html = `<div class="pop">
+      <div class="pop-head"><strong>${escapeHtml(cardTitle(p))}</strong><span class="badge badge--${st}">${st}</span></div>
+      <div class="pop-attrs">${rows || '<p class="hint" style="margin:0">No fields on this map.</p>'}</div>
+      <button type="button" class="pop-review">Review${st === 'pending' ? ' / moderate' : ''} →</button>
+    </div>`;
+  recordPopup?.remove();
+  recordPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '260px', offset: 14 })
+    .setLngLat(coord).setHTML(html).addTo(map);
+  recordPopup.getElement()?.querySelector('.pop-review')?.addEventListener('click', () => openReview(idx));
+  recordPopup.on('close', () => { if (selectedIdx === idx) clearSelection(); });
+}
+
+// A marker/shape was tapped: highlight it, pop the tooltip, and highlight +
+// scroll the matching list row (when the review list is showing).
+function selectFromMap(idx: number): void {
+  selectReviewFeature(idx);
+  clearRowSelection();
+  const row = document.querySelector<HTMLElement>(`.point-row[data-idx="${idx}"]`);
+  if (row) { row.classList.add('point-row--sel'); row.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+  const c = representativeCoord(reviewFeats[idx]?.geometry);
+  if (c) {
+    showRecordPopup(idx, c);
+    map.easeTo({ center: c, offset: sheetLiftOffset(), duration: 300 });
+  }
+}
 
 // The non-point records overlay: one accumulating source for existing +
 // just-added lines/polygons. Points are plain markers.
@@ -411,8 +516,12 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
         method: 'POST',
         body: JSON.stringify({ geometry, properties: valid.properties, contributor: lastContributor, turnstile_token }),
       });
-      if (geometry.type === 'Point') marker((geometry as GeoJSON.Point).coordinates as number[]);
-      else addRecordShape(geometry);
+      // In admin the status-coloured review layer owns the on-map display; a plain
+      // pin here would double it once they return to Review. Contributors get the pin.
+      if (ctx.mode !== 'admin') {
+        if (geometry.type === 'Point') marker((geometry as GeoJSON.Point).coordinates as number[]);
+        else addRecordShape(geometry);
+      }
       verts = []; redrawDraw();
       toast(meta.moderation ? 'Added, pending review ✓' : 'Added ✓');
       const editUrl = `${location.origin}/c/${ctx.id}/r/${res.id}#${res.edit_token}`;
@@ -563,6 +672,7 @@ function renderManageTab(): void {
   });
   const body = document.getElementById('tabbody');
   if (!body) return;
+  if (manageTab !== 'review') clearSelection(); // don't leave a tooltip/highlight behind
   if (manageTab === 'share') return renderShareTab(body);
   if (manageTab === 'data') return renderDataTab(body);
   return renderReviewTab(body);
@@ -837,6 +947,8 @@ async function renderPoints(): Promise<void> {
     const qs = status ? `?status=${status}&limit=1000` : '?limit=1000';
     const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records${qs}`, ctx.token);
     reviewFeats = fc.features || [];
+    clearSelection();     // the previous selection points at stale indices
+    syncReviewLayer();    // redraw the clickable markers for this filter
     if (!reviewFeats.length) { q.innerHTML = '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>'; return; }
     q.innerHTML = reviewFeats.map((f, i) => {
       const st = (f.properties as { _status?: string })._status || 'published';
@@ -857,8 +969,26 @@ async function renderPoints(): Promise<void> {
 
 const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? '—' : String(v));
 
+// One attribute row per (non-deleted) field — shared by the review sheet
+// (prefix "attr") and the map tooltip (prefix "pop-attr"). Empty-state per caller.
+function attrRowsHtml(p: Record<string, unknown>, prefix: string): string {
+  return meta.schema.fields
+    .filter((x) => !x.deleted)
+    .map((fl) => `<div class="${prefix}"><span class="${prefix}__k">${escapeHtml(fl.label)}</span><span class="${prefix}__v">${escapeHtml(fmtVal(p[fl.key]))}</span></div>`)
+    .join('');
+}
+
+// Lift a point into the band above the review sheet (which floats over the map).
+function sheetLiftOffset(): [number, number] { return [0, -Math.round(window.innerHeight * 0.2)]; }
+
+function clearRowSelection(): void {
+  document.querySelectorAll('.point-row--sel').forEach((el) => el.classList.remove('point-row--sel'));
+}
+
 function clearHighlight(): void {
   if (reviewMarker) { reviewMarker.remove(); reviewMarker = undefined; }
+  recordPopup?.remove(); recordPopup = undefined;
+  selectReviewFeature(null);
 }
 
 // Tap a point → see it on the map (fly + highlight) + every attribute, and
@@ -868,19 +998,16 @@ function openReview(idx: number): void {
   if (!f) return;
   const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; [k: string]: unknown };
   const st = p._status || 'published';
-  const fields = meta.schema.fields.filter((x) => !x.deleted);
 
   const c = representativeCoord(f.geometry);
   clearHighlight();
+  selectReviewFeature(idx); // emphasise the same feature on the map
   if (c) {
     reviewMarker = new maplibregl.Marker({ color: '#d97706' }).setLngLat(c).addTo(map);
-    // Lift the point into the band above the review sheet (which floats over the map).
-    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: [0, -Math.round(window.innerHeight * 0.2)] });
+    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: sheetLiftOffset() });
   }
 
-  const attrs = fields
-    .map((fl) => `<div class="attr"><span class="attr__k">${escapeHtml(fl.label)}</span><span class="attr__v">${escapeHtml(fmtVal(p[fl.key]))}</span></div>`)
-    .join('');
+  const attrs = attrRowsHtml(p, 'attr');
   const origin = p._source ? `⇪ from ${escapeHtml(p._source)}` : `by ${escapeHtml(p._contributor || 'anonymous')}`;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
