@@ -11,6 +11,16 @@
 //
 // Pure + side-effect free so prerender and a vitest can share it.
 
+// Where a community submission entered the catalog, derived from what we already
+// store (no per-source keys): a collect map stamps `collection_id` on publish; the
+// bharatlas /submit form does not. MCP / API publishes go through collect's publish
+// too, so they read as 'collect'. Shared by the community card + the ops-dashboard
+// geodata tab so both count provenance the same way.
+export function channelOf(s) {
+  return s && s.collection_id ? 'collect' : 'form';
+}
+export const CHANNEL_LABEL = { collect: 'via collect', form: 'via the contribution form' };
+
 // Route an R2 public url through the same-origin /api/dl counter, except
 // pmtiles, which the viewer range-reads directly. Mirrors prerender's dlUrl().
 export function dlProxyUrl(r2Url, fmt) {

@@ -6,7 +6,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
-import { renderCommunityActions } from './community-card.mjs';
+import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -698,7 +698,7 @@ function fetchCommunitySubmissions() {
     const out = execSync(
       `${wranglerPrefix} d1 execute geodata-submissions --${COMMUNITY_SCOPE} --json --command "${
         'SELECT s.id, s.name, s.description, s.category, s.attribution, s.is_original, ' +
-        's.format, s.bytes, s.feature_count, s.r2_key, s.created_at, ' +
+        's.format, s.bytes, s.feature_count, s.r2_key, s.created_at, s.collection_id, ' +
         "COALESCE(SUM(CASE WHEN r.vote = 1 THEN 1 ELSE 0 END), 0) AS up_count, " +
         "COALESCE(SUM(CASE WHEN r.vote = -1 THEN 1 ELSE 0 END), 0) AS down_count " +
         'FROM submissions s LEFT JOIN submission_ratings r ON r.submission_id = s.id ' +
@@ -781,7 +781,7 @@ function renderCommunityCard(s, opts = {}) {
       </div>
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
-    <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit}</div>
+    <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit} · <span class="comm-card__via">${esc(CHANNEL_LABEL[channelOf(s)])}</span></div>
     ${renderCommunityActions(s, baked, { esc, fmtBytes })}
   </article>`;
 }
