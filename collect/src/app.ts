@@ -4,9 +4,10 @@
 // — for admin — a review queue + publish. Mobile-first.
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { styleFor, BASEMAPS, INDIA_CENTER } from './basemap';
+import { buildBaseStyle, setBasemap, getStoredBasemap, setStoredBasemap, normalizeBasemap, BASEMAPS, INDIA_CENTER, type BasemapId } from './basemap';
 import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
-import { searchLayers, type RefLayer } from './geo/catalog';
+import { type RefLayer } from './geo/catalog';
+import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, apiJson, type Ctx } from './api';
 import { turnstileToken } from './turnstile';
@@ -14,7 +15,7 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions } from './review';
 import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
@@ -152,6 +153,28 @@ function crosshairScreenOffset(): [number, number] {
   return [r.left + r.width / 2 - cr.left - cr.width / 2, r.top + r.height / 2 - cr.top - cr.height / 2];
 }
 
+// The on-map "Base map" switcher: a button + a small menu of the four basemaps.
+// Switching flips layer visibility (setBasemap), so overlays + markers survive.
+function installBasemapSwitcher(initial: BasemapId): void {
+  const btn = document.getElementById('basemapbtn');
+  const menu = document.getElementById('basemapmenu');
+  if (!btn || !menu) return;
+  let active = initial;
+  const close = (): void => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+  const render = (): void => {
+    menu.innerHTML = BASEMAPS.map((b) => `<button type="button" role="menuitemradio" aria-checked="${b.id === active}" class="basemap-opt${b.id === active ? ' on' : ''}" data-b="${b.id}"><strong>${escapeHtml(b.name)}</strong><span class="hint">${escapeHtml(b.hint)}</span></button>`).join('');
+    menu.querySelectorAll<HTMLButtonElement>('.basemap-opt').forEach((o) => {
+      o.onclick = () => { active = o.dataset.b as BasemapId; setBasemap(map, active); setStoredBasemap(active); render(); close(); };
+    });
+  };
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (menu.hidden) { render(); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); } else close();
+  };
+  document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target as Node) && e.target !== btn) close(); });
+  render();
+}
+
 const TERMS = 'https://bharatlas.com/terms';
 // Content-safety: a report/takedown path (mailto, no accounts) + terms link.
 function safetyFooter(): string {
@@ -178,19 +201,23 @@ async function boot(): Promise<void> {
       <div class="crosshair" aria-hidden="true" ${isView ? 'style="display:none"' : ''}></div>
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isView ? '' : '<button class="locate" id="locate" aria-label="Use my location">◎</button>'}
-      ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-pressed="true" style="left:12px;top:12px;right:auto;bottom:auto;width:auto;padding:0 12px">◪ Layer</button>' : ''}
+      <button class="locate" id="basemapbtn" aria-label="Base map" title="Base map" aria-haspopup="true" aria-expanded="false" style="left:12px;top:12px;right:auto;bottom:auto">◱</button>
+      <div class="basemap-menu" id="basemapmenu" role="menu" aria-label="Base map" hidden></div>
+      ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-label="Reference layer" title="Reference layer" aria-pressed="true" style="left:12px;top:66px;right:auto;bottom:auto">◪</button>' : ''}
       ${isAdmin ? `<button class="locate" id="manage" aria-label="Manage map${meta.counts.pending ? `, ${meta.counts.pending} pending review` : ''}" style="left:12px;right:auto;bottom:calc(76px + var(--sheet-h,0px));width:auto;padding:0 14px">⚙${meta.counts.pending ? ` ${meta.counts.pending}` : ''}</button>` : ''}
     </div>
     <div id="panel"></div>`;
   installSheetMetrics();
 
+  const initialBasemap = getStoredBasemap() ?? normalizeBasemap(meta.schema.basemap);
   map = new maplibregl.Map({
-    container: 'map', style: styleFor(meta.schema.basemap), center: INDIA_CENTER, zoom: 4,
+    container: 'map', style: buildBaseStyle(initialBasemap), center: INDIA_CENTER, zoom: 4,
     attributionControl: false,
   });
   // Attribution bottom-left so it never sits under the locate button (bottom-right).
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  installBasemapSwitcher(initialBasemap);
   drawReady = false; verts = [];
   allowsShapes = orderedModes(meta.schema.geometry).some((m) => m !== 'point');
   map.on('load', () => {
@@ -323,24 +350,58 @@ function clearSelection(): void {
   clearRowSelection();
 }
 
-// The on-map attribute tooltip for a record, with a "Review" button into the
-// full detail + moderation sheet.
+// The on-map attribute tooltip for a record. It carries the record's moderation
+// actions inline (approve / reject / open) so an admin with hundreds of points
+// can pan, tap a marker, and act on just that one — no list scrolling. "Open"
+// drops into the full detail sheet (edit / delete / every attribute).
 function showRecordPopup(idx: number, coord: [number, number]): void {
   const f = reviewFeats[idx];
   if (!f) return;
   const p = f.properties as { _status?: string; [k: string]: unknown };
   const st = p._status || 'published';
   const rows = attrRowsHtml(p, 'pop-attr');
+  const actions = popupActions(st)
+    .map((a) => `<button type="button" class="pop-btn ${a.cls}" data-act="${a.act}">${escapeHtml(a.label)}</button>`)
+    .join('');
   const html = `<div class="pop">
       <div class="pop-head"><strong>${escapeHtml(cardTitle(p))}</strong><span class="badge badge--${st}">${st}</span></div>
       <div class="pop-attrs">${rows || '<p class="hint" style="margin:0">No fields on this map.</p>'}</div>
-      <button type="button" class="pop-review">Review${st === 'pending' ? ' / moderate' : ''} →</button>
+      <div class="pop-actions">${actions}</div>
     </div>`;
   recordPopup?.remove();
-  recordPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '260px', offset: 14, className: 'record-popup' })
+  recordPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '280px', offset: 14, className: 'record-popup' })
     .setLngLat(coord).setHTML(html).addTo(map);
-  recordPopup.getElement()?.querySelector('.pop-review')?.addEventListener('click', () => openReview(idx));
+  recordPopup.getElement()?.querySelectorAll<HTMLButtonElement>('.pop-actions .pop-btn').forEach((b) => {
+    const act = b.dataset.act!;
+    b.addEventListener('click', () => (act === 'open' ? openReview(idx) : void moderateFromMap(String(f.id), act)));
+  });
   recordPopup.on('close', () => { if (selectedIdx === idx) clearSelection(); });
+}
+
+// Moderate a record straight from its map tooltip, then repaint in place and stay
+// on the map (the fast field-review path). Errors surface as a toast.
+async function moderateFromMap(id: string, status: string): Promise<void> {
+  try {
+    await apiJson(`/records/${id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status }) });
+    toast(status === 'published' ? 'Approved ✓' : 'Rejected');
+    await refreshReviewSurfaces();
+  } catch (e) { toast((e as Error).message); }
+}
+
+// Repaint whatever review surfaces are live after a mutation: always the map
+// layer, plus the list + counts when the manage sheet is showing. Clears the
+// tooltip/highlight so the just-moderated point doesn't keep a stale popup.
+async function refreshReviewSurfaces(): Promise<void> {
+  invalidateReview();
+  await ensureReviewData(true);
+  if (document.getElementById('points')) {
+    updateReviewCounts(meta.counts);
+    renderPoints();            // recomputes reviewFeats for the active filter + repaints the layer (also clears the selection)
+  } else {
+    reviewFeats = filterByStatus(allFeats, activeFilter());
+    syncReviewLayer();
+    clearSelection();
+  }
 }
 
 // A marker/shape was tapped: highlight it, pop the tooltip, and highlight +
@@ -583,10 +644,9 @@ async function editSettings(): Promise<void> {
       <label>Description <span class="hint">(optional)</span></label><input id="e-desc" maxlength="2000" value="${escapeHtml(meta.description || '')}" />
       <label>Category</label><select id="e-category">${CATEGORIES.map(([id, l]) => `<option value="${id}"${sel(id, s.category || 'other')}>${l}</option>`).join('')}</select>
       <label>Data year <span class="hint">(optional)</span></label><input id="e-year" inputmode="numeric" value="${meta.data_year ?? ''}" />
-      <label>Map background</label><select id="e-basemap">${BASEMAPS.map((b) => `<option value="${b.id}"${sel(b.id, s.basemap || 'positron')}>${b.name}</option>`).join('')}</select>
       <label>Reference layer</label>
       <div id="e-refnow">${s.reference_layer ? `<div class="link-box"><code>${escapeHtml(s.reference_layer.id)}</code><button type="button" id="e-ref-remove">Remove</button></div>` : '<p class="hint">None.</p>'}</div>
-      <input id="e-ref-search" placeholder="Search to change: forest, wards…" autocomplete="off" />
+      <input id="e-ref-search" placeholder="Browse layers, or type to filter…" autocomplete="off" />
       <div id="e-ref-results" class="ref-results"></div>
       <label>Licence</label>
       ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}
@@ -605,39 +665,28 @@ async function editSettings(): Promise<void> {
   });
   const results = document.getElementById('e-ref-results')!;
   const searchEl = document.getElementById('e-ref-search') as HTMLInputElement;
-  let timer: number | undefined; let last: RefLayer[] = [];
-  searchEl.oninput = () => {
-    clearTimeout(timer);
-    const q = searchEl.value.trim();
-    if (!q) { results.innerHTML = ''; return; }
-    timer = window.setTimeout(async () => {
-      try {
-        last = await searchLayers(q);
-        results.innerHTML = last.slice(0, 8).map((l, i) => `<button type="button" class="ref-opt" data-i="${i}">${escapeHtml(l.label)}<span class="hint">${escapeHtml(l.category)}</span></button>`).join('') || '<p class="hint">No layers.</p>';
-        results.querySelectorAll<HTMLButtonElement>('.ref-opt').forEach((b) => {
-          b.onclick = () => { refChange = last[Number(b.dataset.i)]; results.innerHTML = ''; searchEl.value = ''; refNow.innerHTML = `<div class="link-box"><code>${escapeHtml(refChange!.label)}</code></div>`; };
-        });
-      } catch { results.innerHTML = '<p class="hint">Couldn\'t reach the catalogue.</p>'; }
-    }, 300);
-  };
+  mountLayerPicker(searchEl, results, (l) => {
+    refChange = l; results.innerHTML = ''; searchEl.value = '';
+    refNow.innerHTML = `<div class="link-box"><code>${escapeHtml(l.label)}</code></div>`;
+  });
 
   (document.getElementById('e-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
   (document.getElementById('e-save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
     if (!(document.getElementById('editform') as HTMLFormElement).reportValidity()) return;
-    const newBasemap = (document.getElementById('e-basemap') as HTMLSelectElement).value;
     const yr = (document.getElementById('e-year') as HTMLInputElement).value.trim();
     const patch: Record<string, unknown> = {
       name: (document.getElementById('e-name') as HTMLInputElement).value,
       purpose: (document.getElementById('e-purpose') as HTMLTextAreaElement).value,
       description: (document.getElementById('e-desc') as HTMLInputElement).value,
       category: (document.getElementById('e-category') as HTMLSelectElement).value,
-      basemap: newBasemap,
       data_year: yr === '' ? null : Number(yr),
     };
     if (!locked) patch.license = (document.getElementById('e-license') as HTMLSelectElement).value;
     if (refChange !== undefined) patch.reference_layer = refChange ? { id: refChange.id, pmtiles_url: refChange.pmtiles_url } : null;
-    const mapChanged = newBasemap !== (s.basemap || 'positron') || refChange !== undefined;
+    // Only a reference-overlay change needs a reload to re-style the map; the
+    // basemap is a per-viewer runtime switch, not an author setting.
+    const mapChanged = refChange !== undefined;
     btn.disabled = true;
     try {
       await apiJson(`/collections/${ctx.id}`, ctx.token, { method: 'PATCH', body: JSON.stringify(patch) });
@@ -1231,7 +1280,7 @@ async function recordEditor(): Promise<void> {
     </div></div>`;
   installSheetMetrics();
 
-  map = new maplibregl.Map({ container: 'map', style: styleFor(rec.schema.basemap), center, zoom: isPoint ? 16 : 14, attributionControl: false });
+  map = new maplibregl.Map({ container: 'map', style: buildBaseStyle(getStoredBasemap() ?? normalizeBasemap(rec.schema.basemap)), center, zoom: isPoint ? 16 : 14, attributionControl: false });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   // Only rewrite the point's location if the user actually repositioned it — a
   // plain "fix a typo and Save" must leave the point exactly where it was.

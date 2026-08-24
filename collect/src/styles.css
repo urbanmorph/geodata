@@ -236,9 +236,12 @@ textarea { min-height: 92px; line-height: 1.5; }
 .maprow > select { flex: 1; min-width: 0; }
 
 /* reference-layer search results (create form) */
-.ref-results { display: flex; flex-direction: column; gap: 6px; margin-top: 6px; max-height: 230px; overflow: auto; }
-.ref-opt { width: 100%; justify-content: space-between; gap: 10px; }
+.ref-results { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; max-height: 300px; overflow: auto; }
+.ref-opt { width: 100%; justify-content: flex-start; text-align: left; gap: 10px; min-height: 40px; }
 .ref-opt .hint { font-weight: 400; text-transform: capitalize; }
+/* category header in the browse-all layer picker */
+.ref-cat { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin: 8px 2px 2px; }
+.ref-cat:first-child { margin-top: 2px; }
 
 /* empty state — an invitation, not a dead end */
 .empty {
@@ -274,6 +277,26 @@ textarea { min-height: 92px; line-height: 1.5; }
   background: var(--card); box-shadow: var(--shadow-pop);
   transition: bottom .2s ease;
 }
+
+/* ── on-map base-map switcher ───────────────────────────────────────────── */
+#basemapbtn { font-size: 14px; }
+.basemap-menu {
+  position: absolute; left: 12px; top: 64px; z-index: 7;
+  width: min(280px, 78vw); max-height: 60dvh; overflow: auto;
+  background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-pop); padding: 6px; display: flex; flex-direction: column; gap: 2px;
+}
+.basemap-menu[hidden] { display: none; }
+.basemap-opt {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 1px;
+  width: 100%; text-align: left; justify-content: flex-start; white-space: normal;
+  background: transparent; border: 0; border-radius: 9px; padding: 9px 11px; min-height: auto;
+}
+.basemap-opt strong { font-size: 14px; font-weight: 600; }
+.basemap-opt .hint { font-size: 12px; }
+.basemap-opt:hover { background: var(--surface); }
+.basemap-opt.on { background: var(--accent-fill); }
+.basemap-opt.on strong { color: var(--accent); }
 
 /* ── bottom sheet ──────────────────────────────────────────────────────── */
 .sheet {
@@ -381,7 +404,17 @@ textarea { min-height: 92px; line-height: 1.5; }
 .pop-attr:first-child { border-top: 0; }
 .pop-attr__k { flex: 0 0 42%; color: var(--muted); }
 .pop-attr__v { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--fg); }
-.pop-review { margin-top: 10px; width: 100%; min-height: 40px; }
+/* Inline moderation on the map tooltip: Reject / Approve share a row, Open drops
+   to its own line. 40px targets stay tappable in the field. */
+.pop-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.pop-btn {
+  flex: 1 1 auto; min-width: 84px; min-height: 40px; padding: 0 10px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius);
+  background: var(--card); color: var(--fg); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+.pop-btn--approve { background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; }
+.pop-btn--reject { color: var(--danger); }
+.pop-review { flex-basis: 100%; color: var(--muted); font-weight: 500; }
 
 /* home footer */
 .foot-note { display: flex; flex-direction: column; gap: 4px; margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--line); color: var(--muted); font-size: 12px; }

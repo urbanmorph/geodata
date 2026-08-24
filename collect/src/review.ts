@@ -23,3 +23,24 @@ export function countsOf(feats: WithStatus[]): { published: number; pending: num
   }
   return c;
 }
+
+export type PopupAction = { act: string; label: string; cls: string };
+
+// The moderation actions a record's map tooltip offers, by status — so an admin
+// with hundreds of points can pan, tap a marker, and act on just that one
+// without scrolling the list. `act` is the moderation target ('published' /
+// 'rejected'), except 'open' which opens the full record (edit / delete / all
+// attributes). Pending can be approved or rejected; a rejected record can be
+// re-approved; an approved record has nothing left to moderate. Every record can
+// be opened in full.
+export function popupActions(status: string): PopupAction[] {
+  const open: PopupAction = { act: 'open', label: 'Open ›', cls: 'pop-review' };
+  if (status === 'pending')
+    return [
+      { act: 'rejected', label: '✗ Reject', cls: 'pop-btn--reject' },
+      { act: 'published', label: '✓ Approve', cls: 'pop-btn--approve' },
+      open,
+    ];
+  if (status === 'rejected') return [{ act: 'published', label: '✓ Approve', cls: 'pop-btn--approve' }, open];
+  return [open];
+}
