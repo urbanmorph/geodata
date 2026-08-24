@@ -201,9 +201,9 @@ async function boot(): Promise<void> {
       <div class="crosshair" aria-hidden="true" ${isView ? 'style="display:none"' : ''}></div>
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isView ? '' : '<button class="locate" id="locate" aria-label="Use my location">◎</button>'}
-      <button class="locate" id="basemapbtn" aria-label="Base map" aria-haspopup="true" aria-expanded="false" style="left:12px;top:12px;right:auto;bottom:auto;width:auto;padding:0 12px">◱ Base map</button>
+      <button class="locate" id="basemapbtn" aria-label="Base map" title="Base map" aria-haspopup="true" aria-expanded="false" style="left:12px;top:12px;right:auto;bottom:auto">◱</button>
       <div class="basemap-menu" id="basemapmenu" role="menu" aria-label="Base map" hidden></div>
-      ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-pressed="true" style="left:12px;top:60px;right:auto;bottom:auto;width:auto;padding:0 12px">◪ Layer</button>' : ''}
+      ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-label="Reference layer" title="Reference layer" aria-pressed="true" style="left:12px;top:66px;right:auto;bottom:auto">◪</button>' : ''}
       ${isAdmin ? `<button class="locate" id="manage" aria-label="Manage map${meta.counts.pending ? `, ${meta.counts.pending} pending review` : ''}" style="left:12px;right:auto;bottom:calc(76px + var(--sheet-h,0px));width:auto;padding:0 14px">⚙${meta.counts.pending ? ` ${meta.counts.pending}` : ''}</button>` : ''}
     </div>
     <div id="panel"></div>`;

@@ -281,7 +281,7 @@ textarea { min-height: 92px; line-height: 1.5; }
 /* ── on-map base-map switcher ───────────────────────────────────────────── */
 #basemapbtn { font-size: 14px; }
 .basemap-menu {
-  position: absolute; left: 12px; top: 56px; z-index: 7;
+  position: absolute; left: 12px; top: 64px; z-index: 7;
   width: min(280px, 78vw); max-height: 60dvh; overflow: auto;
   background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius);
   box-shadow: var(--shadow-pop); padding: 6px; display: flex; flex-direction: column; gap: 2px;
