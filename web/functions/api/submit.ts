@@ -155,7 +155,9 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
       }),
       insertSubmission(ctx.env.DB, {
         id,
-        status: 'accepted',
+        // Awaits a human curator's review before it goes live in the catalog.
+        // Nothing is auto-approved: a curator accepts it via scripts/moderate_submission.py.
+        status: 'pending',
         name,
         description,
         category,
@@ -190,6 +192,8 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const origin = new URL(ctx.request.url).origin;
   return j(200, {
     id,
+    status: 'pending',
+    message: 'Submitted for review. A curator approves it before it appears in the catalog; the link works once it is live.',
     share_url: `${origin}/c/${id}`,
     admin_url: `${origin}/c/${id}?key=${adminToken}`,
     admin_token: adminToken,

@@ -571,7 +571,8 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
 
   await insertSubmission(env.DB, {
     id: submissionId,
-    status: 'accepted',
+    // Awaits a curator's review before it goes live in the catalog (no auto-approval).
+    status: 'pending',
     name: c.name,
     description: c.description,
     category: (JSON.parse(c.schema_doc) as { category?: string }).category || 'other',
@@ -613,7 +614,8 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
     submission_id: submissionId,
     feature_count: features.length,
     attribution: attribution.line,
-    share_url: `${BHARATLAS_ORIGIN}/c/${submissionId}`,
+    status: 'pending',
+    message: 'Submitted to the bharatlas catalog. A curator reviews it before it goes live — it is not public yet.',
     admin_token: adminToken,
   });
 }

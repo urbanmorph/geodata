@@ -685,7 +685,7 @@ async function manageSheet(): Promise<void> {
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
-      <button class="primary" id="publish" style="flex:1">Publish → catalog</button>
+      <button class="primary" id="publish" style="flex:1">Submit → catalog</button>
     </div>
   </div>`;
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
@@ -1162,12 +1162,12 @@ function confirmPublish(): void {
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
-    <strong>Publish to the public catalog?</strong>
-    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Publishing adds them to the open <strong>bharatlas catalog</strong> at bharatlas.com, where anyone can find, view, and download them. Do this once the map is ready to share widely.</p>
+    <strong>Submit to the public catalog?</strong>
+    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to the open <strong>bharatlas catalog</strong>. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com — it won't be public until then. Do this once the map is ready to share widely.</p>
     ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}
   </div><div class="foot row">
     <button id="pub-cancel">← Back</button>
-    <button class="primary" id="pub-go" style="flex:1">${c.published ? `Publish ${c.published} to catalog` : 'Publish'}</button>
+    <button class="primary" id="pub-go" style="flex:1">${c.published ? `Submit ${c.published} for review` : 'Submit'}</button>
   </div></div>`;
   (document.getElementById('pub-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
   (document.getElementById('pub-go') as HTMLButtonElement).onclick = (e) => void runPublish(e.currentTarget as HTMLButtonElement);
@@ -1176,15 +1176,14 @@ function confirmPublish(): void {
 async function runPublish(btn: HTMLButtonElement): Promise<void> {
   btn.disabled = true;
   try {
-    const res = await apiJson<{ version: number; share_url: string; feature_count: number }>(
+    const res = await apiJson<{ version: number; feature_count: number; message?: string }>(
       `/collections/${ctx.id}/publish`, ctx.token, { method: 'POST' },
     );
-    toast(`Published v${res.version} · ${res.feature_count} features`);
+    toast(`Submitted v${res.version} · ${res.feature_count} features`);
     const panel = document.getElementById('panel')!;
     panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
-      <strong>Published to the catalog 🎉</strong>
-      <p class="hint">Version ${res.version} · ${res.feature_count} features. It's now on the public bharatlas catalog.</p>
-      <a class="btn primary" href="${res.share_url}" target="_blank" rel="noopener">View on bharatlas →</a>
+      <strong>Submitted for review ✓</strong>
+      <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live in the bharatlas catalog.')}</p>
       </div><div class="foot"><button id="back">← Back to manage</button></div></div>`;
     (document.getElementById('back') as HTMLButtonElement).onclick = () => void manageSheet();
   } catch (e) {
