@@ -12,6 +12,8 @@ import { autoMapping, buildRecords } from './import/build';
 import type { Field } from './schema/validate-record';
 import { myMaps, saveOwnedMap, replaceMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { CATEGORIES, OPEN_LICENCES } from './options';
+import { linksMailtoHref } from './share';
+import { shareItemHtml, wireShareItems, toggleQr } from './share-ui';
 
 const app = document.getElementById('app')!;
 
@@ -272,30 +274,27 @@ function createForm() {
   };
 }
 
-function linkRow(label: string, url: string): string {
-  return `<label>${label}</label><div class="link-box"><code>${url}</code><button data-copy="${encodeURIComponent(url)}">Copy</button></div>`;
-}
-
 function done(links: Record<string, string>) {
+  const mapLinks = { edit: links.edit, view: links.view, admin: links.admin };
   app.innerHTML = `
-    <div class="topbar"><span>Your map is live</span></div>
+    <div class="topbar"><span>Your map is live</span><a class="brand" href="https://bharatlas.com">bhar<span class="brand-accent">atlas</span></a></div>
     <div class="pad">
-      ${linkRow('🔗 Collect link, share this', links.edit)}
-      <p class="hint">Anyone with this can add points. No login.</p>
-      ${linkRow('👁 View-only', links.view)}
-      ${linkRow('🔑 Admin, keep secret', links.admin)}
-      <p class="warn">⚠ The <strong>admin</strong> link is shown once and can't be recovered, so save it. Fresh collect / view links can always be minted from the admin screen.</p>
-      <button id="dl">⬇ Download my links</button>
-      <div style="height:10px"></div>
+      <h1>Your map is live 🎉</h1>
+      <p class="hint">Share the collect link to gather points. To open this map on another device, Share a link to yourself or scan its QR. No accounts, so keep the admin link safe.</p>
+      ${shareItemHtml('edit', '🔗 Collect link (share this)', links.edit, 'Anyone with this can add points. No login.')}
+      ${shareItemHtml('view', '👁 View-only', links.view)}
+      ${shareItemHtml('admin', '🔑 Admin link (keep secret)', links.admin, 'Full control: moderate, edit, publish. Shown once and cannot be recovered, so save it now.')}
+      <button class="wide" id="dl">⬇ Download my links</button>
+      <a class="btn wide" id="email-links" style="margin-top:8px">✉ Email these links to me</a>
+      <div style="height:12px"></div>
       <a class="btn primary" href="${links.edit}">Open the map →</a>
       <div style="height:8px"></div>
-      <a class="btn" href="#" id="tohome-done">← Your maps</a>
+      <a class="btn wide" href="#" id="tohome-done">← Your maps</a>
     </div>`;
+  wireShareItems(app, 'bharatlas collect map');
+  (document.getElementById('email-links') as HTMLAnchorElement).href = linksMailtoHref(mapLinks);
   app.querySelector<HTMLAnchorElement>('#tohome-done')!.onclick = (e) => { e.preventDefault(); home(); };
 
-  app.querySelectorAll<HTMLButtonElement>('[data-copy]').forEach((b) => {
-    b.onclick = () => { navigator.clipboard?.writeText(decodeURIComponent(b.dataset.copy!)); b.textContent = '✓'; };
-  });
   app.querySelector<HTMLButtonElement>('#dl')!.onclick = () => {
     const text = `collect.bharatlas.com links\n\nCollect (share): ${links.edit}\nView-only: ${links.view}\nAdmin (secret): ${links.admin}\n`;
     const a = document.createElement('a');
@@ -303,6 +302,10 @@ function done(links: Record<string, string>) {
     a.download = 'collect-links.txt';
     a.click();
   };
+
+  // Pre-open the admin QR: the fastest path to "open this on my other device".
+  const adminSlot = app.querySelector<HTMLElement>('.share-item[data-share="admin"] .qr-slot');
+  if (adminSlot) void toggleQr(adminSlot, links.admin);
 }
 
 home();
