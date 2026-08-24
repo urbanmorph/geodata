@@ -14,6 +14,7 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
+import { statusOf, filterByStatus, countsOf } from './review';
 import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
@@ -241,7 +242,15 @@ function viewPanel(): void {
 }
 
 let recordShapes: GeoJSON.Feature[] = [];
-let reviewFeats: Feature[] = [];               // the admin review list, for tap-to-review
+let reviewFeats: Feature[] = [];               // the current filter's rows (a slice of allFeats)
+let allFeats: Feature[] = [];                  // every record, fetched once; chips filter this in memory
+let reviewLoaded = false;                      // is allFeats fresh? (invalidated on moderate/delete/import/add)
+let reviewGen = 0;                             // bumps on invalidation, so a stale in-flight fetch is discarded
+let lastReviewFetch = 0;                        // Date.now() of the last records fetch (throttles revalidation)
+
+// A local record change invalidates the cache AND advances the generation, so a
+// records fetch already in flight won't overwrite the cache with pre-change data.
+function invalidateReview(): void { reviewLoaded = false; reviewGen++; }
 let reviewMarker: maplibregl.Marker | undefined; // highlight on the map during review
 let selectedIdx: number | null = null;         // the linked map<->list selection
 let recordPopup: maplibregl.Popup | undefined; // the on-map attribute tooltip
@@ -259,7 +268,7 @@ function reviewFC(): GeoJSON.FeatureCollection {
       type: 'Feature',
       id: idx, // numeric id so feature-state (the selection highlight) works
       geometry: f.geometry as GeoJSON.Geometry,
-      properties: { idx, status: (f.properties as { _status?: string })._status || 'published' },
+      properties: { idx, status: statusOf(f) },
     })),
   };
 }
@@ -539,6 +548,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
         method: 'POST',
         body: JSON.stringify({ geometry, properties: valid.properties, contributor: lastContributor, turnstile_token }),
       });
+      invalidateReview(); // a new record invalidates the review cache
       // In admin the status-coloured review layer owns the on-map display; a plain
       // pin here would double it once they return to Review. Contributors get the pin.
       if (ctx.mode !== 'admin') {
@@ -655,7 +665,8 @@ const minted: { edit?: string; view?: string } = {};
 
 async function manageSheet(): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
-  meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token).catch(() => meta);
+  // meta was loaded at boot; counts are kept fresh from the record cache, so no
+  // per-open refetch (this ran on every tab-in and every back-out of a review).
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
@@ -700,9 +711,10 @@ function renderManageTab(): void {
   return renderReviewTab(body);
 }
 
-// Review: moderate the points. The counts line + filter chips + tappable list.
+// Review: moderate the points. The records are fetched ONCE (ensureReviewData);
+// the filter chips slice that cache in memory, so a chip tap is instant.
 function renderReviewTab(body: HTMLElement): void {
-  const c = meta.counts;
+  const c = reviewLoaded ? countsOf(allFeats) : meta.counts;
   body.innerHTML = `
     <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
     <div class="row" id="pfilter" style="margin:8px 0 4px">
@@ -716,10 +728,35 @@ function renderReviewTab(body: HTMLElement): void {
     b.onclick = () => {
       document.querySelectorAll('#pfilter .chip').forEach((x) => x.classList.remove('on'));
       b.classList.add('on');
-      void renderPoints();
+      renderPoints(); // in-memory filter — instant, no network
     };
   });
-  void renderPoints();
+  if (reviewLoaded) {
+    renderPoints();      // instant from the cache
+    revalidateReview();  // quietly pull fresh data so submissions from elsewhere show up
+  } else {
+    void ensureReviewData().then(() => {
+      const q = document.getElementById('points');
+      if (!reviewLoaded) { if (q) q.innerHTML = '<p class="warn">Could not load points. Tap Review again to retry.</p>'; return; }
+      updateReviewCounts(meta.counts);
+      renderPoints();
+    });
+  }
+}
+
+// Stale-while-revalidate: the list is shown from cache instantly, then this quietly
+// refetches (throttled) so points added or moderated elsewhere appear without a
+// manual reload. It only re-renders when the record set actually changed, so it
+// never yanks the list out from under the admin mid-scroll.
+function reviewSig(): string {
+  return `${allFeats.length}|${allFeats.map((f) => `${f.id}:${statusOf(f)}`).join(',')}`;
+}
+function revalidateReview(): void {
+  if (Date.now() - lastReviewFetch < 3000) return; // just fetched — don't spam the network
+  const before = reviewSig();
+  void ensureReviewData(true).then(() => {
+    if (reviewSig() !== before) { updateReviewCounts(meta.counts); renderPoints(); }
+  });
 }
 
 // Share: each link is a collapsible row — tap it to reveal Copy / Share / QR.
@@ -922,8 +959,7 @@ async function importFlow(file: File): Promise<void> {
     btn.disabled = true;
     try {
       const res = await apiJson<{ imported: number; errors: unknown[] }>(`/collections/${ctx.id}/import`, ctx.token, { method: 'POST', body: JSON.stringify({ records, source, rights_confirmed: true }) });
-      await refreshCounts();
-      void renderPoints();
+      await refreshCounts(); // refetch the cache so Review shows the imported points
       toast(`Imported ${res.imported} point${res.imported === 1 ? '' : 's'} ✓`);
       result.innerHTML = `<p class="hint">Imported ${res.imported}.${errors.length ? ` ${errors.length} row${errors.length === 1 ? '' : 's'} couldn't be read.` : ''}</p>`
         + (errors.length ? errorsBlock() : '');
@@ -946,19 +982,38 @@ function activeFilter(): string {
   return (document.querySelector('#pfilter .chip.on') as HTMLElement | null)?.dataset.s || '';
 }
 
-// Refresh the counts line + filter-chip totals after a moderation/delete.
-async function refreshCounts(): Promise<void> {
+// Fetch every record once (all statuses) into allFeats; the chips filter it in
+// memory. Recomputes meta.counts locally so counts stay correct without a
+// separate meta round-trip. Pass force to refresh the cache after a mutation.
+async function ensureReviewData(force = false): Promise<void> {
+  if (reviewLoaded && !force) return;
+  const gen = reviewGen;
   try {
-    meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
-    const c = meta.counts;
-    const line = document.getElementById('mcounts');
-    if (line) line.textContent = `${c.published} approved · ${c.pending} pending · ${c.rejected} rejected`;
-    const label: Record<string, string> = { '': `All ${c.total}`, pending: `Pending ${c.pending}`, published: `Approved ${c.published}`, rejected: `Rejected ${c.rejected}` };
-    document.querySelectorAll<HTMLElement>('#pfilter .chip').forEach((b) => {
-      const t = label[b.dataset.s || ''];
-      if (t) b.textContent = t;
-    });
-  } catch { /* leave stale counts */ }
+    const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records?limit=2000`, ctx.token);
+    if (gen !== reviewGen) return; // invalidated mid-flight (e.g. a point was added) — discard this snapshot
+    allFeats = fc.features || [];
+    reviewLoaded = true;
+    lastReviewFetch = Date.now();
+    meta.counts = countsOf(allFeats);
+  } catch { /* keep the previous cache */ }
+}
+
+// Update the counts line + filter-chip totals in place (no fetch).
+function updateReviewCounts(c: Counts): void {
+  const line = document.getElementById('mcounts');
+  if (line) line.textContent = `${c.published} approved · ${c.pending} pending · ${c.rejected} rejected`;
+  const label: Record<string, string> = { '': `All ${c.total}`, pending: `Pending ${c.pending}`, published: `Approved ${c.published}`, rejected: `Rejected ${c.rejected}` };
+  document.querySelectorAll<HTMLElement>('#pfilter .chip').forEach((b) => {
+    const t = label[b.dataset.s || ''];
+    if (t) b.textContent = t;
+  });
+}
+
+// After a mutation (moderate / delete / import): refresh the cache. The counts-line
+// update is defensive — callers usually rebuild the whole panel right after.
+async function refreshCounts(): Promise<void> {
+  await ensureReviewData(true);
+  updateReviewCounts(meta.counts);
 }
 
 type AdminCtx = { state?: string; district?: string; subdistrict?: string } | null;
@@ -985,34 +1040,34 @@ function cardTitle(props: Record<string, unknown>): string {
 // the "+ Add points" button (capture) or a contributor's own add.
 // Compact, tappable list — scales to hundreds of points. Titles wrap (never
 // truncate). Per-point actions live in the review detail, not the row.
-async function renderPoints(): Promise<void> {
+// Render the current filter's rows from the in-memory cache (no network). The
+// records are loaded once by ensureReviewData; chip taps just re-run this.
+function renderPoints(): void {
   const q = document.getElementById('points');
   if (!q) return;
   const status = activeFilter();
-  q.innerHTML = '<p class="hint">Loading…</p>';
-  try {
-    const qs = status ? `?status=${status}&limit=1000` : '?limit=1000';
-    const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records${qs}`, ctx.token);
-    reviewFeats = fc.features || [];
-    clearSelection();     // the previous selection points at stale indices
-    syncReviewLayer();    // redraw the clickable markers for this filter
-    fitToFeatures(reviewFeats);
-    if (!reviewFeats.length) { q.innerHTML = '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>'; return; }
-    q.innerHTML = reviewFeats.map((f, i) => {
-      const st = (f.properties as { _status?: string })._status || 'published';
-      const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `${nounFor(f.geometry.type)} · ` : '';
-      return `<button type="button" class="point-row" data-idx="${i}">
-        <span class="point-row__title">${escapeHtml(geom)}${escapeHtml(cardTitle(f.properties))}</span>
-        <span class="badge badge--${st}">${st}</span>
-        <span class="point-row__chev" aria-hidden="true">›</span>
-      </button>`;
-    }).join('');
-    q.querySelectorAll<HTMLButtonElement>('.point-row').forEach((b) => {
-      b.onclick = () => openReview(Number(b.dataset.idx));
-    });
-  } catch (e) {
-    q.innerHTML = `<p class="warn">${escapeHtml((e as Error).message)}</p>`;
+  reviewFeats = filterByStatus(allFeats, status);
+  clearSelection();     // the previous selection points at stale indices
+  syncReviewLayer();    // redraw the clickable markers for this filter
+  fitToFeatures(reviewFeats);
+  if (!reviewFeats.length) {
+    q.innerHTML = (status && allFeats.length)
+      ? `<p class="empty">No ${status === 'published' ? 'approved' : status} points.</p>`
+      : '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>';
+    return;
   }
+  q.innerHTML = reviewFeats.map((f, i) => {
+    const st = statusOf(f);
+    const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `${nounFor(f.geometry.type)} · ` : '';
+    return `<button type="button" class="point-row" data-idx="${i}">
+      <span class="point-row__title">${escapeHtml(geom)}${escapeHtml(cardTitle(f.properties))}</span>
+      <span class="badge badge--${st}">${st}</span>
+      <span class="point-row__chev" aria-hidden="true">›</span>
+    </button>`;
+  }).join('');
+  q.querySelectorAll<HTMLButtonElement>('.point-row').forEach((b) => {
+    b.onclick = () => openReview(Number(b.dataset.idx));
+  });
 }
 
 const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? '—' : String(v));
@@ -1052,7 +1107,7 @@ function openReview(idx: number): void {
   selectReviewFeature(idx); // emphasise the same feature on the map
   if (c) {
     reviewMarker = new maplibregl.Marker({ color: '#d97706' }).setLngLat(c).addTo(map);
-    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: sheetLiftOffset() });
+    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: sheetLiftOffset(), duration: 500 });
   }
 
   const attrs = attrRowsHtml(p, 'attr');
