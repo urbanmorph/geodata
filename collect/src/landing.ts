@@ -5,7 +5,8 @@ import { turnstileToken } from './turnstile';
 import { mountSchemaBuilder } from './schema-builder';
 import { escapeHtml } from './util';
 import { BASEMAPS } from './basemap';
-import { searchLayers, type RefLayer } from './geo/catalog';
+import { type RefLayer } from './geo/catalog';
+import { mountLayerPicker } from './geo/layer-picker';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { inferSchema } from './import/infer';
 import { autoMapping, buildRecords } from './import/build';
@@ -121,7 +122,7 @@ function createForm() {
       <label>Map background</label>
       <select id="basemap">${BASEMAPS.map((b) => `<option value="${b.id}">${b.name}</option>`).join('')}</select>
       <label>Reference layer <span class="hint">(optional, show a bharatlas layer for context)</span></label>
-      <input id="ref-search" placeholder="Search layers: forest, wards, hospitals…" autocomplete="off" />
+      <input id="ref-search" placeholder="Tap to browse all layers, or type to filter…" autocomplete="off" />
       <div id="ref-results" class="ref-results"></div>
       <div id="ref-chosen"></div>
       <label>Licence <span class="hint">(open licences only, the map publishes openly)</span></label>
@@ -180,10 +181,8 @@ function createForm() {
     }
   };
 
-  // Reference-layer picker: search the bharatlas catalogue, choose at most one.
+  // Reference-layer picker: browse ALL curated bharatlas layers, choose at most one.
   let chosenRef: RefLayer | null = null;
-  let lastResults: RefLayer[] = [];
-  let refTimer: number | undefined;
   const refSearch = app.querySelector<HTMLInputElement>('#ref-search')!;
   const refResults = app.querySelector<HTMLElement>('#ref-results')!;
   const refChosen = app.querySelector<HTMLElement>('#ref-chosen')!;
@@ -194,24 +193,7 @@ function createForm() {
     const clr = app.querySelector<HTMLButtonElement>('#ref-clear');
     if (clr) clr.onclick = () => { chosenRef = null; renderChosen(); };
   };
-  refSearch.oninput = () => {
-    clearTimeout(refTimer);
-    const q = refSearch.value.trim();
-    if (!q) { refResults.innerHTML = ''; return; }
-    refTimer = window.setTimeout(async () => {
-      try {
-        lastResults = await searchLayers(q);
-        refResults.innerHTML = lastResults.length
-          ? lastResults.slice(0, 8).map((l, i) => `<button type="button" class="ref-opt" data-i="${i}">${escapeHtml(l.label)}<span class="hint">${escapeHtml(l.category)}</span></button>`).join('')
-          : '<p class="hint">No layers found.</p>';
-        refResults.querySelectorAll<HTMLButtonElement>('.ref-opt').forEach((b) => {
-          b.onclick = () => { chosenRef = lastResults[Number(b.dataset.i)]; refResults.innerHTML = ''; refSearch.value = ''; renderChosen(); };
-        });
-      } catch {
-        refResults.innerHTML = '<p class="hint">Couldn\'t reach the catalogue, try again.</p>';
-      }
-    }, 300);
-  };
+  mountLayerPicker(refSearch, refResults, (l) => { chosenRef = l; refResults.innerHTML = ''; refSearch.value = ''; renderChosen(); });
 
   app.querySelector<HTMLButtonElement>('#create')!.onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;

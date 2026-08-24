@@ -1,44 +1,123 @@
-import type { StyleSpecification } from 'maplibre-gl';
+// Basemap registry for the collect map, ported from bharatlas.com (web/src/
+// basemaps.ts + the buildBaseStyle/setBasemap logic in web/src/map.ts). Four
+// options, switchable at runtime on the map:
+//
+//   1. minimal — "Bharatlas Minimal": solid ocean + Natural Earth land + the
+//      LGD-dissolved India outline (India-correct claim, no international labels).
+//      Same-origin GeoJSON, no external tiles — fewer round-trips than raster.
+//   2. positron — Carto Light (roads + labels; good field orientation). Default.
+//   3. opentopo — OpenTopoMap (topographic relief).
+//   4. satellite — Esri Imagery.
+//
+// All four live in ONE MapLibre style; switching flips layer visibility (never
+// setStyle), so the review markers + reference overlays survive a basemap change.
+import maplibregl from 'maplibre-gl';
+import type { StyleSpecification, SourceSpecification, LayerSpecification } from 'maplibre-gl';
 
-// Basemap options an author can choose per collection. Raster styles, no API key.
-export type BasemapId = 'positron' | 'satellite' | 'topo';
+export type BasemapId = 'minimal' | 'positron' | 'opentopo' | 'satellite';
 
-export const BASEMAPS: { id: BasemapId; name: string }[] = [
-  { id: 'positron', name: 'Light' },
-  { id: 'satellite', name: 'Satellite' },
-  { id: 'topo', name: 'Topographic' },
+export interface Basemap {
+  id: BasemapId;
+  name: string;
+  hint: string;
+  sources: Record<string, SourceSpecification>;
+  layers: LayerSpecification[]; // layer ids must be unique across the whole registry
+}
+
+const CARTO_ATTRIB = '© <a href="https://carto.com/attribution/">CARTO</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+const OSM_IN_ATTRIB = 'India boundary: <a href="https://github.com/osm-in/mapbox-gl-styles" target="_blank" rel="noopener">osm-in</a> · © OpenStreetMap contributors (ODbL)';
+const OPENTOPO_ATTRIB = 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)';
+const ESRI_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+
+export const BASEMAPS: Basemap[] = [
+  {
+    id: 'positron',
+    name: 'Carto Light',
+    hint: 'roads + place labels · good for orienting in the field',
+    sources: {
+      'positron-tiles': {
+        type: 'raster',
+        tiles: ['a', 'b', 'c', 'd'].map((s) => `https://${s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{ratio}.png`.replace('{ratio}', (globalThis.devicePixelRatio || 1) > 1 ? '@2x' : '')),
+        tileSize: 256,
+        attribution: CARTO_ATTRIB,
+      },
+    },
+    layers: [{ id: 'positron-base', type: 'raster', source: 'positron-tiles' }],
+  },
+  {
+    id: 'minimal',
+    name: 'Bharatlas Minimal',
+    hint: 'India-correct boundaries · land + ocean · no labels',
+    sources: {
+      'world-land': { type: 'geojson', data: '/world-land.geojson', attribution: 'Land: <a href="https://www.naturalearthdata.com/" target="_blank" rel="noopener">Natural Earth</a> (public domain)' },
+      'india-boundary': { type: 'geojson', data: '/india-boundary.geojson', attribution: OSM_IN_ATTRIB },
+      'india-outline': { type: 'geojson', data: '/india-outline.geojson', attribution: 'India outline: LGD (dissolved states)' },
+    },
+    layers: [
+      { id: 'minimal-bg', type: 'background', paint: { 'background-color': '#dee5e8' } },
+      { id: 'minimal-land', type: 'fill', source: 'world-land', paint: { 'fill-color': '#f5f3ef', 'fill-outline-color': '#d0c8be' } },
+      { id: 'minimal-india-fill', type: 'fill', source: 'india-outline', paint: { 'fill-color': '#f5f3ef' } },
+      { id: 'minimal-india-outline', type: 'line', source: 'india-outline', paint: { 'line-color': '#7d6a5a', 'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1.0, 10, 2.0], 'line-opacity': 0.9 } },
+    ],
+  },
+  {
+    id: 'opentopo',
+    name: 'OpenTopoMap',
+    hint: 'topographic relief + contours',
+    sources: {
+      'opentopo-tiles': { type: 'raster', tiles: ['a', 'b', 'c'].map((s) => `https://${s}.tile.opentopomap.org/{z}/{x}/{y}.png`), tileSize: 256, maxzoom: 17, attribution: OPENTOPO_ATTRIB },
+    },
+    layers: [{ id: 'opentopo-base', type: 'raster', source: 'opentopo-tiles' }],
+  },
+  {
+    id: 'satellite',
+    name: 'Esri Imagery',
+    hint: 'global satellite imagery',
+    sources: {
+      // Esri's REST tile service uses {z}/{y}/{x} ordering, not OSM's {z}/{x}/{y}.
+      'satellite-tiles': { type: 'raster', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19, attribution: ESRI_ATTRIB },
+    },
+    layers: [{ id: 'satellite-base', type: 'raster', source: 'satellite-tiles' }],
+  },
 ];
 
-function raster(id: string, tiles: string[], attribution: string, maxzoom?: number): StyleSpecification {
-  const source: Record<string, unknown> = { type: 'raster', tiles, tileSize: 256, attribution };
-  if (maxzoom) source.maxzoom = maxzoom;
-  return { version: 8, sources: { [id]: source }, layers: [{ id, type: 'raster', source: id }] } as StyleSpecification;
-}
-
-const STYLES: Record<BasemapId, StyleSpecification> = {
-  positron: raster(
-    'basemap',
-    ['a', 'b', 'c', 'd'].map((s) => `https://${s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png`),
-    '© CARTO · © OpenStreetMap contributors',
-  ),
-  satellite: raster(
-    'basemap',
-    ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'],
-    '© Esri, Maxar, Earthstar Geographics',
-    19,
-  ),
-  topo: raster(
-    'basemap',
-    ['a', 'b', 'c'].map((s) => `https://${s}.tile.opentopomap.org/{z}/{x}/{y}.png`),
-    '© OpenTopoMap (CC-BY-SA) · © OpenStreetMap contributors',
-    17,
-  ),
-};
-
-export function styleFor(id?: string | null): StyleSpecification {
-  return STYLES[(id as BasemapId)] ?? STYLES.positron;
-}
-
-// Back-compat default (positron).
-export const BASEMAP = STYLES.positron;
+export const DEFAULT_BASEMAP: BasemapId = 'positron'; // labelled tiles help field orientation
 export const INDIA_CENTER: [number, number] = [78.9, 22];
+
+// Accept a legacy/stored id (the old set was positron/satellite/topo).
+export function normalizeBasemap(id?: string | null): BasemapId {
+  if (id === 'topo') return 'opentopo';
+  return BASEMAPS.some((b) => b.id === id) ? (id as BasemapId) : DEFAULT_BASEMAP;
+}
+
+// One style carrying every basemap's sources + layers; only the active basemap's
+// layers start visible. MapLibre's attribution control follows the visible layers,
+// so only the on-screen basemap is credited.
+export function buildBaseStyle(active: BasemapId): StyleSpecification {
+  const sources: Record<string, SourceSpecification> = {};
+  const layers: LayerSpecification[] = [];
+  for (const b of BASEMAPS) {
+    Object.assign(sources, b.sources);
+    for (const lyr of b.layers) {
+      const layout = { ...(lyr as { layout?: Record<string, unknown> }).layout, visibility: b.id === active ? 'visible' : 'none' };
+      layers.push({ ...lyr, layout } as LayerSpecification);
+    }
+  }
+  return { version: 8, sources, layers };
+}
+
+export function setBasemap(map: maplibregl.Map, id: BasemapId): void {
+  for (const b of BASEMAPS) {
+    for (const lyr of b.layers) {
+      if (map.getLayer(lyr.id)) map.setLayoutProperty(lyr.id, 'visibility', b.id === id ? 'visible' : 'none');
+    }
+  }
+}
+
+const KEY = 'collect:basemap';
+export function getStoredBasemap(): BasemapId | null {
+  try { const v = localStorage.getItem(KEY); return v && BASEMAPS.some((b) => b.id === v) ? (v as BasemapId) : null; } catch { return null; }
+}
+export function setStoredBasemap(id: BasemapId): void {
+  try { localStorage.setItem(KEY, id); } catch { /* per-device convenience only */ }
+}

@@ -4,9 +4,10 @@
 // — for admin — a review queue + publish. Mobile-first.
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { styleFor, BASEMAPS, INDIA_CENTER } from './basemap';
+import { buildBaseStyle, setBasemap, getStoredBasemap, setStoredBasemap, normalizeBasemap, BASEMAPS, INDIA_CENTER, type BasemapId } from './basemap';
 import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
-import { searchLayers, type RefLayer } from './geo/catalog';
+import { type RefLayer } from './geo/catalog';
+import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, apiJson, type Ctx } from './api';
 import { turnstileToken } from './turnstile';
@@ -152,6 +153,28 @@ function crosshairScreenOffset(): [number, number] {
   return [r.left + r.width / 2 - cr.left - cr.width / 2, r.top + r.height / 2 - cr.top - cr.height / 2];
 }
 
+// The on-map "Base map" switcher: a button + a small menu of the four basemaps.
+// Switching flips layer visibility (setBasemap), so overlays + markers survive.
+function installBasemapSwitcher(initial: BasemapId): void {
+  const btn = document.getElementById('basemapbtn');
+  const menu = document.getElementById('basemapmenu');
+  if (!btn || !menu) return;
+  let active = initial;
+  const close = (): void => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
+  const render = (): void => {
+    menu.innerHTML = BASEMAPS.map((b) => `<button type="button" role="menuitemradio" aria-checked="${b.id === active}" class="basemap-opt${b.id === active ? ' on' : ''}" data-b="${b.id}"><strong>${escapeHtml(b.name)}</strong><span class="hint">${escapeHtml(b.hint)}</span></button>`).join('');
+    menu.querySelectorAll<HTMLButtonElement>('.basemap-opt').forEach((o) => {
+      o.onclick = () => { active = o.dataset.b as BasemapId; setBasemap(map, active); setStoredBasemap(active); render(); close(); };
+    });
+  };
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    if (menu.hidden) { render(); menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); } else close();
+  };
+  document.addEventListener('click', (e) => { if (!menu.hidden && !menu.contains(e.target as Node) && e.target !== btn) close(); });
+  render();
+}
+
 const TERMS = 'https://bharatlas.com/terms';
 // Content-safety: a report/takedown path (mailto, no accounts) + terms link.
 function safetyFooter(): string {
@@ -178,19 +201,23 @@ async function boot(): Promise<void> {
       <div class="crosshair" aria-hidden="true" ${isView ? 'style="display:none"' : ''}></div>
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isView ? '' : '<button class="locate" id="locate" aria-label="Use my location">◎</button>'}
-      ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-pressed="true" style="left:12px;top:12px;right:auto;bottom:auto;width:auto;padding:0 12px">◪ Layer</button>' : ''}
+      <button class="locate" id="basemapbtn" aria-label="Base map" aria-haspopup="true" aria-expanded="false" style="left:12px;top:12px;right:auto;bottom:auto;width:auto;padding:0 12px">◱ Base map</button>
+      <div class="basemap-menu" id="basemapmenu" role="menu" aria-label="Base map" hidden></div>
+      ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-pressed="true" style="left:12px;top:60px;right:auto;bottom:auto;width:auto;padding:0 12px">◪ Layer</button>' : ''}
       ${isAdmin ? `<button class="locate" id="manage" aria-label="Manage map${meta.counts.pending ? `, ${meta.counts.pending} pending review` : ''}" style="left:12px;right:auto;bottom:calc(76px + var(--sheet-h,0px));width:auto;padding:0 14px">⚙${meta.counts.pending ? ` ${meta.counts.pending}` : ''}</button>` : ''}
     </div>
     <div id="panel"></div>`;
   installSheetMetrics();
 
+  const initialBasemap = getStoredBasemap() ?? normalizeBasemap(meta.schema.basemap);
   map = new maplibregl.Map({
-    container: 'map', style: styleFor(meta.schema.basemap), center: INDIA_CENTER, zoom: 4,
+    container: 'map', style: buildBaseStyle(initialBasemap), center: INDIA_CENTER, zoom: 4,
     attributionControl: false,
   });
   // Attribution bottom-left so it never sits under the locate button (bottom-right).
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
+  installBasemapSwitcher(initialBasemap);
   drawReady = false; verts = [];
   allowsShapes = orderedModes(meta.schema.geometry).some((m) => m !== 'point');
   map.on('load', () => {
@@ -586,7 +613,7 @@ async function editSettings(): Promise<void> {
       <label>Map background</label><select id="e-basemap">${BASEMAPS.map((b) => `<option value="${b.id}"${sel(b.id, s.basemap || 'positron')}>${b.name}</option>`).join('')}</select>
       <label>Reference layer</label>
       <div id="e-refnow">${s.reference_layer ? `<div class="link-box"><code>${escapeHtml(s.reference_layer.id)}</code><button type="button" id="e-ref-remove">Remove</button></div>` : '<p class="hint">None.</p>'}</div>
-      <input id="e-ref-search" placeholder="Search to change: forest, wards…" autocomplete="off" />
+      <input id="e-ref-search" placeholder="Browse layers, or type to filter…" autocomplete="off" />
       <div id="e-ref-results" class="ref-results"></div>
       <label>Licence</label>
       ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}
@@ -605,21 +632,10 @@ async function editSettings(): Promise<void> {
   });
   const results = document.getElementById('e-ref-results')!;
   const searchEl = document.getElementById('e-ref-search') as HTMLInputElement;
-  let timer: number | undefined; let last: RefLayer[] = [];
-  searchEl.oninput = () => {
-    clearTimeout(timer);
-    const q = searchEl.value.trim();
-    if (!q) { results.innerHTML = ''; return; }
-    timer = window.setTimeout(async () => {
-      try {
-        last = await searchLayers(q);
-        results.innerHTML = last.slice(0, 8).map((l, i) => `<button type="button" class="ref-opt" data-i="${i}">${escapeHtml(l.label)}<span class="hint">${escapeHtml(l.category)}</span></button>`).join('') || '<p class="hint">No layers.</p>';
-        results.querySelectorAll<HTMLButtonElement>('.ref-opt').forEach((b) => {
-          b.onclick = () => { refChange = last[Number(b.dataset.i)]; results.innerHTML = ''; searchEl.value = ''; refNow.innerHTML = `<div class="link-box"><code>${escapeHtml(refChange!.label)}</code></div>`; };
-        });
-      } catch { results.innerHTML = '<p class="hint">Couldn\'t reach the catalogue.</p>'; }
-    }, 300);
-  };
+  mountLayerPicker(searchEl, results, (l) => {
+    refChange = l; results.innerHTML = ''; searchEl.value = '';
+    refNow.innerHTML = `<div class="link-box"><code>${escapeHtml(l.label)}</code></div>`;
+  });
 
   (document.getElementById('e-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
   (document.getElementById('e-save') as HTMLButtonElement).onclick = async (ev) => {
@@ -1232,7 +1248,7 @@ async function recordEditor(): Promise<void> {
     </div></div>`;
   installSheetMetrics();
 
-  map = new maplibregl.Map({ container: 'map', style: styleFor(rec.schema.basemap), center, zoom: isPoint ? 16 : 14, attributionControl: false });
+  map = new maplibregl.Map({ container: 'map', style: buildBaseStyle(getStoredBasemap() ?? normalizeBasemap(rec.schema.basemap)), center, zoom: isPoint ? 16 : 14, attributionControl: false });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   // Only rewrite the point's location if the user actually repositioned it — a
   // plain "fix a typo and Save" must leave the point exactly where it was.
