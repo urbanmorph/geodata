@@ -1,10 +1,31 @@
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
-import { communityCardActions, dlProxyUrl, renderCommunityActions } from '../scripts/community-card.mjs';
+import { communityCardActions, dlProxyUrl, renderCommunityActions, channelOf, CHANNEL_LABEL } from '../scripts/community-card.mjs';
 
 const R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
 const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] || c));
 const fmtBytes = (n: number) => `${Math.round(n / 1024)} KB`;
+
+describe('channelOf — where a community submission came from', () => {
+  it('a collect map stamps collection_id on publish → "collect"', () => {
+    expect(channelOf({ id: 'a', collection_id: 'Wo0Y5zzpUC' })).toBe('collect');
+  });
+  it('the bharatlas /submit form leaves collection_id null → "form"', () => {
+    expect(channelOf({ id: 'b', collection_id: null })).toBe('form');
+    expect(channelOf({ id: 'c' })).toBe('form'); // column absent
+  });
+  it('MCP / API publishes route through collect, so they read as "collect"', () => {
+    // no per-source key: any collection-linked submission is a collect publish
+    expect(channelOf({ id: 'd', collection_id: 'abc123' })).toBe('collect');
+  });
+  it('every channel has a human label for the card + dashboard', () => {
+    expect(CHANNEL_LABEL.collect).toBeTruthy();
+    expect(CHANNEL_LABEL.form).toBeTruthy();
+  });
+  it('is null-safe', () => {
+    expect(channelOf(null)).toBe('form');
+  });
+});
 
 describe('dlProxyUrl', () => {
   it('routes non-pmtiles R2 urls through the counting proxy', () => {
