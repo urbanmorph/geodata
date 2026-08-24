@@ -18,6 +18,8 @@ import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
 import { rememberMap } from './maps-store';
+import { linksMailtoHref, type MapLinks } from './share';
+import { shareItemHtml, wireShareItems } from './share-ui';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
   id: string; name: string; purpose: string; description: string | null; data_year: number | null; status: string; moderation: number; license: string;
@@ -77,6 +79,77 @@ function marker(coords: number[], color = ACCENT): void {
   if (coords.length >= 2) new maplibregl.Marker({ color }).setLngLat([coords[0], coords[1]]).addTo(map);
 }
 
+// A grab handle — the first child of every collapsible bottom sheet.
+const GRAB = '<button type="button" class="grab" aria-expanded="true" aria-label="Collapse or expand this panel"></button>';
+
+// ── sheet metrics ────────────────────────────────────────────────────────
+// Keep --sheet-h current so the crosshair + floating map buttons sit above the
+// panel, and let the grab handle collapse the sheet to a peek (map takes over).
+function setSheetVar(px: number): void {
+  document.getElementById('app')?.style.setProperty('--sheet-h', `${Math.max(0, Math.round(px))}px`);
+}
+function updateSheetMetrics(): void {
+  const sheet = document.querySelector('#panel .sheet, #panel .bar') as HTMLElement | null;
+  if (!sheet) { setSheetVar(0); return; }
+  if (sheet.classList.contains('collapsed')) {
+    // match the CSS peek strip, so the crosshair/buttons line up with the handle
+    setSheetVar(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--peek-h')) || 30);
+    return;
+  }
+  setSheetVar(sheet.getBoundingClientRect().height);
+}
+let sheetMetricsInstalled = false;
+function installSheetMetrics(): void {
+  if (sheetMetricsInstalled) return;
+  sheetMetricsInstalled = true;
+  const appEl = document.getElementById('app')!;
+  new MutationObserver(() => requestAnimationFrame(updateSheetMetrics)).observe(appEl, { childList: true, subtree: true });
+  appEl.addEventListener('click', (e) => {
+    const grab = (e.target as HTMLElement).closest('.grab');
+    if (!grab) return;
+    const sheet = grab.closest('.sheet');
+    const collapsed = sheet?.classList.toggle('collapsed') ?? false;
+    grab.setAttribute('aria-expanded', String(!collapsed));
+    // keep the grab operable, but pull the now-offscreen content out of the tab order
+    sheet?.querySelectorAll('.body, .foot').forEach((el) => {
+      if (collapsed) el.setAttribute('inert', ''); else el.removeAttribute('inert');
+    });
+    updateSheetMetrics();
+  });
+  window.addEventListener('resize', () => requestAnimationFrame(updateSheetMetrics));
+  requestAnimationFrame(updateSheetMetrics);
+}
+
+// The lng/lat under the crosshair. The crosshair rides above the sheet (not at
+// the map's geometric centre), so read its real screen position and unproject:
+// the placed point is exactly what the user sees targeted. Falls back to the map
+// centre when there is no visible crosshair (missing, or display:none in view mode).
+function crosshairLngLat(): [number, number] {
+  const ch = document.querySelector('.crosshair') as HTMLElement | null;
+  const cr = map.getCanvas().getBoundingClientRect();
+  if (ch) {
+    const r = ch.getBoundingClientRect();
+    if (r.width !== 0) {
+      const ll = map.unproject([r.left + r.width / 2 - cr.left, r.top + r.height / 2 - cr.top]);
+      return [ll.lng, ll.lat];
+    }
+  }
+  const c = map.getCenter();
+  return [c.lng, c.lat];
+}
+
+// The crosshair's offset from the map centre, in screen px. Pass as a flyTo/easeTo
+// `offset` to bring a coordinate UNDER the crosshair (locate, or framing an edited
+// point). [0,0] when there is no visible crosshair, so it is a safe no-op.
+function crosshairScreenOffset(): [number, number] {
+  const ch = document.querySelector('.crosshair') as HTMLElement | null;
+  if (!ch) return [0, 0];
+  const r = ch.getBoundingClientRect();
+  if (r.width === 0) return [0, 0];
+  const cr = map.getCanvas().getBoundingClientRect();
+  return [r.left + r.width / 2 - cr.left - cr.width / 2, r.top + r.height / 2 - cr.top - cr.height / 2];
+}
+
 const TERMS = 'https://bharatlas.com/terms';
 // Content-safety: a report/takedown path (mailto, no accounts) + terms link.
 function safetyFooter(): string {
@@ -104,9 +177,10 @@ async function boot(): Promise<void> {
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isView ? '' : '<button class="locate" id="locate" aria-label="Use my location">◎</button>'}
       ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-pressed="true" style="left:12px;top:12px;right:auto;bottom:auto;width:auto;padding:0 12px">◪ Layer</button>' : ''}
-      ${isAdmin ? `<button class="locate" id="manage" aria-label="Manage map${meta.counts.pending ? `, ${meta.counts.pending} pending review` : ''}" style="left:12px;right:auto;bottom:76px;width:auto;padding:0 14px">⚙${meta.counts.pending ? ` ${meta.counts.pending}` : ''}</button>` : ''}
+      ${isAdmin ? `<button class="locate" id="manage" aria-label="Manage map${meta.counts.pending ? `, ${meta.counts.pending} pending review` : ''}" style="left:12px;right:auto;bottom:calc(76px + var(--sheet-h,0px));width:auto;padding:0 14px">⚙${meta.counts.pending ? ` ${meta.counts.pending}` : ''}</button>` : ''}
     </div>
     <div id="panel"></div>`;
+  installSheetMetrics();
 
   map = new maplibregl.Map({
     container: 'map', style: styleFor(meta.schema.basemap), center: INDIA_CENTER, zoom: 4,
@@ -137,7 +211,7 @@ async function boot(): Promise<void> {
     locate.onclick = () => {
       if (!navigator.geolocation) return toast('Location not available');
       navigator.geolocation.getCurrentPosition(
-        (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16 }),
+        (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }),
         () => toast("Couldn't get your location"),
         { enableHighAccuracy: true, timeout: 8000 },
       );
@@ -156,7 +230,7 @@ async function boot(): Promise<void> {
 function viewPanel(): void {
   const panel = document.getElementById('panel')!;
   const n = meta.counts.published;
-  panel.innerHTML = `<div class="sheet"><div class="body">
+  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
     <strong>${escapeHtml(meta.name)}</strong>
     ${meta.purpose ? `<p class="hint">${escapeHtml(meta.purpose)}</p>` : ''}
     <p class="hint">${n ? `${n} point${n === 1 ? '' : 's'} on the map.` : 'No points published yet.'}</p>
@@ -276,14 +350,13 @@ function renderPlaceBar(modes: GeomMode[]): void {
     b.onclick = () => { drawMode = b.dataset.m as GeomMode; verts = []; redrawDraw(); syncDrawUI(); };
   });
   (document.getElementById('vadd') as HTMLButtonElement).onclick = () => {
-    const c = map.getCenter(); verts.push([c.lng, c.lat]); redrawDraw(); syncDrawUI();
+    verts.push(crosshairLngLat()); redrawDraw(); syncDrawUI();
   };
   (document.getElementById('vundo') as HTMLButtonElement).onclick = () => {
     verts.pop(); redrawDraw(); syncDrawUI();
   };
   (document.getElementById('place') as HTMLButtonElement).onclick = () => {
-    const c = map.getCenter();
-    const geometry = drawGeometry(drawMode, verts, [c.lng, c.lat]);
+    const geometry = drawGeometry(drawMode, verts, crosshairLngLat());
     if (!geometry) { toast(`A ${NOUN[drawMode]} needs ${drawMode === 'line' ? '2' : '3'} points or more`); return; }
     detailsSheet(geometry, modes);
   };
@@ -294,6 +367,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   const noun = NOUN[drawMode];
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
+    ${GRAB}
     <form class="body" id="capform">
       <strong>${cap(noun)} details</strong>
       <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
@@ -359,6 +433,7 @@ async function editSettings(): Promise<void> {
   const locked = meta.counts.total > 0;
   const sel = (v: string, cur: string): string => (v === cur ? ' selected' : '');
   panel.innerHTML = `<div class="sheet">
+    ${GRAB}
     <form class="body" id="editform">
       <strong>Edit map settings</strong>
       <label>Name</label><input id="e-name" maxlength="120" value="${escapeHtml(meta.name)}" required />
@@ -437,44 +512,34 @@ async function editSettings(): Promise<void> {
   };
 }
 
+// The admin sheet is tabbed so each job stands alone (the old one-scroll panel
+// stacked review + share + download + import together). Review is the daily job
+// and stays the default; Share and Data sit one tap away. Publish + Add points
+// stay in the footer, reachable from any tab.
+type ManageTab = 'review' | 'share' | 'data';
+let manageTab: ManageTab = 'review';
+// Links minted this session, so switching tabs (or coming back) re-shows them.
+const minted: { edit?: string; view?: string } = {};
+const MINT_LABEL = { edit: 'Collect link', view: 'View-only link' } as const;
+
 async function manageSheet(): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
   meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token).catch(() => meta);
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
+    ${GRAB}
     <div class="body">
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong>Manage map</strong>
         <button id="edit-settings" style="min-height:36px;font-size:13px">✎ Settings</button>
       </div>
-      <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
-      <div class="row" id="pfilter" style="margin:8px 0 4px">
-        <button type="button" class="chip on" data-s="">All ${c.total}</button>
-        <button type="button" class="chip" data-s="pending">Pending ${c.pending}</button>
-        <button type="button" class="chip" data-s="published">Approved ${c.published}</button>
-        ${c.rejected ? `<button type="button" class="chip" data-s="rejected">Rejected ${c.rejected}</button>` : ''}
+      <div class="tabs" id="mtabs" role="tablist" aria-label="Manage sections">
+        <button type="button" role="tab" data-t="review">Review${c.pending ? ` · ${c.pending}` : ''}</button>
+        <button type="button" role="tab" data-t="share">Share</button>
+        <button type="button" role="tab" data-t="data">Data</button>
       </div>
-      <div id="points"><p class="hint">Loading points…</p></div>
-      <strong style="display:block;margin-top:14px">Share links</strong>
-      <p class="hint">Mint a fresh link to share. The original links can't be shown again.</p>
-      <div class="row">
-        <button id="mint-edit">+ Collect link</button>
-        <button id="mint-view">+ View-only link</button>
-      </div>
-      <div id="minted"></div>
-      <strong style="display:block;margin-top:14px">Download the data</strong>
-      <p class="hint">Every collected point, to use anywhere.</p>
-      <div class="row">
-        <button data-dl="geojson">GeoJSON</button>
-        <button data-dl="csv">CSV</button>
-        <button data-dl="kml">KML</button>
-      </div>
-      <strong style="display:block;margin-top:14px">Import data</strong>
-      <p class="hint">Add many points at once from a CSV, GeoJSON or KML file.</p>
-      <label class="btn wide" style="cursor:pointer">⬆ Choose a file<input id="import-file" type="file" accept=".csv,.geojson,.json,.kml" hidden></label>
-      <div id="import-panel"></div>
-      ${safetyFooter()}
+      <div id="tabbody" role="tabpanel" tabindex="0"></div>
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
@@ -484,6 +549,37 @@ async function manageSheet(): Promise<void> {
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
   (document.getElementById('publish') as HTMLButtonElement).onclick = doPublish;
   (document.getElementById('edit-settings') as HTMLButtonElement).onclick = () => void editSettings();
+  document.querySelectorAll<HTMLButtonElement>('#mtabs button').forEach((b) => {
+    b.onclick = () => { manageTab = b.dataset.t as ManageTab; renderManageTab(); };
+  });
+  renderManageTab();
+}
+
+function renderManageTab(): void {
+  document.querySelectorAll<HTMLElement>('#mtabs button').forEach((b) => {
+    const on = b.dataset.t === manageTab;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', String(on));
+  });
+  const body = document.getElementById('tabbody');
+  if (!body) return;
+  if (manageTab === 'share') return renderShareTab(body);
+  if (manageTab === 'data') return renderDataTab(body);
+  return renderReviewTab(body);
+}
+
+// Review: moderate the points. The counts line + filter chips + tappable list.
+function renderReviewTab(body: HTMLElement): void {
+  const c = meta.counts;
+  body.innerHTML = `
+    <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
+    <div class="row" id="pfilter" style="margin:8px 0 4px">
+      <button type="button" class="chip on" data-s="">All ${c.total}</button>
+      <button type="button" class="chip" data-s="pending">Pending ${c.pending}</button>
+      <button type="button" class="chip" data-s="published">Approved ${c.published}</button>
+      ${c.rejected ? `<button type="button" class="chip" data-s="rejected">Rejected ${c.rejected}</button>` : ''}
+    </div>
+    <div id="points"><p class="hint">Loading points…</p></div>`;
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
       document.querySelectorAll('#pfilter .chip').forEach((x) => x.classList.remove('on'));
@@ -491,35 +587,77 @@ async function manageSheet(): Promise<void> {
       void renderPoints();
     };
   });
+  void renderPoints();
+}
 
-  const mint = async (permission: 'edit' | 'view') => {
+// Share: hand a link to another device. The admin link (this device's URL) gets
+// Copy / Share / QR so the owner can open the same map on their phone or laptop;
+// collect / view links are minted on demand; and every link can be mailed to self.
+function renderShareTab(body: HTMLElement): void {
+  const title = meta.name || 'bharatlas collect map';
+  const adminLink = location.href;
+  body.innerHTML = `
+    <p class="hint">Hand a link to another device or person. No accounts, so the link is the key: whoever holds it can use it at that level.</p>
+    ${shareItemHtml('admin', 'Admin link (this device, keep secret)', adminLink, 'Open the same map on your other device: Share it to yourself, or scan the QR. Keep it private.')}
+    <div class="row" style="margin-top:4px">
+      <button id="mint-edit">+ Collect link</button>
+      <button id="mint-view">+ View-only link</button>
+    </div>
+    <p class="hint">Collect links let people add points; view links are read only. Mint fresh ones anytime.</p>
+    <div id="minted"></div>
+    <a class="btn wide" id="email-links" style="margin-top:12px">✉ Email these links to me</a>`;
+  wireShareItems(body, title);
+
+  const mintedBox = document.getElementById('minted')!;
+  const emailA = document.getElementById('email-links') as HTMLAnchorElement;
+  const refreshEmail = (): void => { emailA.href = linksMailtoHref({ admin: adminLink, ...minted } as MapLinks, meta.name); };
+  const addMinted = (key: 'edit' | 'view', label: string, url: string): void => {
+    mintedBox.querySelector(`.share-item[data-share="${key}"]`)?.remove(); // replace, never stack a stale token
+    const wrap = document.createElement('div');
+    wrap.innerHTML = shareItemHtml(key, label, url);
+    wireShareItems(wrap, title);
+    mintedBox.prepend(wrap.firstElementChild!);
+    refreshEmail();
+  };
+  refreshEmail();
+  if (minted.view) addMinted('view', MINT_LABEL.view, minted.view);
+  if (minted.edit) addMinted('edit', MINT_LABEL.edit, minted.edit);
+
+  const mint = async (permission: 'edit' | 'view'): Promise<void> => {
     try {
       const res = await apiJson<{ link: string }>(`/collections/${ctx.id}/tokens`, ctx.token, {
         method: 'POST', body: JSON.stringify({ permission }),
       });
-      const box = document.getElementById('minted')!;
-      const row = document.createElement('div');
-      row.className = 'link-box';
-      row.innerHTML = `<code></code><button>Copy</button>`;
-      row.querySelector('code')!.textContent = res.link; // textContent — never innerHTML a URL
-      const btn = row.querySelector('button')!;
-      btn.onclick = () => { navigator.clipboard?.writeText(res.link); btn.textContent = '✓'; };
-      box.prepend(row);
-    } catch (e) {
-      toast((e as Error).message);
-    }
+      minted[permission] = res.link;
+      addMinted(permission, MINT_LABEL[permission], res.link);
+    } catch (e) { toast((e as Error).message); }
   };
-  (document.getElementById('mint-edit') as HTMLButtonElement).onclick = () => mint('edit');
-  (document.getElementById('mint-view') as HTMLButtonElement).onclick = () => mint('view');
-  document.querySelectorAll<HTMLButtonElement>('button[data-dl]').forEach((b) => {
+  (document.getElementById('mint-edit') as HTMLButtonElement).onclick = () => void mint('edit');
+  (document.getElementById('mint-view') as HTMLButtonElement).onclick = () => void mint('view');
+}
+
+// Data: download every point, or bulk-import a file.
+function renderDataTab(body: HTMLElement): void {
+  body.innerHTML = `
+    <strong style="display:block">Download the data</strong>
+    <p class="hint">Every collected point, to use anywhere.</p>
+    <div class="row">
+      <button data-dl="geojson">GeoJSON</button>
+      <button data-dl="csv">CSV</button>
+      <button data-dl="kml">KML</button>
+    </div>
+    <strong style="display:block;margin-top:14px">Import data</strong>
+    <p class="hint">Add many points at once from a CSV, GeoJSON or KML file.</p>
+    <label class="btn wide" style="cursor:pointer">⬆ Choose a file<input id="import-file" type="file" accept=".csv,.geojson,.json,.kml" hidden></label>
+    <div id="import-panel"></div>
+    ${safetyFooter()}`;
+  body.querySelectorAll<HTMLButtonElement>('button[data-dl]').forEach((b) => {
     b.onclick = () => void downloadData(b.dataset.dl as 'geojson' | 'csv' | 'kml');
   });
   (document.getElementById('import-file') as HTMLInputElement).onchange = (e) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (file) void importFlow(file);
   };
-
-  void renderPoints();
 }
 
 const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
@@ -736,7 +874,8 @@ function openReview(idx: number): void {
   clearHighlight();
   if (c) {
     reviewMarker = new maplibregl.Marker({ color: '#d97706' }).setLngLat(c).addTo(map);
-    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: [0, -70] });
+    // Lift the point into the band above the review sheet (which floats over the map).
+    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: [0, -Math.round(window.innerHeight * 0.2)] });
   }
 
   const attrs = fields
@@ -745,6 +884,7 @@ function openReview(idx: number): void {
   const origin = p._source ? `⇪ from ${escapeHtml(p._source)}` : `by ${escapeHtml(p._contributor || 'anonymous')}`;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
+    ${GRAB}
     <div class="body">
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px">
         <strong style="flex:1">${escapeHtml(cardTitle(p))}</strong>
@@ -794,7 +934,7 @@ async function doPublish(ev: Event): Promise<void> {
     );
     toast(`Published v${res.version} · ${res.feature_count} features`);
     const panel = document.getElementById('panel')!;
-    panel.innerHTML = `<div class="sheet"><div class="body">
+    panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
       <strong>Published to the catalog 🎉</strong>
       <p class="hint">Version ${res.version} · ${res.feature_count} features.</p>
       <a class="btn primary" href="${res.share_url}" target="_blank" rel="noopener">View on bharatlas →</a>
@@ -829,6 +969,7 @@ async function recordEditor(): Promise<void> {
       ${isPoint ? '<button class="locate" id="locate" aria-label="Use my location">◎</button>' : ''}
     </div>
     <div id="panel"><div class="sheet">
+      ${GRAB}
       <form class="body" id="recform">
         <strong>Edit your ${noun}</strong>
         <p class="hint">${isPoint ? 'Move the map to reposition; update the details.' : 'Update the details below.'} Status: ${rec.status}.</p>
@@ -842,12 +983,23 @@ async function recordEditor(): Promise<void> {
         </div>
       </div>
     </div></div>`;
+  installSheetMetrics();
 
   map = new maplibregl.Map({ container: 'map', style: styleFor(rec.schema.basemap), center, zoom: isPoint ? 16 : 14, attributionControl: false });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  // Only rewrite the point's location if the user actually repositioned it — a
+  // plain "fix a typo and Save" must leave the point exactly where it was.
+  let moved = false;
+  map.on('dragstart', () => { moved = true; });
   map.on('load', () => {
     document.getElementById('maploading')?.remove();
-    if (isPoint) { marker(center); return; }
+    if (isPoint) {
+      marker(center);
+      // Sit the point UNDER the crosshair (which rides above map centre), so the
+      // marker and the target line up and repositioning reads true.
+      map.easeTo({ center, offset: crosshairScreenOffset(), duration: 0 });
+      return;
+    }
     map.addSource('rec', { type: 'geojson', data: { type: 'Feature', geometry: rec.geometry as GeoJSON.Geometry, properties: {} } });
     map.addLayer({ id: 'rec-fill', type: 'fill', source: 'rec', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.15 } });
     map.addLayer({ id: 'rec-line', type: 'line', source: 'rec', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2.5 } });
@@ -873,7 +1025,7 @@ async function recordEditor(): Promise<void> {
   if (locateBtn) locateBtn.onclick = () => {
     if (!navigator.geolocation) return toast('Location not available');
     navigator.geolocation.getCurrentPosition(
-      (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16 }),
+      (pos) => { moved = true; map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }); },
       () => toast("Couldn't get your location"), { enableHighAccuracy: true, timeout: 8000 },
     );
   };
@@ -897,9 +1049,10 @@ async function recordEditor(): Promise<void> {
       }
       const valid = validateRecordProperties(fields, raw);
       if (!valid.ok) { toast(valid.error); btn.disabled = false; return; }
-      // Points can be repositioned by panning; shapes edit properties only.
+      // Points can be repositioned by panning; shapes edit properties only. Only
+      // write geometry when the user actually moved the map (else leave it put).
       const body: Record<string, unknown> = { properties: valid.properties };
-      if (isPoint) { const c = map.getCenter(); body.geometry = { type: 'Point', coordinates: [c.lng, c.lat] }; }
+      if (isPoint && moved) body.geometry = { type: 'Point', coordinates: crosshairLngLat() };
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'PATCH', body: JSON.stringify(body) });
       toast('Saved ✓');
     } catch (e) { toast((e as Error).message); }

@@ -34,6 +34,9 @@
   --shadow-card: 0 1px 2px rgba(15, 17, 21, .05);
   --shadow-pop: 0 6px 22px rgba(15, 17, 21, .16);
   --ring: 0 0 0 3px rgba(79, 70, 229, .40);
+  --sheet-h: 0px;            /* live height of the bottom sheet; JS keeps it current
+                                so the map's crosshair + floating controls sit above it */
+  --peek-h: 30px;            /* visible strip when a sheet is collapsed (CSS + JS read this) */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -67,7 +70,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -webkit-text-size-adjust: 100%;
 }
-#app { height: 100dvh; display: flex; flex-direction: column; }
+#app { height: 100dvh; display: flex; flex-direction: column; position: relative; }
 strong { font-weight: 650; letter-spacing: -.01em; }
 
 /* top bar */
@@ -165,6 +168,38 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 .link-box .btn, .link-box button { min-height: 40px; padding: 0 12px; }
 
+/* ── share a link to another device (Copy / Share / QR) ────────────────── */
+.share-item {
+  border: 1px solid var(--line); border-radius: var(--radius); background: var(--card);
+  padding: 11px 12px; margin: 9px 0; box-shadow: var(--shadow-card);
+}
+.share-item__label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 13px; font-weight: 600; color: var(--fg); }
+.share-item code {
+  display: block; margin: 8px 0; padding: 9px 11px; background: var(--surface); border-radius: 9px;
+  font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.share-item__actions { display: flex; gap: 8px; }
+.share-item__actions button { flex: 1; min-height: 42px; padding: 0 8px; }
+/* the QR itself is always dark-on-white so it scans in any theme */
+.qr {
+  width: 172px; max-width: 60vw; aspect-ratio: 1; margin: 10px auto 0; padding: 10px;
+  background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-card);
+  display: flex; align-items: center; justify-content: center;
+}
+.qr svg { display: block; width: 100%; height: 100%; }
+.qr-slot[hidden] { display: none; }
+
+/* ── tabs (admin Manage: Review / Share / Data) ────────────────────────── */
+.tabs {
+  display: flex; gap: 4px; margin: 10px 0 12px; padding: 3px;
+  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface);
+}
+.tabs button {
+  flex: 1; min-height: 36px; border: 0; border-radius: 9px; background: transparent;
+  font-size: 13px; font-weight: 600; padding: 0 6px; color: var(--muted);
+}
+.tabs button.on { background: var(--accent-solid); color: #fff; box-shadow: var(--shadow-card); }
+
 /* import column-mapping rows (field ← column) */
 .maplabel { font-size: 13px; font-weight: 600; color: var(--fg); margin: 14px 0 6px; }
 .maplabel .hint { font-weight: 400; }
@@ -186,9 +221,14 @@ textarea { min-height: 92px; line-height: 1.5; }
 /* ── map + capture ─────────────────────────────────────────────────────── */
 .map { position: relative; flex: 1; min-height: 0; }
 #map { position: absolute; inset: 0; }
+/* The panel floats OVER a full-bleed map (not squeezing it), so plotting always
+   has the whole screen. The crosshair + map buttons ride above it via --sheet-h. */
+#panel { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; }
 .crosshair {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: calc(50% - var(--sheet-h, 0px) / 2);
+  transform: translate(-50%, -50%);
   width: 34px; height: 34px; pointer-events: none; z-index: 5;
+  transition: top .2s ease;
 }
 .crosshair::before, .crosshair::after { content: ""; position: absolute; background: var(--accent); border-radius: 2px; }
 .crosshair::before { left: 16px; top: 0; width: 2px; height: 34px; }
@@ -201,9 +241,10 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 @keyframes pulse { 0%, 100% { outline-color: var(--accent-strong); } 50% { outline-color: color-mix(in srgb, var(--accent-strong) 45%, transparent); } }
 .locate {
-  position: absolute; right: 14px; bottom: 14px; z-index: 6;
+  position: absolute; right: 14px; bottom: calc(14px + var(--sheet-h, 0px)); z-index: 6;
   min-width: var(--ctl-h); padding: 0; font-size: 18px;
   background: var(--card); box-shadow: var(--shadow-pop);
+  transition: bottom .2s ease;
 }
 
 /* ── bottom sheet ──────────────────────────────────────────────────────── */
@@ -212,11 +253,26 @@ textarea { min-height: 92px; line-height: 1.5; }
   box-shadow: var(--shadow-sheet); border-radius: 18px 18px 0 0;
   max-height: 64dvh; display: flex; flex-direction: column;
   animation: sheet-in .22s cubic-bezier(.2, .7, .3, 1);
+  transition: transform .26s cubic-bezier(.2, .7, .3, 1);
 }
-.sheet::before, .bar::before {
+/* collapse to a peek: the map takes the whole screen, the grab stays reachable */
+.sheet.collapsed { transform: translateY(calc(100% - var(--peek-h))); }
+.bar::before {
   content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
   width: 36px; height: 4px; border-radius: 999px; background: var(--line-strong); opacity: .8;
 }
+/* tappable grab handle — drag the sheet out of the way to see more map */
+.grab {
+  position: relative; flex: 0 0 auto; width: 100%; height: 26px; min-height: 26px;
+  padding: 0; margin: 0; border: 0; background: transparent; cursor: pointer; border-radius: 18px 18px 0 0;
+}
+.grab::before {
+  content: ""; position: absolute; top: 9px; left: 50%; transform: translateX(-50%);
+  width: 40px; height: 4px; border-radius: 999px; background: var(--line-strong); opacity: .85;
+  transition: background .15s ease, width .15s ease;
+}
+.grab:hover::before { width: 48px; }
+.grab:active::before, .sheet.collapsed .grab::before { background: var(--accent); }
 
 /* compact placing controls — keeps the map the centre-piece while marking */
 .bar {
@@ -228,7 +284,7 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 .bar #cap-help { margin: 0; }
 .bar .seg { align-self: center; }
-.sheet .body { padding: 20px 16px 14px; overflow: auto; }
+.sheet .body { padding: 4px 16px 14px; overflow: auto; }
 .sheet .body > strong { font-size: 17px; }
 .sheet .foot {
   padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
