@@ -80,7 +80,7 @@ function marker(coords: number[], color = ACCENT): void {
 }
 
 // A grab handle — the first child of every collapsible bottom sheet.
-const GRAB = '<button type="button" class="grab" aria-label="Collapse or expand this panel"></button>';
+const GRAB = '<button type="button" class="grab" aria-expanded="true" aria-label="Collapse or expand this panel"></button>';
 
 // ── sheet metrics ────────────────────────────────────────────────────────
 // Keep --sheet-h current so the crosshair + floating map buttons sit above the
@@ -91,7 +91,11 @@ function setSheetVar(px: number): void {
 function updateSheetMetrics(): void {
   const sheet = document.querySelector('#panel .sheet, #panel .bar') as HTMLElement | null;
   if (!sheet) { setSheetVar(0); return; }
-  if (sheet.classList.contains('collapsed')) { setSheetVar(30); return; }
+  if (sheet.classList.contains('collapsed')) {
+    // match the CSS peek strip, so the crosshair/buttons line up with the handle
+    setSheetVar(parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--peek-h')) || 30);
+    return;
+  }
   setSheetVar(sheet.getBoundingClientRect().height);
 }
 let sheetMetricsInstalled = false;
@@ -103,7 +107,13 @@ function installSheetMetrics(): void {
   appEl.addEventListener('click', (e) => {
     const grab = (e.target as HTMLElement).closest('.grab');
     if (!grab) return;
-    grab.closest('.sheet')?.classList.toggle('collapsed');
+    const sheet = grab.closest('.sheet');
+    const collapsed = sheet?.classList.toggle('collapsed') ?? false;
+    grab.setAttribute('aria-expanded', String(!collapsed));
+    // keep the grab operable, but pull the now-offscreen content out of the tab order
+    sheet?.querySelectorAll('.body, .foot').forEach((el) => {
+      if (collapsed) el.setAttribute('inert', ''); else el.removeAttribute('inert');
+    });
     updateSheetMetrics();
   });
   window.addEventListener('resize', () => requestAnimationFrame(updateSheetMetrics));
@@ -112,17 +122,32 @@ function installSheetMetrics(): void {
 
 // The lng/lat under the crosshair. The crosshair rides above the sheet (not at
 // the map's geometric centre), so read its real screen position and unproject:
-// the placed point is exactly what the user sees targeted.
+// the placed point is exactly what the user sees targeted. Falls back to the map
+// centre when there is no visible crosshair (missing, or display:none in view mode).
 function crosshairLngLat(): [number, number] {
   const ch = document.querySelector('.crosshair') as HTMLElement | null;
   const cr = map.getCanvas().getBoundingClientRect();
   if (ch) {
     const r = ch.getBoundingClientRect();
-    const ll = map.unproject([r.left + r.width / 2 - cr.left, r.top + r.height / 2 - cr.top]);
-    return [ll.lng, ll.lat];
+    if (r.width !== 0) {
+      const ll = map.unproject([r.left + r.width / 2 - cr.left, r.top + r.height / 2 - cr.top]);
+      return [ll.lng, ll.lat];
+    }
   }
   const c = map.getCenter();
   return [c.lng, c.lat];
+}
+
+// The crosshair's offset from the map centre, in screen px. Pass as a flyTo/easeTo
+// `offset` to bring a coordinate UNDER the crosshair (locate, or framing an edited
+// point). [0,0] when there is no visible crosshair, so it is a safe no-op.
+function crosshairScreenOffset(): [number, number] {
+  const ch = document.querySelector('.crosshair') as HTMLElement | null;
+  if (!ch) return [0, 0];
+  const r = ch.getBoundingClientRect();
+  if (r.width === 0) return [0, 0];
+  const cr = map.getCanvas().getBoundingClientRect();
+  return [r.left + r.width / 2 - cr.left - cr.width / 2, r.top + r.height / 2 - cr.top - cr.height / 2];
 }
 
 const TERMS = 'https://bharatlas.com/terms';
@@ -186,7 +211,7 @@ async function boot(): Promise<void> {
     locate.onclick = () => {
       if (!navigator.geolocation) return toast('Location not available');
       navigator.geolocation.getCurrentPosition(
-        (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16 }),
+        (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }),
         () => toast("Couldn't get your location"),
         { enableHighAccuracy: true, timeout: 8000 },
       );
@@ -495,6 +520,7 @@ type ManageTab = 'review' | 'share' | 'data';
 let manageTab: ManageTab = 'review';
 // Links minted this session, so switching tabs (or coming back) re-shows them.
 const minted: { edit?: string; view?: string } = {};
+const MINT_LABEL = { edit: 'Collect link', view: 'View-only link' } as const;
 
 async function manageSheet(): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
@@ -508,12 +534,12 @@ async function manageSheet(): Promise<void> {
         <strong>Manage map</strong>
         <button id="edit-settings" style="min-height:36px;font-size:13px">✎ Settings</button>
       </div>
-      <div class="tabs" id="mtabs">
-        <button type="button" data-t="review">Review${c.pending ? ` · ${c.pending}` : ''}</button>
-        <button type="button" data-t="share">Share</button>
-        <button type="button" data-t="data">Data</button>
+      <div class="tabs" id="mtabs" role="tablist" aria-label="Manage sections">
+        <button type="button" role="tab" data-t="review">Review${c.pending ? ` · ${c.pending}` : ''}</button>
+        <button type="button" role="tab" data-t="share">Share</button>
+        <button type="button" role="tab" data-t="data">Data</button>
       </div>
-      <div id="tabbody"></div>
+      <div id="tabbody" role="tabpanel" tabindex="0"></div>
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
@@ -530,7 +556,11 @@ async function manageSheet(): Promise<void> {
 }
 
 function renderManageTab(): void {
-  document.querySelectorAll<HTMLElement>('#mtabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === manageTab));
+  document.querySelectorAll<HTMLElement>('#mtabs button').forEach((b) => {
+    const on = b.dataset.t === manageTab;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', String(on));
+  });
   const body = document.getElementById('tabbody');
   if (!body) return;
   if (manageTab === 'share') return renderShareTab(body);
@@ -582,6 +612,7 @@ function renderShareTab(body: HTMLElement): void {
   const emailA = document.getElementById('email-links') as HTMLAnchorElement;
   const refreshEmail = (): void => { emailA.href = linksMailtoHref({ admin: adminLink, ...minted } as MapLinks, meta.name); };
   const addMinted = (key: 'edit' | 'view', label: string, url: string): void => {
+    mintedBox.querySelector(`.share-item[data-share="${key}"]`)?.remove(); // replace, never stack a stale token
     const wrap = document.createElement('div');
     wrap.innerHTML = shareItemHtml(key, label, url);
     wireShareItems(wrap, title);
@@ -589,8 +620,8 @@ function renderShareTab(body: HTMLElement): void {
     refreshEmail();
   };
   refreshEmail();
-  if (minted.view) addMinted('view', 'View-only link', minted.view);
-  if (minted.edit) addMinted('edit', 'Collect link', minted.edit);
+  if (minted.view) addMinted('view', MINT_LABEL.view, minted.view);
+  if (minted.edit) addMinted('edit', MINT_LABEL.edit, minted.edit);
 
   const mint = async (permission: 'edit' | 'view'): Promise<void> => {
     try {
@@ -598,7 +629,7 @@ function renderShareTab(body: HTMLElement): void {
         method: 'POST', body: JSON.stringify({ permission }),
       });
       minted[permission] = res.link;
-      addMinted(permission, permission === 'edit' ? 'Collect link' : 'View-only link', res.link);
+      addMinted(permission, MINT_LABEL[permission], res.link);
     } catch (e) { toast((e as Error).message); }
   };
   (document.getElementById('mint-edit') as HTMLButtonElement).onclick = () => void mint('edit');
@@ -956,9 +987,19 @@ async function recordEditor(): Promise<void> {
 
   map = new maplibregl.Map({ container: 'map', style: styleFor(rec.schema.basemap), center, zoom: isPoint ? 16 : 14, attributionControl: false });
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  // Only rewrite the point's location if the user actually repositioned it — a
+  // plain "fix a typo and Save" must leave the point exactly where it was.
+  let moved = false;
+  map.on('dragstart', () => { moved = true; });
   map.on('load', () => {
     document.getElementById('maploading')?.remove();
-    if (isPoint) { marker(center); return; }
+    if (isPoint) {
+      marker(center);
+      // Sit the point UNDER the crosshair (which rides above map centre), so the
+      // marker and the target line up and repositioning reads true.
+      map.easeTo({ center, offset: crosshairScreenOffset(), duration: 0 });
+      return;
+    }
     map.addSource('rec', { type: 'geojson', data: { type: 'Feature', geometry: rec.geometry as GeoJSON.Geometry, properties: {} } });
     map.addLayer({ id: 'rec-fill', type: 'fill', source: 'rec', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.15 } });
     map.addLayer({ id: 'rec-line', type: 'line', source: 'rec', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2.5 } });
@@ -984,7 +1025,7 @@ async function recordEditor(): Promise<void> {
   if (locateBtn) locateBtn.onclick = () => {
     if (!navigator.geolocation) return toast('Location not available');
     navigator.geolocation.getCurrentPosition(
-      (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16 }),
+      (pos) => { moved = true; map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }); },
       () => toast("Couldn't get your location"), { enableHighAccuracy: true, timeout: 8000 },
     );
   };
@@ -1008,9 +1049,10 @@ async function recordEditor(): Promise<void> {
       }
       const valid = validateRecordProperties(fields, raw);
       if (!valid.ok) { toast(valid.error); btn.disabled = false; return; }
-      // Points can be repositioned by panning; shapes edit properties only.
+      // Points can be repositioned by panning; shapes edit properties only. Only
+      // write geometry when the user actually moved the map (else leave it put).
       const body: Record<string, unknown> = { properties: valid.properties };
-      if (isPoint) body.geometry = { type: 'Point', coordinates: crosshairLngLat() };
+      if (isPoint && moved) body.geometry = { type: 'Point', coordinates: crosshairLngLat() };
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'PATCH', body: JSON.stringify(body) });
       toast('Saved ✓');
     } catch (e) { toast((e as Error).message); }

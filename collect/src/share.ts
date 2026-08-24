@@ -50,8 +50,11 @@ export async function shareOrCopy(url: string, title: string): Promise<'shared' 
     }
   }
   try {
-    await navigator.clipboard?.writeText(url);
-    return 'copied';
+    if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      return 'copied';
+    }
+    return 'failed';
   } catch {
     return 'failed';
   }

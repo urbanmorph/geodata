@@ -9,15 +9,16 @@ import { qrSvg } from './qr';
 
 // One link block. `key` disambiguates items; `note` is an optional caption.
 export function shareItemHtml(key: string, label: string, url: string, note?: string): string {
+  const slotId = `qr-slot-${escapeHtml(key)}`;
   return `<div class="share-item" data-share="${escapeHtml(key)}">
     <div class="share-item__label"><span>${escapeHtml(label)}</span></div>
     <code>${escapeHtml(url)}</code>
     <div class="share-item__actions">
       <button type="button" data-act="copy">Copy</button>
       <button type="button" data-act="share">⇪ Share</button>
-      <button type="button" data-act="qr" aria-expanded="false">▦ QR</button>
+      <button type="button" data-act="qr" aria-expanded="false" aria-controls="${slotId}">▦ QR</button>
     </div>
-    <div class="qr-slot" hidden></div>
+    <div class="qr-slot" id="${slotId}" hidden></div>
     ${note ? `<p class="hint" style="margin:8px 0 0">${escapeHtml(note)}</p>` : ''}
   </div>`;
 }

@@ -36,6 +36,7 @@
   --ring: 0 0 0 3px rgba(79, 70, 229, .40);
   --sheet-h: 0px;            /* live height of the bottom sheet; JS keeps it current
                                 so the map's crosshair + floating controls sit above it */
+  --peek-h: 30px;            /* visible strip when a sheet is collapsed (CSS + JS read this) */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -255,7 +256,7 @@ textarea { min-height: 92px; line-height: 1.5; }
   transition: transform .26s cubic-bezier(.2, .7, .3, 1);
 }
 /* collapse to a peek: the map takes the whole screen, the grab stays reachable */
-.sheet.collapsed { transform: translateY(calc(100% - 30px)); }
+.sheet.collapsed { transform: translateY(calc(100% - var(--peek-h))); }
 .bar::before {
   content: ""; position: absolute; top: 7px; left: 50%; transform: translateX(-50%);
   width: 36px; height: 4px; border-radius: 999px; background: var(--line-strong); opacity: .8;

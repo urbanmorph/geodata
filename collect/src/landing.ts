@@ -12,7 +12,7 @@ import { autoMapping, buildRecords } from './import/build';
 import type { Field } from './schema/validate-record';
 import { myMaps, saveOwnedMap, replaceMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { CATEGORIES, OPEN_LICENCES } from './options';
-import { linksMailtoHref } from './share';
+import { linksMailtoHref, linksText } from './share';
 import { shareItemHtml, wireShareItems, toggleQr } from './share-ui';
 
 const app = document.getElementById('app')!;
@@ -296,7 +296,7 @@ function done(links: Record<string, string>) {
   app.querySelector<HTMLAnchorElement>('#tohome-done')!.onclick = (e) => { e.preventDefault(); home(); };
 
   app.querySelector<HTMLButtonElement>('#dl')!.onclick = () => {
-    const text = `collect.bharatlas.com links\n\nCollect (share): ${links.edit}\nView-only: ${links.view}\nAdmin (secret): ${links.admin}\n`;
+    const text = linksText(mapLinks); // same block the email body uses, so the two never drift
     const a = document.createElement('a');
     a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
     a.download = 'collect-links.txt';
@@ -304,8 +304,12 @@ function done(links: Record<string, string>) {
   };
 
   // Pre-open the admin QR: the fastest path to "open this on my other device".
-  const adminSlot = app.querySelector<HTMLElement>('.share-item[data-share="admin"] .qr-slot');
-  if (adminSlot) void toggleQr(adminSlot, links.admin);
+  const adminItem = app.querySelector<HTMLElement>('.share-item[data-share="admin"]');
+  const adminSlot = adminItem?.querySelector<HTMLElement>('.qr-slot');
+  if (adminSlot) {
+    void toggleQr(adminSlot, links.admin);
+    adminItem?.querySelector('[data-act="qr"]')?.setAttribute('aria-expanded', 'true');
+  }
 }
 
 home();
