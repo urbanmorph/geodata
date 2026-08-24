@@ -4,7 +4,6 @@ import { apiJson } from './api';
 import { turnstileToken } from './turnstile';
 import { mountSchemaBuilder } from './schema-builder';
 import { escapeHtml } from './util';
-import { BASEMAPS } from './basemap';
 import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
@@ -119,8 +118,6 @@ function createForm() {
         <button type="button" class="chip" data-g="line">Lines</button>
         <button type="button" class="chip" data-g="polygon">Areas</button>
       </div>
-      <label>Map background</label>
-      <select id="basemap">${BASEMAPS.map((b) => `<option value="${b.id}">${b.name}</option>`).join('')}</select>
       <label>Reference layer <span class="hint">(optional, show a bharatlas layer for context)</span></label>
       <input id="ref-search" placeholder="Tap to browse all layers, or type to filter…" autocomplete="off" />
       <div id="ref-results" class="ref-results"></div>
@@ -235,7 +232,6 @@ function createForm() {
             geometry: [...geom],
             fields,
             category: app.querySelector<HTMLSelectElement>('#category')!.value,
-            basemap: app.querySelector<HTMLSelectElement>('#basemap')!.value,
             reference_layer: chosenRef ? { id: chosenRef.id, pmtiles_url: chosenRef.pmtiles_url } : undefined,
           },
           turnstile_token,

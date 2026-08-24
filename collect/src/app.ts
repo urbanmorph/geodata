@@ -610,7 +610,6 @@ async function editSettings(): Promise<void> {
       <label>Description <span class="hint">(optional)</span></label><input id="e-desc" maxlength="2000" value="${escapeHtml(meta.description || '')}" />
       <label>Category</label><select id="e-category">${CATEGORIES.map(([id, l]) => `<option value="${id}"${sel(id, s.category || 'other')}>${l}</option>`).join('')}</select>
       <label>Data year <span class="hint">(optional)</span></label><input id="e-year" inputmode="numeric" value="${meta.data_year ?? ''}" />
-      <label>Map background</label><select id="e-basemap">${BASEMAPS.map((b) => `<option value="${b.id}"${sel(b.id, s.basemap || 'positron')}>${b.name}</option>`).join('')}</select>
       <label>Reference layer</label>
       <div id="e-refnow">${s.reference_layer ? `<div class="link-box"><code>${escapeHtml(s.reference_layer.id)}</code><button type="button" id="e-ref-remove">Remove</button></div>` : '<p class="hint">None.</p>'}</div>
       <input id="e-ref-search" placeholder="Browse layers, or type to filter…" autocomplete="off" />
@@ -641,19 +640,19 @@ async function editSettings(): Promise<void> {
   (document.getElementById('e-save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
     if (!(document.getElementById('editform') as HTMLFormElement).reportValidity()) return;
-    const newBasemap = (document.getElementById('e-basemap') as HTMLSelectElement).value;
     const yr = (document.getElementById('e-year') as HTMLInputElement).value.trim();
     const patch: Record<string, unknown> = {
       name: (document.getElementById('e-name') as HTMLInputElement).value,
       purpose: (document.getElementById('e-purpose') as HTMLTextAreaElement).value,
       description: (document.getElementById('e-desc') as HTMLInputElement).value,
       category: (document.getElementById('e-category') as HTMLSelectElement).value,
-      basemap: newBasemap,
       data_year: yr === '' ? null : Number(yr),
     };
     if (!locked) patch.license = (document.getElementById('e-license') as HTMLSelectElement).value;
     if (refChange !== undefined) patch.reference_layer = refChange ? { id: refChange.id, pmtiles_url: refChange.pmtiles_url } : null;
-    const mapChanged = newBasemap !== (s.basemap || 'positron') || refChange !== undefined;
+    // Only a reference-overlay change needs a reload to re-style the map; the
+    // basemap is a per-viewer runtime switch, not an author setting.
+    const mapChanged = refChange !== undefined;
     btn.disabled = true;
     try {
       await apiJson(`/collections/${ctx.id}`, ctx.token, { method: 'PATCH', body: JSON.stringify(patch) });
