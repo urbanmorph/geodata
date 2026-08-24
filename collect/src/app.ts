@@ -13,6 +13,7 @@ import { turnstileToken } from './turnstile';
 import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
+import { geometryLngLats } from './geo/coords';
 import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
@@ -327,7 +328,7 @@ function showRecordPopup(idx: number, coord: [number, number]): void {
       <button type="button" class="pop-review">Review${st === 'pending' ? ' / moderate' : ''} →</button>
     </div>`;
   recordPopup?.remove();
-  recordPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '260px', offset: 14 })
+  recordPopup = new maplibregl.Popup({ closeOnClick: false, maxWidth: '260px', offset: 14, className: 'record-popup' })
     .setLngLat(coord).setHTML(html).addTo(map);
   recordPopup.getElement()?.querySelector('.pop-review')?.addEventListener('click', () => openReview(idx));
   recordPopup.on('close', () => { if (selectedIdx === idx) clearSelection(); });
@@ -364,6 +365,8 @@ function addRecordShape(geometry: GeoJSON.Geometry): void {
   syncRecordShapes();
 }
 
+let didFit = false; // fit the camera to the data once, on first load (see fitToFeatures)
+
 async function loadRecords(): Promise<void> {
   try {
     // Published-only on the capture map (admin's un-moderated pins live in the queue).
@@ -374,7 +377,27 @@ async function loadRecords(): Promise<void> {
       else if (f.geometry) recordShapes.push({ type: 'Feature', geometry: f.geometry as GeoJSON.Geometry, properties: {} });
     }
     if (recordShapes.length) syncRecordShapes();
+    fitToFeatures(fc.features || []);
   } catch { /* map still usable */ }
+}
+
+// Zoom/pan so all the loaded features sit in the viewport (above the sheet). Runs
+// once (a map full of points opening at India level looks empty); an empty first
+// load doesn't burn the one-shot, so the fit still happens when data first arrives.
+function fitToFeatures(feats: Feature[]): void {
+  if (didFit) return;
+  const b = new maplibregl.LngLatBounds();
+  for (const f of feats) {
+    if (f.geometry && 'coordinates' in f.geometry) {
+      for (const ll of geometryLngLats(f.geometry.coordinates)) b.extend(ll);
+    }
+  }
+  if (b.isEmpty()) return;
+  didFit = true;
+  // --sheet-h may not be measured yet on the admin path; fall back to a generous
+  // share of the viewport so points never fit UNDER where the sheet will be.
+  const sheetH = parseFloat(getComputedStyle(document.getElementById('app')!).getPropertyValue('--sheet-h')) || Math.round(window.innerHeight * 0.45);
+  map.fitBounds(b, { padding: { top: 64, bottom: Math.round(sheetH) + 48, left: 40, right: 40 }, maxZoom: 16, duration: 0 });
 }
 
 function fieldInput(f: Field): string {
@@ -627,9 +650,8 @@ async function editSettings(): Promise<void> {
 // stay in the footer, reachable from any tab.
 type ManageTab = 'review' | 'share' | 'data';
 let manageTab: ManageTab = 'review';
-// Links minted this session, so switching tabs (or coming back) re-shows them.
+// Links minted this session, so re-opening a link row returns the same one.
 const minted: { edit?: string; view?: string } = {};
-const MINT_LABEL = { edit: 'Collect link', view: 'View-only link' } as const;
 
 async function manageSheet(): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
@@ -656,7 +678,7 @@ async function manageSheet(): Promise<void> {
     </div>
   </div>`;
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
-  (document.getElementById('publish') as HTMLButtonElement).onclick = doPublish;
+  (document.getElementById('publish') as HTMLButtonElement).onclick = confirmPublish;
   (document.getElementById('edit-settings') as HTMLButtonElement).onclick = () => void editSettings();
   document.querySelectorAll<HTMLButtonElement>('#mtabs button').forEach((b) => {
     b.onclick = () => { manageTab = b.dataset.t as ManageTab; renderManageTab(); };
@@ -700,50 +722,75 @@ function renderReviewTab(body: HTMLElement): void {
   void renderPoints();
 }
 
-// Share: hand a link to another device. The admin link (this device's URL) gets
-// Copy / Share / QR so the owner can open the same map on their phone or laptop;
-// collect / view links are minted on demand; and every link can be mailed to self.
+// Share: each link is a collapsible row — tap it to reveal Copy / Share / QR.
+// The admin link is this device's URL; collect and view links are minted lazily
+// the first time their row is opened (so there's no confusing "+ create" button —
+// the link already exists conceptually, opening the row just reveals it).
+type LinkRow = { role: string; perm?: 'edit' | 'view'; icon: string; title: string; hint: string; note?: string };
+const LINK_ROWS: LinkRow[] = [
+  { role: 'admin', icon: '🔑', title: 'Admin link', hint: 'this device, keep secret', note: 'Use this to open the map on your other device. Keep it private.' },
+  { role: 'collect', perm: 'edit', icon: '🔗', title: 'Collect link', hint: 'lets people add points' },
+  { role: 'view', perm: 'view', icon: '👁', title: 'View-only link', hint: 'read only' },
+];
+
 function renderShareTab(body: HTMLElement): void {
   const title = meta.name || 'bharatlas collect map';
   const adminLink = location.href;
   body.innerHTML = `
-    <p class="hint">Hand a link to another device or person. No accounts, so the link is the key: whoever holds it can use it at that level.</p>
-    ${shareItemHtml('admin', 'Admin link (this device, keep secret)', adminLink, 'Open the same map on your other device: Share it to yourself, or scan the QR. Keep it private.')}
-    <div class="row" style="margin-top:4px">
-      <button id="mint-edit">+ Collect link</button>
-      <button id="mint-view">+ View-only link</button>
-    </div>
-    <p class="hint">Collect links let people add points; view links are read only. Mint fresh ones anytime.</p>
-    <div id="minted"></div>
+    <p class="hint">Tap a link to open its copy options. No accounts, so the link is the key: whoever holds it can use it at that level.</p>
+    ${LINK_ROWS.map((r) => `<div class="linkrow" data-role="${r.role}">
+      <button type="button" class="linkrow__head" aria-expanded="false">
+        <span class="linkrow__title">${r.icon} ${escapeHtml(r.title)} <span class="hint">${escapeHtml(r.hint)}</span></span>
+        <span class="linkrow__chev" aria-hidden="true">▾</span>
+      </button>
+      <div class="linkrow__body" hidden></div>
+    </div>`).join('')}
     <a class="btn wide" id="email-links" style="margin-top:12px">✉ Email these links to me</a>`;
-  wireShareItems(body, title);
 
-  const mintedBox = document.getElementById('minted')!;
   const emailA = document.getElementById('email-links') as HTMLAnchorElement;
   const refreshEmail = (): void => { emailA.href = linksMailtoHref({ admin: adminLink, ...minted } as MapLinks, meta.name); };
-  const addMinted = (key: 'edit' | 'view', label: string, url: string): void => {
-    mintedBox.querySelector(`.share-item[data-share="${key}"]`)?.remove(); // replace, never stack a stale token
-    const wrap = document.createElement('div');
-    wrap.innerHTML = shareItemHtml(key, label, url);
-    wireShareItems(wrap, title);
-    mintedBox.prepend(wrap.firstElementChild!);
-    refreshEmail();
-  };
   refreshEmail();
-  if (minted.view) addMinted('view', MINT_LABEL.view, minted.view);
-  if (minted.edit) addMinted('edit', MINT_LABEL.edit, minted.edit);
 
-  const mint = async (permission: 'edit' | 'view'): Promise<void> => {
+  // The URL for a row — admin is this page; collect/view mint once, then cache.
+  const linkFor = async (r: LinkRow): Promise<string | null> => {
+    if (r.role === 'admin') return adminLink;
+    const perm = r.perm!;
+    if (minted[perm]) return minted[perm]!;
     try {
-      const res = await apiJson<{ link: string }>(`/collections/${ctx.id}/tokens`, ctx.token, {
-        method: 'POST', body: JSON.stringify({ permission }),
-      });
-      minted[permission] = res.link;
-      addMinted(permission, MINT_LABEL[permission], res.link);
-    } catch (e) { toast((e as Error).message); }
+      const res = await apiJson<{ link: string }>(`/collections/${ctx.id}/tokens`, ctx.token, { method: 'POST', body: JSON.stringify({ permission: perm }) });
+      minted[perm] = res.link;
+      refreshEmail();
+      return res.link;
+    } catch (e) { toast((e as Error).message); return null; }
   };
-  (document.getElementById('mint-edit') as HTMLButtonElement).onclick = () => void mint('edit');
-  (document.getElementById('mint-view') as HTMLButtonElement).onclick = () => void mint('view');
+
+  let busy = false; // a mint is in flight — block other taps (else double-mint / two rows open)
+  LINK_ROWS.forEach((r) => {
+    const row = body.querySelector<HTMLElement>(`.linkrow[data-role="${r.role}"]`)!;
+    const head = row.querySelector<HTMLButtonElement>('.linkrow__head')!;
+    const bodyEl = row.querySelector<HTMLElement>('.linkrow__body')!;
+    head.onclick = async () => {
+      if (busy) return;
+      const wasOpen = !bodyEl.hasAttribute('hidden');
+      // accordion: only one row open at a time — collapse them all first
+      body.querySelectorAll('.linkrow__body').forEach((b) => b.setAttribute('hidden', ''));
+      body.querySelectorAll('.linkrow__head').forEach((h) => h.setAttribute('aria-expanded', 'false'));
+      if (wasOpen) return; // toggling the open row closed
+      if (!bodyEl.dataset.filled) {
+        busy = true;
+        head.setAttribute('aria-busy', 'true');
+        const url = await linkFor(r);
+        head.removeAttribute('aria-busy');
+        busy = false;
+        if (!url) return;
+        bodyEl.innerHTML = shareItemHtml(r.role, '', url, r.note); // no label — the row header is the label
+        wireShareItems(bodyEl, title);
+        bodyEl.dataset.filled = '1';
+      }
+      bodyEl.removeAttribute('hidden');
+      head.setAttribute('aria-expanded', 'true');
+    };
+  });
 }
 
 // Data: download every point, or bulk-import a file.
@@ -949,6 +996,7 @@ async function renderPoints(): Promise<void> {
     reviewFeats = fc.features || [];
     clearSelection();     // the previous selection points at stale indices
     syncReviewLayer();    // redraw the clickable markers for this filter
+    fitToFeatures(reviewFeats);
     if (!reviewFeats.length) { q.innerHTML = '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>'; return; }
     q.innerHTML = reviewFeats.map((f, i) => {
       const st = (f.properties as { _status?: string })._status || 'published';
@@ -1052,8 +1100,25 @@ function openReview(idx: number): void {
   };
 }
 
-async function doPublish(ev: Event): Promise<void> {
-  const btn = ev.currentTarget as HTMLButtonElement;
+// Publishing to the public catalog is a bigger step than "save" — the points are
+// already on this map. Explain that first; it curbs accidental catalog submissions
+// from people who think publishing is how they view or keep their data.
+function confirmPublish(): void {
+  const c = meta.counts;
+  const panel = document.getElementById('panel')!;
+  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
+    <strong>Publish to the public catalog?</strong>
+    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Publishing adds them to the open <strong>bharatlas catalog</strong> at bharatlas.com, where anyone can find, view, and download them. Do this once the map is ready to share widely.</p>
+    ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}
+  </div><div class="foot row">
+    <button id="pub-cancel">← Back</button>
+    <button class="primary" id="pub-go" style="flex:1">${c.published ? `Publish ${c.published} to catalog` : 'Publish'}</button>
+  </div></div>`;
+  (document.getElementById('pub-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
+  (document.getElementById('pub-go') as HTMLButtonElement).onclick = (e) => void runPublish(e.currentTarget as HTMLButtonElement);
+}
+
+async function runPublish(btn: HTMLButtonElement): Promise<void> {
   btn.disabled = true;
   try {
     const res = await apiJson<{ version: number; share_url: string; feature_count: number }>(
@@ -1063,10 +1128,10 @@ async function doPublish(ev: Event): Promise<void> {
     const panel = document.getElementById('panel')!;
     panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
       <strong>Published to the catalog 🎉</strong>
-      <p class="hint">Version ${res.version} · ${res.feature_count} features.</p>
+      <p class="hint">Version ${res.version} · ${res.feature_count} features. It's now on the public bharatlas catalog.</p>
       <a class="btn primary" href="${res.share_url}" target="_blank" rel="noopener">View on bharatlas →</a>
-      </div><div class="foot"><button id="back">← Back to capture</button></div></div>`;
-    (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
+      </div><div class="foot"><button id="back">← Back to manage</button></div></div>`;
+    (document.getElementById('back') as HTMLButtonElement).onclick = () => void manageSheet();
   } catch (e) {
     toast((e as Error).message);
     btn.disabled = false;

@@ -11,7 +11,7 @@ import { qrSvg } from './qr';
 export function shareItemHtml(key: string, label: string, url: string, note?: string): string {
   const slotId = `qr-slot-${escapeHtml(key)}`;
   return `<div class="share-item" data-share="${escapeHtml(key)}">
-    <div class="share-item__label"><span>${escapeHtml(label)}</span></div>
+    ${label ? `<div class="share-item__label"><span>${escapeHtml(label)}</span></div>` : ''}
     <code>${escapeHtml(url)}</code>
     <div class="share-item__actions">
       <button type="button" data-act="copy">Copy</button>

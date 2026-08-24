@@ -37,6 +37,7 @@
   --sheet-h: 0px;            /* live height of the bottom sheet; JS keeps it current
                                 so the map's crosshair + floating controls sit above it */
   --peek-h: 30px;            /* visible strip when a sheet is collapsed (CSS + JS read this) */
+  --content-max: 680px;      /* mobile-first, but on a laptop the content centres with gutters (the map stays full-bleed) */
 }
 @media (prefers-color-scheme: dark) {
   :root {
@@ -150,7 +151,7 @@ textarea { min-height: 92px; line-height: 1.5; }
 .seg button.on { background: var(--accent-solid); color: #fff; box-shadow: var(--shadow-card); }
 
 /* landing / form pages scroll */
-.pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); overflow: auto; }
+.pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); overflow: auto; width: 100%; max-width: var(--content-max); margin-inline: auto; }
 .pad h1 { font-size: 23px; font-weight: 700; letter-spacing: -.025em; line-height: 1.15; margin: 6px 0 8px; }
 .hint { color: var(--muted); font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 .masthead-stat { color: var(--muted); font-size: 13px; margin: 2px 0 14px; }
@@ -199,6 +200,22 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 .qr svg { display: block; width: 100%; height: 100%; }
 .qr-slot[hidden] { display: none; }
+
+/* collapsible link rows (Share tab): tap the header to reveal the copy options */
+.linkrow { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); margin: 8px 0; overflow: hidden; }
+.linkrow__head {
+  width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 48px; padding: 0 14px; background: transparent; border: 0; text-align: left; border-radius: 0;
+}
+.linkrow__title { flex: 1; min-width: 0; font-weight: 500; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.linkrow__title .hint { font-weight: 400; }
+.linkrow__chev { color: var(--muted); flex: 0 0 auto; transition: transform .18s ease; }
+.linkrow__head[aria-expanded="true"] { border-bottom: 1px solid var(--line); }
+.linkrow__head[aria-expanded="true"] .linkrow__chev { transform: rotate(180deg); }
+.linkrow__body { padding: 4px 12px 12px; }
+.linkrow__body[hidden] { display: none; }
+/* the share-item inside a row drops its own card chrome — the row is the chrome */
+.linkrow__body .share-item { border: 0; background: transparent; box-shadow: none; padding: 0; margin: 6px 0 0; }
 
 /* ── tabs (admin Manage: Review / Share / Data) ────────────────────────── */
 .tabs {
@@ -263,6 +280,7 @@ textarea { min-height: 92px; line-height: 1.5; }
   position: relative; background: var(--sheet); border-top: 1px solid var(--line);
   box-shadow: var(--shadow-sheet); border-radius: 18px 18px 0 0;
   max-height: 64dvh; display: flex; flex-direction: column;
+  max-width: var(--content-max); margin-inline: auto; /* centred with gutters on wide screens */
   animation: sheet-in .22s cubic-bezier(.2, .7, .3, 1);
   transition: transform .26s cubic-bezier(.2, .7, .3, 1);
 }
@@ -291,6 +309,7 @@ textarea { min-height: 92px; line-height: 1.5; }
   box-shadow: var(--shadow-sheet); border-radius: 18px 18px 0 0;
   padding: 18px 16px calc(14px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 10px;
+  max-width: var(--content-max); margin-inline: auto; /* centred with gutters on wide screens */
   animation: sheet-in .22s cubic-bezier(.2, .7, .3, 1);
 }
 .bar #cap-help { margin: 0; }
@@ -338,29 +357,30 @@ textarea { min-height: 92px; line-height: 1.5; }
 .badge--rejected { color: var(--danger); }
 
 /* ── map tooltip (record attributes, linked to the list) ───────────────── */
-/* theme MapLibre's popup (it ships light-only) */
-.maplibregl-popup-content {
+/* MapLibre ships a light-only popup and its CSS is injected AFTER this file, so
+   these are scoped to .record-popup to outrank it (else: light text on white). */
+.record-popup .maplibregl-popup-content {
   background: var(--sheet); color: var(--fg); border: 1px solid var(--line);
   border-radius: 14px; box-shadow: var(--shadow-pop); padding: 12px 14px;
 }
-.maplibregl-popup-close-button { color: var(--muted); font-size: 20px; padding: 0 6px; }
-.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--sheet); }
-.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--sheet); }
-.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--sheet); }
-.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--sheet); }
-.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip { border-right-color: var(--sheet); }
-.maplibregl-popup-anchor-top-right .maplibregl-popup-tip,
-.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-left-color: var(--sheet); }
+.record-popup .maplibregl-popup-close-button { color: var(--muted); font-size: 20px; padding: 0 6px; }
+.record-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--sheet); }
+.record-popup.maplibregl-popup-anchor-top .maplibregl-popup-tip { border-bottom-color: var(--sheet); }
+.record-popup.maplibregl-popup-anchor-left .maplibregl-popup-tip { border-right-color: var(--sheet); }
+.record-popup.maplibregl-popup-anchor-right .maplibregl-popup-tip { border-left-color: var(--sheet); }
+.record-popup.maplibregl-popup-anchor-top-left .maplibregl-popup-tip,
+.record-popup.maplibregl-popup-anchor-bottom-left .maplibregl-popup-tip { border-right-color: var(--sheet); }
+.record-popup.maplibregl-popup-anchor-top-right .maplibregl-popup-tip,
+.record-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-left-color: var(--sheet); }
 
 .pop { min-width: 168px; }
 .pop-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
-.pop-head strong { font-size: 14px; }
+.pop-head strong { font-size: 14px; color: var(--fg); }
 .pop-attrs { display: flex; flex-direction: column; max-height: 38vh; overflow: auto; }
 .pop-attr { display: flex; gap: 10px; font-size: 12px; padding: 4px 0; border-top: 1px solid var(--line); }
 .pop-attr:first-child { border-top: 0; }
 .pop-attr__k { flex: 0 0 42%; color: var(--muted); }
-.pop-attr__v { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.pop-attr__v { flex: 1; min-width: 0; overflow-wrap: anywhere; color: var(--fg); }
 .pop-review { margin-top: 10px; width: 100%; min-height: 40px; }
 
 /* home footer */
