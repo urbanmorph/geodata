@@ -766,6 +766,10 @@ function renderReviewTab(body: HTMLElement): void {
   const c = reviewLoaded ? countsOf(allFeats) : meta.counts;
   body.innerHTML = `
     <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
+    ${c.pending ? `<div class="notice">
+      <div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to the catalog until you approve.</div>
+      <button type="button" class="primary" id="approve-all">✓ Approve all ${c.pending}</button>
+    </div>` : ''}
     <div class="row" id="pfilter" style="margin:8px 0 4px">
       <button type="button" class="chip on" data-s="">All ${c.total}</button>
       <button type="button" class="chip" data-s="pending">Pending ${c.pending}</button>
@@ -773,6 +777,17 @@ function renderReviewTab(body: HTMLElement): void {
       ${c.rejected ? `<button type="button" class="chip" data-s="rejected">Rejected ${c.rejected}</button>` : ''}
     </div>
     <div id="points"><p class="hint">Loading points…</p></div>`;
+  const approveAll = document.getElementById('approve-all') as HTMLButtonElement | null;
+  if (approveAll) approveAll.onclick = async () => {
+    approveAll.disabled = true;
+    try {
+      const res = await apiJson<{ changed: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
+      invalidateReview();
+      await ensureReviewData(true);
+      toast(`Approved ${res.changed} ✓`);
+      renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
+    } catch (e) { toast((e as Error).message); approveAll.disabled = false; }
+  };
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
       document.querySelectorAll('#pfilter .chip').forEach((x) => x.classList.remove('on'));
@@ -819,10 +834,20 @@ const LINK_ROWS: LinkRow[] = [
   { role: 'view', perm: 'view', icon: '👁', title: 'View-only link', hint: 'read only' },
 ];
 
+// A one-line reminder that pending points are held back (invisible to shared
+// links, excluded from exports) — shown atop Share + Data so the consequence sits
+// where the owner acts. The Review tab carries the full notice + Approve-all.
+function pendingHint(): string {
+  const c = reviewLoaded ? countsOf(allFeats) : meta.counts;
+  if (!c.pending) return '';
+  return `<div class="notice notice--inline"><div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} pending.</strong> Held back from people you share with, and from exports, until approved in Review.</div></div>`;
+}
+
 function renderShareTab(body: HTMLElement): void {
   const title = meta.name || 'bharatlas collect map';
   const adminLink = location.href;
   body.innerHTML = `
+    ${pendingHint()}
     <p class="hint">Tap a link to open its copy options. No accounts, so the link is the key: whoever holds it can use it at that level.</p>
     ${LINK_ROWS.map((r) => `<div class="linkrow" data-role="${r.role}">
       <button type="button" class="linkrow__head" aria-expanded="false">
@@ -882,8 +907,9 @@ function renderShareTab(body: HTMLElement): void {
 // Data: download every point, or bulk-import a file.
 function renderDataTab(body: HTMLElement): void {
   body.innerHTML = `
+    ${pendingHint()}
     <strong style="display:block">Download the data</strong>
-    <p class="hint">Every collected point, to use anywhere.</p>
+    <p class="hint">Every approved point, to use anywhere.</p>
     <div class="row">
       <button data-dl="geojson">GeoJSON</button>
       <button data-dl="csv">CSV</button>

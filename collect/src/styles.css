@@ -158,6 +158,16 @@ textarea { min-height: 92px; line-height: 1.5; }
 .masthead-stat:empty { display: none; }
 .masthead-stat strong { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 .warn { color: var(--danger); font-size: 13px; line-height: 1.5; }
+/* attention box — pending points need approval to be visible/exported */
+.notice {
+  background: var(--surface); border: 1px solid var(--line-strong);
+  border-left: 3px solid var(--amber); border-radius: var(--radius);
+  padding: 11px 13px; margin: 8px 0; font-size: 13px; line-height: 1.45; color: var(--fg);
+}
+.notice > div { margin-bottom: 10px; }
+.notice .primary { width: 100%; }
+.notice--inline { display: flex; gap: 8px; align-items: baseline; }
+.notice--inline > div { margin: 0; }
 
 .link-box {
   display: flex; gap: 8px; align-items: center; margin: 8px 0;
