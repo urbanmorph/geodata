@@ -945,7 +945,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'How can I trust community submissions?',
-    a: "Each carries a source URL, attribution and an open licence on the card and the view page. The platform auto-moderates licence, attribution and basic geometry validity, but it does not verify accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.",
+    a: "Each carries a source URL, attribution and an open licence on the card and the view page. Automated checks validate licence, attribution and basic geometry, then a curator reviews each submission before it appears; neither step verifies accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.",
   },
   {
     q: 'Can AI assistants read and recommend bharatlas?',
@@ -1126,7 +1126,7 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I collect map data from the field with a shared form?',
-    a: 'Use collect (collect.bharatlas.com), the write side. Design a small form, share a link, and anyone who has it adds points from their phone with no account. You review incoming points and publish approved ones into this catalog. API base: https://collect.bharatlas.com/api/collect/v1.',
+    a: 'Use collect (collect.bharatlas.com), the write side. Design a small form, share a link, and anyone who has it adds points from their phone with no account. You review incoming points, then publish the approved ones to this catalog, where a curator approves the submission before it appears. API base: https://collect.bharatlas.com/api/collect/v1.',
   },
   {
     q: 'How do I manage or publish a collect map from an LLM?',
@@ -1134,11 +1134,11 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I create a collect map programmatically?',
-    a: 'POST https://collect.bharatlas.com/api/collect/v1/collections with an X-API-Key header (the anti-abuse gate; the browser flow uses Turnstile instead). It returns admin, collect and view links whose tokens live in the URL fragment. Then GET /collections/:id/records to review and POST /collections/:id/publish to bake approved points into this catalog. Or from an LLM: the bharatlas MCP (npx bharatlas-mcp) authors collect maps too, register your share link with register_map then moderate and publish.',
+    a: 'POST https://collect.bharatlas.com/api/collect/v1/collections with an X-API-Key header (the anti-abuse gate; the browser flow uses Turnstile instead). It returns admin, collect and view links whose tokens live in the URL fragment. Then GET /collections/:id/records to review and POST /collections/:id/publish to submit approved points to this catalog for review (a maintainer approves before it appears). Or from an LLM: the bharatlas MCP (npx bharatlas-mcp) authors collect maps too, register your share link with register_map then moderate and publish.',
   },
   {
     q: 'Where do published collect maps show up?',
-    a: 'As community submissions. GET https://bharatlas.com/api/v1/submissions lists them, and the read MCP tool list_submissions surfaces them to an LLM. A published collect map is queryable via /api/v1/layers/:id/query like any other layer.',
+    a: 'As community submissions, once a curator approves them. GET https://bharatlas.com/api/v1/submissions lists approved submissions, and the read MCP tool list_submissions surfaces them to an LLM. An approved collect map is queryable via /api/v1/layers/:id/query like any other layer.',
   },
 ];
 
@@ -1249,7 +1249,7 @@ await renderPage('mcp', {
       {
         '@type': 'SoftwareApplication',
         name: 'bharatlas-mcp',
-        description: "MCP server for India's open geo data. 8 tools for LLMs: list, schema, query, locate, nearby, categories, submissions, downloads.",
+        description: "MCP server for India's open geo data. 17 tools for LLMs: 8 for reading (list, schema, query, locate, nearby, categories, submissions, downloads) plus 9 for authoring collect maps (register, create, edit, moderate, import, publish and more).",
         url: ORIGIN + '/mcp',
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Any',
