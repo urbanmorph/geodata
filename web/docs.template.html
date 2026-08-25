@@ -238,7 +238,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
         <tr><td><span class="method">GET</span></td><td class="endpoint">/collections/:id/records</td><td>records as GeoJSON, scoped by token</td></tr>
         <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/import</td><td>bulk import with a source + rights attestation (admin)</td></tr>
         <tr><td><span class="method">POST</span></td><td class="endpoint">/records/:id/moderate</td><td>approve / reject one point (admin)</td></tr>
-        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/publish</td><td>bake approved points into a catalog submission (admin)</td></tr>
+        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/publish</td><td>submit approved points to the catalog for review (admin)</td></tr>
       </table>
       <pre><code># 1. Create a map (needs an API key; body follows the meta-schema)
 curl -X POST https://collect.bharatlas.com/api/collect/v1/collections \
@@ -250,14 +250,15 @@ curl -X POST https://collect.bharatlas.com/api/collect/v1/collections \
 curl https://collect.bharatlas.com/api/collect/v1/collections/ID/records \
   -H "authorization: Bearer adm_..."
 
-# 3. Publish approved points into the catalog (admin token)
+# 3. Submit approved points to the catalog for review (admin token)
+#    a maintainer approves the submission before it appears in the catalog
 curl -X POST https://collect.bharatlas.com/api/collect/v1/collections/ID/publish \
   -H "authorization: Bearer adm_..."</code></pre>
       <p>Field contributors add points from the browser via the shared collect link (Turnstile-gated), so that step is a tap, not a curl. Or drive the whole flow from an LLM: the <a href="/mcp">bharatlas MCP</a> (<code>npx bharatlas-mcp</code>) authors collect maps too. Register a share link with <code>register_map</code> and its token scope (view / collect / admin) sets what you can do.</p>
 
 <!-- DOCS_FAQ_HTML -->
       <h2>For LLMs</h2>
-      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 8 tools with built-in instructions for schema-first querying, spatial joins, and multi-source awareness.</p>
+      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 17 tools with built-in instructions: 8 for reading (schema-first querying, spatial joins, multi-source awareness) plus 9 for authoring collect maps.</p>
     </main>
 
     <!-- FOOTER -->
