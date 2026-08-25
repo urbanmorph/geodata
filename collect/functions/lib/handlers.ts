@@ -13,6 +13,7 @@ import { checkCreateRate, checkRecordRate, checkKeyDayRate } from './ratelimit';
 import { deferLog } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
 import * as db from './db';
+import { recordStatusFor } from './moderation';
 import { validateNewCollection, validateCollectionEdit } from '../../src/schema/validate-collection';
 import { validateRecordProperties, type Field } from '../../src/schema/validate-record';
 import { checkIndiaBounds } from '../../src/geo/bounds';
@@ -317,7 +318,8 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   }
 
   const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
-  const status: 'pending' | 'published' = c.moderation ? 'pending' : 'published';
+  // The owner's own captures publish immediately; only contributor input is moderated.
+  const status = recordStatusFor(atLeast(perm, 'admin'), c.moderation);
   const recId = nanoid(10);
   const recToken = generateRecordToken();
 
@@ -357,6 +359,21 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
   const reason = typeof body?.reason === 'string' ? body.reason : null;
   await db.setRecordStatus(env.DB, recordId, status, reason);
   return json(200, { id: recordId, status });
+}
+
+// ---- POST /collections/:id/moderate-all ------------------------------------
+// Bulk moderation: move every record in one status to another in a single call
+// (the "Approve all N" action). Defaults to pending → published. Admin only.
+export async function moderateAll(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const c = await db.getCollection(env.DB, id);
+  if (!c) return bad(404, 'not found');
+  const body = await readJson(req);
+  const from = body?.from === 'rejected' ? 'rejected' : 'pending';
+  const to = body?.to === 'rejected' ? 'rejected' : 'published';
+  const changed = await db.setAllRecordStatus(env.DB, id, from, to);
+  return json(200, { from, to, changed });
 }
 
 // ---- record-owner ops (rec_ token or admin): get / edit / delete / de-identify
@@ -476,7 +493,9 @@ export async function importRecords(env: Env, req: Request, id: string, defer?: 
 
   const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
   const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
-  const status: 'pending' | 'published' = c.moderation ? 'pending' : 'published';
+  // Import is admin-only, so this is always the owner's own data → published
+  // immediately (no self-approval; that was the "bulk uploads stuck pending" bug).
+  const status = recordStatusFor(true, c.moderation);
   const ipHash = await ipHashFor(req, salt(env));
 
   let imported = 0;

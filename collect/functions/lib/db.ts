@@ -195,6 +195,21 @@ export async function setRecordStatus(
   await db.prepare(`UPDATE records SET status = ?, rejection_reason = ? WHERE id = ?`).bind(status, reason, id).run();
 }
 
+// Bulk status move for one collection (the "Approve all" action). Returns the
+// number of rows changed so the caller can report "approved N".
+export async function setAllRecordStatus(
+  db: DB,
+  collectionId: string,
+  from: 'pending' | 'rejected',
+  to: 'published' | 'rejected',
+): Promise<number> {
+  const res = await db
+    .prepare(`UPDATE records SET status = ? WHERE collection_id = ? AND status = ?`)
+    .bind(to, collectionId, from)
+    .run();
+  return (res.meta?.changes as number) ?? 0;
+}
+
 export async function updateRecord(
   db: DB,
   id: string,

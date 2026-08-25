@@ -57,6 +57,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     if (p.length === 3 && p[2] === 'import') {
       return method === 'POST' ? h.importRecords(env, request, id, defer) : bad(405, 'method not allowed');
     }
+    if (p.length === 3 && p[2] === 'moderate-all') {
+      return method === 'POST' ? h.moderateAll(env, request, id) : bad(405, 'method not allowed');
+    }
     if (p.length === 3 && p[2] === 'tokens') {
       return method === 'POST' ? h.mintToken(env, request, id) : bad(405, 'method not allowed');
     }
