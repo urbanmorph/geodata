@@ -256,10 +256,12 @@ textarea { min-height: 92px; line-height: 1.5; }
    has the whole screen. The crosshair + map buttons ride above it via --sheet-h. */
 #panel { position: absolute; left: 0; right: 0; bottom: 0; z-index: 10; }
 .crosshair {
-  position: absolute; left: 50%; top: calc(50% - var(--sheet-h, 0px) / 2);
-  transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 50%;
+  /* lift above the sheet via transform (composited — no layout shift). Animating
+     `top` instead emitted a layout-shift every frame; that was the collect CLS bug. */
+  transform: translate(-50%, calc(-50% - var(--sheet-h, 0px) / 2));
   width: 34px; height: 34px; pointer-events: none; z-index: 5;
-  transition: top .2s ease;
+  transition: transform .2s ease;
 }
 .crosshair::before, .crosshair::after { content: ""; position: absolute; background: var(--accent); border-radius: 2px; }
 .crosshair::before { left: 16px; top: 0; width: 2px; height: 34px; }
@@ -272,11 +274,16 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 @keyframes pulse { 0%, 100% { outline-color: var(--accent-strong); } 50% { outline-color: color-mix(in srgb, var(--accent-strong) 45%, transparent); } }
 .locate {
-  position: absolute; right: 14px; bottom: calc(14px + var(--sheet-h, 0px)); z-index: 6;
+  position: absolute; right: 14px; bottom: 14px; z-index: 6;
   min-width: var(--ctl-h); padding: 0; font-size: 18px;
   background: var(--card); box-shadow: var(--shadow-pop);
-  transition: bottom .2s ease;
 }
+/* Bottom-anchored map controls ride above the sheet via the composited `translate`
+   property (independent of `transform`, so :active's translateY still composes) —
+   NOT by animating `bottom`, which emitted a layout shift every transition frame
+   and drove collect's CLS toward 1. Top-anchored controls (base map ◱ / ref ◪,
+   which set bottom:auto) don't match this and stay put. */
+#locate, #manage { translate: 0 calc(-1 * var(--sheet-h, 0px)); transition: translate .2s ease; }
 
 /* ── on-map base-map switcher ───────────────────────────────────────────── */
 #basemapbtn { font-size: 14px; }
