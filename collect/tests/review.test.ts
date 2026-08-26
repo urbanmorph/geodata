@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { statusOf, filterByStatus, countsOf, popupActions } from '../src/review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho } from '../src/review';
 
 const F = (status?: string) => ({ properties: status ? { _status: status } : {} });
 
@@ -32,6 +32,24 @@ describe('countsOf', () => {
   });
   it('empty set is all zeros', () => {
     expect(countsOf([])).toEqual({ published: 0, pending: 0, rejected: 0, total: 0 });
+  });
+});
+
+describe('recordWho — the "who" prefix on a record', () => {
+  it('imported data credits its source', () => {
+    expect(recordWho('SOI Atlas 2021', null)).toBe('⇪ from SOI Atlas 2021');
+  });
+  it('a contributor who typed a name is shown', () => {
+    expect(recordWho(null, 'Jane')).toBe('by Jane');
+  });
+  it('an unnamed capture shows nothing — no "by anonymous" (there are no accounts)', () => {
+    expect(recordWho(null, null)).toBe('');
+    expect(recordWho(null, '')).toBe('');
+    expect(recordWho('', '   ')).toBe('');
+    expect(recordWho(undefined, undefined)).toBe('');
+  });
+  it('an import source wins over a contributor name', () => {
+    expect(recordWho('Bhuvan', 'Jane')).toBe('⇪ from Bhuvan');
   });
 });
 

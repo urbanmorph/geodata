@@ -24,6 +24,15 @@ export function countsOf(feats: WithStatus[]): { published: number; pending: num
   return c;
 }
 
+// The "who" prefix for a record's meta line. Imported data credits its source; a
+// contributor who typed a name is shown; an unnamed capture returns '' so the UI
+// shows nothing — with no accounts, "by anonymous" is noise on every record.
+export function recordWho(source?: string | null, contributor?: string | null): string {
+  if (source && source.trim()) return `⇪ from ${source}`;
+  if (contributor && contributor.trim()) return `by ${contributor}`;
+  return '';
+}
+
 export type PopupAction = { act: string; label: string; cls: string };
 
 // The moderation actions a record's map tooltip offers, by status — so an admin
