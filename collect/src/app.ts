@@ -15,7 +15,7 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf, popupActions } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho } from './review';
 import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
@@ -1095,7 +1095,7 @@ type AdminCtx = { state?: string; district?: string; subdistrict?: string } | nu
 function fmtAdminCtx(ctx: AdminCtx): string {
   if (!ctx) return '';
   const parts = [ctx.district, ctx.state].filter(Boolean);
-  return parts.length ? ` · 📍 ${parts.join(', ')}` : '';
+  return parts.length ? `📍 ${parts.join(', ')}` : '';
 }
 
 // Queue card label: the record's `name`, else the first author field value
@@ -1186,7 +1186,9 @@ function openReview(idx: number): void {
   }
 
   const attrs = attrRowsHtml(p, 'attr');
-  const origin = p._source ? `⇪ from ${escapeHtml(p._source)}` : `by ${escapeHtml(p._contributor || 'anonymous')}`;
+  // meta line: who (source or a named contributor; nothing for an unnamed capture) + place
+  const who = recordWho(p._source, p._contributor);
+  const meta = [who ? escapeHtml(who) : '', fmtAdminCtx(p._admin_ctx ?? null)].filter(Boolean).join(' · ');
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
@@ -1195,7 +1197,7 @@ function openReview(idx: number): void {
         <strong style="flex:1">${escapeHtml(cardTitle(p))}</strong>
         <span class="badge badge--${st}">${st}</span>
       </div>
-      <p class="hint">${origin}${fmtAdminCtx(p._admin_ctx ?? null)}</p>
+      ${meta ? `<p class="hint">${meta}</p>` : ''}
       <div class="attrs">${attrs || '<p class="hint">No fields on this map.</p>'}</div>
     </div>
     <div class="foot">
