@@ -34,6 +34,17 @@ describe('buildBaseStyle', () => {
   });
 });
 
+describe('no CARTO dependency', () => {
+  // CARTO started serving an "API KEY REQUIRED" watermark on its free raster
+  // tiles (light_all). Guard so no basemap silently depends on cartocdn again.
+  it('no basemap tiles point at cartocdn', () => {
+    const tiles = BASEMAPS.flatMap((b) =>
+      Object.values(b.sources).flatMap((s) => ((s as { tiles?: string[] }).tiles) || []),
+    );
+    for (const t of tiles) expect(t).not.toContain('cartocdn');
+  });
+});
+
 describe('Esri Imagery tile ordering', () => {
   // Esri's REST tile service is {z}/{y}/{x}, not OSM's {z}/{x}/{y}. Guard it.
   it('satellite source uses y-before-x', () => {
