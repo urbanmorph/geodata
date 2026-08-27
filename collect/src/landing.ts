@@ -199,7 +199,12 @@ function createForm() {
     btn.disabled = true;
     const year = (app.querySelector<HTMLInputElement>('#year')!.value || '').trim();
     try {
-      const name = app.querySelector<HTMLInputElement>('#name')!.value;
+      // Validate the required fields client-side so people aren't bounced by a
+      // server rejection after submitting (name 3-120, purpose required).
+      const name = app.querySelector<HTMLInputElement>('#name')!.value.trim();
+      if (name.length < 3) { err.textContent = 'Give your map a name (at least 3 characters).'; app.querySelector<HTMLInputElement>('#name')!.focus(); btn.disabled = false; return; }
+      const purpose = app.querySelector<HTMLTextAreaElement>('#purpose')!.value.trim();
+      if (!purpose) { err.textContent = 'Say what the map is for (it is shown to contributors).'; app.querySelector<HTMLTextAreaElement>('#purpose')!.focus(); btn.disabled = false; return; }
       const fields = builder.getFields();
       if (!fields.length) { err.textContent = 'Add at least one field for contributors to fill in.'; btn.disabled = false; return; }
       const dataYear = year ? Number(year) : undefined;
@@ -224,7 +229,7 @@ function createForm() {
         method: 'POST',
         body: JSON.stringify({
           name,
-          purpose: app.querySelector<HTMLTextAreaElement>('#purpose')!.value,
+          purpose,
           license: app.querySelector<HTMLSelectElement>('#license')!.value,
           data_year: dataYear,
           schema_doc: {
