@@ -5,7 +5,11 @@
 //   1. minimal — "Bharatlas Minimal": solid ocean + Natural Earth land + the
 //      LGD-dissolved India outline (India-correct claim, no international labels).
 //      Same-origin GeoJSON, no external tiles — fewer round-trips than raster.
-//   2. positron — Carto Light (roads + labels; good field orientation). Default.
+//   2. positron — Esri Light Gray Canvas (light base + labels; good field
+//      orientation). Default. Keyless, same host as the Esri imagery below.
+//      (Was CARTO Light until CARTO started watermarking its free tiles with
+//      "API KEY REQUIRED"; the id/layer stay 'positron' for stored-preference
+//      and layer-order compatibility.)
 //   3. opentopo — OpenTopoMap (topographic relief).
 //   4. satellite — Esri Imagery.
 //
@@ -24,7 +28,7 @@ export interface Basemap {
   layers: LayerSpecification[]; // layer ids must be unique across the whole registry
 }
 
-const CARTO_ATTRIB = '© <a href="https://carto.com/attribution/">CARTO</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
+const ESRI_LIGHT_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a>: Esri, HERE, Garmin, © OpenStreetMap contributors, GIS User Community';
 const OSM_IN_ATTRIB = 'India boundary: <a href="https://github.com/osm-in/mapbox-gl-styles" target="_blank" rel="noopener">osm-in</a> · © OpenStreetMap contributors (ODbL)';
 const OPENTOPO_ATTRIB = 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)';
 const ESRI_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
@@ -32,17 +36,18 @@ const ESRI_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a> · Source:
 export const BASEMAPS: Basemap[] = [
   {
     id: 'positron',
-    name: 'Carto Light',
-    hint: 'roads + place labels · good for orienting in the field',
+    name: 'Light',
+    hint: 'light canvas + place labels · good for orienting in the field',
     sources: {
-      'positron-tiles': {
-        type: 'raster',
-        tiles: ['a', 'b', 'c', 'd'].map((s) => `https://${s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{ratio}.png`.replace('{ratio}', (globalThis.devicePixelRatio || 1) > 1 ? '@2x' : '')),
-        tileSize: 256,
-        attribution: CARTO_ATTRIB,
-      },
+      // Esri Light Gray Canvas — {z}/{y}/{x} like the imagery below. Base is the
+      // light land/road canvas; reference is the labels overlay drawn on top.
+      'lightgray-base': { type: 'raster', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 16, attribution: ESRI_LIGHT_ATTRIB },
+      'lightgray-ref': { type: 'raster', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 16 },
     },
-    layers: [{ id: 'positron-base', type: 'raster', source: 'positron-tiles' }],
+    layers: [
+      { id: 'positron-base', type: 'raster', source: 'lightgray-base' },
+      { id: 'positron-ref', type: 'raster', source: 'lightgray-ref' },
+    ],
   },
   {
     id: 'minimal',
