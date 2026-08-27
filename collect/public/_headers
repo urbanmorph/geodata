@@ -1,5 +1,5 @@
 # Cloudflare Pages security headers for collect. CSP allows exactly what the app
-# needs: self, Turnstile, the basemap tile hosts (CARTO / Esri imagery / OpenTopo),
+# needs: self, Turnstile, the basemap tile hosts (Esri / OpenStreetMap / OpenTopo),
 # the bharatlas catalogue API + its R2 host for pmtiles reference overlays, and the
 # Cloudflare Web Analytics beacon (edge-injected script + its cross-origin report).
 # The security headers apply everywhere. X-Robots-Tag: noindex is scoped to /c/*
@@ -12,7 +12,7 @@
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
   Permissions-Policy: geolocation=(self), camera=()
-  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.basemaps.cartocdn.com https://services.arcgisonline.com https://*.tile.opentopomap.org; connect-src 'self' https://*.basemaps.cartocdn.com https://challenges.cloudflare.com https://cloudflareinsights.com https://bharatlas.com https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://services.arcgisonline.com https://*.tile.opentopomap.org; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; form-action 'self'
+  Content-Security-Policy: default-src 'self'; base-uri 'none'; object-src 'none'; script-src 'self' https://challenges.cloudflare.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://services.arcgisonline.com https://tile.openstreetmap.org https://*.tile.opentopomap.org; connect-src 'self' https://challenges.cloudflare.com https://cloudflareinsights.com https://bharatlas.com https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev https://services.arcgisonline.com https://tile.openstreetmap.org https://*.tile.opentopomap.org; worker-src 'self' blob:; frame-src https://challenges.cloudflare.com; form-action 'self'
 
 # Private map pages: keep them out of search (belt-and-suspenders with c.html's meta noindex).
 /c/*
