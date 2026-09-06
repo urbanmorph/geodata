@@ -31,11 +31,16 @@ function fmtBytes(n) {
 }
 const fmtRows = (n) => (n == null ? '—' : n.toLocaleString('en-IN'));
 // Compact count formatter — "1,234" gets noisy in line; short forms scan.
+// Keep in lockstep with src/format-hints.ts fmtCount (that copy is unit-tested);
+// this Node copy exists only because prerender can't import the TS module.
+// One decimal while it reads cleanly (10.3k, 99.9k), whole thousands once the
+// decimal is noise (250k), then millions.
 function fmtCount(n) {
+  const compact = (v, suffix) =>
+    (v < 100 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v))) + suffix;
   if (n < 1000) return String(n);
-  if (n < 10000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-  if (n < 1_000_000) return Math.round(n / 1000) + 'k';
-  return (n / 1_000_000).toFixed(1).replace(/\.0$/, '') + 'M';
+  if (n < 1_000_000) return compact(n / 1000, 'k');
+  return compact(n / 1_000_000, 'M');
 }
 
 // Human-readable "X ago" — coarse buckets, no library needed.
@@ -897,7 +902,7 @@ const out = tmpl
     const total = Object.values(dc).reduce(
       (sum, layer) => sum + Object.values(layer).reduce(
         (s2, state) => s2 + Object.values(state).reduce((s3, n) => s3 + n, 0), 0), 0);
-    return total > 0 ? ` · ${fmtCount(total)} downloads` : '';
+    return total > 0 ? ` · <span class="search-meta__count">${fmtCount(total)}</span> downloads` : '';
   })());
 
 await writeFile(resolve(WEB, 'index.html'), out);

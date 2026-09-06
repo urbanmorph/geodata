@@ -3,6 +3,7 @@
 import { isEmbedPath, isViewPath, nextStateOnClose, shouldRestoreCategory } from './embed-snippet';
 import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
 import { blurFocusWithin } from './focus-utils';
+import { fmtCount } from './format-hints';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
 // injects is NOT removed on hydrate — doing so shrank the body and was the
@@ -147,7 +148,10 @@ if (searchInput && grid) {
   }));
   let activeCat = 'all';
   let query = '';
-  const idleMeta = searchMeta?.textContent ?? '';
+  // innerHTML, not textContent: the idle line carries the #dl-total slot and its
+  // emphasised count span, which a plain-text snapshot would flatten — so a
+  // search-and-clear would strip the styling and the formatted total.
+  const idleMeta = searchMeta?.innerHTML ?? '';
 
   const apply = () => {
     const result = filterCards(cardLikes, query);
@@ -214,7 +218,7 @@ if (searchInput && grid) {
     if (emptyMsg) emptyMsg.hidden = totalVisible > 0;
     if (searchMeta) {
       if (!query && activeCat === 'all') {
-        searchMeta.textContent = idleMeta;
+        searchMeta.innerHTML = idleMeta;
       } else if (query) {
         const q = searchInput.value.trim();
         searchMeta.textContent = `${totalVisible} match${totalVisible === 1 ? '' : 'es'} for "${q}"`;
@@ -345,11 +349,7 @@ fetch('/api/dl/counts')
     // Patch per-format badges: <span class="count" title="N downloads">N</span>
     // Each download link lives inside a card with data-id="<layer_id>" and
     // the link text is the format name (parquet, geojson, kml, shp).
-    const fmtCount = (n: number) => {
-      if (n < 1000) return String(n);
-      if (n < 10000) return (n / 1000).toFixed(1).replace(/\.0$/, '') + 'k';
-      return Math.round(n / 1000) + 'k';
-    };
+    // fmtCount lives in format-hints.ts (pure + unit-tested).
     for (const section of document.querySelectorAll<HTMLElement>('[data-id]')) {
       const layerId = section.dataset.id || '';
       const layerCounts = counts[layerId] as Record<string, number> | undefined;
@@ -375,16 +375,14 @@ fetch('/api/dl/counts')
       }
     }
 
-    // Patch global total in search-meta line.
+    // Refill the search-meta running total from the live count. The baked value
+    // is a build-time snapshot; #dl-total is its own slot so we replace just the
+    // " · <count> downloads" tail without touching the static prefix. The count
+    // is built from a number, so innerHTML here is safe (no user input).
     const total = typeof counts._total === 'number' ? counts._total : 0;
-    if (total > 0) {
-      const meta = document.getElementById('search-meta');
-      if (meta) {
-        meta.textContent = meta.textContent?.replace(
-          /\d[\d,]* downloads/,
-          `${fmtCount(total)} downloads`,
-        ) || meta.textContent || '';
-      }
+    const slot = document.getElementById('dl-total');
+    if (slot && total > 0) {
+      slot.innerHTML = ` · <span class="search-meta__count">${fmtCount(total)}</span> downloads`;
     }
   })
   .catch(() => {});
