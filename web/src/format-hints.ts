@@ -62,3 +62,16 @@ export function fmtBytes(n: number | null | undefined): string {
   if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
   return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
 }
+
+// Compact count for download badges + the search-meta total. One decimal while
+// it reads cleanly (9.3k, 10.3k, 99.9k), whole thousands once that decimal is
+// just noise (250k), then millions (1.2M). A trailing .0 is always dropped.
+// Previously anything >= 10k rounded to whole thousands, so 10,300 showed as
+// "10k" — this keeps the tenths that make the number feel live.
+export function fmtCount(n: number): string {
+  const compact = (v: number, suffix: string) =>
+    (v < 100 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v))) + suffix;
+  if (n < 1000) return String(n);
+  if (n < 1_000_000) return compact(n / 1000, 'k');
+  return compact(n / 1_000_000, 'M');
+}

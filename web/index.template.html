@@ -65,6 +65,10 @@
       }
       .search-meta a { color: var(--accent); text-decoration: none; border-bottom: 1px dashed currentColor; }
       .search-meta a:hover { border-bottom-style: solid; }
+      /* Lift just the running download total out of muted so it reads as social
+         proof. Not --accent: that's the link colour here, and a coloured but
+         unclickable number would be a false affordance. */
+      .search-meta__count { color: var(--fg); font-weight: 600; }
 
       .catalog-chips {
         display: flex; gap: 6px;
@@ -924,7 +928,7 @@
       />
       <a href="/preview" class="search-bar__attach" id="search-attach" aria-label="Preview or share a file" title="Preview or share a file">📎</a>
     </div>
-    <p class="search-meta" id="search-meta">type to search · drop a file to view or share<!-- DOWNLOAD_TOTAL --></p>
+    <p class="search-meta" id="search-meta">type to search · drop a file to view or share<span id="dl-total"><!-- DOWNLOAD_TOTAL --></span></p>
 
     <div class="catalog-chips" role="toolbar" aria-label="Filter by category">
       <!-- CATEGORY_CHIPS -->

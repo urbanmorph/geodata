@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { availableDownloads, formatLabel, formatHint, fmtBytes } from '../src/format-hints';
+import { availableDownloads, formatLabel, formatHint, fmtBytes, fmtCount } from '../src/format-hints';
 
 describe('format-hints — availableDownloads', () => {
   it('returns empty list for a layer with nothing downloadable', () => {
@@ -95,4 +95,30 @@ describe('format-hints — fmtBytes', () => {
   it('formats KB without decimals', () => expect(fmtBytes(2048)).toBe('2 KB'));
   it('formats MB with one decimal', () => expect(fmtBytes(2.5 * 1024 * 1024)).toBe('2.5 MB'));
   it('formats GB with two decimals', () => expect(fmtBytes(3.14 * 1024 ** 3)).toBe('3.14 GB'));
+});
+
+describe('format-hints — fmtCount', () => {
+  it('shows small counts raw', () => {
+    expect(fmtCount(0)).toBe('0');
+    expect(fmtCount(948)).toBe('948');
+    expect(fmtCount(999)).toBe('999');
+  });
+  it('uses one decimal in the k range, dropping a trailing .0', () => {
+    expect(fmtCount(1000)).toBe('1k');
+    expect(fmtCount(9300)).toBe('9.3k');
+  });
+  it('keeps the decimal past 10k (the regression: 10.3k, not 10k)', () => {
+    expect(fmtCount(10300)).toBe('10.3k');
+    expect(fmtCount(10000)).toBe('10k');
+    expect(fmtCount(99900)).toBe('99.9k');
+  });
+  it('drops to whole thousands at 100k and above (avoids 250.4k noise)', () => {
+    expect(fmtCount(100000)).toBe('100k');
+    expect(fmtCount(250400)).toBe('250k');
+    expect(fmtCount(999499)).toBe('999k');
+  });
+  it('rolls over to millions with one decimal', () => {
+    expect(fmtCount(1000000)).toBe('1M');
+    expect(fmtCount(1200000)).toBe('1.2M');
+  });
 });
