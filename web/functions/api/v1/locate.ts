@@ -1,6 +1,7 @@
 import type { Env } from '../_middleware';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { locate, DEFAULT_LOCATE_LAYERS } from '../../lib/locate';
+import { resolveLocateLayers } from '../../lib/ward-locate';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -20,10 +21,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   const zoom = Math.min(Math.max(parseInt(url.searchParams.get('zoom') || '14', 10), 4), 16);
 
-  const layersParam = url.searchParams.get('layers');
-  const layerIds = layersParam
-    ? layersParam.split(',').map((s) => s.trim()).filter(Boolean)
-    : [...DEFAULT_LOCATE_LAYERS];
+  // Default path auto-includes the city ward layer(s) covering the point (ward
+  // lookup is the top demand); an explicit `layers=` is honoured verbatim.
+  const layerIds = resolveLocateLayers(
+    url.searchParams.get('layers'), lng, lat, DEFAULT_LOCATE_LAYERS,
+  );
 
   const catalog = await loadCatalog(url.origin);
   const result = await locate(lat, lng, layerIds, zoom, catalog, ctx.env.R2);

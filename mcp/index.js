@@ -29,7 +29,7 @@ Workflow patterns:
 - **Schema first**: always call get_layer_schema BEFORE query_layer. Column names vary per layer (e.g. "state" vs "State_LGD" vs "stname"). The schema shows exact names and sample values.
 - **Filtering**: query_layer where conditions are case-insensitive. Pass column=value pairs. Check the schema for the right column name and value format.
 - **Counting**: use group_by to count features by any column. Example: group_by "type" on wildlife layer returns counts per category.
-- **Location queries**: locate returns all admin boundaries + zones at a lat/lng. Use it to answer "what state/district/ward is this point in?"
+- **Location queries**: locate returns all admin boundaries + zones at a lat/lng, and (for the ~30 covered cities) auto-includes the municipal ward layer that contains the point — so "what ward is this?" just works with lat/lng alone. Use it to answer "what state/district/ward is this point in?"
 - **Spatial joins** (multi-step): to answer "which X are in Y?" when layers don't share a common column:
   1. Use locate to find the admin context (state, district) of the target area
   2. Use query_layer with a where filter to narrow the other layer by that admin context
@@ -172,7 +172,8 @@ const TOOLS = [
     description:
       "Given a latitude/longitude, find which administrative boundaries, zones, and regions " +
       "contain that point. Returns state, district, subdistrict, block, parliament/assembly " +
-      "constituency, pincode, seismic zone, high court jurisdiction, and more. " +
+      "constituency, pincode, seismic zone, high court jurisdiction, the municipal ward (for " +
+      "the ~30 cities with ward data), and more. " +
       "The 'where am I?' tool. Also accepts specific layer IDs to check.",
     inputSchema: {
       type: "object",
@@ -188,7 +189,7 @@ const TOOLS = [
         layers: {
           type: "array",
           items: { type: "string" },
-          description: "Specific layer IDs to check (default: 12 essential layers covering all admin levels + zones)",
+          description: "Specific layer IDs to check. Omit to use the default: 12 essential admin/zone layers PLUS the city ward layer(s) covering the point (for the ~30 cities with ward data). Passing this replaces the default entirely (no ward auto-include).",
         },
       },
       required: ["lat", "lng"],
