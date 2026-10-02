@@ -29,6 +29,7 @@ Workflow patterns:
 - **Schema first**: always call get_layer_schema BEFORE query_layer. Column names vary per layer (e.g. "state" vs "State_LGD" vs "stname"). The schema shows exact names and sample values.
 - **Filtering**: query_layer where conditions are case-insensitive. Pass column=value pairs. Check the schema for the right column name and value format.
 - **Counting**: use group_by to count features by any column. Example: group_by "type" on wildlife layer returns counts per category.
+- **Totals**: add sum (numeric columns) to group_by to total values per group, e.g. group_by "district" + sum ["area_ha"] rolls block-level areas up to districts. Percentages are not additive: sum the underlying amounts and recompute shares.
 - **Location queries**: locate returns all admin boundaries + zones at a lat/lng, and (for the ~30 covered cities) auto-includes the municipal ward layer that contains the point — so "what ward is this?" just works with lat/lng alone. Use it to answer "what state/district/ward is this point in?"
 - **Spatial joins** (multi-step): to answer "which X are in Y?" when layers don't share a common column:
   1. Use locate to find the admin context (state, district) of the target area
@@ -132,7 +133,8 @@ const TOOLS = [
     name: "query_layer",
     description:
       "Query a layer's data with filters and grouping. Reads the parquet file at runtime. " +
-      "Supports: select specific columns, filter by column values, group by a column to get counts. " +
+      "Supports: select specific columns, filter by column values, group by a column to get counts, " +
+      "and sum numeric columns per group (e.g. roll block areas up to district totals). " +
       "Use get_layer_schema first to discover column names. " +
       "Examples: 'airports in Karnataka' -> where: {state: 'KA'}, " +
       "'forest types' -> group_by: 'type', " +
@@ -157,6 +159,11 @@ const TOOLS = [
         group_by: {
           type: "string",
           description: "Column to group by. Returns {value: count} instead of rows.",
+        },
+        sum: {
+          type: "array",
+          items: { type: "string" },
+          description: "Numeric columns to total per group (requires group_by). Adds {sums: {group: {col: total}}}. Use this to roll finer units up, e.g. block-level areas to district totals. Shares/percentages are not additive: sum the area columns and recompute shares.",
         },
         limit: { type: "number", description: "Max rows (default 100, max 1000)" },
         include_centroid: {
@@ -484,10 +491,11 @@ async function handleTool(name, args) {
     }
 
     case "query_layer": {
-      const { layer_id, select, where, group_by, limit, include_centroid } = args;
+      const { layer_id, select, where, group_by, sum, limit, include_centroid } = args;
       const params = {};
       if (select?.length) params.select = select.join(",");
       if (group_by) params.group_by = group_by;
+      if (sum?.length) params.sum = sum.join(",");
       if (limit) params.limit = limit;
       if (include_centroid) params.include_centroid = "true";
       if (where) params.where = Object.entries(where).map(([k, v]) => `${k}=${v}`).join(",");

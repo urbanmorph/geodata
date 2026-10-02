@@ -1,7 +1,8 @@
 import type { Env } from '../../../_middleware';
 import { loadCatalog } from '../../../../lib/catalog-loader';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
-import { query } from '../../../../lib/parquet-query';
+import { query, QueryInputError } from '../../../../lib/parquet-query';
+import { parseQueryParams } from '../../../../lib/query-params';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const id = (ctx.params as { id: string }).id;
@@ -17,31 +18,12 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const r2Key = r2KeyFromLayer(layer);
   if (!r2Key) return json(404, { error: 'No parquet file for this layer', status: 404 });
 
-  // Parse query params
-  const select = url.searchParams.get('select')?.split(',').map((s) => s.trim()).filter(Boolean);
-  const groupBy = url.searchParams.get('group_by') || undefined;
-  const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '100', 10), 1), 1000);
-
-  // Parse where: supports ?where=col1=val1,col2=val2 or ?col1=val1&col2=val2 style
-  const where: Record<string, string> = {};
-  const whereParam = url.searchParams.get('where');
-  if (whereParam) {
-    for (const pair of whereParam.split(',')) {
-      const eq = pair.indexOf('=');
-      if (eq > 0) where[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
-    }
-  }
-  // Also check for direct column=value params (skip reserved params)
-  const reserved = new Set(['select', 'group_by', 'limit', 'where', 'order_by', 'include_centroid']);
-  for (const [k, v] of url.searchParams.entries()) {
-    if (!reserved.has(k) && v) where[k] = v;
-  }
-  const includeCentroid = url.searchParams.get('include_centroid') !== 'false';
+  const { select, groupBy, sum, limit, where, includeCentroid } = parseQueryParams(url.searchParams);
 
   try {
     const start = Date.now();
     const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
-    const result = await query(file, { select, where: Object.keys(where).length ? where : undefined, groupBy, limit, includeCentroid });
+    const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid });
     const timing = Date.now() - start;
 
     return new Response(safeStringify({ data: result, layer_id: id, timing_ms: timing }), {
@@ -52,7 +34,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     });
   } catch (e) {
     const msg = (e as Error).message;
-    if (msg.includes('not found')) return json(400, { error: msg, status: 400 });
+    if (e instanceof QueryInputError || msg.includes('not found')) return json(400, { error: msg, status: 400 });
     return json(500, { error: `Query failed: ${msg}`, status: 500 });
   }
 };

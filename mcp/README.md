@@ -36,7 +36,7 @@ Add to your MCP client config:
 |------|-------------|
 | **list_layers** | Discover layers by category, level, source, or text search |
 | **get_layer_schema** | Column names, types, distinct values. Call before querying. |
-| **query_layer** | Filter, select, group_by on any column. Runtime parquet reads. |
+| **query_layer** | Filter, select, group_by on any column, with per-group sums of numeric columns. Runtime parquet reads. |
 | **locate** | Point-in-polygon: what state, district, ward, zone is this point in? |
 | **nearby** | Find features within a radius. Works for points, polygons, and lines. |
 | **get_layer_detail** | Download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile) |

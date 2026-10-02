@@ -85,6 +85,7 @@
         <tr><td><code>select</code></td><td>string</td><td>Comma-separated column names to return</td></tr>
         <tr><td><code>where</code></td><td>string</td><td>Filters: <code>col1=val1,col2=val2</code>. Or pass columns directly as params: <code>?state=KA&amp;type=INTERNATIONAL</code></td></tr>
         <tr><td><code>group_by</code></td><td>string</td><td>Group by column, returns value counts</td></tr>
+        <tr><td><code>sum</code></td><td>string</td><td>With <code>group_by</code>: comma-separated numeric columns to total per group, returned as <code>sums</code>. Percentages are not additive, so sum the amounts and recompute shares.</td></tr>
         <tr><td><code>limit</code></td><td>int</td><td>Max rows (default 100, max 1000)</td></tr>
       </table>
       <pre><code># How many airports in Bengaluru district?
@@ -95,6 +96,9 @@ curl "https://bharatlas.com/api/v1/layers/soi_forests/query?where=State_LGD=29&a
 
 # National parks vs wildlife sanctuaries
 curl "https://bharatlas.com/api/v1/layers/gs_wildlife/query?group_by=type"
+
+# Installed power capacity (MW) by plant type
+curl "https://bharatlas.com/api/v1/layers/vedas_power_plants/query?group_by=layer&amp;sum=inst_cap"
 
 # Which blocks are in district 571?
 curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=Dist_LGD=571&amp;select=BNAME,Block_LGD"</code></pre>

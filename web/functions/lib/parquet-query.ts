@@ -25,8 +25,13 @@ export interface GroupByResult {
   column: string;
   counts: Record<string, number>;
   total: number;
+  /** Per-group totals of the requested `sum` columns; absent when none asked. */
+  sums?: Record<string, Record<string, number>>;
   hints?: Record<string, unknown[]>;
 }
+
+/** A caller mistake (bad column, wrong type, missing group_by): maps to HTTP 400. */
+export class QueryInputError extends Error {}
 
 const MAX_ROWS = 1000;
 const MAX_GROUP_BY_VALUES = 500;
@@ -90,18 +95,92 @@ export async function query(
     select?: string[];
     where?: Record<string, string>;
     groupBy?: string;
+    /** Numeric columns to total per group (requires groupBy). */
+    sum?: string[];
     limit?: number;
     includeCentroid?: boolean;
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await parquetMetadataAsync(file);
-  const allCols = metadata.schema.slice(1).map((e) => e.name).filter(Boolean) as string[];
+  const schema = metadata.schema.slice(1).filter((e) => e.name);
+  const allCols = schema.map((e) => e.name);
+
+  const sumCols = opts.sum?.length ? opts.sum : [];
+  if (sumCols.length && !opts.groupBy) {
+    throw new QueryInputError('sum requires group_by (it totals numeric columns per group)');
+  }
 
   if (opts.groupBy) {
-    return groupByQuery(file, allCols, opts.groupBy, opts.where);
+    if (sumCols.length) {
+      validateSumColumns(sumCols, Object.fromEntries(schema.map((e) => [e.name, e.type])));
+    }
+    return groupByQuery(file, allCols, opts.groupBy, opts.where, sumCols);
   }
 
   return selectQuery(file, allCols, opts);
+}
+
+// Parquet physical types we can total. INT96 is a legacy timestamp and BYTE_ARRAY
+// / FIXED_LEN_BYTE_ARRAY are strings or decimals, so neither is summed.
+const NUMERIC_TYPES = new Set(['INT32', 'INT64', 'FLOAT', 'DOUBLE']);
+
+/** Throws QueryInputError unless every sum column exists and is numeric. */
+export function validateSumColumns(
+  sumCols: string[],
+  types: Record<string, string | undefined>,
+): void {
+  const numeric = Object.keys(types).filter((c) => NUMERIC_TYPES.has(types[c] ?? '') && !isJunkColumn(c));
+  for (const c of sumCols) {
+    if (!(c in types)) {
+      throw new QueryInputError(`Sum column "${c}" not found. Numeric columns: ${numeric.join(', ')}`);
+    }
+    if (!NUMERIC_TYPES.has(types[c] ?? '')) {
+      throw new QueryInputError(`Sum column "${c}" is not numeric. Numeric columns: ${numeric.join(', ')}`);
+    }
+  }
+}
+
+/**
+ * Group rows by `groupCol`: a row count per group (largest first, capped at
+ * MAX_GROUP_BY_VALUES), plus per-group totals of `sumCols` when asked. INT64
+ * values arrive from hyparquet as BigInt, so they are converted; null/undefined
+ * are skipped; float noise is rounded to 6 decimals.
+ */
+export function aggregateGroups(
+  rows: Record<string, unknown>[],
+  groupCol: string,
+  sumCols: string[] = [],
+): { counts: Record<string, number>; total: number; sums?: Record<string, Record<string, number>> } {
+  const counts: Record<string, number> = {};
+  const sums: Record<string, Record<string, number>> = {};
+  for (const row of rows) {
+    const key = String(row[groupCol] ?? '(null)');
+    counts[key] = (counts[key] || 0) + 1;
+    if (!sumCols.length) continue;
+    if (!sums[key]) sums[key] = Object.fromEntries(sumCols.map((c) => [c, 0]));
+    for (const c of sumCols) {
+      const v = row[c];
+      if (v === null || v === undefined) continue;
+      const n = Number(v);
+      if (Number.isFinite(n)) sums[key][c] += n;
+    }
+  }
+
+  const kept = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, MAX_GROUP_BY_VALUES);
+  const result: { counts: Record<string, number>; total: number; sums?: Record<string, Record<string, number>> } = {
+    counts: Object.fromEntries(kept),
+    total: rows.length,
+  };
+  if (sumCols.length) {
+    const round = (x: number) => Math.round(x * 1e6) / 1e6;
+    result.sums = Object.fromEntries(kept.map(([k]) => [
+      k,
+      Object.fromEntries(sumCols.map((c) => [c, round(sums[k][c])])),
+    ]));
+  }
+  return result;
 }
 
 // FIX #3: centroid support via bbox columns
@@ -182,13 +261,14 @@ async function groupByQuery(
   allCols: string[],
   groupCol: string,
   where?: Record<string, string>,
+  sumCols: string[] = [],
 ): Promise<GroupByResult> {
   if (!allCols.includes(groupCol)) {
     const available = allCols.filter((c) => !c.toLowerCase().includes('geom') && c !== 'wkb_geometry' && !isJunkColumn(c));
-    throw new Error(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
+    throw new QueryInputError(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
   }
 
-  const readCols = new Set([groupCol]);
+  const readCols = new Set([groupCol, ...sumCols]);
   if (where) Object.keys(where).forEach((c) => readCols.add(c));
   const colList = [...readCols].filter((c) => allCols.includes(c));
 
@@ -205,15 +285,7 @@ async function groupByQuery(
     );
   }
 
-  const counts: Record<string, number> = {};
-  for (const row of filtered) {
-    const key = String(row[groupCol] ?? '(null)');
-    counts[key] = (counts[key] || 0) + 1;
-  }
-
-  const sorted = Object.entries(counts)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, MAX_GROUP_BY_VALUES);
+  const agg = aggregateGroups(filtered, groupCol, sumCols);
 
   // FIX #2: hints on zero results
   let hints: Record<string, unknown[]> | undefined;
@@ -232,8 +304,9 @@ async function groupByQuery(
 
   return {
     column: groupCol,
-    counts: Object.fromEntries(sorted),
-    total: filtered.length,
+    counts: agg.counts,
+    total: agg.total,
+    ...(agg.sums ? { sums: agg.sums } : {}),
     hints,
   };
 }
