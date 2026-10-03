@@ -1282,5 +1282,43 @@
       "conservation",
       "WII"
     ]
+  },
+  {
+    "id": "corestack_lulc_blocks",
+    "name": "Land Use & Cropping Intensity by Block (2023-24)",
+    "level": "corestack_lulc_blocks",
+    "category": "agriculture",
+    "source": "CoREStack",
+    "description": "Land use and cropping intensity per LGD block in 2023-24: single, double and triple cropping, seasonal and perennial water, trees, scrub, barren and built-up land. Modelled from CoRE Stack's 10 m IndiaSAT map, not official crop statistics. Islands are not mapped and the high Himalaya only partly; mapped_pct shows coverage.",
+    "unit": "blocks",
+    "features": 7146,
+    "license": "CC-BY-4.0",
+    "r2_prefix": "agriculture/corestack-lulc-blocks",
+    "parquet_file": "CoREStack_LULC_Blocks_2023_24.parquet",
+    "parquet_bytes": 74448598,
+    "pmtiles_file": "CoREStack_LULC_Blocks_2023_24.pmtiles",
+    "pmtiles_bytes": 40443340,
+    "source_url": "https://core-stack.org/",
+    "source_org": "CoRE Stack",
+    "notes": "Modelled data, not official crop statistics: block totals of CoRE Stack's IndiaSAT v4 land-use classification (10 m, 2023-24). Areas are in hectares and shares are of each block's mapped area, so add up hectares, not shares, when combining blocks. Not mapped: Lakshadweep and Andaman & Nicobar; partly mapped in the high Himalaya (see mapped_pct). The annual series from 2017-18 is available from CoRE Stack.",
+    "tags": [
+      "land use",
+      "land cover",
+      "LULC",
+      "cropping intensity",
+      "double cropping",
+      "triple cropping",
+      "kharif",
+      "rabi",
+      "zaid",
+      "cropland",
+      "tree cover",
+      "built-up",
+      "irrigation",
+      "IndiaSAT",
+      "CoRE Stack",
+      "block"
+    ],
+    "provenance": "modelled"
   }
 ]

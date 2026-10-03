@@ -29,6 +29,27 @@ def make_prev_layer(layer_id='lgd_states', **overrides):
     return base
 
 
+class TestExternalProvenance:
+    """Manifest layers default to 'curated'; a manifest `provenance` (e.g.
+    'modelled' for model-derived layers) must survive a catalog rebuild."""
+
+    def test_default_is_curated(self):
+        from build_catalog import provenance_for
+        assert provenance_for('lgd_states') == 'curated'
+
+    def test_manifest_value_wins(self):
+        import build_catalog
+        with patch.dict(build_catalog.EXTERNAL_PROVENANCE, {'x_layer': 'modelled'}):
+            assert build_catalog.provenance_for('x_layer') == 'modelled'
+
+    def test_manifest_provenance_is_loaded(self):
+        import build_catalog
+        manifest = json.loads((ROOT / 'scripts' / 'external-ingested.json').read_text())
+        for entry in manifest:
+            if entry.get('provenance'):
+                assert build_catalog.provenance_for(entry['id']) == entry['provenance']
+
+
 class TestCarryForward:
     """When local files don't exist, the builder should carry forward
     bytes, baked downloads, and fetched_at from the previous catalog."""

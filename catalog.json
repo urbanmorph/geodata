@@ -878,6 +878,11 @@
       "label": "Biogeographic Zones",
       "unit": "provinces",
       "description": "India's biogeographic classification (10 zones across 26 provinces) from the Wildlife Institute of India: Himalaya, Western Ghats, Deccan Peninsula, Desert, Gangetic Plain and more."
+    },
+    "corestack_lulc_blocks": {
+      "label": "Land Use & Cropping Intensity by Block (2023-24)",
+      "unit": "blocks",
+      "description": "Land use and cropping intensity per LGD block in 2023-24: single, double and triple cropping, seasonal and perennial water, trees, scrub, barren and built-up land. Modelled from CoRE Stack's 10 m IndiaSAT map, not official crop statistics. Islands are not mapped and the high Himalaya only partly; mapped_pct shows coverage."
     }
   },
   "level_order": [
@@ -973,7 +978,8 @@
     "wris_canals",
     "agro_ecological_zones",
     "agro_climatic_zones",
-    "biogeographic_zones"
+    "biogeographic_zones",
+    "corestack_lulc_blocks"
   ],
   "layers": [
     {
@@ -5151,6 +5157,62 @@
         "ecoregion",
         "conservation",
         "WII"
+      ]
+    },
+    {
+      "id": "corestack_lulc_blocks",
+      "level": "corestack_lulc_blocks",
+      "source": "CoREStack",
+      "rows": 7146,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.parquet",
+        "bytes": 74448598
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.pmtiles",
+        "bytes": 40443340
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.geojson",
+        "bytes": 303098401
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.kml",
+        "bytes": 248721317
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.shp.zip",
+        "bytes": 117188830
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        },
+        "publisher": null
+      },
+      "category": "agriculture",
+      "provenance": "modelled",
+      "fetched_at": "2026-10-03",
+      "notes": "Modelled data, not official crop statistics: block totals of CoRE Stack's IndiaSAT v4 land-use classification (10 m, 2023-24). Areas are in hectares and shares are of each block's mapped area, so add up hectares, not shares, when combining blocks. Not mapped: Lakshadweep and Andaman & Nicobar; partly mapped in the high Himalaya (see mapped_pct). The annual series from 2017-18 is available from CoRE Stack.",
+      "tags": [
+        "land use",
+        "land cover",
+        "LULC",
+        "cropping intensity",
+        "double cropping",
+        "triple cropping",
+        "kharif",
+        "rabi",
+        "zaid",
+        "cropland",
+        "tree cover",
+        "built-up",
+        "irrigation",
+        "IndiaSAT",
+        "CoRE Stack",
+        "block"
       ]
     }
   ],

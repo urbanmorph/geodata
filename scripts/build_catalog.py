@@ -231,6 +231,9 @@ EXTERNAL_MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 EXTERNAL_LEVEL_META: dict[str, dict] = {}  # level_id -> {label, unit, description, source_url, source_org}
 EXTERNAL_BYTES: dict[str, dict[str, int | None]] = {}  # layer_id -> {'parquet': bytes, 'pmtiles': bytes}
 EXTERNAL_TAGS: dict[str, list[str]] = {}  # layer_id -> search tags (optional, manifest-provided)
+# layer_id -> provenance override (optional). Layers are 'curated' unless the
+# manifest says otherwise, e.g. 'modelled' for a model-derived product.
+EXTERNAL_PROVENANCE: dict[str, str] = {}
 
 if EXTERNAL_MANIFEST.exists():
     _external = json.loads(EXTERNAL_MANIFEST.read_text())
@@ -276,6 +279,12 @@ if EXTERNAL_MANIFEST.exists():
         }
         if x.get('tags'):
             EXTERNAL_TAGS[x['id']] = x['tags']
+        if x.get('provenance'):
+            EXTERNAL_PROVENANCE[x['id']] = x['provenance']
+
+
+def provenance_for(layer_id: str) -> str:
+    return EXTERNAL_PROVENANCE.get(layer_id, 'curated')
 
 # Reverse map: directory uses plural ("districts"), catalog uses singular ("district").
 # Computed once after LEVELS is finalised (including external-ingested additions).
@@ -603,7 +612,7 @@ def build():
                 'publisher': PUBLISHER if source in YASHVEER_HOSTED else None,
             },
             'category': level_meta.get('category', 'administrative'),
-            'provenance': 'curated',
+            'provenance': provenance_for(id_),
             'fetched_at': fetched_at,
             'notes': notes,
         })
