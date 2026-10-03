@@ -8,7 +8,7 @@ bharatlas is a visual catalog, REST API, and MCP server for India's geospatial d
 
 Install: `npx bharatlas-mcp`
 
-8 tools: list_layers, get_layer_schema, query_layer, locate, nearby, get_layer_detail, list_categories, list_submissions.
+17 tools. Query (8): list_layers, get_layer_schema, query_layer, locate, nearby, get_layer_detail, list_categories, list_submissions. Authoring collect maps (9): register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish, create_map (optional).
 
 Configuration:
 ```json
@@ -40,6 +40,7 @@ Endpoints:
 
 - "How many national parks vs wildlife sanctuaries?" — query_layer with group_by
 - "How many villages in Bengaluru Urban district?" — query_layer with where filter
+- "How much cropland does each district have?": query_layer on corestack_lulc_blocks with group_by=district and sum=cropland_ha
 - "Which airports in Karnataka are near water bodies?" — query_layer + nearby across layers
 - "What state, district, seismic zone is this point in?" — locate
 - "Reservoirs within 50km of Bengaluru?" — nearby

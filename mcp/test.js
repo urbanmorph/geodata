@@ -75,8 +75,18 @@ async function run() {
       proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: listId, method: "tools/list" }) + "\n");
     });
     const tools = listResult.result.tools;
-    assert(tools.length === 8, "8 tools available");
+    // 8 query tools + 9 collect authoring tools (merged in 1.1.0).
+    assert(tools.length === 17, "17 tools available");
     assert(tools.some((t) => t.name === "nearby"), "has nearby tool");
+    const ql = tools.find((t) => t.name === "query_layer");
+    assert(ql?.inputSchema?.properties?.sum?.type === "array", "query_layer exposes sum (1.2.0)");
+
+    // ── Per-group sums through the MCP (1.2.0) ──
+    console.log("\nSums: installed power capacity by plant type");
+    const qs = await call(proc, "query_layer", { layer_id: "vedas_power_plants", group_by: "layer", sum: ["inst_cap"] });
+    const coalMw = qs.data?.sums?.coal_power_plants?.inst_cap || 0;
+    console.log(`  coal installed: ${Math.round(coalMw).toLocaleString()} MW`);
+    assert(coalMw > 100000, "query_layer sum: coal installed MW > 100,000");
 
     // ── Q1: How many national parks vs wildlife sanctuaries? ──
     console.log("\nQ1: How many national parks vs wildlife sanctuaries?");

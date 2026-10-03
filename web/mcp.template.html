@@ -122,11 +122,11 @@
       <p class="question">How many hospitals are in flood-prone areas of Assam?</p>
       <p class="answer">3,909 health facilities in Assam (narrowed by state). For precise flood-zone overlap, the MCP tests hospital points against the India Flood Inventory layer.</p>
 
-      <h2>8 tools</h2>
+      <h2>8 query tools</h2>
       <ul>
         <li><strong>list_layers</strong> -- discover layers by category, level, source, or text search</li>
         <li><strong>get_layer_schema</strong> -- column names, types, distinct values (call before querying)</li>
-        <li><strong>query_layer</strong> -- filter, select, group by any column; results include <code>_lat</code>/<code>_lng</code> for spatial layers</li>
+        <li><strong>query_layer</strong> -- filter, select, group by any column (with per-group sums of numeric columns, e.g. block areas rolled up to districts); results include <code>_lat</code>/<code>_lng</code> for spatial layers</li>
         <li><strong>locate</strong> -- point-in-polygon across all admin layers + zones at once</li>
         <li><strong>nearby</strong> -- find features within a radius (works for points, polygons, and lines)</li>
         <li><strong>get_layer_detail</strong> -- download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile)</li>
