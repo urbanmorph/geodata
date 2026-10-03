@@ -116,6 +116,30 @@ class TestSchema:
         assert set(r) <= set(OUTPUT_COLUMNS)
 
 
+class TestMapTiles:
+    """Tiles carry only popup fields. With all 37 attributes, tippecanoe's
+    size-based dropping kept ~47% of blocks at national zoom (z4), leaving
+    holes; the full table stays in Parquet / downloads / API."""
+
+    def test_tile_fields_are_real_output_columns(self):
+        from bake_corestack_lulc import TILE_FIELDS
+        assert set(TILE_FIELDS) <= set(OUTPUT_COLUMNS)
+
+    def test_tile_fields_identify_the_block_and_stay_small(self):
+        from bake_corestack_lulc import TILE_FIELDS
+        assert {'block_name', 'district', 'state'} <= set(TILE_FIELDS)
+        assert len(TILE_FIELDS) <= 13
+
+    def test_tippecanoe_includes_only_tile_fields(self):
+        from pathlib import Path
+        from bake_corestack_lulc import TILE_FIELDS, pmtiles_args
+        args = pmtiles_args(Path('in.geojson'), Path('out.pmtiles'))
+        included = [args[i + 1] for i, a in enumerate(args) if a == '-y']
+        assert included == list(TILE_FIELDS)
+        assert '-x' not in args
+        assert args[-1] == 'in.geojson'
+
+
 class TestShapefileNames:
     def test_every_output_column_has_a_short_name(self):
         assert set(SHP_NAMES) == set(OUTPUT_COLUMNS)

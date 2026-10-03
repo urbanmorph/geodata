@@ -1297,7 +1297,7 @@
     "parquet_file": "CoREStack_LULC_Blocks_2023_24.parquet",
     "parquet_bytes": 74448598,
     "pmtiles_file": "CoREStack_LULC_Blocks_2023_24.pmtiles",
-    "pmtiles_bytes": 40443340,
+    "pmtiles_bytes": 30561020,
     "source_url": "https://core-stack.org/",
     "source_org": "CoRE Stack",
     "notes": "Modelled data, not official crop statistics: block totals of CoRE Stack's IndiaSAT v4 land-use classification (10 m, 2023-24). Areas are in hectares and shares are of each block's mapped area, so add up hectares, not shares, when combining blocks. Not mapped: Lakshadweep and Andaman & Nicobar; partly mapped in the high Himalaya (see mapped_pct). The annual series from 2017-18 is available from CoRE Stack.",

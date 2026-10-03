@@ -28,7 +28,7 @@ Workflow patterns:
 - **Discovery**: start with list_layers or list_categories to find relevant layers. Use the q parameter for text search.
 - **Schema first**: always call get_layer_schema BEFORE query_layer. Column names vary per layer (e.g. "state" vs "State_LGD" vs "stname"). The schema shows exact names and sample values.
 - **Filtering**: query_layer where conditions are case-insensitive. Pass column=value pairs. Check the schema for the right column name and value format.
-- **Counting**: use group_by to count features by any column. Example: group_by "type" on wildlife layer returns counts per category.
+- **Counting**: use group_by to count features by any column. Example: group_by "category" on the gs_wildlife layer returns national parks vs sanctuaries.
 - **Totals**: add sum (numeric columns) to group_by to total values per group, e.g. group_by "district" + sum ["area_ha"] rolls block-level areas up to districts. Percentages are not additive: sum the underlying amounts and recompute shares.
 - **Location queries**: locate returns all admin boundaries + zones at a lat/lng, and (for the ~30 covered cities) auto-includes the municipal ward layer that contains the point — so "what ward is this?" just works with lat/lng alone. Use it to answer "what state/district/ward is this point in?"
 - **Spatial joins** (multi-step): to answer "which X are in Y?" when layers don't share a common column:

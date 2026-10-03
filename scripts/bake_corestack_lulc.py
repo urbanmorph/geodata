@@ -96,6 +96,17 @@ SHP_NAMES: dict[str, str] = {
 
 KNOWN_CODES = {0, 5, *CLASS_COLS}
 
+# Map tiles carry only the click-popup fields. With all 37 attributes the tiles
+# were heavy enough that tippecanoe's size-based dropping kept ~47% of blocks at
+# national zoom (holes across the map); the full table stays in the Parquet,
+# downloads and API.
+TILE_FIELDS = (
+    'block_name', 'district', 'state',
+    'mapped_pct', 'cropland_pct',
+    'single_kharif_pct', 'double_crop_pct', 'triple_crop_pct', 'cropping_intensity_index',
+    'trees_pct', 'built_up_pct', 'water_perennial_pct',
+)
+
 
 def _share(part: float, whole: float) -> float | None:
     return round(100 * part / whole, 2) if whole > 0 else None
@@ -177,13 +188,17 @@ def _write_shapefile_zip(geojson: Path, out: Path) -> None:
                 zf.write(f, arcname=f.name)
 
 
+def pmtiles_args(geojson: Path, out: Path) -> list[str]:
+    args = ['tippecanoe', '-o', str(out), '-l', LAYER_ID, '-zg',
+            '--drop-densest-as-needed', '--extend-zooms-if-still-dropping']
+    for field in TILE_FIELDS:
+        args += ['-y', field]
+    return args + ['--force', '--no-progress-indicator', str(geojson)]
+
+
 def _write_pmtiles(geojson: Path, out: Path) -> None:
     out.unlink(missing_ok=True)
-    subprocess.run(['tippecanoe', '-o', str(out), '-l', LAYER_ID, '-zg',
-                    '--drop-densest-as-needed', '--extend-zooms-if-still-dropping',
-                    '-x', 'xmin', '-x', 'ymin', '-x', 'xmax', '-x', 'ymax',
-                    '--force', '--no-progress-indicator', str(geojson)],
-                   check=True, capture_output=True)
+    subprocess.run(pmtiles_args(geojson, out), check=True, capture_output=True)
 
 
 def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
