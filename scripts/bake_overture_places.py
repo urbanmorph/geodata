@@ -1,7 +1,7 @@
 """Refresh overture_places_india from an Overture Maps release (places theme).
 
 Replaces the Dec 2023 ramSeraph mirror with a bake straight from Overture's
-public S3 release, clipped to India's boundary. The data is presented as
+public S3 release, clipped to India (points inside an LGD district polygon). The data is presented as
 Overture publishes it (every column, nested types kept in Parquet/GeoJSON);
 the only transforms are generic: clip, flat bbox + Hilbert sort for
 /api/v1/nearby, popup-only fields in the tiles, and a flattened field subset
@@ -25,18 +25,18 @@ import json
 import subprocess
 import sys
 import tempfile
-import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bake_formats  # noqa: E402
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 
 LAYER_ID = 'overture_places_india'
 R2_DIR = 'pois/overture-places'
 INDIA_BBOX = (68.0, 6.0, 98.0, 38.0)  # xmin, ymin, xmax, ymax
-INDIA_BOUNDARY_URL = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson'
 S3_BUCKET_URL = 'https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com'
 
 # Popup fields only: every extra tile attribute makes tippecanoe drop more
@@ -60,6 +60,10 @@ SHP_FIELDS = {
     'brand': 'brand.names."primary"',
     'source': 'sources[1].dataset',
 }
+
+# Overture places mix sources: Meta/Microsoft/DAC/PinMeTo are CDLA-Permissive-2.0,
+# Foursquare is Apache-2.0, AllThePlaces CC0 (each record's `sources` says which).
+LICENCE = 'CDLA-Permissive-2.0 / Apache-2.0'
 
 FORMATS = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'shapefile': 'shp.zip'}
 
@@ -85,15 +89,18 @@ def overlapping_files(row_groups: list[dict], bbox=INDIA_BBOX) -> list[str]:
     return sorted(hits)
 
 
-def clip_sql(src_files: list[str], boundary_geojson: str) -> str:
+def clip_sql(src_files: list[str], districts_parquet: str) -> str:
+    """Places inside an LGD district. A spatial join against the 785 district
+    polygons is indexed (one detailed India polygon per point ran out of
+    memory); points on a shared border match twice, so keep one row per id."""
     files = ', '.join(f"'{f}'" for f in src_files)
     xmin, ymin, xmax, ymax = INDIA_BBOX
     return f"""
-        WITH india AS (SELECT geom FROM ST_Read('{boundary_geojson}'))
-        SELECT p.* FROM read_parquet([{files}]) p, india
+        WITH d AS (SELECT ST_SetCRS(geometry, 'OGC:CRS84') AS geom FROM read_parquet('{districts_parquet}'))
+        SELECT p.* FROM read_parquet([{files}]) p JOIN d ON ST_Intersects(d.geom, p.geometry)
         WHERE p.bbox.xmin <= {xmax} AND p.bbox.xmax >= {xmin}
           AND p.bbox.ymin <= {ymax} AND p.bbox.ymax >= {ymin}
-          AND ST_Within(p.geometry, india.geom)"""
+        QUALIFY row_number() OVER (PARTITION BY p.id ORDER BY p.id) = 1"""
 
 
 def tile_features_sql(parquet: str) -> str:
@@ -117,18 +124,16 @@ def geojson_features_sql(parquet: str, prop_cols: list[str]) -> str:
 
 
 def pmtiles_args(geojsonseq: Path, out: Path) -> list[str]:
-    args = ['tippecanoe', '-o', str(out), '-l', LAYER_ID, '-zg', '-P',
-            '--drop-densest-as-needed', '--extend-zooms-if-still-dropping']
-    for field in TILE_FIELDS:
-        args += ['-y', field]
-    return args + ['--force', '--no-progress-indicator', str(geojsonseq)]
+    return bake_formats.pmtiles_args(geojsonseq, out, LAYER_ID, TILE_FIELDS, parallel=True)
+
+
+SHP_INTRO = ['Shapefile field names are limited to 10 characters and cannot hold nested values.',
+             'Each field below is taken from the Parquet / GeoJSON column shown',
+             '(first element where the source holds a list).', '']
 
 
 def shapefile_key() -> list[str]:
-    key = ['Shapefile field names are limited to 10 characters and cannot hold nested values.',
-           'Each field below is taken from the Parquet / GeoJSON column shown',
-           '(first element where the source holds a list).', '']
-    return key + [f'{short:<11} {expr}' for short, expr in SHP_FIELDS.items()]
+    return bake_formats.shapefile_key({expr: short for short, expr in SHP_FIELDS.items()}, SHP_INTRO)
 
 
 def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
@@ -139,6 +144,7 @@ def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
     for fmt, size in sizes.items():
         new[fmt] = {'url': f'{r2_public}/{keys[fmt]}', 'upstream_url': upstream_url(release), 'bytes': size}
     new['kml'] = None
+    new['licence'] = LICENCE
     new['rows'] = rows
     new['fetched_at'] = fetched_at
     new['notes'] = notes_for(release)
@@ -146,11 +152,13 @@ def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
 
 
 def notes_for(release: str) -> str:
-    return (f'Overture Maps Foundation places, release {release}, clipped to India\'s boundary '
-            '(LGD states dissolved). Every Overture column is kept as published; names, addresses, '
+    return (f'Overture Maps Foundation places, release {release}, clipped to India (inside an LGD district '
+            'polygon). Every Overture column is kept as published; names, addresses, '
             'sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a '
             'flat subset (see columns.txt in the zip). For KML, use Filter & export on a category '
-            'or area. Each record lists its upstream sources and their licences in `sources`.')
+            'or area. Licences follow the source of each record (listed in `sources`): Meta, '
+            'Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, '
+            'AllThePlaces CC0-1.0.')
 
 
 def display_name(release: str) -> str:
@@ -178,6 +186,7 @@ def patched_manifest_entry(entry: dict, release: str, sizes: dict[str, int], row
         'pmtiles_file': keys['pmtiles'].rsplit('/', 1)[1],
         'pmtiles_bytes': sizes['pmtiles'],
         'source_url': 'https://docs.overturemaps.org/release-calendar/',
+        'license': LICENCE,
         'notes': notes_for(release),
     })
     return new
@@ -197,26 +206,32 @@ def stale_keys(old: dict, new: dict, r2_public: str) -> list[str]:
 
 # ── side-effecting steps ─────────────────────────────────────────────────
 
-def _con():
+def _con(tmp: Path):
     import duckdb
     con = duckdb.connect()
     con.execute('INSTALL spatial; LOAD spatial;')
+    # ~4.4M rows with nested columns: let order-free COPYs stream and spill.
+    con.execute(f"SET preserve_insertion_order = false; SET temp_directory = '{tmp}';")
     return con
 
 
+def _layer_url(layer_id: str, fmt: str) -> str:
+    return next(l for l in json.loads(CATALOG.read_text())['layers'] if l['id'] == layer_id)[fmt]['url']
+
+
 def bake(release: str, src: Path, out: Path) -> dict:
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from ingest_ramseraph import rebake_flatten_bbox
 
     out.mkdir(parents=True, exist_ok=True)
-    con = _con()
+    con = _con(out / 'tmp')
     files = sorted(str(p) for p in src.glob('*.parquet'))
-    boundary = out / 'india_boundary.geojson'
-    if not boundary.exists():
-        subprocess.run(['curl', '-sfL', '-A', 'Mozilla/5.0', '-o', str(boundary), INDIA_BOUNDARY_URL], check=True)
+    districts = out / 'lgd_districts.parquet'
+    if not districts.exists():
+        subprocess.run(['curl', '-sfL', '-A', 'Mozilla/5.0', '-o', str(districts),
+                        _layer_url('lgd_districts', 'parquet')], check=True)
 
     clipped = out / 'clipped.parquet'
-    con.execute(f"COPY ({clip_sql(files, str(boundary))}) TO '{clipped}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+    con.execute(f"COPY ({clip_sql(files, str(districts))}) TO '{clipped}' (FORMAT PARQUET, COMPRESSION ZSTD)")
     parquet = out / f'{LAYER_ID}.parquet'
     rows, prop_cols = rebake_flatten_bbox(clipped, parquet)
     clipped.unlink()
@@ -225,7 +240,7 @@ def bake(release: str, src: Path, out: Path) -> dict:
     seq = out / 'tiles.geojsons'
     con.execute(f"COPY ({tile_features_sql(str(parquet))}) TO '{seq}' (FORMAT JSON)")
     pmtiles = out / f'{LAYER_ID}.pmtiles'
-    subprocess.run(pmtiles_args(seq, pmtiles), check=True, capture_output=True)
+    bake_formats.write_pmtiles(seq, pmtiles, LAYER_ID, TILE_FIELDS, parallel=True)
     seq.unlink()
 
     # Whole-layer GeoJSON, streamed: a JSON array of features wrapped as a FeatureCollection.
@@ -256,14 +271,10 @@ def _write_shapefile_zip(con, parquet: Path, out: Path) -> None:
             f"COPY (SELECT {select}, geometry FROM read_parquet('{parquet}')) "
             f"TO '{tmp_dir / (LAYER_ID + '.shp')}' "
             f"WITH (FORMAT GDAL, DRIVER 'ESRI Shapefile', LAYER_CREATION_OPTIONS ('ENCODING=UTF-8', 'RESIZE=YES'))")
-        (tmp_dir / 'columns.txt').write_text('\n'.join(shapefile_key()) + '\n')
-        with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for f in sorted(tmp_dir.iterdir()):
-                zf.write(f, arcname=f.name)
+        bake_formats.zip_with_key(tmp_dir, out, shapefile_key())
 
 
 def upload(release: str, out: Path) -> None:
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from ingest_ramseraph import R2_PUBLIC, r2_client, r2_upload
 
     summary = json.loads((out / 'summary.json').read_text())
@@ -286,7 +297,6 @@ def upload(release: str, out: Path) -> None:
 
 
 def delete_stale(old_catalog: Path) -> None:
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     from ingest_ramseraph import BUCKET, R2_PUBLIC, r2_client
 
     def entry(path):

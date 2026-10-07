@@ -83,8 +83,12 @@ def test_patched_layer_updates_rows_date_and_notes_but_keeps_identity():
     assert new['fetched_at'] == '2026-10-07T12:00:00+00:00'
     assert '2026-09-23.1' in new['notes']
     assert '—' not in new['notes']  # no em-dashes in user copy
-    for k in ('id', 'category', 'licence', 'provenance'):
+    assert 'LGD district' in new['notes']
+    for k in ('id', 'category', 'provenance'):
         assert new[k] == OLD_LAYER[k]
+    # Foursquare-sourced records are Apache-2.0; the rest CDLA (AllThePlaces CC0).
+    assert new['licence'] == 'CDLA-Permissive-2.0 / Apache-2.0'
+    assert 'Foursquare' in new['notes'] and 'Apache-2.0' in new['notes']
     assert OLD_LAYER['rows'] == 2744948  # input not mutated
 
 
@@ -139,11 +143,18 @@ def test_shapefile_key_lists_every_short_name():
 
 # ── clip: inside India only ───────────────────────────────────────────────
 
-def test_clip_sql_prefilters_on_bbox_then_tests_containment():
-    sql = b.clip_sql(['/s/a.parquet', '/s/b.parquet'], '/w/india.geojson')
-    assert "bbox.xmin" in sql
-    assert "ST_Within" in sql
+def test_clip_sql_spatially_joins_lgd_districts_and_dedupes_border_points():
+    sql = b.clip_sql(['/s/a.parquet', '/s/b.parquet'], '/w/lgd_districts.parquet')
     assert "'/s/a.parquet'" in sql and "'/s/b.parquet'" in sql
+    assert "bbox.xmin" in sql  # cheap prefilter before the join
+    # Join against 785 district polygons (indexable), not one huge India polygon.
+    assert "ST_Intersects" in sql and "'/w/lgd_districts.parquet'" in sql
+    # A point on a shared district border matches twice: keep one row per id.
+    assert "QUALIFY row_number() OVER (PARTITION BY p.id" in sql
+    # LGD geometry has no CRS label, Overture is OGC:CRS84 (both lon/lat):
+    # relabel, never transform (a transform would swap axes).
+    assert "ST_SetCRS(geometry, 'OGC:CRS84')" in sql
+    assert 'ST_Transform' not in sql
 
 
 @pytest.mark.parametrize('release', ['2026-09-23.1', '2027-01-21.0'])
@@ -177,6 +188,7 @@ def test_patched_manifest_entry_matches_the_new_r2_layout():
     assert new['name'] == 'Places (Overture Maps, Sep 2026)'
     assert '2026-09-23.1' in new['description'] and '2026-09-23.1' in new['notes']
     assert 'december-2023' not in new['source_url']
+    assert new['license'] == 'CDLA-Permissive-2.0 / Apache-2.0'
     assert OLD_MANIFEST['features'] == 2744948  # input not mutated
 
 
