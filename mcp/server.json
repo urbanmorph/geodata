@@ -2,12 +2,12 @@
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.sathya-sankaran/bharatlas-mcp",
   "description": "Query India's open geo data, and author collect maps: register a link, moderate, publish.",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "bharatlas-mcp",
-      "version": "1.2.0",
+      "version": "1.3.0",
       "transport": { "type": "stdio" }
     }
   ]

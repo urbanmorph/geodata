@@ -1,7 +1,7 @@
 ---
 name: bharatlas
 description: Use this skill for questions about India's geography and administrative data, or to author your own map. Activates when the user asks what state / district / subdistrict / block / village / ward / constituency / pincode / seismic zone / eco zone a place or coordinate is in; wants counts or lists of Indian admin units, forests, wildlife, rivers, reservoirs, dams, hospitals, highways, airports, flood or seismic zones; wants features near a point; wants to download an Indian geo layer (Parquet, PMTiles, GeoJSON, KML, Shapefile); or wants to run a crowd map-capture with collect (design a form, review contributions, publish to the bharatlas catalog). Triggers on phrases like "which district is this", "how many villages in", "wards in Chennai", "reservoirs near", "download the boundaries", "locate this lat lng", or any mention of bharatlas or collect.
-version: 1.2.0
+version: 1.3.0
 license: MIT
 ---
 

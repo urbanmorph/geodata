@@ -88,6 +88,41 @@ async function run() {
     console.log(`  coal installed: ${Math.round(coalMw).toLocaleString()} MW`);
     assert(coalMw > 100000, "query_layer sum: coal installed MW > 100,000");
 
+    // ── 1.3.0: filters, centroids, guidance ──
+    console.log("\n1.3.0: a where value containing a comma");
+    const qc = await call(proc, "query_layer", {
+      layer_id: "overture_places_india", where: { name: "A A V Senior Secondary School, Jaipur" }, select: ["id", "name"],
+    });
+    assert(qc.data?.total === 1 && qc.data?.rows?.[0]?.name === "A A V Senior Secondary School, Jaipur",
+      `comma in a where value is kept intact (got total=${qc.data?.total})`);
+
+    console.log("\n1.3.0: include_centroid false is honoured");
+    const qy = await call(proc, "query_layer", { layer_id: "mi6_wells_districts", select: ["district"], limit: 2 });
+    assert(qy.data?.rows?.length && qy.data.rows.every((r) => "_lat" in r), "control: centroids by default on a bbox layer");
+    const qn = await call(proc, "query_layer", { layer_id: "mi6_wells_districts", select: ["district"], limit: 2, include_centroid: false });
+    assert(qn.data?.rows?.length && qn.data.rows.every((r) => !("_lat" in r)), "no _lat/_lng when include_centroid is false");
+
+    console.log("\n1.3.0: server instructions and tool descriptions");
+    const initId = nextId++;
+    const init = await new Promise((res, rej) => {
+      const t = setTimeout(() => rej(new Error("timeout")), 10000);
+      const onD = (chunk) => {
+        for (const line of chunk.toString().split("\n").filter(Boolean)) {
+          try { const d = JSON.parse(line); if (d.id === initId) { clearTimeout(t); proc.stdout.off("data", onD); res(d); } } catch {}
+        }
+      };
+      proc.stdout.on("data", onD);
+      proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: initId, method: "initialize",
+        params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "test", version: "0" } } }) + "\n");
+    });
+    const instr = init.result?.instructions || "";
+    assert(/places?.*overture_places_india/i.test(instr), "instructions map places/POIs to overture_places_india");
+    assert(/exact/i.test(instr) && /nested/i.test(instr), "instructions explain exact where + nested columns");
+    assert(/mi6_wells_districts/.test(instr), "instructions mention the wells layer");
+    const nearbyTool = tools.find((t) => t.name === "nearby");
+    assert(!/grid|via locate/i.test(nearbyTool.description), "nearby description matches the parquet bbox implementation");
+    assert(/exact/i.test(ql.inputSchema.properties.where.description), "query_layer where says exact match");
+
     // ── Q1: How many national parks vs wildlife sanctuaries? ──
     console.log("\nQ1: How many national parks vs wildlife sanctuaries?");
     const q1 = await call(proc, "query_layer", { layer_id: "gs_wildlife", group_by: "category" });
