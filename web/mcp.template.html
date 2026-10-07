@@ -57,7 +57,7 @@
   "mcpServers": {
     "bharatlas": {
       "command": "npx",
-      "args": ["-y", "bharatlas-mcp"]
+      "args": ["-y", "bharatlas-mcp@latest"]
     }
   }
 }</code></pre>
@@ -81,7 +81,7 @@
 .vscode/mcp.json (project) or settings.json</code></pre>
       </div>
 
-      <p style="font-size:13px;color:var(--muted)">Developers: test tools without an LLM via <code>npx @modelcontextprotocol/inspector npx bharatlas-mcp</code></p>
+      <p style="font-size:13px;color:var(--muted)">Developers: test tools without an LLM via <code>npx @modelcontextprotocol/inspector npx bharatlas-mcp@latest</code></p>
 
       <h2>What you can ask</h2>
 
@@ -146,7 +146,7 @@
         <pre><code>// same "bharatlas" server as Install above; add an env key only to create headlessly
 "bharatlas": {
   "command": "npx",
-  "args": ["-y", "bharatlas-mcp"],
+  "args": ["-y", "bharatlas-mcp@latest"],
   "env": { "COLLECT_API_KEY": "cak_…" }
 }</code></pre>
       </div>

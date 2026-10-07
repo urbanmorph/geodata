@@ -258,11 +258,11 @@ curl https://collect.bharatlas.com/api/collect/v1/collections/ID/records \
 #    a maintainer approves the submission before it appears in the catalog
 curl -X POST https://collect.bharatlas.com/api/collect/v1/collections/ID/publish \
   -H "authorization: Bearer adm_..."</code></pre>
-      <p>Field contributors add points from the browser via the shared collect link (Turnstile-gated), so that step is a tap, not a curl. Or drive the whole flow from an LLM: the <a href="/mcp">bharatlas MCP</a> (<code>npx bharatlas-mcp</code>) authors collect maps too. Register a share link with <code>register_map</code> and its token scope (view / collect / admin) sets what you can do.</p>
+      <p>Field contributors add points from the browser via the shared collect link (Turnstile-gated), so that step is a tap, not a curl. Or drive the whole flow from an LLM: the <a href="/mcp">bharatlas MCP</a> (<code>npx bharatlas-mcp@latest</code>) authors collect maps too. Register a share link with <code>register_map</code> and its token scope (view / collect / admin) sets what you can do.</p>
 
 <!-- DOCS_FAQ_HTML -->
       <h2>For LLMs</h2>
-      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 17 tools with built-in instructions: 8 for reading (schema-first querying, spatial joins, multi-source awareness) plus 9 for authoring collect maps.</p>
+      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp@latest</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 17 tools with built-in instructions: 8 for reading (schema-first querying, spatial joins, multi-source awareness) plus 9 for authoring collect maps.</p>
     </main>
 
     <!-- FOOTER -->

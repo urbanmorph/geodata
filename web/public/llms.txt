@@ -6,13 +6,13 @@ bharatlas is a visual catalog, REST API, and MCP server for India's geospatial d
 
 ## MCP server
 
-Install: `npx bharatlas-mcp`
+Install: `npx bharatlas-mcp@latest`
 
 17 tools. Query (8): list_layers, get_layer_schema, query_layer, locate, nearby, get_layer_detail, list_categories, list_submissions. Authoring collect maps (9): register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish, create_map (optional).
 
 Configuration:
 ```json
-{"mcpServers":{"bharatlas":{"command":"npx","args":["-y","bharatlas-mcp"]}}}
+{"mcpServers":{"bharatlas":{"command":"npx","args":["-y","bharatlas-mcp@latest"]}}}
 ```
 
 The server sends instructions at connection time that teach schema-first querying, source preference (LGD for admin, alternates for cross-reference), concept-to-layer mapping ("water bodies" = rivers + reservoirs + wetlands + ramsar + dams), and spatial join workflows.
