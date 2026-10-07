@@ -71,6 +71,17 @@ def test_atomic_output_moves_into_place_on_success(tmp_path):
     assert not part.exists()
 
 
+def test_atomic_output_part_keeps_the_real_extension_last(tmp_path):
+    # tippecanoe picks its output format from the extension: `x.pmtiles.part`
+    # silently produced an MBTiles (SQLite) file instead of PMTiles.
+    with f.atomic_output(tmp_path / 'x.pmtiles') as part:
+        assert part.name == 'x.part.pmtiles'
+        part.write_text('t')
+    with f.atomic_output(tmp_path / 'x.shp.zip') as part:
+        assert part.name.endswith('.zip') and part.name != 'x.shp.zip'
+        part.write_text('z')
+
+
 def test_atomic_output_leaves_nothing_on_failure(tmp_path):
     final = tmp_path / 'x.parquet'
     try:

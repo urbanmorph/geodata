@@ -4806,14 +4806,14 @@
       "source": "Overture",
       "rows": 4425096,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1-r2/overture_places_india.parquet",
         "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
-        "bytes": 481540252
+        "bytes": 522855475
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1-r2/overture_places_india.pmtiles",
         "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
-        "bytes": 946029911
+        "bytes": 946063408
       },
       "licence": "CDLA-Permissive-2.0 / Apache-2.0",
       "attribution": {
@@ -4825,19 +4825,19 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Every Overture column is kept as published; names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0.",
+      "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Every Overture column is kept as published, and `name` is a copy of names.primary added for search and simple queries; names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0.",
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.geojson",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1-r2/overture_places_india.geojson",
         "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
-        "bytes": 6194538103
+        "bytes": 6339584125
       },
       "kml": null,
       "shapefile": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.shp.zip",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1-r2/overture_places_india.shp.zip",
         "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
-        "bytes": 574953798
+        "bytes": 532667788
       },
-      "fetched_at": "2026-10-07T13:32:44.502226+00:00"
+      "fetched_at": "2026-10-07T14:29:54.061451+00:00"
     },
     {
       "id": "c_nL7zNStsW3",

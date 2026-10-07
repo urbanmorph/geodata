@@ -21,10 +21,11 @@ SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
 
 @contextlib.contextmanager
 def atomic_output(final: Path) -> Iterator[Path]:
-    """Yield a `.part` path; move it to `final` only if the block succeeds, so
-    an interrupted bake never leaves a truncated file under the real name
-    (bakes skip outputs that exist)."""
-    part = final.with_name(final.name + '.part')
+    """Yield a temporary path; move it to `final` only if the block succeeds,
+    so an interrupted bake never leaves a truncated file under the real name
+    (bakes skip outputs that exist). The real extension stays last
+    (`x.part.pmtiles`): tippecanoe and GDAL pick the format from it."""
+    part = final.with_name(f'{final.stem}.part{final.suffix}')
     part.unlink(missing_ok=True)
     try:
         yield part
