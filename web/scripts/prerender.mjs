@@ -938,11 +938,11 @@ const ABOUT_FAQ = [
   },
   {
     q: 'What data sources does bharatlas use?',
-    a: 'Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC) and data.gov.in. Water, groundwater and agro-zone layers are republished via CoRE Stack (core-stack.org). Community submissions credit their own source on every card.',
+    a: 'Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC), data.gov.in, the Overture Maps Foundation (places) and the Minor Irrigation Census (Ministry of Jal Shakti). Water, groundwater and agro-zone layers are republished via CoRE Stack (core-stack.org). Community submissions credit their own source on every card.',
   },
   {
     q: 'What licences apply?',
-    a: 'Curated layers carry CC0-1.0, CC-BY-4.0 or GODL-India depending on the upstream source. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
+    a: 'Curated layers carry CC0-1.0, CC-BY-4.0, ODbL-1.0, GODL-India, CDLA-Permissive-2.0 or Apache-2.0 depending on the upstream source (each card names its licence). Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
   },
   {
     q: 'Is my file uploaded when I drop it?',
@@ -1115,7 +1115,7 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I find features near a point?',
-    a: 'GET https://bharatlas.com/api/v1/nearby?lat=12.97&lng=77.59&layer=wris_reservoirs&radius_km=50 finds features from any layer within a radius. Works for points, polygons and lines via Haversine distance to computed centroids.',
+    a: 'GET https://bharatlas.com/api/v1/nearby?lat=12.97&lng=77.59&layer=wris_reservoirs&radius_km=50 finds features from any layer within a radius. Works for points, polygons and lines: reads bounding-box columns from the layer parquet and ranks features by Haversine distance to their bounding-box centres.',
   },
   {
     q: 'How do I query a layer with column filters?',
@@ -1152,7 +1152,7 @@ const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) 
 await renderPage('docs', {
   title: 'API v1',
   description:
-    "Public JSON API for India's open geo layers. List layers, locate a point across 77 datasets, download in 5 formats. No auth, no API key.",
+    "Public JSON API for India's open geo layers. List, query and filter layers, locate a point across every admin and zone layer, find features nearby, download in open formats. No auth, no API key.",
   url: ORIGIN + '/docs',
   image: ORIGIN + '/og-default.png',
   structuredData: {

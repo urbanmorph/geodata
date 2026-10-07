@@ -1088,7 +1088,7 @@
     "level": "overture_places_india",
     "category": "infrastructure",
     "source": "Overture",
-    "description": "Pan-India points of interest from the Overture Maps Foundation release 2026-09-23.1. Names, categories, addresses, websites, phone numbers, brands and confidence scores for shops, restaurants, ATMs, schools, hospitals, transit, monuments and more.",
+    "description": "Pan-India points of interest from the Overture Maps Foundation release 2026-09-23.1. Names, categories (basic_category, taxonomy), addresses, websites, brands and confidence scores for shops, restaurants, ATMs, schools, hospitals, transit, monuments and more.",
     "unit": "places",
     "features": 4425096,
     "license": "CDLA-Permissive-2.0 / Apache-2.0",
@@ -1099,7 +1099,7 @@
     "pmtiles_bytes": 946055795,
     "source_url": "https://docs.overturemaps.org/release-calendar/",
     "source_org": "Overture Maps Foundation",
-    "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Every Overture column is kept as published, and `name` is a copy of names.primary added for search and simple queries. Contact emails, phone numbers and social media links are removed (personal data of sole traders). Names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0."
+    "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Overture columns are kept as published except contact details (below), and `name` is a copy of names.primary added for search and simple queries. Contact emails, phone numbers and social media links are removed (personal data of sole traders). Names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0."
   },
   {
     "id": "cgwb_aquifers",
