@@ -412,7 +412,7 @@
       "label": "BBMP Wards (2022, historical)",
       "unit": "wards",
       "description": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme.",
-      "source_url": "https://data.opencity.in/dataset/bbmp-wards",
+      "source_url": "https://data.opencity.in/dataset/bbmp-ward-information",
       "source_org": "BBMP",
       "notes": "Use the GBA 2025 layer for current ward boundaries.",
       "seo_title": "BBMP Ward Map: 243 wards (Bengaluru, 2022)",
@@ -430,7 +430,7 @@
       "label": "BDA Approved Layouts",
       "unit": "layouts",
       "description": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction.",
-      "source_url": "https://data.opencity.in/dataset/bda-approved-layouts",
+      "source_url": "https://data.opencity.in/dataset/bda-layouts",
       "source_org": "Bengaluru Development Authority",
       "notes": ""
     },
@@ -458,7 +458,7 @@
       "label": "Mumbai (BMC) Wards",
       "unit": "wards",
       "description": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread).",
-      "source_url": "https://data.opencity.in/dataset/mumbai-wards",
+      "source_url": "https://data.opencity.in/dataset/mumbai-wards-map",
       "source_org": "Brihanmumbai Municipal Corporation",
       "notes": "",
       "seo_title": "Mumbai Ward Map: 24 wards (BMC)",
@@ -468,7 +468,7 @@
       "label": "Mumbai Electoral Wards (2017)",
       "unit": "electoral wards",
       "description": "227 electoral ward divisions of Mumbai, 2017 delimitation. Use for election + civic-rep maps.",
-      "source_url": "https://data.opencity.in/dataset/mumbai-electoral-wards",
+      "source_url": "https://data.opencity.in/dataset/mumbai-wards-map",
       "source_org": "Mumbai State Election Commission",
       "notes": "",
       "seo_title": "Mumbai Electoral Ward Map: 227 wards (2017)",
@@ -478,7 +478,7 @@
       "label": "Kolkata (KMC) Wards",
       "unit": "wards",
       "description": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs.",
-      "source_url": "https://data.opencity.in/dataset/kolkata-wards",
+      "source_url": "https://data.opencity.in/dataset/kolkata-wards-information",
       "source_org": "Kolkata Municipal Corporation",
       "notes": "",
       "seo_title": "Kolkata Ward Map: 141 wards (KMC)",
@@ -488,7 +488,7 @@
       "label": "Pune (PMC) Wards",
       "unit": "wards",
       "description": "Pune Municipal Corporation \u2014 58 administrative wards.",
-      "source_url": "https://data.opencity.in/dataset/pune-wards",
+      "source_url": "https://data.opencity.in/dataset/pune-wards-info",
       "source_org": "Pune Municipal Corporation",
       "notes": "",
       "seo_title": "Pune Ward Map: 58 wards (PMC)",
@@ -498,7 +498,7 @@
       "label": "Ahmedabad (AMC) Wards",
       "unit": "wards",
       "description": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones.",
-      "source_url": "https://data.opencity.in/dataset/ahmedabad-wards",
+      "source_url": "https://data.opencity.in/dataset/amdavad-municipal-corporation-wards-map-2024",
       "source_org": "Ahmedabad Municipal Corporation",
       "notes": "",
       "seo_title": "Ahmedabad Ward Map: 48 wards (AMC)",
@@ -508,7 +508,7 @@
       "label": "Jaipur (JMC) Wards",
       "unit": "wards",
       "description": "Jaipur Municipal Corporation \u2014 150 ward boundaries.",
-      "source_url": "https://data.opencity.in/dataset/jaipur-wards",
+      "source_url": "https://data.opencity.in/dataset/jaipur-municipal-corporation-wards-map",
       "source_org": "Jaipur Municipal Corporation",
       "notes": "",
       "seo_title": "Jaipur Ward Map: 150 wards (JMC)",
@@ -518,7 +518,7 @@
       "label": "Gurugram (MCG) Wards",
       "unit": "wards",
       "description": "Municipal Corporation of Gurugram \u2014 35 ward boundaries.",
-      "source_url": "https://data.opencity.in/dataset/gurugram-wards",
+      "source_url": "https://data.opencity.in/dataset/gurugram-wards-map",
       "source_org": "Municipal Corporation of Gurugram",
       "notes": "",
       "seo_title": "Gurugram Ward Map: 35 wards (MCG)",
@@ -528,7 +528,7 @@
       "label": "Kochi (KMC) Wards",
       "unit": "wards",
       "description": "Kochi Municipal Corporation ward boundaries \u2014 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal.",
-      "source_url": "https://data.opencity.in/dataset/kochi-wards",
+      "source_url": "https://data.opencity.in/dataset/kochi-wards-map",
       "source_org": "Kochi Municipal Corporation",
       "notes": "",
       "seo_title": "Kochi Ward Map: 74 wards (KMC)",
@@ -538,7 +538,7 @@
       "label": "Bhubaneshwar (BMC) Wards",
       "unit": "wards",
       "description": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal.",
-      "source_url": "https://data.opencity.in/dataset/bhubaneshwar-wards",
+      "source_url": "https://data.opencity.in/dataset/bhubaneswar-administrative-boundaries",
       "source_org": "Bhubaneshwar Municipal Corporation",
       "notes": "",
       "seo_title": "Bhubaneswar Ward Map: 67 wards (BMC)",
@@ -548,7 +548,7 @@
       "label": "Visakhapatnam (GVMC) Wards",
       "unit": "wards",
       "description": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards.",
-      "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards",
+      "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards-map-2024",
       "source_org": "Greater Visakhapatnam Municipal Corporation",
       "notes": "",
       "seo_title": "Visakhapatnam Ward Map: 98 wards (GVMC)",
@@ -558,7 +558,7 @@
       "label": "Thane (TMC) Wards",
       "unit": "wards",
       "description": "Thane Municipal Corporation \u2014 47 wards across the city.",
-      "source_url": "https://data.opencity.in/dataset/thane-wards",
+      "source_url": "https://data.opencity.in/dataset/thane-wards-map",
       "source_org": "Thane Municipal Corporation",
       "notes": "",
       "seo_title": "Thane Ward Map: 47 wards (TMC)",
@@ -857,7 +857,7 @@
     "cgwb_gw_extraction": {
       "label": "Groundwater Extraction (CGWB)",
       "unit": "assessment units",
-      "description": "Block and taluk-level stage of groundwater extraction from the Central Ground Water Board: Safe, Semi-Critical, Critical and Over-Exploited units with recharge and draft figures."
+      "description": "Block and taluk-level stage of groundwater extraction from the Central Ground Water Board (2020 assessment): Safe, Semi-Critical, Critical and Over-Exploited units with recharge and draft figures."
     },
     "wris_canals": {
       "label": "Canals (WRIS)",
@@ -1680,7 +1680,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-21T10:38:04+00:00",
       "notes": "India Post delivery post office pincode boundaries from data.gov.in (May 2025). 19,312 polygons covering delivery PO service areas. Compare with bharatviz's 63,864 finer polygons. Neither is officially surveyed; both are Voronoi approximations from post office point locations."
     },
     {
@@ -2071,7 +2071,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-25T17:02:55+00:00",
       "notes": "BIS IS 1893:2016 seismic risk zones II-V. 173 polygons covering all of India. Use for earthquake hazard mapping."
     },
     {
@@ -2114,7 +2114,7 @@
       },
       "category": "water",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-25T16:56:38+00:00",
       "notes": "Dam point locations across India from Bharatmaps."
     },
     {
@@ -2157,7 +2157,7 @@
       },
       "category": "water",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-25T16:56:40+00:00",
       "notes": "Dam point locations from CWC WRIS. Compare with Bharatmaps dams for cross-source coverage."
     },
     {
@@ -2200,7 +2200,7 @@
       },
       "category": "water",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-25T16:56:47+00:00",
       "notes": "Reservoir polygons from CWC WRIS. Complements the river basin and river network layers."
     },
     {
@@ -2240,7 +2240,7 @@
       },
       "category": "transport",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-25T16:56:59+00:00",
       "notes": "National highway centerlines from Ministry of Road Transport and Highways via PM GatiShakti. 10,317 line segments."
     },
     {
@@ -2274,7 +2274,7 @@
       },
       "category": "health-edu",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-06-19T07:06:17+00:00",
       "notes": "Primary Health Centres, Community Health Centres, sub-centres, and district hospitals from NIC HealthGIS. 147,957 point features across India."
     },
     {
@@ -2348,7 +2348,7 @@
       },
       "category": "city-wards",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-22T02:03:37+00:00",
       "notes": "Five corporation-level polygons that make up the Greater Bengaluru Authority."
     },
     {
@@ -2428,7 +2428,7 @@
       },
       "category": "city-wards",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-22T02:03:41+00:00",
       "notes": "Bengaluru Development Authority planning + acquisition jurisdiction boundary."
     },
     {
@@ -2468,7 +2468,7 @@
       },
       "category": "city-wards",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-22T02:03:43+00:00",
       "notes": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction."
     },
     {
@@ -2625,7 +2625,7 @@
       },
       "category": "people",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-22T02:03:51+00:00",
       "notes": "227 electoral ward divisions of Mumbai, 2017 delimitation. Use for election + civic-rep maps."
     },
     {
@@ -3873,7 +3873,8 @@
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.shp.zip",
         "bytes": 10943510
-      }
+      },
+      "fetched_at": "2026-05-25T14:16:06+00:00"
     },
     {
       "id": "ngt_zones",
@@ -3910,7 +3911,8 @@
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.shp.zip",
         "bytes": 7019150
-      }
+      },
+      "fetched_at": "2026-05-25T14:16:09+00:00"
     },
     {
       "id": "nclt_benches",
@@ -3947,7 +3949,8 @@
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.shp.zip",
         "bytes": 9099873
-      }
+      },
+      "fetched_at": "2026-05-25T14:16:08+00:00"
     },
     {
       "id": "airports",
@@ -3972,7 +3975,8 @@
       },
       "category": "transport",
       "provenance": "curated",
-      "notes": "Airports across India. 151 point features with name, type, district, state. From data.gov.in."
+      "notes": "Airports across India. 151 point features with name, type, district, state. From data.gov.in.",
+      "fetched_at": "2026-05-25T17:54:40+00:00"
     },
     {
       "id": "wris_watersheds",
@@ -4003,7 +4007,7 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": null
+      "fetched_at": "2026-05-28T14:40:22+00:00"
     },
     {
       "id": "wris_river_polygons",
@@ -4034,7 +4038,7 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": null
+      "fetched_at": "2026-05-28T14:41:20+00:00"
     },
     {
       "id": "slusi_soil_health",
@@ -4061,7 +4065,7 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": null
+      "fetched_at": "2026-05-28T14:43:08+00:00"
     },
     {
       "id": "vedas_power_plants",
@@ -4100,7 +4104,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:31:33+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
     },
     {
@@ -4140,7 +4144,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:01+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
     },
     {
@@ -4180,7 +4184,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:05+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
     },
     {
@@ -4220,7 +4224,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:08+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
     },
     {
@@ -4260,7 +4264,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:12+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
     },
     {
@@ -4300,7 +4304,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:16+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
     },
     {
@@ -4340,7 +4344,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:19+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
     },
     {
@@ -4380,7 +4384,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:24+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (AI-derived)."
     },
     {
@@ -4420,7 +4424,7 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "fetched_at": null,
+      "fetched_at": "2026-05-28T14:34:33+00:00",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (transmission lines). OSM-derived per release body \u2014 ODbL applies."
     },
     {
@@ -4461,7 +4465,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.shp.zip",
         "bytes": 51203631
       },
-      "fetched_at": null
+      "fetched_at": "2026-05-28T14:38:37+00:00"
     },
     {
       "id": "wris_lakes",
@@ -4501,7 +4505,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.shp.zip",
         "bytes": 92667306
       },
-      "fetched_at": null
+      "fetched_at": "2026-05-28T14:39:25+00:00"
     },
     {
       "id": "ndem_floods_1998_2022",
@@ -4541,7 +4545,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.shp.zip",
         "bytes": 30007034
       },
-      "fetched_at": null
+      "fetched_at": "2026-05-28T16:11:26+00:00"
     },
     {
       "id": "gsi_landslide_inventory",
@@ -4581,7 +4585,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-landslide-inventory/GSI_Landslide_Inventory.shp.zip",
         "bytes": 5193207
       },
-      "fetched_at": null
+      "fetched_at": "2026-05-28T16:13:15+00:00"
     },
     {
       "id": "ndem_landslide_hazard",
@@ -4621,7 +4625,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-landslide-hazard/NDEM_Landslide_Hazard.shp.zip",
         "bytes": 15240523
       },
-      "fetched_at": null
+      "fetched_at": "2026-05-28T16:14:36+00:00"
     },
     {
       "id": "ngdr_earthquakes",
@@ -4661,7 +4665,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ngdr-earthquakes/NGDR_Earthquakes.shp.zip",
         "bytes": 2936291
       },
-      "fetched_at": null
+      "fetched_at": "2026-05-28T16:15:28+00:00"
     },
     {
       "id": "ndem_cyclone_tracks",
@@ -4701,7 +4705,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.shp.zip",
         "bytes": 186921
       },
-      "fetched_at": null
+      "fetched_at": "2026-05-28T16:15:58+00:00"
     },
     {
       "id": "wris_waterbodies",
@@ -4732,7 +4736,7 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": null
+      "fetched_at": "2026-06-01T01:45:45+00:00"
     },
     {
       "id": "slusi_micro_watersheds",
@@ -4763,7 +4767,7 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": null
+      "fetched_at": "2026-06-01T02:01:45+00:00"
     },
     {
       "id": "pmgsy_roads",
@@ -4794,7 +4798,7 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": null
+      "fetched_at": "2026-06-01T02:17:11+00:00"
     },
     {
       "id": "overture_places_india",
@@ -4942,7 +4946,7 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-06-08",
-      "notes": "CGWB dynamic groundwater resource assessment (stage of extraction). Sourced via CoRE Stack (core-stack.org).",
+      "notes": "CGWB dynamic groundwater resource assessment (stage of extraction), 2020 assessment (Dynamic Ground Water Resources of India, 2020): national totals recharge 436.1 bcm, extractable 397.6 bcm, extraction 244.9 bcm, stage 61.6%. Newer assessments (2022 to 2025) exist at CGWB/INGRES; this layer is the 2020 edition. -9999 marks units not assessed. Sourced via CoRE Stack (core-stack.org).",
       "tags": [
         "groundwater",
         "over-exploited",

@@ -102,7 +102,6 @@ ND_FLOODS_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/
 ND_LANDSLIDES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides'
 ND_EARTHQUAKES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/earthquakes'
 ND_CYCLONES_BASE = 'https://github.com/ramSeraph/india_natural_disasters/releases/download/cyclones'
-POIS_BASE = 'https://github.com/ramSeraph/indian_facilities/releases/download/pois'
 
 RAMSERAPH_NOTE = (
     'Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps '
@@ -444,23 +443,8 @@ DATASETS: list[Dataset] = [
         source_org='NGDR / GSI Bhukosh',
         notes=RAMSERAPH_NOTE.format(src='NGDR earthquake epicentres'),
     ),
-    # ── Wave 3 — POIs ──────────────────────────────────────────────────
-    Dataset(
-        id='overture_places_india',
-        name='Places — Overture Maps (Dec 2023)',
-        level='overture_places_india',
-        category='infrastructure',
-        source='Overture',
-        description='Pan-India points of interest from the Overture Maps Foundation December 2023 release. Names, categories, addresses, websites and confidence scores for restaurants, shops, ATMs, schools, transit, monuments and more.',
-        unit='places',
-        license='CDLA-Permissive-2.0',
-        r2_prefix='pois/overture-places',
-        parquet_url=f'{POIS_BASE}/overture_places_india.parquet',
-        pmtiles_url=f'{POIS_BASE}/overture_places_india.pmtiles',
-        source_url='https://overturemaps.org/overture-december-2023-release-notes/',
-        source_org='Overture Maps Foundation',
-        notes=RAMSERAPH_NOTE.format(src='Overture Maps Foundation 2023-12-14-alpha.0 release') + " Dec 2023 snapshot — refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases.",
-    ),
+    # Overture places moved to scripts/bake_overture_places.py (baked straight
+    # from Overture's releases; this mirror stopped at the Dec 2023 alpha).
 
     Dataset(
         id='ndem_cyclone_tracks',
