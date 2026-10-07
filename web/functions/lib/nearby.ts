@@ -1,8 +1,11 @@
 // Parquet-backed /api/v1/nearby. Two paths share the same return shape:
 //
 //   parquet-bbox   layer has flat xmin/ymin/xmax/ymax cols (ramSeraph re-bake).
-//                  hyparquet skips row groups whose bbox is wholly outside the
-//                  query bbox; only matching rows are read.
+//                  Two passes: read only the bbox columns of row groups whose
+//                  bbox statistics overlap the query, rank by distance, then
+//                  decode the full columns only for the winners' row spans.
+//                  (One pass decoding every column of every overlapping row
+//                  group hit Cloudflare 1102 on Overture places in Delhi.)
 //
 //   parquet-scan   no bbox cols. We read the full file once, parse WKB to a
 //                  centroid per row, then haversine-filter. Guarded by
@@ -13,7 +16,8 @@
 // The PMTiles-based path that lived here through PR #83 is gone: pmtiles drop
 // features at lower zooms (designed for display), which gave wrong results on
 // dense layers like hospitals and POIs. See issue #100.
-import { parquetMetadataAsync, parquetQuery, parquetSchema } from 'hyparquet';
+import { parquetMetadataAsync, parquetQuery, parquetReadObjects, parquetSchema } from 'hyparquet';
+import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { asyncBufferFromR2, r2KeyFromLayer } from './parquet-r2';
 import { extractCentroid } from './wkb-centroid';
@@ -81,12 +85,8 @@ function round4(n: number): number {
   return Math.round(n * 10000) / 10000;
 }
 
-// Top-K-by-distance over bbox-pruned rows. Returns winners + total count of
-// rows inside the radius. Kept separate so the caller can defer the
-// expensive cleanProps() to just the K winners — without this, dense metros
-// like Bangalore Overture allocate 100k+ output objects and blow the
-// Workers CPU budget. `total` is the true within-radius count, not just
-// winners.length.
+// A nearest-row candidate: the row plus its bbox-centre and distance.
+// cleanProps() runs only on the K winners, never on every candidate.
 export interface BboxWinner {
   row: Record<string, unknown>;
   cLat: number; cLng: number; d: number;
@@ -98,21 +98,79 @@ function topKByDistance(winners: BboxWinner[], limit: number): BboxWinner[] {
   return winners;
 }
 
-export function pickNearestBboxRows(
-  rows: Array<Record<string, unknown>>,
-  lat: number, lng: number, radiusKm: number, limit: number,
-): { winners: BboxWinner[]; total: number } {
-  let total = 0;
-  const winners: BboxWinner[] = [];
-  for (const row of rows) {
-    const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
-    const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
-    const d = haversineKm(lat, lng, cLat, cLng);
-    if (d > radiusKm) continue;
-    total++;
-    winners.push({ row, cLat, cLng, d });
+type Bbox = ReturnType<typeof queryBbox>;
+export interface RowSpan { start: number; end: number }
+
+function statNumber(v: unknown): number | undefined {
+  if (typeof v === 'number') return v;
+  if (typeof v === 'bigint') return Number(v);
+  return undefined;
+}
+
+/** Row ranges of the row groups whose xmin..ymax statistics overlap `q`.
+ *  Only DOUBLE/FLOAT statistics are trusted (DECIMAL ones are raw scaled
+ *  integers); a row group without usable statistics is kept. */
+export function overlappingRowGroups(metadata: FileMetaData, q: Bbox): RowSpan[] {
+  const spans: RowSpan[] = [];
+  let start = 0;
+  for (const rg of metadata.row_groups) {
+    const end = start + Number(rg.num_rows);
+    const stat = (name: string, which: 'min' | 'max') => {
+      const meta = rg.columns.find((c) => c.meta_data?.path_in_schema.length === 1
+        && c.meta_data.path_in_schema[0] === name)?.meta_data;
+      if (meta?.type !== 'DOUBLE' && meta?.type !== 'FLOAT') return undefined;
+      const st = meta.statistics;
+      return statNumber(which === 'min' ? (st?.min_value ?? st?.min) : (st?.max_value ?? st?.max));
+    };
+    const xmin = stat('xmin', 'min'), xmax = stat('xmax', 'max');
+    const ymin = stat('ymin', 'min'), ymax = stat('ymax', 'max');
+    const disjoint = (xmin !== undefined && xmin > q.xmax) || (xmax !== undefined && xmax < q.xmin)
+      || (ymin !== undefined && ymin > q.ymax) || (ymax !== undefined && ymax < q.ymin);
+    if (!disjoint) spans.push({ start, end });
+    start = end;
   }
-  return { winners: topKByDistance(winners, limit), total };
+  return spans;
+}
+
+/** Nearest `limit` rows within `radiusKm`, by bbox centre. Pass 1 reads only
+ *  the bbox columns; pass 2 decodes `cols` for the winners' row spans only. */
+export async function nearestRows(
+  file: AsyncBuffer, metadata: FileMetaData, cols: string[], geomCol: string,
+  lat: number, lng: number, radiusKm: number, limit: number,
+): Promise<{ winners: BboxWinner[]; total: number; rowsScanned: number }> {
+  const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
+  const candidates: Array<{ idx: number; span: RowSpan; cLat: number; cLng: number; d: number }> = [];
+  let total = 0;
+  let rowsScanned = 0;
+  for (const span of spans) {
+    const rows = await parquetReadObjects({
+      file, metadata, compressors, columns: BBOX_COLS, rowStart: span.start, rowEnd: span.end,
+    }) as Array<Record<string, unknown>>;
+    rowsScanned += rows.length;
+    rows.forEach((row, i) => {
+      const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
+      const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
+      const d = haversineKm(lat, lng, cLat, cLng);
+      if (d > radiusKm) return;
+      total++;
+      candidates.push({ idx: span.start + i, span, cLat, cLng, d });
+    });
+  }
+  candidates.sort((a, b) => a.d - b.d);
+  if (candidates.length > limit) candidates.length = limit;
+
+  const readCols = cols.filter((c) => c !== geomCol);
+  const winners: BboxWinner[] = [];
+  for (const span of new Set(candidates.map((c) => c.span))) {
+    const inSpan = candidates.filter((c) => c.span === span);
+    const lo = Math.min(...inSpan.map((c) => c.idx));
+    const hi = Math.max(...inSpan.map((c) => c.idx)) + 1;
+    const rows = await parquetReadObjects({
+      file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: hi,
+    }) as Array<Record<string, unknown>>;
+    for (const c of inSpan) winners.push({ row: rows[c.idx - lo], cLat: c.cLat, cLng: c.cLng, d: c.d });
+  }
+  return { winners: topKByDistance(winners, limit), total, rowsScanned };
 }
 
 export async function nearby(
@@ -140,32 +198,17 @@ export async function nearby(
   if (!geomCol) throw new Error(`Layer ${layerId} parquet has no geometry column`);
 
   const hasBboxCols = BBOX_COLS.every((c) => allCols.includes(c));
-  const qbbox = queryBbox(lat, lng, radiusKm);
-  let rows: Record<string, unknown>[];
+  let rowsScanned: number;
   let skip: Set<string>;
   let total: number;
   let winners: BboxWinner[];
 
   if (hasBboxCols) {
-    rows = await parquetQuery({
-      compressors,
-      file,
-      columns: allCols.filter((c) => c !== geomCol),
-      rowFormat: 'object',
-      geoparquet: false,
-      filter: {
-        $and: [
-          { xmin: { $lte: qbbox.xmax } },
-          { xmax: { $gte: qbbox.xmin } },
-          { ymin: { $lte: qbbox.ymax } },
-          { ymax: { $gte: qbbox.ymin } },
-        ],
-      },
-    }) as Record<string, unknown>[];
+    const r = await nearestRows(file, metadata, allCols, geomCol, lat, lng, radiusKm, limit);
     skip = new Set([geomCol, 'xmin', 'ymin', 'xmax', 'ymax', 'bbox']);
-    const r = pickNearestBboxRows(rows, lat, lng, radiusKm, limit);
     winners = r.winners;
     total = r.total;
+    rowsScanned = r.rowsScanned;
   } else {
     const bytes = layer.parquet.bytes ?? 0;
     if (bytes > MAX_FULLSCAN_BYTES) {
@@ -174,13 +217,14 @@ export async function nearby(
         `full-scan nearby is unavailable until the layer is rebaked with xmin/ymin/xmax/ymax.`,
       );
     }
-    rows = await parquetQuery({
+    const rows = await parquetQuery({
       compressors,
       file,
       columns: allCols,
       rowFormat: 'object',
       geoparquet: false,
     }) as Record<string, unknown>[];
+    rowsScanned = rows.length;
     skip = new Set([geomCol]);
     // Scan path computes the centroid from WKB per row (no bbox cols).
     // Same top-K shape as the bbox path; just a different distance source.
@@ -212,7 +256,7 @@ export async function nearby(
     features,
     timing_ms: Date.now() - start,
     _source: hasBboxCols ? 'parquet-bbox' : 'parquet-scan',
-    rows_scanned: rows.length,
+    rows_scanned: rowsScanned,
     _truncated: total > features.length,
   };
 }

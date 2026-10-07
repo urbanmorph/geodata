@@ -58,3 +58,47 @@ def test_shapefile_key_maps_short_to_long():
     assert key[0] == 'Intro.'
     assert 'long_colum  long_column_name' in key
     assert 'id          id' in key
+
+
+# ── atomic outputs: an interrupted bake must never leave a final-named file ─
+
+def test_atomic_output_moves_into_place_on_success(tmp_path):
+    final = tmp_path / 'x.parquet'
+    with f.atomic_output(final) as part:
+        assert part != final
+        part.write_text('done')
+    assert final.read_text() == 'done'
+    assert not part.exists()
+
+
+def test_atomic_output_leaves_nothing_on_failure(tmp_path):
+    final = tmp_path / 'x.parquet'
+    try:
+        with f.atomic_output(final) as part:
+            part.write_text('half')
+            raise RuntimeError('killed')
+    except RuntimeError:
+        pass
+    assert not final.exists() and not part.exists()
+
+
+def test_layer_url_reads_the_catalog():
+    catalog = {'layers': [{'id': 'lgd_districts', 'parquet': {'url': 'https://r2/d.parquet'}}]}
+    assert f.layer_url(catalog, 'lgd_districts', 'parquet') == 'https://r2/d.parquet'
+
+
+def test_features_sql_builds_one_geojson_feature_per_row():
+    sql = f.features_sql('/w/p.parquet', 'struct_pack(id := id)')
+    assert "'Feature' AS type" in sql and 'ST_AsGeoJSON(geometry)::JSON AS geometry' in sql
+    assert 'struct_pack(id := id) AS properties' in sql and "read_parquet('/w/p.parquet')" in sql
+
+
+def test_byte_ranges_cover_the_file_exactly():
+    ranges = f.byte_ranges(1003, 4)
+    assert ranges[0][0] == 0 and ranges[-1][1] == 1002
+    assert all(b[0] == a[1] + 1 for a, b in zip(ranges, ranges[1:]))
+    assert f.byte_ranges(5, 8) == [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)]
+
+
+def test_shapefile_key_default_intro_explains_short_names():
+    assert f.shapefile_key({'a_long_name': 'a_long_nam'})[0].startswith('Shapefile field names are limited')

@@ -13,6 +13,7 @@ new bytes in range reads. The old keys are deleted only after verification
 (`--delete-stale`).
 
 Usage:
+    python3 scripts/bake_overture_places.py fetch  --release 2026-09-23.1 --src DIR
     python3 scripts/bake_overture_places.py bake   --release 2026-09-23.1 --src DIR --out DIR
     python3 scripts/bake_overture_places.py upload --release 2026-09-23.1 --out DIR
     python3 scripts/bake_overture_places.py delete-stale --old-catalog FILE
@@ -23,9 +24,10 @@ import argparse
 import copy
 import json
 import re
-import subprocess
 import sys
 import tempfile
+import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -47,7 +49,7 @@ TILE_FIELDS = ('id', 'name', 'basic_category', 'confidence', 'operating_status')
 # Shapefile: short DBF name -> SQL expression over the published parquet.
 SHP_FIELDS = {
     'id': 'id',
-    'name': 'names."primary"',
+    'name': 'name',
     'category': 'basic_category',
     'confidence': 'confidence',
     'status': 'operating_status',
@@ -66,6 +68,10 @@ SHP_FIELDS = {
 # Foursquare is Apache-2.0, AllThePlaces CC0 (each record's `sources` says which).
 LICENCE = 'CDLA-Permissive-2.0 / Apache-2.0'
 
+# Bump when re-baking a release that was already uploaded: R2 keys are
+# immutable-cached, so a new bake of the same release gets new keys.
+BAKE_REVISION = 2
+
 FORMATS = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'shapefile': 'shp.zip'}
 
 
@@ -74,7 +80,7 @@ def upstream_url(release: str) -> str:
 
 
 def r2_keys(release: str) -> dict[str, str]:
-    return {fmt: f'{R2_DIR}/{release}/{LAYER_ID}.{ext}' for fmt, ext in FORMATS.items()}
+    return {fmt: f'{R2_DIR}/{release}-r{BAKE_REVISION}/{LAYER_ID}.{ext}' for fmt, ext in FORMATS.items()}
 
 
 def overlapping_files(row_groups: list[dict], bbox=INDIA_BBOX) -> list[str]:
@@ -90,42 +96,39 @@ def overlapping_files(row_groups: list[dict], bbox=INDIA_BBOX) -> list[str]:
     return sorted(hits)
 
 
-def clip_sql(src_files: list[str], districts_parquet: str) -> str:
-    """Places inside an LGD district. A spatial join against the 785 district
-    polygons is indexed (one detailed India polygon per point ran out of
-    memory); points on a shared border match twice, so keep one row per id."""
-    files = ', '.join(f"'{f}'" for f in src_files)
+def _prefilter(alias: str = 'p') -> str:
     xmin, ymin, xmax, ymax = INDIA_BBOX
+    return (f"{alias}.bbox.xmin <= {xmax} AND {alias}.bbox.xmax >= {xmin} "
+            f"AND {alias}.bbox.ymin <= {ymax} AND {alias}.bbox.ymax >= {ymin}")
+
+
+def place_states_sql(src_files: list[str], districts_parquet: str) -> str:
+    """id -> LGD state for every place inside an LGD district. The one spatial
+    join of the bake (the clip and the per-state shapefiles both reuse it):
+    785 indexed district polygons, only id + geometry through the join; a
+    point on a shared district border matches twice, so group by id."""
+    files = ', '.join(f"'{f}'" for f in src_files)
     return f"""
-        WITH d AS (SELECT ST_SetCRS(geometry, 'OGC:CRS84') AS geom FROM read_parquet('{districts_parquet}'))
-        SELECT p.* FROM read_parquet([{files}]) p JOIN d ON ST_Intersects(d.geom, p.geometry)
-        WHERE p.bbox.xmin <= {xmax} AND p.bbox.xmax >= {xmin}
-          AND p.bbox.ymin <= {ymax} AND p.bbox.ymax >= {ymin}
-        QUALIFY row_number() OVER (PARTITION BY p.id ORDER BY p.id) = 1"""
+        WITH d AS (SELECT stname, ST_SetCRS(geometry, 'OGC:CRS84') AS geom FROM read_parquet('{districts_parquet}')),
+             p AS (SELECT id, geometry, bbox FROM read_parquet([{files}]) p WHERE {_prefilter()})
+        SELECT p.id, any_value(d.stname) AS stname
+        FROM p JOIN d ON ST_Intersects(d.geom, p.geometry)
+        GROUP BY p.id"""
 
 
-def tile_features_sql(parquet: str) -> str:
-    """One GeoJSON Feature per row with the popup fields only."""
+def clip_sql(src_files: list[str], place_states: str) -> str:
+    """Every Overture column, for the places inside India, plus a flat `name`
+    (copy of names.primary) so the filter panel and API can search names
+    without decoding the nested struct."""
+    files = ', '.join(f"'{f}'" for f in src_files)
     return f"""
-        SELECT 'Feature' AS type,
-               ST_AsGeoJSON(geometry)::JSON AS geometry,
-               struct_pack(id := id, name := names."primary", basic_category := basic_category,
-                           confidence := confidence, operating_status := operating_status) AS properties
-        FROM read_parquet('{parquet}')"""
+        SELECT p.id, p.names."primary" AS name, p.* EXCLUDE (id) FROM read_parquet([{files}]) p
+        SEMI JOIN read_parquet('{place_states}') s ON p.id = s.id
+        WHERE {_prefilter()}"""
 
 
-def geojson_features_sql(parquet: str, prop_cols: list[str]) -> str:
-    """One GeoJSON Feature per row with every non-geometry column."""
-    props = ', '.join(f'"{c}" := "{c}"' for c in prop_cols)
-    return f"""
-        SELECT 'Feature' AS type,
-               ST_AsGeoJSON(geometry)::JSON AS geometry,
-               struct_pack({props}) AS properties
-        FROM read_parquet('{parquet}')"""
-
-
-def pmtiles_args(geojsonseq: Path, out: Path) -> list[str]:
-    return bake_formats.pmtiles_args(geojsonseq, out, LAYER_ID, TILE_FIELDS, parallel=True)
+TILE_PROPS_SQL = ('struct_pack(id := id, name := name, basic_category := basic_category, '
+                  'confidence := confidence, operating_status := operating_status)')
 
 
 DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf over 2 GB
@@ -138,6 +141,18 @@ SHP_INTRO = ['One shapefile per state: a single India-wide .dbf would exceed 2 G
 
 def shapefile_key() -> list[str]:
     return bake_formats.shapefile_key({expr: short for short, expr in SHP_FIELDS.items()}, SHP_INTRO)
+
+
+def row_group_bboxes_sql(release: str) -> str:
+    """Per file + row group bbox from Parquet footers only (no data read)."""
+    return f"""
+        SELECT file_name AS file, row_group_id,
+          min(CASE WHEN path_in_schema = 'bbox, xmin' THEN TRY_CAST(stats_min AS DOUBLE) END) AS xmin,
+          max(CASE WHEN path_in_schema = 'bbox, xmax' THEN TRY_CAST(stats_max AS DOUBLE) END) AS xmax,
+          min(CASE WHEN path_in_schema = 'bbox, ymin' THEN TRY_CAST(stats_min AS DOUBLE) END) AS ymin,
+          max(CASE WHEN path_in_schema = 'bbox, ymax' THEN TRY_CAST(stats_max AS DOUBLE) END) AS ymax
+        FROM parquet_metadata('s3://overturemaps-us-west-2/release/{release}/theme=places/type=place/*')
+        GROUP BY 1, 2"""
 
 
 def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
@@ -157,7 +172,8 @@ def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
 
 def notes_for(release: str) -> str:
     return (f'Overture Maps Foundation places, release {release}, clipped to India (inside an LGD district '
-            'polygon). Every Overture column is kept as published; names, addresses, '
+            'polygon). Every Overture column is kept as published, and `name` is a copy of names.primary '
+            'added for search and simple queries; names, addresses, '
             'sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a '
             'flat subset (see columns.txt in the zip). For KML, use Filter & export on a category '
             'or area. Licences follow the source of each record (listed in `sources`): Meta, '
@@ -211,63 +227,109 @@ def stale_keys(old: dict, new: dict, r2_public: str) -> list[str]:
 # ── side-effecting steps ─────────────────────────────────────────────────
 
 def _con(tmp: Path):
-    import duckdb
+    from bake_extracts import make_con
     tmp.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = make_con()
     # ~4.4M rows with nested columns: let order-free COPYs stream and spill.
     con.execute(f"SET preserve_insertion_order = false; SET temp_directory = '{tmp}';")
     return con
 
 
-def _layer_url(layer_id: str, fmt: str) -> str:
-    return next(l for l in json.loads(CATALOG.read_text())['layers'] if l['id'] == layer_id)[fmt]['url']
+def fetch(release: str, src: Path, parts: int = 8) -> list[Path]:
+    """Download only the release files whose row groups overlap India.
+    Overture files are spatially sorted, so a release's ~30 files reduce to a
+    few; S3 throttles one connection to us-west-2 (~0.7 MB/s from India), so
+    each file comes down as `parts` parallel byte ranges."""
+    from bake_extracts import make_con
+    con = make_con()
+    con.execute("INSTALL httpfs; LOAD httpfs; SET s3_region = 'us-west-2';")
+    cols = ('file', 'row_group_id', 'xmin', 'xmax', 'ymin', 'ymax')
+    groups = [dict(zip(cols, r)) for r in con.execute(row_group_bboxes_sql(release)).fetchall()]
+    done = []
+    for s3_path in overlapping_files(groups):
+        url = f"{S3_BUCKET_URL}/{s3_path.removeprefix('s3://overturemaps-us-west-2/')}"
+        dest = src / s3_path.rsplit('/', 1)[1]
+        if not dest.exists():
+            download_ranged(url, dest, parts)
+        done.append(dest)
+    return done
+
+
+def download_ranged(url: str, dest: Path, parts: int = 8) -> Path:
+    """GET `url` as `parts` parallel byte ranges into `dest` (atomic, size-checked)."""
+    head = urllib.request.Request(url, method='HEAD', headers={'User-Agent': 'Mozilla/5.0'})
+    size = int(urllib.request.urlopen(head, timeout=60).headers['Content-Length'])
+
+    def get(rng: tuple[int, int]) -> bytes:
+        req = urllib.request.Request(url, headers={'Range': f'bytes={rng[0]}-{rng[1]}', 'User-Agent': 'Mozilla/5.0'})
+        return urllib.request.urlopen(req, timeout=600).read()
+
+    with bake_formats.atomic_output(dest) as part:
+        with ThreadPoolExecutor(parts) as pool, part.open('wb') as out:
+            for chunk in pool.map(get, bake_formats.byte_ranges(size, parts)):
+                out.write(chunk)
+        if part.stat().st_size != size:
+            raise IOError(f'{dest.name}: got {part.stat().st_size} of {size} bytes')
+    return dest
 
 
 def bake(release: str, src: Path, out: Path) -> dict:
-    """Each stage skips an output that already exists: delete one file and
-    re-run to rebuild just that format."""
+    """Each stage writes atomically and skips an output that already exists:
+    delete one file and re-run to rebuild just that format."""
     from ingest_ramseraph import rebake_flatten_bbox
 
     out.mkdir(parents=True, exist_ok=True)
     con = _con(out / 'tmp')
     path = {fmt: out / f'{LAYER_ID}.{ext}' for fmt, ext in FORMATS.items()}
-    districts = out / 'lgd_districts.parquet'
-    if not districts.exists():
-        subprocess.run(['curl', '-sfL', '-A', 'Mozilla/5.0', '-o', str(districts),
-                        _layer_url('lgd_districts', 'parquet')], check=True)
+    files = sorted(str(p) for p in src.glob('*.parquet'))
+    districts = bake_formats.fetch_layer_file(CATALOG, 'lgd_districts', 'parquet', out / 'lgd_districts.parquet')
+
+    place_states = out / 'place_states.parquet'
+    if not place_states.exists():
+        with bake_formats.atomic_output(place_states) as part:
+            con.execute(f"COPY ({place_states_sql(files, str(districts))}) TO '{part}' (FORMAT PARQUET)")
 
     if not path['parquet'].exists():
-        files = sorted(str(p) for p in src.glob('*.parquet'))
         clipped = out / 'clipped.parquet'
-        con.execute(f"COPY ({clip_sql(files, str(districts))}) TO '{clipped}' (FORMAT PARQUET, COMPRESSION ZSTD)")
-        rebake_flatten_bbox(clipped, path['parquet'])
-        clipped.unlink()
+        try:
+            con.execute(f"COPY ({clip_sql(files, str(place_states))}) TO '{clipped}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+            with bake_formats.atomic_output(path['parquet']) as part:
+                rebake_flatten_bbox(clipped, part, con=con)
+        finally:
+            clipped.unlink(missing_ok=True)
     parquet = path['parquet']
     rows = con.execute(f"SELECT count(*) FROM read_parquet('{parquet}')").fetchone()[0]
 
     if not path['pmtiles'].exists():
         # Line-delimited GeoJSON streams; tippecanoe -P reads it in parallel.
         seq = out / 'tiles.geojsons'
-        con.execute(f"COPY ({tile_features_sql(str(parquet))}) TO '{seq}' (FORMAT JSON)")
-        bake_formats.write_pmtiles(seq, path['pmtiles'], LAYER_ID, TILE_FIELDS, parallel=True)
-        seq.unlink()
+        try:
+            con.execute(f"COPY ({bake_formats.features_sql(str(parquet), TILE_PROPS_SQL)}) TO '{seq}' (FORMAT JSON)")
+            with bake_formats.atomic_output(path['pmtiles']) as part:
+                bake_formats.write_pmtiles(seq, part, LAYER_ID, TILE_FIELDS, parallel=True)
+        finally:
+            seq.unlink(missing_ok=True)
 
     if not path['geojson'].exists():
-        # Streamed: DuckDB writes a JSON array of features; wrap it as a FeatureCollection.
-        prop_cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{parquet}')").fetchall()
-                     if c[0] != 'geometry']
+        # Streamed: DuckDB writes a JSON array of features; wrap it as a
+        # FeatureCollection (one extra sequential copy of ~6 GB, ~1 min).
+        cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{parquet}')").fetchall()
+                if c[0] != 'geometry']
+        props = 'struct_pack(' + ', '.join(f'"{c}" := "{c}"' for c in cols) + ')'
         feats = out / 'features.json'
-        con.execute(f"COPY ({geojson_features_sql(str(parquet), prop_cols)}) TO '{feats}' (FORMAT JSON, ARRAY true)")
-        with path['geojson'].open('wb') as dst, feats.open('rb') as fsrc:
-            dst.write(b'{"type":"FeatureCollection","features":')
-            while chunk := fsrc.read(64 << 20):
-                dst.write(chunk)
-            dst.write(b'}\n')
-        feats.unlink()
+        try:
+            con.execute(f"COPY ({bake_formats.features_sql(str(parquet), props)}) TO '{feats}' (FORMAT JSON, ARRAY true)")
+            with bake_formats.atomic_output(path['geojson']) as part, part.open('wb') as dst, feats.open('rb') as fsrc:
+                dst.write(b'{"type":"FeatureCollection","features":')
+                while chunk := fsrc.read(64 << 20):
+                    dst.write(chunk)
+                dst.write(b'}\n')
+        finally:
+            feats.unlink(missing_ok=True)
 
     if not path['shapefile'].exists():
-        write_shapefile_zip(parquet, districts, path['shapefile'], out / 'tmp')
+        with bake_formats.atomic_output(path['shapefile']) as part:
+            write_shapefile_zip(con, parquet, place_states, part, out / 'tmp')
 
     summary = {'release': release, 'rows': rows, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
     (out / 'summary.json').write_text(json.dumps(summary, indent=2))
@@ -284,19 +346,17 @@ def check_dbf_sizes(sizes: dict[str, int]) -> None:
         raise ValueError(f'.dbf over 2 GB (split further): {over}')
 
 
-def shapefile_rows_sql(parquet: str, districts_parquet: str) -> str:
+def shapefile_rows_sql(parquet: str, place_states: str) -> str:
     """Flat shapefile fields plus the LGD state each place falls in."""
     select = ', '.join(f'p.{expr} AS "{short}"' for short, expr in SHP_FIELDS.items())
     return f"""
-        WITH d AS (SELECT stname, ST_SetCRS(geometry, 'OGC:CRS84') AS geom FROM read_parquet('{districts_parquet}'))
-        SELECT d.stname, {select}, p.geometry
-        FROM read_parquet('{parquet}') p JOIN d ON ST_Intersects(d.geom, p.geometry)
-        QUALIFY row_number() OVER (PARTITION BY p.id ORDER BY p.id) = 1"""
+        SELECT s.stname, {select}, p.geometry
+        FROM read_parquet('{parquet}') p JOIN read_parquet('{place_states}') s ON p.id = s.id"""
 
 
-def write_shapefile_zip(parquet: Path, districts: Path, out: Path, tmp: Path) -> dict[str, int]:
-    con = _con(tmp)
-    con.execute(f"CREATE TABLE shp AS {shapefile_rows_sql(str(parquet), str(districts))}")
+def write_shapefile_zip(con, parquet: Path, place_states: Path, out: Path, tmp: Path) -> dict[str, int]:
+    """One shapefile per state, zipped with columns.txt; each .dbf < 2 GB."""
+    con.execute(f"CREATE OR REPLACE TEMP TABLE shp AS {shapefile_rows_sql(str(parquet), str(place_states))}")
     states = [r[0] for r in con.execute("SELECT DISTINCT stname FROM shp ORDER BY 1").fetchall()]
     fields = ', '.join(f'"{short}"' for short in SHP_FIELDS)
     dbf_sizes: dict[str, int] = {}
@@ -311,6 +371,7 @@ def write_shapefile_zip(parquet: Path, districts: Path, out: Path, tmp: Path) ->
             dbf_sizes[state_slug(st)] = (work_dir / f'{stem}.dbf').stat().st_size
         check_dbf_sizes(dbf_sizes)
         bake_formats.zip_with_key(work_dir, out, shapefile_key())
+    con.execute("DROP TABLE shp")
     return dbf_sizes
 
 
@@ -350,13 +411,16 @@ def delete_stale(old_catalog: Path) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['bake', 'upload', 'delete-stale'])
+    ap.add_argument('step', choices=['fetch', 'bake', 'upload', 'delete-stale'])
     ap.add_argument('--release')
     ap.add_argument('--src', type=Path)
     ap.add_argument('--out', type=Path)
     ap.add_argument('--old-catalog', type=Path)
     a = ap.parse_args()
-    if a.step == 'bake':
+    if a.step == 'fetch':
+        a.src.mkdir(parents=True, exist_ok=True)
+        print('\n'.join(str(p) for p in fetch(a.release, a.src)))
+    elif a.step == 'bake':
         print(json.dumps(bake(a.release, a.src, a.out), indent=2))
     elif a.step == 'upload':
         upload(a.release, a.out)

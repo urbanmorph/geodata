@@ -5,7 +5,7 @@
 // uploads).
 
 import { query } from './db';
-import type { ColumnStats, ColumnType } from './filter-schema';
+import { isUnofferedName, type ColumnStats, type ColumnType } from './filter-schema';
 import { escIdent } from './filter-where';
 
 const DUCKDB_TO_NORM: Record<string, ColumnType> = {
@@ -59,10 +59,14 @@ export async function describeParquet(url: string): Promise<ProbeResult> {
     `DESCRIBE SELECT * FROM '${url}' LIMIT 0`,
   );
 
-  const eligible = desc.filter((d) => {
+  // Skip what the panel would drop anyway: geometry/nested types and
+  // id/bbox/geometry-named columns (COUNT(DISTINCT id) over millions of
+  // unique strings was the probe's costliest aggregate).
+  const isEligible = (d: { column_name: string; column_type: string }) => {
     const norm = normaliseType(d.column_type);
-    return norm !== 'geometry' && norm !== 'blob';
-  });
+    return norm !== 'geometry' && norm !== 'blob' && !isUnofferedName(d.column_name);
+  };
+  const eligible = desc.filter(isEligible);
 
   let rowCount = 0;
   const aggRow: Record<string, unknown> = {};
@@ -121,7 +125,7 @@ export async function describeParquet(url: string): Promise<ProbeResult> {
 
   const columns: ColumnStats[] = desc.map((d) => {
     const norm = normaliseType(d.column_type);
-    if (norm === 'geometry' || norm === 'blob') {
+    if (!isEligible(d)) {
       return { name: d.column_name, type: norm, distinct: -1, nullFrac: 0 };
     }
     const a = safeAlias(d.column_name);

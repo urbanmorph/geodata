@@ -44,6 +44,11 @@ const GEOM_NAME_RX = /^(geom|geometry|shape|wkb|wkt)$/i;
 const BBOX_NAME_RX = /^[xy](min|max)$/;
 const ID_NAME_RX = /^(id|fid|objectid|gid|uuid|hash|geohash)$|_id$|^ogc_fid$|^orig_fid$|^InPoly_FID$/i;
 
+/** Columns the panel never offers by name; the probe skips aggregating them. */
+export function isUnofferedName(name: string): boolean {
+  return GEOM_NAME_RX.test(name) || BBOX_NAME_RX.test(name) || ID_NAME_RX.test(name) || name.startsWith('_');
+}
+
 const BOOL_VALUE_SETS: Array<Set<string>> = [
   new Set(['0', '1']),
   new Set(['true', 'false']),

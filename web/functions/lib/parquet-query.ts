@@ -3,7 +3,8 @@
  * Reads only the columns needed, supports where filters and group_by.
  * No hardcoded layer or column names.
  */
-import { parquetMetadataAsync, parquetQuery } from 'hyparquet';
+import { parquetMetadataAsync, parquetQuery, parquetSchema } from 'hyparquet';
+import type { FileMetaData, SchemaElement } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import type { AsyncBuffer } from './parquet-r2';
 
@@ -48,6 +49,28 @@ function isJunkColumn(name: string): boolean {
   return JUNK_COLUMNS.has(name.toLowerCase());
 }
 
+/**
+ * Top-level columns. The flat `metadata.schema` also lists struct/list/map
+ * children (`primary`, `list`, `element`, `key_value`...), which are not
+ * columns: Overture places has 19 columns but 97 flat schema entries.
+ */
+export function topLevelColumns(metadata: FileMetaData): { name: string; element: SchemaElement; nested: boolean }[] {
+  return parquetSchema(metadata).children.map((c) => ({
+    name: c.element.name, element: c.element, nested: c.children.length > 0,
+  }));
+}
+
+/** Nested columns can't be compared to a value or used as a group key. */
+function assertFlat(cols: ReturnType<typeof topLevelColumns>, names: string[]): void {
+  const nested = new Set(cols.filter((c) => c.nested).map((c) => c.name));
+  const flat = cols.filter((c) => !c.nested && !c.name.toLowerCase().includes('geom')).map((c) => c.name);
+  for (const n of names) {
+    if (nested.has(n)) {
+      throw new QueryInputError(`Column "${n}" is nested (struct, list or map) and can't be filtered or grouped. Flat columns: ${flat.join(', ')}`);
+    }
+  }
+}
+
 // FIX #5: sample from distinct values, not first N rows
 export async function getSchema(file: AsyncBuffer): Promise<{
   row_count: number;
@@ -57,23 +80,22 @@ export async function getSchema(file: AsyncBuffer): Promise<{
   const rowCount = metadata.row_groups.reduce((s, rg) => s + Number(rg.num_rows), 0);
 
   const columns: ColumnSchema[] = [];
-  for (const el of metadata.schema.slice(1)) {
-    if (!el.name || el.name.toLowerCase().includes('geom') || el.name === 'wkb_geometry') continue;
-    columns.push({
-      name: el.name,
-      type: schemaType(el.type, el.converted_type),
-    });
+  for (const { name, element: el, nested } of topLevelColumns(metadata)) {
+    if (!name || name.toLowerCase().includes('geom') || name === 'wkb_geometry') continue;
+    columns.push({ name, type: nested ? 'nested' : schemaType(el.type, el.converted_type) });
   }
 
   // Read a sample of rows spread across the dataset for distinct value discovery
-  if (rowCount > 0 && columns.length > 0) {
-    const colNames = columns.map((c) => c.name);
+  // (flat columns only: nested values would stringify as "[object Object]").
+  const flatCols = columns.filter((c) => c.type !== 'nested');
+  if (rowCount > 0 && flatCols.length > 0) {
+    const colNames = flatCols.map((c) => c.name);
     const sampleSize = Math.min(200, rowCount);
     const sampleRows = await parquetQuery({
       compressors, file, columns: colNames, rowEnd: sampleSize,
     });
 
-    for (const col of columns) {
+    for (const col of flatCols) {
       const distinct = new Set<string>();
       for (const r of sampleRows as Record<string, unknown>[]) {
         const v = r[col.name];
@@ -102,8 +124,9 @@ export async function query(
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await parquetMetadataAsync(file);
-  const schema = metadata.schema.slice(1).filter((e) => e.name);
-  const allCols = schema.map((e) => e.name);
+  const cols = topLevelColumns(metadata);
+  const allCols = cols.map((c) => c.name);
+  assertFlat(cols, [...Object.keys(opts.where ?? {}), ...(opts.groupBy ? [opts.groupBy] : [])]);
 
   const sumCols = opts.sum?.length ? opts.sum : [];
   if (sumCols.length && !opts.groupBy) {
@@ -112,7 +135,7 @@ export async function query(
 
   if (opts.groupBy) {
     if (sumCols.length) {
-      validateSumColumns(sumCols, Object.fromEntries(schema.map((e) => [e.name, e.type])));
+      validateSumColumns(sumCols, Object.fromEntries(cols.map((c) => [c.name, c.nested ? undefined : c.element.type])));
     }
     return groupByQuery(file, allCols, opts.groupBy, opts.where, sumCols);
   }

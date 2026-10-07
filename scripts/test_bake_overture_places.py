@@ -37,13 +37,14 @@ def test_overlapping_files_ignores_row_groups_without_stats():
 
 # ── R2 layout: versioned keys, never the old immutable paths ──────────────
 
-def test_r2_keys_are_versioned_by_release():
-    keys = b.r2_keys('2026-09-23.1')
-    assert keys == {
-        'parquet': 'pois/overture-places/2026-09-23.1/overture_places_india.parquet',
-        'pmtiles': 'pois/overture-places/2026-09-23.1/overture_places_india.pmtiles',
-        'geojson': 'pois/overture-places/2026-09-23.1/overture_places_india.geojson',
-        'shapefile': 'pois/overture-places/2026-09-23.1/overture_places_india.shp.zip',
+def test_r2_keys_are_versioned_by_release_and_bake_revision():
+    # Re-baking a release must not overwrite keys a client may have cached.
+    d = f'pois/overture-places/2026-09-23.1-r{b.BAKE_REVISION}'
+    assert b.r2_keys('2026-09-23.1') == {
+        'parquet': f'{d}/overture_places_india.parquet',
+        'pmtiles': f'{d}/overture_places_india.pmtiles',
+        'geojson': f'{d}/overture_places_india.geojson',
+        'shapefile': f'{d}/overture_places_india.shp.zip',
     }
 
 
@@ -84,6 +85,7 @@ def test_patched_layer_updates_rows_date_and_notes_but_keeps_identity():
     assert '2026-09-23.1' in new['notes']
     assert '—' not in new['notes']  # no em-dashes in user copy
     assert 'LGD district' in new['notes']
+    assert '`name` is a copy of names.primary' in new['notes']  # the added column is disclosed
     for k in ('id', 'category', 'provenance'):
         assert new[k] == OLD_LAYER[k]
     # Foursquare-sourced records are Apache-2.0; the rest CDLA (AllThePlaces CC0).
@@ -109,22 +111,17 @@ def test_tile_fields_are_the_popup_fields():
     assert b.TILE_FIELDS == ('id', 'name', 'basic_category', 'confidence', 'operating_status')
 
 
-def test_pmtiles_args_keep_only_tile_fields_and_read_geojsonseq():
-    args = b.pmtiles_args(Path('/w/tiles.geojsons'), Path('/w/out.pmtiles'))
-    assert args[0] == 'tippecanoe'
-    assert args[args.index('-l') + 1] == 'overture_places_india'
-    kept = [args[i + 1] for i, a in enumerate(args) if a == '-y']
-    assert kept == list(b.TILE_FIELDS)
-    assert '-P' in args  # parallel read of line-delimited input
-    assert args[-1] == '/w/tiles.geojsons'
+def test_tile_args_keep_only_tile_fields_and_read_geojsonseq():
+    import bake_formats
+    args = bake_formats.pmtiles_args(Path('/w/t.geojsons'), Path('/w/o.pmtiles'), b.LAYER_ID, b.TILE_FIELDS, parallel=True)
+    assert [args[i + 1] for i, a in enumerate(args) if a == '-y'] == list(b.TILE_FIELDS)
+    assert '-P' in args and args[args.index('-l') + 1] == 'overture_places_india'
 
 
-def test_tile_features_sql_flattens_names_primary_and_keeps_geometry():
-    sql = b.tile_features_sql('/w/in.parquet')
-    assert 'names."primary"' in sql
-    assert "ST_AsGeoJSON(geometry)" in sql
+def test_tile_properties_use_the_flat_columns():
     for f in b.TILE_FIELDS:
-        assert f in sql
+        assert f'{f} := {f}' in b.TILE_PROPS_SQL
+    assert b.SHP_FIELDS['name'] == 'name'
 
 
 # ── shapefile: flat, <=10-char names, documented in columns.txt ───────────
@@ -143,18 +140,33 @@ def test_shapefile_key_lists_every_short_name():
 
 # ── clip: inside India only ───────────────────────────────────────────────
 
-def test_clip_sql_spatially_joins_lgd_districts_and_dedupes_border_points():
-    sql = b.clip_sql(['/s/a.parquet', '/s/b.parquet'], '/w/lgd_districts.parquet')
+def test_place_states_sql_joins_districts_once_and_keeps_one_state_per_place():
+    sql = b.place_states_sql(['/s/a.parquet', '/s/b.parquet'], '/w/lgd_districts.parquet')
     assert "'/s/a.parquet'" in sql and "'/s/b.parquet'" in sql
     assert "bbox.xmin" in sql  # cheap prefilter before the join
-    # Join against 785 district polygons (indexable), not one huge India polygon.
+    # 785 indexed district polygons, not one huge India polygon (that OOMed).
     assert "ST_Intersects" in sql and "'/w/lgd_districts.parquet'" in sql
-    # A point on a shared district border matches twice: keep one row per id.
-    assert "QUALIFY row_number() OVER (PARTITION BY p.id" in sql
+    # A point on a shared district border matches twice: one row per id.
+    assert "GROUP BY p.id" in sql and "any_value(d.stname)" in sql
+    # Only id + geometry go through the join, never the nested columns.
+    assert "p.*" not in sql
     # LGD geometry has no CRS label, Overture is OGC:CRS84 (both lon/lat):
     # relabel, never transform (a transform would swap axes).
     assert "ST_SetCRS(geometry, 'OGC:CRS84')" in sql
     assert 'ST_Transform' not in sql
+
+
+def test_clip_sql_adds_a_flat_name_and_keeps_every_column():
+    # Additive copy of names.primary (owner decision 2026-10-07): name search in
+    # the filter panel and cheap select/where in the API; nothing else changes.
+    sql = b.clip_sql(['/s/a.parquet'], '/w/place_states.parquet')
+    assert 'p.names."primary" AS name' in sql and 'p.* EXCLUDE (id)' in sql
+
+
+def test_clip_sql_semi_joins_the_place_states():
+    sql = b.clip_sql(['/s/a.parquet'], '/w/place_states.parquet')
+    assert 'SEMI JOIN' in sql and "'/w/place_states.parquet'" in sql
+    assert 'ST_Intersects' not in sql  # the spatial join ran once, in place_states_sql
 
 
 @pytest.mark.parametrize('release', ['2026-09-23.1', '2027-01-21.0'])
@@ -181,7 +193,7 @@ def test_display_name_uses_release_month_without_em_dash():
 
 def test_patched_manifest_entry_matches_the_new_r2_layout():
     new = b.patched_manifest_entry(OLD_MANIFEST, '2026-09-23.1', SIZES, 4_000_000)
-    assert new['r2_prefix'] == 'pois/overture-places/2026-09-23.1'
+    assert new['r2_prefix'] == f'pois/overture-places/2026-09-23.1-r{b.BAKE_REVISION}'
     assert f"{new['r2_prefix']}/{new['parquet_file']}" == b.r2_keys('2026-09-23.1')['parquet']
     assert f"{new['r2_prefix']}/{new['pmtiles_file']}" == b.r2_keys('2026-09-23.1')['pmtiles']
     assert (new['parquet_bytes'], new['pmtiles_bytes'], new['features']) == (10, 20, 4_000_000)
@@ -216,9 +228,9 @@ def test_shapefile_key_says_files_are_per_state():
     assert any('one shapefile per state' in line.lower() for line in b.shapefile_key())
 
 
-def test_shapefile_rows_sql_tags_each_place_with_its_state():
-    sql = b.shapefile_rows_sql('/w/p.parquet', '/w/lgd_districts.parquet')
-    assert 'stname' in sql and 'ST_Intersects' in sql
-    assert "QUALIFY row_number() OVER (PARTITION BY p.id" in sql
+def test_shapefile_rows_sql_reuses_the_place_states():
+    sql = b.shapefile_rows_sql('/w/p.parquet', '/w/place_states.parquet')
+    assert 'stname' in sql and "'/w/place_states.parquet'" in sql
+    assert 'ST_Intersects' not in sql
     for short in b.SHP_FIELDS:
         assert f'AS "{short}"' in sql

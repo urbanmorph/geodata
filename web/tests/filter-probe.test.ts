@@ -188,3 +188,27 @@ describe('describeParquet — nested columns', () => {
     }
   });
 });
+
+describe('describeParquet — columns the panel never offers', () => {
+  // id (4.4M unique strings on Overture) and the bake's bbox columns were
+  // aggregated, then thrown away by pickAffordance: the costliest part of the probe.
+  it('does not aggregate id-like, bbox, geometry-named or underscore columns', async () => {
+    mockQuery
+      .mockResolvedValueOnce([
+        { column_name: 'id', column_type: 'VARCHAR' },
+        { column_name: 'xmin', column_type: 'DOUBLE' },
+        { column_name: 'ymax', column_type: 'DOUBLE' },
+        { column_name: '_internal', column_type: 'VARCHAR' },
+        { column_name: 'district_id', column_type: 'BIGINT' },
+        { column_name: 'category', column_type: 'VARCHAR' },
+      ])
+      .mockResolvedValueOnce([{ row_count: 9, distinct_category: 99, null_category: 0, min_category: 'a', max_category: 'z' }]);
+    const r = await describeParquet('x');
+    const aggSql = mockQuery.mock.calls[1][0] as string;
+    expect(aggSql).toContain('COUNT(DISTINCT "category")');
+    for (const col of ['id', 'xmin', 'ymax', '_internal', 'district_id']) {
+      expect(aggSql).not.toContain(`"${col}"`);
+      expect(r.columns.find((c) => c.name === col)!.distinct).toBe(-1);
+    }
+  });
+});

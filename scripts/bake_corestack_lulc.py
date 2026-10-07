@@ -167,14 +167,6 @@ def _column_types() -> dict[str, str]:
     return types
 
 
-SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
-             'Full names (as in the Parquet / GeoJSON / API):', '']
-
-
-def pmtiles_args(geojson: Path, out: Path) -> list[str]:
-    return bake_formats.pmtiles_args(geojson, out, LAYER_ID, TILE_FIELDS)
-
-
 def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import duckdb
@@ -230,7 +222,7 @@ def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
     kml = out_dir / f'{BASENAME}.kml'
     write_kml_from_geojson(geojson, LAYER_ID, kml)
     shp = out_dir / f'{BASENAME}.shp.zip'
-    bake_formats.shapefile_zip_from_geojson(geojson, shp, SHP_NAMES, SHP_INTRO)
+    bake_formats.shapefile_zip_from_geojson(geojson, shp, SHP_NAMES)
     pmtiles = out_dir / f'{BASENAME}.pmtiles'
     bake_formats.write_pmtiles(geojson, pmtiles, LAYER_ID, TILE_FIELDS)
 

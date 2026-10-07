@@ -202,3 +202,15 @@ def test_rebake_synthesizes_bbox_cols_when_absent(tmp_path: Path) -> None:
     assert set(['xmin', 'ymin', 'xmax', 'ymax']).issubset(cols), (
         f'rebake should add flat bbox cols when source has neither struct nor flat. Got: {cols}'
     )
+
+
+def test_rebake_accepts_a_caller_connection(tmp_path):
+    """Big bakes pass a connection with temp_directory / preserve_insertion_order set."""
+    from ingest_ramseraph import rebake_flatten_bbox
+    src = tmp_path / 'src.parquet'
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    con.execute(f"COPY (SELECT i AS id, ST_Point(70 + i / 100.0, 10 + i / 100.0) AS geometry FROM range(50) t(i)) TO '{src}' (FORMAT PARQUET)")
+    n, cols = rebake_flatten_bbox(src, tmp_path / 'dst.parquet', con=con)
+    assert n == 50 and {'xmin', 'ymin', 'xmax', 'ymax'} <= set(cols)
+    assert con.execute('SELECT 1').fetchone() == (1,)  # caller's connection still usable

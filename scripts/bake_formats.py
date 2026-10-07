@@ -5,13 +5,61 @@ bake_mi6_wells.py) so tile settings and the shapefile key stay consistent.
 """
 from __future__ import annotations
 
+import contextlib
+import json
+import os
 import subprocess
 import tempfile
 import zipfile
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, Iterator
 
 DBF_NAME_MAX = 10
+SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
+             'Full names (as in the Parquet / GeoJSON / API):', '']
+
+
+@contextlib.contextmanager
+def atomic_output(final: Path) -> Iterator[Path]:
+    """Yield a `.part` path; move it to `final` only if the block succeeds, so
+    an interrupted bake never leaves a truncated file under the real name
+    (bakes skip outputs that exist)."""
+    part = final.with_name(final.name + '.part')
+    part.unlink(missing_ok=True)
+    try:
+        yield part
+        os.replace(part, final)
+    finally:
+        part.unlink(missing_ok=True)
+
+
+def layer_url(catalog: dict, layer_id: str, fmt: str) -> str:
+    return next(l for l in catalog['layers'] if l['id'] == layer_id)[fmt]['url']
+
+
+def fetch_layer_file(catalog_path: Path, layer_id: str, fmt: str, dest: Path) -> Path:
+    """Download a catalog layer's file (e.g. lgd_districts parquet) unless
+    `dest` exists. curl with a browser UA: r2.dev rejects urllib's default."""
+    if not dest.exists():
+        url = layer_url(json.loads(catalog_path.read_text()), layer_id, fmt)
+        with atomic_output(dest) as part:
+            subprocess.run(['curl', '-sfL', '-A', 'Mozilla/5.0', '-o', str(part), url], check=True)
+    return dest
+
+
+def byte_ranges(size: int, parts: int) -> list[tuple[int, int]]:
+    """Inclusive (start, end) byte ranges splitting `size` bytes into <= parts."""
+    step = -(-size // parts)
+    return [(s, min(s + step, size) - 1) for s in range(0, size, step)]
+
+
+def features_sql(parquet: str, props_sql: str) -> str:
+    """One GeoJSON Feature per parquet row; `props_sql` builds its properties."""
+    return f"""
+        SELECT 'Feature' AS type,
+               ST_AsGeoJSON(geometry)::JSON AS geometry,
+               {props_sql} AS properties
+        FROM read_parquet('{parquet}')"""
 
 
 def pmtiles_args(src: Path, out: Path, layer: str, fields: Iterable[str],
@@ -55,7 +103,7 @@ def short_field_names(columns: list[str]) -> dict[str, str]:
     return names
 
 
-def shapefile_key(names: dict[str, str], intro: list[str]) -> list[str]:
+def shapefile_key(names: dict[str, str], intro: list[str] = SHP_INTRO) -> list[str]:
     """columns.txt lines: intro, then 'SHORT  long' per field."""
     return intro + [f'{short:<11} {long}' for long, short in names.items()]
 
@@ -68,7 +116,8 @@ def zip_with_key(src_dir: Path, out: Path, key_lines: list[str]) -> None:
             zf.write(p, arcname=p.name)
 
 
-def shapefile_zip_from_geojson(geojson: Path, out: Path, names: dict[str, str], intro: list[str]) -> None:
+def shapefile_zip_from_geojson(geojson: Path, out: Path, names: dict[str, str],
+                               intro: list[str] = SHP_INTRO) -> None:
     """GeoJSON -> zipped shapefile with explicit short DBF names and a columns.txt key."""
     layer = subprocess.run(['ogrinfo', '-q', '-so', str(geojson)], check=True,
                            capture_output=True, text=True).stdout.split(':', 1)[1].split('(')[0].strip()

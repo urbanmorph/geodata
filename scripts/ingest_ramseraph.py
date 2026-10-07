@@ -517,7 +517,7 @@ def row_group_size_for(feature_count: int) -> int | None:
     return 20_000
 
 
-def rebake_flatten_bbox(src: Path, dst: Path) -> tuple[int, list[str]]:
+def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]:
     """Re-emit parquet so /api/v1/nearby can prune efficiently:
       1. Top-level flat xmin/ymin/xmax/ymax columns — either flattened from
          an existing `bbox` STRUCT (ramSeraph shape) or synthesised from the
@@ -529,9 +529,13 @@ def rebake_flatten_bbox(src: Path, dst: Path) -> tuple[int, list[str]]:
     200 MB; without (2) the row-group bbox stats span all of India and no
     pruning happens regardless of how good the filter is.
 
+    Pass `con` to run on a caller's connection (big bakes set temp_directory
+    and preserve_insertion_order there so the Hilbert sort can spill).
+
     Returns (feature_count, non-geom column names).
     """
-    con = duckdb.connect()
+    if con is None:
+        con = duckdb.connect()
     con.execute('INSTALL spatial; LOAD spatial;')
     cols = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{src}')").fetchall()
     col_names = [c[0] for c in cols]
