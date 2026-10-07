@@ -883,6 +883,11 @@
       "label": "Land Use & Cropping Intensity by Block (2023-24)",
       "unit": "blocks",
       "description": "Land use and cropping intensity per LGD block in 2023-24: single, double and triple cropping, seasonal and perennial water, trees, scrub, barren and built-up land. Modelled from CoRE Stack's 10 m IndiaSAT map, not official crop statistics. Islands are not mapped and the high Himalaya only partly; mapped_pct shows coverage."
+    },
+    "mi6_wells_districts": {
+      "label": "Wells by District (Minor Irrigation Census 2017-18)",
+      "unit": "districts",
+      "description": "Wells per LGD district from the 6th Minor Irrigation Census (reference year 2017-18): dugwells and shallow, medium and deep tubewells, with status, pump energy source, depth and irrigation potential. Official census counts summed to districts."
     }
   },
   "level_order": [
@@ -979,7 +984,8 @@
     "agro_ecological_zones",
     "agro_climatic_zones",
     "biogeographic_zones",
-    "corestack_lulc_blocks"
+    "corestack_lulc_blocks",
+    "mi6_wells_districts"
   ],
   "layers": [
     {
@@ -5226,6 +5232,59 @@
         "CoRE Stack",
         "block"
       ]
+    },
+    {
+      "id": "mi6_wells_districts",
+      "level": "mi6_wells_districts",
+      "source": "MIWing",
+      "rows": 785,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.parquet",
+        "bytes": 24200442
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.pmtiles",
+        "bytes": 10404993
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.geojson",
+        "bytes": 94195495
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.kml",
+        "bytes": 75289709
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.shp.zip",
+        "bytes": 39425995
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti",
+          "url": "https://mowr.nic.in/irrigationcensus/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "fetched_at": "2026-10-07T13:29:02.722779+00:00",
+      "notes": "Counts from the 6th Minor Irrigation Census (reference year 2017-18, enumerated 2019-22), Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti, published on data.gov.in under GODL-India. Summed from the ground-water scheme files to LGD districts by Land Ledger; the total matches the census report (21,931,924 wells). Census districts are the 2017-18 ones: districts carved out since have no counts of their own (status new_district) and their former district keeps them (counts_pre_split); counts are not split. Irrigation potential utilised is gross, summed over seasons, not net irrigated area. Depth classes are bins of the reported scheme depth. Well locations are not published and nothing below the district is included here. Delhi, Ladakh, Lakshadweep and Dadra and Nagar Haveli and Daman and Diu were not in the census; Manipur and Sikkim report no ground-water schemes.",
+      "tags": [
+        "wells",
+        "groundwater",
+        "irrigation",
+        "dugwell",
+        "tubewell",
+        "borewell",
+        "minor irrigation census",
+        "pumps",
+        "electric pumps",
+        "diesel pumps",
+        "solar pumps",
+        "district",
+        "Jal Shakti"
+      ]
     }
   ],
   "state_extracts": [],
@@ -7673,6 +7732,10 @@
     "CoREStack": {
       "name": "CoRE Stack",
       "url": "https://core-stack.org/"
+    },
+    "MIWing": {
+      "name": "Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti",
+      "url": "https://mowr.nic.in/irrigationcensus/"
     }
   },
   "licence_summary": {
