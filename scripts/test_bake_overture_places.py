@@ -156,11 +156,11 @@ def test_place_states_sql_joins_districts_once_and_keeps_one_state_per_place():
     assert 'ST_Transform' not in sql
 
 
-def test_clip_sql_adds_a_flat_name_and_keeps_every_column():
+def test_clip_sql_adds_a_flat_name_after_id():
     # Additive copy of names.primary (owner decision 2026-10-07): name search in
     # the filter panel and cheap select/where in the API; nothing else changes.
     sql = b.clip_sql(['/s/a.parquet'], '/w/place_states.parquet')
-    assert 'p.names."primary" AS name' in sql and 'p.* EXCLUDE (id)' in sql
+    assert 'SELECT p.id, p.names."primary" AS name, p.* EXCLUDE (id,' in sql
 
 
 def test_clip_sql_semi_joins_the_place_states():
@@ -234,3 +234,27 @@ def test_shapefile_rows_sql_reuses_the_place_states():
     assert 'ST_Intersects' not in sql
     for short in b.SHP_FIELDS:
         assert f'AS "{short}"' in sql
+
+
+# ── personal data: stripped from every format (owner decision 2026-10-07) ──
+
+def test_clip_sql_drops_personal_contact_columns():
+    sql = b.clip_sql(['/s/a.parquet'], '/w/place_states.parquet')
+    assert b.PERSONAL_COLUMNS == ('emails', 'phones', 'socials')
+    for col in b.PERSONAL_COLUMNS:
+        assert col in sql.split('EXCLUDE', 1)[1].split(')', 1)[0]
+
+
+def test_shapefile_carries_no_personal_fields():
+    assert 'phone' not in b.SHP_FIELDS
+    assert not any(c in expr for expr in b.SHP_FIELDS.values() for c in b.PERSONAL_COLUMNS)
+
+
+def test_check_no_personal_columns_fails_loudly():
+    b.check_no_personal_columns(['id', 'name', 'websites'])
+    with pytest.raises(ValueError, match='phones'):
+        b.check_no_personal_columns(['id', 'phones'])
+
+
+def test_notes_disclose_the_removal():
+    assert 'emails, phone numbers and social media links are removed' in b.notes_for('2026-09-23.1')

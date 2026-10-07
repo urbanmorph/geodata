@@ -1092,14 +1092,14 @@
     "unit": "places",
     "features": 4425096,
     "license": "CDLA-Permissive-2.0 / Apache-2.0",
-    "r2_prefix": "pois/overture-places/2026-09-23.1-r2",
+    "r2_prefix": "pois/overture-places/2026-09-23.1-r3",
     "parquet_file": "overture_places_india.parquet",
-    "parquet_bytes": 522855475,
+    "parquet_bytes": 455533498,
     "pmtiles_file": "overture_places_india.pmtiles",
-    "pmtiles_bytes": 946063408,
+    "pmtiles_bytes": 946055795,
     "source_url": "https://docs.overturemaps.org/release-calendar/",
     "source_org": "Overture Maps Foundation",
-    "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Every Overture column is kept as published, and `name` is a copy of names.primary added for search and simple queries; names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0."
+    "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Every Overture column is kept as published, and `name` is a copy of names.primary added for search and simple queries. Contact emails, phone numbers and social media links are removed (personal data of sole traders). Names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0."
   },
   {
     "id": "cgwb_aquifers",

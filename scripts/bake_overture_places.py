@@ -59,10 +59,13 @@ SHP_FIELDS = {
     'region': 'addresses[1].region',
     'country': 'addresses[1].country',
     'website': 'websites[1]',
-    'phone': 'phones[1]',
     'brand': 'brand.names."primary"',
     'source': 'sources[1].dataset',
 }
+
+# Contact details of (often sole-trader) businesses: personal data, stripped
+# from every format (owner decision 2026-10-07).
+PERSONAL_COLUMNS = ('emails', 'phones', 'socials')
 
 # Overture places mix sources: Meta/Microsoft/DAC/PinMeTo are CDLA-Permissive-2.0,
 # Foursquare is Apache-2.0, AllThePlaces CC0 (each record's `sources` says which).
@@ -70,7 +73,7 @@ LICENCE = 'CDLA-Permissive-2.0 / Apache-2.0'
 
 # Bump when re-baking a release that was already uploaded: R2 keys are
 # immutable-cached, so a new bake of the same release gets new keys.
-BAKE_REVISION = 2
+BAKE_REVISION = 3
 
 FORMATS = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'shapefile': 'shp.zip'}
 
@@ -102,6 +105,12 @@ def _prefilter(alias: str = 'p') -> str:
             f"AND {alias}.bbox.ymin <= {ymax} AND {alias}.bbox.ymax >= {ymin}")
 
 
+def check_no_personal_columns(cols: list[str]) -> None:
+    found = [c for c in cols if c in PERSONAL_COLUMNS]
+    if found:
+        raise ValueError(f'personal data must not be published: {found}')
+
+
 def place_states_sql(src_files: list[str], districts_parquet: str) -> str:
     """id -> LGD state for every place inside an LGD district. The one spatial
     join of the bake (the clip and the per-state shapefiles both reuse it):
@@ -122,7 +131,8 @@ def clip_sql(src_files: list[str], place_states: str) -> str:
     without decoding the nested struct."""
     files = ', '.join(f"'{f}'" for f in src_files)
     return f"""
-        SELECT p.id, p.names."primary" AS name, p.* EXCLUDE (id) FROM read_parquet([{files}]) p
+        SELECT p.id, p.names."primary" AS name, p.* EXCLUDE (id, {', '.join(PERSONAL_COLUMNS)})
+        FROM read_parquet([{files}]) p
         SEMI JOIN read_parquet('{place_states}') s ON p.id = s.id
         WHERE {_prefilter()}"""
 
@@ -173,7 +183,8 @@ def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
 def notes_for(release: str) -> str:
     return (f'Overture Maps Foundation places, release {release}, clipped to India (inside an LGD district '
             'polygon). Every Overture column is kept as published, and `name` is a copy of names.primary '
-            'added for search and simple queries; names, addresses, '
+            'added for search and simple queries. Contact emails, phone numbers and social media '
+            'links are removed (personal data of sole traders). Names, addresses, '
             'sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a '
             'flat subset (see columns.txt in the zip). For KML, use Filter & export on a category '
             'or area. Licences follow the source of each record (listed in `sources`): Meta, '
@@ -298,6 +309,7 @@ def bake(release: str, src: Path, out: Path) -> dict:
         finally:
             clipped.unlink(missing_ok=True)
     parquet = path['parquet']
+    check_no_personal_columns([c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{parquet}')").fetchall()])
     rows = con.execute(f"SELECT count(*) FROM read_parquet('{parquet}')").fetchone()[0]
 
     if not path['pmtiles'].exists():
