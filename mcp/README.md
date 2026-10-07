@@ -14,7 +14,7 @@ Add to your MCP client config:
   "mcpServers": {
     "bharatlas": {
       "command": "npx",
-      "args": ["-y", "bharatlas-mcp"]
+      "args": ["-y", "bharatlas-mcp@latest"]
     }
   }
 }
