@@ -2,8 +2,9 @@
 //
 //   parquet-bbox   layer has flat xmin/ymin/xmax/ymax cols (ramSeraph re-bake).
 //                  Two passes: read only the bbox columns of row groups whose
-//                  bbox statistics overlap the query, rank by distance, then
-//                  decode the full columns only for the winners' row spans.
+//                  bbox statistics overlap the query (bounded parallel), rank
+//                  by distance, then decode the full columns only for the
+//                  winners' row spans.
 //                  (One pass decoding every column of every overlapping row
 //                  group hit Cloudflare 1102 on Overture places in Delhi.)
 //
@@ -16,10 +17,11 @@
 // The PMTiles-based path that lived here through PR #83 is gone: pmtiles drop
 // features at lower zooms (designed for display), which gave wrong results on
 // dense layers like hospitals and POIs. See issue #100.
-import { parquetMetadataAsync, parquetQuery, parquetReadObjects, parquetSchema } from 'hyparquet';
+import { parquetQuery, parquetReadObjects, parquetSchema } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
-import { asyncBufferFromR2, r2KeyFromLayer } from './parquet-r2';
+import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2';
+import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 
@@ -138,39 +140,44 @@ export async function nearestRows(
   file: AsyncBuffer, metadata: FileMetaData, cols: string[], geomCol: string,
   lat: number, lng: number, radiusKm: number, limit: number,
 ): Promise<{ winners: BboxWinner[]; total: number; rowsScanned: number }> {
+  type Candidate = { idx: number; span: RowSpan; cLat: number; cLng: number; d: number };
   const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
-  const candidates: Array<{ idx: number; span: RowSpan; cLat: number; cLng: number; d: number }> = [];
-  let total = 0;
-  let rowsScanned = 0;
-  for (const span of spans) {
+
+  // Pass 1, row groups in parallel (bounded): each group keeps only its own
+  // nearest `limit` (the global top K is within their union) and a count.
+  const perGroup = await mapConcurrent(spans, R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: BBOX_COLS, rowStart: span.start, rowEnd: span.end,
     }) as Array<Record<string, unknown>>;
-    rowsScanned += rows.length;
+    const inRadius: Candidate[] = [];
     rows.forEach((row, i) => {
       const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
       const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
       const d = haversineKm(lat, lng, cLat, cLng);
-      if (d > radiusKm) return;
-      total++;
-      candidates.push({ idx: span.start + i, span, cLat, cLng, d });
+      if (d <= radiusKm) inRadius.push({ idx: span.start + i, span, cLat, cLng, d });
     });
-  }
-  candidates.sort((a, b) => a.d - b.d);
-  if (candidates.length > limit) candidates.length = limit;
+    const count = inRadius.length;
+    inRadius.sort((a, b) => a.d - b.d);
+    if (inRadius.length > limit) inRadius.length = limit;
+    return { count, top: inRadius, scanned: rows.length };
+  });
+  const total = perGroup.reduce((n, g) => n + g.count, 0);
+  const rowsScanned = perGroup.reduce((n, g) => n + g.scanned, 0);
+  const candidates = perGroup.flatMap((g) => g.top).sort((a, b) => a.d - b.d).slice(0, limit);
 
+  // Pass 2: full columns only for the winners' row spans, in parallel.
   const readCols = cols.filter((c) => c !== geomCol);
-  const winners: BboxWinner[] = [];
-  for (const span of new Set(candidates.map((c) => c.span))) {
-    const inSpan = candidates.filter((c) => c.span === span);
+  const bySpan = [...new Set(candidates.map((c) => c.span))]
+    .map((span) => candidates.filter((c) => c.span === span));
+  const found = await mapConcurrent(bySpan, R2_CONCURRENCY, async (inSpan) => {
     const lo = Math.min(...inSpan.map((c) => c.idx));
     const hi = Math.max(...inSpan.map((c) => c.idx)) + 1;
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: hi,
     }) as Array<Record<string, unknown>>;
-    for (const c of inSpan) winners.push({ row: rows[c.idx - lo], cLat: c.cLat, cLng: c.cLng, d: c.d });
-  }
-  return { winners: topKByDistance(winners, limit), total, rowsScanned };
+    return inSpan.map((c): BboxWinner => ({ row: rows[c.idx - lo], cLat: c.cLat, cLng: c.cLng, d: c.d }));
+  });
+  return { winners: topKByDistance(found.flat(), limit), total, rowsScanned };
 }
 
 export async function nearby(
@@ -190,7 +197,7 @@ export async function nearby(
   if (!r2Key) throw new Error(`Layer ${layerId} has no R2 parquet key`);
 
   const file = await asyncBufferFromR2(r2, r2Key);
-  const metadata = await parquetMetadataAsync(file);
+  const metadata = await cachedMetadata(file);
   // Top-level fields only; a flat schema.slice(1) would false-match struct
   // children like `bbox.{xmin,ymin,xmax,ymax}` as top-level cols.
   const allCols = parquetSchema(metadata).children.map((c) => c.element.name);
