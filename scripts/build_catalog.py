@@ -125,6 +125,9 @@ ATTR = {
     'PlanningCommission': {'name': 'Planning Commission of India', 'url': 'https://niti.gov.in/'},
     'WII':           {'name': 'Wildlife Institute of India',  'url': 'https://wii.gov.in/'},
     'CoREStack':     {'name': 'CoRE Stack',                   'url': 'https://core-stack.org/'},
+    # Minor Irrigation Census counts (data.gov.in, GODL-India), summed to
+    # districts by Land Ledger (credited in the layer's notes).
+    'MIWing':        {'name': 'Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti', 'url': 'https://mowr.nic.in/irrigationcensus/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',

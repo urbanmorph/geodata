@@ -56,7 +56,8 @@ Cross-layer queries (combining data from different layers):
 - Use locate as the bridge: find what's at a point across ALL relevant layers in one call by passing multiple layer IDs.
 - **Map user concepts to multiple layers.** Users say "water bodies" not "wris_rivers." Translate:
   - "water bodies/water" → wris_rivers, wris_reservoirs, bp_wetlands, bp_ramsar, wris_basin, wris_subbasin, wris_canals
-  - "groundwater/aquifer/water table" → cgwb_aquifers, cgwb_gw_extraction
+  - "groundwater/aquifer/water table" → cgwb_aquifers, cgwb_gw_extraction, mi6_wells_districts
+  - "wells/borewells/tubewells/irrigation pumps" → mi6_wells_districts (census counts per district, 2017-18)
   - "forests/green cover/ecology" → soi_forests, gs_wildlife, bm_eco_zones, biogeographic_zones
   - "agriculture/farming/cropping zones" → agro_ecological_zones, agro_climatic_zones
   - "hazards/risks" → seismic_zones, india_flood_inventory
