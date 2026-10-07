@@ -87,3 +87,35 @@ describe('group_by streams row groups', () => {
     expect(decoded('id')).toEqual([[0, 2048], [2048, 4096], [4096, 6144], [6144, 8192]]);
   });
 });
+
+describe('row groups are read in parallel (bounded)', () => {
+  // Sequential R2 reads paid full latency per row group on the live site.
+  async function peakReads(run: () => Promise<unknown>): Promise<number> {
+    const mock = vi.mocked(hyparquet.parquetReadObjects);
+    const orig = mock.getMockImplementation()!;
+    let inFlight = 0;
+    let peak = 0;
+    mock.mockImplementation(async (o) => {
+      peak = Math.max(peak, ++inFlight);
+      await new Promise((r) => setTimeout(r, 5));
+      try { return await orig(o); } finally { inFlight--; }
+    });
+    try { await run(); } finally { mock.mockImplementation(orig); }
+    return peak;
+  }
+
+  it('filtered select overlaps its row-group reads and keeps row order', async () => {
+    let r: QueryResult | undefined;
+    const peak = await peakReads(async () => { r = (await query(file, { where: { ymin: '12.9' }, select: ['id'], limit: 3 })) as QueryResult; });
+    expect(peak).toBe(4);
+    expect(r!.rows.map((x) => x.id)).toEqual(['p0', 'p1', 'p2']);
+    expect(r!.total).toBe(8192);
+  });
+
+  it('group_by overlaps its row-group reads', async () => {
+    let g: GroupByResult | undefined;
+    const peak = await peakReads(async () => { g = (await query(file, { groupBy: 'ymin' })) as GroupByResult; });
+    expect(peak).toBe(4);
+    expect(g!.total).toBe(8192);
+  });
+});

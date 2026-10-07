@@ -3,10 +3,11 @@
  * Reads only the columns needed, supports where filters and group_by.
  * No hardcoded layer or column names.
  */
-import { parquetMetadataAsync, parquetReadObjects, parquetSchema } from 'hyparquet';
+import { parquetReadObjects, parquetSchema } from 'hyparquet';
 import type { FileMetaData, SchemaElement } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
-import type { AsyncBuffer } from './parquet-r2';
+import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
+import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 
 export interface ColumnSchema {
   name: string;
@@ -76,7 +77,7 @@ export async function getSchema(file: AsyncBuffer): Promise<{
   row_count: number;
   columns: ColumnSchema[];
 }> {
-  const metadata = await parquetMetadataAsync(file);
+  const metadata = await cachedMetadata(file);
   const rowCount = metadata.row_groups.reduce((s, rg) => s + Number(rg.num_rows), 0);
 
   const columns: ColumnSchema[] = [];
@@ -123,7 +124,7 @@ export async function query(
     includeCentroid?: boolean;
   },
 ): Promise<QueryResult | GroupByResult> {
-  const metadata = await parquetMetadataAsync(file);
+  const metadata = await cachedMetadata(file);
   const cols = topLevelColumns(metadata);
   const allCols = cols.map((c) => c.name);
   assertFlat(cols, [...Object.keys(opts.where ?? {}), ...(opts.groupBy ? [opts.groupBy] : [])]);
@@ -254,10 +255,11 @@ function distinctSample(rows: Record<string, unknown>[], col: string): string[] 
 }
 
 /**
- * Rows are read row group by row group, never the whole table at once:
- * pass 1 reads only the where columns and keeps the first `limit` matching
- * row numbers (counting all matches); pass 2 reads the selected columns only
- * for those rows. Without a where, only the first `limit` rows are read.
+ * Rows are read row group by row group (bounded parallel), never the whole
+ * table at once: pass 1 reads only the where columns and keeps the first
+ * `limit` matching row numbers (counting all matches); pass 2 reads the
+ * selected columns only for those rows. Without a where, only the first
+ * `limit` rows are read.
  */
 async function selectQuery(
   file: AsyncBuffer,
@@ -308,39 +310,48 @@ async function selectQuery(
     };
   }
 
+  // Pass 1: where columns only, row groups in parallel; each group is reduced
+  // to its match count and first `limit` row numbers as soon as it arrives.
   const whereCols = where.map(([c]) => c);
-  const hits: Array<{ idx: number; span: { start: number; end: number } }> = [];
-  let total = 0;
-  let firstGroup: Record<string, unknown>[] = [];
-  for (const span of rowGroupSpans(metadata)) {
+  const perGroup = await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: whereCols, rowStart: span.start, rowEnd: span.end,
     }) as Record<string, unknown>[];
-    if (span.start === 0) firstGroup = rows;
+    const idxs: number[] = [];
+    let count = 0;
     rows.forEach((row, i) => {
       if (!matchesWhere(row, where)) return;
-      total++;
-      if (hits.length < limit) hits.push({ idx: span.start + i, span });
+      count++;
+      if (idxs.length < limit) idxs.push(span.start + i);
     });
+    const sample = span.start === 0 ? Object.fromEntries(whereCols.map((c) => [c, distinctSample(rows, c)])) : undefined;
+    return { idxs, count, sample };
+  });
+  const total = perGroup.reduce((n, g) => n + g.count, 0);
+  const hitGroups: number[][] = []; // row numbers to return, per row group, in order
+  let kept = 0;
+  for (const g of perGroup) {
+    if (kept >= limit) break;
+    const idxs = g.idxs.slice(0, limit - kept);
+    if (idxs.length) hitGroups.push(idxs);
+    kept += idxs.length;
   }
 
-  const out: Record<string, unknown>[] = [];
-  for (const span of new Set(hits.map((h) => h.span))) {
-    const idxs = hits.filter((h) => h.span === span).map((h) => h.idx);
+  // Pass 2: selected columns only for the kept rows, in row order.
+  const shaped = await mapConcurrent(hitGroups, R2_CONCURRENCY, async (idxs) => {
     const lo = idxs[0];
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: [...readCols], rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
     }) as Record<string, unknown>[];
-    for (const i of idxs) out.push(shape(rows[i - lo]));
-  }
+    return idxs.map((i) => shape(rows[i - lo]));
+  });
+  const out = shaped.flat();
 
-  const hints = total === 0
-    ? Object.fromEntries(whereCols.map((c) => [c, distinctSample(firstGroup, c)]))
-    : undefined;
+  const hints = total === 0 ? perGroup[0]?.sample : undefined;
   return { columns: selectCols, rows: out, total, truncated: total > limit, hints };
 }
 
-/** group_by streamed row group by row group through an accumulator. */
+/** group_by: row groups read in parallel (bounded) into one accumulator. */
 async function groupByQuery(
   file: AsyncBuffer,
   metadata: FileMetaData,
@@ -358,20 +369,18 @@ async function groupByQuery(
   const readCols = new Set([groupCol, ...sumCols, ...where.map(([c]) => c)]);
   const colList = [...readCols].filter((c) => allCols.includes(c));
   const acc = groupAccumulator(groupCol, sumCols);
-  let firstGroup: Record<string, unknown>[] = [];
-  for (const span of rowGroupSpans(metadata)) {
+  let sample: Record<string, string[]> | undefined;
+  await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: colList, rowStart: span.start, rowEnd: span.end,
     }) as Record<string, unknown>[];
-    if (span.start === 0) firstGroup = rows;
+    if (span.start === 0) sample = Object.fromEntries(where.map(([c]) => [c, distinctSample(rows, c)]));
     acc.add(where.length ? rows.filter((row) => matchesWhere(row, where)) : rows);
-  }
+  });
   const agg = acc.result();
 
   // FIX #2: hints on zero results
-  const hints = agg.total === 0 && where.length
-    ? Object.fromEntries(where.map(([c]) => [c, distinctSample(firstGroup, c)]))
-    : undefined;
+  const hints = agg.total === 0 && where.length ? sample : undefined;
 
   return {
     column: groupCol,

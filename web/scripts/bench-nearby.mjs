@@ -19,7 +19,7 @@ const QUERIES = [
   { layer: 'gs_wildlife',            radius_km: 50, url: 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet' },
   { layer: 'nic_health',             radius_km: 10, url: 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.parquet' },
   { layer: 'pmgsy_habitations',      radius_km: 10, url: 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.parquet' },
-  { layer: 'overture_places_india',  radius_km: 10, url: 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/overture_places_india.parquet' },
+  { layer: 'overture_places_india',  radius_km: 10, url: 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1-r3/overture_places_india.parquet' },
 ];
 
 function queryBbox(lat, lng, radiusKm) {

@@ -6,7 +6,7 @@
 import { parquetMetadataAsync, parquetQuery, parquetSchema } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 
-const URL = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/overture_places_india.parquet';
+const URL = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1-r3/overture_places_india.parquet';
 const CENTER = { lat: 12.9716, lng: 77.5946 };
 const RADIUS_KM = 10;
 const LIMIT = 20;
