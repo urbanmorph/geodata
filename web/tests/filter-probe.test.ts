@@ -159,3 +159,32 @@ describe('describeParquet — identifier safety', () => {
     expect(aggSql).toContain('"we""ird"');
   });
 });
+
+describe('describeParquet — nested columns', () => {
+  // COUNT(DISTINCT) over millions of STRUCT/LIST/MAP values exhausted
+  // DuckDB-WASM memory (Overture places, 4.4M rows) and the panel never
+  // opened. Nested values can't be a chip/range filter anyway.
+  it('never aggregates STRUCT, LIST or MAP columns and types them as blob', async () => {
+    mockQuery
+      .mockResolvedValueOnce([
+        { column_name: 'basic_category', column_type: 'VARCHAR' },
+        { column_name: 'names', column_type: 'STRUCT("primary" VARCHAR, common MAP(VARCHAR, VARCHAR))' },
+        { column_name: 'websites', column_type: 'VARCHAR[]' },
+        { column_name: 'common', column_type: 'MAP(VARCHAR, VARCHAR)' },
+        { column_name: 'hierarchy', column_type: 'STRUCT(a INTEGER)[]' },
+      ])
+      .mockResolvedValueOnce([{
+        row_count: 3, distinct_basic_category: 3, null_basic_category: 0,
+        min_basic_category: 'a', max_basic_category: 'c',
+      }])
+      .mockResolvedValueOnce([{ v: 'a', n: 1 }]);
+
+    const r = await describeParquet('x');
+    const aggSql = mockQuery.mock.calls[1][0] as string;
+    expect(aggSql).toContain('COUNT(DISTINCT "basic_category")');
+    for (const col of ['names', 'websites', 'common', 'hierarchy']) {
+      expect(aggSql).not.toContain(`"${col}"`);
+      expect(r.columns.find((c) => c.name === col)).toMatchObject({ type: 'blob', distinct: -1 });
+    }
+  });
+});

@@ -40,6 +40,8 @@ export const DISPLAY_CAP = 6;
 export const ALL_UNIQUE_MIN_ROWS = 50;
 
 const GEOM_NAME_RX = /^(geom|geometry|shape|wkb|wkt)$/i;
+// Flat per-row bbox the bake adds for /api/v1/nearby row-group pruning.
+const BBOX_NAME_RX = /^[xy](min|max)$/;
 const ID_NAME_RX = /^(id|fid|objectid|gid|uuid|hash|geohash)$|_id$|^ogc_fid$|^orig_fid$|^InPoly_FID$/i;
 
 const BOOL_VALUE_SETS: Array<Set<string>> = [
@@ -64,6 +66,7 @@ export function pickAffordance(col: ColumnStats, rowCount: number): Affordance {
   if (GEOM_NAME_RX.test(col.name)) {
     return { kind: 'drop', reason: 'geometry-like name' };
   }
+  if (BBOX_NAME_RX.test(col.name)) return { kind: 'drop', reason: 'bbox column' };
   if (col.distinct <= 1) return { kind: 'drop', reason: 'all-same' };
   if (col.nullFrac > 0.95) return { kind: 'drop', reason: 'mostly null' };
   if (ID_NAME_RX.test(col.name)) return { kind: 'drop', reason: 'id-like name' };

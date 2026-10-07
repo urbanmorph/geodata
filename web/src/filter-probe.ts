@@ -24,7 +24,12 @@ const DUCKDB_TO_NORM: Record<string, ColumnType> = {
 const FACET_THRESHOLD = 50;
 const MAX_TOP_VALUES = 50;
 
+// STRUCT / MAP / UNION / LIST (`T[]`): not filterable, and COUNT(DISTINCT)
+// over millions of nested values exhausts DuckDB-WASM memory.
+const NESTED_RX = /^(STRUCT|MAP|UNION)\s*\(|\[\d*\]\s*$/i;
+
 function normaliseType(t: string): ColumnType {
+  if (NESTED_RX.test(t.trim())) return 'blob';
   const base = t.split('(')[0].trim().toUpperCase();
   return DUCKDB_TO_NORM[base] ?? 'string';
 }

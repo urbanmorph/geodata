@@ -845,9 +845,9 @@
       "description": "Historical cyclone track line geometries across the Indian Ocean basins, compiled by NDEM."
     },
     "overture_places_india": {
-      "label": "Places \u2014 Overture Maps (Dec 2023)",
+      "label": "Places (Overture Maps, Sep 2026)",
       "unit": "places",
-      "description": "Pan-India points of interest from the Overture Maps Foundation December 2023 release. Names, categories, addresses, websites and confidence scores for restaurants, shops, ATMs, schools, transit, monuments and more."
+      "description": "Pan-India points of interest from the Overture Maps Foundation release 2026-09-23.1. Names, categories, addresses, websites, phone numbers, brands and confidence scores for shops, restaurants, ATMs, schools, hospitals, transit, monuments and more."
     },
     "cgwb_aquifers": {
       "label": "Aquifers (CGWB)",
@@ -4804,18 +4804,18 @@
       "id": "overture_places_india",
       "level": "overture_places_india",
       "source": "Overture",
-      "rows": 2744948,
+      "rows": 4425096,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/overture_places_india.parquet",
-        "upstream_url": "https://github.com/ramSeraph/indian_facilities/releases/download/pois/overture_places_india.parquet",
-        "bytes": 259545561
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.parquet",
+        "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
+        "bytes": 481540252
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/overture_places_india.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_facilities/releases/download/pois/overture_places_india.pmtiles",
-        "bytes": 1207239373
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.pmtiles",
+        "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
+        "bytes": 946029911
       },
-      "licence": "CDLA-Permissive-2.0",
+      "licence": "CDLA-Permissive-2.0 / Apache-2.0",
       "attribution": {
         "primary": {
           "name": "Overture Maps Foundation",
@@ -4825,11 +4825,19 @@
       },
       "category": "infrastructure",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases.",
-      "geojson": null,
+      "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Every Overture column is kept as published; names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.geojson",
+        "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
+        "bytes": 6194538103
+      },
       "kml": null,
-      "shapefile": null,
-      "fetched_at": null
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-09-23.1/overture_places_india.shp.zip",
+        "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
+        "bytes": 574953798
+      },
+      "fetched_at": "2026-10-07T13:32:44.502226+00:00"
     },
     {
       "id": "c_nL7zNStsW3",
