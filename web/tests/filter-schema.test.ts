@@ -264,3 +264,22 @@ describe('rankColumns', () => {
     expect(rankColumns(cols, 100)).toHaveLength(DISPLAY_CAP);
   });
 });
+
+describe('pickAffordance — bake bbox columns', () => {
+  // Every nearby-baked parquet carries flat xmin/ymin/xmax/ymax for row-group
+  // pruning. As range sliders they crowded real filters (Overture's
+  // basic_category) out of the capped panel.
+  it.each(['xmin', 'ymin', 'xmax', 'ymax'])('drops %s', (name) => {
+    const col = { name, type: 'float' as const, distinct: 1000, nullFrac: 0, min: 68, max: 97 };
+    expect(pickAffordance(col, 1_000_000)).toEqual({ kind: 'drop', reason: 'bbox column' });
+  });
+
+  it('keeps a real filter once the bbox columns are gone', () => {
+    const cols = [
+      ...['xmin', 'ymin', 'xmax', 'ymax'].map((name) => ({ name, type: 'float' as const, distinct: 1000, nullFrac: 0, min: 1, max: 2 })),
+      { name: 'confidence', type: 'float' as const, distinct: 1000, nullFrac: 0, min: 0, max: 1 },
+      { name: 'basic_category', type: 'string' as const, distinct: 280, nullFrac: 0.04 },
+    ];
+    expect(rankColumns(cols, 1_000_000).map((c) => c.name)).toContain('basic_category');
+  });
+});

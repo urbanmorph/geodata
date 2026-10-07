@@ -52,7 +52,7 @@
     "parquet_bytes": 680145,
     "pmtiles_file": "wards_bengaluru_bbmp_2022.pmtiles",
     "pmtiles_bytes": 256845,
-    "source_url": "https://data.opencity.in/dataset/bbmp-wards",
+    "source_url": "https://data.opencity.in/dataset/bbmp-ward-information",
     "source_org": "BBMP",
     "notes": "Use the GBA 2025 layer for current ward boundaries."
   },
@@ -90,7 +90,7 @@
     "parquet_bytes": 151121,
     "pmtiles_file": "bda_layouts.pmtiles",
     "pmtiles_bytes": 83377,
-    "source_url": "https://data.opencity.in/dataset/bda-approved-layouts",
+    "source_url": "https://data.opencity.in/dataset/bda-layouts",
     "source_org": "Bengaluru Development Authority",
     "notes": ""
   },
@@ -147,7 +147,7 @@
     "parquet_bytes": 230639,
     "pmtiles_file": "wards_mumbai.pmtiles",
     "pmtiles_bytes": 85246,
-    "source_url": "https://data.opencity.in/dataset/mumbai-wards",
+    "source_url": "https://data.opencity.in/dataset/mumbai-wards-map",
     "source_org": "Brihanmumbai Municipal Corporation",
     "notes": ""
   },
@@ -166,7 +166,7 @@
     "parquet_bytes": 608859,
     "pmtiles_file": "electoral_wards_mumbai_2017.pmtiles",
     "pmtiles_bytes": 290460,
-    "source_url": "https://data.opencity.in/dataset/mumbai-electoral-wards",
+    "source_url": "https://data.opencity.in/dataset/mumbai-wards-map",
     "source_org": "Mumbai State Election Commission",
     "notes": ""
   },
@@ -185,7 +185,7 @@
     "parquet_bytes": 589774,
     "pmtiles_file": "wards_kolkata.pmtiles",
     "pmtiles_bytes": 122240,
-    "source_url": "https://data.opencity.in/dataset/kolkata-wards",
+    "source_url": "https://data.opencity.in/dataset/kolkata-wards-information",
     "source_org": "Kolkata Municipal Corporation",
     "notes": ""
   },
@@ -204,7 +204,7 @@
     "parquet_bytes": 69324,
     "pmtiles_file": "wards_pune.pmtiles",
     "pmtiles_bytes": 52045,
-    "source_url": "https://data.opencity.in/dataset/pune-wards",
+    "source_url": "https://data.opencity.in/dataset/pune-wards-info",
     "source_org": "Pune Municipal Corporation",
     "notes": ""
   },
@@ -223,7 +223,7 @@
     "parquet_bytes": 79257,
     "pmtiles_file": "wards_ahmedabad.pmtiles",
     "pmtiles_bytes": 38253,
-    "source_url": "https://data.opencity.in/dataset/ahmedabad-wards",
+    "source_url": "https://data.opencity.in/dataset/amdavad-municipal-corporation-wards-map-2024",
     "source_org": "Ahmedabad Municipal Corporation",
     "notes": ""
   },
@@ -242,7 +242,7 @@
     "parquet_bytes": 74429,
     "pmtiles_file": "wards_jaipur.pmtiles",
     "pmtiles_bytes": 55708,
-    "source_url": "https://data.opencity.in/dataset/jaipur-wards",
+    "source_url": "https://data.opencity.in/dataset/jaipur-municipal-corporation-wards-map",
     "source_org": "Jaipur Municipal Corporation",
     "notes": ""
   },
@@ -261,7 +261,7 @@
     "parquet_bytes": 61559,
     "pmtiles_file": "wards_gurugram.pmtiles",
     "pmtiles_bytes": 23148,
-    "source_url": "https://data.opencity.in/dataset/gurugram-wards",
+    "source_url": "https://data.opencity.in/dataset/gurugram-wards-map",
     "source_org": "Municipal Corporation of Gurugram",
     "notes": ""
   },
@@ -280,7 +280,7 @@
     "parquet_bytes": 134965,
     "pmtiles_file": "wards_kochi.pmtiles",
     "pmtiles_bytes": 77451,
-    "source_url": "https://data.opencity.in/dataset/kochi-wards",
+    "source_url": "https://data.opencity.in/dataset/kochi-wards-map",
     "source_org": "Kochi Municipal Corporation",
     "notes": ""
   },
@@ -299,7 +299,7 @@
     "parquet_bytes": 210185,
     "pmtiles_file": "wards_bhubaneshwar.pmtiles",
     "pmtiles_bytes": 268512,
-    "source_url": "https://data.opencity.in/dataset/bhubaneshwar-wards",
+    "source_url": "https://data.opencity.in/dataset/bhubaneswar-administrative-boundaries",
     "source_org": "Bhubaneshwar Municipal Corporation",
     "notes": ""
   },
@@ -318,7 +318,7 @@
     "parquet_bytes": 152494,
     "pmtiles_file": "wards_vizag.pmtiles",
     "pmtiles_bytes": 96542,
-    "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards",
+    "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards-map-2024",
     "source_org": "Greater Visakhapatnam Municipal Corporation",
     "notes": ""
   },
@@ -337,7 +337,7 @@
     "parquet_bytes": 62553,
     "pmtiles_file": "wards_thane.pmtiles",
     "pmtiles_bytes": 46219,
-    "source_url": "https://data.opencity.in/dataset/thane-wards",
+    "source_url": "https://data.opencity.in/dataset/thane-wards-map",
     "source_org": "Thane Municipal Corporation",
     "notes": ""
   },
@@ -1084,22 +1084,22 @@
   },
   {
     "id": "overture_places_india",
-    "name": "Places \u2014 Overture Maps (Dec 2023)",
+    "name": "Places (Overture Maps, Sep 2026)",
     "level": "overture_places_india",
     "category": "infrastructure",
     "source": "Overture",
-    "description": "Pan-India points of interest from the Overture Maps Foundation December 2023 release. Names, categories, addresses, websites and confidence scores for restaurants, shops, ATMs, schools, transit, monuments and more.",
+    "description": "Pan-India points of interest from the Overture Maps Foundation release 2026-09-23.1. Names, categories, addresses, websites, phone numbers, brands and confidence scores for shops, restaurants, ATMs, schools, hospitals, transit, monuments and more.",
     "unit": "places",
-    "features": 2744948,
-    "license": "CDLA-Permissive-2.0",
-    "r2_prefix": "pois/overture-places",
+    "features": 4425096,
+    "license": "CDLA-Permissive-2.0 / Apache-2.0",
+    "r2_prefix": "pois/overture-places/2026-09-23.1-r3",
     "parquet_file": "overture_places_india.parquet",
-    "parquet_bytes": 259545561,
+    "parquet_bytes": 455533498,
     "pmtiles_file": "overture_places_india.pmtiles",
-    "pmtiles_bytes": 1207239373,
-    "source_url": "https://overturemaps.org/overture-december-2023-release-notes/",
+    "pmtiles_bytes": 946055795,
+    "source_url": "https://docs.overturemaps.org/release-calendar/",
     "source_org": "Overture Maps Foundation",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Overture Maps Foundation 2023-12-14-alpha.0 release. Dec 2023 snapshot \u2014 refresh tracks ramSeraph's republish cadence, not Overture's monthly upstream releases."
+    "notes": "Overture Maps Foundation places, release 2026-09-23.1, clipped to India (inside an LGD district polygon). Every Overture column is kept as published, and `name` is a copy of names.primary added for search and simple queries. Contact emails, phone numbers and social media links are removed (personal data of sole traders). Names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0."
   },
   {
     "id": "cgwb_aquifers",
@@ -1136,7 +1136,7 @@
     "level": "cgwb_gw_extraction",
     "category": "water",
     "source": "CGWB",
-    "description": "Block and taluk-level stage of groundwater extraction from the Central Ground Water Board: Safe, Semi-Critical, Critical and Over-Exploited units with recharge and draft figures.",
+    "description": "Block and taluk-level stage of groundwater extraction from the Central Ground Water Board (2020 assessment): Safe, Semi-Critical, Critical and Over-Exploited units with recharge and draft figures.",
     "unit": "assessment units",
     "features": 7274,
     "license": "GODL-India",
@@ -1147,7 +1147,7 @@
     "pmtiles_bytes": 28786536,
     "source_url": "https://cgwb.gov.in/",
     "source_org": "Central Ground Water Board",
-    "notes": "CGWB dynamic groundwater resource assessment (stage of extraction). Sourced via CoRE Stack (core-stack.org).",
+    "notes": "CGWB dynamic groundwater resource assessment (stage of extraction), 2020 assessment (Dynamic Ground Water Resources of India, 2020): national totals recharge 436.1 bcm, extractable 397.6 bcm, extraction 244.9 bcm, stage 61.6%. Newer assessments (2022 to 2025) exist at CGWB/INGRES; this layer is the 2020 edition. -9999 marks units not assessed. Sourced via CoRE Stack (core-stack.org).",
     "tags": [
       "groundwater",
       "over-exploited",

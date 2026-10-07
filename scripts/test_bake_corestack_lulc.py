@@ -132,8 +132,9 @@ class TestMapTiles:
 
     def test_tippecanoe_includes_only_tile_fields(self):
         from pathlib import Path
-        from bake_corestack_lulc import TILE_FIELDS, pmtiles_args
-        args = pmtiles_args(Path('in.geojson'), Path('out.pmtiles'))
+        import bake_formats
+        from bake_corestack_lulc import LAYER_ID, TILE_FIELDS
+        args = bake_formats.pmtiles_args(Path('in.geojson'), Path('out.pmtiles'), LAYER_ID, TILE_FIELDS)
         included = [args[i + 1] for i, a in enumerate(args) if a == '-y']
         assert included == list(TILE_FIELDS)
         assert '-x' not in args

@@ -28,13 +28,13 @@ from __future__ import annotations
 
 import argparse
 import json
-import subprocess
 import sys
 import tempfile
-import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import bake_formats  # noqa: E402
 R2_PREFIX = 'agriculture/corestack-lulc-blocks'
 BASENAME = 'CoREStack_LULC_Blocks_2023_24'
 LAYER_ID = 'corestack_lulc_blocks'
@@ -167,40 +167,6 @@ def _column_types() -> dict[str, str]:
     return types
 
 
-def _write_shapefile_zip(geojson: Path, out: Path) -> None:
-    """GeoJSON -> shapefile with explicit short DBF names, zipped with a key."""
-    layer = subprocess.run(['ogrinfo', '-q', '-so', str(geojson)], check=True,
-                           capture_output=True, text=True).stdout.split(':', 1)[1].split('(')[0].strip()
-    select = ', '.join(f'"{long}" AS "{short}"' for long, short in SHP_NAMES.items())
-    with tempfile.TemporaryDirectory(prefix='shp_') as tmp:
-        tmp_dir = Path(tmp)
-        subprocess.run(['ogr2ogr', '-f', 'ESRI Shapefile', '-nlt', 'PROMOTE_TO_MULTI',
-                        '-lco', 'ENCODING=UTF-8', '-dialect', 'OGRSQL',
-                        '-sql', f'SELECT {select} FROM "{layer}"',
-                        str(tmp_dir / f'{out.name.removesuffix(".shp.zip")}.shp'), str(geojson)],
-                       check=True, capture_output=True)
-        key = ['Shapefile field names are limited to 10 characters.',
-               'Full names (as in the Parquet / GeoJSON / API):', '']
-        key += [f'{short:<11} {long}' for long, short in SHP_NAMES.items()]
-        (tmp_dir / 'columns.txt').write_text('\n'.join(key) + '\n')
-        with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for f in sorted(tmp_dir.iterdir()):
-                zf.write(f, arcname=f.name)
-
-
-def pmtiles_args(geojson: Path, out: Path) -> list[str]:
-    args = ['tippecanoe', '-o', str(out), '-l', LAYER_ID, '-zg',
-            '--drop-densest-as-needed', '--extend-zooms-if-still-dropping']
-    for field in TILE_FIELDS:
-        args += ['-y', field]
-    return args + ['--force', '--no-progress-indicator', str(geojson)]
-
-
-def _write_pmtiles(geojson: Path, out: Path) -> None:
-    out.unlink(missing_ok=True)
-    subprocess.run(pmtiles_args(geojson, out), check=True, capture_output=True)
-
-
 def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     import duckdb
@@ -256,9 +222,9 @@ def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
     kml = out_dir / f'{BASENAME}.kml'
     write_kml_from_geojson(geojson, LAYER_ID, kml)
     shp = out_dir / f'{BASENAME}.shp.zip'
-    _write_shapefile_zip(geojson, shp)
+    bake_formats.shapefile_zip_from_geojson(geojson, shp, SHP_NAMES)
     pmtiles = out_dir / f'{BASENAME}.pmtiles'
-    _write_pmtiles(geojson, pmtiles)
+    bake_formats.write_pmtiles(geojson, pmtiles, LAYER_ID, TILE_FIELDS)
 
     return {'rows': rows, 'files': {p.name: p.stat().st_size
                                     for p in (parquet, pmtiles, geojson, kml, shp)}}

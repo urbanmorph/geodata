@@ -46,7 +46,13 @@ DUCKDB_TO_NORM = {
 }
 
 
+# STRUCT / MAP / UNION / LIST (`T[]`): not filterable (mirrors web/src/filter-probe.ts).
+NESTED_RX = re.compile(r'^(STRUCT|MAP|UNION)\s*\(|\[\d*\]\s*$', re.I)
+
+
 def normalise_type(t: str) -> str:
+    if NESTED_RX.search(t.strip()):
+        return 'blob'
     base = t.split('(')[0].strip().upper()
     return DUCKDB_TO_NORM.get(base, 'string')
 
