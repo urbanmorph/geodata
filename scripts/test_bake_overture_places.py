@@ -196,3 +196,29 @@ def test_level_meta_label_and_description_follow_the_release():
     meta = b.patched_level_meta({'label': 'old', 'unit': 'places', 'description': 'old'}, '2026-09-23.1')
     assert meta == {'label': 'Places (Overture Maps, Sep 2026)', 'unit': 'places',
                     'description': b.description_for('2026-09-23.1')}
+
+
+# ── shapefile split per state: a DBF over 2 GB breaks most GIS tools ──────
+
+def test_state_slug_is_filename_safe():
+    assert b.state_slug('ANDAMAN & NICOBAR') == 'andaman_nicobar'
+    assert b.state_slug('JAMMU & KASHMIR') == 'jammu_kashmir'
+    assert b.state_slug('Dadra and Nagar Haveli and Daman and Diu') == 'dadra_and_nagar_haveli_and_daman_and_diu'
+
+
+def test_check_dbf_sizes_rejects_any_part_over_2gb():
+    b.check_dbf_sizes({'goa': 10_000_000, 'maharashtra': 1_900_000_000})
+    with pytest.raises(ValueError, match='maharashtra'):
+        b.check_dbf_sizes({'goa': 10, 'maharashtra': 2_200_000_000})
+
+
+def test_shapefile_key_says_files_are_per_state():
+    assert any('one shapefile per state' in line.lower() for line in b.shapefile_key())
+
+
+def test_shapefile_rows_sql_tags_each_place_with_its_state():
+    sql = b.shapefile_rows_sql('/w/p.parquet', '/w/lgd_districts.parquet')
+    assert 'stname' in sql and 'ST_Intersects' in sql
+    assert "QUALIFY row_number() OVER (PARTITION BY p.id" in sql
+    for short in b.SHP_FIELDS:
+        assert f'AS "{short}"' in sql

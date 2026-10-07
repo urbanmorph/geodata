@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import copy
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -127,7 +128,10 @@ def pmtiles_args(geojsonseq: Path, out: Path) -> list[str]:
     return bake_formats.pmtiles_args(geojsonseq, out, LAYER_ID, TILE_FIELDS, parallel=True)
 
 
-SHP_INTRO = ['Shapefile field names are limited to 10 characters and cannot hold nested values.',
+DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf over 2 GB
+
+SHP_INTRO = ['One shapefile per state: a single India-wide .dbf would exceed 2 GB.',
+             'Shapefile field names are limited to 10 characters and cannot hold nested values.',
              'Each field below is taken from the Parquet / GeoJSON column shown',
              '(first element where the source holds a list).', '']
 
@@ -208,6 +212,7 @@ def stale_keys(old: dict, new: dict, r2_public: str) -> list[str]:
 
 def _con(tmp: Path):
     import duckdb
+    tmp.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
     con.execute('INSTALL spatial; LOAD spatial;')
     # ~4.4M rows with nested columns: let order-free COPYs stream and spill.
@@ -220,58 +225,93 @@ def _layer_url(layer_id: str, fmt: str) -> str:
 
 
 def bake(release: str, src: Path, out: Path) -> dict:
+    """Each stage skips an output that already exists: delete one file and
+    re-run to rebuild just that format."""
     from ingest_ramseraph import rebake_flatten_bbox
 
     out.mkdir(parents=True, exist_ok=True)
     con = _con(out / 'tmp')
-    files = sorted(str(p) for p in src.glob('*.parquet'))
+    path = {fmt: out / f'{LAYER_ID}.{ext}' for fmt, ext in FORMATS.items()}
     districts = out / 'lgd_districts.parquet'
     if not districts.exists():
         subprocess.run(['curl', '-sfL', '-A', 'Mozilla/5.0', '-o', str(districts),
                         _layer_url('lgd_districts', 'parquet')], check=True)
 
-    clipped = out / 'clipped.parquet'
-    con.execute(f"COPY ({clip_sql(files, str(districts))}) TO '{clipped}' (FORMAT PARQUET, COMPRESSION ZSTD)")
-    parquet = out / f'{LAYER_ID}.parquet'
-    rows, prop_cols = rebake_flatten_bbox(clipped, parquet)
-    clipped.unlink()
+    if not path['parquet'].exists():
+        files = sorted(str(p) for p in src.glob('*.parquet'))
+        clipped = out / 'clipped.parquet'
+        con.execute(f"COPY ({clip_sql(files, str(districts))}) TO '{clipped}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        rebake_flatten_bbox(clipped, path['parquet'])
+        clipped.unlink()
+    parquet = path['parquet']
+    rows = con.execute(f"SELECT count(*) FROM read_parquet('{parquet}')").fetchone()[0]
 
-    # Tiles from line-delimited GeoJSON (streams; tippecanoe -P reads it in parallel).
-    seq = out / 'tiles.geojsons'
-    con.execute(f"COPY ({tile_features_sql(str(parquet))}) TO '{seq}' (FORMAT JSON)")
-    pmtiles = out / f'{LAYER_ID}.pmtiles'
-    bake_formats.write_pmtiles(seq, pmtiles, LAYER_ID, TILE_FIELDS, parallel=True)
-    seq.unlink()
+    if not path['pmtiles'].exists():
+        # Line-delimited GeoJSON streams; tippecanoe -P reads it in parallel.
+        seq = out / 'tiles.geojsons'
+        con.execute(f"COPY ({tile_features_sql(str(parquet))}) TO '{seq}' (FORMAT JSON)")
+        bake_formats.write_pmtiles(seq, path['pmtiles'], LAYER_ID, TILE_FIELDS, parallel=True)
+        seq.unlink()
 
-    # Whole-layer GeoJSON, streamed: a JSON array of features wrapped as a FeatureCollection.
-    feats = out / 'features.json'
-    con.execute(f"COPY ({geojson_features_sql(str(parquet), prop_cols)}) TO '{feats}' (FORMAT JSON, ARRAY true)")
-    geojson = out / f'{LAYER_ID}.geojson'
-    with geojson.open('wb') as dst, feats.open('rb') as fsrc:
-        dst.write(b'{"type":"FeatureCollection","features":')
-        while chunk := fsrc.read(64 << 20):
-            dst.write(chunk)
-        dst.write(b'}\n')
-    feats.unlink()
+    if not path['geojson'].exists():
+        # Streamed: DuckDB writes a JSON array of features; wrap it as a FeatureCollection.
+        prop_cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{parquet}')").fetchall()
+                     if c[0] != 'geometry']
+        feats = out / 'features.json'
+        con.execute(f"COPY ({geojson_features_sql(str(parquet), prop_cols)}) TO '{feats}' (FORMAT JSON, ARRAY true)")
+        with path['geojson'].open('wb') as dst, feats.open('rb') as fsrc:
+            dst.write(b'{"type":"FeatureCollection","features":')
+            while chunk := fsrc.read(64 << 20):
+                dst.write(chunk)
+            dst.write(b'}\n')
+        feats.unlink()
 
-    shp_zip = out / f'{LAYER_ID}.shp.zip'
-    _write_shapefile_zip(con, parquet, shp_zip)
+    if not path['shapefile'].exists():
+        write_shapefile_zip(parquet, districts, path['shapefile'], out / 'tmp')
 
-    summary = {'release': release, 'rows': rows,
-               'sizes': {fmt: (out / f'{LAYER_ID}.{ext}').stat().st_size for fmt, ext in FORMATS.items()}}
+    summary = {'release': release, 'rows': rows, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
     (out / 'summary.json').write_text(json.dumps(summary, indent=2))
     return summary
 
 
-def _write_shapefile_zip(con, parquet: Path, out: Path) -> None:
-    select = ', '.join(f'{expr} AS "{short}"' for short, expr in SHP_FIELDS.items())
-    with tempfile.TemporaryDirectory(prefix='shp_') as tmp:
-        tmp_dir = Path(tmp)
-        con.execute(
-            f"COPY (SELECT {select}, geometry FROM read_parquet('{parquet}')) "
-            f"TO '{tmp_dir / (LAYER_ID + '.shp')}' "
-            f"WITH (FORMAT GDAL, DRIVER 'ESRI Shapefile', LAYER_CREATION_OPTIONS ('ENCODING=UTF-8', 'RESIZE=YES'))")
-        bake_formats.zip_with_key(tmp_dir, out, shapefile_key())
+def state_slug(name: str) -> str:
+    return re.sub(r'[^a-z0-9]+', '_', name.lower()).strip('_')
+
+
+def check_dbf_sizes(sizes: dict[str, int]) -> None:
+    over = {k: v for k, v in sizes.items() if v > DBF_MAX_BYTES}
+    if over:
+        raise ValueError(f'.dbf over 2 GB (split further): {over}')
+
+
+def shapefile_rows_sql(parquet: str, districts_parquet: str) -> str:
+    """Flat shapefile fields plus the LGD state each place falls in."""
+    select = ', '.join(f'p.{expr} AS "{short}"' for short, expr in SHP_FIELDS.items())
+    return f"""
+        WITH d AS (SELECT stname, ST_SetCRS(geometry, 'OGC:CRS84') AS geom FROM read_parquet('{districts_parquet}'))
+        SELECT d.stname, {select}, p.geometry
+        FROM read_parquet('{parquet}') p JOIN d ON ST_Intersects(d.geom, p.geometry)
+        QUALIFY row_number() OVER (PARTITION BY p.id ORDER BY p.id) = 1"""
+
+
+def write_shapefile_zip(parquet: Path, districts: Path, out: Path, tmp: Path) -> dict[str, int]:
+    con = _con(tmp)
+    con.execute(f"CREATE TABLE shp AS {shapefile_rows_sql(str(parquet), str(districts))}")
+    states = [r[0] for r in con.execute("SELECT DISTINCT stname FROM shp ORDER BY 1").fetchall()]
+    fields = ', '.join(f'"{short}"' for short in SHP_FIELDS)
+    dbf_sizes: dict[str, int] = {}
+    with tempfile.TemporaryDirectory(prefix='shp_', dir=tmp) as work:
+        work_dir = Path(work)
+        for st in states:
+            stem = f'{LAYER_ID}_{state_slug(st)}'
+            con.execute(
+                f"COPY (SELECT {fields}, geometry FROM shp WHERE stname = ?) TO '{work_dir / (stem + '.shp')}' "
+                f"WITH (FORMAT GDAL, DRIVER 'ESRI Shapefile', LAYER_CREATION_OPTIONS ('ENCODING=UTF-8', 'RESIZE=YES'))",
+                [st])
+            dbf_sizes[state_slug(st)] = (work_dir / f'{stem}.dbf').stat().st_size
+        check_dbf_sizes(dbf_sizes)
+        bake_formats.zip_with_key(work_dir, out, shapefile_key())
+    return dbf_sizes
 
 
 def upload(release: str, out: Path) -> None:

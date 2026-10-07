@@ -14,14 +14,14 @@ import bake_formats as f  # noqa: E402
 
 def test_pmtiles_args_keeps_only_named_fields_in_order():
     args = f.pmtiles_args(Path('in.geojson'), Path('out.pmtiles'), 'my_layer', ('a', 'b'))
-    assert args == ['tippecanoe', '-o', 'out.pmtiles', '-l', 'my_layer', '-zg',
+    assert args == ['tippecanoe', '-o', 'out.pmtiles', '-l', 'my_layer', '-n', 'my_layer', '-zg',
                     '--drop-densest-as-needed', '--extend-zooms-if-still-dropping',
                     '-y', 'a', '-y', 'b', '--force', '--no-progress-indicator', 'in.geojson']
 
 
 def test_pmtiles_args_parallel_reads_line_delimited_input():
     args = f.pmtiles_args(Path('in.geojsons'), Path('o.pmtiles'), 'l', ('a',), parallel=True)
-    assert args[:7] == ['tippecanoe', '-o', 'o.pmtiles', '-l', 'l', '-zg', '-P']
+    assert args[:9] == ['tippecanoe', '-o', 'o.pmtiles', '-l', 'l', '-n', 'l', '-zg', '-P']
 
 
 def test_zip_with_key_writes_columns_txt_and_every_file(tmp_path):

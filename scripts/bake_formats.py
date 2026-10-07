@@ -19,7 +19,8 @@ def pmtiles_args(src: Path, out: Path, layer: str, fields: Iterable[str],
     """tippecanoe args keeping only `fields` (popup fields): every extra tile
     attribute makes tippecanoe drop more features at low zoom. `parallel`
     reads line-delimited GeoJSON with -P."""
-    args = ['tippecanoe', '-o', str(out), '-l', layer, '-zg']
+    # -n: tippecanoe otherwise names the tileset after the input file path.
+    args = ['tippecanoe', '-o', str(out), '-l', layer, '-n', layer, '-zg']
     if parallel:
         args.append('-P')
     args += ['--drop-densest-as-needed', '--extend-zooms-if-still-dropping']
