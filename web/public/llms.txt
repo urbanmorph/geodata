@@ -25,8 +25,8 @@ No auth. No API key. CORS enabled.
 Endpoints:
 - GET /api/v1/layers — list layers with ?category, ?level, ?source, ?q, ?limit, ?offset
 - GET /api/v1/layers/:id — single layer detail with download URLs
-- GET /api/v1/layers/:id/schema — column names, types, distinct values
-- GET /api/v1/layers/:id/query — filter, select, group_by on any column
+- GET /api/v1/layers/:id/schema — column names, types (nested columns marked), distinct values
+- GET /api/v1/layers/:id/query — select any column; filter (exact, case-insensitive) and group_by on flat columns
 - GET /api/v1/layers/:id/counts — feature counts with optional grouping
 - GET /api/v1/locate — point-in-polygon across admin layers + zones
 - GET /api/v1/nearby — find features within a radius (points, polygons, lines)
@@ -55,7 +55,7 @@ All open-licensed: CC0, CC-BY, CC-BY-SA, ODbL, GODL-India, CDLA-Permissive, Apac
 
 ## Downloads
 
-Every layer available as Parquet, PMTiles, GeoJSON, KML, and Shapefile. Direct URLs from /api/v1/layers/:id.
+Layers are available as Parquet and PMTiles, and most also as GeoJSON, KML and Shapefile (Overture places has no whole-India KML; use the viewer's Filter & export). Direct URLs from /api/v1/layers/:id.
 
 ## Links
 

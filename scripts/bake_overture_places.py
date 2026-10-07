@@ -182,7 +182,7 @@ def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
 
 def notes_for(release: str) -> str:
     return (f'Overture Maps Foundation places, release {release}, clipped to India (inside an LGD district '
-            'polygon). Every Overture column is kept as published, and `name` is a copy of names.primary '
+            'polygon). Overture columns are kept as published except contact details (below), and `name` is a copy of names.primary '
             'added for search and simple queries. Contact emails, phone numbers and social media '
             'links are removed (personal data of sole traders). Names, addresses, '
             'sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a '
@@ -199,8 +199,8 @@ def display_name(release: str) -> str:
 
 def description_for(release: str) -> str:
     return (f'Pan-India points of interest from the Overture Maps Foundation release {release}. '
-            'Names, categories, addresses, websites, phone numbers, brands and confidence scores '
-            'for shops, restaurants, ATMs, schools, hospitals, transit, monuments and more.')
+            'Names, categories (basic_category, taxonomy), addresses, websites, brands and confidence '
+            'scores for shops, restaurants, ATMs, schools, hospitals, transit, monuments and more.')
 
 
 def patched_manifest_entry(entry: dict, release: str, sizes: dict[str, int], rows: int) -> dict:

@@ -75,7 +75,7 @@
       <pre><code>curl https://bharatlas.com/api/v1/layers/lgd_states</code></pre>
 
       <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/schema</span></h3>
-      <p>Column names, types, and sample values. Reads parquet metadata from R2 at runtime. Use this to discover what columns a layer has before querying.</p>
+      <p>Column names, types, and sample values. Reads parquet metadata from R2 at runtime. Use this to discover what columns a layer has before querying. Nested columns (structs, lists, maps, such as Overture's <code>names</code> or <code>addresses</code>) are listed with type <code>nested</code>: you can <code>select</code> them, but not filter or group on them.</p>
       <pre><code>curl https://bharatlas.com/api/v1/layers/airports/schema</code></pre>
 
       <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/query</span></h3>
@@ -83,7 +83,7 @@
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
         <tr><td><code>select</code></td><td>string</td><td>Comma-separated column names to return</td></tr>
-        <tr><td><code>where</code></td><td>string</td><td>Filters: <code>col1=val1,col2=val2</code>. Or pass columns directly as params: <code>?state=KA&amp;type=INTERNATIONAL</code></td></tr>
+        <tr><td><code>where</code></td><td>string</td><td>Exact, case-insensitive match on flat columns: <code>col1=val1,col2=val2</code>. Or pass columns directly as params: <code>?state=KA&amp;type=INTERNATIONAL</code> (use this form when a value contains a comma). A nested column returns 400 with the list of flat columns.</td></tr>
         <tr><td><code>group_by</code></td><td>string</td><td>Group by column, returns value counts</td></tr>
         <tr><td><code>sum</code></td><td>string</td><td>With <code>group_by</code>: comma-separated numeric columns to total per group, returned as <code>sums</code>. Percentages are not additive, so sum the amounts and recompute shares.</td></tr>
         <tr><td><code>limit</code></td><td>int</td><td>Max rows (default 100, max 1000)</td></tr>
@@ -102,7 +102,7 @@ curl "https://bharatlas.com/api/v1/layers/vedas_power_plants/query?group_by=laye
 
 # Which blocks are in district 571?
 curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=Dist_LGD=571&amp;select=BNAME,Block_LGD"</code></pre>
-      <p>Columns with geometry data (geom, wkb_geometry) are excluded from results. For large layers, queries may take 1-5 seconds on first call (cached afterward).</p>
+      <p>Columns with geometry data (geom, wkb_geometry) are excluded from results. Rows are read row group by row group, so memory stays small on any layer; time grows with layer size. Most layers answer in about a second; on the largest (Overture places, 4.4M rows) a filter or group_by over the whole table takes several seconds, so filter on low-cardinality columns where you can.</p>
 
       <h2>Spatial</h2>
 

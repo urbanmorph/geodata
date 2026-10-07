@@ -20,7 +20,7 @@ A visual catalog, REST API, MCP server, drag-drop verifier, anonymous contributi
 - **Community view** (`/c/<id>`) – community submission, edge-rendered HTML, 👍 useful vote, per-submission OG card.
 - **Embed** (`/embed/<id>`) – iframe + PNG export from any map.
 - **Collect** ([collect.bharatlas.com](https://collect.bharatlas.com)) – mobile crowd map-capture. Design a small form, share a link, and anyone with it plots points, lines and areas from their phone with no account. Review contributions, then download or publish to the catalog. Token-scoped (view / collect / admin), like [mdshare](https://mdshare.live).
-- **API** (`/api/v1`) – REST list, query, filter, group_by (with per-group sums) any layer; locate (point-in-polygon across all layers); nearby (tile-based spatial proximity). Plus a token-authed collect write API at `collect.bharatlas.com/api/collect/v1`.
+- **API** (`/api/v1`) – REST list, query, filter, group_by (with per-group sums) any layer; locate (point-in-polygon across all layers); nearby (features within a radius, ranked by distance from parquet bounding boxes). Plus a token-authed collect write API at `collect.bharatlas.com/api/collect/v1`.
 - **MCP** (`npx bharatlas-mcp`) – 17 tools for LLMs. Read (list, schema, query, locate, nearby, categories, submissions, downloads) + collect authoring (register a map share link, moderate, import, publish). Also shipped as a Claude Code plugin.
 
 ## What's in this repo

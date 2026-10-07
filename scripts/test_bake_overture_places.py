@@ -258,3 +258,9 @@ def test_check_no_personal_columns_fails_loudly():
 
 def test_notes_disclose_the_removal():
     assert 'emails, phone numbers and social media links are removed' in b.notes_for('2026-09-23.1')
+
+
+def test_description_matches_the_published_columns():
+    d = b.description_for('2026-09-23.1')
+    assert 'phone' not in d.lower() and 'email' not in d.lower()  # stripped columns
+    assert 'basic_category' in d
