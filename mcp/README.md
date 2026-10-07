@@ -36,7 +36,7 @@ Add to your MCP client config:
 |------|-------------|
 | **list_layers** | Discover layers by category, level, source, or text search |
 | **get_layer_schema** | Column names, types, distinct values. Call before querying. |
-| **query_layer** | Filter, select, group_by on any column, with per-group sums of numeric columns. Runtime parquet reads. |
+| **query_layer** | Select any column; filter (exact, case-insensitive) and group_by on flat columns, with per-group sums of numeric columns. Runtime parquet reads. |
 | **locate** | Point-in-polygon: what state, district, ward, zone is this point in? |
 | **nearby** | Find features within a radius. Works for points, polygons, and lines. |
 | **get_layer_detail** | Download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile) |
@@ -68,7 +68,7 @@ Thin wrapper over the [bharatlas REST API](https://bharatlas.com/docs). Each too
 The server sends instructions to the LLM at connection time that teach:
 - **Schema-first pattern**: check column names and sample values before querying (column names vary: `state` vs `State_LGD` vs `stname`)
 - **Source preference**: LGD for admin boundaries, with SOI/Bhuvan/geoBoundaries as alternates
-- **Concept-to-layer mapping**: "water bodies" = rivers + canals + reservoirs + wetlands + ramsar sites + dams; "groundwater" = aquifers + extraction stage
+- **Concept-to-layer mapping**: "water bodies" = rivers + canals + reservoirs + wetlands + ramsar sites + dams; "groundwater" = aquifers + extraction stage + wells (minor irrigation census); "places/shops/ATMs" = Overture places
 - **Spatial join workflow**: locate for context, query for data, nearby for proximity
 
 ## Links
