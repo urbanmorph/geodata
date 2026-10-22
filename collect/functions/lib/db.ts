@@ -166,17 +166,30 @@ export interface NewRecordRow {
   ip_hash: string;
   source?: string | null; // NULL = field-collected; set = imported from
   token_id?: string | null; // collection_tokens.id that added it; NULL = imported
+  client_key_hash?: string | null; // SHA-256 of a queued point's client_id; NULL = not queued
 }
 
 export async function insertRecord(db: DB, r: NewRecordRow): Promise<void> {
   await db
     .prepare(
       `INSERT INTO records
-       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id, client_key_hash)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null)
+    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null, r.client_key_hash ?? null)
     .run();
+}
+
+// A queued point already saved on this map (the offline queue may send it twice).
+export async function recordByClientKey(db: DB, collectionId: string, clientKeyHash: string): Promise<{ id: string; status: string } | null> {
+  return (await db
+    .prepare(`SELECT id, status FROM records WHERE collection_id = ? AND client_key_hash = ?`)
+    .bind(collectionId, clientKeyHash)
+    .first()) as { id: string; status: string } | null;
+}
+
+export async function setRecordTokenHash(db: DB, id: string, editTokenHash: string): Promise<void> {
+  await db.prepare(`UPDATE records SET edit_token_hash = ? WHERE id = ?`).bind(editTokenHash, id).run();
 }
 
 export interface RecordRow {

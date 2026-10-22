@@ -9,8 +9,8 @@ import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
 import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
-import { parseCtx, apiJson, type Ctx } from './api';
-import { turnstileToken } from './turnstile';
+import { parseCtx, api, apiJson, jsonWithOfflineCopy, type Ctx } from './api';
+import { savePoint, queuedFor, discardQueued, sendQueued, sendWhenOnline, OUTBOX_CHANGED, type Saved, type OutboxChange } from './send-queue';
 import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
@@ -24,6 +24,7 @@ import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-s
 import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
+import './register-sw';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
   id: string; name: string; purpose: string; description: string | null; data_year: number | null; status: string; moderation: number; license: string;
@@ -79,9 +80,63 @@ function toast(msg: string): void {
   setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2400);
 }
 
-function marker(coords: number[], color = ACCENT): void {
-  if (coords.length >= 2) new maplibregl.Marker({ color }).setLngLat([coords[0], coords[1]]).addTo(map);
+function marker(coords: number[], color = ACCENT): maplibregl.Marker | undefined {
+  if (coords.length >= 2) return new maplibregl.Marker({ color }).setLngLat([coords[0], coords[1]]).addTo(map);
 }
+
+const PENDING = '#9ca3af'; // grey: kept on this phone, not sent yet
+const pendingPins = new Map<string, maplibregl.Marker>(); // client_id → its grey pin
+
+// A point (or shape) on the map; a queued point gets a grey pin until it's sent.
+function pin(geometry: GeoJSON.Geometry, queuedAs?: string): void {
+  if (geometry.type !== 'Point') return addRecordShape(geometry);
+  const m = marker(geometry.coordinates, queuedAs ? PENDING : ACCENT);
+  if (queuedAs && m) pendingPins.set(queuedAs, m);
+}
+
+async function showQueued(): Promise<void> {
+  for (const p of await queuedFor(ctx.id)) pin(p.geometry, p.client_id);
+}
+
+// Sent: its grey pin turns into a normal one. Discarded: the pin goes.
+function settlePins({ sent, discarded }: OutboxChange): void {
+  for (const { client_id, link } of sent) {
+    if (lastQueued === client_id) lastAdded = `✓ Sent. <a href="${link}">edit it</a>`;
+    const grey = pendingPins.get(client_id);
+    if (!grey) continue;
+    pendingPins.delete(client_id);
+    const { lng, lat } = grey.getLngLat();
+    grey.remove();
+    marker([lng, lat]);
+  }
+  for (const id of discarded) {
+    pendingPins.get(id)?.remove();
+    pendingPins.delete(id);
+  }
+  const last = document.getElementById('lastadded');
+  if (last) last.innerHTML = lastAdded;
+}
+
+// "3 waiting to send" under the capture bar, and any point the server refused
+// for good, with its reason and a way to discard it.
+async function renderOutbox(): Promise<void> {
+  const box = document.getElementById('outbox');
+  if (!box) return;
+  const queued = await queuedFor(ctx.id);
+  const waiting = queued.filter((p) => !p.error).length;
+  const refused = queued.filter((p) => p.error);
+  box.innerHTML = `${waiting ? `<p class="hint">⏳ ${waiting} waiting to send. They go when you're back online. <button type="button" class="ghost" id="sendnow">Send now</button></p>` : ''}
+    ${refused.map((p) => `<p class="warn">Couldn't send "${escapeHtml(p.label)}": ${escapeHtml(p.error!)}. <button type="button" class="ghost" data-discard="${p.client_id}">Discard</button></p>`).join('')}`;
+  const now = box.querySelector<HTMLButtonElement>('#sendnow');
+  if (now) now.onclick = () => { now.disabled = true; void sendQueued(); };
+  box.querySelectorAll<HTMLButtonElement>('[data-discard]').forEach((b) => { b.onclick = () => void discardQueued(b.dataset.discard!); });
+}
+window.addEventListener(OUTBOX_CHANGED, (e) => {
+  const change = (e as CustomEvent<OutboxChange>).detail;
+  if (change.sent.length) invalidateReview(); // queued points reached the server
+  settlePins(change);
+  void renderOutbox();
+});
 
 // A grab handle — the first child of every collapsible bottom sheet.
 const GRAB = '<button type="button" class="grab" aria-expanded="true" aria-label="Collapse or expand this panel"></button>';
@@ -186,7 +241,10 @@ function safetyFooter(): string {
 
 async function boot(): Promise<void> {
   ctx = parseCtx()!;
-  meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
+  // Saved on each online load, so a map opened once with signal opens without it.
+  const loaded = await jsonWithOfflineCopy<Meta>(`collect:meta:${ctx.id}`, () => api(`/collections/${ctx.id}`, ctx.token), localStorage);
+  meta = loaded.data;
+  if (loaded.offline) toast("You're offline. New points are kept on this phone and sent when you're back online.");
   const isView = ctx.mode === 'view';
   const isAdmin = ctx.mode === 'admin';
   // Autosave to "Your maps" so a shared collect/view link is one tap to reopen.
@@ -227,6 +285,7 @@ async function boot(): Promise<void> {
     if (meta.schema.reference_layer) void addReferenceOverlay(map, meta.schema.reference_layer.pmtiles_url).catch(() => {});
     if (isAdmin) syncReviewLayer();   // admin: the clickable, status-coloured review layer (driven by the list)
     else void loadRecords();          // view / collect: published points as context
+    if (!isView) void showQueued();   // points kept on this phone, not sent yet
   });
 
   const reftoggle = document.getElementById('reftoggle') as HTMLButtonElement | null;
@@ -502,6 +561,7 @@ const CAP_HELP: Record<GeomMode, string> = {
 const cap = (s: string): string => s[0].toUpperCase() + s.slice(1);
 let lastContributor = '';
 let lastAdded = '';
+let lastQueued = ''; // client_id of the last point saved offline, to say when it's sent
 
 // Capture is two steps so the MAP is the centre-piece while marking:
 //   1. renderPlaceBar — a compact bar; position the crosshair and place the shape
@@ -529,7 +589,9 @@ function renderPlaceBar(modes: GeomMode[]): void {
     </div>
     <button class="primary" id="place">Add ${NOUN[drawMode]}</button>
     <div id="lastadded" class="hint">${lastAdded}</div>
+    <div id="outbox"></div>
   </div>`;
+  void renderOutbox();
 
   const syncDrawUI = (): void => {
     document.getElementById('cap-help')!.textContent = CAP_HELP[drawMode];
@@ -603,32 +665,32 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     const valid = validateRecordProperties(fields, raw);
     if (!valid.ok) { toast(valid.error); return; }
     btn.disabled = true;
-    try {
-      lastContributor = (document.getElementById('contributor') as HTMLInputElement).value;
-      const turnstile_token = await turnstileToken();
-      const res = await apiJson<{ id: string; edit_token: string }>(`/collections/${ctx.id}/records`, ctx.token, {
-        method: 'POST',
-        body: JSON.stringify({ geometry, properties: valid.properties, contributor: lastContributor, turnstile_token }),
-      });
-      invalidateReview(); // a new record invalidates the review cache
-      // In admin the status-coloured review layer owns the on-map display; a plain
-      // pin here would double it once they return to Review. Contributors get the pin.
-      if (ctx.mode !== 'admin') {
-        if (geometry.type === 'Point') marker((geometry as GeoJSON.Point).coordinates as number[]);
-        else addRecordShape(geometry);
-      }
-      verts = []; redrawDraw();
-      toast(meta.moderation ? 'Added, pending review ✓' : 'Added ✓');
-      const editUrl = `${location.origin}/c/${ctx.id}/r/${res.id}#${res.edit_token}`;
-      // Keep the record's edit link: it's the contributor's only way back to
-      // edit, delete or de-identify it (no accounts).
-      rememberRecord(ctx.id, meta.name, { id: res.id, label: recordLabel(valid.properties, noun), link: editUrl });
-      lastAdded = `✓ Added. <a href="${editUrl}">edit this ${noun}</a>`;
-      renderPlaceBar(modes); // back to the map, ready for the next one
-    } catch (e) {
-      toast(`Couldn't save: ${(e as Error).message}. Your details are kept, tap Save to retry.`);
+    lastContributor = (document.getElementById('contributor') as HTMLInputElement).value;
+    // Kept on this phone first, then sent (straight away when there's signal).
+    // A sent point's edit link joins "Your additions" (send-queue.ts): it's the
+    // contributor's only way back to edit, delete or de-identify it (no accounts).
+    const saved = await savePoint({
+      collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: valid.properties,
+      contributor: lastContributor, label: recordLabel(valid.properties, noun), noun,
+    }).catch((e: Error): Saved => ({ state: 'refused', error: e.message }));
+    if (saved.state === 'refused') {
+      toast(`Couldn't save: ${saved.error}. Your details are kept, tap Save to retry.`);
       btn.disabled = false;
+      return;
     }
+    // In admin the status-coloured review layer owns the on-map display; a plain
+    // pin here would double it once they return to Review. Contributors get the pin.
+    if (ctx.mode !== 'admin' || saved.state === 'waiting') pin(geometry, saved.state === 'waiting' ? saved.client_id : undefined);
+    if (saved.state === 'sent') {
+      toast(meta.moderation ? 'Added, pending review ✓' : 'Added ✓');
+      lastAdded = `✓ Added. <a href="${saved.link}">edit this ${noun}</a>`;
+    } else {
+      toast("Saved on this phone ✓ It'll be sent when you're back online.");
+      lastAdded = `✓ Saved on this phone, waiting to send.`;
+      lastQueued = saved.client_id;
+    }
+    verts = []; redrawDraw();
+    renderPlaceBar(modes); // back to the map, ready for the next one
   };
 }
 
@@ -1473,6 +1535,7 @@ async function recordEditor(): Promise<void> {
 }
 
 startAutoSync(); // if this device turned sync on, saved links follow it to the others
+sendWhenOnline(); // points kept on this phone go as soon as there's signal
 const initCtx = parseCtx();
 if (!initCtx?.token) {
   app.innerHTML = `<div class="pad"><h1>Invalid link</h1><p class="hint">Open a collect link (with its token in the URL) to continue.</p></div>`;

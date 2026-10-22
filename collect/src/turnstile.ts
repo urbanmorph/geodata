@@ -26,7 +26,8 @@ function load(): Promise<void> {
     s.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
     s.async = true;
     s.onload = () => resolve();
-    s.onerror = () => reject(new Error('turnstile load failed'));
+    // Forget a failed load (e.g. offline), so the next send tries again.
+    s.onerror = () => { loading = null; s.remove(); reject(new Error('turnstile load failed')); };
     document.head.appendChild(s);
   });
   return loading;
