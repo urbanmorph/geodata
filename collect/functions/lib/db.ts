@@ -318,3 +318,43 @@ export async function linkSubmission(db: DB, submissionId: string, collectionId:
     .bind(collectionId, version, submissionId)
     .run();
 }
+
+// ---- keyrings (opt-in encrypted sync; migration 0011) -----------------------
+
+export interface KeyringRow { id: string; write_hash: string; blob: string; updated_at: string; }
+
+export async function getKeyring(db: DB, id: string): Promise<KeyringRow | null> {
+  return (await db.prepare(`SELECT id, write_hash, blob, updated_at FROM collect_keyrings WHERE id = ?`).bind(id).first()) as KeyringRow | null;
+}
+
+export async function touchKeyring(db: DB, id: string): Promise<void> {
+  await db.prepare(`UPDATE collect_keyrings SET used_at = ? WHERE id = ?`).bind(now(), id).run();
+}
+
+export async function insertKeyring(db: DB, k: { id: string; write_hash: string; blob: string }): Promise<string> {
+  const t = now();
+  await db
+    .prepare(`INSERT INTO collect_keyrings (id, write_hash, blob, created_at, updated_at, used_at) VALUES (?, ?, ?, ?, ?, ?)`)
+    .bind(k.id, k.write_hash, k.blob, t, t, t)
+    .run();
+  return t;
+}
+
+// Compare-and-set on updated_at: returns the new updated_at, or null when
+// another device wrote first (the caller answers 409).
+export async function updateKeyring(db: DB, id: string, blob: string, base: string): Promise<string | null> {
+  const t = now();
+  const r = await db
+    .prepare(`UPDATE collect_keyrings SET blob = ?, updated_at = ?, used_at = ? WHERE id = ? AND updated_at = ?`)
+    .bind(blob, t, t, id, base)
+    .run();
+  return r.meta.changes ? t : null;
+}
+
+export async function deleteKeyring(db: DB, id: string): Promise<void> {
+  await db.prepare(`DELETE FROM collect_keyrings WHERE id = ?`).bind(id).run();
+}
+
+export async function purgeStaleKeyrings(db: DB, olderThan: string): Promise<void> {
+  await db.prepare(`DELETE FROM collect_keyrings WHERE used_at < ?`).bind(olderThan).run();
+}

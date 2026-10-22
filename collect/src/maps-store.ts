@@ -105,8 +105,12 @@ export function myMaps(): SavedMap[] {
   }
 }
 
+export const MAPS_CHANGED = 'collect:maps-changed';
+
 function write(maps: SavedMap[]): void {
   try { localStorage.setItem(KEY, JSON.stringify(capMaps(maps))); } catch { /* per-device convenience only */ }
+  // Lets keyring sync (when the user turned it on) push the change.
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event(MAPS_CHANGED));
 }
 export function replaceMaps(maps: SavedMap[]): void { write(maps); }
 
