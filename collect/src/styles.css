@@ -179,6 +179,7 @@ textarea { min-height: 92px; line-height: 1.5; }
   background: var(--surface); padding: 9px 11px; border-radius: 9px; font-size: 12px; color: var(--muted);
 }
 .link-box .btn, .link-box button { min-height: 40px; padding: 0 12px; }
+.link-box--off { opacity: 0.6; }
 /* schema builder: a saved field's name is a button — tap it to edit the field */
 .link-box--editing { border-color: var(--accent); background: var(--accent-fill); }
 .sb-name {

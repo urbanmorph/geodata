@@ -33,6 +33,12 @@ export function recordWho(source?: string | null, contributor?: string | null): 
   return '';
 }
 
+// The admin's name for the link that added a record ("via Ward 12 team"), from
+// the admin-only _link_label. Unlabelled links show nothing.
+export function recordVia(label?: string | null): string {
+  return label && label.trim() ? `via ${label.trim()}` : '';
+}
+
 export type PopupAction = { act: string; label: string; cls: string };
 
 // The moderation actions a record's map tooltip offers, by status — so an admin
