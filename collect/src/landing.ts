@@ -15,6 +15,8 @@ import { CATEGORIES, OPEN_LICENCES } from './options';
 import { linksMailtoHref, linksText } from './share';
 import { shareItemHtml, wireShareItems, toggleQr } from './share-ui';
 import { mountInstallButton } from '../../web/src/install-button';
+import { syncSecretFrom } from './keyring';
+import { syncState, syncDevice, turnOnSync, joinSync, turnOffSync, mySyncLink, startAutoSync, SyncGone } from './syncing';
 
 const app = document.getElementById('app')!;
 
@@ -83,6 +85,7 @@ function home() {
       <label class="btn wide" style="cursor:pointer">⬆ Restore map links<input id="import" type="file" accept="application/json" hidden></label>
       <p class="hint">This file holds the <strong>links</strong> to your maps (your admin access) and to the points you added, not the points other people collect. With no accounts, it's how you reach your maps again from another device or browser.</p>
       <p id="imp-err" class="warn"></p>
+      <div id="sync"></div>
       <footer class="foot-note">
         <span>Part of <a href="https://bharatlas.com">bharatlas</a>, built for the field and optimised for mobile.</span>
         <span><a href="https://bharatlas.com/about">About</a> · <a href="https://bharatlas.com/terms">Terms</a></span>
@@ -91,6 +94,7 @@ function home() {
   app.querySelector('#install-slot')!.replaceWith(installBtn);
   app.querySelector<HTMLButtonElement>('#start')!.onclick = createForm;
   void fillMasthead();
+  renderSync();
 
   app.querySelector<HTMLButtonElement>('#export')!.onclick = () => {
     const a = document.createElement('a');
@@ -110,6 +114,59 @@ function home() {
       app.querySelector('#imp-err')!.textContent = `Couldn't import: ${(ex as Error).message}`;
     }
   };
+}
+
+// Opt-in sync of "Your maps" across devices, end-to-end encrypted (keyring.ts).
+// The notice is the consent: what's stored, that bharatlas can't read it, how
+// long it's kept, and how to delete it.
+const SYNC_NOTICE = `Keeps an <strong>encrypted copy</strong> of these links on bharatlas so you can open them on your other devices, or in the app on your home screen. bharatlas can't read it and doesn't know whose it is. It's deleted after <strong>12 months</strong> without use, or as soon as you turn sync off.`;
+
+function renderSync(note = ''): void {
+  const box = app.querySelector<HTMLElement>('#sync');
+  if (!box) return;
+  const st = syncState();
+  if (!st) {
+    box.innerHTML = `<label>Sync across your devices <span class="hint">(optional)</span></label>
+      <p class="hint">${SYNC_NOTICE}</p>
+      ${note ? `<p class="warn">${escapeHtml(note)}</p>` : ''}
+      <button class="wide" id="sync-on">🔄 Turn on sync</button>`;
+    box.querySelector<HTMLButtonElement>('#sync-on')!.onclick = async (e) => {
+      const b = e.currentTarget as HTMLButtonElement;
+      b.disabled = true;
+      try { await turnOnSync(); home(); } catch (ex) { renderSync((ex as Error).message); }
+    };
+    return;
+  }
+  const when = st.synced_at ? new Date(st.synced_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'not yet';
+  box.innerHTML = `<label>Sync is on <span class="hint">(last synced ${escapeHtml(when)})</span></label>
+    ${note ? `<p class="warn">${escapeHtml(note)}</p>` : ''}
+    ${shareItemHtml('sync', '🔄 Your sync link (keep private)', mySyncLink()!, 'Open it on your other device, or in the home-screen app, to bring the same maps there. Anyone with it can see and change your saved links.')}
+    <button class="wide" id="sync-off">Turn off sync and delete the synced copy</button>`;
+  wireShareItems(box, 'collect sync link');
+  let armed = false;
+  box.querySelector<HTMLButtonElement>('#sync-off')!.onclick = async (e) => {
+    const b = e.currentTarget as HTMLButtonElement;
+    if (!armed) { armed = true; b.textContent = 'Tap again: this turns sync off on all your devices'; return; }
+    b.disabled = true;
+    try { await turnOffSync(); renderSync(); } catch (ex) { renderSync((ex as Error).message); }
+  };
+}
+
+// On load: adopt a sync link opened on this device (then strip the secret from
+// the address bar), or sync if this device already joined.
+async function bootSync(): Promise<void> {
+  const secret = syncSecretFrom(location.hash);
+  try {
+    if (secret) {
+      history.replaceState(null, '', location.pathname + location.search);
+      await joinSync(secret);
+    } else if (syncState()) {
+      await syncDevice();
+    } else return;
+    home();
+  } catch (e) {
+    renderSync(e instanceof SyncGone ? 'Sync was turned off on another device, so it is off here too.' : `Couldn't sync: ${(e as Error).message}`);
+  }
 }
 
 function createForm() {
@@ -311,3 +368,7 @@ function done(links: Record<string, string>) {
 }
 
 home();
+startAutoSync();
+void bootSync();
+// A sync link pasted into an already-open tab only changes the fragment.
+window.addEventListener('hashchange', () => { if (syncSecretFrom(location.hash)) void bootSync(); });

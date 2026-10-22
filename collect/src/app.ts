@@ -23,6 +23,7 @@ import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/b
 import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
 import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
+import { startAutoSync } from './syncing';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
   id: string; name: string; purpose: string; description: string | null; data_year: number | null; status: string; moderation: number; license: string;
@@ -1471,6 +1472,7 @@ async function recordEditor(): Promise<void> {
   };
 }
 
+startAutoSync(); // if this device turned sync on, saved links follow it to the others
 const initCtx = parseCtx();
 if (!initCtx?.token) {
   app.innerHTML = `<div class="pad"><h1>Invalid link</h1><p class="hint">Open a collect link (with its token in the URL) to continue.</p></div>`;

@@ -60,3 +60,6 @@ export const checkRecordRate = (db: DB, ipHash: string): Promise<boolean> => bum
 export const checkCreateRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, ipHash, 'day', 5);
 // Per-API-key day window (its own rate_limits row, keyed by the key hash).
 export const checkKeyDayRate = (db: DB, keyHash: string, limit: number): Promise<boolean> => bump(db, keyHash, 'day', limit);
+// Keyring writes: their own rate_limits row (prefixed key) so sync never eats
+// into a contributor's record budget.
+export const checkKeyringRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, `kr:${ipHash}`, 'hour', 120);

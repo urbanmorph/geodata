@@ -8,7 +8,7 @@ import * as h from '../../lib/handlers';
 
 const CORS = {
   'access-control-allow-origin': '*',
-  'access-control-allow-methods': 'GET,POST,PATCH,DELETE,OPTIONS',
+  'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
   'access-control-allow-headers': 'authorization,content-type',
 };
 
@@ -68,6 +68,14 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     if (p.length === 4 && p[2] === 'tokens') {
       return method === 'DELETE' ? h.revokeToken(env, request, id, p[3]) : bad(405, 'method not allowed');
     }
+  }
+
+  // /v1/keyrings/:id — opt-in encrypted sync (ciphertext only)
+  if (p[0] === 'keyrings' && p.length === 2) {
+    if (method === 'GET') return h.getKeyring(env, request, p[1]);
+    if (method === 'PUT') return h.putKeyring(env, request, p[1]);
+    if (method === 'DELETE') return h.deleteKeyring(env, request, p[1]);
+    return bad(405, 'method not allowed');
   }
 
   // /v1/records/:id  and  /v1/records/:id/{moderate|deidentify}

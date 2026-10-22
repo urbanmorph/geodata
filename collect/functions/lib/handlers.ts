@@ -9,7 +9,7 @@ import type { Env } from '../types';
 import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, linkFor, atLeast } from './auth';
-import { checkCreateRate, checkRecordRate, checkKeyDayRate } from './ratelimit';
+import { checkCreateRate, checkRecordRate, checkKeyDayRate, checkKeyringRate } from './ratelimit';
 import { deferLog } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
 import * as db from './db';
@@ -682,4 +682,75 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
     message: 'Submitted to the bharatlas catalog. A curator reviews it before it goes live — it is not public yet.',
     admin_token: adminToken,
   });
+}
+
+// ---- /keyrings/:id — opt-in encrypted sync of a device's links --------------
+// The blob is encrypted in the browser; the server stores ciphertext only, keyed
+// by an id derived from the user's secret. The write key (also derived) is kept
+// as a SHA-256 hash and gates update/delete. Concurrent writes are a 409 with the
+// current blob so the client merges and retries. Unused for 12 months = deleted.
+
+const KEYRING_ID = /^[0-9a-f]{32}$/;
+const KEYRING_KEY = /^[A-Za-z0-9_-]{43}$/;
+const B64URL = /^[A-Za-z0-9_-]+$/;
+const KEYRING_MAX = 262_144;
+const KEYRING_TTL_MS = 365 * 86_400_000;
+
+const hashKey = (k: string): Promise<string> => sha256Hex(new TextEncoder().encode(k).buffer as ArrayBuffer);
+
+function keyringKey(req: Request): string | null {
+  const k = bearer(req);
+  return k && KEYRING_KEY.test(k) ? k : null;
+}
+
+// Constant-time hex compare (both are SHA-256 hex, same length when valid).
+function sameHash(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+export async function getKeyring(env: Env, _req: Request, id: string): Promise<Response> {
+  if (!KEYRING_ID.test(id)) return bad(400, 'bad keyring id');
+  const row = await db.getKeyring(env.DB, id);
+  if (!row) return bad(404, 'not found');
+  await db.touchKeyring(env.DB, id); // a read is use: keeps it past the 12-month purge
+  return json(200, { blob: row.blob, updated_at: row.updated_at });
+}
+
+export async function putKeyring(env: Env, req: Request, id: string): Promise<Response> {
+  if (!KEYRING_ID.test(id)) return bad(400, 'bad keyring id');
+  const key = keyringKey(req);
+  if (!key) return bad(401, 'unauthorised');
+  if (!(await checkKeyringRate(env.DB, await ipHashFor(req, salt(env))))) return bad(429, 'rate limit: too many sync writes');
+  const body = await readJson(req);
+  const blob = body?.blob;
+  if (typeof blob !== 'string' || !blob) return bad(400, 'blob required');
+  if (blob.length > KEYRING_MAX) return bad(413, 'keyring too large');
+  if (!B64URL.test(blob)) return bad(400, 'blob must be base64url');
+  const base = typeof body?.base === 'string' ? body.base : null;
+
+  await db.purgeStaleKeyrings(env.DB, new Date(Date.now() - KEYRING_TTL_MS).toISOString());
+  const hash = await hashKey(key);
+  const row = await db.getKeyring(env.DB, id);
+  if (!row) {
+    // Writing against a version that no longer exists = sync was turned off
+    // (or the keyring expired) elsewhere: tell the device to stop, don't revive it.
+    if (base) return bad(410, 'this synced copy was deleted');
+    return json(200, { updated_at: await db.insertKeyring(env.DB, { id, write_hash: hash, blob }) });
+  }
+  if (!sameHash(hash, row.write_hash)) return bad(401, 'unauthorised');
+  const updated = base ? await db.updateKeyring(env.DB, id, blob, base) : null;
+  if (!updated) return json(409, { blob: row.blob, updated_at: row.updated_at });
+  return json(200, { updated_at: updated });
+}
+
+export async function deleteKeyring(env: Env, req: Request, id: string): Promise<Response> {
+  if (!KEYRING_ID.test(id)) return bad(400, 'bad keyring id');
+  const key = keyringKey(req);
+  const row = key ? await db.getKeyring(env.DB, id) : null;
+  if (!key || (row && !sameHash(await hashKey(key), row.write_hash))) return bad(401, 'unauthorised');
+  if (row) await db.deleteKeyring(env.DB, id);
+  return json(200, { deleted: true });
 }
