@@ -71,30 +71,72 @@ export async function updateCollection(db: DB, id: string, col: Record<string, u
 
 export async function addCollectionToken(
   db: DB,
-  t: { collectionId: string; prefix: string; hash: string; permission: 'admin' | 'edit' | 'view' },
-): Promise<void> {
+  t: { collectionId: string; prefix: string; hash: string; permission: 'admin' | 'edit' | 'view'; label?: string | null },
+): Promise<string> {
+  const id = crypto.randomUUID();
   await db
     .prepare(
-      `INSERT INTO collection_tokens (id, collection_id, token_prefix, token_hash, permission, is_active, created_at)
-       VALUES (?, ?, ?, ?, ?, 1, ?)`,
+      `INSERT INTO collection_tokens (id, collection_id, token_prefix, token_hash, permission, is_active, created_at, label)
+       VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
     )
-    .bind(crypto.randomUUID(), t.collectionId, t.prefix, t.hash, t.permission, now())
+    .bind(id, t.collectionId, t.prefix, t.hash, t.permission, now(), t.label ?? null)
     .run();
+  return id;
 }
 
 export async function tokensForCollection(
   db: DB,
   collectionId: string,
   prefix: string,
-): Promise<{ token_hash: string; permission: 'admin' | 'edit' | 'view'; is_active: number }[]> {
+): Promise<{ id: string; token_hash: string; permission: 'admin' | 'edit' | 'view'; is_active: number }[]> {
   const res = await db
     .prepare(
-      `SELECT token_hash, permission, is_active FROM collection_tokens
+      `SELECT id, token_hash, permission, is_active FROM collection_tokens
        WHERE collection_id = ? AND token_prefix = ? AND is_active = 1`,
     )
     .bind(collectionId, prefix)
     .all();
-  return (res.results ?? []) as unknown as { token_hash: string; permission: 'admin' | 'edit' | 'view'; is_active: number }[];
+  return (res.results ?? []) as unknown as { id: string; token_hash: string; permission: 'admin' | 'edit' | 'view'; is_active: number }[];
+}
+
+export interface LinkRow {
+  id: string;
+  permission: 'admin' | 'edit' | 'view';
+  label: string | null;
+  is_active: number;
+  created_at: string;
+  records: number;
+}
+
+// Every link on a collection with how many records each added (admin view).
+// Never selects the hash: links are shown once at mint and can't be re-shown.
+export async function listLinks(db: DB, collectionId: string): Promise<LinkRow[]> {
+  const res = await db
+    .prepare(
+      `SELECT t.id, t.permission, t.label, t.is_active, t.created_at,
+              (SELECT COUNT(*) FROM records r WHERE r.collection_id = t.collection_id AND r.token_id = t.id) AS records
+       FROM collection_tokens t WHERE t.collection_id = ? ORDER BY t.created_at`,
+    )
+    .bind(collectionId)
+    .all();
+  return (res.results ?? []) as unknown as LinkRow[];
+}
+
+export async function getLink(db: DB, collectionId: string, tokenId: string): Promise<{ id: string; permission: string } | null> {
+  return (await db
+    .prepare(`SELECT id, permission FROM collection_tokens WHERE collection_id = ? AND id = ?`)
+    .bind(collectionId, tokenId)
+    .first()) as { id: string; permission: string } | null;
+}
+
+export async function deactivateLink(db: DB, collectionId: string, tokenId: string): Promise<void> {
+  await db.prepare(`UPDATE collection_tokens SET is_active = 0 WHERE collection_id = ? AND id = ?`).bind(collectionId, tokenId).run();
+}
+
+// token id → label for one collection, to annotate the admin's record list.
+export async function linkLabels(db: DB, collectionId: string): Promise<Map<string, string | null>> {
+  const res = await db.prepare(`SELECT id, label FROM collection_tokens WHERE collection_id = ?`).bind(collectionId).all();
+  return new Map(((res.results ?? []) as unknown as { id: string; label: string | null }[]).map((r) => [r.id, r.label]));
 }
 
 // ---- API keys (programmatic create gate) -----------------------------------
@@ -123,16 +165,17 @@ export interface NewRecordRow {
   edit_token_hash: string;
   ip_hash: string;
   source?: string | null; // NULL = field-collected; set = imported from
+  token_id?: string | null; // collection_tokens.id that added it; NULL = imported
 }
 
 export async function insertRecord(db: DB, r: NewRecordRow): Promise<void> {
   await db
     .prepare(
       `INSERT INTO records
-       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null)
+    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null)
     .run();
 }
 
@@ -147,6 +190,7 @@ export interface RecordRow {
   contributor: string | null;
   edit_token_hash: string | null;
   source: string | null;
+  token_id: string | null;
 }
 
 export async function listRecords(

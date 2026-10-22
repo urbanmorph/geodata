@@ -4,12 +4,12 @@
     "module": "es2022",
     "moduleResolution": "bundler",
     "lib": ["es2022"],
-    "types": ["@cloudflare/workers-types"],
+    "types": ["@cloudflare/workers-types", "node"],
     "strict": true,
     "noEmit": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["functions"]
+  "include": ["functions", "tests/functions"]
 }

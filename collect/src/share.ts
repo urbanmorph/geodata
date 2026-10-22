@@ -59,3 +59,24 @@ export async function shareOrCopy(url: string, title: string): Promise<'shared' 
     return 'failed';
   }
 }
+
+// A link as GET /collections/:id/tokens returns it (never the token itself).
+export interface LinkInfo {
+  id: string;
+  permission: 'admin' | 'edit' | 'view';
+  label: string | null;
+  active: boolean;
+  created_at: string;
+  records: number;
+}
+
+// The Share tab lists named collect/view links (newest first, turned-off last)
+// and only counts the unnamed collect links, which pile up one per share session
+// and can't be told apart.
+export function splitLinks(links: LinkInfo[]): { named: LinkInfo[]; unnamed: { links: number; records: number } } {
+  const named = links
+    .filter((l) => l.permission !== 'admin' && l.label)
+    .sort((a, b) => Number(b.active) - Number(a.active) || b.created_at.localeCompare(a.created_at));
+  const unnamedEdit = links.filter((l) => l.permission === 'edit' && !l.label);
+  return { named, unnamed: { links: unnamedEdit.length, records: unnamedEdit.reduce((n, l) => n + l.records, 0) } };
+}

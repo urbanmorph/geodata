@@ -13,17 +13,26 @@ export function bearer(req: Request): string | null {
   return m ? m[1].trim() : null;
 }
 
+// The link a token belongs to (its collection_tokens id) and its permission.
+export async function linkFor(
+  db: Pick<D1Database, 'prepare'>,
+  collectionId: string,
+  token: string | null,
+): Promise<{ id: string; permission: Permission } | null> {
+  if (!token) return null;
+  const rows = await tokensForCollection(db, collectionId, tokenPrefix(token));
+  for (const r of rows) {
+    if (r.is_active && (await verifyToken(token, r.token_hash))) return { id: r.id, permission: r.permission };
+  }
+  return null;
+}
+
 export async function permissionFor(
   db: Pick<D1Database, 'prepare'>,
   collectionId: string,
   token: string | null,
 ): Promise<Permission | null> {
-  if (!token) return null;
-  const rows = await tokensForCollection(db, collectionId, tokenPrefix(token));
-  for (const r of rows) {
-    if (r.is_active && (await verifyToken(token, r.token_hash))) return r.permission;
-  }
-  return null;
+  return (await linkFor(db, collectionId, token))?.permission ?? null;
 }
 
 export function atLeast(have: Permission | null, need: Permission): boolean {

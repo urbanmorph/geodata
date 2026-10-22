@@ -47,3 +47,22 @@ describe('linksMailtoHref', () => {
     expect(linksMailtoHref(links).startsWith('mailto:?')).toBe(true);
   });
 });
+
+import { splitLinks, type LinkInfo } from '../src/share';
+
+describe('splitLinks — the Share tab\'s named links', () => {
+  const L = (o: Partial<LinkInfo>): LinkInfo => ({ id: 'x', permission: 'edit', label: null, active: true, created_at: '2026-10-01', records: 0, ...o });
+  it('lists named collect/view links newest first, active before turned-off', () => {
+    const out = splitLinks([
+      L({ id: 'a', label: 'Asha', created_at: '2026-10-01' }),
+      L({ id: 'b', label: 'Ward 12', created_at: '2026-10-03', active: false }),
+      L({ id: 'c', label: 'School', permission: 'view', created_at: '2026-10-02' }),
+      L({ id: 'adm', label: null, permission: 'admin' }),
+    ]);
+    expect(out.named.map((l) => l.id)).toEqual(['c', 'a', 'b']);
+  });
+  it('counts unnamed collect links (and their points) without listing them', () => {
+    const out = splitLinks([L({ id: '1', records: 3 }), L({ id: '2', records: 2 }), L({ id: '3', permission: 'view' }), L({ id: '4', label: 'Asha' })]);
+    expect(out.unnamed).toEqual({ links: 2, records: 5 });
+  });
+});

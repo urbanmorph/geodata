@@ -61,7 +61,12 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       return method === 'POST' ? h.moderateAll(env, request, id) : bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'tokens') {
-      return method === 'POST' ? h.mintToken(env, request, id) : bad(405, 'method not allowed');
+      if (method === 'POST') return h.mintToken(env, request, id);
+      if (method === 'GET') return h.listTokens(env, request, id);
+      return bad(405, 'method not allowed');
+    }
+    if (p.length === 4 && p[2] === 'tokens') {
+      return method === 'DELETE' ? h.revokeToken(env, request, id, p[3]) : bad(405, 'method not allowed');
     }
   }
 

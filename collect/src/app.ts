@@ -15,13 +15,13 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia } from './review';
 import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
 import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
-import { linksMailtoHref, type MapLinks } from './share';
+import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
@@ -859,7 +859,15 @@ function renderShareTab(body: HTMLElement): void {
       </button>
       <div class="linkrow__body" hidden></div>
     </div>`).join('')}
-    <a class="btn wide" id="email-links" style="margin-top:12px">✉ Email these links to me</a>`;
+    <a class="btn wide" id="email-links" style="margin-top:12px">✉ Email these links to me</a>
+    <strong style="display:block;margin-top:18px">Named collect links</strong>
+    <p class="hint">Give a team or a person their own link. You'll see which points came through it, and can turn it off without changing anyone else's link.</p>
+    <div class="row">
+      <input id="nl-label" maxlength="60" placeholder="e.g. Ward 12 team" aria-label="Name for the new link" style="flex:1" />
+      <button type="button" id="nl-make">Create</button>
+    </div>
+    <div id="nl-new"></div>
+    <div id="nl-list"><p class="hint">Loading links…</p></div>`;
 
   const emailA = document.getElementById('email-links') as HTMLAnchorElement;
   const refreshEmail = (): void => { emailA.href = linksMailtoHref({ admin: adminLink, ...minted } as MapLinks, meta.name); };
@@ -877,6 +885,8 @@ function renderShareTab(body: HTMLElement): void {
       return res.link;
     } catch (e) { toast((e as Error).message); return null; }
   };
+
+  void wireNamedLinks(body, title);
 
   let busy = false; // a mint is in flight — block other taps (else double-mint / two rows open)
   LINK_ROWS.forEach((r) => {
@@ -905,6 +915,57 @@ function renderShareTab(body: HTMLElement): void {
       head.setAttribute('aria-expanded', 'true');
     };
   });
+}
+
+// Named links: mint a labelled collect link, list named links with how many
+// points each added, and turn one off (two taps). The token is shown once, at
+// creation; the list only ever has labels and counts.
+async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
+  const list = body.querySelector<HTMLElement>('#nl-list')!;
+  const render = async (): Promise<void> => {
+    try {
+      const { links } = await apiJson<{ links: LinkInfo[] }>(`/collections/${ctx.id}/tokens`, ctx.token);
+      const { named, unnamed } = splitLinks(links);
+      const plural = (n: number, w: string): string => `${n} ${w}${n === 1 ? '' : 's'}`;
+      list.innerHTML = named.map((l) => `<div class="link-box${l.active ? '' : ' link-box--off'}">
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.label!)}
+            <span class="hint">· ${l.permission === 'view' ? 'view only' : plural(l.records, 'point')}${l.active ? '' : ' · turned off'}</span></span>
+          ${l.active ? `<button type="button" data-revoke="${escapeHtml(l.id)}">Turn off</button>` : ''}
+        </div>`).join('')
+        + (unnamed.links ? `<p class="hint">${plural(unnamed.links, 'unnamed collect link')} from earlier shares added ${plural(unnamed.records, 'point')}.</p>` : '');
+      list.querySelectorAll<HTMLButtonElement>('button[data-revoke]').forEach((b) => {
+        let armed = false;
+        b.onclick = async () => {
+          if (!armed) { armed = true; b.textContent = 'Tap again to turn off'; return; }
+          b.disabled = true;
+          try { await apiJson(`/collections/${ctx.id}/tokens/${b.dataset.revoke}`, ctx.token, { method: 'DELETE' }); await render(); }
+          catch (e) { toast((e as Error).message); b.disabled = false; }
+        };
+      });
+    } catch (e) {
+      list.innerHTML = `<p class="warn">${escapeHtml((e as Error).message)}</p>`;
+    }
+  };
+
+  const input = body.querySelector<HTMLInputElement>('#nl-label')!;
+  const make = body.querySelector<HTMLButtonElement>('#nl-make')!;
+  make.onclick = async () => {
+    const label = input.value.trim();
+    if (!label) { input.focus(); return; }
+    make.disabled = true;
+    try {
+      const res = await apiJson<{ link: string; label: string }>(`/collections/${ctx.id}/tokens`, ctx.token, {
+        method: 'POST', body: JSON.stringify({ permission: 'edit', label }),
+      });
+      const fresh = body.querySelector<HTMLElement>('#nl-new')!;
+      fresh.innerHTML = shareItemHtml('named', `🔗 ${res.label}`, res.link, 'Shown once. Copy or share it now; the list below only keeps its name.');
+      wireShareItems(fresh, title);
+      input.value = '';
+      await render();
+    } catch (e) { toast((e as Error).message); }
+    make.disabled = false;
+  };
+  await render();
 }
 
 // Data: download every point, or bulk-import a file.
@@ -1177,7 +1238,7 @@ function clearHighlight(): void {
 function openReview(idx: number): void {
   const f = reviewFeats[idx];
   if (!f) return;
-  const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; [k: string]: unknown };
+  const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; _link_label?: string | null; [k: string]: unknown };
   const st = p._status || 'published';
 
   const c = representativeCoord(f.geometry);
@@ -1191,7 +1252,8 @@ function openReview(idx: number): void {
   const attrs = attrRowsHtml(p, 'attr');
   // meta line: who (source or a named contributor; nothing for an unnamed capture) + place
   const who = recordWho(p._source, p._contributor);
-  const meta = [who ? escapeHtml(who) : '', fmtAdminCtx(p._admin_ctx ?? null)].filter(Boolean).join(' · ');
+  const via = recordVia(p._link_label);
+  const meta = [who ? escapeHtml(who) : '', via ? escapeHtml(via) : '', fmtAdminCtx(p._admin_ctx ?? null)].filter(Boolean).join(' · ');
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
     ${GRAB}

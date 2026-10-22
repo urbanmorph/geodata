@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho } from '../src/review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia } from '../src/review';
 
 const F = (status?: string) => ({ properties: status ? { _status: status } : {} });
 
@@ -72,5 +72,16 @@ describe('popupActions', () => {
       expect(a.label).toBeTruthy();
       expect(a.cls).toBeTruthy();
     }
+  });
+});
+
+describe('recordVia — which named link added a record (admin only)', () => {
+  it('names the labelled link', () => {
+    expect(recordVia('Ward 12 team')).toBe('via Ward 12 team');
+  });
+  it('shows nothing for an unlabelled or unknown link', () => {
+    expect(recordVia(null)).toBe('');
+    expect(recordVia(undefined)).toBe('');
+    expect(recordVia('  ')).toBe('');
   });
 });
