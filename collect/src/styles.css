@@ -157,6 +157,24 @@ textarea { min-height: 92px; line-height: 1.5; }
 /* Reserve one line so the async "N points collected" stat fills this space
    instead of pushing the CTA + maps list down when it loads (a layout shift). */
 .masthead-stat { color: var(--muted); font-size: 13px; margin: 2px 0 14px; min-height: 1.2rem; }
+/* "Install app": small secondary pill under the masthead, shown only where install
+   is possible (src/landing.ts + web/src/install-button.ts). */
+button.install-app {
+  min-height: 36px; padding: 0 14px; margin: 0 0 14px; border-radius: var(--radius-pill);
+  font-size: 13px; color: var(--accent); background: var(--accent-fill); border-color: var(--accent);
+}
+button.install-app[hidden] { display: none; }
+dialog.install-guide {
+  max-width: min(360px, calc(100vw - 32px)); padding: 20px;
+  color: var(--fg); background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius);
+  box-shadow: var(--shadow-pop);
+}
+dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
+.install-guide h2 { margin: 0 0 12px; font-size: 17px; }
+.install-guide ol { margin: 0 0 16px; padding-left: 20px; color: var(--muted); font-size: 15px; }
+.install-guide li + li { margin-top: 8px; }
+.install-guide form { display: flex; justify-content: flex-end; }
+.install-guide button { background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; }
 .masthead-stat strong { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 .warn { color: var(--danger); font-size: 13px; line-height: 1.5; }
 /* attention box — pending points need approval to be visible/exported */

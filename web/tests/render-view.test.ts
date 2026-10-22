@@ -27,6 +27,11 @@ function row(over: Partial<SubmissionView> = {}): SubmissionView {
 const ORIGIN = 'https://example.com';
 
 describe('renderViewPage', () => {
+  it('links the web app manifest so the page is installable', () => {
+    const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
+    expect(html).toContain('<link rel="manifest" href="/manifest.webmanifest" />');
+  });
+
   it('puts the submission name in the title', () => {
     const html = renderViewPage({ submission: row(), origin: ORIGIN, ratingsCount: 0, alreadyRated: false });
     expect(html).toMatch(/<title>Mumbai bike lanes · bharatlas<\/title>/);

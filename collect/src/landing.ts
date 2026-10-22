@@ -14,11 +14,21 @@ import { myMaps, saveOwnedMap, replaceMaps, mergeMaps, openLink, type SavedMap, 
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { linksMailtoHref, linksText } from './share';
 import { shareItemHtml, wireShareItems, toggleQr } from './share-ui';
+import { mountInstallButton } from '../../web/src/install-button';
 import { syncSecretFrom } from './keyring';
 import { syncState, syncDevice, turnOnSync, joinSync, turnOffSync, mySyncLink, startAutoSync, addPasskey, unlockWithPasskey, SyncGone } from './syncing';
 import { passkeysAvailable } from './passkey';
 
 const app = document.getElementById('app')!;
+
+// "Install app": one element, mounted once, re-inserted each time home() redraws,
+// so a captured install prompt survives trips to the create form and back.
+const installBtn = document.createElement('button');
+installBtn.type = 'button';
+installBtn.className = 'install-app';
+installBtn.hidden = true;
+installBtn.textContent = 'Install app';
+mountInstallButton(installBtn, { appName: 'collect' });
 
 // Public masthead counter (like the atlas's download counts): points collected
 // so far, best-effort. Hidden until there's something to show.
@@ -67,6 +77,7 @@ function home() {
       <h1>Make a map, collect together</h1>
       <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Download the data, or publish it to the bharatlas catalog when it's ready.</p>
       <p id="masthead-stat" class="masthead-stat"></p>
+      <span id="install-slot"></span>
       <button class="primary" id="start">＋ Make a new map</button>
       <div style="height:18px"></div>
       ${mapsSection()}
@@ -81,6 +92,7 @@ function home() {
         <span><a href="https://bharatlas.com/about">About</a> · <a href="https://bharatlas.com/terms">Terms</a></span>
       </footer>
     </div>`;
+  app.querySelector('#install-slot')!.replaceWith(installBtn);
   app.querySelector<HTMLButtonElement>('#start')!.onclick = createForm;
   void fillMasthead();
   renderSync();

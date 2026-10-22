@@ -155,6 +155,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta name="twitter:description" content="${esc(description)}" />
     <meta name="twitter:image" content="${PUBLIC_ORIGIN}/og/c/${esc(s.id)}.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
     <style>
       /* Edge-rendered — inlines the same tokens as scripts/shared-chrome.mjs.

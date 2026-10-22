@@ -1,0 +1,17 @@
+{
+  "id": "/",
+  "name": "collect · bharatlas",
+  "short_name": "collect",
+  "description": "Design a small map form, share a link, and collect points together, then publish to the bharatlas open atlas. No accounts.",
+  "lang": "en",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "theme_color": "#ffffff",
+  "background_color": "#ffffff",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
