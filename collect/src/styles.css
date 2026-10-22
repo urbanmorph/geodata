@@ -115,7 +115,7 @@ button.accent { border-color: var(--accent); color: var(--accent); background: v
 button.danger { border-color: var(--line-strong); color: var(--danger); background: var(--card); }
 
 /* equal full-width stacked actions (Save / Restore) */
-.wide { width: 100%; }
+.wide { width: 100%; white-space: normal; } /* full-width: wrap, never overflow a phone */
 .wide + .wide { margin-top: 8px; }
 
 /* inputs share the button metrics */
