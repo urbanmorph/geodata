@@ -10,7 +10,7 @@ import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { inferSchema } from './import/infer';
 import { autoMapping, buildRecords } from './import/build';
 import type { Field } from './schema/validate-record';
-import { myMaps, saveOwnedMap, replaceMaps, openLink, type SavedMap, type MapRole } from './maps-store';
+import { myMaps, saveOwnedMap, replaceMaps, mergeMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { linksMailtoHref, linksText } from './share';
 import { shareItemHtml, wireShareItems, toggleQr } from './share-ui';
@@ -42,8 +42,18 @@ function mapsSection(): string {
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.name || 'Untitled map')} <span class="pill pill--${m.role}">${ROLE_PILL[m.role]}</span></span>
           <a class="btn" href="${openLink(m) || '#'}">Open</a>
           ${m.links.admin ? `<a class="btn" href="${m.links.admin}">Manage</a>` : ''}
-        </div>`).join('')
+        </div>${recordsList(m)}`).join('')
       : '<p class="empty">No maps yet. Make one above, or open a link someone shared, and it will appear here to reopen anytime.</p>'}`;
+}
+
+// Records you added to a map, each with its own edit link (edit / delete /
+// remove your name). Collapsed so a long list doesn't push the maps apart.
+function recordsList(m: SavedMap): string {
+  const recs = m.records ?? [];
+  if (!recs.length) return '';
+  return `<details class="my-records"><summary class="hint">Your additions (${recs.length})</summary>
+    ${recs.map((r) => `<a class="my-record" href="${escapeHtml(r.link)}">${escapeHtml(r.label || 'Your point')}</a>`).join('')}
+  </details>`;
 }
 
 // The landing: a list of your maps + a "start collecting" CTA into the create form.
@@ -60,7 +70,7 @@ function home() {
       <div style="height:14px"></div>
       <button id="export" class="wide">⬇ Save my map links</button>
       <label class="btn wide" style="cursor:pointer">⬆ Restore map links<input id="import" type="file" accept="application/json" hidden></label>
-      <p class="hint">This file holds the <strong>links</strong> to your maps (your admin access), not the points people collect. With no accounts, it's how you reach your maps again from another device or browser.</p>
+      <p class="hint">This file holds the <strong>links</strong> to your maps (your admin access) and to the points you added, not the points other people collect. With no accounts, it's how you reach your maps again from another device or browser.</p>
       <p id="imp-err" class="warn"></p>
       <footer class="foot-note">
         <span>Part of <a href="https://bharatlas.com">bharatlas</a>, built for the field and optimised for mobile.</span>
@@ -82,14 +92,7 @@ function home() {
     try {
       const incoming = JSON.parse(await file.text()) as SavedMap[];
       if (!Array.isArray(incoming)) throw new Error('not a maps file');
-      const seen = new Set<string>();
-      const merged = [...incoming, ...myMaps()].filter((m) => {
-        const key = m?.id || m?.links?.admin || m?.links?.edit || m?.links?.view || '';
-        if (!key || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
-      replaceMaps(merged);
+      replaceMaps(mergeMaps(incoming, myMaps()));
       home();
     } catch (ex) {
       app.querySelector('#imp-err')!.textContent = `Couldn't import: ${(ex as Error).message}`;
