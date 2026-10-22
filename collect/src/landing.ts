@@ -131,7 +131,7 @@ function renderSync(note = ''): void {
       <p class="hint">${SYNC_NOTICE}</p>
       ${note ? `<p class="warn">${escapeHtml(note)}</p>` : ''}
       <button class="wide" id="sync-on">🔄 Turn on sync</button>
-      ${passkeysAvailable() ? '<button class="wide" id="pk-unlock" style="margin-top:8px">🔑 Already synced? Unlock with your passkey</button>' : ''}`;
+      ${passkeysAvailable() ? '<button class="wide" id="pk-unlock" style="margin-top:8px">🔑 Unlock with your passkey</button><p class="hint">Already synced on another device? Use the passkey you added there.</p>' : ''}`;
     box.querySelector<HTMLButtonElement>('#sync-on')!.onclick = async (e) => {
       const b = e.currentTarget as HTMLButtonElement;
       b.disabled = true;
@@ -150,7 +150,7 @@ function renderSync(note = ''): void {
     ${shareItemHtml('sync', '🔄 Your sync link (keep private)', mySyncLink()!, 'Open it on your other device, or in the home-screen app, to bring the same maps there. Anyone with it can see and change your saved links.')}
     ${passkeysAvailable() ? (st.passkey
       ? '<p class="hint">🔑 Passkey added. On a new device, choose <strong>Unlock with your passkey</strong> instead of opening the link.</p>'
-      : '<button class="wide" id="pk-add">🔑 Add a passkey <span class="hint">(unlock on a new device with Face ID or fingerprint, no link needed)</span></button>') : ''}
+      : '<button class="wide" id="pk-add">🔑 Add a passkey</button><p class="hint">Unlock on a new device with Face ID or fingerprint, no link needed.</p>') : ''}
     <button class="wide" id="sync-off">Turn off sync and delete the synced copy</button>`;
   wireShareItems(box, 'collect sync link');
   const add = box.querySelector<HTMLButtonElement>('#pk-add');
