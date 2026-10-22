@@ -15,7 +15,8 @@ import { CATEGORIES, OPEN_LICENCES } from './options';
 import { linksMailtoHref, linksText } from './share';
 import { shareItemHtml, wireShareItems, toggleQr } from './share-ui';
 import { syncSecretFrom } from './keyring';
-import { syncState, syncDevice, turnOnSync, joinSync, turnOffSync, mySyncLink, startAutoSync, SyncGone } from './syncing';
+import { syncState, syncDevice, turnOnSync, joinSync, turnOffSync, mySyncLink, startAutoSync, addPasskey, unlockWithPasskey, SyncGone } from './syncing';
+import { passkeysAvailable } from './passkey';
 
 const app = document.getElementById('app')!;
 
@@ -117,11 +118,17 @@ function renderSync(note = ''): void {
     box.innerHTML = `<label>Sync across your devices <span class="hint">(optional)</span></label>
       <p class="hint">${SYNC_NOTICE}</p>
       ${note ? `<p class="warn">${escapeHtml(note)}</p>` : ''}
-      <button class="wide" id="sync-on">🔄 Turn on sync</button>`;
+      <button class="wide" id="sync-on">🔄 Turn on sync</button>
+      ${passkeysAvailable() ? '<button class="wide" id="pk-unlock" style="margin-top:8px">🔑 Already synced? Unlock with your passkey</button>' : ''}`;
     box.querySelector<HTMLButtonElement>('#sync-on')!.onclick = async (e) => {
       const b = e.currentTarget as HTMLButtonElement;
       b.disabled = true;
       try { await turnOnSync(); home(); } catch (ex) { renderSync((ex as Error).message); }
+    };
+    const unlock = box.querySelector<HTMLButtonElement>('#pk-unlock');
+    if (unlock) unlock.onclick = async () => {
+      unlock.disabled = true;
+      try { await unlockWithPasskey(); home(); } catch (ex) { renderSync(passkeyError(ex)); }
     };
     return;
   }
@@ -129,8 +136,16 @@ function renderSync(note = ''): void {
   box.innerHTML = `<label>Sync is on <span class="hint">(last synced ${escapeHtml(when)})</span></label>
     ${note ? `<p class="warn">${escapeHtml(note)}</p>` : ''}
     ${shareItemHtml('sync', '🔄 Your sync link (keep private)', mySyncLink()!, 'Open it on your other device, or in the home-screen app, to bring the same maps there. Anyone with it can see and change your saved links.')}
+    ${passkeysAvailable() ? (st.passkey
+      ? '<p class="hint">🔑 Passkey added. On a new device, choose <strong>Unlock with your passkey</strong> instead of opening the link.</p>'
+      : '<button class="wide" id="pk-add">🔑 Add a passkey <span class="hint">(unlock on a new device with Face ID or fingerprint, no link needed)</span></button>') : ''}
     <button class="wide" id="sync-off">Turn off sync and delete the synced copy</button>`;
   wireShareItems(box, 'collect sync link');
+  const add = box.querySelector<HTMLButtonElement>('#pk-add');
+  if (add) add.onclick = async () => {
+    add.disabled = true;
+    try { await addPasskey(); renderSync(); } catch (ex) { renderSync(passkeyError(ex)); }
+  };
   let armed = false;
   box.querySelector<HTMLButtonElement>('#sync-off')!.onclick = async (e) => {
     const b = e.currentTarget as HTMLButtonElement;
@@ -138,6 +153,11 @@ function renderSync(note = ''): void {
     b.disabled = true;
     try { await turnOffSync(); renderSync(); } catch (ex) { renderSync((ex as Error).message); }
   };
+}
+
+// The OS sheet's cancel arrives as NotAllowedError; say so plainly.
+function passkeyError(ex: unknown): string {
+  return (ex as Error)?.name === 'NotAllowedError' ? 'Passkey cancelled.' : (ex as Error).message;
 }
 
 // On load: adopt a sync link opened on this device (then strip the secret from
