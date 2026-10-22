@@ -29,9 +29,32 @@ export async function api(path: string, token: string, init?: RequestInit): Prom
   return fetch(`/api/collect/v1${path}`, { ...init, headers });
 }
 
-export async function apiJson<T = unknown>(path: string, token: string, init?: RequestInit): Promise<T> {
-  const res = await api(path, token, init);
+// The JSON body of a response, or its error message thrown.
+async function readJson<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error((body as { error?: string }).error || `HTTP ${res.status}`);
   return body as T;
+}
+
+export async function apiJson<T = unknown>(path: string, token: string, init?: RequestInit): Promise<T> {
+  return readJson<T>(await api(path, token, init));
+}
+
+// For opening a map with no signal: keeps a copy of each successful load and
+// returns it only when the request can't be made at all (fetch throws). A real
+// answer from the server, such as a link that was turned off, is never masked.
+export async function jsonWithOfflineCopy<T>(
+  key: string, request: () => Promise<Response>, store: Storage,
+): Promise<{ data: T; offline: boolean }> {
+  let res: Response;
+  try {
+    res = await request();
+  } catch {
+    const saved = store.getItem(key);
+    if (saved) return { data: JSON.parse(saved) as T, offline: true };
+    throw new Error("You're offline, and this map hasn't been opened on this device with a connection yet.");
+  }
+  const data = await readJson<T>(res);
+  try { store.setItem(key, JSON.stringify(data)); } catch { /* storage full: still works online */ }
+  return { data, offline: false };
 }

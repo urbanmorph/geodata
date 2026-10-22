@@ -18,6 +18,8 @@ import { mountInstallButton } from '../../web/src/install-button';
 import { syncSecretFrom } from './keyring';
 import { syncState, syncDevice, turnOnSync, joinSync, turnOffSync, mySyncLink, startAutoSync, addPasskey, unlockWithPasskey, SyncGone } from './syncing';
 import { passkeysAvailable } from './passkey';
+import { queuedFor, sendWhenOnline, OUTBOX_CHANGED } from './send-queue';
+import './register-sw';
 
 const app = document.getElementById('app')!;
 
@@ -80,7 +82,8 @@ function home() {
       <span id="install-slot"></span>
       <button class="primary" id="start">＋ Make a new map</button>
       <div style="height:18px"></div>
-      ${mapsSection()}
+      <p class="hint" id="outbox-note"></p>
+      <div id="mymaps">${mapsSection()}</div>
       <div style="height:14px"></div>
       <button id="export" class="wide">⬇ Save my map links</button>
       <label class="btn wide" style="cursor:pointer">⬆ Restore map links<input id="import" type="file" accept="application/json" hidden></label>
@@ -95,6 +98,7 @@ function home() {
   app.querySelector('#install-slot')!.replaceWith(installBtn);
   app.querySelector<HTMLButtonElement>('#start')!.onclick = createForm;
   void fillMasthead();
+  void renderQueueNote();
   renderSync();
 
   app.querySelector<HTMLButtonElement>('#export')!.onclick = () => {
@@ -387,8 +391,26 @@ function done(links: Record<string, string>) {
   }
 }
 
+// Points kept on this phone (offline capture). Once one is sent, its edit link
+// joins "Your additions", so the maps list is redrawn too.
+async function renderQueueNote(): Promise<void> {
+  const note = app.querySelector('#outbox-note');
+  if (!note) return;
+  const queued = await queuedFor();
+  const waiting = queued.filter((p) => !p.error).length;
+  const refused = queued.length - waiting;
+  note.textContent = [
+    waiting ? `⏳ ${waiting} point${waiting === 1 ? '' : 's'} kept on this phone, sent as soon as there's signal.` : '',
+    refused ? `${refused} couldn't be sent; open the map to see why.` : '',
+  ].join(' ');
+  const list = app.querySelector('#mymaps');
+  if (list) list.innerHTML = mapsSection();
+}
+window.addEventListener(OUTBOX_CHANGED, () => void renderQueueNote());
+
 home();
 startAutoSync();
+sendWhenOnline();
 void bootSync();
 // A sync link pasted into an already-open tab only changes the fragment.
 window.addEventListener('hashchange', () => { if (syncSecretFrom(location.hash)) void bootSync(); });

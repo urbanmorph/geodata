@@ -332,11 +332,19 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
 
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
+  if (body.client_id !== undefined && !(typeof body.client_id === 'string' && CLIENT_ID.test(body.client_id))) {
+    return bad(400, 'client_id must be 16 to 64 letters, digits, - or _');
+  }
+  const clientKey = typeof body.client_id === 'string' ? await hashToken(body.client_id) : null;
 
   if (!(await turnstileOk(env, body.turnstile_token))) {
     deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'captcha', collection_id: id, ip_hash: ipHash });
     return bad(403, 'captcha failed');
   }
+  // A repeat of a queued point that already saved: before the rate limit, so a
+  // retry never spends the contributor's hourly budget.
+  const seen = clientKey && (await db.recordByClientKey(env.DB, id, clientKey));
+  if (seen) return resendRecord(env, seen);
   if (!(await checkRecordRate(env.DB, ipHash))) {
     deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'rateLimit', collection_id: id, ip_hash: ipHash });
     return bad(429, 'rate limit: 200 records per hour');
@@ -367,18 +375,26 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   const recId = nanoid(10);
   const recToken = generateRecordToken();
 
-  await db.insertRecord(env.DB, {
-    id: recId,
-    collectionId: id,
-    status,
-    geometry: JSON.stringify(geometry),
-    properties: JSON.stringify(validated.properties),
-    admin_ctx: null, // filled out of band below (never blocks the write)
-    contributor,
-    edit_token_hash: await hashToken(recToken),
-    ip_hash: ipHash,
-    token_id: via!.id,
-  });
+  try {
+    await db.insertRecord(env.DB, {
+      id: recId,
+      collectionId: id,
+      status,
+      geometry: JSON.stringify(geometry),
+      properties: JSON.stringify(validated.properties),
+      admin_ctx: null, // filled out of band below (never blocks the write)
+      contributor,
+      edit_token_hash: await hashToken(recToken),
+      ip_hash: ipHash,
+      token_id: via!.id,
+      client_key_hash: clientKey,
+    });
+  } catch (e) {
+    // Two repeats raced past the lookup; the unique index kept one. Return it.
+    const raced = clientKey && (await db.recordByClientKey(env.DB, id, clientKey));
+    if (raced) return resendRecord(env, raced);
+    throw e;
+  }
   await db.touchCollection(env.DB, id);
 
   const task = enrichRecord(env, recId, geometry).catch(() => {});
@@ -386,6 +402,17 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
 
   deferLog(defer, env.DB, { event: 'contribute', outcome: 'ok', collection_id: id, ip_hash: ipHash });
   return json(200, { id: recId, status, edit_token: recToken });
+}
+
+// A queued point sent again (offline capture queue). Only the hash of its first
+// edit token is stored, so the phone gets a new one; the old one stops working.
+// Holding the client_id is the proof: it never leaves the phone that made the point.
+const CLIENT_ID = /^[A-Za-z0-9_-]{16,64}$/;
+
+async function resendRecord(env: Env, rec: { id: string; status: string }): Promise<Response> {
+  const token = generateRecordToken();
+  await db.setRecordTokenHash(env.DB, rec.id, await hashToken(token));
+  return json(200, { id: rec.id, status: rec.status, edit_token: token });
 }
 
 // ---- POST /records/:id/moderate --------------------------------------------
