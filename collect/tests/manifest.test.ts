@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { manifestProblems, manifestContentType, readManifest, MANIFEST_LINK } from '../../web/tests/helpers/manifest-checks';
+import { manifestProblems, manifestContentType, readManifest, screenshotProblems, MANIFEST_LINK } from '../../web/tests/helpers/manifest-checks';
 
 const root = resolve(__dirname, '..');
 const pub = resolve(root, 'public');
@@ -14,6 +14,10 @@ describe('collect web app manifest', () => {
     expect(m.id).toBe('/');
     expect(m.scope).toBe('/'); // map links (/c/…) open inside the installed app too
     expect(m.short_name).toBe('collect');
+  });
+
+  it('has narrow + wide screenshots for the richer install dialog', () => {
+    expect(screenshotProblems(pub)).toEqual([]);
   });
 
   it('is served as application/manifest+json', () => {
