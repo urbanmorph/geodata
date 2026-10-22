@@ -4,9 +4,10 @@
 import { api } from './api';
 import { deriveKeys, newSecret, syncNow, syncLink, SyncGone, type KeyringApi } from './keyring';
 import { myMaps, replaceMaps, MAPS_CHANGED } from './maps-store';
+import { createPasskeyPrf, passkeyPrf, storeWrappedSecret, recoverSecret, type PasskeyHandle } from './passkey';
 
 const KEY = 'collect:keyring';
-export interface SyncState { secret: string; synced_at?: string; }
+export interface SyncState { secret: string; synced_at?: string; passkey?: PasskeyHandle; }
 
 export { SyncGone };
 
@@ -40,14 +41,18 @@ export async function syncDevice(): Promise<void> {
   const st = syncState();
   if (!st) return;
   try {
-    const out = await syncNow(await deriveKeys(st.secret), myMaps(), http, { joined: !!st.synced_at });
+    // Joined before (or unlocked by passkey): a missing copy means it was turned off.
+    const out = await syncNow(await deriveKeys(st.secret), myMaps(), http, { joined: !!st.synced_at || !!st.passkey });
     applying = true;
     replaceMaps(out.maps);
     applying = false;
     saveState({ ...st, synced_at: new Date().toISOString() });
   } catch (e) {
     applying = false;
-    if (e instanceof SyncGone) saveState(null);
+    if (e instanceof SyncGone) {
+      if (st.passkey) await deleteBlob(st.passkey).catch(() => {}); // the passkey would only unlock a dead copy
+      saveState(null);
+    }
     throw e;
   }
 }
@@ -63,15 +68,36 @@ export async function joinSync(secret: string): Promise<void> {
   await syncDevice();
 }
 
-// Turn off everywhere: delete the server copy, then forget the secret here.
-// Other devices learn on their next write (410) and stop too.
+async function deleteBlob(k: { id: string; writeKey: string }): Promise<void> {
+  const r = await api(`/keyrings/${k.id}`, k.writeKey, { method: 'DELETE' });
+  if (!r.ok) throw new Error(`couldn't delete the synced copy (HTTP ${r.status})`);
+}
+
+// Turn off everywhere: delete the server copy (and this device's passkey
+// wrapper), then forget the secret here. Other devices learn on their next
+// sync (410 / missing copy) and stop too.
 export async function turnOffSync(): Promise<void> {
   const st = syncState();
   if (!st) return;
-  const k = await deriveKeys(st.secret);
-  const r = await api(`/keyrings/${k.id}`, k.writeKey, { method: 'DELETE' });
-  if (!r.ok) throw new Error(`couldn't delete the synced copy (HTTP ${r.status})`);
+  await deleteBlob(await deriveKeys(st.secret));
+  if (st.passkey) await deleteBlob(st.passkey).catch(() => {});
   saveState(null);
+}
+
+// Sync is on: create a passkey that can unlock it on a new device.
+export async function addPasskey(): Promise<void> {
+  const st = syncState();
+  if (!st) throw new Error('turn on sync first');
+  const handle = await storeWrappedSecret(await createPasskeyPrf(), st.secret, http);
+  saveState({ ...st, passkey: handle });
+}
+
+// New device: use an existing passkey to recover the secret and join.
+export async function unlockWithPasskey(): Promise<void> {
+  const found = await recoverSecret(await passkeyPrf(), http);
+  if (!found) throw new Error('no synced copy for this passkey (it may have been turned off)');
+  saveState({ secret: found.secret, passkey: found.handle });
+  await syncDevice();
 }
 
 export function mySyncLink(): string | null {

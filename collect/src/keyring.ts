@@ -57,19 +57,28 @@ export async function deriveKeysFrom(material: Uint8Array): Promise<KeyringKeys>
   return { id, writeKey, encKey };
 }
 
-export async function seal(encKey: CryptoKey, maps: SavedMap[]): Promise<string> {
+// AES-GCM over any JSON document: base64url(iv || ciphertext), fresh IV each time.
+export async function sealJson(encKey: CryptoKey, doc: unknown): Promise<string> {
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, encKey, enc.encode(JSON.stringify({ v: 1, maps }))));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, encKey, enc.encode(JSON.stringify(doc))));
   const out = new Uint8Array(iv.length + ct.length);
   out.set(iv);
   out.set(ct, iv.length);
   return b64url(out);
 }
 
-export async function unseal(encKey: CryptoKey, blob: string): Promise<SavedMap[]> {
+export async function unsealJson<T>(encKey: CryptoKey, blob: string): Promise<T> {
   const bytes = fromB64url(blob);
   const pt = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: bytes.slice(0, 12) }, encKey, bytes.slice(12));
-  const doc = JSON.parse(new TextDecoder().decode(pt)) as { v: number; maps: SavedMap[] };
+  return JSON.parse(new TextDecoder().decode(pt)) as T;
+}
+
+export function seal(encKey: CryptoKey, maps: SavedMap[]): Promise<string> {
+  return sealJson(encKey, { v: 1, maps });
+}
+
+export async function unseal(encKey: CryptoKey, blob: string): Promise<SavedMap[]> {
+  const doc = await unsealJson<{ v: number; maps: SavedMap[] }>(encKey, blob);
   if (doc.v !== 1 || !Array.isArray(doc.maps)) throw new Error('unknown keyring format');
   return doc.maps;
 }
