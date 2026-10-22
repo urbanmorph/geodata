@@ -20,7 +20,7 @@ import { escapeHtml } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
-import { rememberMap } from './maps-store';
+import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
 import { linksMailtoHref, type MapLinks } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
@@ -619,6 +619,9 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
       verts = []; redrawDraw();
       toast(meta.moderation ? 'Added, pending review ✓' : 'Added ✓');
       const editUrl = `${location.origin}/c/${ctx.id}/r/${res.id}#${res.edit_token}`;
+      // Keep the record's edit link: it's the contributor's only way back to
+      // edit, delete or de-identify it (no accounts).
+      rememberRecord(ctx.id, meta.name, { id: res.id, label: recordLabel(valid.properties, noun), link: editUrl });
       lastAdded = `✓ Added. <a href="${editUrl}">edit this ${noun}</a>`;
       renderPlaceBar(modes); // back to the map, ready for the next one
     } catch (e) {
@@ -1282,6 +1285,8 @@ async function recordEditor(): Promise<void> {
   const isPoint = rec.geometry.type === 'Point';
   const noun = nounFor(rec.geometry.type);
   const center = representativeCoord(rec.geometry) ?? INDIA_CENTER;
+  // Opened from an emailed/copied edit link: save it to "Your maps" too.
+  rememberRecord(ctx.id, rec.collection_name, { id: rec.id, label: recordLabel(rec.properties, noun), link: location.href });
 
   app.innerHTML = `
     <div class="topbar"><a href="/c/${ctx.id}#${ctx.token}" aria-label="Back">←</a><span>Your ${noun}</span>
@@ -1398,6 +1403,7 @@ async function recordEditor(): Promise<void> {
     btn.disabled = true;
     try {
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
+      forgetRecord(ctx.id, ctx.recordId!);
       app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="/c/${ctx.id}#${ctx.token}">← Back to the map</a></div>`;
     } catch (e) { toast((e as Error).message); btn.disabled = false; }
   };

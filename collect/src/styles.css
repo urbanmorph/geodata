@@ -179,6 +179,14 @@ textarea { min-height: 92px; line-height: 1.5; }
   background: var(--surface); padding: 9px 11px; border-radius: 9px; font-size: 12px; color: var(--muted);
 }
 .link-box .btn, .link-box button { min-height: 40px; padding: 0 12px; }
+/* landing: a map's own additions (record edit links), collapsed under it */
+.my-records { margin: -4px 0 8px 10px; }
+.my-records summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; }
+.my-record {
+  display: block; padding: 8px 10px; margin: 4px 0; border-left: 2px solid var(--line);
+  color: var(--accent); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.my-record:hover { border-left-color: var(--accent); }
 /* schema builder: a saved field's name is a button — tap it to edit the field */
 .link-box--editing { border-color: var(--accent); background: var(--accent-fill); }
 .sb-name {
