@@ -17,3 +17,10 @@
 # Private map pages: keep them out of search (belt-and-suspenders with c.html's meta noindex).
 /c/*
   X-Robots-Tag: noindex
+
+# Web app manifest (the "Install app" button needs it). Explicit type so the
+# browser never has to guess from the .webmanifest extension; short cache so a
+# name/icon change reaches installs within the hour.
+/manifest.webmanifest
+  Content-Type: application/manifest+json
+  Cache-Control: public, max-age=3600

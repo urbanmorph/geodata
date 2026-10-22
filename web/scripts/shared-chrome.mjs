@@ -84,6 +84,42 @@ export const TOKENS = `
     .nav-toggle:checked ~ .site-nav { display: flex; }
     .site-nav a { width: 100%; padding: 12px 4px; min-height: 48px; border-top: 1px solid var(--line); }
   }
+  /* "Install app": shown by src/install.ts only where install is possible.
+     Desktop: after the nav links. Mobile: between the wordmark and the burger. */
+  .site-nav { margin-left: auto; }
+  .install-app {
+    display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--sp-3);
+    font: inherit; font-size: var(--fs-md); font-weight: 500; color: var(--accent);
+    background: transparent; border: 1px solid var(--line-bright); border-radius: 999px; cursor: pointer;
+  }
+  .install-app:hover { border-color: var(--accent); }
+  .install-app[hidden] { display: none; }
+  @media (max-width: 640px) {
+    .install-app { order: 1; margin-left: auto; }
+    .nav-burger { order: 2; }
+    .site-nav { order: 3; }
+  }
+  dialog.install-guide {
+    max-width: min(360px, calc(100vw - 32px)); padding: var(--sp-5);
+    color: var(--fg); background: var(--bg-elevated);
+    border: 1px solid var(--line); border-radius: var(--radius-xl);
+  }
+  dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
+  /* Reset per-page h2 / li styles (uppercase headings, "›" bullets): the dialog lives on <body>. */
+  .install-guide h2 {
+    margin: 0 0 var(--sp-3); padding: 0; border: 0; font-size: var(--fs-lg); font-weight: 600;
+    text-transform: none; letter-spacing: normal; color: var(--fg);
+  }
+  .install-guide ol { margin: 0 0 var(--sp-4); padding-left: var(--sp-5); list-style: decimal; color: var(--muted-strong); }
+  .install-guide li { padding: 0; }
+  .install-guide li::before { content: none; }
+  .install-guide li + li { margin-top: var(--sp-2); }
+  .install-guide form { display: flex; justify-content: flex-end; }
+  .install-guide button {
+    min-height: 44px; padding: 0 var(--sp-5); font: inherit; font-weight: 500; color: #fff;
+    background: var(--accent-fill); border: 0; border-radius: var(--radius-md); cursor: pointer;
+  }
+  .install-guide button:hover { background: var(--accent-fill-hover); }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
     border-top: 1px solid var(--line);
@@ -115,7 +151,9 @@ export function renderNav(activeKey) {
             `<a href="${l.href}"${l.k === activeKey ? ' data-active' : ''}${l.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${l.label}</a>`,
         ).join('\n        ')}
       </nav>
-    </header>`;
+      <button type="button" id="install-app" class="install-app" hidden>Install app</button>
+    </header>
+    <script type="module" src="/src/install.ts"></script>`;
 }
 
 export const FOOTER = `<footer class="site-footer">
