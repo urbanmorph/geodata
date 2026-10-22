@@ -8,7 +8,7 @@
 import type { Env } from '../types';
 import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
-import { bearer, permissionFor, atLeast } from './auth';
+import { bearer, permissionFor, linkFor, atLeast } from './auth';
 import { checkCreateRate, checkRecordRate, checkKeyDayRate } from './ratelimit';
 import { deferLog } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
@@ -229,17 +229,57 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
   const body = await readJson(req);
   const want = body?.permission;
   if (want !== 'edit' && want !== 'view') return bad(400, 'permission must be edit or view');
+  // Optional name for the link ("Ward 12 team"), so the admin can tell links
+  // apart, see what each added, and revoke one. Absent = unlabelled (as before).
+  let label: string | null = null;
+  if (body?.label !== undefined && body?.label !== null) {
+    if (typeof body.label !== 'string') return bad(400, 'label must be text');
+    label = body.label.trim() || null;
+    if (label && label.length > LINK_LABEL_MAX) return bad(400, `label must be at most ${LINK_LABEL_MAX} characters`);
+  }
 
   const token = generateToken(want);
-  await db.addCollectionToken(env.DB, {
+  const linkId = await db.addCollectionToken(env.DB, {
     collectionId: id,
     prefix: tokenPrefix(token),
     hash: await hashToken(token),
     permission: want,
+    label,
   });
   const origin = new URL(req.url).origin;
   const link = want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`;
-  return json(200, { permission: want, token, link });
+  return json(200, { permission: want, token, link, id: linkId, label });
+}
+
+const LINK_LABEL_MAX = 60;
+
+// ---- GET /collections/:id/tokens --------------------------------------------
+// Admin: every link with its label, state and how many records it added. The
+// token itself is hash-only and never returned here.
+
+export async function listTokens(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const rows = await db.listLinks(env.DB, id);
+  return json(200, {
+    links: rows.map((r) => ({
+      id: r.id, permission: r.permission, label: r.label, active: !!r.is_active, created_at: r.created_at, records: r.records,
+    })),
+  });
+}
+
+// ---- DELETE /collections/:id/tokens/:tokenId ---------------------------------
+// Admin: turn one collect/view link off. Its records stay. Admin links can't be
+// revoked here (the caller would lock themselves out).
+
+export async function revokeToken(env: Env, req: Request, id: string, tokenId: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const link = await db.getLink(env.DB, id, tokenId);
+  if (!link) return bad(404, 'not found');
+  if (link.permission === 'admin') return bad(400, 'admin links cannot be revoked');
+  await db.deactivateLink(env.DB, id, tokenId);
+  return json(200, { id: tokenId, active: false });
 }
 
 // ---- GET /collections/:id/records ------------------------------------------
@@ -258,6 +298,8 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
   const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '500', 10) || 500, 1), 2000);
   const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
   const rows = await db.listRecords(env.DB, id, { status, limit, offset });
+  // Admin only: which link added each record (id + the admin's label for it).
+  const labels = atLeast(perm, 'admin') ? await db.linkLabels(env.DB, id) : null;
 
   const features = rows.map((r) => ({
     type: 'Feature' as const,
@@ -270,6 +312,7 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
       _created_at: r.created_at,
       _admin_ctx: r.admin_ctx ? JSON.parse(r.admin_ctx) : null,
       _source: r.source,
+      ...(labels ? { _link_id: r.token_id ?? null, _link_label: (r.token_id && labels.get(r.token_id)) || null } : {}),
     },
   }));
   return json(200, { type: 'FeatureCollection', features });
@@ -279,7 +322,8 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
 
 export async function addRecord(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const ipHash = await ipHashFor(req, salt(env));
-  const perm = await permissionFor(env.DB, id, bearer(req));
+  const via = await linkFor(env.DB, id, bearer(req));
+  const perm = via?.permission ?? null;
   if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised — need the edit or admin link');
 
   const c = await db.getCollection(env.DB, id);
@@ -333,6 +377,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
     contributor,
     edit_token_hash: await hashToken(recToken),
     ip_hash: ipHash,
+    token_id: via!.id,
   });
   await db.touchCollection(env.DB, id);
 
