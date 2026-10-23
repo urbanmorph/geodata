@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { manifestProblems, manifestContentType, readManifest, MANIFEST_LINK } from './helpers/manifest-checks';
+import { manifestProblems, manifestContentType, readManifest, screenshotProblems, MANIFEST_LINK } from './helpers/manifest-checks';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
 import { renderNav } from '../scripts/shared-chrome.mjs';
 
@@ -9,6 +9,9 @@ const root = resolve(__dirname, '..');
 const pub = resolve(root, 'public');
 
 describe('bharatlas.com web app manifest', () => {
+  it('has narrow + wide screenshots for the richer install dialog (real sizes, within Chrome\'s limits)', () => {
+    expect(screenshotProblems(pub)).toEqual([]);
+  });
   it('meets the install criteria', () => {
     expect(manifestProblems(pub, '#ffffff')).toEqual([]);
     const m = readManifest(pub);
