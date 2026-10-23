@@ -497,3 +497,13 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
 }
+
+/* "No connection: the map background…" note, over the top of the map (offline-notes.ts). */
+.map-note {
+  position: absolute; left: 50%; top: calc(12px + env(safe-area-inset-top)); transform: translateX(-50%);
+  /* between the base-map button (top left) and the zoom buttons (top right) */
+  z-index: 3; width: min(calc(100% - 132px), 30rem); padding: 8px 12px; border-radius: 10px;
+  background: var(--bg); color: var(--fg); box-shadow: var(--shadow-pop);
+  font-size: .85rem; line-height: 1.4; text-align: center;
+}
+

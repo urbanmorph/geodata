@@ -10,6 +10,7 @@ import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, api, apiJson, jsonWithOfflineCopy, type Ctx } from './api';
+import { basemapOfflineNote, isConnectionError } from './offline-notes';
 import { savePoint, queuedFor, discardQueued, sendQueued, sendWhenOnline, OUTBOX_CHANGED, type Saved, type OutboxChange } from './send-queue';
 import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
@@ -277,6 +278,7 @@ async function boot(): Promise<void> {
   map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
   installBasemapSwitcher(initialBasemap);
+  watchBasemapConnection();
   drawReady = false; verts = [];
   allowsShapes = orderedModes(meta.schema.geometry).some((m) => m !== 'point');
   map.on('load', () => {
@@ -500,7 +502,9 @@ let didFit = false; // fit the camera to the data once, on first load (see fitTo
 async function loadRecords(): Promise<void> {
   try {
     // Published-only on the capture map (admin's un-moderated pins live in the queue).
-    const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records?status=published`, ctx.token);
+    // Kept on the phone (up to ~500 KB) so a map opened offline still shows what others added.
+    const { data: fc } = await jsonWithOfflineCopy<{ features: Feature[] }>(
+      `collect:records:${ctx.id}`, () => api(`/collections/${ctx.id}/records?status=published`, ctx.token), localStorage, 500_000);
     recordShapes = [];
     for (const f of fc.features || []) {
       if (f.geometry?.type === 'Point') marker(f.geometry.coordinates);
@@ -509,6 +513,24 @@ async function loadRecords(): Promise<void> {
     if (recordShapes.length) syncRecordShapes();
     fitToFeatures(fc.features || []);
   } catch { /* map still usable */ }
+}
+
+// When the background tiles can't load for lack of a connection, say so over the
+// map (naming the basemap), and that points still save; hide it once back online.
+function watchBasemapConnection(): void {
+  const owner = new Map(BASEMAPS.flatMap((b) => Object.keys(b.sources).map((id) => [id, b] as const)));
+  map.on('error', (e: { sourceId?: string; error?: unknown }) => {
+    const basemap = e.sourceId ? owner.get(e.sourceId) : undefined;
+    if (!basemap || !isConnectionError(e.error, navigator.onLine)) return;
+    let note = document.getElementById('mapnote');
+    if (!note) {
+      note = Object.assign(document.createElement('div'), { id: 'mapnote', className: 'map-note' });
+      note.setAttribute('role', 'status');
+      document.getElementById('map')?.appendChild(note);
+    }
+    note.textContent = basemapOfflineNote(basemap);
+  });
+  window.addEventListener('online', () => document.getElementById('mapnote')?.remove());
 }
 
 // Zoom/pan so all the loaded features sit in the viewport (above the sheet). Runs

@@ -4,6 +4,7 @@ import { isEmbedPath, isViewPath, nextStateOnClose, shouldRestoreCategory } from
 import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
 import { blurFocusWithin } from './focus-utils';
 import { fmtCount } from './format-hints';
+import { showLayerError } from './layer-errors';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
 // injects is NOT removed on hydrate — doing so shrank the body and was the
@@ -53,7 +54,15 @@ async function showMap(layerId: string) {
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
-  const m = await loadMap();
+  let m: Awaited<ReturnType<typeof loadMap>>;
+  try {
+    m = await loadMap();
+  } catch (e) {
+    // The map's own code is a separate download: with no connection it can't load,
+    // so say why instead of leaving "loading map…" up for good.
+    showLayerError(document.getElementById('map')!, e);
+    return;
+  }
   await m.openLayer(layerId, { titleEl: mapTitle });
 }
 

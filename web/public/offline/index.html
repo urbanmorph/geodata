@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex">
+<title>You're offline · bharatlas</title>
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<style>
+  :root{color-scheme:light dark;--bg:#ffffff;--fg:#0a0a0a;--muted:#525252;--accent:#4f46e5;--line:#e5e5e5}
+  @media (prefers-color-scheme: dark){:root{--bg:#0a0a0a;--fg:#ededed;--muted:#a3a3a3;--accent:#818cf8;--line:#262626}}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--fg);
+    font:16px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
+  main{max-width:32rem;text-align:center}
+  .brand{font-weight:700;letter-spacing:-.02em;color:var(--fg);text-decoration:none}
+  h1{font-size:1.7rem;letter-spacing:-.02em;margin:1.2rem 0 .5rem}
+  p{color:var(--muted);margin:0 0 1.5rem}
+  .links a{display:inline-block;margin:.25rem;padding:.6rem 1.1rem;border-radius:999px;border:1px solid var(--line);color:var(--fg);text-decoration:none;font-weight:600}
+  .links a.go{background:var(--accent);border-color:var(--accent);color:#fff}
+</style>
+</head>
+<body>
+<main>
+  <a class="brand" href="/">bharatlas</a>
+  <h1>You're offline</h1>
+  <p>bharatlas needs a connection: its maps and datasets load from the internet. Try again when you're back online.</p>
+  <div class="links"><a class="go" href="">Try again</a><a href="/">Home</a></div>
+</main>
+</body>
+</html>

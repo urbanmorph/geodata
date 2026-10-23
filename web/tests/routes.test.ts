@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { readdirSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { isKnownRoute, STATIC_PAGES } from '../functions/lib/routes';
+import { isKnownRoute, STATIC_PAGES, PUBLIC_PAGES } from '../functions/lib/routes';
 
 const WEB = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -50,3 +50,16 @@ describe('isKnownRoute', () => {
     expect(templatePages).toEqual([...STATIC_PAGES].sort());
   });
 });
+
+describe('pages served straight from public/ (not prerendered)', () => {
+  it('the offline page is served, not turned into a 404 (the offline worker caches it)', () => {
+    expect(isKnownRoute('/offline/')).toBe(true);
+    expect(isKnownRoute('/offline')).toBe(true);
+  });
+  it('every one exists as public/<name>/index.html', () => {
+    for (const name of PUBLIC_PAGES) {
+      expect(existsSync(resolve(WEB, 'public', name, 'index.html')), name).toBe(true);
+    }
+  });
+});
+

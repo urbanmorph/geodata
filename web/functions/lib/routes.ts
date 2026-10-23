@@ -13,6 +13,10 @@ export const STATIC_PAGES = new Set<string>([
   '', 'about', 'docs', 'mcp', 'preview', 'privacy', 'terms',
 ]);
 
+/** Pages served straight from public/<name>/index.html, not prerendered: the
+ *  offline page (cached by public/sw.js and shown when there's no connection). */
+export const PUBLIC_PAGES = new Set<string>(['offline']);
+
 /** First path segment owned by a Pages Function or a _redirects rule. These
  *  resolve themselves — the function returns its own status (including its own
  *  404 for a bad /view/<id>), the redirect returns 301 — so never police them. */
@@ -32,5 +36,6 @@ export function isKnownRoute(pathname: string): boolean {
   if (segs[segs.length - 1].includes('.')) return true;            // file asset (*.js, *.png, robots.txt …)
   if (ROUTE_PREFIXES.has(segs[0])) return true;                    // a function / redirect owns this subtree
   if (segs.length === 1 && STATIC_PAGES.has(segs[0])) return true; // a prerendered page
+  if (segs.length === 1 && PUBLIC_PAGES.has(segs[0])) return true; // a page in public/
   return false;
 }

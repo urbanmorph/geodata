@@ -8,6 +8,7 @@ import { escapeHtml } from './util';
 import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
 import { LIBERTY } from '../../shared/liberty';
+import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
 import { type ActiveFilter, type MaplibreFilter } from './filter-where';
@@ -975,11 +976,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
       });
     } catch (e) {
       console.error('attachData failed', e);
-      const c = document.getElementById('map')!;
-      const err = document.createElement('div');
-      err.id = 'map-loading';
-      err.textContent = `failed to load layer: ${(e as Error).message}`;
-      c.appendChild(err);
+      showLayerError(document.getElementById('map')!, e);
     }
   });
 }

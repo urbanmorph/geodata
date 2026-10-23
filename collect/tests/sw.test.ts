@@ -122,11 +122,17 @@ describe('collect offline worker', () => {
     expect(await text(w.page('/c/abc123'))).toBe('app shell v2');
   });
 
-  it('offline, an unknown page gets a plain offline reply, not an error page', async () => {
+  it('offline, an unknown page gets collect\'s own offline page (styled, with a way home), not an error page', async () => {
     w.state.online = false;
     const res = (await w.page('/nowhere'))!;
     expect(res.status).toBe(503);
-    expect(await res.text()).toMatch(/offline/i);
+    expect(res.headers.get('content-type')).toMatch(/^text\/html/);
+    const html = await res.text();
+    expect(html).toMatch(/<h1>You're offline<\/h1>/);
+    expect(html).toContain('<meta name="viewport"');
+    expect(html).toContain('prefers-color-scheme: dark');
+    expect(html).toMatch(/<a [^>]*href="\/"/);
+    expect(html).toMatch(/<a [^>]*href=""[^>]*>Try again/);
   });
 
   it('hashed app files come from the cache; a copy of the wrong type is refetched', async () => {

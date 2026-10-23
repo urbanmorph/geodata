@@ -37,3 +37,17 @@ describe('jsonWithOfflineCopy', () => {
     await expect(jsonWithOfflineCopy('k', online({ error: 'this link was turned off' }, 401), store)).rejects.toThrow('this link was turned off');
   });
 });
+
+describe('jsonWithOfflineCopy with a size limit', () => {
+  it('keeps a copy only while it fits, and drops an outdated one that no longer does', async () => {
+    const store = memoryStorage();
+    await jsonWithOfflineCopy('k', online({ points: ['a'] }), store, 100);
+    expect(store.getItem('k')).not.toBeNull();
+    const big = { points: Array.from({ length: 50 }, (_, i) => `point-${i}`) };
+    expect(await jsonWithOfflineCopy('k', online(big), store, 100)).toEqual({ data: big, offline: false });
+    // Too big to keep: the old copy goes too, so offline never shows an outdated list as current.
+    expect(store.getItem('k')).toBeNull();
+    await expect(jsonWithOfflineCopy('k', offline, store, 100)).rejects.toThrow();
+  });
+});
+

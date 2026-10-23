@@ -44,7 +44,7 @@ export async function apiJson<T = unknown>(path: string, token: string, init?: R
 // returns it only when the request can't be made at all (fetch throws). A real
 // answer from the server, such as a link that was turned off, is never masked.
 export async function jsonWithOfflineCopy<T>(
-  key: string, request: () => Promise<Response>, store: Storage,
+  key: string, request: () => Promise<Response>, store: Storage, maxChars = Infinity,
 ): Promise<{ data: T; offline: boolean }> {
   let res: Response;
   try {
@@ -55,6 +55,11 @@ export async function jsonWithOfflineCopy<T>(
     throw new Error("You're offline, and this map hasn't been opened on this device with a connection yet.");
   }
   const data = await readJson<T>(res);
-  try { store.setItem(key, JSON.stringify(data)); } catch { /* storage full: still works online */ }
+  const copy = JSON.stringify(data);
+  try {
+    // Too big to keep: drop any older copy too, so offline never shows an outdated one as current.
+    if (copy.length > maxChars) store.removeItem(key);
+    else store.setItem(key, copy);
+  } catch { /* storage full: still works online */ }
   return { data, offline: false };
 }
