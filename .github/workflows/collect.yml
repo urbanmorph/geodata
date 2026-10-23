@@ -2,14 +2,39 @@ name: collect
 
 # Separate from ci.yml (which builds/deploys the geodata/web project) so a
 # collect change never rebuilds web and vice versa — the deploy isolation the
-# subdomain exists for. Path-filtered to collect's own tree.
+# subdomain exists for. Path-filtered to collect's own tree, plus the web/
+# files it imports.
 on:
   push:
     branches: [main]
-    paths: ['collect/**', 'shared/**', '.github/workflows/collect.yml']
+    paths:
+      - 'collect/**'
+      - 'shared/**'
+      - '.github/workflows/collect.yml'
+      # web/ files collect imports (collect/tests/workflow-paths.test.ts keeps this list complete)
+      - 'web/functions/lib/licenses.ts'
+      - 'web/functions/lib/submissions.ts'
+      - 'web/functions/lib/submit-helpers.ts'
+      - 'web/functions/lib/tokens.ts'
+      - 'web/functions/lib/turnstile.ts'
+      - 'web/src/install-button.ts'
+      - 'web/src/util.ts'
+      - 'web/tests/helpers/manifest-checks.ts'
   pull_request:
     branches: [main]
-    paths: ['collect/**', 'shared/**', '.github/workflows/collect.yml']
+    paths:
+      - 'collect/**'
+      - 'shared/**'
+      - '.github/workflows/collect.yml'
+      # web/ files collect imports (collect/tests/workflow-paths.test.ts keeps this list complete)
+      - 'web/functions/lib/licenses.ts'
+      - 'web/functions/lib/submissions.ts'
+      - 'web/functions/lib/submit-helpers.ts'
+      - 'web/functions/lib/tokens.ts'
+      - 'web/functions/lib/turnstile.ts'
+      - 'web/src/install-button.ts'
+      - 'web/src/util.ts'
+      - 'web/tests/helpers/manifest-checks.ts'
   workflow_dispatch:
 
 jobs:
