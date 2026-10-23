@@ -1,8 +1,8 @@
 // Browser side of the opt-in keyring sync (see keyring.ts for the crypto).
 // Holds the secret in localStorage on each device that joined, syncs on page
 // load and shortly after any change to "Your maps", and turns off cleanly.
-import { api } from './api';
-import { deriveKeys, newSecret, syncNow, syncLink, SyncGone, type KeyringApi } from './keyring';
+import { deriveKeys, newSecret, syncNow, syncLink, SyncGone } from './keyring';
+import { keyringHttp } from '../../shared/keyring';
 import { myMaps, replaceMaps, MAPS_CHANGED } from './maps-store';
 import { createPasskeyPrf, passkeyPrf, storeWrappedSecret, recoverSecret, type PasskeyHandle } from './passkey';
 
@@ -18,21 +18,7 @@ function saveState(s: SyncState | null): void {
   try { if (s) localStorage.setItem(KEY, JSON.stringify(s)); else localStorage.removeItem(KEY); } catch { /* best effort */ }
 }
 
-const http: KeyringApi = {
-  async get(id) {
-    const r = await api(`/keyrings/${id}`, '');
-    if (r.status === 404) return null;
-    if (!r.ok) throw new Error(`sync failed (HTTP ${r.status})`);
-    return r.json();
-  },
-  async put(id, writeKey, blob, base) {
-    const r = await api(`/keyrings/${id}`, writeKey, { method: 'PUT', body: JSON.stringify({ blob, base }) });
-    if (r.status === 409) return { conflict: await r.json() };
-    if (r.status === 410) throw new SyncGone('sync was turned off on another device');
-    if (!r.ok) throw new Error(`sync failed (HTTP ${r.status})`);
-    return r.json();
-  },
-};
+const http = keyringHttp('/api/collect/v1');
 
 let applying = false; // our own replaceMaps must not schedule another push
 
@@ -68,10 +54,7 @@ export async function joinSync(secret: string): Promise<void> {
   await syncDevice();
 }
 
-async function deleteBlob(k: { id: string; writeKey: string }): Promise<void> {
-  const r = await api(`/keyrings/${k.id}`, k.writeKey, { method: 'DELETE' });
-  if (!r.ok) throw new Error(`couldn't delete the synced copy (HTTP ${r.status})`);
-}
+const deleteBlob = (k: { id: string; writeKey: string }) => http.delete(k.id, k.writeKey);
 
 // Turn off everywhere: delete the server copy (and this device's passkey
 // wrapper), then forget the secret here. Other devices learn on their next

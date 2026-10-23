@@ -72,6 +72,9 @@ const viewOnly = new URLSearchParams(location.search).has('url');
 // from /world-land.geojson + /india-outline.geojson, served same-origin
 // from R2/Pages so it's reliable.
 import { BASEMAPS } from './basemaps';
+import { submissionSync, syncSecretFrom } from './submission-sync';
+import { renderSubmissionSync } from './submission-sync-ui';
+import { passkeysAvailable } from '../../shared/passkey';
 const minimal = BASEMAPS.find((b) => b.id === 'minimal') ?? BASEMAPS[0];
 const BASE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -556,6 +559,10 @@ function renderSuccess(payload: SuccessPayload): void {
     created_at: Date.now(),
     permission: 'admin',
   });
+  // This admin link is the only way to manage the submission: ask the browser to
+  // keep this site's storage, and send it to the synced copy if sync is on.
+  void navigator.storage?.persist?.().catch(() => {});
+  linksChanged();
 
   // Always navigate via the current origin — in dev the server returns an
   // 8788 (wrangler) URL, but the user is on 5173 (vite). location.origin
@@ -619,9 +626,13 @@ function renderMySubmissions(): void {
   const listEl = document.getElementById('my-subs-list');
   if (!panel || !listEl) return;
   const rows = listSubmissions();
-  if (rows.length === 0) { panel.hidden = true; return; }
+  // Shown even when empty: a new device needs "Unlock with your passkey" here.
   panel.hidden = false;
   const now = Date.now();
+  if (rows.length === 0) {
+    listEl.innerHTML = '<p class="my-subs-empty">None on this device yet.</p>';
+    return;
+  }
   listEl.innerHTML = rows
     .map((r: StoredSubmission) =>
       `<a class="my-subs-row" href="/c/${encodeURIComponent(r.id)}">` +
@@ -688,6 +699,7 @@ function wirePasteBack(): void {
     toggle.setAttribute('aria-expanded', 'false');
     status.textContent = '';
     renderMySubmissions();
+    linksChanged();
   });
 }
 
@@ -708,13 +720,51 @@ async function refreshSummaries(): Promise<void> {
     } catch { /* swallow */ }
     return false;
   }));
-  if (results.some(Boolean)) renderMySubmissions();
+  if (results.some(Boolean)) {
+    renderMySubmissions();
+    linksChanged();
+  }
+}
+
+// ---------- Sync "Your submissions" across devices (submission-sync.ts) ----------
+const subsSync = submissionSync();
+function renderSync(note = ''): void {
+  const box = document.getElementById('subs-sync');
+  if (box) renderSubmissionSync(box, subsSync, { passkeys: passkeysAvailable(), onChange: renderMySubmissions }, note);
+}
+let syncTimer: ReturnType<typeof setTimeout> | undefined;
+/** A link was added or renamed here: push it to the synced copy shortly after. */
+function linksChanged(): void {
+  if (!subsSync.state()) return;
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(() => {
+    subsSync.syncNow().then(() => { renderMySubmissions(); renderSync(); }, (e: Error) => renderSync(e.message));
+  }, 2000);
+}
+// On load: adopt a sync link opened here (then strip the secret from the address
+// bar), or sync if this device already joined.
+async function bootSync(): Promise<void> {
+  const secret = syncSecretFrom(location.hash);
+  try {
+    if (secret) {
+      history.replaceState(null, '', location.pathname + location.search);
+      await subsSync.join(secret);
+    } else if (subsSync.state()) {
+      await subsSync.syncNow();
+    }
+    renderMySubmissions();
+    renderSync();
+  } catch (e) {
+    renderSync((e as Error).message);
+  }
 }
 
 hydrateLegacyTokens();
 renderMySubmissions();
+renderSync();
 wirePasteBack();
 void refreshSummaries();
+void bootSync();
 
 // ---------- Utils --------------------------------------------------------
 function fmtBytes(n: number): string {

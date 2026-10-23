@@ -40,6 +40,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
     'https://cdn.jsdelivr.net',                                     // DuckDB-WASM bundle fetches
     'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev',          // R2 public bucket — catalog parquets, pmtiles
     'https://challenges.cloudflare.com',                            // Turnstile API
+    'https://collect.bharatlas.com',                                // keyring sync of "Your submissions" (collect's /keyrings API)
     'https://extensions.duckdb.org',                                // DuckDB-WASM lazy `parquet` extension fetch
     'https://tiles.openfreemap.org',                                // Streets (Liberty) vector tiles, style sprite, glyphs — via fetch()
     'https://*.tile.opentopomap.org',                               // OpenTopoMap raster tiles — MapLibre loads them via fetch()
