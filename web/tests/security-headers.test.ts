@@ -265,3 +265,12 @@ describe('Security headers — Esri', () => {
   });
 });
 
+describe('Security headers — keyring sync', () => {
+  it('lets /preview reach collect\'s keyring API to sync "Your submissions"', () => {
+    for (const csp of [CSP_STATIC, CSP_HTML]) {
+      const connect = csp.split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src '))!;
+      expect(connect.split(/\s+/)).toContain('https://collect.bharatlas.com');
+    }
+  });
+});
+

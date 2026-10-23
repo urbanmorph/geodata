@@ -113,3 +113,12 @@ describe('syncNow', () => {
     expect(server.writes).toBe(0);
   });
 });
+
+describe('collect\'s keys never change (devices already synced depend on them)', () => {
+  it('a fixed secret still derives the same keyring id and write key', async () => {
+    const k = await deriveKeys('A'.repeat(42) + 'Q');
+    expect(k.id).toBe('7b0673d356ebeb5dcbd79a57676cf64e');
+    expect(k.writeKey).toBe('UEanBxO3dGbN8Gvp-UfaPpgzYZ3y2aFg-5vrZW3yB4w');
+  });
+});
+
