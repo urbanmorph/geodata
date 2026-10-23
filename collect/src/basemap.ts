@@ -9,7 +9,7 @@
 //      watermarks its free tiles. A stored 'positron' maps here.)
 //   2. osm — OpenStreetMap standard (detailed streets, buildings, paths).
 //   3. opentopo — OpenTopoMap (topographic relief).
-//   4. satellite — Esri Imagery.
+//   4. satellite — Esri World Imagery, only when the build has an ArcGIS key.
 //
 // A "Bharatlas Minimal" basemap used to be here; it was dropped because a
 // featureless land/ocean canvas gives a field surveyor nothing to orient by. The
@@ -25,6 +25,9 @@
 import maplibregl from 'maplibre-gl';
 import type { StyleSpecification, SourceSpecification, LayerSpecification } from 'maplibre-gl';
 import { LIBERTY } from '../../shared/liberty';
+import { esriImagerySource } from '../../shared/esri-imagery';
+
+const SATELLITE_TILES = esriImagerySource(import.meta.env?.VITE_ARCGIS_KEY as string | undefined);
 
 export type BasemapId = 'liberty' | 'osm' | 'opentopo' | 'satellite';
 
@@ -38,7 +41,6 @@ export interface Basemap {
 
 const OSM_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const OPENTOPO_ATTRIB = 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)';
-const ESRI_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community';
 
 export const BASEMAPS: Basemap[] = [
   {
@@ -66,16 +68,16 @@ export const BASEMAPS: Basemap[] = [
     },
     layers: [{ id: 'opentopo-base', type: 'raster', source: 'opentopo-tiles' }],
   },
-  {
-    id: 'satellite',
-    name: 'Esri Imagery',
-    hint: 'global satellite imagery',
-    sources: {
-      // Esri's REST tile service uses {z}/{y}/{x} ordering, not OSM's {z}/{x}/{y}.
-      'satellite-tiles': { type: 'raster', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 19, attribution: ESRI_ATTRIB },
-    },
-    layers: [{ id: 'satellite-base', type: 'raster', source: 'satellite-tiles' }],
-  },
+  // Satellite only with an ArcGIS key (shared/esri-imagery.ts): keyless Esri use is not licensed.
+  ...(SATELLITE_TILES
+    ? [{
+        id: 'satellite' as const,
+        name: 'Esri Imagery',
+        hint: 'global satellite imagery · online only',
+        sources: { 'satellite-tiles': SATELLITE_TILES as SourceSpecification },
+        layers: [{ id: 'satellite-base', type: 'raster', source: 'satellite-tiles' } as LayerSpecification],
+      }]
+    : []),
 ];
 
 // India-correct boundary overlay — NOT a switchable basemap: always visible, above

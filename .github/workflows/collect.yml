@@ -34,6 +34,9 @@ jobs:
         env:
           # Public sitekey; the default is the live collect widget key.
           VITE_TURNSTILE_SITEKEY: ${{ secrets.COLLECT_TURNSTILE_SITEKEY || '0x4AAAAAAEUVQ4gS3xN4W2l1' }}
+          # ArcGIS Location Platform key for the satellite basemap (shared/esri-imagery.ts).
+          # Without it (e.g. a fork's PR) the build simply offers no satellite option.
+          VITE_ARCGIS_KEY: ${{ secrets.VITE_ARCGIS_KEY }}
         run: npm run build
 
       # Deploy only on push-to-main / manual. PRs build but don't deploy.

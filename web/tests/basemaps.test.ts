@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   BASEMAPS,
   DEFAULT_BASEMAP,
@@ -20,13 +20,10 @@ class MockStorage implements Storage {
 }
 
 describe('basemaps — registry', () => {
-  it('exposes minimal (default) + Streets (Liberty) + OpenTopoMap + satellite', () => {
-    expect(BASEMAPS.length).toBeGreaterThanOrEqual(4);
+  it('exposes minimal (default) + Streets (Liberty) + OpenTopoMap, and satellite when there is an ArcGIS key', () => {
     const ids = BASEMAPS.map((b) => b.id);
-    expect(ids).toContain('minimal');
-    expect(ids).toContain('liberty');
-    expect(ids).toContain('opentopo');
-    expect(ids).toContain('satellite');
+    expect(ids.slice(0, 3)).toEqual(['minimal', 'liberty', 'opentopo']);
+    expect(ids.length === 3 || ids[3] === 'satellite').toBe(true);
   });
 
   it('opentopo uses OpenTopoMap community tiles (no API key, CC-BY-SA)', () => {
@@ -45,22 +42,20 @@ describe('basemaps — registry', () => {
     }
   });
 
-  it('satellite uses Esri World Imagery (no API key, public web use)', () => {
+  it('satellite, when offered, uses Esri World Imagery through the keyed service, never the keyless one', () => {
     const sat = BASEMAPS.find((b) => b.id === 'satellite');
-    expect(sat).toBeTruthy();
-    for (const src of Object.values(sat!.sources)) {
-      const tiles = (src as { tiles?: string[] }).tiles || [];
-      expect(tiles.length).toBeGreaterThan(0);
-      for (const t of tiles) {
-        expect(t).toMatch(/^https:\/\//);
-        expect(t).toContain('arcgisonline.com');
-        // ESRI REST endpoint uses {z}/{y}/{x} ordering, not the OSM {z}/{x}/{y}.
-        // MapLibre substitutes placeholders verbatim; the template MUST match.
-        expect(t).toContain('{z}/{y}/{x}');
-      }
-      const attr = String((src as { attribution?: string }).attribution || '');
-      expect(attr.toLowerCase()).toContain('esri');
+    if (!sat) return; // no ArcGIS key in this build: the option is simply not offered
+    const tiles = Object.values(sat.sources).flatMap((src) => (src as { tiles?: string[] }).tiles || []);
+    expect(tiles.length).toBeGreaterThan(0);
+    for (const t of tiles) {
+      expect(t.startsWith('https://ibasemaps-api.arcgis.com/')).toBe(true);
+      expect(t).toContain('{z}/{y}/{x}'); // Esri REST ordering
+      expect(t).toMatch(/\?token=.+/);
     }
+  });
+
+  it('nothing is fetched from the keyless Esri service any more', () => {
+    expect(JSON.stringify(BASEMAPS)).not.toContain('services.arcgisonline.com');
   });
 
   it('every entry has a unique id, name, hint, and non-empty sources + layers', () => {
@@ -118,11 +113,6 @@ describe('basemaps — registry', () => {
     expect(JSON.stringify(BASEMAPS)).not.toContain('cartocdn');
   });
 
-  it('credits the satellite imagery as Esri does today (Vantor, not Maxar)', () => {
-    const attr = JSON.stringify(BASEMAPS.find((b) => b.id === 'satellite')!.sources);
-    expect(attr).toContain('Vantor');
-    expect(attr).not.toContain('Maxar');
-  });
 
   it('every external source carries attribution (OSM, OpenFreeMap and Esri all require it)', () => {
     for (const b of BASEMAPS) {
@@ -176,3 +166,28 @@ describe('basemaps — getBasemap', () => {
     expect(getBasemap('what-even' as BasemapId).id).toBe(BASEMAPS[0].id);
   });
 });
+
+describe('basemaps — satellite follows the ArcGIS key', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  const load = async (key: string) => {
+    vi.stubEnv('VITE_ARCGIS_KEY', key);
+    vi.resetModules();
+    return (await import('../src/basemaps')).BASEMAPS.map((b) => b.id);
+  };
+  it('is offered with a key, and left out without one', async () => {
+    expect(await load('a-key')).toContain('satellite');
+    expect(await load('')).not.toContain('satellite');
+  });
+  it('someone who had chosen satellite gets the default when the build has no key', async () => {
+    vi.stubEnv('VITE_ARCGIS_KEY', '');
+    vi.resetModules();
+    const m = await import('../src/basemaps');
+    const storage = new MockStorage();
+    storage.setItem('bharatlas:basemap', 'satellite');
+    expect(m.getStoredBasemap(storage)).toBe(m.DEFAULT_BASEMAP);
+  });
+});
+

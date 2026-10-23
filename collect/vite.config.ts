@@ -6,6 +6,8 @@ import { serviceWorker } from './src/sw/precache';
 // (c.html, served for every /c/<id>[/admin|/view] by functions/c/[[path]].ts).
 // public/ (schema/v1.json) is copied to dist/. dist/ is the Pages output.
 export default defineConfig({
+  // VITE_* build keys (the ArcGIS key) live in one gitignored file: geodata/.env.local.
+  envDir: resolve(__dirname, '..'),
   // Writes dist/sw.js, the offline worker. The map style needs the India outline offline too.
   plugins: [serviceWorker(['/india-outline.geojson'])],
   build: {

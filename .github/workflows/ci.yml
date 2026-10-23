@@ -108,6 +108,9 @@ jobs:
         # just verifying the build doesn't break).
         env:
           TURNSTILE_SITEKEY: ${{ secrets.TURNSTILE_SITEKEY || '1x00000000000000000000AA' }}
+          # ArcGIS Location Platform key for the satellite basemap (shared/esri-imagery.ts).
+          # Without it the build offers no satellite option.
+          VITE_ARCGIS_KEY: ${{ secrets.VITE_ARCGIS_KEY }}
           # Operator precedence in GH expressions: && binds tighter than ||,
           # so the obvious shape `A || B || C && 'remote' || 'local'` parses as
           # `A || B || (C && 'remote') || 'local'` and short-circuits to the
