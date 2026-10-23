@@ -34,6 +34,9 @@
 
 import type { SourceSpecification, LayerSpecification } from 'maplibre-gl';
 import { LIBERTY } from '../../shared/liberty';
+import { esriImagerySource } from '../../shared/esri-imagery';
+
+const SATELLITE_TILES = esriImagerySource(import.meta.env?.VITE_ARCGIS_KEY as string | undefined);
 
 export type BasemapId = 'minimal' | 'liberty' | 'opentopo' | 'satellite';
 
@@ -55,9 +58,6 @@ const OSM_IN_ATTRIB =
 
 const OPENTOPOMAP_ATTRIB =
   'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
-
-const ESRI_IMAGERY_ATTRIB =
-  'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community';
 
 export const BASEMAPS: Basemap[] = [
   {
@@ -183,34 +183,18 @@ export const BASEMAPS: Basemap[] = [
       },
     ],
   },
-  {
-    id: 'satellite',
-    name: 'Esri Imagery',
-    hint: 'global satellite · India state lines overlaid via LGD',
-    sources: {
-      // Esri's World Imagery service — JPEG tiles, no API key required for
-      // public web use, attribution required. Important: Esri's REST tile
-      // service uses {z}/{y}/{x} ordering, not OSM's {z}/{x}/{y}. MapLibre
-      // substitutes placeholders verbatim, so the URL template must reflect
-      // the actual server's ordering — see basemaps.test.ts for the guard.
-      'satellite-tiles': {
-        type: 'raster',
-        tiles: [
-          'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-        ],
-        tileSize: 256,
-        maxzoom: 19,
-        attribution: ESRI_IMAGERY_ATTRIB,
-      },
-    },
-    layers: [
-      {
-        id: 'satellite-base',
-        type: 'raster',
-        source: 'satellite-tiles',
-      },
-    ],
-  },
+  // Satellite only with an ArcGIS key (shared/esri-imagery.ts): keyless Esri use is not licensed.
+  ...(SATELLITE_TILES
+    ? [
+        {
+          id: 'satellite' as const,
+          name: 'Esri Imagery',
+          hint: 'global satellite · India state lines overlaid via LGD · online only',
+          sources: { 'satellite-tiles': SATELLITE_TILES as SourceSpecification },
+          layers: [{ id: 'satellite-base', type: 'raster', source: 'satellite-tiles' } as LayerSpecification],
+        },
+      ]
+    : []),
 ];
 
 export const DEFAULT_BASEMAP: BasemapId = 'minimal';

@@ -79,8 +79,11 @@ describe('no CARTO dependency', () => {
 
 describe('Esri Imagery tile ordering', () => {
   // Esri's REST tile service is {z}/{y}/{x}, not OSM's {z}/{x}/{y}. Guard it.
-  it('satellite source uses y-before-x', () => {
-    const sat = BASEMAPS.find((b) => b.id === 'satellite')!;
+  it('satellite source uses y-before-x', async () => {
+    vi.stubEnv('VITE_ARCGIS_KEY', 'k');
+    vi.resetModules();
+    const sat = (await import('../src/basemap')).BASEMAPS.find((b) => b.id === 'satellite')!;
+    vi.unstubAllEnvs();
     const tiles = (sat.sources['satellite-tiles'] as { tiles: string[] }).tiles;
     expect(tiles[0]).toContain('{z}/{y}/{x}');
   });
@@ -103,21 +106,44 @@ describe('Streets (the default): OpenStreetMap detail to mark points against', (
 });
 
 describe('Esri', () => {
-  it('Esri Light Gray is gone: only the satellite imagery still comes from Esri', () => {
-    const esri = BASEMAPS.filter((b) => JSON.stringify(b.sources).includes('arcgisonline'));
-    expect(esri.map((b) => b.id)).toEqual(['satellite']);
+  it('only satellite comes from Esri, and only through the keyed service', () => {
+    const esri = BASEMAPS.filter((b) => JSON.stringify(b.sources).includes('arcgis'));
+    for (const b of esri) expect(b.id).toBe('satellite');
+    expect(JSON.stringify(BASEMAPS)).not.toContain('services.arcgisonline.com');
     expect(JSON.stringify(BASEMAPS)).not.toContain('Light_Gray');
   });
-  it('credits the satellite imagery as Esri does today (Vantor, not Maxar)', () => {
-    const attr = JSON.stringify(BASEMAPS.find((b) => b.id === 'satellite')!.sources);
-    expect(attr).toContain('Vantor');
-    expect(attr).not.toContain('Maxar');
+});
+
+describe('satellite follows the ArcGIS key', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+  const load = async (key: string) => {
+    vi.stubEnv('VITE_ARCGIS_KEY', key);
+    vi.resetModules();
+    return import('../src/basemap');
+  };
+  it('is offered with a key, from Esri\'s keyed imagery service', async () => {
+    const m = await load('a-key');
+    const sat = m.BASEMAPS.find((b) => b.id === 'satellite')!;
+    const tiles = (sat.sources['satellite-tiles'] as { tiles: string[] }).tiles;
+    expect(tiles[0]).toMatch(/^https:\/\/ibasemaps-api\.arcgis\.com\/.*\{z\}\/\{y\}\/\{x\}\?token=a-key$/);
+  });
+  it('is left out without one, and a map or viewer that had chosen it opens on Streets', async () => {
+    const m = await load('');
+    expect(m.BASEMAPS.map((b) => b.id)).not.toContain('satellite');
+    expect(m.normalizeBasemap('satellite')).toBe('liberty');
   });
 });
 
 describe('content security policy', () => {
   const csp = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
   const directive = (name: string) => (csp.match(new RegExp(`${name} ([^;\\n]*)`))?.[1] ?? '').split(/\s+/);
+  it('lets MapLibre fetch satellite tiles from the keyed Esri service only', () => {
+    expect(directive('connect-src')).toContain('https://ibasemaps-api.arcgis.com');
+    expect(csp).not.toContain('services.arcgisonline.com');
+  });
   it('lets MapLibre fetch the Streets tiles, style sprite and fonts', () => {
     expect(directive('connect-src')).toContain('https://tiles.openfreemap.org');
     expect(directive('img-src')).toContain('https://tiles.openfreemap.org');

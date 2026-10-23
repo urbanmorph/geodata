@@ -144,7 +144,7 @@ describe('Security headers — CSP connect-src reaches the basemap tile CDNs', (
   const TILE_HOSTS = [
     'https://tiles.openfreemap.org', // Streets (Liberty): vector tiles, style sprite, glyphs
     'https://*.tile.opentopomap.org', // OpenTopoMap
-    'https://services.arcgisonline.com', // Esri World Imagery
+    'https://ibasemaps-api.arcgis.com', // Esri World Imagery (keyed)
   ];
 
   const connectSources = (csp: string): string[] => {
@@ -255,6 +255,13 @@ describe('Security headers — no CARTO', () => {
   it('neither CSP allows cartocdn any more (the watermarked basemap is gone)', () => {
     expect(CSP_STATIC).not.toContain('cartocdn');
     expect(CSP_HTML).not.toContain('cartocdn');
+  });
+});
+
+describe('Security headers — Esri', () => {
+  it('allows only the keyed imagery service, not the keyless one', () => {
+    expect(CSP_STATIC).not.toContain('services.arcgisonline.com');
+    expect(CSP_HTML).not.toContain('services.arcgisonline.com');
   });
 });
 

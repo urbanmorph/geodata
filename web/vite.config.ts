@@ -36,6 +36,8 @@ function prerenderPlugin(): Plugin {
 }
 
 export default defineConfig({
+  // VITE_* build keys (the ArcGIS key) live in one gitignored file: geodata/.env.local.
+  envDir: resolve(__dirname, '..'),
   plugins: [prerenderPlugin()],
   // Proxy paths that aren't served by Vite to a background `wrangler pages dev`
   // on 8788. /api/* are Pages Functions (D1, R2, Turnstile). /c/<id> is the

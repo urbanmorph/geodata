@@ -43,7 +43,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
     'https://extensions.duckdb.org',                                // DuckDB-WASM lazy `parquet` extension fetch
     'https://tiles.openfreemap.org',                                // Streets (Liberty) vector tiles, style sprite, glyphs — via fetch()
     'https://*.tile.opentopomap.org',                               // OpenTopoMap raster tiles — MapLibre loads them via fetch()
-    'https://services.arcgisonline.com',                            // Esri World Imagery raster tiles — MapLibre loads them via fetch()
+    'https://ibasemaps-api.arcgis.com',                            // Esri World Imagery (keyed, shared/esri-imagery.ts) — via fetch()
   ]],
   ['img-src', [
     "'self'",
@@ -51,7 +51,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
     'data:',                                       // inline data URIs (favicons, svg)
     'https://tiles.openfreemap.org',               // Streets (Liberty) sprite and relief tiles
     'https://tile.openstreetmap.org',              // OSM basemap tiles
-    'https://services.arcgisonline.com',           // Esri World Imagery basemap tiles
+    'https://ibasemaps-api.arcgis.com',           // Esri World Imagery (keyed, shared/esri-imagery.ts) — via fetch()
     'https://*.tile.opentopomap.org',              // OpenTopoMap basemap tiles
     'https://avatars.githubusercontent.com',       // GitHub avatars in /about credits
   ]],
