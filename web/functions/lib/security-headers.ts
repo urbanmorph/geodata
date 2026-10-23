@@ -41,7 +41,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
     'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev',          // R2 public bucket — catalog parquets, pmtiles
     'https://challenges.cloudflare.com',                            // Turnstile API
     'https://extensions.duckdb.org',                                // DuckDB-WASM lazy `parquet` extension fetch
-    'https://*.basemaps.cartocdn.com',                              // Carto Light raster tiles — MapLibre loads them via fetch()
+    'https://tiles.openfreemap.org',                                // Streets (Liberty) vector tiles, style sprite, glyphs — via fetch()
     'https://*.tile.opentopomap.org',                               // OpenTopoMap raster tiles — MapLibre loads them via fetch()
     'https://services.arcgisonline.com',                            // Esri World Imagery raster tiles — MapLibre loads them via fetch()
   ]],
@@ -49,7 +49,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
     "'self'",
     'blob:',
     'data:',                                       // inline data URIs (favicons, svg)
-    'https://*.basemaps.cartocdn.com',             // Carto Light/Dark basemap tiles
+    'https://tiles.openfreemap.org',               // Streets (Liberty) sprite and relief tiles
     'https://tile.openstreetmap.org',              // OSM basemap tiles
     'https://services.arcgisonline.com',           // Esri World Imagery basemap tiles
     'https://*.tile.opentopomap.org',              // OpenTopoMap basemap tiles

@@ -7,6 +7,7 @@ import {
   getBasemap,
   type BasemapId,
 } from '../src/basemaps';
+import { LIBERTY } from '../../shared/liberty';
 
 class MockStorage implements Storage {
   private m = new Map<string, string>();
@@ -19,11 +20,11 @@ class MockStorage implements Storage {
 }
 
 describe('basemaps — registry', () => {
-  it('exposes minimal (default) + Carto Light + OpenTopoMap + satellite', () => {
+  it('exposes minimal (default) + Streets (Liberty) + OpenTopoMap + satellite', () => {
     expect(BASEMAPS.length).toBeGreaterThanOrEqual(4);
     const ids = BASEMAPS.map((b) => b.id);
     expect(ids).toContain('minimal');
-    expect(ids).toContain('positron');
+    expect(ids).toContain('liberty');
     expect(ids).toContain('opentopo');
     expect(ids).toContain('satellite');
   });
@@ -105,37 +106,31 @@ describe('basemaps — registry', () => {
   // basemaps.ts header comment for the rationale. If we re-add a topo
   // option later, the matching test belongs here.)
 
-  it('positron references recognised tile providers (Carto or OSM) over https', () => {
-    const positron = BASEMAPS.find((b) => b.id === 'positron');
-    expect(positron).toBeTruthy();
-    for (const src of Object.values(positron!.sources)) {
-      const tiles = (src as { tiles?: string[] }).tiles || [];
-      expect(tiles.length).toBeGreaterThan(0);
-      for (const t of tiles) {
-        expect(t).toMatch(/^https:\/\//);
-        expect(t).toMatch(/openstreetmap|cartocdn/);
-      }
-    }
+  it('Streets is the shared, India-trimmed OpenFreeMap Liberty basemap (OSM roads, buildings, landmarks)', () => {
+    const streets = BASEMAPS.find((b) => b.id === 'liberty');
+    expect(streets).toBeTruthy();
+    expect(streets!.sources).toEqual(LIBERTY.sources);
+    expect(streets!.layers).toEqual(LIBERTY.layers);
+    expect(streets!.hint.toLowerCase()).toMatch(/roads.*buildings/);
   });
 
-  it('every external source carries attribution (Carto + OSM both require it)', () => {
+  it('no basemap depends on CARTO, whose free tiles now carry an "API KEY REQUIRED" watermark', () => {
+    expect(JSON.stringify(BASEMAPS)).not.toContain('cartocdn');
+  });
+
+  it('credits the satellite imagery as Esri does today (Vantor, not Maxar)', () => {
+    const attr = JSON.stringify(BASEMAPS.find((b) => b.id === 'satellite')!.sources);
+    expect(attr).toContain('Vantor');
+    expect(attr).not.toContain('Maxar');
+  });
+
+  it('every external source carries attribution (OSM, OpenFreeMap and Esri all require it)', () => {
     for (const b of BASEMAPS) {
       for (const src of Object.values(b.sources)) {
         expect((src as { attribution?: string }).attribution).toBeTruthy();
         expect(String((src as { attribution?: string }).attribution).length).toBeGreaterThan(5);
       }
     }
-  });
-
-  it('the Carto Light entry is labelled with the international-labels caveat', () => {
-    // Users opting in to a basemap that ships international-convention
-    // labels should see the trade in the menu (our LGD overlay corrects
-    // state lines on top, but the basemap labels themselves are baked into
-    // the raster tiles and can't be changed).
-    const positron = BASEMAPS.find((b) => b.id === 'positron');
-    expect(positron).toBeTruthy();
-    expect(positron!.hint.toLowerCase()).toContain('international');
-    expect(positron!.hint.toLowerCase()).toContain('labels');
   });
 });
 
@@ -154,8 +149,13 @@ describe('basemaps — persistence', () => {
   });
 
   it('round-trips a stored basemap id', () => {
-    setStoredBasemap('positron', storage);
-    expect(getStoredBasemap(storage)).toBe('positron');
+    setStoredBasemap('liberty', storage);
+    expect(getStoredBasemap(storage)).toBe('liberty');
+  });
+
+  it('moves someone who had picked the retired Carto Light to Streets', () => {
+    storage.setItem('bharatlas:basemap', 'positron');
+    expect(getStoredBasemap(storage)).toBe('liberty');
   });
 
   it('ignores a stored id that no longer matches a known basemap (forward-compat)', () => {
@@ -168,7 +168,7 @@ describe('basemaps — persistence', () => {
 
 describe('basemaps — getBasemap', () => {
   it('returns the matching basemap by id', () => {
-    expect(getBasemap('positron').id).toBe('positron');
+    expect(getBasemap('liberty').id).toBe('liberty');
     expect(getBasemap('minimal').id).toBe('minimal');
   });
 

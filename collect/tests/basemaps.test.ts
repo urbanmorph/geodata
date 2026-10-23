@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { BASEMAPS, buildBaseStyle, normalizeBasemap, DEFAULT_BASEMAP, type BasemapId } from '../src/basemap';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { BASEMAPS, buildBaseStyle, normalizeBasemap, getStoredBasemap, DEFAULT_BASEMAP, type BasemapId } from '../src/basemap';
+import { LIBERTY } from '../../shared/liberty';
 
 describe('normalizeBasemap', () => {
   it('maps the legacy "topo" id to opentopo', () => {
@@ -8,6 +10,10 @@ describe('normalizeBasemap', () => {
   it('keeps a valid id', () => {
     expect(normalizeBasemap('satellite')).toBe('satellite');
     expect(normalizeBasemap('osm')).toBe('osm');
+  });
+  it('moves the retired Esri Light Gray choice ("positron") to the new default, Streets', () => {
+    expect(DEFAULT_BASEMAP).toBe('liberty');
+    expect(normalizeBasemap('positron')).toBe('liberty');
   });
   it('falls back to the default for unknown / empty (incl. the retired "minimal")', () => {
     expect(normalizeBasemap('minimal')).toBe(DEFAULT_BASEMAP); // basemap was removed
@@ -33,7 +39,7 @@ describe('buildBaseStyle', () => {
     }
   });
   it('layer ids are unique across the whole registry (required for the single style)', () => {
-    const ids = buildBaseStyle('positron').layers.map((l) => l.id);
+    const ids = buildBaseStyle('liberty').layers.map((l) => l.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 });
@@ -42,7 +48,7 @@ describe('India-correct overlay', () => {
   // bharatlas view maps always trace India's LGD-dissolved claim on top of the
   // basemap. It must be present + visible whatever basemap is active (the raster
   // tiles render the international boundary view).
-  for (const active of ['positron', 'osm', 'opentopo', 'satellite'] as BasemapId[]) {
+  for (const active of ['liberty', 'osm', 'opentopo', 'satellite'] as BasemapId[]) {
     it(`draws the India outline over the ${active} basemap`, () => {
       const style = buildBaseStyle(active);
       const claim = style.layers.filter((l) => l.id === 'india-claim' || l.id === 'india-claim-casing');
@@ -79,3 +85,55 @@ describe('Esri Imagery tile ordering', () => {
     expect(tiles[0]).toContain('{z}/{y}/{x}');
   });
 });
+
+describe('Streets (the default): OpenStreetMap detail to mark points against', () => {
+  it('is the shared, India-trimmed OpenFreeMap Liberty basemap', () => {
+    const streets = BASEMAPS.find((b) => b.id === 'liberty')!;
+    expect(streets.sources).toEqual(LIBERTY.sources);
+    expect(streets.layers).toEqual(LIBERTY.layers);
+    expect(streets.hint.toLowerCase()).toMatch(/roads.*buildings/);
+  });
+  it('the single style carries its labels and icons (glyphs + sprite), whatever basemap starts active', () => {
+    for (const active of ['liberty', 'satellite'] as BasemapId[]) {
+      const style = buildBaseStyle(active);
+      expect(style.glyphs).toBe(LIBERTY.glyphs);
+      expect(style.sprite).toBe(LIBERTY.sprite);
+    }
+  });
+});
+
+describe('Esri', () => {
+  it('Esri Light Gray is gone: only the satellite imagery still comes from Esri', () => {
+    const esri = BASEMAPS.filter((b) => JSON.stringify(b.sources).includes('arcgisonline'));
+    expect(esri.map((b) => b.id)).toEqual(['satellite']);
+    expect(JSON.stringify(BASEMAPS)).not.toContain('Light_Gray');
+  });
+  it('credits the satellite imagery as Esri does today (Vantor, not Maxar)', () => {
+    const attr = JSON.stringify(BASEMAPS.find((b) => b.id === 'satellite')!.sources);
+    expect(attr).toContain('Vantor');
+    expect(attr).not.toContain('Maxar');
+  });
+});
+
+describe('content security policy', () => {
+  const csp = readFileSync(new URL('../public/_headers', import.meta.url), 'utf8');
+  const directive = (name: string) => (csp.match(new RegExp(`${name} ([^;\\n]*)`))?.[1] ?? '').split(/\s+/);
+  it('lets MapLibre fetch the Streets tiles, style sprite and fonts', () => {
+    expect(directive('connect-src')).toContain('https://tiles.openfreemap.org');
+    expect(directive('img-src')).toContain('https://tiles.openfreemap.org');
+  });
+});
+
+describe('a viewer\'s own basemap choice, kept on the device', () => {
+  afterEach(() => vi.unstubAllGlobals());
+  const stored = (v: string | null) => vi.stubGlobal('localStorage', { getItem: () => v, setItem: () => {} });
+  it('someone who had picked the retired light map gets Streets; an unknown choice defers to the map\'s own', () => {
+    stored('positron');
+    expect(getStoredBasemap()).toBe('liberty');
+    stored('satellite');
+    expect(getStoredBasemap()).toBe('satellite');
+    stored('voyager');
+    expect(getStoredBasemap()).toBeNull();
+  });
+});
+

@@ -142,7 +142,7 @@ describe('Security headers — CSP connect-src reaches the basemap tile CDNs', (
   // OpenTopoMap / Esri Imagery render blank while the same-origin Minimal
   // basemap is fine. Regression guard for the "base maps won't load" report.
   const TILE_HOSTS = [
-    'https://*.basemaps.cartocdn.com', // Carto Light
+    'https://tiles.openfreemap.org', // Streets (Liberty): vector tiles, style sprite, glyphs
     'https://*.tile.opentopomap.org', // OpenTopoMap
     'https://services.arcgisonline.com', // Esri World Imagery
   ];
@@ -250,3 +250,11 @@ describe('Security headers — SECURITY_HEADERS_NON_HTML (sitemap.xml etc.)', ()
     expect((SECURITY_HEADERS_NON_HTML as Record<string, string>)['content-security-policy']).toBeUndefined();
   });
 });
+
+describe('Security headers — no CARTO', () => {
+  it('neither CSP allows cartocdn any more (the watermarked basemap is gone)', () => {
+    expect(CSP_STATIC).not.toContain('cartocdn');
+    expect(CSP_HTML).not.toContain('cartocdn');
+  });
+});
+
