@@ -1,10 +1,12 @@
-// Basemap registry for the collect map. Three switchable raster basemaps, plus a
+// Basemap registry for the collect map. Four switchable basemaps, plus a
 // persistent India-correct boundary overlay drawn on top of every one:
 //
-//   1. positron — Esri Light Gray Canvas (light base + labels). Default.
-//      (Was CARTO Light until CARTO started watermarking its free tiles with
-//      "API KEY REQUIRED"; the id/layer stay 'positron' for stored-preference
-//      and layer-order compatibility.)
+//   1. liberty — "Streets": OpenFreeMap Liberty (OpenStreetMap roads, buildings,
+//      landmarks, place names), vector, trimmed for India in shared/liberty.ts so
+//      it draws no borders of its own. Default: someone marking a point needs
+//      roads and buildings to place it against. (Replaced Esri Light Gray, which
+//      has no licence for keyless use; before that CARTO Light, which now
+//      watermarks its free tiles. A stored 'positron' maps here.)
 //   2. osm — OpenStreetMap standard (detailed streets, buildings, paths).
 //   3. opentopo — OpenTopoMap (topographic relief).
 //   4. satellite — Esri Imagery.
@@ -22,8 +24,9 @@
 // (never setStyle), so the overlay + review markers + reference layers survive.
 import maplibregl from 'maplibre-gl';
 import type { StyleSpecification, SourceSpecification, LayerSpecification } from 'maplibre-gl';
+import { LIBERTY } from '../../shared/liberty';
 
-export type BasemapId = 'positron' | 'osm' | 'opentopo' | 'satellite';
+export type BasemapId = 'liberty' | 'osm' | 'opentopo' | 'satellite';
 
 export interface Basemap {
   id: BasemapId;
@@ -33,26 +36,17 @@ export interface Basemap {
   layers: LayerSpecification[]; // layer ids must be unique across the whole registry
 }
 
-const ESRI_LIGHT_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a>: Esri, HERE, Garmin, © OpenStreetMap contributors, GIS User Community';
 const OSM_ATTRIB = '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 const OPENTOPO_ATTRIB = 'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, SRTM · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (CC-BY-SA)';
-const ESRI_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+const ESRI_ATTRIB = 'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community';
 
 export const BASEMAPS: Basemap[] = [
   {
-    id: 'positron',
-    name: 'Light',
-    hint: 'light canvas + place labels · good for orienting in the field',
-    sources: {
-      // Esri Light Gray Canvas — {z}/{y}/{x} like the imagery below. Base is the
-      // light land/road canvas; reference is the labels overlay drawn on top.
-      'lightgray-base': { type: 'raster', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 16, attribution: ESRI_LIGHT_ATTRIB },
-      'lightgray-ref': { type: 'raster', tiles: ['https://services.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Reference/MapServer/tile/{z}/{y}/{x}'], tileSize: 256, maxzoom: 16 },
-    },
-    layers: [
-      { id: 'positron-base', type: 'raster', source: 'lightgray-base' },
-      { id: 'positron-ref', type: 'raster', source: 'lightgray-ref' },
-    ],
+    id: 'liberty',
+    name: 'Streets',
+    hint: 'roads, buildings, landmarks and place names · OpenStreetMap',
+    sources: LIBERTY.sources as Record<string, SourceSpecification>,
+    layers: LIBERTY.layers as unknown as LayerSpecification[],
   },
   {
     id: 'osm',
@@ -102,12 +96,14 @@ const INDIA_OVERLAY_LAYERS: LayerSpecification[] = [
   },
 ];
 
-export const DEFAULT_BASEMAP: BasemapId = 'positron'; // labelled tiles help field orientation
+export const DEFAULT_BASEMAP: BasemapId = 'liberty'; // roads and buildings to mark against
 export const INDIA_CENTER: [number, number] = [78.9, 22];
 
-// Accept a legacy/stored id (older sets had 'topo' and 'minimal').
+// Accept a legacy/stored id (older sets had 'topo' and 'minimal'; 'positron' was the
+// light default, now Streets). Maps' stored author basemap may still say 'positron'.
 export function normalizeBasemap(id?: string | null): BasemapId {
   if (id === 'topo') return 'opentopo';
+  if (id === 'positron') return 'liberty';
   return BASEMAPS.some((b) => b.id === id) ? (id as BasemapId) : DEFAULT_BASEMAP;
 }
 
@@ -126,7 +122,8 @@ export function buildBaseStyle(active: BasemapId): StyleSpecification {
     }
   }
   layers.push(...INDIA_OVERLAY_LAYERS); // above every basemap, always visible
-  return { version: 8, sources, layers };
+  // Streets' labels and icons; the raster basemaps need neither.
+  return { version: 8, glyphs: LIBERTY.glyphs, sprite: LIBERTY.sprite, sources, layers };
 }
 
 export function setBasemap(map: maplibregl.Map, id: BasemapId): void {
@@ -140,7 +137,11 @@ export function setBasemap(map: maplibregl.Map, id: BasemapId): void {
 
 const KEY = 'collect:basemap';
 export function getStoredBasemap(): BasemapId | null {
-  try { const v = localStorage.getItem(KEY); return v && BASEMAPS.some((b) => b.id === v) ? (v as BasemapId) : null; } catch { return null; }
+  try {
+    const v = localStorage.getItem(KEY);
+    if (v === 'positron') return 'liberty'; // the retired light default
+    return v && BASEMAPS.some((b) => b.id === v) ? (v as BasemapId) : null;
+  } catch { return null; }
 }
 export function setStoredBasemap(id: BasemapId): void {
   try { localStorage.setItem(KEY, id); } catch { /* per-device convenience only */ }

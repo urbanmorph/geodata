@@ -11,10 +11,13 @@
 //      by not loading a basemap that carries international-convention
 //      labels, the labels can't appear.
 //
-//   2. positron (Carto Light) — opt-in for users who want geographic
-//      context (roads, cities). Labelled with "international labels" in
-//      the menu so users know what they're switching to. CARTO terms
-//      allow this for low-traffic open-source use; attribution required.
+//   2. liberty ("Streets") — opt-in for users who want geographic context:
+//      OpenFreeMap Liberty (OpenStreetMap roads, buildings, landmarks, place
+//      names), vector, shared with collect and trimmed for India in
+//      shared/liberty.ts so it draws no borders or country/state names of its
+//      own; the LGD outline stays the only border. Replaced CARTO Light, whose
+//      free tiles now carry an "API KEY REQUIRED" watermark (a stored
+//      'positron' maps here).
 //
 // A third "Topo" option using Mapzen Terrarium DEM + MapLibre 5's
 // color-relief layer was prototyped and dropped — perf cost of fetching
@@ -30,8 +33,9 @@
 //   https://gist.github.com/planemad/933e2b5a4c7d9f0a26541522a1492f92
 
 import type { SourceSpecification, LayerSpecification } from 'maplibre-gl';
+import { LIBERTY } from '../../shared/liberty';
 
-export type BasemapId = 'minimal' | 'positron' | 'opentopo' | 'satellite';
+export type BasemapId = 'minimal' | 'liberty' | 'opentopo' | 'satellite';
 
 export type Basemap = {
   id: BasemapId;
@@ -46,9 +50,6 @@ export type Basemap = {
   layers: LayerSpecification[];
 };
 
-const CARTO_ATTRIB =
-  '© <a href="https://carto.com/attribution/">CARTO</a> · © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>';
-
 const OSM_IN_ATTRIB =
   'India boundary: <a href="https://github.com/osm-in/mapbox-gl-styles" target="_blank" rel="noopener">osm-in</a> · © OpenStreetMap contributors (ODbL)';
 
@@ -56,7 +57,7 @@ const OPENTOPOMAP_ATTRIB =
   'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
 
 const ESRI_IMAGERY_ATTRIB =
-  'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Maxar, Earthstar Geographics, and the GIS User Community';
+  'Tiles © <a href="https://www.esri.com">Esri</a> · Source: Esri, Vantor, Earthstar Geographics, and the GIS User Community';
 
 export const BASEMAPS: Basemap[] = [
   {
@@ -145,29 +146,11 @@ export const BASEMAPS: Basemap[] = [
     ],
   },
   {
-    id: 'positron',
-    name: 'Carto Light',
-    hint: 'international labels (state lines overlaid via LGD, labels unchangeable)',
-    sources: {
-      'positron-tiles': {
-        type: 'raster',
-        tiles: [
-          'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-          'https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-          'https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-          'https://d.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png',
-        ],
-        tileSize: 256,
-        attribution: CARTO_ATTRIB,
-      },
-    },
-    layers: [
-      {
-        id: 'positron-base',
-        type: 'raster',
-        source: 'positron-tiles',
-      },
-    ],
+    id: 'liberty',
+    name: 'Streets',
+    hint: 'OpenStreetMap roads, buildings and landmarks · India border from LGD',
+    sources: LIBERTY.sources as Record<string, SourceSpecification>,
+    layers: LIBERTY.layers as unknown as LayerSpecification[],
   },
   {
     id: 'opentopo',
@@ -237,6 +220,7 @@ const STORAGE_KEY = 'bharatlas:basemap';
 export function getStoredBasemap(storage: Storage = globalThis.localStorage): BasemapId {
   try {
     const v = storage.getItem(STORAGE_KEY);
+    if (v === 'positron') return 'liberty'; // the retired Carto Light
     if (v && BASEMAPS.some((b) => b.id === v)) return v as BasemapId;
   } catch {
     // localStorage may be unavailable (private mode, SSR) — fall through.

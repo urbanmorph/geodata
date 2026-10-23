@@ -7,6 +7,7 @@ import { getCatalog, getFullCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
+import { LIBERTY } from '../../shared/liberty';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
 import { type ActiveFilter, type MaplibreFilter } from './filter-where';
@@ -246,7 +247,8 @@ function buildBaseStyle(active: BasemapId): maplibregl.StyleSpecification {
       } as maplibregl.LayerSpecification);
     }
   }
-  return { version: 8, sources, layers };
+  // Streets' labels and icons; the other basemaps need neither.
+  return { version: 8, glyphs: LIBERTY.glyphs, sprite: LIBERTY.sprite, sources, layers };
 }
 
 function setBasemap(id: BasemapId): void {
@@ -482,7 +484,7 @@ async function attachData(layer: Layer) {
 }
 
 // LGD state boundaries layered on top of any non-LGD layer for cross-source
-// comparison and to show India-correct boundaries on the Carto basemap.
+// comparison and to show India-correct state boundaries over any basemap.
 async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Promise<void> {
   if (!map) return;
   if (activeLayerId === 'lgd_states') return;
