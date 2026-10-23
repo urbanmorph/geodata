@@ -9,7 +9,7 @@ import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
 import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
-import { parseCtx, api, apiJson, jsonWithOfflineCopy, type Ctx } from './api';
+import { parseCtx, api, apiJson, jsonWithOfflineCopy, loadErrorText, type Ctx } from './api';
 import { basemapOfflineNote, isConnectionError } from './offline-notes';
 import { savePoint, queuedFor, discardQueued, sendQueued, sendWhenOnline, OUTBOX_CHANGED, type Saved, type OutboxChange } from './send-queue';
 import { validateRecordProperties, type Field } from './schema/validate-record';
@@ -1565,6 +1565,6 @@ if (!initCtx?.token) {
   ctx = initCtx;
   app.innerHTML = `<div class="pad center"><span class="spinner"></span><p class="hint">Loading…</p></div>`;
   (initCtx.mode === 'record' ? recordEditor() : boot()).catch((e) => {
-    app.innerHTML = `<div class="pad"><h1>Couldn't load</h1><p class="warn">${(e as Error).message}</p></div>`;
+    app.innerHTML = `<div class="pad"><h1>Couldn't open this map</h1><p class="warn">${escapeHtml(loadErrorText(e))}</p></div>`;
   });
 }

@@ -29,11 +29,29 @@ export async function api(path: string, token: string, init?: RequestInit): Prom
   return fetch(`/api/collect/v1${path}`, { ...init, headers });
 }
 
+/** A server's refusal, with its HTTP status so the page can explain it. */
+export class ApiError extends Error {
+  constructor(message: string, readonly status: number) {
+    super(message);
+    this.name = 'ApiError';
+  }
+}
+
 // The JSON body of a response, or its error message thrown.
 async function readJson<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((body as { error?: string }).error || `HTTP ${res.status}`);
+  if (!res.ok) throw new ApiError((body as { error?: string }).error || `HTTP ${res.status}`, res.status);
   return body as T;
+}
+
+export const LINK_OFF =
+  "This collect link no longer works. The map's owner may have turned the link off or deleted the map. Ask the person who shared it for a new link.";
+
+/** Why a map couldn't open, in plain words. The server answers 401 for a turned-off
+ *  link and for a map that doesn't exist alike, so it never reveals which maps exist. */
+export function loadErrorText(e: unknown): string {
+  if (e instanceof ApiError && e.status === 401) return LINK_OFF;
+  return (e as Error)?.message || 'Something went wrong.';
 }
 
 export async function apiJson<T = unknown>(path: string, token: string, init?: RequestInit): Promise<T> {
