@@ -1,5 +1,6 @@
 {
   "name": "collect",
+  "engines": { "node": ">=22.5" },
   "private": true,
   "type": "module",
   "description": "collect.bharatlas.com — crowd map-capture, publishes to the bharatlas catalogue",

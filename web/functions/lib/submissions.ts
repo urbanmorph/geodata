@@ -25,8 +25,9 @@ export type SubmissionRow = {
   r2_key: string;
 };
 
-export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Promise<void> {
-  await db
+/** The INSERT for one submission row, unrun, so it can go in a D1 batch. */
+export function submissionInsert(db: RunnableD1, row: SubmissionRow): D1PreparedStatement {
+  return db
     .prepare(
       `INSERT INTO submissions
        (id, created_at, status, name, description, category, license, attribution, source_url, data_year, is_original,
@@ -53,22 +54,26 @@ export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Prom
       row.ip_hash,
       row.validation_report,
       row.r2_key,
-    )
-    .run();
+    );
 }
 
-export async function insertToken(
-  db: RunnableD1,
-  input: {
-    submissionId: string;
-    tokenPrefix: string;
-    tokenHash: string;
-    permission: 'admin' | 'edit' | 'view';
-    expiresAt?: string;
-  },
-): Promise<void> {
+export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Promise<void> {
+  await submissionInsert(db, row).run();
+}
+
+export type TokenInput = {
+  submissionId: string;
+  tokenPrefix: string;
+  tokenHash: string;
+  permission: 'admin' | 'edit' | 'view';
+  expiresAt?: string;
+};
+
+/** The INSERT for one token row, unrun, so it can go in a D1 batch after its
+ *  submission row (submission_tokens has a foreign key to submissions). */
+export function tokenInsert(db: RunnableD1, input: TokenInput): D1PreparedStatement {
   const id = crypto.randomUUID();
-  await db
+  return db
     .prepare(
       `INSERT INTO submission_tokens
        (id, submission_id, token_prefix, token_hash, permission, expires_at, created_at)
@@ -82,8 +87,11 @@ export async function insertToken(
       input.permission,
       input.expiresAt ?? null,
       new Date().toISOString(),
-    )
-    .run();
+    );
+}
+
+export async function insertToken(db: RunnableD1, input: TokenInput): Promise<void> {
+  await tokenInsert(db, input).run();
 }
 
 export async function findDuplicateByHash(

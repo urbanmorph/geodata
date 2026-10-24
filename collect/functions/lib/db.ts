@@ -301,7 +301,8 @@ export async function nextVersion(db: DB, collectionId: string): Promise<number>
   return (row?.v ?? 0) + 1;
 }
 
-export async function insertPublication(
+/** The INSERT for one publication row, unrun, for a D1 batch. */
+export function publicationInsert(
   db: DB,
   p: {
     id: string;
@@ -313,23 +314,22 @@ export async function insertPublication(
     attributionSnapshot: string;
     r2Key: string;
   },
-): Promise<void> {
-  await db
+): D1PreparedStatement {
+  return db
     .prepare(
       `INSERT INTO publications
        (id, collection_id, version, submission_id, published_at, feature_count, content_hash, attribution_snapshot, r2_key)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(p.id, p.collectionId, p.version, p.submissionId, now(), p.featureCount, p.contentHash, p.attributionSnapshot, p.r2Key)
-    .run();
+    .bind(p.id, p.collectionId, p.version, p.submissionId, now(), p.featureCount, p.contentHash, p.attributionSnapshot, p.r2Key);
 }
 
-/** Link the produced submission back to its collection + version (0007 columns). */
-export async function linkSubmission(db: DB, submissionId: string, collectionId: string, version: number): Promise<void> {
-  await db
+/** Link the produced submission back to its collection + version (0007
+ *  columns). Unrun, for a D1 batch after the submission row. */
+export function linkSubmissionStatement(db: DB, submissionId: string, collectionId: string, version: number): D1PreparedStatement {
+  return db
     .prepare(`UPDATE submissions SET collection_id = ?, collection_version = ? WHERE id = ?`)
-    .bind(collectionId, version, submissionId)
-    .run();
+    .bind(collectionId, version, submissionId);
 }
 
 // ---- keyrings (opt-in encrypted sync; migration 0011) -----------------------

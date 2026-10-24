@@ -6,11 +6,20 @@
 // of every POST (which gate rejected, or accepted) to `submit_attempts` so the
 // drop-off becomes measurable.
 //
-// Privacy: stores only the failing gate + coarse file facts (extension, size)
-// and the already-hashed IP. No file bytes, no name / attribution / source text.
-// Best-effort: logging must NEVER fail a real submission.
+// Each attempt also records the reference shown to the contributor
+// (attempt_id), the submission it created, the step that failed, the exact
+// error text, its duration and any cleanup (migration 0013), and is printed as
+// one JSON line to the Worker logs.
+//
+// Privacy: stores only the failing gate + coarse file facts (extension, size),
+// the already-hashed IP and error text. No file bytes, no name / attribution /
+// source text.
+// Logging must NEVER fail a real submission, and must never fail silently:
+// a logging problem is reported to the error log with the full attempt.
 
 import type { ValidationResult, ValidationReport } from './validate-server';
+import { insertAttempt } from './attempt-log';
+export type { AttemptDetail } from './attempt-log';
 
 export type AttemptOutcome = 'accepted' | 'rejected';
 
@@ -21,6 +30,12 @@ export type AttemptRow = {
   ext: string | null; // file extension
   bytes: number | null; // file size
   ip_hash: string | null; // already-hashed IP (matches submissions/rate_limits)
+  attempt_id?: string | null; // reference shown to the contributor
+  submission_id?: string | null; // submission created, when one was
+  step?: string | null; // step that failed (e.g. store_file, write_rows, internal)
+  detail?: string | null; // exact error text
+  duration_ms?: number | null;
+  cleanup?: string | null; // what was undone after a failure
 };
 
 type AttemptMeta = { ext?: string | null; bytes?: number | null; ipHash?: string | null };
@@ -52,19 +67,9 @@ export function attemptRowReject(gate: string, reason: string, meta: AttemptMeta
   return { outcome: 'rejected', gate, reason, ...fileFacts(meta) };
 }
 
-/** Best-effort insert. Swallows every error so a logging failure (e.g. the
- *  table not yet migrated) can never break a submission. Pair with
- *  ctx.waitUntil() so it adds zero latency to the response. */
+/** Record one /api/submit attempt. Pair with ctx.waitUntil() so it adds no
+ *  latency to the response. */
 export async function logAttempt(db: D1Database, row: AttemptRow): Promise<void> {
-  try {
-    await db
-      .prepare(
-        `INSERT INTO submit_attempts (outcome, gate, reason, ext, bytes, ip_hash)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(row.outcome, row.gate, row.reason, row.ext, row.bytes, row.ip_hash)
-      .run();
-  } catch {
-    /* logging is best-effort — never propagate */
-  }
+  const { outcome, gate, reason, ext, bytes, ip_hash, ...detail } = row;
+  await insertAttempt(db, 'submit_attempts', { outcome, gate, reason, ext, bytes, ip_hash }, detail);
 }

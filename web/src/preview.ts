@@ -75,6 +75,7 @@ import { BASEMAPS } from './basemaps';
 import { submissionSync, syncSecretFrom } from './submission-sync';
 import { renderSubmissionSync } from './submission-sync-ui';
 import { passkeysAvailable } from '../../shared/passkey';
+import { submitErrorText } from './submit-error';
 const minimal = BASEMAPS.find((b) => b.id === 'minimal') ?? BASEMAPS[0];
 const BASE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
@@ -526,15 +527,14 @@ form.addEventListener('submit', async (e) => {
     body = await resp.json();
   } catch {
     statusEl.classList.add('err');
-    statusEl.textContent = `server returned non-JSON (${resp.status})`;
+    statusEl.textContent = submitErrorText(resp.status, {});
     submitBtn.disabled = false;
     return;
   }
 
   if (!resp.ok) {
-    const err = (body as { error?: string }).error || `HTTP ${resp.status}`;
     statusEl.classList.add('err');
-    statusEl.textContent = err;
+    statusEl.textContent = submitErrorText(resp.status, body as { error?: string; attempt_id?: string });
     submitBtn.disabled = false;
     // @ts-expect-error reset captcha so user can re-attempt
     window.turnstile?.reset?.(turnstileWidgetId);
