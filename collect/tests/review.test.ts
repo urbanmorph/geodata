@@ -85,3 +85,12 @@ describe('recordVia — which named link added a record (admin only)', () => {
     expect(recordVia('  ')).toBe('');
   });
 });
+
+describe('recordWhen', () => {
+  it("shows when a point was added: the phone's capture time, else when it was saved", async () => {
+    const { recordWhen } = await import('../src/review');
+    expect(recordWhen('2026-10-24T05:10:00.000Z', '2026-10-24T09:00:00.000Z', 'Asia/Kolkata')).toBe('added 24 Oct 2026, 10:40 am');
+    expect(recordWhen(null, '2026-10-24T09:00:00.000Z', 'Asia/Kolkata')).toBe('added 24 Oct 2026, 2:30 pm');
+    expect(recordWhen(null, undefined)).toBe('');
+  });
+});

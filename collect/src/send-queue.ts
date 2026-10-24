@@ -4,7 +4,7 @@
 import { api } from './api';
 import { turnstileToken } from './turnstile';
 import { rememberRecord } from './maps-store';
-import { flush, idbOutbox, newClientId, type QueuedPoint, type SendResult, type FlushResult } from './outbox';
+import { flush, idbOutbox, newClientId, sendBody, type QueuedPoint, type SendResult, type FlushResult } from './outbox';
 
 export const OUTBOX_CHANGED = 'collect:outbox-changed';
 /** What changed: points the server now has (with their edit links), or ones discarded. */
@@ -17,7 +17,7 @@ async function send(p: QueuedPoint): Promise<SendResult> {
     const turnstile_token = await turnstileToken();
     const res = await api(`/collections/${p.collection_id}/records`, p.token, {
       method: 'POST',
-      body: JSON.stringify({ geometry: p.geometry, properties: p.properties, contributor: p.contributor, client_id: p.client_id, turnstile_token }),
+      body: sendBody(p, turnstile_token),
     });
     const body = (await res.json().catch(() => ({}))) as { id?: string; status?: string; edit_token?: string; error?: string };
     if (res.ok && body.id && body.edit_token) return { ok: true, id: body.id, status: body.status ?? '', edit_token: body.edit_token };

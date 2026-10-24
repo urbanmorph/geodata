@@ -118,3 +118,15 @@ describe('flush', () => {
     expect(second.sent.map((s) => s.point.client_id)).toEqual([late.client_id]);
   });
 });
+
+describe('what a queued point sends', () => {
+  it('includes the time it was captured, so a point sent later keeps its real time', async () => {
+    const { sendBody } = await import('../src/outbox');
+    const p = { client_id: 'c'.repeat(22), collection_id: 'm1', map_name: 'Trees', token: 'edt_x', geometry: { type: 'Point', coordinates: [77.6, 12.9] } as GeoJSON.Geometry,
+      properties: { name: 'Neem' }, contributor: 'Asha', label: 'Neem', noun: 'point', created_at: '2026-10-24T05:10:00.000Z' };
+    expect(JSON.parse(sendBody(p, 'tt'))).toEqual({
+      geometry: p.geometry, properties: { name: 'Neem' }, contributor: 'Asha', client_id: p.client_id,
+      captured_at: '2026-10-24T05:10:00.000Z', turnstile_token: 'tt',
+    });
+  });
+});

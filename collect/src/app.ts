@@ -9,20 +9,24 @@ import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
 import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
-import { parseCtx, api, apiJson, jsonWithOfflineCopy, loadErrorText, type Ctx } from './api';
+import { parseCtx, api, apiJson, jsonWithOfflineCopy, loadErrorText, ApiError, type Ctx } from './api';
+import { mountSchemaBuilder, type BuilderField } from './schema-builder';
+import { summarizeErrors } from './import/check';
+import { importReport, importReportHtml, importFailure, type ImportReply } from './import/report';
 import { basemapOfflineNote, isConnectionError } from './offline-notes';
 import { savePoint, queuedFor, discardQueued, sendQueued, sendWhenOnline, OUTBOX_CHANGED, type Saved, type OutboxChange } from './send-queue';
 import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia } from './review';
-import { escapeHtml } from './util';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen } from './review';
+import { escapeHtml, downloadText } from './util';
 import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
 import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
+import { fitsLocalPicker } from './schema/dates';
 import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
@@ -560,6 +564,7 @@ function fieldInput(f: Field): string {
     case 'paragraph': return `<textarea data-k="${f.key}"${req}${ml}></textarea>`;
     case 'number': return `<input data-k="${f.key}" inputmode="${f.integer ? 'numeric' : 'decimal'}"${f.min != null ? ` min="${f.min}"` : ''}${f.max != null ? ` max="${f.max}"` : ''} step="${f.integer ? '1' : 'any'}"${req} />`;
     case 'date': return `<input data-k="${f.key}" type="date"${req} />`;
+    case 'datetime': return `<input data-k="${f.key}" type="datetime-local"${req} />`;
     case 'url': return `<input data-k="${f.key}" type="url"${req} placeholder="https://" />`;
     case 'select':
       return `<select data-k="${f.key}"${req}><option value=""></option>${(f.options || []).map((o) => `<option>${escapeHtml(o)}</option>`).join('')}</select>`;
@@ -792,6 +797,57 @@ async function editSettings(): Promise<void> {
   };
 }
 
+// Admin "Edit form": change the form of a map that already has points. The
+// builder checks every change against all the saved points (the server checks
+// again on save): options the points use stay, new options and fields can be
+// added, and a field is hidden rather than removed so no collected data is lost.
+async function editFormSheet(): Promise<void> {
+  const panel = document.getElementById('panel')!;
+  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body"><p class="hint">Loading the points to check the form against…</p></div></div>`;
+  let points: Record<string, unknown>[];
+  try {
+    const fc = await apiJson<{ features: { properties: Record<string, unknown> }[] }>(`/collections/${ctx.id}/records?limit=100000`, ctx.token);
+    points = (fc.features || []).map((f) => f.properties);
+  } catch (e) { toast(loadErrorText(e)); void manageSheet(); return; }
+  const n = points.length;
+  panel.innerHTML = `<div class="sheet">
+    ${GRAB}
+    <div class="body">
+      <strong>Edit form</strong>
+      <p class="hint">${n ? `Checked against the map's ${n} point${n === 1 ? '' : 's'}. You can add options and fields; options the points use stay, and a field can be hidden (its data is kept) but not removed.` : 'The map has no points yet, so the form can change freely.'}</p>
+      <div id="ef-builder"></div>
+      <div id="ef-result" aria-live="polite"></div>
+    </div>
+    <div class="foot row">
+      <button type="button" id="ef-cancel">← Back</button>
+      <button class="primary" id="ef-save" style="flex:1">Save form</button>
+    </div>
+  </div>`;
+  const builder = mountSchemaBuilder(document.getElementById('ef-builder')!, meta.schema.fields as BuilderField[], {
+    data: { noun: 'point', values: (f) => points.map((p) => p[f.key]) },
+    existing: n > 0,
+  });
+  (document.getElementById('ef-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
+  (document.getElementById('ef-save') as HTMLButtonElement).onclick = async (ev) => {
+    const btn = ev.currentTarget as HTMLButtonElement;
+    const out = document.getElementById('ef-result')!;
+    btn.disabled = true;
+    try {
+      await apiJson(`/collections/${ctx.id}/fields`, ctx.token, { method: 'PATCH', body: JSON.stringify({ fields: builder.getFields() }) });
+      meta = await apiJson<Meta>(`/collections/${ctx.id}`, ctx.token);
+      toast('Form saved ✓');
+      void manageSheet();
+    } catch (e) {
+      const body = e instanceof ApiError ? e.body : {};
+      const problems = (body.problems as { reason: string; count: number }[] | undefined) ?? [];
+      out.innerHTML = `<div class="notice"><div><strong>Not saved: ${escapeHtml((e as Error).message)}.</strong>
+        ${problems.length ? `<ul class="reasons">${problems.map((p) => `<li>${escapeHtml(p.reason)} (${p.count})</li>`).join('')}</ul>` : ''}
+        ${body.attempt_id ? `<p class="hint">Reference: <code>${escapeHtml(String(body.attempt_id))}</code></p>` : ''}</div></div>`;
+      btn.disabled = false;
+    }
+  };
+}
+
 // The admin sheet is tabbed so each job stands alone (the old one-scroll panel
 // stacked review + share + download + import together). Review is the daily job
 // and stays the default; Share and Data sit one tap away. Publish + Add points
@@ -812,7 +868,10 @@ async function manageSheet(): Promise<void> {
     <div class="body">
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong>Manage map</strong>
-        <button id="edit-settings" style="min-height:36px;font-size:13px">✎ Settings</button>
+        <span class="row" style="gap:6px">
+          <button id="edit-form" style="min-height:36px;font-size:13px">✎ Form</button>
+          <button id="edit-settings" style="min-height:36px;font-size:13px">✎ Settings</button>
+        </span>
       </div>
       <div class="tabs" id="mtabs" role="tablist" aria-label="Manage sections">
         <button type="button" role="tab" data-t="review">Review${c.pending ? ` · ${c.pending}` : ''}</button>
@@ -829,6 +888,7 @@ async function manageSheet(): Promise<void> {
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
   (document.getElementById('publish') as HTMLButtonElement).onclick = confirmPublish;
   (document.getElementById('edit-settings') as HTMLButtonElement).onclick = () => void editSettings();
+  (document.getElementById('edit-form') as HTMLButtonElement).onclick = () => void editFormSheet();
   document.querySelectorAll<HTMLButtonElement>('#mtabs button').forEach((b) => {
     b.onclick = () => { manageTab = b.dataset.t as ManageTab; renderManageTab(); };
   });
@@ -1081,14 +1141,6 @@ function renderDataTab(body: HTMLElement): void {
 
 const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
 
-function downloadText(content: string, filename: string, mime: string): void {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
-}
-
 // Fetch every record and hand the author a file — no server round-trip.
 async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
   try {
@@ -1174,33 +1226,26 @@ async function importFlow(file: File): Promise<void> {
     const rights = (document.getElementById('imp-rights') as HTMLInputElement).checked;
     if (!rights) { toast('Tick the box: you can publish this under the map licence'); return; }
     if (!source) { toast('Name where this data comes from'); return; }
-    const { records, errors } = buildRecords(parsed.features, readMapping(), fields, meta.schema.geometry);
+    const plan = buildRecords(parsed.features, readMapping(), fields, meta.schema.geometry);
     const result = document.getElementById('import-result')!;
-    if (!records.length) {
-      result.innerHTML = `<p class="warn">Nothing valid to import. ${errors.length} row${errors.length === 1 ? '' : 's'} had problems.</p>${errorsBlock()}`;
-      wireErrorDownload(errors);
-      return;
-    }
     btn.disabled = true;
+    // Every row is accounted for: added, skipped here, or refused by the server.
+    let reply: ImportReply;
     try {
-      const res = await apiJson<{ imported: number; errors: unknown[] }>(`/collections/${ctx.id}/import`, ctx.token, { method: 'POST', body: JSON.stringify({ records, source, rights_confirmed: true }) });
-      await refreshCounts(); // refetch the cache so Review shows the imported points
-      toast(`Imported ${res.imported} point${res.imported === 1 ? '' : 's'} ✓`);
-      result.innerHTML = `<p class="hint">Imported ${res.imported}.${errors.length ? ` ${errors.length} row${errors.length === 1 ? '' : 's'} couldn't be read.` : ''}</p>`
-        + (errors.length ? errorsBlock() : '');
-      wireErrorDownload(errors);
-    } catch (e) { toast((e as Error).message); btn.disabled = false; }
+      reply = await apiJson(`/collections/${ctx.id}/import`, ctx.token, {
+        method: 'POST',
+        body: JSON.stringify({ records: plan.records, source, rights_confirmed: true, client_skipped: { count: plan.errors.length, reasons: summarizeErrors(plan.errors) } }),
+      });
+    } catch (e) {
+      reply = importFailure(e);
+      btn.disabled = false;
+    }
+    const report = importReport(parsed.features, plan, reply);
+    if (report.added) await refreshCounts(); // refetch the cache so Review shows the imported points
+    result.innerHTML = importReportHtml(report);
+    const dl = document.getElementById('dl-not-added') as HTMLButtonElement | null;
+    if (dl) dl.onclick = () => downloadText(errorsToCSV(report.notAdded), 'rows-not-added.csv', 'text/csv');
   };
-}
-
-// The rejected rows, as a spreadsheet to fix + re-import (with a plain-words prompt).
-function errorsBlock(): string {
-  return `<button id="dl-errors">Download the rows to fix</button>
-    <p class="hint" style="margin-top:6px">A spreadsheet of only the skipped rows, each with a <code>why</code> column. Fix them, delete that column, and import the file again.</p>`;
-}
-function wireErrorDownload(errors: { row: number; error: string; source: Record<string, string> }[]): void {
-  const b = document.getElementById('dl-errors') as HTMLButtonElement | null;
-  if (b) b.onclick = () => downloadText(errorsToCSV(errors), 'rows-to-fix.csv', 'text/csv');
 }
 
 function activeFilter(): string {
@@ -1324,7 +1369,7 @@ function clearHighlight(): void {
 function openReview(idx: number): void {
   const f = reviewFeats[idx];
   if (!f) return;
-  const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; _link_label?: string | null; [k: string]: unknown };
+  const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; _link_label?: string | null; _captured_at?: string | null; _created_at?: string; [k: string]: unknown };
   const st = p._status || 'published';
 
   const c = representativeCoord(f.geometry);
@@ -1339,7 +1384,8 @@ function openReview(idx: number): void {
   // meta line: who (source or a named contributor; nothing for an unnamed capture) + place
   const who = recordWho(p._source, p._contributor);
   const via = recordVia(p._link_label);
-  const meta = [who ? escapeHtml(who) : '', via ? escapeHtml(via) : '', fmtAdminCtx(p._admin_ctx ?? null)].filter(Boolean).join(' · ');
+  const when = recordWhen(p._captured_at, p._created_at);
+  const meta = [who ? escapeHtml(who) : '', via ? escapeHtml(via) : '', escapeHtml(when), fmtAdminCtx(p._admin_ctx ?? null)].filter(Boolean).join(' · ');
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
@@ -1493,6 +1539,9 @@ async function recordEditor(): Promise<void> {
         if (arr.includes(c.dataset.v)) c.classList.add('on');
       });
     } else if (val != null) {
+      // A saved date-time the picker can't show (date only, or with an offset)
+      // is edited as text, so saving never blanks it or drops the offset.
+      if (f.type === 'datetime' && !fitsLocalPicker(String(val))) (el as HTMLInputElement).type = 'text';
       (el as HTMLInputElement).value = String(val);
     }
   }

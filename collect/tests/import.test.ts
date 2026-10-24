@@ -73,3 +73,14 @@ describe('errorsToCSV', () => {
     expect(csv.split('\n')[1]).toBe('A,10,bad');
   });
 });
+
+describe('buildRecords with dates', () => {
+  it('a Date field keeps the date part of a date-time cell instead of refusing the row', async () => {
+    const { buildRecords } = await import('../src/import/build');
+    const { parseCSV } = await import('../src/import/parse');
+    const p = parseCSV('day,lng,lat\n2026-05-04 09:30,77.6,12.9\n');
+    const r = buildRecords(p.features, { fields: { day: 'day' }, lng: 'lng', lat: 'lat' }, [{ key: 'day', label: 'Day', type: 'date' }], ['point']);
+    expect(r.errors).toEqual([]);
+    expect(r.records[0].properties).toEqual({ day: '2026-05-04' });
+  });
+});

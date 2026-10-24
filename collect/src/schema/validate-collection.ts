@@ -4,9 +4,10 @@
 // Phase 1 imports isOpenLicence straight from web (promote to shared/ at Phase 2).
 
 import { isOpenLicence } from '../../../web/functions/lib/licenses';
+import { validateRecordProperties, type Field } from './validate-record';
 
 export const FIELD_TYPES = [
-  'text', 'paragraph', 'number', 'select', 'multiselect', 'date', 'url',
+  'text', 'paragraph', 'number', 'select', 'multiselect', 'date', 'datetime', 'url',
 ] as const;
 export const GEOMETRY_TYPES = ['point', 'line', 'polygon'] as const;
 export const BASEMAP_IDS = ['positron', 'satellite', 'topo'] as const;
@@ -177,7 +178,7 @@ export function validateNewCollection(input: unknown): Result<NewCollection> {
   const sd = validateSchemaDoc(b.schema_doc);
   if (!sd.ok) return sd;
   const schemaDoc = JSON.stringify(sd.value);
-  if (new TextEncoder().encode(schemaDoc).byteLength > MAX_SCHEMA_BYTES) {
+  if (!schemaFits(schemaDoc)) {
     return fail(`the form is too large to store (over ${MAX_SCHEMA_BYTES / 1024} KB); shorten its option lists`);
   }
 
@@ -186,3 +187,45 @@ export function validateNewCollection(input: unknown): Result<NewCollection> {
     value: { name, purpose, license: b.license, description, data_year: dataYear, schema_doc: schemaDoc },
   };
 }
+
+export type FormEditResult =
+  | { ok: true; fields: Field[] }
+  | { ok: false; error: string; problems?: Array<{ reason: string; count: number }> };
+
+/** A form edit on a map that may already have points (Manage → Edit form). One
+ *  rule: every saved point must still be valid under the new form, and no field
+ *  is removed once there are points (hide it instead; its data is kept). So
+ *  adding options or optional fields always passes; anything that would make a
+ *  saved point invalid is refused with how many points and why. */
+export function validateFormEdit(
+  current: Field[], next: unknown, points: Array<Record<string, unknown>>, geometry: string[],
+): FormEditResult {
+  const sd = validateSchemaDoc({ version: 1, geometry, fields: next });
+  if (!sd.ok) return sd;
+  const fields = sd.value.fields as Field[];
+  if (points.length) {
+    const keys = new Set(fields.map((f) => f.key));
+    const removed = current.find((f) => !keys.has(f.key));
+    if (removed) return fail(`"${removed.label}" can't be removed once the map has points; hide it instead (its data is kept)`);
+  }
+  const problems = new Map<string, number>();
+  let broken = 0;
+  for (const p of points) {
+    const r = validateRecordProperties(fields, p);
+    if (!r.ok) { broken++; problems.set(r.error, (problems.get(r.error) ?? 0) + 1); }
+  }
+  if (broken) {
+    return {
+      ok: false,
+      error: `${broken} point${broken === 1 ? '' : 's'} would no longer fit this form`,
+      problems: [...problems].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
+    };
+  }
+  return { ok: true, fields };
+}
+
+/** Whether a whole form (schema_doc) is small enough to store. */
+export function schemaFits(schemaDoc: string): boolean {
+  return new TextEncoder().encode(schemaDoc).byteLength <= MAX_SCHEMA_BYTES;
+}
+

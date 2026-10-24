@@ -35,7 +35,7 @@
         "properties": {
           "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
           "label": { "type": "string", "minLength": 1 },
-          "type": { "enum": ["text", "paragraph", "number", "select", "multiselect", "date", "url"] },
+          "type": { "enum": ["text", "paragraph", "number", "select", "multiselect", "date", "datetime", "url"] },
           "required": { "type": "boolean" },
           "hint": { "type": "string" },
           "options": { "type": "array", "items": { "type": "string" } },
