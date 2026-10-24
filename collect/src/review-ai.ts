@@ -24,7 +24,7 @@ const modelName = (m?: string): string => (m ? m.split('/').pop()! : 'a model');
 export function aiNotesHtml(n: Notes | null, fields: Field[], props: Record<string, unknown>, mode: string, status: string): string {
   if (!n) return '';
   const head = (extra = ''): string => `<div class="ai-head"><strong>From the photo</strong><span class="hint">${escapeHtml(extra)}</span></div>`;
-  if (n.status === 'queued') return `<section class="ai-notes">${head()}<p class="hint">Notes from the photo are on their way.</p></section>`;
+  if (n.status === 'queued' || n.status === 'running') return `<section class="ai-notes">${head()}<p class="hint">Notes from the photo are on their way.</p></section>`;
   if (n.status === 'waiting') {
     return `<section class="ai-notes">${head()}<p class="hint">${n.reason === 'daily'
       ? "Notes from the photo resume tomorrow: today's free allowance is used up."

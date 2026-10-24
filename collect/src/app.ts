@@ -1173,6 +1173,10 @@ const minted: { edit?: string; view?: string } = {};
 
 async function manageSheet(): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
+  // Leaving capture mid-walk or mid-corner: stop the GPS and let the screen sleep.
+  stopRecording();
+  trace = null;
+  clearVertexMarkers();
   // meta was loaded at boot; counts are kept fresh from the record cache, so no
   // per-open refetch (this ran on every tab-in and every back-out of a review).
   const c = meta.counts;
@@ -1244,10 +1248,10 @@ function renderReviewTab(body: HTMLElement): void {
   if (approveAll) approveAll.onclick = async () => {
     approveAll.disabled = true;
     try {
-      const res = await apiJson<{ changed: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
+      const res = await apiJson<{ changed: number; skipped?: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
       invalidateReview();
       await ensureReviewData(true);
-      toast(`Approved ${res.changed} ✓`);
+      toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
       renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
     } catch (e) { toast((e as Error).message); approveAll.disabled = false; }
   };

@@ -266,6 +266,8 @@ export function validateFormEdit(
   const sd = validateSchemaDoc({ version: 1, geometry, fields: next, ...(mode ? { mode } : {}) });
   if (!sd.ok) return sd;
   const fields = sd.value.fields as Field[];
+  // "Just photos" points wait for their other answers until a person checks them.
+  const opts = { photosOnly: mode === 'photos_ai' };
   if (points.length) {
     const keys = new Set(fields.map((f) => f.key));
     const removed = current.find((f) => !keys.has(f.key));
@@ -274,7 +276,7 @@ export function validateFormEdit(
   const problems = new Map<string, number>();
   let broken = 0;
   for (const p of points) {
-    const r = validateRecordProperties(fields, p);
+    const r = validateRecordProperties(fields, p, opts);
     if (!r.ok) { broken++; problems.set(r.error, (problems.get(r.error) ?? 0) + 1); }
   }
   if (broken) {

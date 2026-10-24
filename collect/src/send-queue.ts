@@ -4,7 +4,7 @@
 import { api } from './api';
 import { turnstileToken } from './turnstile';
 import { rememberRecord } from './maps-store';
-import { flush, idbOutbox, newClientId, sendBody, uploadPhotos, type QueuedPoint, type QueuedPhoto, type SendResult, type FlushResult, type UploadResult } from './outbox';
+import { flush, idbOutbox, newClientId, sendBody, uploadPhotos, forgetUploads, photosMissing, type QueuedPoint, type QueuedPhoto, type SendResult, type FlushResult, type UploadResult } from './outbox';
 
 export const OUTBOX_CHANGED = 'collect:outbox-changed';
 /** What changed: points the server now has (with their edit links), or ones discarded. */
@@ -30,7 +30,17 @@ export async function uploadPhoto(collectionId: string, token: string, photo: Pi
   }
 }
 
-async function send(p: QueuedPoint): Promise<SendResult> {
+async function send(p: QueuedPoint, again = true): Promise<SendResult> {
+  const r = await sendOnce(p);
+  if (!r.ok && again && photosMissing(r) && p.photos?.length) {
+    const fresh = forgetUploads(p);
+    await idbOutbox.put(fresh);
+    return send(fresh, false);
+  }
+  return r;
+}
+
+async function sendOnce(p: QueuedPoint): Promise<SendResult> {
   // Photos first, so the point arrives with them; each is uploaded once.
   const up = await uploadPhotos(p, idbOutbox, (pt, photo) => uploadPhoto(pt.collection_id, pt.token, photo));
   if (!up.ok) return up;

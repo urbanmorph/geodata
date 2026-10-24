@@ -45,7 +45,8 @@ const toJpeg = (c: HTMLCanvasElement, q: number): Promise<Blob> =>
   new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't save the photo"))), 'image/jpeg', q));
 
 export async function preparePhoto(file: File, opts: { dataSaver: boolean; source: 'camera' | 'gallery' }): Promise<PreparedPhoto> {
-  const place: PhotoPlace = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name) ? readExif(new Uint8Array(await file.arrayBuffer())) : {};
+  // EXIF sits at the start of the file: no need to read a whole 5 MB photo for it.
+  const place: PhotoPlace = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name) ? readExif(new Uint8Array(await file.slice(0, 256 * 1024).arrayBuffer())) : {};
   const img = await loadImage(file);
   const target = sizeFor(opts.dataSaver);
   let edge = target.edge;

@@ -41,11 +41,13 @@ export function mountPhotoField(host: HTMLElement, field: Field, opts: PhotoFiel
   let preparing = 0;
   // Server photos need the token (private until approved): fetched, then shown.
   for (const [i, p] of (opts.initial ?? []).entries()) {
-    void authedSrc(p.url, opts.token).then((src) => { items[i].url = src; render(); });
+    const item = items[i]; // the photo itself, not its place: one may be removed meanwhile
+    void authedSrc(p.url, opts.token).then((src) => { item.url = src; render(); });
   }
+  const room = (): boolean => items.length + preparing < max;
 
   function render(): void {
-    const canAdd = opts.canAdd !== false && items.length < max;
+    const canAdd = opts.canAdd !== false && room();
     host.innerHTML = `
       <div class="photos">
         ${items.map((p, i) => `<div class="photo-thumb">
@@ -78,6 +80,7 @@ export function mountPhotoField(host: HTMLElement, field: Field, opts: PhotoFiel
   }
 
   async function add(file: File, source: 'camera' | 'gallery'): Promise<void> {
+    if (!room()) return;
     preparing++;
     render();
     try {
@@ -100,19 +103,28 @@ export function mountPhotoField(host: HTMLElement, field: Field, opts: PhotoFiel
 
 // ── private photos, and the full-screen viewer ─────────────────────────────
 
+// The last few private photos, kept in memory; older ones are let go, so
+// reviewing hundreds of points doesn't fill a phone's memory.
 const srcCache = new Map<string, Promise<string>>();
+const KEEP = 40;
 
 /** An <img> src for a photo: public ones as they are; private ones fetched
  *  with the token (it can't ride in the URL) and shown from memory. */
 export function authedSrc(url: string, token?: string): Promise<string> {
   if (!token) return Promise.resolve(url);
   let p = srcCache.get(url);
-  if (!p) {
+  if (p) srcCache.delete(url); // most recently used goes last
+  else {
     p = fetch(url, { headers: { authorization: `Bearer ${token}` } })
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((b) => URL.createObjectURL(b));
     p.catch(() => srcCache.delete(url));
-    srcCache.set(url, p);
+  }
+  srcCache.set(url, p);
+  while (srcCache.size > KEEP) {
+    const [oldest, gone] = srcCache.entries().next().value!;
+    srcCache.delete(oldest);
+    void gone.then((u) => URL.revokeObjectURL(u), () => {});
   }
   return p.catch(() => '');
 }

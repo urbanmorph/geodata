@@ -15,5 +15,6 @@ export interface Env {
   // the free allowance); AI_MODEL overrides the model (see functions/lib/ai.ts).
   AI?: Ai;
   AI_DAILY_PHOTOS?: string;
+  AI_DAILY_PER_MAP?: string; // each map's share of the day (default 200)
   AI_MODEL?: string;
 }

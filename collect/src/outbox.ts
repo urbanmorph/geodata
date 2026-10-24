@@ -74,6 +74,14 @@ export async function uploadPhotos(
   return { ok: true };
 }
 
+/** The server says a photo the point names isn't there (it was cleared while the
+ *  phone was offline for weeks): upload the point's photos again. */
+export const photosMissing = (r: { status: number; error: string }): boolean =>
+  r.status === 400 && /photo was not uploaded to this map/.test(r.error);
+
+export const forgetUploads = (p: QueuedPoint): QueuedPoint =>
+  ({ ...p, photos: p.photos?.map(({ id: _id, ...rest }) => rest) });
+
 export function newClientId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

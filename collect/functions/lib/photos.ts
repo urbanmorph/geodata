@@ -13,7 +13,9 @@ import { isInIndia } from '../../src/geo/bounds';
 import { PHOTO_ID, type Field } from '../../src/schema/validate-record';
 
 export const MAX_PHOTO_BYTES = 2_000_000; // the phone sends ~300 KB; this is a safety cap
-const ORPHAN_AGE_MS = 86_400_000;
+// A phone can be offline for days after uploading a point's photos (the point
+// itself waiting for signal), so unclaimed photos are kept two weeks.
+const ORPHAN_AGE_MS = 14 * 86_400_000;
 const CLIENT_ID = /^[A-Za-z0-9_-]{16,64}$/;
 
 const salt = (env: Env) => env.IP_SALT || 'collect-v1';
@@ -129,7 +131,8 @@ export async function getPhoto(env: Env, req: Request, id: string): Promise<Resp
     headers: {
       'content-type': 'image/jpeg',
       'access-control-allow-origin': '*',
-      'cache-control': isPublic ? 'public, max-age=86400' : 'private, no-store',
+      // An hour, so a point rejected after approval stops showing its photo soon.
+      'cache-control': isPublic ? 'public, max-age=3600' : 'private, no-store',
       'x-content-type-options': 'nosniff',
     },
   });
@@ -155,19 +158,32 @@ export async function checkPhotos(env: Env, collectionId: string, ids: string[],
   const { results } = await env.DB.prepare(
     `SELECT id, record_id FROM collect_photos WHERE collection_id = ? AND id IN (${ids.map(() => '?').join(',')})`,
   ).bind(collectionId, ...ids).all<{ id: string; record_id: string | null }>();
-  if (results.length !== ids.length) return 'a photo was not uploaded to this map; take it again';
+  if (results.length !== ids.length) return PHOTO_MISSING;
   if (results.some((r) => r.record_id && r.record_id !== recordId)) return 'a photo already belongs to another point';
   return null;
 }
 
-/** Give a point exactly these photos: claim new ones, delete ones it no longer uses. */
-export async function setPhotos(env: Env, recordId: string, ids: string[]): Promise<void> {
+/** Give a point exactly these photos: claim new ones, then delete ones it no
+ *  longer uses. False (and nothing changed) when another point claimed one first. */
+export async function setPhotos(env: Env, recordId: string, ids: string[]): Promise<boolean> {
+  const claimed: string[] = [];
+  for (const id of ids) {
+    const r = await env.DB.prepare('UPDATE collect_photos SET record_id = ? WHERE id = ? AND (record_id IS NULL OR record_id = ?)').bind(recordId, id, recordId).run();
+    if (!r.meta?.changes) {
+      for (const c of claimed) await env.DB.prepare('UPDATE collect_photos SET record_id = NULL WHERE id = ? AND record_id = ?').bind(c, recordId).run();
+      return false;
+    }
+    claimed.push(id);
+  }
   const { results } = await env.DB.prepare('SELECT id, r2_key FROM collect_photos WHERE record_id = ?').bind(recordId).all<{ id: string; r2_key: string }>();
   await removePhotos(env, results.filter((r) => !ids.includes(r.id)));
-  for (const id of ids) await env.DB.prepare('UPDATE collect_photos SET record_id = ? WHERE id = ? AND record_id IS NULL').bind(recordId, id).run();
+  return true;
 }
 
-export const deletePhotosOf = (env: Env, recordId: string): Promise<void> => setPhotos(env, recordId, []);
+export const deletePhotosOf = async (env: Env, recordId: string): Promise<void> => { await setPhotos(env, recordId, []); };
+
+/** Said when a point names a photo the server doesn't have (the phone re-uploads it). */
+export const PHOTO_MISSING = 'a photo was not uploaded to this map; take it again';
 
 /** The point's photos as links, for lists, downloads and published data. */
 export function photoLinks(fields: Field[], props: Record<string, unknown>, origin: string): Array<{ field: string; id: string; url: string }> {

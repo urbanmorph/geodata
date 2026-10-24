@@ -171,10 +171,10 @@ describe('photos on a point', () => {
     expect(env.DB.raw.prepare('SELECT id FROM collect_photos').all()).toEqual([{ id: p2 }]);
   });
 
-  it('unclaimed photos older than a day are cleared', async () => {
+  it('unclaimed photos older than two weeks are cleared', async () => {
     const m = await newMap();
     const old = (await upload(m)).body.id;
-    env.DB.raw.prepare('UPDATE collect_photos SET created_at = ? WHERE id = ?').run(new Date(Date.now() - 2 * 86400_000).toISOString(), old);
+    env.DB.raw.prepare('UPDATE collect_photos SET created_at = ? WHERE id = ?').run(new Date(Date.now() - 15 * 86400_000).toISOString(), old);
     await ph.purgeOrphans(env, m.id);
     expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM collect_photos').get()).toEqual({ n: 0 });
     expect(objects.size).toBe(0);
@@ -215,6 +215,51 @@ describe('just photos, the model fills the form', () => {
     const r = await j(await h.moderateRecord(env, req('POST', `/records/${a.body.id}/moderate`, m.admin, { status: 'published' }), a.body.id));
     expect(r.status).toBe(400);
     expect(r.body.error).toMatch(/Kind/);
+  });
+});
+
+describe('review fixes', () => {
+  it('"Approve all" on a just-photos map approves only points with their answers filled', async () => {
+    const m = await newMap('photos_ai', 0);
+    const blank = await addPoint(m, { pic: [(await upload(m)).body.id] });
+    const full = await addPoint(m, { pic: [(await upload(m)).body.id], kind: 'Plastic' });
+    const r = await j(await h.moderateAll(env, req('POST', `/collections/${m.id}/moderate-all`, m.admin, { to: 'published' }), m.id));
+    expect(r.body).toMatchObject({ changed: 1, skipped: 1 });
+    expect(rowOf(blank.body.id).status).toBe('pending');
+    expect(rowOf(full.body.id).status).toBe('published');
+  });
+
+  it('the form of a just-photos map can still be edited while points wait for answers', async () => {
+    const m = await newMap('photos_ai', 0);
+    await addPoint(m, { pic: [(await upload(m)).body.id] });
+    const fields = FIELDS.map((f) => (f.key === 'kind' ? { ...f, options: [...f.options!, 'Glass'] } : f));
+    const r = await j(await h.editForm(env, req('PATCH', `/collections/${m.id}/fields`, m.admin, { fields }), m.id));
+    expect(r.status).toBe(200);
+  });
+
+  it('a photo is claimed by one point only, even when two arrive at once', async () => {
+    const m = await newMap('form', 0);
+    const p = (await upload(m)).body.id;
+    const [a, b] = await Promise.all([addPoint(m, { pic: [p], kind: 'Plastic' }), addPoint(m, { pic: [p], kind: 'Plastic' })]);
+    expect([a.status, b.status].sort()).toEqual([200, 400]);
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM records').get()).toEqual({ n: 1 });
+  });
+
+  it('keeps unclaimed photos two weeks, for phones offline for days', async () => {
+    const m = await newMap();
+    const p = (await upload(m)).body.id;
+    env.DB.raw.prepare('UPDATE collect_photos SET created_at = ? WHERE id = ?').run(new Date(Date.now() - 5 * 86400_000).toISOString(), p);
+    await ph.purgeOrphans(env, m.id);
+    expect(env.DB.raw.prepare('SELECT COUNT(*) AS n FROM collect_photos').get()).toEqual({ n: 1 });
+  });
+
+  it('an approved just-photos point keeps its required answers on edit', async () => {
+    const m = await newMap('photos_ai', 0);
+    const a = await addPoint(m, { pic: [(await upload(m)).body.id], kind: 'Plastic' });
+    await h.moderateRecord(env, req('POST', `/records/${a.body.id}/moderate`, m.admin, { status: 'published' }), a.body.id);
+    const pic = JSON.parse(rowOf(a.body.id).properties).pic;
+    const e = await j(await h.editRecord(env, req('PATCH', `/records/${a.body.id}`, m.admin, { properties: { pic } }), a.body.id));
+    expect(e.status).toBe(400);
   });
 });
 
@@ -263,6 +308,28 @@ describe('notes from the photo', () => {
     const second = await aiPoint();
     expect(aiCalls).toHaveLength(1);
     expect(notes(second.id)).toMatchObject({ status: 'waiting', reason: 'daily' });
+  });
+
+  it('each map has its own share of the daily allowance', async () => {
+    env.AI_DAILY_PER_MAP = '1';
+    const first = await aiPoint();
+    const m = { ...first.m };
+    await addPoint(m as never, { pic: [(await upload(m as never)).body.id] });
+    await aiPoint(); // a second map still gets its notes
+    expect(aiCalls).toHaveLength(2);
+  });
+
+  it('a point is sent to the model once, however often notes are caught up', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => { release = r; });
+    env.AI = { run: async (model: string, input: unknown) => { aiCalls.push({ model, input }); await gate; return { choices: [{ message: { content: aiReply } }] }; } } as unknown as Ai;
+    const m = await newMap('photos_ai', 0);
+    const pending = h.addRecord(env, req('POST', `/collections/${m.id}/records`, m.edit, { geometry: { type: 'Point', coordinates: [77.59, 12.97] }, properties: { pic: [(await upload(m)).body.id] } }), m.id);
+    await new Promise((r) => setTimeout(r, 10));
+    const drained = ai.drainAi(env, m.id);
+    release();
+    await Promise.all([pending, drained]);
+    expect(aiCalls).toHaveLength(1);
   });
 
   it('a model failure is kept, and retried later', async () => {

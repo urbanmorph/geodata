@@ -3,7 +3,7 @@
 // silently. A refusal that retrying can't fix is kept with its reason for the
 // person to see and discard.
 import { describe, it, expect } from 'vitest';
-import { flush, fate, newClientId, uploadPhotos, sendBody, type QueuedPoint, type OutboxStore, type SendResult } from '../src/outbox';
+import { flush, fate, newClientId, uploadPhotos, sendBody, forgetUploads, photosMissing, type QueuedPoint, type OutboxStore, type SendResult } from '../src/outbox';
 
 function memoryStore(points: QueuedPoint[] = []): OutboxStore & { rows: Map<string, QueuedPoint> } {
   const rows = new Map(points.map((p) => [p.client_id, p]));
@@ -160,5 +160,17 @@ describe('photos waiting with a point', () => {
     const store = memoryStore([p]);
     const r = await uploadPhotos(p, store, async () => ({ ok: false, status: 0, error: 'no connection' }));
     expect(r).toEqual({ ok: false, status: 0, error: 'no connection' });
+  });
+});
+
+describe('photos the server no longer has', () => {
+  it('forgets their ids so they are uploaded again (the bytes are still on the phone)', () => {
+    const p = point({ photos: [{ client_id: 'photo-client-zzzzzzzz', field: 'pic', bytes: new ArrayBuffer(3), meta: {}, id: 'ph_gone000000001' }] });
+    const again = forgetUploads(p);
+    expect(again.photos![0].id).toBeUndefined();
+    expect(again.photos![0].bytes.byteLength).toBe(3);
+    expect(p.photos![0].id).toBe('ph_gone000000001'); // the original is untouched
+    expect(photosMissing({ status: 400, error: 'a photo was not uploaded to this map; take it again' })).toBe(true);
+    expect(photosMissing({ status: 400, error: 'Name is required' })).toBe(false);
   });
 });

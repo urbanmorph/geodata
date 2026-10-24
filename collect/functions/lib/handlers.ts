@@ -457,7 +457,11 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
     if (raced) return resendRecord(env, raced);
     throw e;
   }
-  await setPhotos(env, recId, photoIds);
+  // Claimed after the insert: if another point took a photo first, this one goes.
+  if (!(await setPhotos(env, recId, photoIds))) {
+    await db.deleteRecord(env.DB, recId);
+    return bad(400, 'a photo already belongs to another point');
+  }
   await db.touchCollection(env.DB, id);
 
   const task = Promise.all([
@@ -529,14 +533,13 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
   }
   const reason = typeof body?.reason === 'string' ? body.reason : null;
   if (status === 'published') {
-    // "Just photos" points were saved without their other answers: those must be
-    // filled (from the model's notes, or by hand) before the point is approved.
+    // "Just photos" points are saved without their other answers: those must be
+    // filled (from the model's notes, or by hand) before the point is approved,
+    // whatever the map's mode is now (it may have changed since).
     const c = await db.getCollection(env.DB, rec.collection_id);
-    const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[]; mode?: string };
-    if (modeOf(schema) === 'photos_ai') {
-      const v = validateRecordProperties(schema.fields, JSON.parse(rec.properties));
-      if (!v.ok) return bad(400, `${v.error} before approving`);
-    }
+    const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[] };
+    const v = validateRecordProperties(schema.fields, JSON.parse(rec.properties));
+    if (!v.ok) return bad(400, `${v.error} before approving`);
   }
   await db.setRecordStatus(env.DB, recordId, status, reason);
   return json(200, { id: recordId, status });
@@ -553,8 +556,17 @@ export async function moderateAll(env: Env, req: Request, id: string): Promise<R
   const body = await readJson(req);
   const from = body?.from === 'rejected' ? 'rejected' : 'pending';
   const to = body?.to === 'rejected' ? 'rejected' : 'published';
+  const schema = JSON.parse(c.schema_doc) as { fields: Field[] };
+  if (to === 'published') {
+    // Approve only points whose answers are all filled in ("just photos" points
+    // wait for theirs; the map may have been switched out of that mode since).
+    const rows = await db.listRecords(env.DB, id, { status: from, limit: 100000, offset: 0 });
+    const ready = rows.filter((r) => validateRecordProperties(schema.fields, JSON.parse(r.properties)).ok);
+    for (const r of ready) await db.setRecordStatus(env.DB, r.id, 'published');
+    return json(200, { from, to, changed: ready.length, skipped: rows.length - ready.length });
+  }
   const changed = await db.setAllRecordStatus(env.DB, id, from, to);
-  return json(200, { from, to, changed });
+  return json(200, { from, to, changed, skipped: 0 }); // rejecting needs no answers
 }
 
 // ---- record-owner ops (rec_ token or admin): get / edit / delete / de-identify
@@ -619,7 +631,8 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
     movedGeometry = body.geometry;
   }
   if (body.properties !== undefined) {
-    const v = validateRecordProperties(schema.fields, body.properties, { photosOnly: modeOf(schema) === 'photos_ai' });
+    // Only a "just photos" point still waiting for its check may leave answers blank.
+    const v = validateRecordProperties(schema.fields, body.properties, { photosOnly: modeOf(schema) === 'photos_ai' && auth.record.status !== 'published' });
     if (!v.ok) return bad(400, v.error);
     photoIds = photoIdsIn(schema.fields, v.properties);
     const problem = await checkPhotos(env, c.id, photoIds, recordId);
@@ -632,9 +645,11 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   }
   // R3: a contributor edit goes back to pending for re-review (when moderated).
   if (!auth.isAdmin && (c.moderation || modeOf(schema) === 'photos_ai')) patch.status = 'pending';
-  await db.updateRecord(env.DB, recordId, patch);
   // Photos in hidden fields stay with the point, like the rest of their data.
-  if (photoIds) await setPhotos(env, recordId, [...photoIds, ...photoIdsIn(schema.fields.filter((f) => f.deleted), JSON.parse(patch.properties!))]);
+  if (photoIds && !(await setPhotos(env, recordId, [...photoIds, ...photoIdsIn(schema.fields.filter((f) => f.deleted), JSON.parse(patch.properties!))]))) {
+    return bad(400, 'a photo already belongs to another point');
+  }
+  await db.updateRecord(env.DB, recordId, patch);
 
   // Re-enrich a moved shape out of band — only overwrites admin_ctx on success.
   if (movedGeometry !== undefined) {

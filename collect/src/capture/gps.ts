@@ -12,7 +12,14 @@ export function keepScreenOn(): () => void {
   if (!wl) return () => {};
   let lock: Sentinel | null = null;
   let on = true;
-  const take = (): void => { if (on && document.visibilityState === 'visible') wl.request('screen').then((l) => { lock = l; }, () => {}); };
+  const take = (): void => {
+    if (!on || document.visibilityState !== 'visible') return;
+    wl.request('screen').then((l) => {
+      if (!on) { void l.release().catch(() => {}); return; } // stopped while it was being granted
+      lock = l;
+      l.addEventListener('release', () => { if (lock === l) lock = null; }); // dropped when the app was switched away
+    }, () => {});
+  };
   const again = (): void => { if (!lock) take(); };
   take();
   document.addEventListener('visibilitychange', again);

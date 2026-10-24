@@ -35,11 +35,17 @@ function findExif(b: Uint8Array): [number, number] | null {
   return null;
 }
 
+/** Never throws: a damaged or cut-off photo just has no place or time. */
 export function readExif(bytes: ArrayBuffer | Uint8Array): ExifInfo {
-  const b = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
+  try { return parseExif(bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes)); } catch { return {}; }
+}
+
+function parseExif(b: Uint8Array): ExifInfo {
   const seg = findExif(b);
   if (!seg) return {};
   const [base, end] = seg;
+  const magic = b[base] === 0x49 ? [0x49, 0x49, 0x2a, 0x00] : [0x4d, 0x4d, 0x00, 0x2a];
+  if (base + 8 > end || magic.some((x, k) => b[base + k] !== x)) return {};
   const v = new DataView(b.buffer, b.byteOffset, b.byteLength);
   const le = b[base] === 0x49; // "II" little-endian, "MM" big-endian
   const u16 = (o: number) => v.getUint16(o, le);

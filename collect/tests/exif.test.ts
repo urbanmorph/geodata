@@ -56,3 +56,13 @@ describe('photo EXIF', () => {
     expect(readExif(jpeg(cameraApp1()))).toEqual({});
   });
 });
+
+describe('damaged photos', () => {
+  it('a photo cut off inside its EXIF block, or with a bad header, has no place or time (and never throws)', () => {
+    const cut = new Uint8Array([0xff, 0xd8, 0xff, 0xe1, 0x00, 0x40, 0x45, 0x78, 0x69, 0x66, 0, 0, 0x4d]);
+    expect(readExif(cut)).toEqual({});
+    const bad = writeExif(jpeg(), { lat: 1, lng: 2 });
+    bad[12] = 0x58; // corrupt the TIFF byte-order mark
+    expect(readExif(bad)).toEqual({});
+  });
+});

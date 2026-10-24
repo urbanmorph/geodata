@@ -36,6 +36,18 @@ describe('the Photo question', () => {
     expect(host.querySelector('input[type=file]')).toBeTruthy();
   });
 
+  it('never goes over the limit, even when a second photo is picked while the first is being made ready', async () => {
+    const host = document.getElementById('h')!;
+    const pf = mountPhotoField(host, { key: 'pic', label: 'Photo', type: 'photo', max_photos: 1 }, { dataSaver: false });
+    const input = host.querySelector<HTMLInputElement>('input[data-src="camera"]')!;
+    Object.defineProperty(input, 'files', { value: [new File(['x'], 'a.jpg', { type: 'image/jpeg' })] });
+    input.dispatchEvent(new Event('change'));
+    expect(host.querySelector('input[type=file]')).toBeNull(); // no second pick while the first is being made ready
+    input.dispatchEvent(new Event('change')); // a stale input firing again
+    await flush(); await flush();
+    expect(pf.items()).toHaveLength(1);
+  });
+
   it('warns when a photo may show a face', async () => {
     face = true;
     const host = document.getElementById('h')!;

@@ -16,12 +16,15 @@ import { validateRecordProperties, type Field } from '../../src/schema/validate-
 
 export const AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
 const DEFAULT_DAILY_PHOTOS = 600; // ~12 neurons a photo keeps this inside the free 10,000 a day
+const DEFAULT_DAILY_PER_MAP = 200; // so one busy map (or one link holder) can't use up everyone's
+const STALE_RUN_MS = 5 * 60_000;   // a run this old never finished (the worker stopped): try again
 const MAX_TRIES = 3;
 const MAX_DESCRIPTION = 300;
 const MAX_TAGS = 6;
 
 export interface AiNotes {
-  status: 'queued' | 'waiting' | 'done' | 'failed';
+  status: 'queued' | 'running' | 'waiting' | 'done' | 'failed';
+  since?: string; // when a run started (status running)
   reason?: 'daily' | 'unavailable';
   model?: string;
   at?: string;
@@ -123,14 +126,30 @@ function base64(bytes: Uint8Array): string {
 
 // ---- running it ------------------------------------------------------------------------
 
-/** Take one photo from today's allowance; false when it's used up. */
-async function takeSlot(env: Env): Promise<boolean> {
-  const limit = Number(env.AI_DAILY_PHOTOS) >= 0 && env.AI_DAILY_PHOTOS !== undefined ? Number(env.AI_DAILY_PHOTOS) : DEFAULT_DAILY_PHOTOS;
+const limitOf = (v: string | undefined, dflt: number): number => (v !== undefined && v.trim() !== '' && Number(v) >= 0 ? Number(v) : dflt);
+
+async function bumpUsage(env: Env, key: string, limit: number): Promise<boolean> {
   if (limit <= 0) return false;
   const r = await env.DB.prepare(
     `INSERT INTO collect_ai_usage (day, calls) VALUES (?, 1)
      ON CONFLICT(day) DO UPDATE SET calls = calls + 1 WHERE calls < ?`,
-  ).bind(today(), limit).run();
+  ).bind(key, limit).run();
+  return (r.meta?.changes ?? 0) > 0;
+}
+
+/** Take one photo from today's allowance (the map's share, then the whole); false when used up. */
+async function takeSlot(env: Env, collectionId: string): Promise<boolean> {
+  return (await bumpUsage(env, `${today()}:${collectionId}`, limitOf(env.AI_DAILY_PER_MAP, DEFAULT_DAILY_PER_MAP)))
+    && bumpUsage(env, today(), limitOf(env.AI_DAILY_PHOTOS, DEFAULT_DAILY_PHOTOS));
+}
+
+/** Mark a point's notes as being written, unless another run already is: one model call per point. */
+async function claimRun(env: Env, recordId: string): Promise<boolean> {
+  const r = await env.DB.prepare(
+    `UPDATE records SET ai = json_set(COALESCE(ai, '{}'), '$.status', 'running', '$.since', ?)
+      WHERE id = ? AND (ai IS NULL OR json_extract(ai, '$.status') IN ('queued', 'waiting', 'failed')
+        OR (json_extract(ai, '$.status') = 'running' AND json_extract(ai, '$.since') < ?))`,
+  ).bind(new Date().toISOString(), recordId, new Date(Date.now() - STALE_RUN_MS).toISOString()).run();
   return (r.meta?.changes ?? 0) > 0;
 }
 
@@ -150,9 +169,10 @@ export async function runAi(env: Env, recordId: string): Promise<void> {
   if (!ids.length) return;
   const prev = (r.ai ? JSON.parse(r.ai) : {}) as AiNotes;
   if (prev.status === 'done' || prev.review) return;
+  if (!(await claimRun(env, recordId))) return;
 
   if (!env.AI) return void (await saveNotes(env, recordId, { status: 'waiting', reason: 'unavailable', tries: prev.tries }));
-  if (!(await takeSlot(env))) return void (await saveNotes(env, recordId, { status: 'waiting', reason: 'daily', tries: prev.tries }));
+  if (!(await takeSlot(env, r.collection_id))) return void (await saveNotes(env, recordId, { status: 'waiting', reason: 'daily', tries: prev.tries }));
   try {
     const bytes = await firstPhotoBytes(env, recordId, ids[0]);
     if (!bytes) throw new Error('photo not found');
@@ -185,9 +205,10 @@ export async function drainAi(env: Env, collectionId: string, max = 3): Promise<
   const { results } = await env.DB.prepare(
     `SELECT id FROM records WHERE collection_id = ? AND ai IS NOT NULL
        AND (json_extract(ai, '$.status') IN ('queued', 'waiting')
-            OR (json_extract(ai, '$.status') = 'failed' AND COALESCE(json_extract(ai, '$.tries'), 0) < ?))
+            OR (json_extract(ai, '$.status') = 'failed' AND COALESCE(json_extract(ai, '$.tries'), 0) < ?)
+            OR (json_extract(ai, '$.status') = 'running' AND json_extract(ai, '$.since') < ?))
      ORDER BY created_at LIMIT ?`,
-  ).bind(collectionId, MAX_TRIES, max).all<{ id: string }>();
+  ).bind(collectionId, MAX_TRIES, new Date(Date.now() - STALE_RUN_MS).toISOString(), max).all<{ id: string }>();
   for (const { id } of results) await runAi(env, id);
 }
 
