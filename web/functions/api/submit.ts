@@ -1,5 +1,10 @@
 // POST /api/submit — accept a geo file + metadata, run server-side
-// moderation, write to R2 + D1, return share URL + admin token (shown once).
+// moderation, store it completely or not at all (persistSubmission), return
+// share URL + admin token (shown once).
+//
+// Every attempt is logged with a reference (attempt_id) that is returned in
+// every response, so a contributor's report can be matched to the exact step
+// and error. Nothing escapes as a bare 500.
 //
 // Format strategy: the browser parses with src/parse-geo.ts and POSTs both
 // the raw file (for storage + content hash) and the resulting FeatureCollection
@@ -10,11 +15,12 @@ import type { Env as MiddlewareEnv } from './_middleware';
 import { validateSubmission } from '../lib/validate-server';
 import { verifyTurnstile } from '../lib/turnstile';
 import { checkRateLimit } from '../lib/ratelimit';
-import { insertSubmission, insertToken, findDuplicateByHash } from '../lib/submissions';
+import { findDuplicateByHash } from '../lib/submissions';
+import { persistSubmission } from '../lib/persist-submission';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
 import { nanoid, sha256Hex, sanitizeFilename, ipHashFor } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
-import { attemptRowFromResult, attemptRowReject, logAttempt, type AttemptRow } from '../lib/submit-log';
+import { attemptRowFromResult, attemptRowReject, logAttempt, parseErrorSummary, type AttemptRow } from '../lib/submit-log';
 
 type Env = MiddlewareEnv & {
   TURNSTILE_SECRET: string;
@@ -45,16 +51,45 @@ const contentTypeFor = (ext: string): string => {
   return 'application/octet-stream';
 };
 
+// Shown to the contributor when storage fails: plain, and honest that nothing was kept.
+const PERSIST_FAILED =
+  "We couldn't save your submission, and nothing was kept. Please try again in a moment. " +
+  'If it fails again, send us the reference shown below so we can see what happened.';
+
 export const onRequestPost: PagesFunction<Env> = async (ctx) => {
+  const attemptId = `att_${nanoid(10)}`;
+  const started = Date.now();
+  const log = (row: AttemptRow) =>
+    ctx.waitUntil(logAttempt(ctx.env.DB, { ...row, attempt_id: attemptId, duration_ms: Date.now() - started }));
+  const reply = (status: number, body: Record<string, unknown>) => j(status, { ...body, attempt_id: attemptId });
+  try {
+    return await handleSubmit(ctx, log, reply);
+  } catch (e) {
+    const err = e as Error;
+    log({ ...attemptRowReject('internal', 'unexpected server error', {}), step: 'internal', detail: err.stack || err.message });
+    return reply(500, { error: 'Something went wrong on our side and your submission was not saved. Please try again.' });
+  }
+};
+
+async function handleSubmit(
+  ctx: Parameters<PagesFunction<Env>>[0],
+  log: (row: AttemptRow) => void,
+  reply: (status: number, body: Record<string, unknown>) => Response,
+): Promise<Response> {
+  const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
   let form: FormData;
   try {
     form = await ctx.request.formData();
-  } catch {
-    return j(400, { error: 'invalid multipart body' });
+  } catch (e) {
+    log({ ...attemptRowReject('body', 'invalid multipart body', { ipHash }), detail: (e as Error).message });
+    return reply(400, { error: 'invalid multipart body' });
   }
 
   const file = form.get('file');
-  if (!(file instanceof File)) return j(400, { error: 'missing file' });
+  if (!(file instanceof File)) {
+    log(attemptRowReject('file', 'missing file', { ipHash }));
+    return reply(400, { error: 'missing file' });
+  }
 
   const f = (k: string) => ((form.get(k) as string) || '').trim();
   const turnstileToken = f('turnstile_token');
@@ -71,15 +106,11 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
   const ALLOWED = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
 
-  // Funnel instrumentation — record every attempt outcome so the drop-off past
-  // /submit is measurable. Best-effort + non-blocking (ctx.waitUntil).
-  const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
   const logMeta = { ext, bytes: file.size, ipHash };
-  const log = (row: AttemptRow) => ctx.waitUntil(logAttempt(ctx.env.DB, row));
 
   if (!ALLOWED.has(ext)) {
     log(attemptRowReject('format', `unsupported extension .${ext}`, logMeta));
-    return j(415, {
+    return reply(415, {
       error: `unsupported file extension .${ext} — accepts: ${[...ALLOWED].join(', ')}`,
     });
   }
@@ -100,14 +131,14 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
       if (!fcText) {
         log(attemptRowReject('parse', 'missing fc_json for non-GeoJSON upload', logMeta));
-        return j(400, { error: 'missing fc_json for non-GeoJSON upload' });
+        return reply(400, { error: 'missing fc_json for non-GeoJSON upload' });
       }
       rawJson = JSON.parse(fcText);
       fc = normaliseFC(rawJson);
     }
   } catch (e) {
-    log(attemptRowReject('parse', 'failed to parse FeatureCollection', logMeta));
-    return j(400, { error: 'failed to parse FeatureCollection', detail: (e as Error).message });
+    log({ ...attemptRowReject('parse', 'failed to parse FeatureCollection', logMeta), detail: parseErrorSummary(e) });
+    return reply(400, { error: 'failed to parse FeatureCollection', detail: (e as Error).message });
   }
 
   const result = await validateSubmission(
@@ -136,7 +167,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
 
   if (!result.accept) {
     log(attemptRowFromResult(result, logMeta));
-    return j(codeForReason(result.reason), { error: result.reason, report: result.report });
+    return reply(codeForReason(result.reason), { error: result.reason, report: result.report });
   }
 
   const id = nanoid(10);
@@ -145,15 +176,15 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
   const byType = (result.report.geometry?.info?.byType as Record<string, number>) || {};
   const geometryTypes = Object.keys(byType).join(',');
 
-  try {
-    await Promise.all([
-      ctx.env.R2.put(r2Key, bytes, {
-        httpMetadata: {
-          contentType: contentTypeFor(ext),
-          contentDisposition: `attachment; filename="${filename}"`,
-        },
-      }),
-      insertSubmission(ctx.env.DB, {
+  const outcome = await persistSubmission(
+    { r2: ctx.env.R2, db: ctx.env.DB },
+    {
+      files: [{
+        key: r2Key,
+        body: bytes,
+        httpMetadata: { contentType: contentTypeFor(ext), contentDisposition: `attachment; filename="${filename}"` },
+      }],
+      submission: {
         id,
         // Awaits a human curator's review before it goes live in the catalog.
         // Nothing is auto-approved: a curator accepts it via scripts/moderate_submission.py.
@@ -174,23 +205,27 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
         ip_hash: ipHash,
         validation_report: JSON.stringify(result.report),
         r2_key: r2Key,
-      }),
-      insertToken(ctx.env.DB, {
+      },
+      adminToken: {
         submissionId: id,
         tokenPrefix: tokenPrefix(adminToken),
         tokenHash: await hashToken(adminToken),
         permission: 'admin',
-      }),
-    ]);
-  } catch (e) {
-    log(attemptRowReject('persist', 'failed to persist submission', logMeta));
-    return j(500, { error: 'failed to persist submission', detail: (e as Error).message });
+      },
+    },
+  );
+  if (!outcome.ok) {
+    log({
+      ...attemptRowReject('persist', 'could not save the submission', logMeta),
+      submission_id: id, step: outcome.step, detail: outcome.detail, cleanup: outcome.cleanup,
+    });
+    return reply(500, { error: PERSIST_FAILED });
   }
 
-  log(attemptRowFromResult(result, logMeta));
+  log({ ...attemptRowFromResult(result, logMeta), submission_id: id, detail: outcome.warning ?? null });
 
   const origin = new URL(ctx.request.url).origin;
-  return j(200, {
+  return reply(200, {
     id,
     status: 'pending',
     message: 'Submitted for review. A curator approves it before it appears in the catalog; the link works once it is live.',
@@ -200,7 +235,7 @@ export const onRequestPost: PagesFunction<Env> = async (ctx) => {
     expires_at: null,
     report: result.report,
   });
-};
+}
 
 export const onRequest: PagesFunction<Env> = async () =>
   new Response('method not allowed', { status: 405 });

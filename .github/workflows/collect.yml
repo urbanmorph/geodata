@@ -12,7 +12,9 @@ on:
       - 'shared/**'
       - '.github/workflows/collect.yml'
       # web/ files collect imports (collect/tests/workflow-paths.test.ts keeps this list complete)
+      - 'web/functions/lib/attempt-log.ts'
       - 'web/functions/lib/licenses.ts'
+      - 'web/functions/lib/persist-submission.ts'
       - 'web/functions/lib/submissions.ts'
       - 'web/functions/lib/submit-helpers.ts'
       - 'web/functions/lib/tokens.ts'
@@ -27,7 +29,9 @@ on:
       - 'shared/**'
       - '.github/workflows/collect.yml'
       # web/ files collect imports (collect/tests/workflow-paths.test.ts keeps this list complete)
+      - 'web/functions/lib/attempt-log.ts'
       - 'web/functions/lib/licenses.ts'
+      - 'web/functions/lib/persist-submission.ts'
       - 'web/functions/lib/submissions.ts'
       - 'web/functions/lib/submit-helpers.ts'
       - 'web/functions/lib/tokens.ts'

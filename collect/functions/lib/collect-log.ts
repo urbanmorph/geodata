@@ -1,12 +1,16 @@
 // Funnel instrumentation: outcome of every create / contribute / publish
 // attempt (spec → Deployment checklist item 8). Coarse facts only — no field
-// values, no names. Best-effort; never blocks the request.
+// values, no names — plus, for failures, the reference, step and exact error.
+// Never blocks the request.
 
 import type { D1Database } from '@cloudflare/workers-types';
+// Imported directly (not via ./reuse): reuse also loads the submission libs,
+// which need Cloudflare's ambient types that collect's browser tests lack.
+import { insertAttempt, type AttemptDetail } from '../../../web/functions/lib/attempt-log';
 
 export type CollectEvent = 'create' | 'contribute' | 'publish' | 'import';
 
-export interface CollectAttempt {
+export interface CollectAttempt extends AttemptDetail {
   event: CollectEvent;
   outcome: 'ok' | 'rejected';
   gate?: string | null;
@@ -15,18 +19,16 @@ export interface CollectAttempt {
   ip_hash?: string | null;
 }
 
+/** Record one collect attempt (reference, step, exact error, timing and
+ *  cleanup included; see insertAttempt). Never throws, never fails silently. */
 export async function logCollectAttempt(db: D1Database, row: CollectAttempt): Promise<void> {
-  try {
-    await db
-      .prepare(
-        `INSERT INTO collect_attempts (event, outcome, gate, reason, collection_id, ip_hash)
-         VALUES (?, ?, ?, ?, ?, ?)`,
-      )
-      .bind(row.event, row.outcome, row.gate ?? null, row.reason ?? null, row.collection_id ?? null, row.ip_hash ?? null)
-      .run();
-  } catch {
-    // instrumentation must never break a request
-  }
+  const { event, outcome, gate, reason, collection_id, ip_hash, ...detail } = row;
+  await insertAttempt(
+    db,
+    'collect_attempts',
+    { event, outcome, gate: gate ?? null, reason: reason ?? null, collection_id: collection_id ?? null, ip_hash: ip_hash ?? null },
+    detail,
+  );
 }
 
 // Register the async log with ctx.waitUntil (via the handler's `defer`) so the

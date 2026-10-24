@@ -10,8 +10,8 @@ import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, linkFor, atLeast } from './auth';
 import { checkCreateRate, checkRecordRate, checkKeyDayRate, checkKeyringRate } from './ratelimit';
-import { deferLog } from './collect-log';
-import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, insertSubmission, insertToken } from './reuse';
+import { deferLog, type CollectAttempt } from './collect-log';
+import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, persistSubmission } from './reuse';
 import * as db from './db';
 import { recordStatusFor } from './moderation';
 import { validateNewCollection, validateCollectionEdit } from '../../src/schema/validate-collection';
@@ -596,18 +596,42 @@ export async function importRecords(env: Env, req: Request, id: string, defer?: 
 
 // ---- POST /collections/:id/publish -----------------------------------------
 
+type PublishLog = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms'>) => void;
+
+/** Publish a map to the catalog. Every exit is logged with a reference
+ *  (attempt_id) that is also returned, and an unexpected exception becomes a
+ *  logged 500 instead of escaping to the router. */
 export async function publish(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
+  const attemptId = `att_${nanoid(10)}`;
+  const started = Date.now();
+  const log: PublishLog = (row) => deferLog(defer, env.DB, {
+    ...row, event: 'publish', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started,
+  });
+  const refuse = (status: number, gate: string, error: string) => {
+    log({ outcome: 'rejected', gate, reason: error });
+    return json(status, { error, attempt_id: attemptId });
+  };
+  try {
+    return await publishMap(env, req, id, attemptId, log, refuse);
+  } catch (e) {
+    const err = e as Error;
+    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
+    return json(500, { error: 'Something went wrong on our side and the map was not published. Please try again.', attempt_id: attemptId });
+  }
+}
+
+async function publishMap(
+  env: Env, req: Request, id: string, attemptId: string, log: PublishLog,
+  refuse: (status: number, gate: string, error: string) => Response,
+): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
 
   const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  if (!c) return refuse(404, 'not_found', 'not found');
 
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: 100000, offset: 0 });
-  if (rows.length === 0) {
-    deferLog(defer, env.DB, { event: 'publish', outcome: 'rejected', gate: 'empty', collection_id: id });
-    return bad(409, 'nothing approved to publish yet');
-  }
+  if (rows.length === 0) return refuse(409, 'empty', 'nothing approved to publish yet');
 
   // Flatten locate enrichment into the published properties (state, district…),
   // so the catalogue layer is filterable by admin area. Author fields win on any
@@ -628,7 +652,7 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
       .prepare(`SELECT content_hash FROM publications WHERE collection_id = ? AND version = ?`)
       .bind(id, version - 1)
       .first()) as { content_hash: string } | null;
-    if (prev?.content_hash === contentHash) return bad(409, `nothing new since v${version - 1}`);
+    if (prev?.content_hash === contentHash) return refuse(409, 'unchanged', `nothing new since v${version - 1}`);
   }
 
   // Imported records are credited via their source, not the contributor tally;
@@ -645,62 +669,86 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
   const contributorsKey = `community/${submissionId}/contributors.json`;
   const adminToken = generateToken('admin');
 
-  await env.R2.put(r2Key, bytes, {
-    httpMetadata: { contentType: 'application/geo+json', contentDisposition: `attachment; filename="${submissionId}.geojson"` },
-  });
-  await env.R2.put(
-    contributorsKey,
-    JSON.stringify({
-      attribution: attribution.line,
-      contributors: attribution.contributors,
-      sources: attribution.sources,
-      collection_url: `${new URL(req.url).origin}/c/${id}`,
-      version,
-    }),
-    { httpMetadata: { contentType: 'application/json' } },
+  // Everything or nothing: both files, then the submission, its admin token,
+  // the collection link and the publication in one D1 transaction.
+  const outcome = await persistSubmission(
+    { r2: env.R2, db: env.DB },
+    {
+      files: [
+        {
+          key: r2Key,
+          body: bytes.buffer as ArrayBuffer,
+          httpMetadata: { contentType: 'application/geo+json', contentDisposition: `attachment; filename="${submissionId}.geojson"` },
+        },
+        {
+          key: contributorsKey,
+          body: JSON.stringify({
+            attribution: attribution.line,
+            contributors: attribution.contributors,
+            sources: attribution.sources,
+            collection_url: `${new URL(req.url).origin}/c/${id}`,
+            version,
+          }),
+          httpMetadata: { contentType: 'application/json' },
+        },
+      ],
+      submission: {
+        id: submissionId,
+        // Awaits a curator's review before it goes live in the catalog (no auto-approval).
+        status: 'pending',
+        name: c.name,
+        description: c.description,
+        category: (JSON.parse(c.schema_doc) as { category?: string }).category || 'other',
+        license: c.license,
+        attribution: attribution.line,
+        source_url: `https://collect.bharatlas.com/c/${id}`,
+        data_year: c.data_year,
+        is_original: 1,
+        format: 'geojson',
+        bytes: bytes.byteLength,
+        feature_count: features.length,
+        geometry_types: geomTypes,
+        content_hash: contentHash,
+        ip_hash: c.ip_hash,
+        validation_report: null,
+        r2_key: r2Key,
+      },
+      adminToken: {
+        submissionId,
+        tokenPrefix: tokenPrefix(adminToken),
+        tokenHash: await hashToken(adminToken),
+        permission: 'admin',
+      },
+      extra: (d) => [
+        db.linkSubmissionStatement(d, submissionId, id, version),
+        db.publicationInsert(d, {
+          id: nanoid(10),
+          collectionId: id,
+          version,
+          submissionId,
+          featureCount: features.length,
+          contentHash,
+          attributionSnapshot: attribution.line,
+          r2Key,
+        }),
+      ],
+    },
   );
+  if (!outcome.ok) {
+    log({
+      outcome: 'rejected', gate: 'persist', reason: 'could not save the publication',
+      submission_id: submissionId, step: outcome.step, detail: outcome.detail, cleanup: outcome.cleanup,
+    });
+    return json(500, {
+      error: "We couldn't publish this map, and nothing was kept. Please try again in a moment. " +
+        'If it fails again, send us the reference so we can see what happened.',
+      attempt_id: attemptId,
+    });
+  }
 
-  await insertSubmission(env.DB, {
-    id: submissionId,
-    // Awaits a curator's review before it goes live in the catalog (no auto-approval).
-    status: 'pending',
-    name: c.name,
-    description: c.description,
-    category: (JSON.parse(c.schema_doc) as { category?: string }).category || 'other',
-    license: c.license,
-    attribution: attribution.line,
-    source_url: `https://collect.bharatlas.com/c/${id}`,
-    data_year: c.data_year,
-    is_original: 1,
-    format: 'geojson',
-    bytes: bytes.byteLength,
-    feature_count: features.length,
-    geometry_types: geomTypes,
-    content_hash: contentHash,
-    ip_hash: c.ip_hash,
-    validation_report: null,
-    r2_key: r2Key,
-  });
-  await insertToken(env.DB, {
-    submissionId,
-    tokenPrefix: tokenPrefix(adminToken),
-    tokenHash: await hashToken(adminToken),
-    permission: 'admin',
-  });
-  await db.linkSubmission(env.DB, submissionId, id, version);
-  await db.insertPublication(env.DB, {
-    id: nanoid(10),
-    collectionId: id,
-    version,
-    submissionId,
-    featureCount: features.length,
-    contentHash,
-    attributionSnapshot: attribution.line,
-    r2Key,
-  });
-
-  deferLog(defer, env.DB, { event: 'publish', outcome: 'ok', collection_id: id });
+  log({ outcome: 'ok', submission_id: submissionId, detail: outcome.warning ?? null });
   return json(200, {
+    attempt_id: attemptId,
     version,
     submission_id: submissionId,
     feature_count: features.length,

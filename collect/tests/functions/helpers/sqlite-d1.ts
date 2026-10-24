@@ -1,7 +1,8 @@
 // A real SQLite database behind the slice of the D1 API the handlers use
 // (prepare → bind → run / first / all), with every web/migrations file applied.
 // Lets handler tests run against the actual schema instead of a hand-written
-// fake that drifts from it. node:sqlite is built into Node 22.
+// fake that drifts from it. node:sqlite is built into Node 22 and enforces
+// foreign keys by default, as D1 does.
 import { readdirSync, readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
@@ -29,5 +30,19 @@ export function sqliteD1(): D1Database & { raw: DB } {
     };
     return stmt;
   };
-  return { prepare, raw } as unknown as D1Database & { raw: DB };
+  // D1 batch(): statements run in order inside one transaction; any failure
+  // rolls them all back and rejects.
+  const batch = async (stmts: Array<{ run: () => Promise<unknown> }>) => {
+    raw.exec('BEGIN');
+    try {
+      const out = [];
+      for (const st of stmts) out.push(await st.run());
+      raw.exec('COMMIT');
+      return out;
+    } catch (e) {
+      raw.exec('ROLLBACK');
+      throw e;
+    }
+  };
+  return { prepare, batch, raw } as unknown as D1Database & { raw: DB };
 }
