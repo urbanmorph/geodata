@@ -1,7 +1,7 @@
 // Browser side of the opt-in keyring sync (see keyring.ts for the crypto).
 // Holds the secret in localStorage on each device that joined, syncs on page
 // load and shortly after any change to "Your maps", and turns off cleanly.
-import { deriveKeys, newSecret, syncNow, syncLink, SyncGone } from './keyring';
+import { deriveKeys, newSecret, syncNow, SyncGone } from './keyring';
 import { keyringHttp } from '../../shared/keyring';
 import { myMaps, replaceMaps, MAPS_CHANGED } from './maps-store';
 import { createPasskeyPrf, passkeyPrf, storeWrappedSecret, recoverSecret, type PasskeyHandle } from './passkey';
@@ -43,18 +43,37 @@ export async function syncDevice(): Promise<void> {
   }
 }
 
-export async function turnOnSync(): Promise<void> {
-  saveState({ secret: newSecret() });
-  await syncDevice();
+const deleteBlob = (k: { id: string; writeKey: string }) => http.delete(k.id, k.writeKey);
+
+// "Set up on this device": sync on and a passkey, in one step. A device that is
+// already syncing (an older copy with no passkey) keeps its copy and gains the
+// passkey. If the passkey isn't made (cancelled, unsupported), a fresh setup is
+// undone, so no device is left with a copy no passkey can open.
+export async function setUpSync(): Promise<void> {
+  const fresh = !syncState();
+  if (fresh) {
+    saveState({ secret: newSecret() });
+    await syncDevice(); // create the copy first: a device with a passkey counts as joined
+  }
+  const st = syncState()!;
+  try {
+    const handle = await storeWrappedSecret(await createPasskeyPrf(), st.secret, http);
+    saveState({ ...st, passkey: handle });
+  } catch (e) {
+    if (fresh) {
+      await deleteBlob(await deriveKeys(st.secret)).catch(() => {});
+      saveState(null);
+    }
+    throw e;
+  }
 }
 
-// Opened a sync link on this device: adopt its secret and merge both lists.
+// Opened a sync link on this device (older shares still work; collect no longer
+// shows them): adopt its secret and merge both lists.
 export async function joinSync(secret: string): Promise<void> {
   saveState({ secret });
   await syncDevice();
 }
-
-const deleteBlob = (k: { id: string; writeKey: string }) => http.delete(k.id, k.writeKey);
 
 // Turn off everywhere: delete the server copy (and this device's passkey
 // wrapper), then forget the secret here. Other devices learn on their next
@@ -67,25 +86,14 @@ export async function turnOffSync(): Promise<void> {
   saveState(null);
 }
 
-// Sync is on: create a passkey that can unlock it on a new device.
-export async function addPasskey(): Promise<void> {
-  const st = syncState();
-  if (!st) throw new Error('turn on sync first');
-  const handle = await storeWrappedSecret(await createPasskeyPrf(), st.secret, http);
-  saveState({ ...st, passkey: handle });
-}
-
-// New device: use an existing passkey to recover the secret and join.
+// "I've set this up already": the passkey recovers the shared copy's secret and
+// this device joins it. Its own maps are merged in (a union), including when it
+// had started a separate copy of its own, so nothing on it is lost.
 export async function unlockWithPasskey(): Promise<void> {
   const found = await recoverSecret(await passkeyPrf(), http);
   if (!found) throw new Error('no synced copy for this passkey (it may have been turned off)');
   saveState({ secret: found.secret, passkey: found.handle });
   await syncDevice();
-}
-
-export function mySyncLink(): string | null {
-  const st = syncState();
-  return st ? syncLink(location.origin, st.secret) : null;
 }
 
 // Push local changes ~2s after they settle. Errors are quiet here; the landing
