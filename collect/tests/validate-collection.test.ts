@@ -29,6 +29,16 @@ describe('validateNewCollection', () => {
     }
   });
 
+  it('accepts a 200-field form but refuses one too large to store, in plain words', () => {
+    const field = (i: number) => ({ key: `f${i}`, label: `Field ${i}`, type: 'select', options: ['Good', 'Moderate', 'Bad'] });
+    const big = { ...goodSchema, fields: Array.from({ length: 200 }, (_, i) => field(i)) };
+    expect(validateNewCollection({ ...goodBody, schema_doc: big }).ok).toBe(true);
+    const huge = { ...goodSchema, fields: [{ key: 'a', label: 'A', type: 'select', options: Array.from({ length: 30000 }, (_, i) => `Option ${i}`) }] };
+    const r = validateNewCollection({ ...goodBody, schema_doc: huge });
+    expect(r.ok).toBe(false);
+    expect(!r.ok && r.error).toMatch(/form is too large/);
+  });
+
   it('rejects a bad name length', () => {
     expect(validateNewCollection({ ...goodBody, name: 'ab' }).ok).toBe(false);
     expect(validateNewCollection({ ...goodBody, name: 'x'.repeat(121) }).ok).toBe(false);
@@ -70,9 +80,12 @@ describe('validateSchemaDoc (the meta-schema check)', () => {
     expect(validateSchemaDoc({ ...goodSchema, fields: [{ key: 'a', label: 'x', type: 'select', options: [] }] }).ok).toBe(false);
   });
 
-  it('caps fields at 20 and reference_layers at 3', () => {
-    const many = Array.from({ length: 21 }, (_, i) => ({ key: `f${i}`, label: 'x', type: 'text' }));
-    expect(validateSchemaDoc({ ...goodSchema, fields: many }).ok).toBe(false);
+  it('has no cap on the number of fields (a 22-column survey sheet fits)', () => {
+    const many = Array.from({ length: 60 }, (_, i) => ({ key: `f${i}`, label: 'x', type: 'text' }));
+    expect(validateSchemaDoc({ ...goodSchema, fields: many }).ok).toBe(true);
+  });
+
+  it('caps reference_layers at 3', () => {
     expect(validateSchemaDoc({ ...goodSchema, reference_layers: ['a', 'b', 'c', 'd'] }).ok).toBe(false);
   });
 

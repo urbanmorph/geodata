@@ -22,6 +22,7 @@ import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
 import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
+import { loadContributorName, saveContributorName } from './contributor-name';
 import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
@@ -581,7 +582,6 @@ const CAP_HELP: Record<GeomMode, string> = {
 };
 
 const cap = (s: string): string => s[0].toUpperCase() + s.slice(1);
-let lastContributor = '';
 let lastAdded = '';
 let lastQueued = ''; // client_id of the last point saved offline, to say when it's sent
 
@@ -655,15 +655,15 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
       <strong>${cap(noun)} details</strong>
       <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
       ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
-      <label>Your name <span class="hint">(optional, published with the data)</span></label>
-      <input id="contributor" />
+      <label for="contributor">Your name <span class="hint">(optional, published with the data, remembered on this device)</span></label>
+      <input id="contributor" autocomplete="name" />
     </form>
     <div class="foot row">
       <button type="button" id="cancel">← Back</button>
       <button class="primary" id="save" style="flex:1">Save ${noun}</button>
     </div>
   </div>`;
-  (document.getElementById('contributor') as HTMLInputElement).value = lastContributor;
+  (document.getElementById('contributor') as HTMLInputElement).value = loadContributorName();
   panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => c.classList.toggle('on'); });
   // Back keeps a line/area's vertices so drawing work isn't lost.
   (document.getElementById('cancel') as HTMLButtonElement).onclick = () => renderPlaceBar(modes);
@@ -687,13 +687,14 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     const valid = validateRecordProperties(fields, raw);
     if (!valid.ok) { toast(valid.error); return; }
     btn.disabled = true;
-    lastContributor = (document.getElementById('contributor') as HTMLInputElement).value;
+    const contributor = (document.getElementById('contributor') as HTMLInputElement).value.trim();
+    saveContributorName(contributor);
     // Kept on this phone first, then sent (straight away when there's signal).
     // A sent point's edit link joins "Your additions" (send-queue.ts): it's the
     // contributor's only way back to edit, delete or de-identify it (no accounts).
     const saved = await savePoint({
       collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: valid.properties,
-      contributor: lastContributor, label: recordLabel(valid.properties, noun), noun,
+      contributor, label: recordLabel(valid.properties, noun), noun,
     }).catch((e: Error): Saved => ({ state: 'refused', error: e.message }));
     if (saved.state === 'refused') {
       toast(`Couldn't save: ${saved.error}. Your details are kept, tap Save to retry.`);

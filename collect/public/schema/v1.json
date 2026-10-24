@@ -29,7 +29,6 @@
     },
     "fields": {
       "type": "array",
-      "maxItems": 20,
       "items": {
         "type": "object",
         "required": ["key", "label", "type"],

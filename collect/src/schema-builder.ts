@@ -29,7 +29,6 @@ const TYPES: [string, string][] = [
   ['date', 'Date'],
   ['url', 'Link (URL)'],
 ];
-const MAX_FIELDS = 20;
 const needsOptions = (t: string) => t === 'select' || t === 'multiselect';
 const typeLabel = (t: string) => TYPES.find(([v]) => v === t)?.[1] ?? t;
 
@@ -156,7 +155,6 @@ export function mountSchemaBuilder(
   let addForm = createFieldForm(container.querySelector<HTMLElement>('#sb-add .ff-host')!, null);
 
   addBtn.onclick = () => {
-    if (fields.length >= MAX_FIELDS) { addForm.setError(`Max ${MAX_FIELDS} fields.`); return; }
     const built = addForm.read();
     if ('error' in built) { addForm.setError(built.error); return; }
     built.field.key = deriveKey(built.field.label, fields.map((x) => x.key));
