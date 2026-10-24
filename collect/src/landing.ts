@@ -13,13 +13,13 @@ import { summarizeErrors } from './import/check';
 import { importReport, importReportHtml, importInChunks, type ImportReply, type ImportReport } from './import/report';
 import type { Field } from './schema/validate-record';
 import type { BuilderField } from './schema-builder';
-import { myMaps, saveOwnedMap, replaceMaps, mergeMaps, openLink, type SavedMap, type MapRole } from './maps-store';
+import { myMaps, saveOwnedMap, openLink, type SavedMap, type MapRole } from './maps-store';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { linksMailtoHref, linksText } from './share';
 import { shareItemHtml, wireShareItems, toggleQr } from './share-ui';
 import { mountInstallButton } from '../../web/src/install-button';
 import { syncSecretFrom } from './keyring';
-import { syncState, syncDevice, turnOnSync, joinSync, turnOffSync, mySyncLink, startAutoSync, addPasskey, unlockWithPasskey, SyncGone } from './syncing';
+import { syncState, syncDevice, setUpSync, joinSync, turnOffSync, startAutoSync, unlockWithPasskey, SyncGone } from './syncing';
 import { passkeysAvailable } from './passkey';
 import { queuedFor, sendWhenOnline, OUTBOX_CHANGED } from './send-queue';
 import './register-sw';
@@ -87,11 +87,6 @@ function home() {
       <div style="height:18px"></div>
       <p class="hint" id="outbox-note"></p>
       <div id="mymaps">${mapsSection()}</div>
-      <div style="height:14px"></div>
-      <button id="export" class="wide">⬇ Save my map links</button>
-      <label class="btn wide" style="cursor:pointer">⬆ Restore map links<input id="import" type="file" accept="application/json" hidden></label>
-      <p class="hint">This file holds the <strong>links</strong> to your maps (your admin access) and to the points you added, not the points other people collect. With no accounts, it's how you reach your maps again from another device or browser.</p>
-      <p id="imp-err" class="warn"></p>
       <div id="sync"></div>
       <footer class="foot-note">
         <span>Part of <a href="https://bharatlas.com">bharatlas</a>, built for the field and optimised for mobile.</span>
@@ -103,76 +98,69 @@ function home() {
   void fillMasthead();
   void renderQueueNote();
   renderSync();
-
-  app.querySelector<HTMLButtonElement>('#export')!.onclick = () =>
-    downloadText(JSON.stringify(myMaps(), null, 2), 'collect-map-links.json', 'application/json');
-  app.querySelector<HTMLInputElement>('#import')!.onchange = async (e) => {
-    const file = (e.target as HTMLInputElement).files?.[0];
-    if (!file) return;
-    try {
-      const incoming = JSON.parse(await file.text()) as SavedMap[];
-      if (!Array.isArray(incoming)) throw new Error('not a maps file');
-      replaceMaps(mergeMaps(incoming, myMaps()));
-      home();
-    } catch (ex) {
-      app.querySelector('#imp-err')!.textContent = `Couldn't import: ${(ex as Error).message}`;
-    }
-  };
 }
 
-// Opt-in sync of "Your maps" across devices, end-to-end encrypted (keyring.ts).
-// The notice is the consent: what's stored, that bharatlas can't read it, how
-// long it's kept, and how to delete it.
-const SYNC_NOTICE = `Keeps an <strong>encrypted copy</strong> of these links on bharatlas so you can open them on your other devices, or in the app on your home screen. bharatlas can't read it and doesn't know whose it is. It's deleted after <strong>12 months</strong> without use, or as soon as you turn sync off.`;
+// "Your maps on all your devices": one way, a passkey. The notice is the
+// consent: what's stored, that bharatlas can't read it, how long it's kept, and
+// how to delete it. (Older sync links still open, see bootSync; collect no
+// longer offers them, nor the backup file: one thing, made to work.)
+const SYNC_NOTICE = `Keeps an <strong>encrypted copy</strong> of your map links on bharatlas, opened with your passkey. bharatlas can't read it. It's deleted after <strong>12 months</strong> without use, or when you turn sync off.`;
+// An app on an iPhone/iPad home screen keeps its own list, apart from Safari's.
+const homeScreenApp = (): boolean =>
+  (navigator as Navigator & { standalone?: boolean }).standalone === true || matchMedia('(display-mode: standalone)').matches;
 
 function renderSync(note = ''): void {
   const box = app.querySelector<HTMLElement>('#sync');
   if (!box) return;
   const st = syncState();
-  if (!st) {
-    box.innerHTML = `<label>Sync across your devices <span class="hint">(optional)</span></label>
-      <p class="hint">${SYNC_NOTICE}</p>
-      ${note ? `<p class="warn">${escapeHtml(note)}</p>` : ''}
-      <button class="wide" id="sync-on">🔄 Turn on sync</button>
-      ${passkeysAvailable() ? '<button class="wide" id="pk-unlock" style="margin-top:8px">🔑 Unlock with your passkey</button><p class="hint">Already synced on another device? Use the passkey you added there.</p>' : ''}`;
-    box.querySelector<HTMLButtonElement>('#sync-on')!.onclick = async (e) => {
+  const warn = note ? `<p class="warn">${escapeHtml(note)}</p>` : '';
+  if (!passkeysAvailable()) {
+    box.innerHTML = `<label>Your maps on all your devices</label>
+      <p class="hint">This browser can't use passkeys. Open collect in Safari or Chrome to see your maps on your phone, tablet and computer.</p>`;
+    return;
+  }
+  if (st?.passkey) {
+    const when = st.synced_at ? new Date(st.synced_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'not yet';
+    box.innerHTML = `<label>Your maps on all your devices</label>
+      <p class="ok">✓ On, synced ${escapeHtml(when)}</p>
+      ${warn}
+      <p class="hint">Adding a device? Open collect there and tap <strong>I've set this up already</strong>.</p>
+      <button type="button" class="linklike" id="sync-off">Turn off sync</button>`;
+    let armed = false;
+    box.querySelector<HTMLButtonElement>('#sync-off')!.onclick = async (e) => {
       const b = e.currentTarget as HTMLButtonElement;
+      if (!armed) { armed = true; b.textContent = 'Tap again: stops sync on all your devices and deletes the copy (your maps stay on each device)'; return; }
       b.disabled = true;
-      try { await turnOnSync(); home(); } catch (ex) { renderSync((ex as Error).message); }
-    };
-    const unlock = box.querySelector<HTMLButtonElement>('#pk-unlock');
-    if (unlock) unlock.onclick = async () => {
-      unlock.disabled = true;
-      try { await unlockWithPasskey(); home(); } catch (ex) { renderSync(passkeyError(ex)); }
+      try { await turnOffSync(); renderSync(); } catch (ex) { renderSync((ex as Error).message); }
     };
     return;
   }
-  const when = st.synced_at ? new Date(st.synced_at).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }) : 'not yet';
-  box.innerHTML = `<label>Sync is on <span class="hint">(last synced ${escapeHtml(when)})</span></label>
-    ${note ? `<p class="warn">${escapeHtml(note)}</p>` : ''}
-    ${shareItemHtml('sync', '🔄 Your sync link (keep private)', mySyncLink()!, 'Open it on your other device, or in the home-screen app, to bring the same maps there. Anyone with it can see and change your saved links.')}
-    ${passkeysAvailable() ? (st.passkey
-      ? '<p class="hint">🔑 Passkey added. On a new device, choose <strong>Unlock with your passkey</strong> instead of opening the link.</p>'
-      : '<button class="wide" id="pk-add">🔑 Add a passkey</button><p class="hint">Unlock on a new device with Face ID or fingerprint, no link needed.</p>') : ''}
-    <button class="wide" id="sync-off">Turn off sync and delete the synced copy</button>`;
-  wireShareItems(box, 'collect sync link');
-  const add = box.querySelector<HTMLButtonElement>('#pk-add');
-  if (add) add.onclick = async () => {
-    add.disabled = true;
-    try { await addPasskey(); renderSync(); } catch (ex) { renderSync(passkeyError(ex)); }
+  // Not set up here (or an older copy with no passkey): one question.
+  box.innerHTML = `<label>Your maps on all your devices</label>
+    <p class="hint">Use a passkey (Face ID, fingerprint or screen lock) to see your maps on your phone, tablet and computer.${homeScreenApp() ? ' This app keeps its own list, so set it up here too.' : ''}</p>
+    ${warn}
+    <button class="wide primary" id="sync-setup">Set up on this device</button>
+    <button class="wide" id="sync-join" style="margin-top:8px">I've set this up already</button>
+    <p class="hint">Already using collect on another device? Choose <strong>I've set this up already</strong>, so all your devices share one list.</p>
+    <p class="hint">${SYNC_NOTICE}</p>`;
+  const act = (id: string, run: () => Promise<void>): void => {
+    const b = box.querySelector<HTMLButtonElement>(id)!;
+    b.onclick = async () => {
+      b.disabled = true;
+      try { await run(); home(); } catch (ex) { renderSync(passkeyError(ex)); }
+    };
   };
-  let armed = false;
-  box.querySelector<HTMLButtonElement>('#sync-off')!.onclick = async (e) => {
-    const b = e.currentTarget as HTMLButtonElement;
-    if (!armed) { armed = true; b.textContent = 'Tap again: this turns sync off on all your devices'; return; }
-    b.disabled = true;
-    try { await turnOffSync(); renderSync(); } catch (ex) { renderSync((ex as Error).message); }
-  };
+  act('#sync-setup', setUpSync);
+  act('#sync-join', unlockWithPasskey);
 }
 
-// The OS sheet's cancel arrives as NotAllowedError; say so plainly.
+// Plain words for a passkey that didn't work.
 function passkeyError(ex: unknown): string {
-  return (ex as Error)?.name === 'NotAllowedError' ? 'Passkey cancelled.' : (ex as Error).message;
+  const e = ex as Error;
+  if (e?.name === 'NotAllowedError') return 'Passkey cancelled.';
+  if (/no synced copy/.test(e?.message ?? '')) return "That passkey doesn't open a synced list. On the device where you set it up, check that sync is on.";
+  if (/sync link|can't (unlock|be used)/.test(e?.message ?? '')) return "This browser or passkey can't sync your maps. Try Safari or Chrome, with the passkey saved to iCloud Keychain or Google Password Manager.";
+  return e?.message || 'Something went wrong.';
 }
 
 // On load: adopt a sync link opened on this device (then strip the secret from
@@ -188,7 +176,9 @@ async function bootSync(): Promise<void> {
     } else return;
     home();
   } catch (e) {
-    renderSync(e instanceof SyncGone ? 'Sync was turned off on another device, so it is off here too.' : `Couldn't sync: ${(e as Error).message}`);
+    renderSync(e instanceof SyncGone ? 'Sync was turned off on another device, so it is off here too.'
+      : e instanceof TypeError ? "You're offline. Your maps will sync when you're back online."
+      : `Couldn't sync: ${(e as Error).message}`);
   }
 }
 

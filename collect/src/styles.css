@@ -195,6 +195,8 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 .notice--inline { display: flex; gap: 8px; align-items: baseline; }
 .notice--inline > div { margin: 0; }
 .ok { color: var(--ok); font-size: 13px; line-height: 1.5; }
+/* a quiet text-style action (e.g. Turn off sync): still a 44px target */
+.linklike { background: none; border: 0; padding: 0 2px; min-height: 44px; color: var(--muted); font-size: 13px; text-decoration: underline; cursor: pointer; }
 .reasons { margin: 6px 0 0; padding-left: 18px; }
 .reasons li + li { margin-top: 2px; }
 /* form builder: how the data fits each field */
