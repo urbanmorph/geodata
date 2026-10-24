@@ -26,6 +26,7 @@ via `wrangler login` (oauth with D1) or a D1-scoped CLOUDFLARE_API_TOKEN. If the
 env's CLOUDFLARE_API_TOKEN is R2-only it's dropped on a retry (same trick as
 bake_community.py), so oauth can handle D1.
 """
+import functools
 import json
 import os
 import subprocess
@@ -34,6 +35,7 @@ import sys
 D1_DATABASE = 'geodata-submissions'
 
 
+@functools.cache
 def wrangler_bin() -> list[str]:
     """`wrangler` only if it actually runs (a broken mise shim exists on PATH
     but exits non-zero), else npx."""
@@ -62,11 +64,17 @@ def esc(s: str) -> str:
     return s.replace("'", "''")
 
 
+@functools.cache
+def _s3():
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from ingest_ramseraph import r2_client
+    return r2_client()
+
+
 def r2_size(key: str) -> int | None:
     """Size of the stored object, or None if it is not in R2."""
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from ingest_ramseraph import BUCKET, r2_client
-    s3 = r2_client()
+    from ingest_ramseraph import BUCKET
+    s3 = _s3()
     try:
         return int(s3.head_object(Bucket=BUCKET, Key=key)['ContentLength'])
     except s3.exceptions.ClientError as e:
@@ -87,9 +95,15 @@ def integrity_problems(row: dict, stored_size: int | None, admin_tokens: int) ->
     return problems
 
 
-def problems_for(row: dict) -> list[str]:
-    tokens = d1(f"SELECT COUNT(*) n FROM submission_tokens WHERE submission_id='{esc(row['id'])}' AND permission='admin'")
-    return integrity_problems(row, r2_size(row['r2_key']), tokens[0]['n'] if tokens else 0)
+def admin_token_counts(ids: list[str] | None = None) -> dict[str, int]:
+    """Admin tokens per submission, in one query."""
+    where = f" AND submission_id IN ({', '.join(repr(esc(i)) for i in ids)})" if ids else ''
+    rows = d1(f"SELECT submission_id, COUNT(*) n FROM submission_tokens WHERE permission='admin'{where} GROUP BY submission_id")
+    return {r['submission_id']: r['n'] for r in rows}
+
+
+def problems_for(row: dict, tokens: dict[str, int]) -> list[str]:
+    return integrity_problems(row, r2_size(row['r2_key']), tokens.get(row['id'], 0))
 
 
 def list_pending() -> None:
@@ -99,10 +113,11 @@ def list_pending() -> None:
         print('No pending submissions. 🎉')
         return
     print(f'{len(rows)} pending submission(s) awaiting review:\n')
+    tokens = admin_token_counts([r['id'] for r in rows])
     for r in rows:
         print(f"  {r['id']}  {(r.get('name') or '(no name)')[:44]}")
         print(f"      {r.get('feature_count')} features · {r.get('category')} · {r.get('day')} · {(r.get('source_url') or '')[:50]}")
-        for p in problems_for(r):
+        for p in problems_for(r, tokens):
             print(f'      ✗ {p}: cannot be accepted')
     print('\nAccept:  python3 scripts/moderate_submission.py accept <id>')
     print('Reject:  python3 scripts/moderate_submission.py reject <id>')
@@ -124,7 +139,7 @@ def set_status(sub_id: str, status: str, reason: str | None = None) -> None:
         sys.exit(f'submission {sub_id!r} not found')
     cur = rows[0]
     if status == 'accepted':
-        problems = problems_for(cur)
+        problems = problems_for(cur, admin_token_counts([sub_id]))
         if problems:
             sys.exit(f"cannot accept {sub_id}: " + '; '.join(problems))
     extra = f", rejection_reason='{esc(reason)}'" if reason else ''
@@ -137,7 +152,8 @@ def set_status(sub_id: str, status: str, reason: str | None = None) -> None:
 
 def check_all() -> None:
     rows = d1("SELECT id, name, status, bytes, r2_key FROM submissions ORDER BY created_at")
-    broken = [(r, p) for r in rows if (p := problems_for(r))]
+    tokens = admin_token_counts()
+    broken = [(r, p) for r in rows if (p := problems_for(r, tokens))]
     print(f'{len(rows)} submissions checked, {len(broken)} incomplete.')
     for r, problems in broken:
         print(f"  {r['id']}  [{r['status']}]  {(r.get('name') or '(no name)')[:40]}")

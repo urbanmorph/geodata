@@ -20,7 +20,7 @@ import { persistSubmission } from '../lib/persist-submission';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
 import { nanoid, sha256Hex, sanitizeFilename, ipHashFor } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
-import { attemptRowFromResult, attemptRowReject, logAttempt, type AttemptRow } from '../lib/submit-log';
+import { attemptRowFromResult, attemptRowReject, logAttempt, parseErrorSummary, type AttemptRow } from '../lib/submit-log';
 
 type Env = MiddlewareEnv & {
   TURNSTILE_SECRET: string;
@@ -137,7 +137,7 @@ async function handleSubmit(
       fc = normaliseFC(rawJson);
     }
   } catch (e) {
-    log({ ...attemptRowReject('parse', 'failed to parse FeatureCollection', logMeta), detail: (e as Error).message });
+    log({ ...attemptRowReject('parse', 'failed to parse FeatureCollection', logMeta), detail: parseErrorSummary(e) });
     return reply(400, { error: 'failed to parse FeatureCollection', detail: (e as Error).message });
   }
 
@@ -217,12 +217,12 @@ async function handleSubmit(
   if (!outcome.ok) {
     log({
       ...attemptRowReject('persist', 'could not save the submission', logMeta),
-      step: outcome.step, detail: outcome.detail, cleanup: outcome.cleanup,
+      submission_id: id, step: outcome.step, detail: outcome.detail, cleanup: outcome.cleanup,
     });
     return reply(500, { error: PERSIST_FAILED });
   }
 
-  log({ ...attemptRowFromResult(result, logMeta), submission_id: id });
+  log({ ...attemptRowFromResult(result, logMeta), submission_id: id, detail: outcome.warning ?? null });
 
   const origin = new URL(ctx.request.url).origin;
   return reply(200, {

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  insertSubmission,
-  insertToken,
+  submissionInsert,
+  tokenInsert,
   findDuplicateByHash,
   getSubmissionForView,
   type SubmissionRow,
@@ -168,10 +168,10 @@ const baseRow = (): SubmissionRow => ({
   r2_key: 'community/abc1234567/file.geojson',
 });
 
-describe('insertSubmission', () => {
+describe('submissionInsert', () => {
   it('writes a submission row with all fields', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, baseRow());
+    await submissionInsert(db as never, baseRow()).run();
     expect(db.subs.size).toBe(1);
     const row = db.subs.get('abc1234567');
     expect(row?.name).toBe('Mumbai bike lanes');
@@ -183,22 +183,22 @@ describe('insertSubmission', () => {
 
   it('persists the validation_report as JSON text', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, baseRow());
+    await submissionInsert(db as never, baseRow()).run();
     const row = db.subs.get('abc1234567');
     expect(typeof row?.validation_report).toBe('string');
     expect(JSON.parse(row!.validation_report!).geometry.ok).toBe(true);
   });
 });
 
-describe('insertToken', () => {
+describe('tokenInsert', () => {
   it('writes a token row with prefix + hash + permission', async () => {
     const db = fakeD1();
-    await insertToken(db as never, {
+    await tokenInsert(db as never, {
       submissionId: 'abc1234567',
       tokenPrefix: 'adm_xxxx',
       tokenHash: 'b'.repeat(64),
       permission: 'admin',
-    });
+    }).run();
     expect(db.tokens.size).toBe(1);
     const row = [...db.tokens.values()][0];
     expect(row.submission_id).toBe('abc1234567');
@@ -211,13 +211,13 @@ describe('insertToken', () => {
   it('accepts an optional expires_at', async () => {
     const db = fakeD1();
     const ts = '2099-12-31T23:59:59.000Z';
-    await insertToken(db as never, {
+    await tokenInsert(db as never, {
       submissionId: 'abc1234567',
       tokenPrefix: 'adm_xxxx',
       tokenHash: 'b'.repeat(64),
       permission: 'admin',
       expiresAt: ts,
-    });
+    }).run();
     const row = [...db.tokens.values()][0];
     expect(row.expires_at).toBe(ts);
   });
@@ -226,21 +226,21 @@ describe('insertToken', () => {
 describe('findDuplicateByHash', () => {
   it('returns the matching submission id when an accepted submission exists', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, { ...baseRow(), id: 'sub1' });
+    await submissionInsert(db as never, { ...baseRow(), id: 'sub1' }).run();
     const match = await findDuplicateByHash(db as never, 'a'.repeat(64));
     expect(match).toBe('sub1');
   });
 
   it('returns null when no match', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, { ...baseRow(), id: 'sub1' });
+    await submissionInsert(db as never, { ...baseRow(), id: 'sub1' }).run();
     const match = await findDuplicateByHash(db as never, 'c'.repeat(64));
     expect(match).toBeNull();
   });
 
   it('ignores rejected / retracted submissions', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, { ...baseRow(), id: 'sub1', status: 'rejected' });
+    await submissionInsert(db as never, { ...baseRow(), id: 'sub1', status: 'rejected' }).run();
     const match = await findDuplicateByHash(db as never, 'a'.repeat(64));
     expect(match).toBeNull();
   });
@@ -249,7 +249,7 @@ describe('findDuplicateByHash', () => {
 describe('getSubmissionForView', () => {
   it('returns the row for an accepted submission', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, { ...baseRow(), id: 'sub1' });
+    await submissionInsert(db as never, { ...baseRow(), id: 'sub1' }).run();
     const r = await getSubmissionForView(db as never, 'sub1');
     expect(r?.name).toBe('Mumbai bike lanes');
     expect(r?.r2_key).toBe('community/abc1234567/file.geojson');
@@ -258,7 +258,7 @@ describe('getSubmissionForView', () => {
 
   it('preserves is_original=1 round-trip', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, { ...baseRow(), id: 'sub1', is_original: 1, source_url: 'Hand-digitized in QGIS' });
+    await submissionInsert(db as never, { ...baseRow(), id: 'sub1', is_original: 1, source_url: 'Hand-digitized in QGIS' }).run();
     const r = await getSubmissionForView(db as never, 'sub1');
     expect(r?.is_original).toBe(1);
     expect(r?.source_url).toBe('Hand-digitized in QGIS');
@@ -266,7 +266,7 @@ describe('getSubmissionForView', () => {
 
   it('returns null for a rejected / retracted submission', async () => {
     const db = fakeD1();
-    await insertSubmission(db as never, { ...baseRow(), id: 'sub1', status: 'rejected' });
+    await submissionInsert(db as never, { ...baseRow(), id: 'sub1', status: 'rejected' }).run();
     expect(await getSubmissionForView(db as never, 'sub1')).toBeNull();
   });
 

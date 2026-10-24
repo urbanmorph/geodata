@@ -7,7 +7,7 @@ import { onRequestPost } from '../functions/api/submit';
 // (success, failure, malformed request, crash) is logged with a reference the
 // contributor sees, and a failure tells them plainly that nothing was kept.
 
-function fakeR2(opts: { failPut?: boolean } = {}) {
+function fakeR2(opts: { failPut?: boolean; failDelete?: boolean } = {}) {
   const objects = new Map<string, number>();
   return {
     objects,
@@ -17,7 +17,10 @@ function fakeR2(opts: { failPut?: boolean } = {}) {
       objects.set(key, size);
       return { key, size };
     },
-    async delete(keys: string | string[]) { for (const k of [keys].flat()) objects.delete(k); },
+    async delete(keys: string | string[]) {
+      if (opts.failDelete) throw new Error('R2 delete failed');
+      for (const k of [keys].flat()) objects.delete(k);
+    },
   };
 }
 
@@ -109,17 +112,6 @@ describe('/api/submit', () => {
     expect((await attempts(db)).map((a) => a.gate)).toEqual(['body', 'file']);
   });
 
-  it('turns an unexpected crash into a logged, referenced error instead of a bare 500', async () => {
-    const db = sqliteD1();
-    const { status, body } = await call(form(), { DB: db, R2: undefined });
-    expect(status).toBe(500);
-    expect(body.attempt_id).toMatch(/^att_/);
-    expect(await count(db, 'submissions')).toBe(0);
-    const [a] = await attempts(db);
-    expect(a).toMatchObject({ gate: 'persist', attempt_id: body.attempt_id });
-    expect(String(a.detail)).toMatch(/put/);
-  });
-
   it('logs an unexpected exception (e.g. the database failing mid-validation) with its stack', async () => {
     const db = sqliteD1();
     const flaky = {
@@ -135,5 +127,44 @@ describe('/api/submit', () => {
     const [a] = await attempts(db);
     expect(a).toMatchObject({ gate: 'internal', step: 'internal', attempt_id: body.attempt_id });
     expect(String(a.detail)).toMatch(/database overloaded[\s\S]*at /); // message + stack
+  });
+
+  it('logs a failed cleanup with the submission id, so orphan files can be found', async () => {
+    const db = sqliteD1();
+    db.raw.exec('DROP TABLE submission_tokens');
+    const r2 = fakeR2({ failDelete: true });
+    const { status } = await call(form(), { DB: db, R2: r2 });
+    expect(status).toBe(500);
+    const [a] = await attempts(db);
+    expect(String(a.cleanup)).toMatch(/cleanup failed: R2 delete failed; orphan files: community\//);
+    expect(a.submission_id).toEqual(expect.any(String));
+    expect(String(a.cleanup)).toContain(String(a.submission_id));
+  });
+
+  it('treats a batch that committed before erroring as saved, and logs the warning', async () => {
+    const db = sqliteD1();
+    const flaky = {
+      prepare: db.prepare.bind(db),
+      batch: async (stmts: D1PreparedStatement[]) => { await db.batch(stmts); throw new Error('Network connection lost'); },
+    } as unknown as D1Database;
+    const r2 = fakeR2();
+    const { status, body } = await call(form(), { DB: flaky, R2: r2 });
+    expect(status).toBe(200);
+    expect(r2.objects.size).toBe(1);
+    const [a] = await attempts(db);
+    expect(a).toMatchObject({ outcome: 'accepted', submission_id: body.id });
+    expect(String(a.detail)).toMatch(/committed.*Network connection lost/);
+  });
+
+  it('never logs a fragment of the uploaded file when it cannot be parsed', async () => {
+    const db = sqliteD1();
+    const secret = 'PRIVATE-HOUSEHOLD-NAME';
+    const bad = new File([`{"type":"FeatureCollection","features":[ ${secret}`], 'broken.geojson');
+    const { status } = await call(form({}, bad), { DB: db, R2: fakeR2() });
+    expect(status).toBe(400);
+    const [a] = await attempts(db);
+    expect(a.gate).toBe('parse');
+    expect(String(a.detail)).toMatch(/^SyntaxError/);
+    expect(String(a.detail)).not.toContain(secret);
   });
 });

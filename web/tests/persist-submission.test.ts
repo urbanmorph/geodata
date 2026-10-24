@@ -98,4 +98,32 @@ describe('persistSubmission', () => {
     expect(out).toMatchObject({ ok: false, step: 'write_rows' });
     expect(await counts(db)).toEqual({ submissions: 0, tokens: 0 }); // rolled back with them
   });
+
+  it('keeps the files when the batch reports an error but actually committed', async () => {
+    // e.g. the connection drops after D1 commits: deleting the files here would
+    // recreate the orphan (rows without their file) this module exists to stop.
+    const db = sqliteD1();
+    const committedThenFailed = {
+      prepare: db.prepare.bind(db),
+      batch: async (stmts: D1PreparedStatement[]) => { await db.batch(stmts); throw new Error('Network connection lost'); },
+    } as unknown as ReturnType<typeof sqliteD1>;
+    const r2 = fakeR2();
+    const out = await persistSubmission({ r2, db: committedThenFailed }, { files: [file('s7')], submission: row('s7'), adminToken: token('s7') });
+    expect(out).toMatchObject({ ok: true, warning: expect.stringMatching(/committed.*Network connection lost/) });
+    expect(r2.objects.size).toBe(1);
+    expect(await counts(db)).toEqual({ submissions: 1, tokens: 1 });
+  });
+
+  it('keeps the files if it cannot tell whether the rows were written', async () => {
+    const db = sqliteD1();
+    const unreachable = {
+      prepare: () => { throw new Error('D1 unavailable'); },
+      batch: async () => { throw new Error('D1 unavailable'); },
+    } as unknown as ReturnType<typeof sqliteD1>;
+    const r2 = fakeR2();
+    const out = await persistSubmission({ r2, db: unreachable }, { files: [file('s8')], submission: row('s8'), adminToken: token('s8') });
+    expect(out).toMatchObject({ ok: false, step: 'write_rows' });
+    expect(out.ok === false && out.cleanup).toMatch(/kept 1 file\(s\).*could not check/);
+    expect(r2.objects.size).toBe(1);
+  });
 });

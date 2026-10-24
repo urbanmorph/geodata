@@ -4,6 +4,4 @@
 
 export { nanoid, sha256Hex, ipHashFor } from '../../../web/functions/lib/submit-helpers';
 export { verifyTurnstile } from '../../../web/functions/lib/turnstile';
-export { insertSubmission, insertToken } from '../../../web/functions/lib/submissions';
-export type { SubmissionRow } from '../../../web/functions/lib/submissions';
 export { persistSubmission } from '../../../web/functions/lib/persist-submission';

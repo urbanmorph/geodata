@@ -18,6 +18,13 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import moderate_submission as m  # noqa: E402
 
+@pytest.fixture(autouse=True)
+def fresh_wrangler_probe():
+    m.wrangler_bin.cache_clear()  # cached per process; tests swap subprocess.run
+    yield
+    m.wrangler_bin.cache_clear()
+
+
 ROW = {'id': 'abc', 'name': 'Wards', 'status': 'pending', 'bytes': 1000, 'r2_key': 'community/abc/w.geojson'}
 
 
@@ -53,7 +60,7 @@ def fake_d1(monkeypatch):
         if sql.startswith('SELECT') and 'FROM submissions' in sql:
             return [dict(ROW)]
         if 'FROM submission_tokens' in sql:
-            return [{'n': fake_d1.tokens}]
+            return [{'submission_id': 'abc', 'n': fake_d1.tokens}]
         return []
     fake_d1.tokens = 1
     monkeypatch.setattr(m, 'd1', d1)
@@ -100,3 +107,32 @@ def test_missing_wrangler_falls_back_to_npx(monkeypatch):
         raise FileNotFoundError(cmd[0])
     monkeypatch.setattr(m.subprocess, 'run', run)
     assert m.wrangler_bin() == ['npx', '--yes', 'wrangler@4']
+
+
+# ── no needless work ──────────────────────────────────────────────────────
+
+def test_wrangler_probe_runs_once_per_process(monkeypatch):
+    calls = []
+    def run(cmd, **kw):
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, stdout='4.1.0', stderr='')
+    m.wrangler_bin.cache_clear()
+    monkeypatch.setattr(m.subprocess, 'run', run)
+    m.wrangler_bin(); m.wrangler_bin(); m.wrangler_bin()
+    assert len(calls) == 1
+    m.wrangler_bin.cache_clear()
+
+
+def test_check_counts_admin_tokens_in_one_query(monkeypatch, capsys):
+    queries = []
+    rows = [dict(ROW, id=f's{i}', r2_key=f'community/s{i}/f.geojson') for i in range(5)]
+    def d1(sql):
+        queries.append(sql)
+        if 'FROM submission_tokens' in sql:
+            return [{'submission_id': 's0', 'n': 1}, {'submission_id': 's1', 'n': 1}]
+        return rows
+    monkeypatch.setattr(m, 'd1', d1)
+    monkeypatch.setattr(m, 'r2_size', lambda key: 1000)
+    m.check_all()
+    assert sum('submission_tokens' in q for q in queries) == 1
+    assert '5 submissions checked, 3 incomplete.' in capsys.readouterr().out

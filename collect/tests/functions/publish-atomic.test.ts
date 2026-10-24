@@ -101,4 +101,36 @@ describe('publish', () => {
     expect(String(a.detail)).toMatch(/submission_tokens/);
     expect(await n('publications')).toBe(0);
   });
+
+  it('logs every refused publish with a reference', async () => {
+    const m = await mapWithAPoint();
+    const wrong = await j(await h.publish(env, req('POST', `/collections/${m.id}/publish`, 'adm_wrongtoken', {}), m.id, defer));
+    await Promise.all(pending);
+    expect(wrong.status).toBe(401);
+    expect(wrong.body.attempt_id).toMatch(/^att_/);
+    const missing = await j(await h.publish(env, req('POST', '/collections/nope/publish', m.admin, {}), 'nope', defer));
+    await Promise.all(pending);
+    expect(missing.status).toBe(401);
+    expect((await publishAttempts()).map((a) => [a.gate, a.attempt_id])).toEqual([
+      ['auth', wrong.body.attempt_id], ['auth', missing.body.attempt_id],
+    ]);
+  });
+
+  it('turns an unexpected crash into a logged, referenced 500 with the stack', async () => {
+    const m = await mapWithAPoint();
+    env.DB.raw.exec(`UPDATE collections SET schema_doc = '{not json'`);
+    const r = await publish(m);
+    expect(r.status).toBe(500);
+    expect(r.body.attempt_id).toMatch(/^att_/);
+    const [a] = await publishAttempts();
+    expect(a).toMatchObject({ outcome: 'rejected', gate: 'internal', step: 'internal', attempt_id: r.body.attempt_id });
+    expect(String(a.detail)).toMatch(/JSON[\s\S]*at /);
+  });
+
+  it('logs the submission id with a failed save', async () => {
+    const m = await mapWithAPoint();
+    failPut = true;
+    await publish(m);
+    expect((await publishAttempts())[0].submission_id).toEqual(expect.any(String));
+  });
 });

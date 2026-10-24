@@ -67,6 +67,14 @@ export function attemptRowReject(gate: string, reason: string, meta: AttemptMeta
   return { outcome: 'rejected', gate, reason, ...fileFacts(meta) };
 }
 
+/** A parse error for the log without the uploaded text: V8's JSON.parse
+ *  message quotes a fragment of the input, which may be personal data. */
+export function parseErrorSummary(e: unknown): string {
+  const err = e instanceof Error ? e : new Error(String(e));
+  const pos = /position (\d+)/.exec(err.message)?.[1];
+  return pos ? `${err.name} at position ${pos}` : err.name;
+}
+
 /** Record one /api/submit attempt. Pair with ctx.waitUntil() so it adds no
  *  latency to the response. */
 export async function logAttempt(db: D1Database, row: AttemptRow): Promise<void> {

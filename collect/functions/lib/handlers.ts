@@ -10,7 +10,7 @@ import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, linkFor, atLeast } from './auth';
 import { checkCreateRate, checkRecordRate, checkKeyDayRate, checkKeyringRate } from './ratelimit';
-import { deferLog } from './collect-log';
+import { deferLog, type CollectAttempt } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, persistSubmission } from './reuse';
 import * as db from './db';
 import { recordStatusFor } from './moderation';
@@ -596,20 +596,42 @@ export async function importRecords(env: Env, req: Request, id: string, defer?: 
 
 // ---- POST /collections/:id/publish -----------------------------------------
 
+type PublishLog = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms'>) => void;
+
+/** Publish a map to the catalog. Every exit is logged with a reference
+ *  (attempt_id) that is also returned, and an unexpected exception becomes a
+ *  logged 500 instead of escaping to the router. */
 export async function publish(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const attemptId = `att_${nanoid(10)}`;
   const started = Date.now();
+  const log: PublishLog = (row) => deferLog(defer, env.DB, {
+    ...row, event: 'publish', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started,
+  });
+  const refuse = (status: number, gate: string, error: string) => {
+    log({ outcome: 'rejected', gate, reason: error });
+    return json(status, { error, attempt_id: attemptId });
+  };
+  try {
+    return await publishMap(env, req, id, attemptId, log, refuse);
+  } catch (e) {
+    const err = e as Error;
+    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
+    return json(500, { error: 'Something went wrong on our side and the map was not published. Please try again.', attempt_id: attemptId });
+  }
+}
+
+async function publishMap(
+  env: Env, req: Request, id: string, attemptId: string, log: PublishLog,
+  refuse: (status: number, gate: string, error: string) => Response,
+): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
 
   const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  if (!c) return refuse(404, 'not_found', 'not found');
 
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: 100000, offset: 0 });
-  if (rows.length === 0) {
-    deferLog(defer, env.DB, { event: 'publish', outcome: 'rejected', gate: 'empty', collection_id: id });
-    return bad(409, 'nothing approved to publish yet');
-  }
+  if (rows.length === 0) return refuse(409, 'empty', 'nothing approved to publish yet');
 
   // Flatten locate enrichment into the published properties (state, district…),
   // so the catalogue layer is filterable by admin area. Author fields win on any
@@ -630,7 +652,7 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
       .prepare(`SELECT content_hash FROM publications WHERE collection_id = ? AND version = ?`)
       .bind(id, version - 1)
       .first()) as { content_hash: string } | null;
-    if (prev?.content_hash === contentHash) return bad(409, `nothing new since v${version - 1}`);
+    if (prev?.content_hash === contentHash) return refuse(409, 'unchanged', `nothing new since v${version - 1}`);
   }
 
   // Imported records are credited via their source, not the contributor tally;
@@ -713,10 +735,9 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
     },
   );
   if (!outcome.ok) {
-    deferLog(defer, env.DB, {
-      event: 'publish', outcome: 'rejected', gate: 'persist', reason: 'could not save the publication',
-      collection_id: id, attempt_id: attemptId, step: outcome.step, detail: outcome.detail,
-      cleanup: outcome.cleanup, duration_ms: Date.now() - started,
+    log({
+      outcome: 'rejected', gate: 'persist', reason: 'could not save the publication',
+      submission_id: submissionId, step: outcome.step, detail: outcome.detail, cleanup: outcome.cleanup,
     });
     return json(500, {
       error: "We couldn't publish this map, and nothing was kept. Please try again in a moment. " +
@@ -725,10 +746,7 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
     });
   }
 
-  deferLog(defer, env.DB, {
-    event: 'publish', outcome: 'ok', collection_id: id,
-    attempt_id: attemptId, submission_id: submissionId, duration_ms: Date.now() - started,
-  });
+  log({ outcome: 'ok', submission_id: submissionId, detail: outcome.warning ?? null });
   return json(200, {
     attempt_id: attemptId,
     version,

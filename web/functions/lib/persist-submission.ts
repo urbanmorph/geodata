@@ -26,7 +26,7 @@ type D1Like = Pick<D1Database, 'prepare' | 'batch'>;
 
 export type PersistStep = 'store_file' | 'verify_file' | 'write_rows';
 export type PersistOutcome =
-  | { ok: true }
+  | { ok: true; warning?: string }
   | { ok: false; step: PersistStep; detail: string; cleanup: string | null };
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -79,6 +79,19 @@ export async function persistSubmission(
       ...(input.extra?.(db) ?? []),
     ]);
   } catch (e) {
+    // The batch is one transaction, but an error can still arrive after it
+    // committed (e.g. the connection drops on the reply). Check before
+    // deleting the files, or committed rows would lose their file.
+    let committed: boolean;
+    try {
+      committed = !!(await db.prepare('SELECT 1 AS ok FROM submissions WHERE id = ?').bind(input.submission.id).first());
+    } catch (check) {
+      return {
+        ok: false, step: 'write_rows', detail: message(e),
+        cleanup: `kept ${touched.length} file(s): could not check whether the rows were written (${message(check)})`,
+      };
+    }
+    if (committed) return { ok: true, warning: `rows committed although the batch reported: ${message(e)}` };
     return fail('write_rows', message(e));
   }
   return { ok: true };

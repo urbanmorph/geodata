@@ -57,10 +57,6 @@ export function submissionInsert(db: RunnableD1, row: SubmissionRow): D1Prepared
     );
 }
 
-export async function insertSubmission(db: RunnableD1, row: SubmissionRow): Promise<void> {
-  await submissionInsert(db, row).run();
-}
-
 export type TokenInput = {
   submissionId: string;
   tokenPrefix: string;
@@ -88,10 +84,6 @@ export function tokenInsert(db: RunnableD1, input: TokenInput): D1PreparedStatem
       input.expiresAt ?? null,
       new Date().toISOString(),
     );
-}
-
-export async function insertToken(db: RunnableD1, input: TokenInput): Promise<void> {
-  await tokenInsert(db, input).run();
 }
 
 export async function findDuplicateByHash(
