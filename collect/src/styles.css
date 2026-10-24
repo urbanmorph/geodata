@@ -305,6 +305,10 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 }
 
 /* ── map + capture ─────────────────────────────────────────────────────── */
+/* The map screen never scrolls or pinch-zooms as a page (iPad Safari zoomed the
+   whole screen on a pinch, shifting the map so taps missed). The panel still
+   scrolls (pan-y); the home and form pages keep normal page zoom. */
+html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll-behavior: none; touch-action: pan-x pan-y; }
 .map { position: relative; flex: 1; min-height: 0; }
 #map { position: absolute; inset: 0; }
 /* The panel floats OVER a full-bleed map (not squeezing it), so plotting always
@@ -463,7 +467,7 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 .record-popup.maplibregl-popup-anchor-bottom-right .maplibregl-popup-tip { border-left-color: var(--sheet); }
 
 .pop { min-width: 168px; }
-.pop-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+.pop-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 6px; padding-right: 22px; /* clear of the × */ }
 .pop-head strong { font-size: 14px; color: var(--fg); }
 .pop-attrs { display: flex; flex-direction: column; max-height: 38vh; overflow: auto; }
 .pop-attr { display: flex; gap: 10px; font-size: 12px; padding: 4px 0; border-top: 1px solid var(--line); }
