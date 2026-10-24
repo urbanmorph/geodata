@@ -10,7 +10,7 @@ import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { inferSchema } from './import/infer';
 import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
 import { summarizeErrors } from './import/check';
-import { importReport, importReportHtml, importFailure, type ImportReply, type ImportReport } from './import/report';
+import { importReport, importReportHtml, importInChunks, type ImportReply, type ImportReport } from './import/report';
 import type { Field } from './schema/validate-record';
 import type { BuilderField } from './schema-builder';
 import { myMaps, saveOwnedMap, replaceMaps, mergeMaps, openLink, type SavedMap, type MapRole } from './maps-store';
@@ -283,10 +283,21 @@ function createForm() {
       <button type="button" id="dl-skip">⬇ Download the ${n - ok} rows that won't be added</button></div>`;
     box.querySelector<HTMLButtonElement>('#dl-skip')!.onclick = () => downloadText(errorsToCSV(plan.errors), 'rows-not-added.csv', 'text/csv');
   }
-  const fileData = (): { noun: string; values: (f: BuilderField) => unknown[] } => ({
-    noun: 'row',
-    values: (f) => seeded!.parsed.features.map((ft) => (seeded!.columns[f.key] ? ft.props[seeded!.columns[f.key]] : '')),
-  });
+  // Each column's cells, read once per file (the builder asks for them on every check).
+  const fileData = (): { noun: string; values: (f: BuilderField) => unknown[] } => {
+    const byColumn = new Map<string, unknown[]>();
+    const blank = seeded!.parsed.features.map(() => '');
+    return {
+      noun: 'row',
+      values: (f) => {
+        const col = seeded!.columns[f.key];
+        if (!col) return blank;
+        let v = byColumn.get(col);
+        if (!v) byColumn.set(col, (v = seeded!.parsed.features.map((ft) => ft.props[col])));
+        return v;
+      },
+    };
+  };
   app.querySelector<HTMLInputElement>('#seed-file')!.onchange = async (e) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     const note = app.querySelector('#seed-note')!;
@@ -374,18 +385,11 @@ function createForm() {
       let report: ImportReport | undefined;
       if (seedImport && seeded) {
         const { plan } = seedImport;
-        let reply: ImportReply;
-        try {
-          reply = await apiJson(`/collections/${res.id}/import`, res.tokens.admin, {
-            method: 'POST',
-            body: JSON.stringify({
-              records: plan.records, source: seedImport.source, rights_confirmed: true,
-              client_skipped: { count: plan.errors.length, reasons: summarizeErrors(plan.errors) },
-            }),
-          });
-        } catch (e) {
-          reply = importFailure(e);
-        }
+        const source = seedImport.source;
+        const reply = await importInChunks(plan.records, (records) => apiJson<ImportReply>(`/collections/${res.id}/import`, res.tokens.admin, {
+          method: 'POST',
+          body: JSON.stringify({ records, source, rights_confirmed: true, client_skipped: { count: plan.errors.length, reasons: summarizeErrors(plan.errors) } }),
+        }));
         report = importReport(seeded.parsed.features, plan, reply);
       }
       saveOwnedMap(res.id, name, res.links);

@@ -79,3 +79,43 @@ describe('importFailure', () => {
     expect(importFailure(new TypeError('Failed to fetch'))).toEqual({ failed: 'Failed to fetch' });
   });
 });
+
+describe('importInChunks', () => {
+  it('sends at most 5000 rows per request and merges the replies, with row indices across the whole file', async () => {
+    const { importInChunks } = await import('../src/import/report');
+    const sizes: number[] = [];
+    const reply = await importInChunks(Array.from({ length: 12000 }, (_, i) => i), async (chunk) => {
+      sizes.push(chunk.length);
+      return { imported: chunk.length - 1, total: chunk.length, errors: [{ index: 0, error: 'bad' }], attempt_id: `att_${sizes.length}` };
+    });
+    expect(sizes).toEqual([5000, 5000, 2000]);
+    expect(reply).toMatchObject({ imported: 11997, total: 12000 });
+    expect((reply.errors ?? []).map((e) => e.index)).toEqual([0, 5000, 10000]);
+  });
+
+  it('stops at a failed chunk: rows of later chunks are reported as not saved', async () => {
+    const { importInChunks } = await import('../src/import/report');
+    const { ApiError } = await import('../src/api');
+    let n = 0;
+    const reply = await importInChunks(Array.from({ length: 12000 }, (_, i) => i), async (chunk) => {
+      if (++n === 2) throw new ApiError('db down', 500, { imported: 100, errors: [{ index: 3, error: 'bad' }], not_saved: [200, 201], attempt_id: 'att_2' });
+      return { imported: chunk.length, total: chunk.length, errors: [], attempt_id: 'att_1' };
+    });
+    expect(reply).toMatchObject({ failed: 'db down', imported: 5100, attemptId: 'att_2' });
+    if (!('failed' in reply)) throw new Error('expected failure');
+    expect(reply.errors!).toEqual([{ index: 5003, error: 'bad' }]);
+    expect(reply.notSaved!.slice(0, 2)).toEqual([5200, 5201]);
+    expect(reply.notSaved).toContain(10000); // the third chunk was never sent
+    expect(reply.notSaved).toHaveLength(2 + 2000);
+  });
+});
+
+describe('importReport with the exact rows not saved', () => {
+  it('uses the server list instead of guessing from the count', () => {
+    // records sent: A(0), C(1), D(2), E(3); the server refused C and did not save E
+    const r = importReport(parsed.features, built, { failed: 'db down', imported: 2, errors: [{ index: 1, error: 'Width bad' }], notSaved: [3] });
+    expect(r.notAdded.map((e) => [e.source.seg, e.error])).toEqual([
+      ['B', 'no geometry (needs a geometry or lng/lat columns)'], ['C', 'Width bad'], ['E', 'not saved (the import stopped)'],
+    ]);
+  });
+});

@@ -237,13 +237,13 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
   if (!body) return refuse(400, 'body', 'invalid JSON body');
 
   const doc = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] } & Record<string, unknown>;
-  const rows = await db.listRecords(env.DB, id, { limit: 100000, offset: 0 });
-  const v = validateFormEdit(doc.fields, body.fields, rows.map((r) => JSON.parse(r.properties) as Record<string, unknown>), doc.geometry);
+  const points = await db.allRecordProperties(env.DB, id);
+  const v = validateFormEdit(doc.fields, body.fields, points, doc.geometry);
   if (!v.ok) return refuse(400, v.problems ? 'points' : 'form', v.error, v.problems ? { problems: v.problems } : {});
   const schemaDoc = JSON.stringify({ ...doc, fields: v.fields });
   if (!schemaFits(schemaDoc)) return refuse(400, 'form', 'the form is too large to store; shorten its option lists');
   await db.updateCollection(env.DB, id, {}, schemaDoc);
-  log({ outcome: 'ok', detail: `${v.fields.length} fields, checked against ${rows.length} points` });
+  log({ outcome: 'ok', detail: `${v.fields.length} fields, checked against ${points.length} points` });
   return json(200, { ok: true, fields: v.fields, attempt_id: attemptId });
 }
 
@@ -330,14 +330,22 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
   const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
   const rows = await db.listRecords(env.DB, id, { status, limit, offset });
   // Admin only: which link added each record (id + the admin's label for it).
-  const labels = atLeast(perm, 'admin') ? await db.linkLabels(env.DB, id) : null;
+  const isAdmin = atLeast(perm, 'admin');
+  const labels = isAdmin ? await db.linkLabels(env.DB, id) : null;
+  // Hidden fields stay in the data for the owner, not for shared links.
+  let hidden = new Set<string>();
+  if (!isAdmin) {
+    const c = await db.getCollection(env.DB, id);
+    hidden = new Set(((c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[] }).fields.filter((f) => f.deleted).map((f) => f.key));
+  }
+  const visible = (p: Record<string, unknown>) => (hidden.size ? Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k))) : p);
 
   const features = rows.map((r) => ({
     type: 'Feature' as const,
     id: r.id,
     geometry: JSON.parse(r.geometry),
     properties: {
-      ...JSON.parse(r.properties),
+      ...visible(JSON.parse(r.properties)),
       _status: r.status,
       _contributor: r.contributor,
       _created_at: r.created_at,
@@ -451,7 +459,7 @@ export function plausibleCaptureTime(v: unknown, nowMs = Date.now()): string | n
   if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return null;
   const t = Date.parse(v);
   if (!Number.isFinite(t) || t > nowMs + CAPTURE_SKEW_MS || t < nowMs - CAPTURE_MAX_AGE_MS) return null;
-  return v;
+  return new Date(t).toISOString(); // one format for every stored time
 }
 
 /** When a point was added: the phone's capture time, else when it was saved. */
@@ -557,7 +565,11 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   if (body.properties !== undefined) {
     const v = validateRecordProperties(schema.fields, body.properties);
     if (!v.ok) return bad(400, v.error);
-    patch.properties = JSON.stringify(v.properties);
+    // Hidden fields aren't on the form any more, so an edit never sends them:
+    // keep their saved values (hiding a field must never lose its data).
+    const saved = JSON.parse(auth.record.properties) as Record<string, unknown>;
+    const kept = Object.fromEntries(schema.fields.filter((f) => f.deleted && saved[f.key] !== undefined).map((f) => [f.key, saved[f.key]]));
+    patch.properties = JSON.stringify({ ...kept, ...v.properties });
   }
   // R3: a contributor edit goes back to pending for re-review (when moderated).
   if (!auth.isAdmin && c.moderation) patch.status = 'pending';
@@ -646,6 +658,7 @@ async function importInto(
 
   const errors: Array<{ index: number; error: string }> = [];
   const rows: db.NewRecordRow[] = [];
+  const rowIndex: number[] = []; // rows[k] came from recs[rowIndex[k]]
   for (let i = 0; i < recs.length; i++) {
     const r = recs[i] as { geometry?: unknown; properties?: unknown };
     const bounds = checkIndiaBounds(r?.geometry);
@@ -661,16 +674,18 @@ async function importInto(
       edit_token_hash: await hashToken(generateRecordToken()), // discarded — no owner
       ip_hash: ipHash, source, // per-record provenance
     });
+    rowIndex.push(i);
   }
 
   // Rows the browser could not send (e.g. no coordinates): counted in the log
   // so the whole file is accounted for, not just what reached the server.
   const skipped = body.client_skipped as { count?: unknown; reasons?: unknown } | undefined;
-  const skippedCount = typeof skipped?.count === 'number' && skipped.count > 0 ? Math.floor(skipped.count) : 0;
+  const finiteCount = (n: unknown): number => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), 1_000_000) : 0);
+  const skippedCount = finiteCount(skipped?.count);
   const skippedReasons = Array.isArray(skipped?.reasons)
     ? (skipped.reasons as Array<{ reason?: unknown; count?: unknown }>)
-      .filter((r) => typeof r?.reason === 'string' && typeof r?.count === 'number')
-      .slice(0, 20).map((r) => ({ reason: String(r.reason).slice(0, 200), count: Number(r.count) }))
+      .filter((r) => typeof r?.reason === 'string' && finiteCount(r?.count) > 0)
+      .slice(0, 20).map((r) => ({ reason: String(r.reason).slice(0, 200), count: finiteCount(r.count) }))
     : [];
   const refused = new Map<string, number>();
   for (const e of errors) refused.set(e.error, (refused.get(e.error) ?? 0) + 1);
@@ -689,7 +704,7 @@ async function importInto(
       log({ outcome: 'rejected', gate: 'persist', reason: 'database write failed', step: 'write_rows', detail: `${describe(imported)}; failed writing rows ${i + 1}-${Math.min(i + IMPORT_BATCH, rows.length)}: ${msg}` });
       return json(500, {
         error: `Only ${imported} of ${recs.length} rows were added before the database refused a write. Please try again with the rows that are missing.`,
-        imported, total: recs.length, errors, attempt_id: attemptId,
+        imported, total: recs.length, errors, not_saved: rowIndex.slice(i), attempt_id: attemptId,
       });
     }
     imported += Math.min(IMPORT_BATCH, rows.length - i);
@@ -737,6 +752,8 @@ async function publishMap(
 
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: 100000, offset: 0 });
   if (rows.length === 0) return refuse(409, 'empty', 'nothing approved to publish yet');
+  const hidden = new Set((JSON.parse(c.schema_doc) as { fields: Field[] }).fields.filter((f) => f.deleted).map((f) => f.key));
+  const withoutHidden = (p: Record<string, unknown>) => Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k)));
 
   // Flatten locate enrichment into the published properties (state, district…),
   // so the catalogue layer is filterable by admin area. Author fields win on any
@@ -745,7 +762,8 @@ async function publishMap(
     type: 'Feature' as const,
     geometry: JSON.parse(r.geometry),
     // added_at: when the point was captured; an author field of that name wins.
-    properties: { added_at: addedAt(r), ...mergeAdminCtx(JSON.parse(r.properties), r.admin_ctx) },
+    // Hidden fields stay in the map's data but are not published.
+    properties: { added_at: addedAt(r), ...mergeAdminCtx(withoutHidden(JSON.parse(r.properties)), r.admin_ctx) },
   }));
   const fc = { type: 'FeatureCollection', features };
   const bytes = new TextEncoder().encode(JSON.stringify(fc));

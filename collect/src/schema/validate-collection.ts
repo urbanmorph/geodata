@@ -18,6 +18,8 @@ export const CATEGORY_IDS = [
 ] as const;
 
 const KEY_RE = /^[a-z][a-z0-9_]*$/;
+const MAX_LABEL = 200;
+const MAX_HINT = 500;
 // No cap on the number of fields; only on the stored size of the whole form,
 // which a D1 row has to hold (a 200-field form is under 20 KB).
 const MAX_SCHEMA_BYTES = 256 * 1024;
@@ -51,20 +53,57 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
   const fields = doc.fields;
   if (!Array.isArray(fields)) return fail('schema_doc.fields must be an array');
 
+  // Every field is stored as known, typed settings only: unknown keys are
+  // dropped, and each kept one is type-checked (they are written into the
+  // capture form, so a min of '"><img …>' must never get through).
   const keys = new Set<string>();
+  const clean: Record<string, unknown>[] = [];
   for (const f of fields) {
     if (!f || typeof f !== 'object') return fail('each field must be an object');
     const fd = f as Record<string, unknown>;
     if (!isStr(fd.key) || !KEY_RE.test(fd.key)) return fail(`invalid field key: ${String(fd.key)}`);
     if (keys.has(fd.key)) return fail(`duplicate field key: ${fd.key}`);
     keys.add(fd.key);
-    if (!isStr(fd.label) || fd.label.trim() === '') return fail(`field ${fd.key} needs a label`);
+    if (!isStr(fd.label) || fd.label.trim() === '' || fd.label.length > MAX_LABEL) return fail(`field ${fd.key} needs a label (up to ${MAX_LABEL} characters)`);
     if (!FIELD_TYPES.includes(fd.type as (typeof FIELD_TYPES)[number])) return fail(`field ${fd.key} has invalid type: ${String(fd.type)}`);
+    const out: Record<string, unknown> = { key: fd.key, label: fd.label, type: fd.type };
+    for (const b of ['required', 'deleted'] as const) {
+      if (fd[b] === undefined) continue;
+      if (typeof fd[b] !== 'boolean') return fail(`field ${fd.key}: ${b} must be true or false`);
+      if (fd[b]) out[b] = true;
+    }
+    if (fd.hint !== undefined) {
+      if (!isStr(fd.hint) || fd.hint.length > MAX_HINT) return fail(`field ${fd.key}: hint must be text up to ${MAX_HINT} characters`);
+      if (fd.hint.trim()) out.hint = fd.hint;
+    }
     if (fd.type === 'select' || fd.type === 'multiselect') {
-      if (!Array.isArray(fd.options) || fd.options.length === 0 || !fd.options.every(isStr)) {
+      if (!Array.isArray(fd.options) || fd.options.length === 0 || !fd.options.every((o) => isStr(o) && o.length <= MAX_LABEL)) {
         return fail(`field ${fd.key} needs a non-empty options list`);
       }
+      out.options = fd.options;
+      if (fd.render !== undefined) {
+        if (fd.render !== 'chips') return fail(`field ${fd.key}: render must be "chips"`);
+        out.render = 'chips';
+      }
+    } else if (fd.render !== undefined) return fail(`field ${fd.key}: render is only for choices`);
+    if (fd.type === 'number') {
+      for (const n of ['min', 'max'] as const) {
+        if (fd[n] === undefined) continue;
+        if (typeof fd[n] !== 'number' || !Number.isFinite(fd[n])) return fail(`field ${fd.key}: ${n} must be a number`);
+        out[n] = fd[n];
+      }
+      if (fd.integer !== undefined) {
+        if (typeof fd.integer !== 'boolean') return fail(`field ${fd.key}: integer must be true or false`);
+        if (fd.integer) out.integer = true;
+      }
+    } else if (fd.min !== undefined || fd.max !== undefined) return fail(`field ${fd.key}: min must be a number on a Number field only`);
+    if (fd.maxLength !== undefined) {
+      if ((fd.type !== 'text' && fd.type !== 'paragraph') || !Number.isInteger(fd.maxLength) || (fd.maxLength as number) < 1 || (fd.maxLength as number) > 5000) {
+        return fail(`field ${fd.key}: maxLength must be a whole number 1-5000 on a text field`);
+      }
+      out.maxLength = fd.maxLength;
     }
+    clean.push(out);
   }
 
   const refs = doc.reference_layers;
@@ -89,7 +128,7 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
       return fail('reference_layer needs id and an https pmtiles_url');
     }
   }
-  return { ok: true, value: doc };
+  return { ok: true, value: { ...doc, fields: clean } };
 }
 
 // Validate a partial edit to an existing collection (admin "Edit map settings").

@@ -37,3 +37,10 @@ describe('editing a saved date-time', () => {
     expect(fitsLocalPicker('2026-05-04T09:30:00+05:30')).toBe(false); // the offset would be lost
   });
 });
+
+describe('offsets', () => {
+  it('refuses an impossible offset', () => {
+    expect(validateRecordProperties(F, { seen: '2026-05-04T09:30+99:99' }).ok).toBe(false);
+    expect(validateRecordProperties(F, { seen: '2026-05-04T09:30+05:30' }).ok).toBe(true);
+  });
+});

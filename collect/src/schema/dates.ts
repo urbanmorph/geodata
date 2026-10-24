@@ -21,6 +21,7 @@ export function isDate(s: string): boolean {
 export function normalizeDateTime(s: string): string | null {
   const m = DATETIME.exec(s);
   if (!m || !realDay(+m[1], +m[2], +m[3]) || +m[4] > 23 || +m[5] > 59 || (m[6] !== undefined && +m[6] > 59)) return null;
+  if (m[8] && m[8] !== 'Z' && (+m[8].slice(1, 3) > 14 || +m[8].slice(4) > 59)) return null; // offsets run -12:00 to +14:00
   return s.replace(' ', 'T');
 }
 

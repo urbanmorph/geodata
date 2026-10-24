@@ -145,7 +145,6 @@ function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?:
       extraEl.querySelectorAll<HTMLButtonElement>('[data-addopt]').forEach((b) => {
         b.onclick = () => { opts.push(b.dataset.addopt!); renderExtra(); };
       });
-      extraEl.querySelector<HTMLTextAreaElement>('.ff-opts')!.oninput = renderCheck;
     } else if (needsOptions(t)) {
       extraEl.innerHTML = `<label>Options <span class="hint">(one per line)</span></label>
         <textarea class="ff-opts" placeholder="Good&#10;Needs repair&#10;Unusable"></textarea>
@@ -215,7 +214,10 @@ function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?:
     }
     renderCheck();
   }
-  host.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.ff-min, .ff-max, .ff-maxlen')) renderCheck(); });
+  // Typing re-checks the whole column: wait for a pause rather than every key.
+  let pending: ReturnType<typeof setTimeout> | undefined;
+  const checkSoon = (): void => { clearTimeout(pending); pending = setTimeout(renderCheck, 150); };
+  host.addEventListener('input', (e) => { if ((e.target as HTMLElement).matches('.ff-min, .ff-max, .ff-maxlen, .ff-opts')) checkSoon(); });
   host.addEventListener('change', (e) => { if ((e.target as HTMLElement).matches('.ff-int')) renderCheck(); });
 
   // quiet: for the live check (no error shown; an emptied label keeps the old one)

@@ -212,6 +212,20 @@ export interface RecordRow {
   captured_at: string | null;
 }
 
+/** Every record's properties (only that column, page by page): what the form-edit check needs. */
+export async function allRecordProperties(db: DB, collectionId: string): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  const PAGE = 2000;
+  for (let offset = 0; ; offset += PAGE) {
+    const { results } = await db
+      .prepare(`SELECT properties FROM records WHERE collection_id = ? ORDER BY id LIMIT ? OFFSET ?`)
+      .bind(collectionId, PAGE, offset)
+      .all<{ properties: string }>();
+    for (const r of results) out.push(JSON.parse(r.properties) as Record<string, unknown>);
+    if (results.length < PAGE) return out;
+  }
+}
+
 export async function listRecords(
   db: DB,
   collectionId: string,

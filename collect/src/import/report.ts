@@ -9,9 +9,11 @@ import type { ParsedFeature } from './parse';
 import { escapeHtml } from '../util';
 import { ApiError } from '../api';
 
+type RowError = { index: number; error: string };
 export type ImportReply =
-  | { imported: number; total: number; errors: Array<{ index: number; error: string }>; attempt_id?: string }
-  | { failed: string; imported?: number; attemptId?: string };
+  | { imported: number; total: number; errors: RowError[]; attempt_id?: string }
+  /** errors / notSaved: the server's exact lists (indices into the records sent), when it replied. */
+  | { failed: string; imported?: number; attemptId?: string; errors?: RowError[]; notSaved?: number[] };
 
 export interface ImportReport {
   total: number;
@@ -29,7 +31,41 @@ export interface ImportReport {
 export function importFailure(e: unknown): ImportReply {
   if (!(e instanceof ApiError)) return { failed: (e as Error)?.message || 'no reply' };
   const imported = typeof e.body.imported === 'number' ? e.body.imported : e.status < 500 ? 0 : undefined;
-  return { failed: e.message, imported, attemptId: typeof e.body.attempt_id === 'string' ? e.body.attempt_id : undefined };
+  const errors = Array.isArray(e.body.errors) ? (e.body.errors as RowError[]) : undefined;
+  const notSaved = Array.isArray(e.body.not_saved) ? (e.body.not_saved as number[]) : undefined;
+  return { failed: e.message, imported, attemptId: typeof e.body.attempt_id === 'string' ? e.body.attempt_id : undefined, errors, notSaved };
+}
+
+const IMPORT_CHUNK = 5000; // the server's per-request limit
+
+/** Send records in requests of at most 5000 and merge the replies, with row
+ *  indices across the whole list. A failed request stops the rest: its own
+ *  lists are kept and every row of the chunks not sent is reported not saved. */
+export async function importInChunks<T>(records: T[], send: (chunk: T[]) => Promise<ImportReply>): Promise<ImportReply> {
+  let imported = 0;
+  const errors: RowError[] = [];
+  let attempt: string | undefined;
+  for (let start = 0; start < records.length || start === 0; start += IMPORT_CHUNK) {
+    const chunk = records.slice(start, start + IMPORT_CHUNK);
+    let reply: ImportReply;
+    try { reply = await send(chunk); } catch (e) { reply = importFailure(e); }
+    const shift = (rs: RowError[] = []) => rs.map((r) => ({ index: r.index + start, error: r.error }));
+    if ('failed' in reply) {
+      if (reply.imported === undefined) return { failed: reply.failed, attemptId: reply.attemptId };
+      const rest = Array.from({ length: Math.max(0, records.length - start - IMPORT_CHUNK) }, (_, i) => start + IMPORT_CHUNK + i);
+      return {
+        failed: reply.failed, imported: imported + reply.imported, attemptId: reply.attemptId ?? attempt,
+        errors: [...errors, ...shift(reply.errors)],
+        // without the server's list, nothing of this chunk is known to be saved
+        notSaved: [...(reply.notSaved ? reply.notSaved.map((i) => i + start) : chunk.map((_, i) => start + i).slice(reply.imported)), ...rest],
+      };
+    }
+    imported += reply.imported;
+    errors.push(...shift(reply.errors));
+    attempt = reply.attempt_id ?? attempt;
+    if (chunk.length < IMPORT_CHUNK) break;
+  }
+  return { imported, total: records.length, errors, attempt_id: attempt };
 }
 
 export function importReport(features: ParsedFeature[], built: BuildResult, reply: ImportReply): ImportReport {
@@ -44,8 +80,10 @@ export function importReport(features: ParsedFeature[], built: BuildResult, repl
     attemptId = reply.attemptId;
     if (reply.imported === undefined) unconfirmed = true;
     added = reply.imported ?? 0;
-    // Batches are written in order: the valid rows after the first `added` were not saved.
-    if (!unconfirmed) for (let i = added; i < built.records.length; i++) notAdded.push({ row: built.rows[i], error: 'not saved (the import stopped)', source: sourceOf(i) });
+    for (const e of reply.errors ?? []) notAdded.push({ row: built.rows[e.index], error: e.error, source: sourceOf(e.index) });
+    // The server's list of rows not saved; without one, assume none after the first `added` were.
+    const notSaved = reply.notSaved ?? (unconfirmed ? [] : built.records.map((_, i) => i).slice(added));
+    for (const i of notSaved) notAdded.push({ row: built.rows[i], error: 'not saved (the import stopped)', source: sourceOf(i) });
   } else {
     added = reply.imported;
     attemptId = reply.attempt_id;

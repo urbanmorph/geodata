@@ -12,7 +12,7 @@ import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, api, apiJson, jsonWithOfflineCopy, loadErrorText, ApiError, type Ctx } from './api';
 import { mountSchemaBuilder, type BuilderField } from './schema-builder';
 import { summarizeErrors } from './import/check';
-import { importReport, importReportHtml, importFailure, type ImportReply } from './import/report';
+import { importReport, importReportHtml, importInChunks, type ImportReply } from './import/report';
 import { basemapOfflineNote, isConnectionError } from './offline-notes';
 import { savePoint, queuedFor, discardQueued, sendQueued, sendWhenOnline, OUTBOX_CHANGED, type Saved, type OutboxChange } from './send-queue';
 import { validateRecordProperties, type Field } from './schema/validate-record';
@@ -559,10 +559,11 @@ function fitToFeatures(feats: Feature[]): void {
 
 function fieldInput(f: Field): string {
   const req = f.required ? ' required' : '';
-  const ml = f.maxLength ? ` maxlength="${f.maxLength}"` : '';
+  // Numbers are checked when a form is saved; escaped here too, as these go into attributes.
+  const ml = f.maxLength ? ` maxlength="${escapeHtml(f.maxLength)}"` : '';
   switch (f.type) {
     case 'paragraph': return `<textarea data-k="${f.key}"${req}${ml}></textarea>`;
-    case 'number': return `<input data-k="${f.key}" inputmode="${f.integer ? 'numeric' : 'decimal'}"${f.min != null ? ` min="${f.min}"` : ''}${f.max != null ? ` max="${f.max}"` : ''} step="${f.integer ? '1' : 'any'}"${req} />`;
+    case 'number': return `<input data-k="${f.key}" inputmode="${f.integer ? 'numeric' : 'decimal'}"${f.min != null ? ` min="${escapeHtml(f.min)}"` : ''}${f.max != null ? ` max="${escapeHtml(f.max)}"` : ''} step="${f.integer ? '1' : 'any'}"${req} />`;
     case 'date': return `<input data-k="${f.key}" type="date"${req} />`;
     case 'datetime': return `<input data-k="${f.key}" type="datetime-local"${req} />`;
     case 'url': return `<input data-k="${f.key}" type="url"${req} placeholder="https://" />`;
@@ -806,10 +807,15 @@ async function editFormSheet(): Promise<void> {
   panel.innerHTML = `<div class="sheet">${GRAB}<div class="body"><p class="hint">Loading the points to check the form against…</p></div></div>`;
   let points: Record<string, unknown>[];
   try {
-    const fc = await apiJson<{ features: { properties: Record<string, unknown> }[] }>(`/collections/${ctx.id}/records?limit=100000`, ctx.token);
-    points = (fc.features || []).map((f) => f.properties);
+    points = (await allRecords<{ properties: Record<string, unknown> }>()).map((f) => f.properties);
   } catch (e) { toast(loadErrorText(e)); void manageSheet(); return; }
   const n = points.length;
+  const byKey = new Map<string, unknown[]>(); // each field's values, read once
+  const valuesOf = (k: string): unknown[] => {
+    let v = byKey.get(k);
+    if (!v) byKey.set(k, (v = points.map((p) => p[k])));
+    return v;
+  };
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
     <div class="body">
@@ -824,7 +830,7 @@ async function editFormSheet(): Promise<void> {
     </div>
   </div>`;
   const builder = mountSchemaBuilder(document.getElementById('ef-builder')!, meta.schema.fields as BuilderField[], {
-    data: { noun: 'point', values: (f) => points.map((p) => p[f.key]) },
+    data: { noun: 'point', values: (f) => valuesOf(f.key) },
     existing: n > 0,
   });
   (document.getElementById('ef-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
@@ -1141,13 +1147,24 @@ function renderDataTab(body: HTMLElement): void {
 
 const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
 
+// Every record of the map, page by page (the server returns at most 2000 a request).
+async function allRecords<T>(): Promise<T[]> {
+  const out: T[] = [];
+  const PAGE = 2000;
+  for (let offset = 0; ; offset += PAGE) {
+    const fc = await apiJson<{ features: T[] }>(`/collections/${ctx.id}/records?limit=${PAGE}&offset=${offset}`, ctx.token);
+    out.push(...(fc.features || []));
+    if ((fc.features || []).length < PAGE) return out;
+  }
+}
+
 // Fetch every record and hand the author a file — no server round-trip.
 async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
   try {
-    const fc = await apiJson<{ features: ExportFeature[] }>(`/collections/${ctx.id}/records?limit=100000`, ctx.token);
-    const features = fc.features || [];
+    const features = await allRecords<ExportFeature>();
     if (!features.length) { toast('No points to download yet'); return; }
-    const keys = meta.schema.fields.filter((f) => !f.deleted).map((f) => f.key);
+    // The owner's download keeps hidden fields too: hiding keeps the data.
+    const keys = meta.schema.fields.map((f) => f.key);
     const [content, mime, ext] =
       format === 'geojson' ? [toGeoJSON(features, keys), 'application/geo+json', 'geojson']
       : format === 'csv' ? [toCSV(features, keys), 'text/csv', 'csv']
@@ -1230,16 +1247,11 @@ async function importFlow(file: File): Promise<void> {
     const result = document.getElementById('import-result')!;
     btn.disabled = true;
     // Every row is accounted for: added, skipped here, or refused by the server.
-    let reply: ImportReply;
-    try {
-      reply = await apiJson(`/collections/${ctx.id}/import`, ctx.token, {
-        method: 'POST',
-        body: JSON.stringify({ records: plan.records, source, rights_confirmed: true, client_skipped: { count: plan.errors.length, reasons: summarizeErrors(plan.errors) } }),
-      });
-    } catch (e) {
-      reply = importFailure(e);
-      btn.disabled = false;
-    }
+    const reply = await importInChunks(plan.records, (records) => apiJson<ImportReply>(`/collections/${ctx.id}/import`, ctx.token, {
+      method: 'POST',
+      body: JSON.stringify({ records, source, rights_confirmed: true, client_skipped: { count: plan.errors.length, reasons: summarizeErrors(plan.errors) } }),
+    }));
+    if ('failed' in reply) btn.disabled = false;
     const report = importReport(parsed.features, plan, reply);
     if (report.added) await refreshCounts(); // refetch the cache so Review shows the imported points
     result.innerHTML = importReportHtml(report);
