@@ -66,3 +66,13 @@ describe('splitLinks — the Share tab\'s named links', () => {
     expect(out.unnamed).toEqual({ links: 2, records: 5 });
   });
 });
+
+describe('shareOrCopy payload', () => {
+  it('puts the link in the text, so WhatsApp (which builds the message from text) receives it', async () => {
+    const { shareOrCopy } = await import('../src/share');
+    const calls: ShareData[] = [];
+    Object.defineProperty(globalThis, 'navigator', { configurable: true, value: { share: async (d: ShareData) => { calls.push(d); } } });
+    expect(await shareOrCopy('https://collect.bharatlas.com/c/abc#edt_x', 'Footpaths')).toBe('shared');
+    expect(calls).toEqual([{ title: 'Footpaths', text: 'Footpaths\nhttps://collect.bharatlas.com/c/abc#edt_x' }]);
+  });
+});

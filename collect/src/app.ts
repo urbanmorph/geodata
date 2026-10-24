@@ -27,6 +27,7 @@ import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/b
 import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
 import { fitsLocalPicker } from './schema/dates';
+import { wireSheetSwipe } from './sheet-swipe';
 import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
@@ -169,9 +170,7 @@ function installSheetMetrics(): void {
   sheetMetricsInstalled = true;
   const appEl = document.getElementById('app')!;
   new MutationObserver(() => requestAnimationFrame(updateSheetMetrics)).observe(appEl, { childList: true, subtree: true });
-  appEl.addEventListener('click', (e) => {
-    const grab = (e.target as HTMLElement).closest('.grab');
-    if (!grab) return;
+  const toggleSheet = (grab: Element): void => {
     const sheet = grab.closest('.sheet');
     const collapsed = sheet?.classList.toggle('collapsed') ?? false;
     grab.setAttribute('aria-expanded', String(!collapsed));
@@ -180,6 +179,12 @@ function installSheetMetrics(): void {
       if (collapsed) el.setAttribute('inert', ''); else el.removeAttribute('inert');
     });
     updateSheetMetrics();
+  };
+  // Tap the handle, or swipe it down / up (sheet-swipe.ts), to collapse / expand.
+  wireSheetSwipe(appEl, toggleSheet);
+  appEl.addEventListener('click', (e) => {
+    const grab = (e.target as HTMLElement).closest('.grab');
+    if (grab) toggleSheet(grab);
   });
   window.addEventListener('resize', () => requestAnimationFrame(updateSheetMetrics));
   requestAnimationFrame(updateSheetMetrics);

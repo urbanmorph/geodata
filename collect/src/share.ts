@@ -41,7 +41,9 @@ export async function shareOrCopy(url: string, title: string): Promise<'shared' 
   const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
   if (typeof nav.share === 'function') {
     try {
-      await nav.share({ title, url });
+      // The link goes in the text: WhatsApp on iOS builds its message from
+      // text and could send an empty message for a separate url field.
+      await nav.share({ title, text: `${title}\n${url}` });
       return 'shared';
     } catch (e) {
       // AbortError = the user dismissed the sheet; treat as a no-op, not a copy.
