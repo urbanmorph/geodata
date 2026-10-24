@@ -28,6 +28,7 @@ import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-s
 import { loadContributorName, saveContributorName } from './contributor-name';
 import { fitsLocalPicker } from './schema/dates';
 import { wireSheetSwipe } from './sheet-swipe';
+import { pickNearest } from './pick-nearest';
 import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
@@ -47,6 +48,16 @@ let ctx: Ctx;
 // Draw state (Phase 4). Points use the map centre; lines/polygons collect
 // vertices by panning the crosshair and tapping "+ vertex".
 const ACCENT = '#4f46e5';
+const TAP_PX = 14; // a tap counts for a point this close (fingertip, not cursor)
+
+// The map screen is an app surface: a pinch zooms the map, never the page. iPad
+// Safari sends its own pinch (gesture*) events and zooms the page even over the
+// map; MapLibre uses touch events, so cancelling these leaves map pinch working.
+// (Page pinch is also off via touch-action in styles.css; the home and form
+// pages stay zoomable.)
+for (const t of ['gesturestart', 'gesturechange', 'gestureend']) {
+  document.addEventListener(t, (e) => { if (document.querySelector('#app > .map')) e.preventDefault(); }, { passive: false });
+}
 let drawMode: GeomMode = 'point';
 let verts: Coord[] = [];
 let drawReady = false;
@@ -396,11 +407,19 @@ function syncReviewLayer(): void {
       'circle-stroke-width': ['case', ['boolean', ['feature-state', 'sel'], false], 3, 2],
     },
   });
-  for (const id of ['review-pt', 'review-fill', 'review-line']) {
-    map.on('click', id, (e) => {
-      const idx = e.features?.[0]?.properties?.idx;
-      if (typeof idx === 'number') selectFromMap(idx);
+  // One tap handler with a finger-sized radius: the nearest point within TAP_PX,
+  // else a line or area under the tap (points win, being the hardest to hit).
+  map.on('click', (e) => {
+    const { x, y } = e.point;
+    const near = map.queryRenderedFeatures([[x - TAP_PX, y - TAP_PX], [x + TAP_PX, y + TAP_PX]], { layers: ['review-pt', 'review-fill', 'review-line'] });
+    const pts = near.filter((f) => f.layer.id === 'review-pt').map((f) => {
+      const s = map.project((f.geometry as GeoJSON.Point).coordinates as [number, number]);
+      return { idx: f.properties.idx as number, x: s.x, y: s.y };
     });
+    const idx = pickNearest(pts, e.point, TAP_PX) ?? (near.find((f) => f.layer.id !== 'review-pt')?.properties.idx as number | undefined);
+    if (typeof idx === 'number') selectFromMap(idx);
+  });
+  for (const id of ['review-pt', 'review-fill', 'review-line']) {
     map.on('mouseenter', id, () => { map.getCanvas().style.cursor = 'pointer'; });
     map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; });
   }
