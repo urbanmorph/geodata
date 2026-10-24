@@ -27,6 +27,7 @@ export function guessType(values: string[]): { type: BuilderField['type']; optio
   if (!vals.length) return { type: 'text' };
   if (vals.every((v) => v !== '' && !Number.isNaN(Number(v)))) return { type: 'number' };
   if (vals.every((v) => /^\d{4}-\d{2}-\d{2}/.test(v))) return { type: 'date' };
+  if (vals.every((v) => /^https?:\/\/\S+$/i.test(v))) return { type: 'url' };
   const distinct = [...new Set(vals)];
   if (distinct.length >= 2 && distinct.length <= 12 && distinct.length <= Math.ceil(vals.length / 2)) {
     return { type: 'select', options: distinct.slice(0, 20) };
@@ -50,8 +51,9 @@ export function inferSchema(parsed: Parsed, format: string): Inferred {
   const mapping: Record<string, string> = {};
   const used: string[] = [];
   dataCols.forEach((col, i) => {
-    const samples = parsed.features.slice(0, 50).map((f) => f.props[col] ?? '');
-    const { type, options } = guessType(samples);
+    // Every row, not a sample: a choice list guessed from the first rows refuses
+    // values that only appear further down (e.g. a group that starts at row 51).
+    const { type, options } = guessType(parsed.features.map((f) => f.props[col] ?? ''));
     const key = deriveKey(col, used);
     used.push(key);
     const field: BuilderField = { key, label: col, type };

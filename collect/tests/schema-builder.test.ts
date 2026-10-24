@@ -88,3 +88,15 @@ describe('mountSchemaBuilder inline edit', () => {
     expect(addCard.style.display).toBe('');
   });
 });
+
+describe('mountSchemaBuilder field count', () => {
+  it('lets an author add more than 20 fields', () => {
+    const root = host();
+    const sb = mountSchemaBuilder(root);
+    for (let i = 0; i < 25; i++) {
+      q<HTMLInputElement>(root, '#sb-add .ff-label').value = `Field ${i}`;
+      q<HTMLButtonElement>(root, '#sb-add-btn').click();
+    }
+    expect(sb.getFields()).toHaveLength(25);
+  });
+});

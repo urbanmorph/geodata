@@ -17,7 +17,9 @@ export const CATEGORY_IDS = [
 ] as const;
 
 const KEY_RE = /^[a-z][a-z0-9_]*$/;
-const MAX_FIELDS = 20;
+// No cap on the number of fields; only on the stored size of the whole form,
+// which a D1 row has to hold (a 200-field form is under 20 KB).
+const MAX_SCHEMA_BYTES = 256 * 1024;
 const MAX_REF_LAYERS = 3;
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
@@ -47,7 +49,6 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
 
   const fields = doc.fields;
   if (!Array.isArray(fields)) return fail('schema_doc.fields must be an array');
-  if (fields.length > MAX_FIELDS) return fail(`too many fields (max ${MAX_FIELDS})`);
 
   const keys = new Set<string>();
   for (const f of fields) {
@@ -175,9 +176,13 @@ export function validateNewCollection(input: unknown): Result<NewCollection> {
 
   const sd = validateSchemaDoc(b.schema_doc);
   if (!sd.ok) return sd;
+  const schemaDoc = JSON.stringify(sd.value);
+  if (new TextEncoder().encode(schemaDoc).byteLength > MAX_SCHEMA_BYTES) {
+    return fail(`the form is too large to store (over ${MAX_SCHEMA_BYTES / 1024} KB); shorten its option lists`);
+  }
 
   return {
     ok: true,
-    value: { name, purpose, license: b.license, description, data_year: dataYear, schema_doc: JSON.stringify(sd.value) },
+    value: { name, purpose, license: b.license, description, data_year: dataYear, schema_doc: schemaDoc },
   };
 }
