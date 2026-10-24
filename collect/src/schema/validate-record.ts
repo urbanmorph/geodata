@@ -2,11 +2,12 @@
 // definition (spec → "POST /collections/:id/records", step 2). Required fields
 // present, select ∈ options, number numeric, url http(s), date / date-time valid; unknown
 // keys dropped; soft-deleted fields omitted. Returns the cleaned properties.
+// A photo answer is a list of photo ids (uploaded first, see photos.ts).
 
 import { isDate, normalizeDateTime } from './dates';
 
 export type FieldType =
-  | 'text' | 'paragraph' | 'number' | 'select' | 'multiselect' | 'date' | 'datetime' | 'url';
+  | 'text' | 'paragraph' | 'number' | 'select' | 'multiselect' | 'date' | 'datetime' | 'url' | 'photo';
 
 export interface Field {
   key: string;
@@ -19,6 +20,7 @@ export interface Field {
   max?: number;         // number
   integer?: boolean;    // number
   maxLength?: number;   // text / paragraph
+  max_photos?: number;  // photo: 1 to 3
   deleted?: boolean;    // soft-deleted → never read or written
 }
 
@@ -46,7 +48,16 @@ function validUrl(s: string): boolean {
 
 const err = (msg: string): ValidateResult => ({ ok: false, error: msg });
 
-export function validateRecordProperties(fields: Field[], input: unknown): ValidateResult {
+/** A photo id as the server issues it. */
+export const PHOTO_ID = /^ph_[A-Za-z0-9_-]{10,40}$/;
+
+export interface ValidateOptions {
+  /** "Just photos" capture: only the photos are needed now; the other required
+   *  questions are filled by the model and checked when a person approves. */
+  photosOnly?: boolean;
+}
+
+export function validateRecordProperties(fields: Field[], input: unknown, opts: ValidateOptions = {}): ValidateResult {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
     return err('properties must be an object');
   }
@@ -58,7 +69,7 @@ export function validateRecordProperties(fields: Field[], input: unknown): Valid
     const v = src[f.key];
 
     if (isEmpty(v)) {
-      if (f.required) return err(`${f.label} is required`);
+      if (f.required && !(opts.photosOnly && f.type !== 'photo')) return err(`${f.label} is required`);
       continue;                              // optional + empty → omit
     }
 
@@ -110,6 +121,13 @@ export function validateRecordProperties(fields: Field[], input: unknown): Valid
         const dt = typeof v === 'string' ? (isDate(v) ? v : normalizeDateTime(v)) : null;
         if (!dt) return err(`${f.label} must be a valid date and time (YYYY-MM-DD HH:MM)`);
         out[f.key] = dt;
+        break;
+      }
+      case 'photo': {
+        if (!Array.isArray(v) || !v.every((id) => typeof id === 'string' && PHOTO_ID.test(id))) return err(`${f.label} must be photos taken here`);
+        const most = f.max_photos ?? 3;
+        if (v.length > most) return err(`${f.label}: at most ${most} photo${most === 1 ? '' : 's'}`);
+        out[f.key] = v;
         break;
       }
       case 'url': {

@@ -19,6 +19,10 @@ import { validateRecordProperties, type Field } from '../../src/schema/validate-
 import { checkIndiaBounds } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
 import { composeAttribution } from '../../src/publish/attribution';
+import { modeOf, usesAi } from '../../src/schema/modes';
+import { ringArea } from '../../src/geo/measure';
+import { photoIdsIn, checkPhotos, setPhotos, deletePhotosOf, photoLinks, photoUrl } from './photos';
+import { runAi, drainAi, publicNotes } from './ai';
 
 const BHARATLAS_ORIGIN = 'https://bharatlas.com';
 
@@ -203,7 +207,7 @@ export async function editCollection(env: Env, req: Request, id: string): Promis
   if (!body) return bad(400, 'invalid JSON body');
 
   const counts = await db.statusCounts(env.DB, id);
-  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license });
+  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license, schema: JSON.parse(c.schema_doc) });
   if (!v.ok) return bad(400, v.error);
 
   let schemaDoc: string | undefined;
@@ -236,9 +240,9 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
   const body = await readJson(req);
   if (!body) return refuse(400, 'body', 'invalid JSON body');
 
-  const doc = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] } & Record<string, unknown>;
+  const doc = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string } & Record<string, unknown>;
   const points = await db.allRecordProperties(env.DB, id);
-  const v = validateFormEdit(doc.fields, body.fields, points, doc.geometry);
+  const v = validateFormEdit(doc.fields, body.fields, points, doc.geometry, doc.mode);
   if (!v.ok) return refuse(400, v.problems ? 'points' : 'form', v.error, v.problems ? { problems: v.problems } : {});
   const schemaDoc = JSON.stringify({ ...doc, fields: v.fields });
   if (!schemaFits(schemaDoc)) return refuse(400, 'form', 'the form is too large to store; shorten its option lists');
@@ -315,7 +319,7 @@ export async function revokeToken(env: Env, req: Request, id: string, tokenId: s
 
 // ---- GET /collections/:id/records ------------------------------------------
 
-export async function listRecords(env: Env, req: Request, id: string): Promise<Response> {
+export async function listRecords(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
   if (!perm) return bad(401, 'unauthorised');
 
@@ -332,20 +336,26 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
   // Admin only: which link added each record (id + the admin's label for it).
   const isAdmin = atLeast(perm, 'admin');
   const labels = isAdmin ? await db.linkLabels(env.DB, id) : null;
+  const c = await db.getCollection(env.DB, id);
+  const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[]; mode?: string };
   // Hidden fields stay in the data for the owner, not for shared links.
-  let hidden = new Set<string>();
-  if (!isAdmin) {
-    const c = await db.getCollection(env.DB, id);
-    hidden = new Set(((c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[] }).fields.filter((f) => f.deleted).map((f) => f.key));
-  }
+  const hidden = isAdmin ? new Set<string>() : new Set(schema.fields.filter((f) => f.deleted).map((f) => f.key));
   const visible = (p: Record<string, unknown>) => (hidden.size ? Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k))) : p);
+  const origin = url.origin;
+  // The owner looking at the map is a good moment to catch up on notes still to come.
+  if (isAdmin && usesAi(modeOf(schema)) && defer) defer(drainAi(env, id).catch(() => {}));
 
-  const features = rows.map((r) => ({
+  const features = rows.map((r) => {
+    const props = JSON.parse(r.properties) as Record<string, unknown>;
+    return {
     type: 'Feature' as const,
     id: r.id,
     geometry: JSON.parse(r.geometry),
     properties: {
-      ...visible(JSON.parse(r.properties)),
+      ...visible(props),
+      _photos: photoLinks(schema.fields, visible(props), origin),
+      // The owner sees the model's notes as they are; others only accepted ones.
+      _ai: isAdmin ? (r.ai ? JSON.parse(r.ai) : null) : publicNotes(r.ai),
       _status: r.status,
       _contributor: r.contributor,
       _created_at: r.created_at,
@@ -354,7 +364,8 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
       _source: r.source,
       ...(labels ? { _link_id: r.token_id ?? null, _link_label: (r.token_id && labels.get(r.token_id)) || null } : {}),
     },
-  }));
+  };
+  });
   return json(200, { type: 'FeatureCollection', features });
 }
 
@@ -397,21 +408,30 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
     return bad(400, bounds.error);
   }
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
+  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
   const bucket = geomBucket((geometry as { type: string }).type);
   if (!bucket || !schema.geometry.includes(bucket)) {
     return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
   }
 
-  const validated = validateRecordProperties(schema.fields, body.properties);
+  const mode = modeOf(schema);
+  const validated = validateRecordProperties(schema.fields, body.properties, { photosOnly: mode === 'photos_ai' });
   if (!validated.ok) {
     deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'schema', reason: validated.error, collection_id: id, ip_hash: ipHash });
     return bad(400, validated.error);
   }
+  const photoIds = photoIdsIn(schema.fields, validated.properties);
+  const photoProblem = await checkPhotos(env, id, photoIds, null);
+  if (photoProblem) {
+    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'photos', reason: photoProblem, collection_id: id, ip_hash: ipHash });
+    return bad(400, photoProblem);
+  }
 
   const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
-  // The owner's own captures publish immediately; only contributor input is moderated.
-  const status = recordStatusFor(atLeast(perm, 'admin'), c.moderation);
+  // The owner's own captures publish immediately; only contributor input is
+  // moderated. A point the model fills in always waits for a person's check.
+  const status = mode === 'photos_ai' ? 'pending' : recordStatusFor(atLeast(perm, 'admin'), c.moderation);
+  const wantsNotes = usesAi(mode) && photoIds.length > 0;
   const recId = nanoid(10);
   const recToken = generateRecordToken();
 
@@ -429,6 +449,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
       token_id: via!.id,
       client_key_hash: clientKey,
       captured_at: plausibleCaptureTime(body.captured_at),
+      ai: wantsNotes ? JSON.stringify({ status: 'queued' }) : null,
     });
   } catch (e) {
     // Two repeats raced past the lookup; the unique index kept one. Return it.
@@ -436,9 +457,13 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
     if (raced) return resendRecord(env, raced);
     throw e;
   }
+  await setPhotos(env, recId, photoIds);
   await db.touchCollection(env.DB, id);
 
-  const task = enrichRecord(env, recId, geometry).catch(() => {});
+  const task = Promise.all([
+    enrichRecord(env, recId, geometry),
+    wantsNotes ? runAi(env, recId) : null,
+  ]).catch(() => {});
   if (defer) defer(task); else await task;
 
   deferLog(defer, env.DB, { event: 'contribute', outcome: 'ok', collection_id: id, ip_hash: ipHash });
@@ -460,6 +485,24 @@ export function plausibleCaptureTime(v: unknown, nowMs = Date.now()): string | n
   const t = Date.parse(v);
   if (!Number.isFinite(t) || t > nowMs + CAPTURE_SKEW_MS || t < nowMs - CAPTURE_MAX_AGE_MS) return null;
   return new Date(t).toISOString(); // one format for every stored time
+}
+
+/** A point's answers as published: photo ids become their links. */
+export function publishedAnswers(fields: Field[], props: Record<string, unknown>, origin: string): Record<string, unknown> {
+  const out = { ...props };
+  for (const f of fields) if (f.type === 'photo' && Array.isArray(out[f.key])) out[f.key] = (out[f.key] as string[]).map((id) => photoUrl(origin, id));
+  return out;
+}
+
+/** Columns collect adds to a published point: accepted notes from its photo,
+ *  and an area's size in square metres (author fields of the same name win). */
+function derivedColumns(r: { ai: string | null; geometry: string }): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  const notes = publicNotes(r.ai);
+  if (notes) Object.assign(out, { photo_description: notes.description, photo_tags: notes.tags.join(' | '), photo_notes_model: notes.model });
+  const g = JSON.parse(r.geometry) as { type: string; coordinates: number[][][] };
+  if (g.type === 'Polygon') out.area_sq_m = Math.round(ringArea(g.coordinates[0] as [number, number][]));
+  return out;
 }
 
 /** When a point was added: the phone's capture time, else when it was saved. */
@@ -485,6 +528,16 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
     return bad(400, 'status must be published, rejected, or pending');
   }
   const reason = typeof body?.reason === 'string' ? body.reason : null;
+  if (status === 'published') {
+    // "Just photos" points were saved without their other answers: those must be
+    // filled (from the model's notes, or by hand) before the point is approved.
+    const c = await db.getCollection(env.DB, rec.collection_id);
+    const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[]; mode?: string };
+    if (modeOf(schema) === 'photos_ai') {
+      const v = validateRecordProperties(schema.fields, JSON.parse(rec.properties));
+      if (!v.ok) return bad(400, `${v.error} before approving`);
+    }
+  }
   await db.setRecordStatus(env.DB, recordId, status, reason);
   return json(200, { id: recordId, status });
 }
@@ -529,12 +582,14 @@ export async function getRecordForEdit(env: Env, req: Request, recordId: string)
   const c = await db.getCollection(env.DB, auth.record.collection_id);
   if (!c) return bad(404, 'not found');
   const r = auth.record;
+  const props = JSON.parse(r.properties) as Record<string, unknown>;
   return json(200, {
     id: r.id,
     status: r.status,
     contributor: r.contributor,
     geometry: JSON.parse(r.geometry),
-    properties: JSON.parse(r.properties),
+    properties: props,
+    photos: photoLinks((JSON.parse(c.schema_doc) as { fields: Field[] }).fields, props, new URL(req.url).origin),
     schema: JSON.parse(c.schema_doc),
     collection_name: c.name,
   });
@@ -548,9 +603,10 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
+  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
   const patch: { geometry?: string; properties?: string; status?: string } = {};
   let movedGeometry: unknown;
+  let photoIds: string[] | undefined;
 
   if (body.geometry !== undefined) {
     const bounds = checkIndiaBounds(body.geometry);
@@ -563,8 +619,11 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
     movedGeometry = body.geometry;
   }
   if (body.properties !== undefined) {
-    const v = validateRecordProperties(schema.fields, body.properties);
+    const v = validateRecordProperties(schema.fields, body.properties, { photosOnly: modeOf(schema) === 'photos_ai' });
     if (!v.ok) return bad(400, v.error);
+    photoIds = photoIdsIn(schema.fields, v.properties);
+    const problem = await checkPhotos(env, c.id, photoIds, recordId);
+    if (problem) return bad(400, problem);
     // Hidden fields aren't on the form any more, so an edit never sends them:
     // keep their saved values (hiding a field must never lose its data).
     const saved = JSON.parse(auth.record.properties) as Record<string, unknown>;
@@ -572,8 +631,10 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
     patch.properties = JSON.stringify({ ...kept, ...v.properties });
   }
   // R3: a contributor edit goes back to pending for re-review (when moderated).
-  if (!auth.isAdmin && c.moderation) patch.status = 'pending';
+  if (!auth.isAdmin && (c.moderation || modeOf(schema) === 'photos_ai')) patch.status = 'pending';
   await db.updateRecord(env.DB, recordId, patch);
+  // Photos in hidden fields stay with the point, like the rest of their data.
+  if (photoIds) await setPhotos(env, recordId, [...photoIds, ...photoIdsIn(schema.fields.filter((f) => f.deleted), JSON.parse(patch.properties!))]);
 
   // Re-enrich a moved shape out of band — only overwrites admin_ctx on success.
   if (movedGeometry !== undefined) {
@@ -586,6 +647,7 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
 export async function deleteRecordHandler(env: Env, req: Request, recordId: string): Promise<Response> {
   const auth = await recordAuth(env, req, recordId);
   if (!auth) return bad(401, 'unauthorised');
+  await deletePhotosOf(env, recordId);
   await db.deleteRecord(env.DB, recordId);
   return json(200, { id: recordId, deleted: true });
 }
@@ -752,8 +814,10 @@ async function publishMap(
 
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: 100000, offset: 0 });
   if (rows.length === 0) return refuse(409, 'empty', 'nothing approved to publish yet');
-  const hidden = new Set((JSON.parse(c.schema_doc) as { fields: Field[] }).fields.filter((f) => f.deleted).map((f) => f.key));
+  const fields = (JSON.parse(c.schema_doc) as { fields: Field[] }).fields;
+  const hidden = new Set(fields.filter((f) => f.deleted).map((f) => f.key));
   const withoutHidden = (p: Record<string, unknown>) => Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k)));
+  const origin = new URL(req.url).origin;
 
   // Flatten locate enrichment into the published properties (state, district…),
   // so the catalogue layer is filterable by admin area. Author fields win on any
@@ -763,7 +827,7 @@ async function publishMap(
     geometry: JSON.parse(r.geometry),
     // added_at: when the point was captured; an author field of that name wins.
     // Hidden fields stay in the map's data but are not published.
-    properties: { added_at: addedAt(r), ...mergeAdminCtx(withoutHidden(JSON.parse(r.properties)), r.admin_ctx) },
+    properties: { added_at: addedAt(r), ...derivedColumns(r), ...mergeAdminCtx(publishedAnswers(fields, withoutHidden(JSON.parse(r.properties)), origin), r.admin_ctx) },
   }));
   const fc = { type: 'FeatureCollection', features };
   const bytes = new TextEncoder().encode(JSON.stringify(fc));

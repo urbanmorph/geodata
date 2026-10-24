@@ -5,6 +5,9 @@
 export const INDIA_BBOX = [68, 6, 98, 38] as const; // [minLng, minLat, maxLng, maxLat]
 const [MIN_LNG, MIN_LAT, MAX_LNG, MAX_LAT] = INDIA_BBOX;
 
+/** One lng/lat inside India's bounding box. */
+export const isInIndia = (lng: number, lat: number): boolean => lng >= MIN_LNG && lng <= MAX_LNG && lat >= MIN_LAT && lat <= MAX_LAT;
+
 export type BoundsResult = { ok: true } | { ok: false; error: string };
 
 const OUT_OF_RANGE = 'lat must be 6-38, lng must be 68-98 (India bounding box)';

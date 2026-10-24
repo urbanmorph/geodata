@@ -5,9 +5,10 @@
 
 import { isOpenLicence } from '../../../web/functions/lib/licenses';
 import { validateRecordProperties, type Field } from './validate-record';
+import { COLLECT_MODES, MAX_PHOTOS, modeOf, modeProblem, type CollectMode } from './modes';
 
 export const FIELD_TYPES = [
-  'text', 'paragraph', 'number', 'select', 'multiselect', 'date', 'datetime', 'url',
+  'text', 'paragraph', 'number', 'select', 'multiselect', 'date', 'datetime', 'url', 'photo',
 ] as const;
 export const GEOMETRY_TYPES = ['point', 'line', 'polygon'] as const;
 export const BASEMAP_IDS = ['positron', 'satellite', 'topo'] as const;
@@ -103,8 +104,20 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
       }
       out.maxLength = fd.maxLength;
     }
+    if (fd.type === 'photo') {
+      const n = fd.max_photos ?? MAX_PHOTOS;
+      if (!Number.isInteger(n) || (n as number) < 1 || (n as number) > MAX_PHOTOS) return fail(`field ${fd.key}: max_photos must be 1 to ${MAX_PHOTOS}`);
+      out.max_photos = n;
+    } else if (fd.max_photos !== undefined) return fail(`field ${fd.key}: max_photos is only for a Photo question`);
     clean.push(out);
   }
+
+  if (doc.mode !== undefined) {
+    if (!COLLECT_MODES.includes(doc.mode as CollectMode)) return fail(`unknown mode: ${String(doc.mode)}`);
+    const why = modeProblem(doc.mode as CollectMode, geom as string[], clean as unknown as Field[]);
+    if (why) return fail(why);
+  }
+  if (doc.data_saver !== undefined && typeof doc.data_saver !== 'boolean') return fail('data_saver must be true or false');
 
   const refs = doc.reference_layers;
   if (refs !== undefined) {
@@ -134,9 +147,10 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
 // Validate a partial edit to an existing collection (admin "Edit map settings").
 // Returns the column patch (col) + the schema_doc merge (schema). Licence can
 // only change while the map has no records; fields/geometry are not editable here.
+// The collection mode and Data saver can change any time (the same rules as at create).
 export function validateCollectionEdit(
   input: unknown,
-  ctx: { hasRecords: boolean; currentLicense: string },
+  ctx: { hasRecords: boolean; currentLicense: string; schema?: { geometry?: string[]; fields?: Field[] } },
 ): Result<{ col: Record<string, unknown>; schema: Record<string, unknown> }> {
   if (!input || typeof input !== 'object') return fail('body must be an object');
   const b = input as Record<string, unknown>;
@@ -189,6 +203,16 @@ export function validateCollectionEdit(
       schema.reference_layer = { id: r.id, pmtiles_url: r.pmtiles_url };
     }
   }
+  if (b.mode !== undefined) {
+    if (!COLLECT_MODES.includes(b.mode as CollectMode)) return fail(`unknown mode: ${String(b.mode)}`);
+    const why = modeProblem(b.mode as CollectMode, ctx.schema?.geometry ?? [], ctx.schema?.fields ?? []);
+    if (why) return fail(why);
+    schema.mode = modeOf({ mode: b.mode });
+  }
+  if (b.data_saver !== undefined) {
+    if (typeof b.data_saver !== 'boolean') return fail('data_saver must be true or false');
+    schema.data_saver = b.data_saver;
+  }
   if (Object.keys(col).length === 0 && Object.keys(schema).length === 0) return fail('nothing to update');
   return { ok: true, value: { col, schema } };
 }
@@ -237,9 +261,9 @@ export type FormEditResult =
  *  adding options or optional fields always passes; anything that would make a
  *  saved point invalid is refused with how many points and why. */
 export function validateFormEdit(
-  current: Field[], next: unknown, points: Array<Record<string, unknown>>, geometry: string[],
+  current: Field[], next: unknown, points: Array<Record<string, unknown>>, geometry: string[], mode?: string,
 ): FormEditResult {
-  const sd = validateSchemaDoc({ version: 1, geometry, fields: next });
+  const sd = validateSchemaDoc({ version: 1, geometry, fields: next, ...(mode ? { mode } : {}) });
   if (!sd.ok) return sd;
   const fields = sd.value.fields as Field[];
   if (points.length) {

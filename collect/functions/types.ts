@@ -10,4 +10,10 @@ export interface Env {
   // Origin for locate enrichment (defaults to https://bharatlas.com); override
   // in tests to point at a stub. Phase 4.
   LOCATE_ORIGIN?: string;
+  // Workers AI: notes from photos. Absent (local dev without a remote binding)
+  // = notes wait. AI_DAILY_PHOTOS caps photos sent per day (default 600, inside
+  // the free allowance); AI_MODEL overrides the model (see functions/lib/ai.ts).
+  AI?: Ai;
+  AI_DAILY_PHOTOS?: string;
+  AI_MODEL?: string;
 }
