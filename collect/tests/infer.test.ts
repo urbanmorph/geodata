@@ -49,4 +49,40 @@ describe('inferSchema', () => {
     const inf = inferSchema(parseCSV(`name,photo,lng,lat\n${rows.join('\n')}\n`), 'csv');
     expect(inf.fields.find((f) => f.key === 'photo')?.type).toBe('url');
   });
+  const col = (header: string, values: string[]) =>
+    inferSchema(parseCSV(`name,${header},lng,lat\n${values.map((v, i) => `P${i},"${v}",77.6,12.9`).join('\n')}\n`), 'csv')
+      .fields.find((f) => f.label === header)!;
+
+  it('several answers joined with | become a pick-many field, options in the order they appear', () => {
+    const f = col('Surface', ['Broken|Uneven', 'Good', 'Uneven', 'Broken', 'Good|Encroached', 'Bad', 'Uneven', 'Bad']);
+    expect(f.type).toBe('multiselect');
+    expect(f.options).toEqual(['Broken', 'Uneven', 'Good', 'Encroached', 'Bad']);
+  });
+
+  it('allows longer option lists when the values repeat a lot (14 types, each used 6 times)', () => {
+    const opts = Array.from({ length: 14 }, (_, i) => `Type ${i}`);
+    const f = col('Obstruction', Array(6).fill(opts).flat());
+    expect(f.type).toBe('select');
+    expect(f.options).toHaveLength(14);
+  });
+
+  it('20 street names over 88 rows stay text, so a new street can still be typed', () => {
+    const streets = Array.from({ length: 20 }, (_, i) => `Street ${i}`);
+    expect(col('Segment', Array.from({ length: 88 }, (_, i) => streets[i % 20])).type).toBe('text');
+  });
+
+  it('a mostly-unique column stays text (names are not a pick list)', () => {
+    expect(col('Shop', Array.from({ length: 40 }, (_, i) => `Shop ${i}`)).type).toBe('text');
+  });
+
+  it('timestamps become Date and time; plain dates stay Date', () => {
+    expect(col('Seen', ['2026-05-04 09:30', '2026-05-04T10:15:00+05:30', '2026-05-05']).type).toBe('datetime');
+    expect(col('Day', ['2026-05-04', '2026-05-05']).type).toBe('date');
+  });
+
+  it('dates with an unclear day/month order stay text, with a note saying why', () => {
+    const f = col('Surveyed', ['04/05/2026', '12/05/2026', '03/06/2026']);
+    expect(f.type).toBe('text');
+    expect(f.note).toMatch(/day and month/i);
+  });
 });

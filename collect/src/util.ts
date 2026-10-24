@@ -10,3 +10,12 @@ export function escapeHtml(s: unknown): string {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;');
 }
+
+/** Hand the person a file made in the browser. */
+export function downloadText(content: string, filename: string, mime: string): void {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}

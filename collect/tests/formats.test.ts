@@ -5,11 +5,11 @@ const FIELDS = ['name', 'cond', 'tags'];
 const FEATURES = [
   {
     geometry: { type: 'Point', coordinates: [77.61, 12.98] },
-    properties: { name: 'MG Road', cond: 'Good', tags: ['a', 'b'], _status: 'published', _contributor: 'Ravi', _admin_ctx: { state: 'KARNATAKA', district: 'Bengaluru Urban' } },
+    properties: { name: 'MG Road', cond: 'Good', tags: ['a', 'b'], _status: 'published', _contributor: 'Ravi', _admin_ctx: { state: 'KARNATAKA', district: 'Bengaluru Urban' }, _created_at: '2026-10-24T06:00:00.000Z', _captured_at: '2026-10-24T05:10:00.000Z' },
   },
   {
     geometry: { type: 'LineString', coordinates: [[77.60, 12.97], [77.62, 12.99]] },
-    properties: { name: 'Church St, "the edge"', cond: 'Blocked', _status: 'pending', _contributor: null, _admin_ctx: null },
+    properties: { name: 'Church St, "the edge"', cond: 'Blocked', _status: 'pending', _contributor: null, _admin_ctx: null, _created_at: '2026-10-24T07:00:00.000Z', _captured_at: null },
   },
 ];
 
@@ -21,7 +21,9 @@ describe('toGeoJSON', () => {
     expect(fc.features[0].geometry).toEqual({ type: 'Point', coordinates: [77.61, 12.98] });
     expect(fc.features[0].properties).toMatchObject({
       name: 'MG Road', cond: 'Good', tags: ['a', 'b'], contributor: 'Ravi', status: 'published', state: 'KARNATAKA', district: 'Bengaluru Urban',
+      added_at: '2026-10-24T05:10:00.000Z', // the capture time when the phone sent one
     });
+    expect(fc.features[1].properties.added_at).toBe('2026-10-24T07:00:00.000Z'); // else when it was saved
     expect(fc.features[0].properties._status).toBeUndefined();
     expect(fc.features[0].properties._admin_ctx).toBeUndefined();
   });
@@ -30,8 +32,8 @@ describe('toGeoJSON', () => {
 describe('toCSV', () => {
   it('has a header + one row per feature, with representative lng/lat', () => {
     const rows = toCSV(FEATURES, FIELDS).split('\n');
-    expect(rows[0]).toBe('lng,lat,geometry_type,name,cond,tags,contributor,source,status,state,district');
-    expect(rows[1]).toBe('77.61,12.98,Point,MG Road,Good,a|b,Ravi,,published,KARNATAKA,Bengaluru Urban');
+    expect(rows[0]).toBe('lng,lat,geometry_type,name,cond,tags,contributor,source,status,added_at,state,district');
+    expect(rows[1]).toBe('77.61,12.98,Point,MG Road,Good,a|b,Ravi,,published,2026-10-24T05:10:00.000Z,KARNATAKA,Bengaluru Urban');
     expect(rows).toHaveLength(3);
   });
   it('quotes cells with commas/quotes and uses the line first vertex', () => {

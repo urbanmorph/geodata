@@ -3,13 +3,16 @@
 import { apiJson } from './api';
 import { turnstileToken } from './turnstile';
 import { mountSchemaBuilder } from './schema-builder';
-import { escapeHtml } from './util';
+import { escapeHtml, downloadText } from './util';
 import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { detectFormat, parseImport, type Parsed } from './import/parse';
 import { inferSchema } from './import/infer';
-import { autoMapping, buildRecords } from './import/build';
+import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
+import { summarizeErrors } from './import/check';
+import { importReport, importReportHtml, importInChunks, type ImportReply, type ImportReport } from './import/report';
 import type { Field } from './schema/validate-record';
+import type { BuilderField } from './schema-builder';
 import { myMaps, saveOwnedMap, replaceMaps, mergeMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { linksMailtoHref, linksText } from './share';
@@ -101,12 +104,8 @@ function home() {
   void renderQueueNote();
   renderSync();
 
-  app.querySelector<HTMLButtonElement>('#export')!.onclick = () => {
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([JSON.stringify(myMaps(), null, 2)], { type: 'application/json' }));
-    a.download = 'collect-map-links.json';
-    a.click();
-  };
+  app.querySelector<HTMLButtonElement>('#export')!.onclick = () =>
+    downloadText(JSON.stringify(myMaps(), null, 2), 'collect-map-links.json', 'application/json');
   app.querySelector<HTMLInputElement>('#import')!.onchange = async (e) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
@@ -229,6 +228,7 @@ function createForm() {
       </div>
       <div style="height:16px"></div>
       <p class="hint">Map <strong>public places and assets</strong>, not people or private details. You're responsible for what's collected and published. <a href="https://bharatlas.com/terms" target="_blank" rel="noopener">Terms</a>.</p>
+      <div id="seed-summary" aria-live="polite"></div>
       <button class="primary" id="create">Create map</button>
       <p id="err" class="warn"></p>
     </div>`;
@@ -248,11 +248,56 @@ function createForm() {
       const g = c.dataset.g!;
       if (geom.has(g)) { if (geom.size > 1) { geom.delete(g); c.classList.remove('on'); } }
       else { geom.add(g); c.classList.add('on'); }
+      renderSeedSummary();
     };
   });
 
-  // "Start from a file": discover columns → seed the builder + geometry.
-  let seeded: { parsed: Parsed; format: string } | null = null;
+  // "Start from a file": discover columns → seed the builder + geometry. The
+  // builder checks every field against the file as it is edited, and the box
+  // above Create says how many rows will be added (and why the rest won't).
+  let seeded: { parsed: Parsed; format: string; columns: Record<string, string> } | null = null;
+  const seedMapping = (fields: Field[]): Mapping => {
+    const ll = autoMapping([], seeded!.parsed.columns);
+    const cols: Record<string, string> = {};
+    for (const f of fields) if (seeded!.columns[f.key]) cols[f.key] = seeded!.columns[f.key];
+    return { fields: cols, lng: ll.lng, lat: ll.lat };
+  };
+  const planSeed = () => {
+    const fields = builder.getFields() as unknown as Field[];
+    return buildRecords(seeded!.parsed.features, seedMapping(fields), fields, [...geom]);
+  };
+  function renderSeedSummary(): void {
+    const box = app.querySelector<HTMLElement>('#seed-summary');
+    const btn = app.querySelector<HTMLButtonElement>('#create');
+    if (!box || !btn || !seeded) return;
+    const n = seeded.parsed.features.length;
+    const plan = planSeed();
+    const ok = plan.records.length;
+    btn.textContent = ok === n ? `Create map & add all ${n} rows` : `Create map & add ${ok} of ${n} rows`;
+    if (ok === n) { box.innerHTML = `<p class="ok">✓ All ${n} rows fit this form.</p>`; return; }
+    const reasons = summarizeErrors(plan.errors);
+    box.innerHTML = `<div class="notice"><div>
+        <strong>${n - ok} of ${n} rows won't be added</strong> as the form stands. Change the fields above to fit them, or create the map without them.
+        <ul class="reasons">${reasons.slice(0, 6).map((r) => `<li>${escapeHtml(r.reason)} (${r.count})</li>`).join('')}</ul>
+      </div>
+      <button type="button" id="dl-skip">⬇ Download the ${n - ok} rows that won't be added</button></div>`;
+    box.querySelector<HTMLButtonElement>('#dl-skip')!.onclick = () => downloadText(errorsToCSV(plan.errors), 'rows-not-added.csv', 'text/csv');
+  }
+  // Each column's cells, read once per file (the builder asks for them on every check).
+  const fileData = (): { noun: string; values: (f: BuilderField) => unknown[] } => {
+    const byColumn = new Map<string, unknown[]>();
+    const blank = seeded!.parsed.features.map(() => '');
+    return {
+      noun: 'row',
+      values: (f) => {
+        const col = seeded!.columns[f.key];
+        if (!col) return blank;
+        let v = byColumn.get(col);
+        if (!v) byColumn.set(col, (v = seeded!.parsed.features.map((ft) => ft.props[col])));
+        return v;
+      },
+    };
+  };
   app.querySelector<HTMLInputElement>('#seed-file')!.onchange = async (e) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     const note = app.querySelector('#seed-note')!;
@@ -263,11 +308,11 @@ function createForm() {
       const parsed = parseImport(await file.text(), format);
       if (!parsed.features.length) { note.textContent = 'No rows found in that file.'; return; }
       const inf = inferSchema(parsed, format);
-      seeded = { parsed, format };
-      builder = mountSchemaBuilder(app.querySelector<HTMLElement>('#fields-builder')!, inf.fields);
+      seeded = { parsed, format, columns: inf.mapping };
+      builder = mountSchemaBuilder(app.querySelector<HTMLElement>('#fields-builder')!, inf.fields, { data: fileData(), onChange: renderSeedSummary });
       geom.clear(); inf.geometry.forEach((t) => geom.add(t)); syncGeomChips();
       app.querySelector<HTMLElement>('#seed-import')!.style.display = '';
-      (app.querySelector('#create') as HTMLButtonElement).textContent = `Create map & import ${parsed.features.length} rows`;
+      renderSeedSummary();
       note.innerHTML = `Read <strong>${parsed.features.length}</strong> row${parsed.features.length === 1 ? '' : 's'} and guessed <strong>${inf.fields.length}</strong> field${inf.fields.length === 1 ? '' : 's'}. Review them below, then create.`;
     } catch (err) {
       note.textContent = `Couldn't read the file: ${(err as Error).message}`;
@@ -309,15 +354,13 @@ function createForm() {
       }
 
       // Seeded from a file: validate the disclaimers + build the rows up front.
-      let seedImport: { source: string; records: unknown[] } | null = null;
+      let seedImport: { source: string; plan: ReturnType<typeof planSeed> } | null = null;
       if (seeded) {
         const source = (app.querySelector('#seed-source') as HTMLInputElement).value.trim();
         const rights = (app.querySelector('#seed-rights') as HTMLInputElement).checked;
         if (!rights) { err.textContent = 'Tick the box confirming you can publish this data under the licence.'; btn.disabled = false; return; }
         if (!source) { err.textContent = 'Name where this data comes from.'; btn.disabled = false; return; }
-        const f = fields as unknown as Field[];
-        const built = buildRecords(seeded.parsed.features, autoMapping(f, seeded.parsed.columns), f, [...geom]);
-        seedImport = { source, records: built.records };
+        seedImport = { source, plan: planSeed() };
       }
 
       const turnstile_token = await turnstileToken();
@@ -338,14 +381,19 @@ function createForm() {
           turnstile_token,
         }),
       });
-      if (seedImport && seedImport.records.length) {
-        await apiJson(`/collections/${res.id}/import`, res.tokens.admin, {
+      // The map exists now; whatever happens to the rows is reported, never dropped quietly.
+      let report: ImportReport | undefined;
+      if (seedImport && seeded) {
+        const { plan } = seedImport;
+        const source = seedImport.source;
+        const reply = await importInChunks(plan.records, (records) => apiJson<ImportReply>(`/collections/${res.id}/import`, res.tokens.admin, {
           method: 'POST',
-          body: JSON.stringify({ records: seedImport.records, source: seedImport.source, rights_confirmed: true }),
-        }).catch(() => { /* map is created; the rows can still be imported from Manage */ });
+          body: JSON.stringify({ records, source, rights_confirmed: true, client_skipped: { count: plan.errors.length, reasons: summarizeErrors(plan.errors) } }),
+        }));
+        report = importReport(seeded.parsed.features, plan, reply);
       }
       saveOwnedMap(res.id, name, res.links);
-      done(res.links);
+      done(res.links, report);
     } catch (e) {
       err.textContent = (e as Error).message;
       btn.disabled = false;
@@ -353,12 +401,13 @@ function createForm() {
   };
 }
 
-function done(links: Record<string, string>) {
+function done(links: Record<string, string>, report?: ImportReport) {
   const mapLinks = { edit: links.edit, view: links.view, admin: links.admin };
   app.innerHTML = `
     <div class="topbar"><span>Your map is live</span><a class="brand" href="https://bharatlas.com">bhar<span class="brand-accent">atlas</span></a></div>
     <div class="pad">
       <h1>Your map is live 🎉</h1>
+      ${report ? importReportHtml(report) : ''}
       <p class="hint">Share the collect link to gather points. To open this map on another device, Share a link to yourself or scan its QR. No accounts, so keep the admin link safe.</p>
       ${shareItemHtml('edit', '🔗 Collect link (share this)', links.edit, 'Anyone with this can add points. No login.')}
       ${shareItemHtml('view', '👁 View-only', links.view)}
@@ -371,16 +420,13 @@ function done(links: Record<string, string>) {
       <a class="btn wide" href="#" id="tohome-done">← Your maps</a>
     </div>`;
   wireShareItems(app, 'bharatlas collect map');
+  const dlNot = app.querySelector<HTMLButtonElement>('#dl-not-added');
+  if (dlNot && report) dlNot.onclick = () => downloadText(errorsToCSV(report.notAdded), 'rows-not-added.csv', 'text/csv');
   (document.getElementById('email-links') as HTMLAnchorElement).href = linksMailtoHref(mapLinks);
   app.querySelector<HTMLAnchorElement>('#tohome-done')!.onclick = (e) => { e.preventDefault(); home(); };
 
-  app.querySelector<HTMLButtonElement>('#dl')!.onclick = () => {
-    const text = linksText(mapLinks); // same block the email body uses, so the two never drift
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(new Blob([text], { type: 'text/plain' }));
-    a.download = 'collect-links.txt';
-    a.click();
-  };
+  // the same block the email body uses, so the two never drift
+  app.querySelector<HTMLButtonElement>('#dl')!.onclick = () => downloadText(linksText(mapLinks), 'collect-links.txt', 'text/plain');
 
   // Pre-open the admin QR: the fastest path to "open this on my other device".
   const adminItem = app.querySelector<HTMLElement>('.share-item[data-share="admin"]');

@@ -35,6 +35,16 @@ export function recordWho(source?: string | null, contributor?: string | null): 
 
 // The admin's name for the link that added a record ("via Ward 12 team"), from
 // the admin-only _link_label. Unlabelled links show nothing.
+/** "added 24 Oct 2026, 10:40 am": the phone's capture time, else when it was saved. */
+export function recordWhen(captured?: string | null, created?: string | null, timeZone?: string): string {
+  const iso = captured || created;
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const fmt = new Intl.DateTimeFormat('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true, timeZone });
+  return `added ${fmt.format(d).replace(/\bAM\b/, 'am').replace(/\bPM\b/, 'pm')}`;
+}
+
 export function recordVia(label?: string | null): string {
   return label && label.trim() ? `via ${label.trim()}` : '';
 }

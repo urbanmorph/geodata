@@ -167,17 +167,22 @@ export interface NewRecordRow {
   source?: string | null; // NULL = field-collected; set = imported from
   token_id?: string | null; // collection_tokens.id that added it; NULL = imported
   client_key_hash?: string | null; // SHA-256 of a queued point's client_id; NULL = not queued
+  captured_at?: string | null; // when the phone captured it; NULL = use created_at
+}
+
+/** The INSERT for one record, unrun (bulk import writes these in batches). */
+export function recordInsert(db: DB, r: NewRecordRow): D1PreparedStatement {
+  return db
+    .prepare(
+      `INSERT INTO records
+       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id, client_key_hash, captured_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    )
+    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null, r.client_key_hash ?? null, r.captured_at ?? null);
 }
 
 export async function insertRecord(db: DB, r: NewRecordRow): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO records
-       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id, client_key_hash)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null, r.client_key_hash ?? null)
-    .run();
+  await recordInsert(db, r).run();
 }
 
 // A queued point already saved on this map (the offline queue may send it twice).
@@ -204,6 +209,21 @@ export interface RecordRow {
   edit_token_hash: string | null;
   source: string | null;
   token_id: string | null;
+  captured_at: string | null;
+}
+
+/** Every record's properties (only that column, page by page): what the form-edit check needs. */
+export async function allRecordProperties(db: DB, collectionId: string): Promise<Record<string, unknown>[]> {
+  const out: Record<string, unknown>[] = [];
+  const PAGE = 2000;
+  for (let offset = 0; ; offset += PAGE) {
+    const { results } = await db
+      .prepare(`SELECT properties FROM records WHERE collection_id = ? ORDER BY id LIMIT ? OFFSET ?`)
+      .bind(collectionId, PAGE, offset)
+      .all<{ properties: string }>();
+    for (const r of results) out.push(JSON.parse(r.properties) as Record<string, unknown>);
+    if (results.length < PAGE) return out;
+  }
 }
 
 export async function listRecords(

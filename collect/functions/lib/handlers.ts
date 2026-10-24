@@ -14,7 +14,7 @@ import { deferLog, type CollectAttempt } from './collect-log';
 import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, persistSubmission } from './reuse';
 import * as db from './db';
 import { recordStatusFor } from './moderation';
-import { validateNewCollection, validateCollectionEdit } from '../../src/schema/validate-collection';
+import { validateNewCollection, validateCollectionEdit, validateFormEdit, schemaFits } from '../../src/schema/validate-collection';
 import { validateRecordProperties, type Field } from '../../src/schema/validate-record';
 import { checkIndiaBounds } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
@@ -216,6 +216,37 @@ export async function editCollection(env: Env, req: Request, id: string): Promis
   return json(200, { ok: true });
 }
 
+// ---- PATCH /collections/:id/fields ------------------------------------------
+// Admin "Edit form": change the form of a map that may already have points.
+// Refused (with how many points and why) when a saved point would no longer be
+// valid; fields are hidden, never removed, so no collected data is lost.
+
+export async function editForm(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
+  const attemptId = `att_${nanoid(10)}`;
+  const log = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id'>) =>
+    deferLog(defer, env.DB, { ...row, event: 'edit_form', collection_id: id, attempt_id: attemptId });
+  const refuse = (status: number, gate: string, error: string, extra: Record<string, unknown> = {}) => {
+    log({ outcome: 'rejected', gate, reason: error, detail: (extra.problems as Array<{ reason: string; count: number }> | undefined)?.map((p) => `${p.reason} (${p.count})`).join('; ') });
+    return json(status, { error, ...extra, attempt_id: attemptId });
+  };
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
+  const c = await db.getCollection(env.DB, id);
+  if (!c) return refuse(404, 'not_found', 'not found');
+  const body = await readJson(req);
+  if (!body) return refuse(400, 'body', 'invalid JSON body');
+
+  const doc = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] } & Record<string, unknown>;
+  const points = await db.allRecordProperties(env.DB, id);
+  const v = validateFormEdit(doc.fields, body.fields, points, doc.geometry);
+  if (!v.ok) return refuse(400, v.problems ? 'points' : 'form', v.error, v.problems ? { problems: v.problems } : {});
+  const schemaDoc = JSON.stringify({ ...doc, fields: v.fields });
+  if (!schemaFits(schemaDoc)) return refuse(400, 'form', 'the form is too large to store; shorten its option lists');
+  await db.updateCollection(env.DB, id, {}, schemaDoc);
+  log({ outcome: 'ok', detail: `${v.fields.length} fields, checked against ${points.length} points` });
+  return json(200, { ok: true, fields: v.fields, attempt_id: attemptId });
+}
+
 // ---- POST /collections/:id/tokens ------------------------------------------
 // Mint a fresh edit or view link (admin only). The originals are hash-only and
 // can't be re-shown, so "share another collect link" = mint a new one.
@@ -299,17 +330,26 @@ export async function listRecords(env: Env, req: Request, id: string): Promise<R
   const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
   const rows = await db.listRecords(env.DB, id, { status, limit, offset });
   // Admin only: which link added each record (id + the admin's label for it).
-  const labels = atLeast(perm, 'admin') ? await db.linkLabels(env.DB, id) : null;
+  const isAdmin = atLeast(perm, 'admin');
+  const labels = isAdmin ? await db.linkLabels(env.DB, id) : null;
+  // Hidden fields stay in the data for the owner, not for shared links.
+  let hidden = new Set<string>();
+  if (!isAdmin) {
+    const c = await db.getCollection(env.DB, id);
+    hidden = new Set(((c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[] }).fields.filter((f) => f.deleted).map((f) => f.key));
+  }
+  const visible = (p: Record<string, unknown>) => (hidden.size ? Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k))) : p);
 
   const features = rows.map((r) => ({
     type: 'Feature' as const,
     id: r.id,
     geometry: JSON.parse(r.geometry),
     properties: {
-      ...JSON.parse(r.properties),
+      ...visible(JSON.parse(r.properties)),
       _status: r.status,
       _contributor: r.contributor,
       _created_at: r.created_at,
+      _captured_at: r.captured_at ?? null,
       _admin_ctx: r.admin_ctx ? JSON.parse(r.admin_ctx) : null,
       _source: r.source,
       ...(labels ? { _link_id: r.token_id ?? null, _link_label: (r.token_id && labels.get(r.token_id)) || null } : {}),
@@ -388,6 +428,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
       ip_hash: ipHash,
       token_id: via!.id,
       client_key_hash: clientKey,
+      captured_at: plausibleCaptureTime(body.captured_at),
     });
   } catch (e) {
     // Two repeats raced past the lookup; the unique index kept one. Return it.
@@ -408,6 +449,21 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
 // edit token is stored, so the phone gets a new one; the old one stops working.
 // Holding the client_id is the proof: it never leaves the phone that made the point.
 const CLIENT_ID = /^[A-Za-z0-9_-]{16,64}$/;
+
+// The phone's capture time, kept when plausible: an ISO time, not more than a
+// few minutes ahead (clock skew) and under a year old. Anything else is ignored
+// and the server's own time (created_at) stands.
+const CAPTURE_SKEW_MS = 10 * 60_000;
+const CAPTURE_MAX_AGE_MS = 365 * 86400_000;
+export function plausibleCaptureTime(v: unknown, nowMs = Date.now()): string | null {
+  if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(v)) return null;
+  const t = Date.parse(v);
+  if (!Number.isFinite(t) || t > nowMs + CAPTURE_SKEW_MS || t < nowMs - CAPTURE_MAX_AGE_MS) return null;
+  return new Date(t).toISOString(); // one format for every stored time
+}
+
+/** When a point was added: the phone's capture time, else when it was saved. */
+const addedAt = (r: { captured_at: string | null; created_at: string }): string => r.captured_at ?? r.created_at;
 
 async function resendRecord(env: Env, rec: { id: string; status: string }): Promise<Response> {
   const token = generateRecordToken();
@@ -509,7 +565,11 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   if (body.properties !== undefined) {
     const v = validateRecordProperties(schema.fields, body.properties);
     if (!v.ok) return bad(400, v.error);
-    patch.properties = JSON.stringify(v.properties);
+    // Hidden fields aren't on the form any more, so an edit never sends them:
+    // keep their saved values (hiding a field must never lose its data).
+    const saved = JSON.parse(auth.record.properties) as Record<string, unknown>;
+    const kept = Object.fromEntries(schema.fields.filter((f) => f.deleted && saved[f.key] !== undefined).map((f) => [f.key, saved[f.key]]));
+    patch.properties = JSON.stringify({ ...kept, ...v.properties });
   }
   // R3: a contributor edit goes back to pending for re-review (when moderated).
   if (!auth.isAdmin && c.moderation) patch.status = 'pending';
@@ -544,34 +604,61 @@ export async function deidentifyRecordHandler(env: Env, req: Request, recordId: 
 // (admin manages them). Enrichment is skipped in bulk (admin_ctx stays null).
 
 export async function importRecords(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
+  const attemptId = `att_${nanoid(10)}`;
+  const started = Date.now();
+  const ipHash = await ipHashFor(req, salt(env));
+  const log = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => deferLog(defer, env.DB, {
+    ...row, event: 'import', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started, ip_hash: ipHash,
+  });
+  const refuse = (status: number, gate: string, error: string) => {
+    log({ outcome: 'rejected', gate, reason: error });
+    return json(status, { error, attempt_id: attemptId });
+  };
+  try {
+    return await importInto(env, req, id, ipHash, attemptId, log, refuse);
+  } catch (e) {
+    const err = e as Error;
+    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
+    return json(500, { error: 'Something went wrong on our side and nothing was imported. Please try again.', attempt_id: attemptId });
+  }
+}
+
+const IMPORT_BATCH = 100; // rows per D1 batch (one transaction each)
+const reasonList = (rs: Array<{ reason: string; count: number }>): string => rs.map((r) => `${r.reason} (${r.count})`).join('; ');
+
+async function importInto(
+  env: Env, req: Request, id: string, ipHash: string, attemptId: string,
+  log: (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => void,
+  refuse: (status: number, gate: string, error: string) => Response,
+): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
   const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
-  if (c.status === 'closed') return bad(403, 'this collection is closed');
+  if (!c) return refuse(404, 'not_found', 'not found');
+  if (c.status === 'closed') return refuse(403, 'closed', 'this collection is closed');
 
   const body = await readJson(req);
-  if (!body) return bad(400, 'invalid JSON body');
+  if (!body) return refuse(400, 'body', 'invalid JSON body');
   const recs = body.records;
-  if (!Array.isArray(recs)) return bad(400, 'records must be an array');
-  if (recs.length > 5000) return bad(413, 'import at most 5000 records per request');
+  if (!Array.isArray(recs)) return refuse(400, 'body', 'records must be an array');
+  if (recs.length > 5000) return refuse(413, 'body', 'import at most 5000 records per request');
 
   // Rights gate (Phase 5): the importer must attest the right to publish this
   // data under the map's open licence, and name the source (per-record provenance).
-  if (body.rights_confirmed !== true) return bad(400, 'confirm you have the right to publish this data under the map licence');
+  if (body.rights_confirmed !== true) return refuse(400, 'rights', 'confirm you have the right to publish this data under the map licence');
   const source = typeof body.source === 'string' ? body.source.trim() : '';
-  if (!source) return bad(400, 'name the data source (where this data comes from)');
-  if (source.length > 200) return bad(400, 'source must be under 200 characters');
+  if (!source) return refuse(400, 'source', 'name the data source (where this data comes from)');
+  if (source.length > 200) return refuse(400, 'source', 'source must be under 200 characters');
 
   const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
   const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
   // Import is admin-only, so this is always the owner's own data → published
   // immediately (no self-approval; that was the "bulk uploads stuck pending" bug).
   const status = recordStatusFor(true, c.moderation);
-  const ipHash = await ipHashFor(req, salt(env));
 
-  let imported = 0;
   const errors: Array<{ index: number; error: string }> = [];
+  const rows: db.NewRecordRow[] = [];
+  const rowIndex: number[] = []; // rows[k] came from recs[rowIndex[k]]
   for (let i = 0; i < recs.length; i++) {
     const r = recs[i] as { geometry?: unknown; properties?: unknown };
     const bounds = checkIndiaBounds(r?.geometry);
@@ -580,18 +667,51 @@ export async function importRecords(env: Env, req: Request, id: string, defer?: 
     if (!bucket || !schema.geometry.includes(bucket)) { errors.push({ index: i, error: `geometry not allowed here` }); continue; }
     const v = validateRecordProperties(schema.fields, r?.properties);
     if (!v.ok) { errors.push({ index: i, error: v.error }); continue; }
-    await db.insertRecord(env.DB, {
+    rows.push({
       id: nanoid(10), collectionId: id, status,
       geometry: JSON.stringify(r.geometry), properties: JSON.stringify(v.properties),
       admin_ctx: null, contributor,
       edit_token_hash: await hashToken(generateRecordToken()), // discarded — no owner
       ip_hash: ipHash, source, // per-record provenance
     });
-    imported++;
+    rowIndex.push(i);
+  }
+
+  // Rows the browser could not send (e.g. no coordinates): counted in the log
+  // so the whole file is accounted for, not just what reached the server.
+  const skipped = body.client_skipped as { count?: unknown; reasons?: unknown } | undefined;
+  const finiteCount = (n: unknown): number => (typeof n === 'number' && Number.isFinite(n) && n > 0 ? Math.min(Math.floor(n), 1_000_000) : 0);
+  const skippedCount = finiteCount(skipped?.count);
+  const skippedReasons = Array.isArray(skipped?.reasons)
+    ? (skipped.reasons as Array<{ reason?: unknown; count?: unknown }>)
+      .filter((r) => typeof r?.reason === 'string' && finiteCount(r?.count) > 0)
+      .slice(0, 20).map((r) => ({ reason: String(r.reason).slice(0, 200), count: finiteCount(r.count) }))
+    : [];
+  const refused = new Map<string, number>();
+  for (const e of errors) refused.set(e.error, (refused.get(e.error) ?? 0) + 1);
+  const describe = (added: number): string => [
+    `${added} of ${recs.length + skippedCount} rows in the file added`,
+    errors.length ? `refused: ${reasonList([...refused].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count))}` : '',
+    skippedCount ? `skipped in the browser: ${skippedCount}${skippedReasons.length ? ` (${reasonList(skippedReasons)})` : ''}` : '',
+  ].filter(Boolean).join('; ');
+
+  let imported = 0;
+  for (let i = 0; i < rows.length; i += IMPORT_BATCH) {
+    try {
+      await env.DB.batch(rows.slice(i, i + IMPORT_BATCH).map((r) => db.recordInsert(env.DB, r)));
+    } catch (e) {
+      const msg = (e as Error).message;
+      log({ outcome: 'rejected', gate: 'persist', reason: 'database write failed', step: 'write_rows', detail: `${describe(imported)}; failed writing rows ${i + 1}-${Math.min(i + IMPORT_BATCH, rows.length)}: ${msg}` });
+      return json(500, {
+        error: `Only ${imported} of ${recs.length} rows were added before the database refused a write. Please try again with the rows that are missing.`,
+        imported, total: recs.length, errors, not_saved: rowIndex.slice(i), attempt_id: attemptId,
+      });
+    }
+    imported += Math.min(IMPORT_BATCH, rows.length - i);
   }
   await db.touchCollection(env.DB, id);
-  deferLog(defer, env.DB, { event: 'import', outcome: imported ? 'ok' : 'rejected', collection_id: id, ip_hash: ipHash });
-  return json(200, { imported, errors });
+  log({ outcome: imported ? 'ok' : 'rejected', gate: imported ? null : 'schema', detail: describe(imported) });
+  return json(200, { imported, total: recs.length, errors, attempt_id: attemptId });
 }
 
 // ---- POST /collections/:id/publish -----------------------------------------
@@ -632,6 +752,8 @@ async function publishMap(
 
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: 100000, offset: 0 });
   if (rows.length === 0) return refuse(409, 'empty', 'nothing approved to publish yet');
+  const hidden = new Set((JSON.parse(c.schema_doc) as { fields: Field[] }).fields.filter((f) => f.deleted).map((f) => f.key));
+  const withoutHidden = (p: Record<string, unknown>) => Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k)));
 
   // Flatten locate enrichment into the published properties (state, district…),
   // so the catalogue layer is filterable by admin area. Author fields win on any
@@ -639,7 +761,9 @@ async function publishMap(
   const features = rows.map((r) => ({
     type: 'Feature' as const,
     geometry: JSON.parse(r.geometry),
-    properties: mergeAdminCtx(JSON.parse(r.properties), r.admin_ctx),
+    // added_at: when the point was captured; an author field of that name wins.
+    // Hidden fields stay in the map's data but are not published.
+    properties: { added_at: addedAt(r), ...mergeAdminCtx(withoutHidden(JSON.parse(r.properties)), r.admin_ctx) },
   }));
   const fc = { type: 'FeatureCollection', features };
   const bytes = new TextEncoder().encode(JSON.stringify(fc));

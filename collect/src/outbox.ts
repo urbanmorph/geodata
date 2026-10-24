@@ -32,6 +32,15 @@ export interface OutboxStore {
   delete(clientId: string): Promise<void>;
 }
 
+/** The request body for sending a queued point. created_at is when the phone
+ *  captured it; the server keeps it as captured_at. */
+export function sendBody(p: QueuedPoint, turnstile_token: string): string {
+  return JSON.stringify({
+    geometry: p.geometry, properties: p.properties, contributor: p.contributor, client_id: p.client_id,
+    captured_at: p.created_at, turnstile_token,
+  });
+}
+
 export function newClientId(): string {
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');

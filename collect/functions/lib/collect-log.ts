@@ -8,7 +8,7 @@ import type { D1Database } from '@cloudflare/workers-types';
 // which need Cloudflare's ambient types that collect's browser tests lack.
 import { insertAttempt, type AttemptDetail } from '../../../web/functions/lib/attempt-log';
 
-export type CollectEvent = 'create' | 'contribute' | 'publish' | 'import';
+export type CollectEvent = 'create' | 'contribute' | 'publish' | 'import' | 'edit_form';
 
 export interface CollectAttempt extends AttemptDetail {
   event: CollectEvent;

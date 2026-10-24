@@ -4,6 +4,7 @@
 
 import { validateRecordProperties, type Field } from '../schema/validate-record';
 import { checkIndiaBounds } from '../geo/bounds';
+import { isDate, datePart } from '../schema/dates';
 import type { ParsedFeature } from './parse';
 
 export interface Mapping {
@@ -13,9 +14,23 @@ export interface Mapping {
 }
 export interface BuiltRecord { geometry: unknown; properties: Record<string, unknown>; }
 export interface ImportError { row: number; error: string; source: Record<string, string>; }
-export interface BuildResult { records: BuiltRecord[]; errors: ImportError[]; }
+/** rows[i] is the file row records[i] came from (to trace a server refusal back). */
+export interface BuildResult { records: BuiltRecord[]; errors: ImportError[]; rows: number[]; }
 
 const norm = (s: string): string => s.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+/** A file cell as a field value: a pick-many cell splits on |, and a Date field
+ *  keeps the date of a date-time (timeDropped says so). Non-strings (values of
+ *  saved points) pass through unchanged. */
+export function cellValue(field: Field, raw: unknown): { value: unknown; timeDropped?: boolean } {
+  if (typeof raw !== 'string') return { value: raw };
+  if (field.type === 'multiselect') return { value: raw.split('|').map((s) => s.trim()).filter(Boolean) };
+  if (field.type === 'date' && !isDate(raw)) {
+    const d = datePart(raw);
+    if (d) return { value: d, timeDropped: true };
+  }
+  return { value: raw };
+}
 
 function bucket(t: string): 'point' | 'line' | 'polygon' | null {
   if (t === 'Point' || t === 'MultiPoint') return 'point';
@@ -47,11 +62,14 @@ export function buildRecords(
 ): BuildResult {
   const records: BuiltRecord[] = [];
   const errors: ImportError[] = [];
+  const rows: number[] = [];
   features.forEach((f, i) => {
     let geometry = f.geometry as { type?: string } | null;
     if (!geometry && mapping.lng && mapping.lat) {
-      const lng = Number(f.props[mapping.lng]);
-      const lat = Number(f.props[mapping.lat]);
+      // An empty cell is no coordinate (Number('') would be 0, read as off India).
+      const cell = (c: string) => (f.props[c] ?? '').trim();
+      const lng = cell(mapping.lng) === '' ? NaN : Number(cell(mapping.lng));
+      const lat = cell(mapping.lat) === '' ? NaN : Number(cell(mapping.lat));
       if (Number.isFinite(lng) && Number.isFinite(lat)) geometry = { type: 'Point', coordinates: [lng, lat] } as { type: string };
     }
     if (!geometry) { errors.push({ row: i, error: 'no geometry (needs a geometry or lng/lat columns)', source: f.props }); return; }
@@ -66,13 +84,14 @@ export function buildRecords(
       if (!col) continue;
       const v = f.props[col];
       if (v == null || v === '') continue;
-      raw[fl.key] = fl.type === 'multiselect' ? v.split('|').map((s) => s.trim()).filter(Boolean) : v;
+      raw[fl.key] = cellValue(fl, v).value;
     }
     const valid = validateRecordProperties(fields, raw);
     if (!valid.ok) { errors.push({ row: i, error: valid.error, source: f.props }); return; }
     records.push({ geometry, properties: valid.properties });
+    rows.push(i);
   });
-  return { records, errors };
+  return { records, errors, rows };
 }
 
 /** A CSV of just the rejected rows the author can fix + re-upload: source columns + a `why` column. */

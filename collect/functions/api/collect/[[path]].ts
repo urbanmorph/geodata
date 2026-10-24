@@ -51,6 +51,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       if (method === 'POST') return h.addRecord(env, request, id, defer);
       return bad(405, 'method not allowed');
     }
+    if (p.length === 3 && p[2] === 'fields') {
+      return method === 'PATCH' ? h.editForm(env, request, id, defer) : bad(405, 'method not allowed');
+    }
     if (p.length === 3 && p[2] === 'publish') {
       return method === 'POST' ? h.publish(env, request, id, defer) : bad(405, 'method not allowed');
     }

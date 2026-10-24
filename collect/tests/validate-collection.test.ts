@@ -85,6 +85,10 @@ describe('validateSchemaDoc (the meta-schema check)', () => {
     expect(validateSchemaDoc({ ...goodSchema, fields: many }).ok).toBe(true);
   });
 
+  it('accepts a Date and time field', () => {
+    expect(validateSchemaDoc({ ...goodSchema, fields: [{ key: 'seen', label: 'Seen at', type: 'datetime' }] }).ok).toBe(true);
+  });
+
   it('caps reference_layers at 3', () => {
     expect(validateSchemaDoc({ ...goodSchema, reference_layers: ['a', 'b', 'c', 'd'] }).ok).toBe(false);
   });

@@ -26,6 +26,7 @@
   --accent-fill: #eef2ff;    /* collect tint for chips (not apex's solid fill) */
   --danger: #dc2626;
   --amber: #b45309;
+  --ok: #15803d;            /* success text, AA on --bg */
   --sheet: #ffffff;
   --radius: 12px;
   --radius-pill: 999px;
@@ -54,6 +55,7 @@
     --accent-fill: #1e1b4b;  /* collect tint */
     --danger: #f87171;
     --amber: #fbbf24;
+    --ok: #4ade80;
     --sheet: #15151a;        /* = apex --bg-elevated */
     --shadow-sheet: 0 -10px 34px rgba(0, 0, 0, .6);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .35);
@@ -187,6 +189,16 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 .notice .primary { width: 100%; }
 .notice--inline { display: flex; gap: 8px; align-items: baseline; }
 .notice--inline > div { margin: 0; }
+.ok { color: var(--ok); font-size: 13px; line-height: 1.5; }
+.reasons { margin: 6px 0 0; padding-left: 18px; }
+.reasons li + li { margin-top: 2px; }
+/* form builder: how the data fits each field */
+.sb-check { margin: -4px 0 8px 2px; }
+.sb-note { margin: -4px 0 8px 2px; }
+.sb-hidden { opacity: .55; }
+.opt-chips { flex-wrap: wrap; gap: 6px; }
+.opt-chip { gap: 6px; cursor: default; }
+.opt-chip button { min-height: 0; padding: 0 4px; border: 0; background: none; color: var(--muted); }
 
 .link-box {
   display: flex; gap: 8px; align-items: center; margin: 8px 0;

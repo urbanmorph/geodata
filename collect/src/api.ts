@@ -31,7 +31,8 @@ export async function api(path: string, token: string, init?: RequestInit): Prom
 
 /** A server's refusal, with its HTTP status so the page can explain it. */
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
+  /** The whole reply (e.g. attempt_id, or how many rows an import added before failing). */
+  constructor(message: string, readonly status: number, readonly body: Record<string, unknown> = {}) {
     super(message);
     this.name = 'ApiError';
   }
@@ -40,7 +41,7 @@ export class ApiError extends Error {
 // The JSON body of a response, or its error message thrown.
 async function readJson<T>(res: Response): Promise<T> {
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new ApiError((body as { error?: string }).error || `HTTP ${res.status}`, res.status);
+  if (!res.ok) throw new ApiError((body as { error?: string }).error || `HTTP ${res.status}`, res.status, body as Record<string, unknown>);
   return body as T;
 }
 
