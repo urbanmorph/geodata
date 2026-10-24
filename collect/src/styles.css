@@ -152,8 +152,13 @@ textarea { min-height: 92px; line-height: 1.5; }
 }
 .seg button.on { background: var(--accent-solid); color: #fff; box-shadow: var(--shadow-card); }
 
-/* landing / form pages scroll */
-.pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); overflow: auto; width: 100%; max-width: var(--content-max); margin-inline: auto; }
+/* Landing and form pages scroll as a normal page; the map screens keep the
+   fixed full-screen #app. (An inner scroll box inside a fixed-height #app was
+   cut off on iPad Safari in landscape: the side gutters didn't scroll and the
+   create form's Create button was out of reach.) */
+#app:has(> .pad) { height: auto; min-height: 100dvh; }
+#app:has(> .pad) > .topbar { position: sticky; top: 0; z-index: 2; }
+.pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); width: 100%; max-width: var(--content-max); margin-inline: auto; }
 .pad h1 { font-size: 23px; font-weight: 700; letter-spacing: -.025em; line-height: 1.15; margin: 6px 0 8px; }
 .hint { color: var(--muted); font-size: 13px; line-height: 1.5; font-variant-numeric: tabular-nums; }
 /* Reserve one line so the async "N points collected" stat fills this space
