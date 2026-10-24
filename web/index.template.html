@@ -902,6 +902,8 @@
       .geo-popup__row { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; padding: 2px 0; }
       .geo-popup__k { color: #6b7280; font-size: 12px; text-transform: lowercase; letter-spacing: .02em; white-space: nowrap; }
       .geo-popup__v { color: #111; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; word-break: break-word; }
+      .geo-popup__photos { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
+      .geo-popup__photos img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; display: block; }
     </style>
     <!-- Pre-paint URL-driven filter state to avoid post-hydration CLS.
          Must be synchronous + before first paint; see /q-precheck.js. -->

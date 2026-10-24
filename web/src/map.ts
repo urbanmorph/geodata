@@ -5,6 +5,7 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_MAP } from './loading';
 import { getCatalog, getFullCatalog } from './catalog';
 import { escapeHtml } from './util';
+import { popupValueHtml } from './popup-value';
 import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
 import { LIBERTY } from '../../shared/liberty';
@@ -387,7 +388,7 @@ function bindPopupToLayers() {
       .slice(0, MAX_POPUP_PROPS)
       .map(
         ([k, v]) =>
-          `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${escapeHtml(String(v))}</span></div>`,
+          `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${popupValueHtml(v)}</span></div>`,
       )
       .join('');
   }

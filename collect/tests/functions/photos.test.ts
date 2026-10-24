@@ -245,6 +245,13 @@ describe('notes from the photo', () => {
     expect(notes(id).answers).toEqual({});
   });
 
+  it('an empty reply is a failure to retry, not empty notes', async () => {
+    env.AI = { run: async () => ({ errors: [{ message: 'not allowed' }] }) } as unknown as Ai;
+    const { id } = await aiPoint();
+    expect(notes(id)).toMatchObject({ status: 'failed', tries: 1 });
+    expect(notes(id).error).toMatch(/not allowed/);
+  });
+
   it('a map that fills in a form never calls the model', async () => {
     await aiPoint('form');
     expect(aiCalls).toHaveLength(0);

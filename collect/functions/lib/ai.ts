@@ -168,7 +168,12 @@ export async function runAi(env: Env, recordId: string): Promise<void> {
       response_format: { type: 'json_schema', json_schema: { name: 'photo_notes', schema: aiSchema(schema.fields) } },
       max_tokens: 400,
     } as never);
-    await saveNotes(env, recordId, { status: 'done', model, at: new Date().toISOString(), ...parseReply(replyContent(out), schema.fields) });
+    const content = replyContent(out);
+    // No reply text (an error object, a refusal): retry later, never "notes" with nothing in them.
+    if (typeof content !== 'object' && !String(content).trim()) throw new Error(`no reply from the model: ${JSON.stringify(out).slice(0, 150)}`);
+    const notes = parseReply(content, schema.fields);
+    if (!notes.description && !Object.keys(notes.answers ?? {}).length) throw new Error('the model said nothing about the photo');
+    await saveNotes(env, recordId, { status: 'done', model, at: new Date().toISOString(), ...notes });
   } catch (e) {
     await saveNotes(env, recordId, { status: 'failed', tries: (prev.tries ?? 0) + 1, error: String((e as Error).message || e).slice(0, 200) });
   }

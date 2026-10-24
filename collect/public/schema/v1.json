@@ -19,6 +19,8 @@
     },
     "category": { "enum": ["boundaries", "city-wards", "people", "environment", "water", "agriculture", "transport", "infrastructure", "culture", "health-edu", "other"] },
     "basemap": { "enum": ["positron", "satellite", "topo"] },
+    "mode": { "enum": ["form", "form_ai", "photos_ai"], "description": "how people collect: fill in a form; form plus notes from the photo; just photos (places only). AI modes need a photo field." },
+    "data_saver": { "type": "boolean", "description": "smaller photos (about 150 KB instead of 300 KB)" },
     "reference_layer": {
       "type": "object",
       "required": ["id", "pmtiles_url"],
@@ -35,7 +37,7 @@
         "properties": {
           "key": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
           "label": { "type": "string", "minLength": 1 },
-          "type": { "enum": ["text", "paragraph", "number", "select", "multiselect", "date", "datetime", "url"] },
+          "type": { "enum": ["text", "paragraph", "number", "select", "multiselect", "date", "datetime", "url", "photo"] },
           "required": { "type": "boolean" },
           "hint": { "type": "string" },
           "options": { "type": "array", "items": { "type": "string" } },
@@ -44,7 +46,8 @@
           "integer": { "type": "boolean" },
           "maxLength": { "type": "number" },
           "deleted": { "type": "boolean" },
-          "render": { "enum": ["chips"] }
+          "render": { "enum": ["chips"] },
+          "max_photos": { "type": "integer", "minimum": 1, "maximum": 3, "description": "photo fields only; default 3" }
         },
         "allOf": [
           {
