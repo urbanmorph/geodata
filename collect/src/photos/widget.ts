@@ -12,7 +12,7 @@ export interface PhotoItem {
   client_id: string;
   meta: PhotoMeta;
   url: string;   // what the thumbnail shows (a blob: URL, or the server's link)
-  blob?: Blob;   // a new photo, not sent yet
+  bytes?: ArrayBuffer; // a new photo, not sent yet
   id?: string;   // a photo already on the server
 }
 
@@ -68,7 +68,7 @@ export function mountPhotoField(host: HTMLElement, field: Field, opts: PhotoFiel
     host.querySelectorAll<HTMLButtonElement>('[data-rm]').forEach((b) => {
       b.onclick = () => {
         const [gone] = items.splice(Number(b.dataset.rm), 1);
-        if (gone?.blob) URL.revokeObjectURL(gone.url);
+        if (gone?.bytes) URL.revokeObjectURL(gone.url);
         render();
       };
     });
@@ -81,8 +81,8 @@ export function mountPhotoField(host: HTMLElement, field: Field, opts: PhotoFiel
     preparing++;
     render();
     try {
-      const { blob, meta } = await preparePhoto(file, { dataSaver: opts.dataSaver, source });
-      const item: PhotoItem = { client_id: newClientId(), blob, meta, url: URL.createObjectURL(blob) };
+      const { bytes, blob, meta } = await preparePhoto(file, { dataSaver: opts.dataSaver, source });
+      const item: PhotoItem = { client_id: newClientId(), bytes, meta, url: URL.createObjectURL(blob) };
       items.push(item);
       if (await mayShowFace(blob)) faces.add(item.client_id);
       opts.onAdded?.(item);

@@ -5,7 +5,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 let face = false;
 vi.mock('../src/photos/prepare', () => ({
-  preparePhoto: async (_f: File, o: { source: string }) => ({ blob: new Blob(['x'], { type: 'image/jpeg' }), meta: { lat: 12.9, lng: 77.6, source: o.source } }),
+  preparePhoto: async (_f: File, o: { source: string }) => ({ bytes: new ArrayBuffer(3), blob: new Blob(['x'], { type: 'image/jpeg' }), meta: { lat: 12.9, lng: 77.6, source: o.source } }),
   mayShowFace: async () => face,
 }));
 const { mountPhotoField } = await import('../src/photos/widget');

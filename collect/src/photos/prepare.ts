@@ -28,7 +28,8 @@ export function photoMeta(place: PhotoPlace, source: 'camera' | 'gallery'): Phot
   return out;
 }
 
-export interface PreparedPhoto { blob: Blob; meta: PhotoMeta; }
+/** The photo as bytes (kept and sent) and as a Blob (shown). */
+export interface PreparedPhoto { bytes: ArrayBuffer; blob: Blob; meta: PhotoMeta; }
 
 function loadImage(file: Blob): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -60,8 +61,9 @@ export async function preparePhoto(file: File, opts: { dataSaver: boolean; sourc
     }
     edge = Math.round(edge * 0.8);
   }
-  const bytes = writeExif(new Uint8Array(await blob!.arrayBuffer()), place);
-  return { blob: new Blob([bytes as Uint8Array<ArrayBuffer>], { type: 'image/jpeg' }), meta: photoMeta(place, opts.source) };
+  const out = writeExif(new Uint8Array(await blob!.arrayBuffer()), place);
+  const bytes = out.slice().buffer as ArrayBuffer;
+  return { bytes, blob: new Blob([bytes], { type: 'image/jpeg' }), meta: photoMeta(place, opts.source) };
 }
 
 /** Whether the photo seems to show a face, where the phone can tell (Chrome's

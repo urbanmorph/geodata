@@ -879,7 +879,7 @@ function renderPhotoBar(): void {
       const last = document.getElementById('lastadded')!;
       last.textContent = 'Getting the photo ready…';
       try {
-        const { blob, meta: pm } = await preparePhoto(file, { dataSaver: !!meta.schema.data_saver, source: input.dataset.src as 'camera' | 'gallery' });
+        const { bytes, meta: pm } = await preparePhoto(file, { dataSaver: !!meta.schema.data_saver, source: input.dataset.src as 'camera' | 'gallery' });
         // The camera's place first; the phone's (if fresh) next; the crosshair last.
         const fromPhoto = pm.lat !== undefined && pm.lng !== undefined && isInIndia(pm.lng, pm.lat);
         const fromPhone = !fromPhoto && phone && Date.now() - phone.at < 120_000 && isInIndia(phone.lng, phone.lat);
@@ -890,8 +890,8 @@ function renderPhotoBar(): void {
         const saved = await savePoint({
           collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: {}, contributor,
           label: 'Photo', noun: 'point', captured_at: earlierThanNow(pm.taken_at),
-          photos: [{ client_id: newClientId(), field: field.key, blob, meta: pm }],
-        }).catch((e: Error): Saved => ({ state: 'refused', error: e.message }));
+          photos: [{ client_id: newClientId(), field: field.key, bytes, meta: pm }],
+        }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
         if (saved.state === 'refused') { last.textContent = `Couldn't save: ${saved.error}`; return; }
         pin(geometry, saved.state === 'waiting' ? saved.client_id : undefined);
         const placed = fromPhoto ? 'where the photo was taken' : fromPhone ? 'at your location' : 'at the crosshair (no location in the photo or from the phone)';
@@ -978,8 +978,8 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     const saved = await savePoint({
       collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry: place, properties: valid.properties,
       contributor, label: recordLabel(valid.properties, noun), noun, captured_at: capturedAt,
-      photos: photos.flatMap((p) => p.items().map((it) => ({ client_id: it.client_id, field: p.field.key, blob: it.blob!, meta: it.meta }))),
-    }).catch((e: Error): Saved => ({ state: 'refused', error: e.message }));
+      photos: photos.flatMap((p) => p.items().map((it) => ({ client_id: it.client_id, field: p.field.key, bytes: it.bytes!, meta: it.meta }))),
+    }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
     if (saved.state === 'refused') {
       toast(`Couldn't save: ${saved.error}. Your details are kept, tap Save to retry.`);
       btn.disabled = false;
@@ -1957,7 +1957,7 @@ async function recordEditor(): Promise<void> {
         const ids: string[] = [];
         for (const it of p.items()) {
           if (it.id) { ids.push(it.id); continue; }
-          const up = await uploadPhoto(ctx.id, ctx.token, { client_id: it.client_id, blob: it.blob!, meta: it.meta });
+          const up = await uploadPhoto(ctx.id, ctx.token, { client_id: it.client_id, bytes: it.bytes!, meta: it.meta });
           if (!up.ok) throw new Error(`Couldn't upload a photo: ${up.error}`);
           ids.push(up.id);
         }

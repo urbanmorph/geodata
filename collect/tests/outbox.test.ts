@@ -132,7 +132,7 @@ describe('what a queued point sends', () => {
 });
 
 describe('photos waiting with a point', () => {
-  const photo = (field: string, id?: string) => ({ client_id: `photo-client-${++n}-xxxxxx`, field, blob: new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), meta: { source: 'camera' as const }, ...(id ? { id } : {}) });
+  const photo = (field: string, id?: string) => ({ client_id: `photo-client-${++n}-xxxxxx`, field, bytes: new Uint8Array([0xff, 0xd8, 0xff]).buffer, meta: { source: 'camera' as const }, ...(id ? { id } : {}) });
 
   it('uploads each photo once, remembering its id on the phone, then fills the answers', async () => {
     const p = point({ photos: [photo('pic'), photo('pic'), photo('other')] });

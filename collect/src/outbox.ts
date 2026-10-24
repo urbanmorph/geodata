@@ -8,11 +8,13 @@
 // Each point carries a random client_id, so if a send saved but its reply was
 // lost, sending it again returns the same record instead of a duplicate.
 
-/** A photo kept with its point until both are sent. id is set once uploaded. */
+/** A photo kept with its point until both are sent. id is set once uploaded.
+ *  Kept as bytes, not a Blob: Safari won't store a Blob in IndexedDB in some
+ *  cases (private browsing among them), and an ArrayBuffer stores everywhere. */
 export interface QueuedPhoto {
   client_id: string;
   field: string; // the Photo question it answers
-  blob: Blob;
+  bytes: ArrayBuffer;
   meta: { lat?: number; lng?: number; taken_at?: string; source?: 'camera' | 'gallery' };
   id?: string;
 }
@@ -134,7 +136,10 @@ async function run<T>(mode: IDBTransactionMode, op: (s: IDBObjectStore) => IDBRe
       const tx = db.transaction(STORE, mode);
       const req = op(tx.objectStore(STORE));
       tx.oncomplete = () => resolve(req.result);
-      tx.onerror = () => reject(tx.error);
+      // Always an Error with words, whatever the browser hands back (Safari can give null).
+      const fail = (): void => reject(tx.error ?? req.error ?? new Error("couldn't keep it on this phone (storage refused)"));
+      tx.onerror = fail;
+      tx.onabort = fail;
     });
   } finally {
     db.close();
