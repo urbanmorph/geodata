@@ -338,19 +338,29 @@ function createForm() {
     const err = app.querySelector('#err')!;
     err.textContent = '';
     btn.disabled = true;
+    // Why the map wasn't created, never out of sight: the message is scrolled
+    // into view and the field to fix gets focus (an error below the fold on an
+    // iPad looked like nothing happened).
+    const stop = (msg: string, field?: string): void => {
+      err.textContent = msg;
+      btn.disabled = false;
+      const el = field ? app.querySelector<HTMLElement>(field) : null;
+      (el ?? err).scrollIntoView({ block: 'center', behavior: 'smooth' });
+      el?.focus({ preventScroll: true });
+    };
     const year = (app.querySelector<HTMLInputElement>('#year')!.value || '').trim();
     try {
       // Validate the required fields client-side so people aren't bounced by a
       // server rejection after submitting (name 3-120, purpose required).
       const name = app.querySelector<HTMLInputElement>('#name')!.value.trim();
-      if (name.length < 3) { err.textContent = 'Give your map a name (at least 3 characters).'; app.querySelector<HTMLInputElement>('#name')!.focus(); btn.disabled = false; return; }
+      if (name.length < 3) { stop('Give your map a name (at least 3 characters).', '#name'); return; }
       const purpose = app.querySelector<HTMLTextAreaElement>('#purpose')!.value.trim();
-      if (!purpose) { err.textContent = 'Say what the map is for (it is shown to contributors).'; app.querySelector<HTMLTextAreaElement>('#purpose')!.focus(); btn.disabled = false; return; }
+      if (!purpose) { stop('Say what the map is for (it is shown to contributors).', '#purpose'); return; }
       const fields = builder.getFields();
-      if (!fields.length) { err.textContent = 'Add at least one field for contributors to fill in.'; btn.disabled = false; return; }
+      if (!fields.length) { stop('Add at least one field for contributors to fill in.', '#fields-builder'); return; }
       const dataYear = year ? Number(year) : undefined;
       if (dataYear !== undefined && !Number.isInteger(dataYear)) {
-        err.textContent = 'Data year must be a whole number like 2026.'; btn.disabled = false; return;
+        stop('Data year must be a whole number like 2026.', '#year'); return;
       }
 
       // Seeded from a file: validate the disclaimers + build the rows up front.
@@ -358,8 +368,8 @@ function createForm() {
       if (seeded) {
         const source = (app.querySelector('#seed-source') as HTMLInputElement).value.trim();
         const rights = (app.querySelector('#seed-rights') as HTMLInputElement).checked;
-        if (!rights) { err.textContent = 'Tick the box confirming you can publish this data under the licence.'; btn.disabled = false; return; }
-        if (!source) { err.textContent = 'Name where this data comes from.'; btn.disabled = false; return; }
+        if (!rights) { stop('Tick the box confirming you can publish this data under the licence.', '#seed-rights'); return; }
+        if (!source) { stop('Name where this data comes from.', '#seed-source'); return; }
         seedImport = { source, plan: planSeed() };
       }
 
@@ -395,8 +405,7 @@ function createForm() {
       saveOwnedMap(res.id, name, res.links);
       done(res.links, report);
     } catch (e) {
-      err.textContent = (e as Error).message;
-      btn.disabled = false;
+      stop((e as Error).message);
     }
   };
 }
