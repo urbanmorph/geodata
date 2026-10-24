@@ -15,7 +15,7 @@ import { modeOf, usesAi, aiFillable } from '../../src/schema/modes';
 import { validateRecordProperties, type Field } from '../../src/schema/validate-record';
 
 export const AI_MODEL = '@cf/google/gemma-4-26b-a4b-it';
-const DEFAULT_DAILY_PHOTOS = 600; // ~12 neurons a photo keeps this inside the free 10,000 a day
+const DEFAULT_DAILY_PHOTOS = 600; // ~5 neurons a photo (measured Oct 2026): well inside the free 10,000 a day
 const DEFAULT_DAILY_PER_MAP = 200; // so one busy map (or one link holder) can't use up everyone's
 const STALE_RUN_MS = 5 * 60_000;   // a run this old never finished (the worker stopped): try again
 const MAX_TRIES = 3;
@@ -187,6 +187,9 @@ export async function runAi(env: Env, recordId: string): Promise<void> {
       ],
       response_format: { type: 'json_schema', json_schema: { name: 'photo_notes', schema: aiSchema(schema.fields) } },
       max_tokens: 400,
+      // Gemma 4 reasons before answering by default, which used up every reply
+      // token and left no answer (and costs ~3x). A description needs none.
+      chat_template_kwargs: { enable_thinking: false },
     } as never);
     const content = replyContent(out);
     // No reply text (an error object, a refusal): retry later, never "notes" with nothing in them.

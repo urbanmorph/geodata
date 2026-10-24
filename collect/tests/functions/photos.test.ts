@@ -278,6 +278,8 @@ describe('notes from the photo', () => {
     expect(call.model).toBe(ai.AI_MODEL);
     const parts = call.input.messages[1].content;
     expect(parts.find((p: any) => p.type === 'image_url').image_url.url).toMatch(/^data:image\/jpeg;base64,/);
+    // Gemma 4 reasons first by default and can use every reply token before answering.
+    expect(call.input.chat_template_kwargs).toEqual({ enable_thinking: false });
     const n = notes(id);
     expect(n).toMatchObject({ status: 'done', model: ai.AI_MODEL, description: 'A heap of plastic bags by a wall.', tags: ['plastic', 'roadside'] });
     expect(n.answers).toEqual({ kind: 'Plastic', note: 'near the bus stop' }); // never a number
