@@ -81,11 +81,14 @@ describe('mountSchemaBuilder inline edit', () => {
     const root = host();
     mountSchemaBuilder(root, [{ key: 'name', label: 'Name', type: 'text' }]);
     const addCard = q<HTMLElement>(root, '#sb-add');
-    expect(addCard.style.display).toBe('');
+    const open = q<HTMLButtonElement>(root, '#sb-open');
+    open.click();
+    expect(addCard.hidden).toBe(false);
     q<HTMLButtonElement>(root, '.sb-name[data-edit="0"]').click();
-    expect(addCard.style.display).toBe('none');
+    expect(addCard.hidden).toBe(true);
+    expect(open.hidden).toBe(true);
     q<HTMLButtonElement>(root, '[data-editcard="0"] .sb-cancel').click();
-    expect(addCard.style.display).toBe('');
+    expect(open.hidden).toBe(false);
   });
 });
 
@@ -98,5 +101,32 @@ describe('mountSchemaBuilder field count', () => {
       q<HTMLButtonElement>(root, '#sb-add-btn').click();
     }
     expect(sb.getFields()).toHaveLength(25);
+  });
+});
+
+describe('photo questions', () => {
+  it('adds a Photo question with how many photos (up to 3) and a tip', () => {
+    const root = host();
+    const b = mountSchemaBuilder(root, []);
+    q<HTMLButtonElement>(root, '#sb-open').click();
+    expect(q<HTMLElement>(root, '#sb-add').hidden).toBe(false);
+    q<HTMLInputElement>(root, '#sb-add .ff-label').value = 'Photo of the spot';
+    const t = q<HTMLSelectElement>(root, '#sb-add .ff-type');
+    t.value = 'photo';
+    t.dispatchEvent(new Event('change'));
+    const count = q<HTMLSelectElement>(root, '#sb-add .ff-photos');
+    expect([...count.options].map((o) => o.value)).toEqual(['1', '2', '3']);
+    expect(count.value).toBe('3');
+    count.value = '2';
+    q<HTMLInputElement>(root, '#sb-add .ff-hint').value = 'Stand back so the whole heap shows';
+    q<HTMLButtonElement>(root, '#sb-add-btn').click();
+    expect(b.getFields()).toEqual([{ key: 'photo_of_the_spot', label: 'Photo of the spot', type: 'photo', max_photos: 2, hint: 'Stand back so the whole heap shows' }]);
+  });
+
+  it('names answer types in plain words', () => {
+    const root = host();
+    mountSchemaBuilder(root, []);
+    const labels = [...q<HTMLSelectElement>(root, '#sb-add .ff-type').options].map((o) => o.textContent);
+    expect(labels).toEqual(['Short answer', 'Long answer', 'Number', 'Pick one', 'Pick any', 'Photo', 'Date', 'Date and time', 'Link']);
   });
 });

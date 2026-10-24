@@ -8,6 +8,15 @@
 // Each point carries a random client_id, so if a send saved but its reply was
 // lost, sending it again returns the same record instead of a duplicate.
 
+/** A photo kept with its point until both are sent. id is set once uploaded. */
+export interface QueuedPhoto {
+  client_id: string;
+  field: string; // the Photo question it answers
+  blob: Blob;
+  meta: { lat?: number; lng?: number; taken_at?: string; source?: 'camera' | 'gallery' };
+  id?: string;
+}
+
 export interface QueuedPoint {
   client_id: string;
   collection_id: string;
@@ -19,6 +28,9 @@ export interface QueuedPoint {
   label: string; // for "Your additions" and the queue list
   noun: string; // point, line or area
   created_at: string;
+  /** When it was really captured, if earlier (the photo's time, for a point placed from its photo). */
+  captured_at?: string;
+  photos?: QueuedPhoto[];
   error?: string; // why the server refused it for good
 }
 
@@ -35,10 +47,29 @@ export interface OutboxStore {
 /** The request body for sending a queued point. created_at is when the phone
  *  captured it; the server keeps it as captured_at. */
 export function sendBody(p: QueuedPoint, turnstile_token: string): string {
+  const properties = { ...p.properties };
+  for (const ph of p.photos ?? []) if (ph.id) properties[ph.field] = [...((properties[ph.field] as string[] | undefined) ?? []), ph.id];
   return JSON.stringify({
-    geometry: p.geometry, properties: p.properties, contributor: p.contributor, client_id: p.client_id,
-    captured_at: p.created_at, turnstile_token,
+    geometry: p.geometry, properties, contributor: p.contributor, client_id: p.client_id,
+    captured_at: p.captured_at ?? p.created_at, turnstile_token,
   });
+}
+
+export type UploadResult = { ok: true; id: string } | { ok: false; status: number; error: string };
+
+/** Uploads a point's photos that aren't on the server yet, keeping each id on
+ *  the phone as it arrives, so a send that stops halfway resumes where it was. */
+export async function uploadPhotos(
+  p: QueuedPoint, store: OutboxStore, upload: (p: QueuedPoint, photo: QueuedPhoto) => Promise<UploadResult>,
+): Promise<{ ok: true } | { ok: false; status: number; error: string }> {
+  for (const photo of p.photos ?? []) {
+    if (photo.id) continue;
+    const r = await upload(p, photo);
+    if (!r.ok) return r;
+    photo.id = r.id;
+    await store.put(p);
+  }
+  return { ok: true };
 }
 
 export function newClientId(): string {

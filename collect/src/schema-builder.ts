@@ -28,6 +28,7 @@ export interface BuilderField {
   max?: number;
   maxLength?: number;
   render?: 'chips';
+  max_photos?: number;
   deleted?: boolean;
   /** Shown while building only (e.g. why a column was read as text); never saved. */
   note?: string;
@@ -48,14 +49,15 @@ export interface BuilderOptions {
 }
 
 const TYPES: [string, string][] = [
-  ['text', 'Text'],
-  ['paragraph', 'Long text'],
+  ['text', 'Short answer'],
+  ['paragraph', 'Long answer'],
   ['number', 'Number'],
-  ['select', 'Choice (pick one)'],
-  ['multiselect', 'Choice (pick many)'],
+  ['select', 'Pick one'],
+  ['multiselect', 'Pick any'],
+  ['photo', 'Photo'],
   ['date', 'Date'],
   ['datetime', 'Date and time'],
-  ['url', 'Link (URL)'],
+  ['url', 'Link'],
 ];
 const needsOptions = (t: string) => t === 'select' || t === 'multiselect';
 const typeLabel = (t: string) => TYPES.find(([v]) => v === t)?.[1] ?? t;
@@ -103,12 +105,12 @@ interface FieldForm {
 // they fit).
 function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?: BuilderData, saved = false): FieldForm {
   host.innerHTML = `
-    <input class="ff-label" placeholder="Field label, e.g. Condition" />
+    <input class="ff-label" placeholder="Question, e.g. What condition is it in?" aria-label="Question" />
     <div class="row" style="margin-top:6px">
-      <select class="ff-type" style="flex:1">${TYPES.map(([v, l]) => `<option value="${v}">${escapeHtml(l)}</option>`).join('')}</select>
+      <select class="ff-type" style="flex:1" aria-label="Answer type">${TYPES.map(([v, l]) => `<option value="${v}">${escapeHtml(l)}</option>`).join('')}</select>
       <label class="chip" style="gap:6px"><input type="checkbox" class="ff-req" style="width:auto;min-height:auto" /> Required</label>
     </div>
-    <input class="ff-hint" placeholder="Help text (optional), shown under the field" style="margin-top:6px" />
+    <input class="ff-hint" placeholder="Tip (optional), shown under the question" aria-label="Tip" style="margin-top:6px" />
     <div class="ff-extra"></div>
     <p class="ff-check hint"></p>
     <p class="ff-err warn"></p>`;
@@ -155,6 +157,12 @@ function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?:
           <input class="ff-max" inputmode="decimal" placeholder="Max" style="flex:1" />
         </div>
         <label class="chip" style="gap:6px;margin-top:6px"><input type="checkbox" class="ff-int" style="width:auto;min-height:auto" /> Whole numbers only</label>`;
+    } else if (t === 'photo') {
+      const n = initial?.type === 'photo' ? initial.max_photos ?? 3 : 3;
+      extraEl.innerHTML = `<label>How many photos</label>
+        <select class="ff-photos">${[1, 2, 3].map((k) => `<option value="${k}"${k === n ? ' selected' : ''}>${k === 1 ? '1 photo' : `Up to ${k}`}</option>`).join('')}</select>
+        <p class="hint">Each photo keeps where and when it was taken. Ask people to keep faces and number plates out of the frame.</p>`;
+      extraEl.querySelector<HTMLSelectElement>('.ff-photos')!.value = String(n);
     } else if (t === 'text' || t === 'paragraph') {
       extraEl.innerHTML = `<label>Max length <span class="hint">(optional)</span></label>
         <input class="ff-maxlen" inputmode="numeric" placeholder="e.g. 200" />`;
@@ -224,7 +232,7 @@ function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?:
   function read(quiet = false): { field: BuilderField } | { error: string } {
     if (!quiet) errEl.textContent = '';
     const label = labelEl.value.trim() || (quiet ? initial?.label ?? '' : '');
-    if (!label) return { error: 'Give the field a label.' };
+    if (!label) return { error: 'Write the question.' };
     const type = typeEl.value;
     const f: BuilderField = { key: initial?.key ?? '', label, type };
     if (reqEl.checked) f.required = true;
@@ -246,6 +254,7 @@ function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?:
       if (max && Number.isFinite(Number(max))) f.max = Number(max);
       if (host.querySelector<HTMLInputElement>('.ff-int')?.checked) f.integer = true;
     }
+    if (type === 'photo') f.max_photos = Number(host.querySelector<HTMLSelectElement>('.ff-photos')?.value || 3);
     if (type === 'text' || type === 'paragraph') {
       const ml = host.querySelector<HTMLInputElement>('.ff-maxlen')?.value.trim();
       if (ml && Number.isInteger(Number(ml)) && Number(ml) > 0) f.maxLength = Number(ml);
@@ -270,13 +279,29 @@ export function mountSchemaBuilder(
 
   container.innerHTML = `
     <div id="sb-list"></div>
-    <div class="card" id="sb-add">
+    <button type="button" class="wide" id="sb-open">+ Add a question</button>
+    <div class="card" id="sb-add" hidden>
       <div class="ff-host"></div>
-      <button type="button" id="sb-add-btn">+ Add field</button>
+      <div class="row" style="margin-top:8px">
+        <button type="button" class="primary" id="sb-add-btn" style="flex:1">Add question</button>
+        <button type="button" id="sb-add-cancel">Cancel</button>
+      </div>
     </div>`;
   const listEl = container.querySelector<HTMLElement>('#sb-list')!;
   const addCardEl = container.querySelector<HTMLElement>('#sb-add')!;
   const addBtn = container.querySelector<HTMLButtonElement>('#sb-add-btn')!;
+  const openBtn = container.querySelector<HTMLButtonElement>('#sb-open')!;
+  // The add form opens on demand, so the list of questions stays the focus.
+  const showAdd = (open: boolean): void => {
+    addCardEl.hidden = !open;
+    openBtn.hidden = open || editingIndex !== null;
+    if (open) addForm.focus();
+  };
+  openBtn.onclick = () => showAdd(true);
+  container.querySelector<HTMLButtonElement>('#sb-add-cancel')!.onclick = () => {
+    addForm = createFieldForm(container.querySelector<HTMLElement>('#sb-add .ff-host')!, null);
+    showAdd(false);
+  };
   let addForm = createFieldForm(container.querySelector<HTMLElement>('#sb-add .ff-host')!, null);
 
   addBtn.onclick = () => {
@@ -286,26 +311,28 @@ export function mountSchemaBuilder(
     fields.push(built.field);
     addForm = createFieldForm(container.querySelector<HTMLElement>('#sb-add .ff-host')!, null); // reset
     renderList();
+    showAdd(false);
     changed();
   };
 
   function renderList(): void {
-    // one form at a time: while a field is open for inline edit, hide the add card
-    addCardEl.style.display = editingIndex === null ? '' : 'none';
+    // one form at a time: while a question is open for inline edit, hide the add card
+    if (editingIndex !== null) addCardEl.hidden = true;
+    openBtn.hidden = editingIndex !== null || !addCardEl.hidden;
     if (!fields.length) {
-      listEl.innerHTML = '<p class="hint">No fields yet. Add at least one.</p>';
+      listEl.innerHTML = '<p class="hint">No questions yet. Add at least one.</p>';
       return;
     }
     listEl.innerHTML = fields.map((f, i) => {
       // Saved fields are hidden, not removed: their points keep the data.
       const remove = savedKeys.has(f.key)
-        ? `<button data-hide="${i}" aria-label="${f.deleted ? 'Show' : 'Hide'} field ${escapeHtml(f.label)}">${f.deleted ? 'Show' : 'Hide'}</button>`
-        : `<button data-rm="${i}" aria-label="Remove field">✕</button>`;
+        ? `<button data-hide="${i}" aria-label="${f.deleted ? 'Show' : 'Hide'} question ${escapeHtml(f.label)}">${f.deleted ? 'Show' : 'Hide'}</button>`
+        : `<button data-rm="${i}" aria-label="Remove question ${escapeHtml(f.label)}">✕</button>`;
       const status = data && !f.deleted ? `<p class="sb-check hint">${checkLine(check(data, f), data.noun)}</p>` : '';
       return `
       <div class="link-box${editingIndex === i ? ' link-box--editing' : ''}${f.deleted ? ' sb-hidden' : ''}">
-        <button type="button" class="sb-name" data-edit="${i}" aria-expanded="${editingIndex === i}" aria-label="Edit field ${escapeHtml(f.label)}">${escapeHtml(f.label)}${f.required ? ' *' : ''}
-          <span class="hint">${f.deleted ? 'Hidden · ' : ''}${typeLabel(f.type)}${f.options ? ` · ${f.options.length} options` : ''}</span></button>
+        <button type="button" class="sb-name" data-edit="${i}" aria-expanded="${editingIndex === i}" aria-label="Edit question ${escapeHtml(f.label)}">${escapeHtml(f.label)}${f.required ? ' *' : ''}
+          <span class="hint">${f.deleted ? 'Hidden · ' : ''}${typeLabel(f.type)}${f.options ? ` · ${f.options.length} options` : ''}${f.type === 'photo' ? ` · up to ${f.max_photos ?? 3}` : ''}</span></button>
         <button data-mv="up" data-i="${i}" aria-label="Move up" ${i === 0 ? 'disabled' : ''}>↑</button>
         <button data-mv="dn" data-i="${i}" aria-label="Move down" ${i === fields.length - 1 ? 'disabled' : ''}>↓</button>
         ${remove}
@@ -313,7 +340,7 @@ export function mountSchemaBuilder(
       <div class="card sb-edit" data-editcard="${i}">
         <div class="ff-host"></div>
         <div class="row" style="margin-top:8px">
-          <button type="button" class="sb-save primary" style="flex:1">Save field</button>
+          <button type="button" class="sb-save primary" style="flex:1">Save question</button>
           <button type="button" class="sb-cancel">Cancel</button>
         </div>
       </div>` : ''}`;

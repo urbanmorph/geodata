@@ -3,7 +3,7 @@
 // silently. A refusal that retrying can't fix is kept with its reason for the
 // person to see and discard.
 import { describe, it, expect } from 'vitest';
-import { flush, fate, newClientId, type QueuedPoint, type OutboxStore, type SendResult } from '../src/outbox';
+import { flush, fate, newClientId, uploadPhotos, sendBody, type QueuedPoint, type OutboxStore, type SendResult } from '../src/outbox';
 
 function memoryStore(points: QueuedPoint[] = []): OutboxStore & { rows: Map<string, QueuedPoint> } {
   const rows = new Map(points.map((p) => [p.client_id, p]));
@@ -128,5 +128,37 @@ describe('what a queued point sends', () => {
       geometry: p.geometry, properties: { name: 'Neem' }, contributor: 'Asha', client_id: p.client_id,
       captured_at: '2026-10-24T05:10:00.000Z', turnstile_token: 'tt',
     });
+  });
+});
+
+describe('photos waiting with a point', () => {
+  const photo = (field: string, id?: string) => ({ client_id: `photo-client-${++n}-xxxxxx`, field, blob: new Blob([new Uint8Array([0xff, 0xd8, 0xff])], { type: 'image/jpeg' }), meta: { source: 'camera' as const }, ...(id ? { id } : {}) });
+
+  it('uploads each photo once, remembering its id on the phone, then fills the answers', async () => {
+    const p = point({ photos: [photo('pic'), photo('pic'), photo('other')] });
+    const store = memoryStore([p]);
+    let k = 0;
+    const r = await uploadPhotos(p, store, async () => ({ ok: true, id: `ph_uploaded${++k}aaaa` }));
+    expect(r.ok).toBe(true);
+    expect(k).toBe(3);
+    const kept = store.rows.get(p.client_id)!;
+    expect(kept.photos!.map((x) => x.id)).toEqual(['ph_uploaded1aaaa', 'ph_uploaded2aaaa', 'ph_uploaded3aaaa']);
+    const body = JSON.parse(sendBody(kept, 't'));
+    expect(body.properties).toEqual({ name: 'Neem', pic: ['ph_uploaded1aaaa', 'ph_uploaded2aaaa'], other: ['ph_uploaded3aaaa'] });
+  });
+
+  it('a retry skips photos already uploaded', async () => {
+    const p = point({ photos: [photo('pic', 'ph_alreadyhere01'), photo('pic')] });
+    const store = memoryStore([p]);
+    const sent: string[] = [];
+    await uploadPhotos(p, store, async (_pt, ph) => (sent.push(ph.client_id), { ok: true, id: 'ph_second0000001' }));
+    expect(sent).toHaveLength(1);
+  });
+
+  it('stops at a failed upload and says why, so the point waits or is refused like any send', async () => {
+    const p = point({ photos: [photo('pic'), photo('pic')] });
+    const store = memoryStore([p]);
+    const r = await uploadPhotos(p, store, async () => ({ ok: false, status: 0, error: 'no connection' }));
+    expect(r).toEqual({ ok: false, status: 0, error: 'no connection' });
   });
 });
