@@ -53,3 +53,32 @@ describe('toKML', () => {
     expect(kml).toContain('<Data name="cond"><value>Good</value></Data>');
   });
 });
+
+describe('photos, notes and areas in downloads', () => {
+  const sq = [[77.6, 12.97], [77.601, 12.97], [77.601, 12.971], [77.6, 12.971], [77.6, 12.97]];
+  const feats = [
+    {
+      geometry: { type: 'Point', coordinates: [77.6, 12.97] },
+      properties: {
+        kind: 'Plastic', pic: ['ph_aaaaaaaaaaaa'], _status: 'published',
+        _photos: [{ field: 'pic', id: 'ph_aaaaaaaaaaaa', url: 'https://collect.test/api/collect/v1/photos/ph_aaaaaaaaaaaa' }],
+        _ai: { status: 'done', review: 'accepted', description: 'Bags by a wall.', tags: ['plastic', 'wall'], model: 'm1' },
+      },
+    },
+    { geometry: { type: 'Polygon', coordinates: [sq] }, properties: { kind: 'Farm', _ai: { status: 'done', description: 'not checked yet' } } },
+  ];
+
+  it('gives photo links, accepted notes in their own columns, and an area in square metres', () => {
+    const fc = JSON.parse(toGeoJSON(feats, ['kind', 'pic']));
+    expect(fc.features[0].properties).toMatchObject({
+      pic: ['https://collect.test/api/collect/v1/photos/ph_aaaaaaaaaaaa'],
+      photo_description: 'Bags by a wall.', photo_tags: 'plastic | wall', photo_notes_model: 'm1',
+    });
+    expect(fc.features[1].properties.photo_description).toBeUndefined(); // not accepted
+    expect(fc.features[1].properties.area_sq_m).toBeGreaterThan(12000);
+    const csv = toCSV(feats, ['kind', 'pic']).split('\n');
+    expect(csv[0]).toContain('photo_description');
+    expect(csv[0]).toContain('area_sq_m');
+    expect(csv[1]).toContain('https://collect.test/api/collect/v1/photos/ph_aaaaaaaaaaaa');
+  });
+});

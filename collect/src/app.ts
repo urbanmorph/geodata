@@ -32,11 +32,22 @@ import { pickNearest } from './pick-nearest';
 import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
+import { modeOf, photoFields } from './schema/modes';
+import { modeChoices } from './create/plan';
+import { isInIndia } from './geo/bounds';
+import { metresBetween, ringArea, lineLength, formatArea, formatLength, simplify } from './geo/measure';
+import { createTrace, averageFix, type Trace, type Fix } from './capture/trace';
+import { keepScreenOn, watchFixes } from './capture/gps';
+import { preparePhoto } from './photos/prepare';
+import { mountPhotoField, authedSrc, openViewer, type PhotoField, type PhotoFieldOptions, type PhotoItem } from './photos/widget';
+import { newClientId } from './outbox';
+import { uploadPhoto } from './send-queue';
+import { aiNotesHtml, type Notes } from './review-ai';
 import './register-sw';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
   id: string; name: string; purpose: string; description: string | null; data_year: number | null; status: string; moderation: number; license: string;
-  schema: { geometry: string[]; fields: Field[]; category?: string; basemap?: string; reference_layer?: { id: string; pmtiles_url: string } | null }; counts: Counts;
+  schema: { geometry: string[]; fields: Field[]; category?: string; basemap?: string; reference_layer?: { id: string; pmtiles_url: string } | null; mode?: string; data_saver?: boolean }; counts: Counts;
 }
 interface Feature { id: string; geometry: { type: string; coordinates: number[] }; properties: Record<string, unknown>; }
 
@@ -591,6 +602,7 @@ function fieldInput(f: Field): string {
     case 'date': return `<input data-k="${f.key}" type="date"${req} />`;
     case 'datetime': return `<input data-k="${f.key}" type="datetime-local"${req} />`;
     case 'url': return `<input data-k="${f.key}" type="url"${req} placeholder="https://" />`;
+    case 'photo': return `<div data-k="${f.key}" data-photo></div>`; // mounted by mountPhotoFields
     case 'select':
       return `<select data-k="${f.key}"${req}><option value=""></option>${(f.options || []).map((o) => `<option>${escapeHtml(o)}</option>`).join('')}</select>`;
     case 'multiselect':
@@ -615,14 +627,68 @@ const cap = (s: string): string => s[0].toUpperCase() + s.slice(1);
 let lastAdded = '';
 let lastQueued = ''; // client_id of the last point saved offline, to say when it's sent
 
+// A route or an area is marked one of three ways: panning the crosshair to each
+// corner ("On the map"), walking it with the GPS on, or standing at each corner
+// while the GPS settles. Corners can then be dragged against the satellite view.
+type DrawHow = 'map' | 'walk' | 'corners';
+let drawHow: DrawHow = 'map';
+let trace: Trace | null = null;           // a walk being recorded
+let stopGps: (() => void) | null = null;  // ends the GPS watch + screen lock of a walk or corner
+let cornerTimer: ReturnType<typeof setInterval> | undefined;
+let cornerLeft = 0;
+let lastFix: Fix | null = null;
+let vertexMarkers: maplibregl.Marker[] = [];
+const CORNER_SECONDS = 5;
+
+const HOW_LABEL: Record<'line' | 'polygon', Record<DrawHow, string>> = {
+  line: { map: 'On the map', walk: 'Walk along it', corners: 'Stand at each turn' },
+  polygon: { map: 'On the map', walk: 'Walk around it', corners: 'Stand at each corner' },
+};
+const HOW_HELP: Record<'walk' | 'corners', Record<'line' | 'polygon', string>> = {
+  walk: {
+    line: 'Tap Start and walk the route. Keep this screen open while you walk; it works with no signal.',
+    polygon: "Tap Start and walk the edge. The shape closes when you're back at the start. Keep this screen open while you walk; it works with no signal.",
+  },
+  corners: {
+    line: 'At each turn, tap "Add this point" and hold still for a few seconds while the GPS settles.',
+    polygon: 'At each corner, tap "Add this corner" and hold still for a few seconds while the GPS settles.',
+  },
+};
+
+function stopRecording(): void {
+  stopGps?.();
+  stopGps = null;
+  clearInterval(cornerTimer);
+  cornerTimer = undefined;
+}
+
+function clearVertexMarkers(): void {
+  vertexMarkers.forEach((m) => m.remove());
+  vertexMarkers = [];
+}
+
+/** "6 points · 1 acre 10 guntas" or "5 points · 240 m". */
+function shapeSummary(): string {
+  const n = verts.length;
+  const need = drawMode === 'line' ? 2 : 3;
+  const size = drawMode === 'polygon' && n >= 3 ? formatArea(ringArea(verts)) : drawMode === 'line' && n >= 2 ? formatLength(lineLength(verts)) : '';
+  const count = n < need ? `${n} point${n === 1 ? '' : 's'} · add ${need - n} more` : `${n} points`;
+  const gps = drawHow !== 'map' && lastFix ? ` · GPS ±${Math.round(lastFix.accuracy)} m` : '';
+  return [count, size].filter(Boolean).join(' · ') + gps;
+}
+
 // Capture is two steps so the MAP is the centre-piece while marking:
 //   1. renderPlaceBar — a compact bar; position the crosshair and place the shape
 //   2. detailsSheet   — the form slides up only once a shape is placed
+// A "just photos" map has one step: each photo is a point (renderPhotoBar).
 function captureSheet(): void {
   const modes = orderedModes(meta.schema.geometry);
   drawMode = modes[0];
   verts = [];
+  stopRecording();
+  trace = null;
   redrawDraw();
+  if (modeOf(meta.schema) === 'photos_ai') return renderPhotoBar();
   renderPlaceBar(modes);
 }
 
@@ -633,11 +699,12 @@ function renderPlaceBar(modes: GeomMode[]): void {
     : '';
   panel.innerHTML = `<div class="bar">
     ${seg}
-    <p class="hint" id="cap-help">${CAP_HELP[drawMode]}</p>
+    <div class="seg seg--how" id="howsw" role="group" aria-label="How to mark it">${(['map', 'walk', 'corners'] as DrawHow[]).map((h) => `<button type="button" data-h="${h}"></button>`).join('')}</div>
+    <p class="hint" id="cap-help"></p>
     <div class="row" id="drawctl" style="display:none;align-items:center">
-      <button type="button" id="vadd" class="accent">+ Add point here</button>
+      <button type="button" id="vadd" class="accent"></button>
       <button type="button" id="vundo">Undo</button>
-      <span class="hint" id="vcount"></span>
+      <span class="hint" id="vcount" aria-live="polite"></span>
     </div>
     <button class="primary" id="place">Add ${NOUN[drawMode]}</button>
     <div id="lastadded" class="hint">${lastAdded}</div>
@@ -645,46 +712,220 @@ function renderPlaceBar(modes: GeomMode[]): void {
   </div>`;
   void renderOutbox();
 
+  const vadd = document.getElementById('vadd') as HTMLButtonElement;
   const syncDrawUI = (): void => {
-    document.getElementById('cap-help')!.textContent = CAP_HELP[drawMode];
-    (document.getElementById('place') as HTMLButtonElement).textContent = `Add ${NOUN[drawMode]}`;
-    document.getElementById('drawctl')!.style.display = drawMode === 'point' ? 'none' : 'flex';
-    const need = drawMode === 'line' ? 2 : 3;
-    const n = verts.length;
-    document.getElementById('vcount')!.textContent =
-      n < need ? `${n} point${n === 1 ? '' : 's'} · add ${need - n} more`
-               : `${n} points · tap "Add ${NOUN[drawMode]}" when ready`;
+    const shape = drawMode !== 'point';
+    const how = shape ? drawHow : 'map';
+    document.getElementById('cap-help')!.textContent = how === 'map' ? CAP_HELP[drawMode] : HOW_HELP[how][drawMode as 'line' | 'polygon'];
+    const howsw = document.getElementById('howsw')!;
+    howsw.hidden = !shape;
+    if (shape) howsw.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
+      b.textContent = HOW_LABEL[drawMode as 'line' | 'polygon'][b.dataset.h as DrawHow];
+      b.classList.toggle('on', b.dataset.h === drawHow);
+      b.setAttribute('aria-pressed', String(b.dataset.h === drawHow));
+    });
+    (document.getElementById('place') as HTMLButtonElement).textContent = trace ? `Finish, add ${NOUN[drawMode]} details` : `Add ${NOUN[drawMode]}`;
+    document.getElementById('drawctl')!.style.display = shape ? 'flex' : 'none';
+    vadd.disabled = !!cornerTimer;
+    vadd.textContent = how === 'map' ? '+ Add point here'
+      : how === 'walk' ? (trace ? (trace.paused() ? 'Resume' : 'Pause') : verts.length ? 'Walk it again' : 'Start walking')
+      : cornerTimer ? `Hold still… ${cornerLeft}` : drawMode === 'polygon' ? '+ Add this corner' : '+ Add this point';
+    document.getElementById('vcount')!.textContent = shapeSummary();
     document.querySelectorAll('#modesw button').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.m === drawMode));
-    document.querySelector('.crosshair')?.classList.toggle('crosshair--draw', drawMode !== 'point');
+    const ch = document.querySelector('.crosshair');
+    ch?.classList.toggle('crosshair--draw', shape);
+    ch?.classList.toggle('crosshair--off', shape && how !== 'map');
+    syncVertexMarkers();
   };
+
+  // Corners as handles to drag (not while recording; a long walk is simplified first).
+  function syncVertexMarkers(): void {
+    clearVertexMarkers();
+    if (drawMode === 'point' || stopGps || verts.length > 60) return;
+    verts.forEach((v, i) => {
+      const el = document.createElement('div');
+      el.className = 'vertex-handle';
+      const m = new maplibregl.Marker({ element: el, draggable: true }).setLngLat(v).addTo(map);
+      m.on('drag', () => { const ll = m.getLngLat(); verts[i] = [ll.lng, ll.lat]; redrawDraw(); });
+      m.on('dragend', syncDrawUI);
+      vertexMarkers.push(m);
+    });
+  }
+
+  const finishWalk = (): void => {
+    stopRecording();
+    if (!trace) return;
+    const pts = simplify(trace.points(), 1.5);
+    // Back at the start: the ring closes itself, so drop the near-duplicate last point.
+    if (drawMode === 'polygon' && pts.length > 3 && metresBetween(pts[0], pts[pts.length - 1]) < 8) pts.pop();
+    verts = pts;
+    trace = null;
+    redrawDraw();
+    syncDrawUI();
+  };
+
+  const startWalk = (): void => {
+    trace = createTrace();
+    verts = [];
+    lastFix = null;
+    redrawDraw();
+    const sleep = keepScreenOn();
+    const stopWatch = watchFixes((f) => {
+      lastFix = f;
+      if (!trace) return;
+      if (trace.add(f) === 'added') {
+        verts = trace.points();
+        redrawDraw();
+        map.easeTo({ center: [f.lng, f.lat], duration: 300 });
+        if (drawMode === 'polygon' && trace.closed()) { finishWalk(); toast('Back at the start: the area is closed ✓'); return; }
+      }
+      syncDrawUI();
+    }, toast);
+    stopGps = () => { stopWatch(); sleep(); };
+  };
+
+  const addCorner = (): void => {
+    const fixes: Fix[] = [];
+    const sleep = keepScreenOn();
+    const stopWatch = watchFixes((f) => { fixes.push(f); lastFix = f; }, toast);
+    stopGps = () => { stopWatch(); sleep(); };
+    cornerLeft = CORNER_SECONDS;
+    cornerTimer = setInterval(() => {
+      cornerLeft--;
+      if (cornerLeft > 0) { syncDrawUI(); return; }
+      stopRecording();
+      const c = averageFix(fixes);
+      if (!c) toast('No good GPS reading here. Step into the open and try again.');
+      else {
+        verts.push([c.lng, c.lat]);
+        lastFix = c;
+        redrawDraw();
+        map.easeTo({ center: [c.lng, c.lat], duration: 300 });
+      }
+      syncDrawUI();
+    }, 1000);
+  };
+
   syncDrawUI();
 
+  const reset = (): void => { stopRecording(); trace = null; verts = []; lastFix = null; redrawDraw(); syncDrawUI(); };
   document.querySelectorAll<HTMLButtonElement>('#modesw button').forEach((b) => {
-    b.onclick = () => { drawMode = b.dataset.m as GeomMode; verts = []; redrawDraw(); syncDrawUI(); };
+    b.onclick = () => { drawMode = b.dataset.m as GeomMode; reset(); };
   });
-  (document.getElementById('vadd') as HTMLButtonElement).onclick = () => {
-    verts.push(crosshairLngLat()); redrawDraw(); syncDrawUI();
+  document.querySelectorAll<HTMLButtonElement>('#howsw button').forEach((b) => {
+    b.onclick = () => { drawHow = b.dataset.h as DrawHow; reset(); };
+  });
+  // Location requests start inside these tap handlers (iPhone ignores them after an await).
+  vadd.onclick = () => {
+    if (drawHow === 'map' || drawMode === 'point') verts.push(crosshairLngLat());
+    else if (drawHow === 'walk') {
+      if (!trace) startWalk();
+      else if (trace.paused()) trace.resume();
+      else trace.pause();
+    } else if (!cornerTimer) addCorner();
+    redrawDraw();
+    syncDrawUI();
   };
   (document.getElementById('vundo') as HTMLButtonElement).onclick = () => {
-    verts.pop(); redrawDraw(); syncDrawUI();
+    if (trace) trace.undo();
+    verts.pop();
+    redrawDraw();
+    syncDrawUI();
   };
   (document.getElementById('place') as HTMLButtonElement).onclick = () => {
+    if (trace) finishWalk();
     const geometry = drawGeometry(drawMode, verts, crosshairLngLat());
     if (!geometry) { toast(`A ${NOUN[drawMode]} needs ${drawMode === 'line' ? '2' : '3'} points or more`); return; }
+    stopRecording();
+    clearVertexMarkers();
     detailsSheet(geometry, modes);
   };
+}
+
+// "Just photos": each photo becomes a point where it was taken (the photo's own
+// location, else the phone's, else the crosshair), and a model fills the form
+// for the owner to check. Nothing else to fill in, so nothing to slow anyone down.
+function renderPhotoBar(): void {
+  const field = photoFields(meta.schema.fields)[0];
+  const panel = document.getElementById('panel')!;
+  panel.innerHTML = `<div class="bar">
+    <p class="hint">Take a photo of each one. It's added where it was taken, and the details are filled in from the photo, then checked. Keep faces and number plates out of the frame.</p>
+    <label class="btn primary photo-snap">📷 Take a photo<input type="file" accept="image/*" capture="environment" data-src="camera" hidden></label>
+    <div class="row">
+      <label class="btn photo-add--quiet" style="flex:1">From gallery<input type="file" accept="image/*" data-src="gallery" hidden></label>
+      <input id="contributor" autocomplete="name" placeholder="Your name (optional)" aria-label="Your name (optional, published with the data)" style="flex:1" />
+    </div>
+    <div id="lastadded" class="hint" aria-live="polite">${lastAdded}</div>
+    <div id="outbox"></div>
+  </div>`;
+  void renderOutbox();
+  const who = document.getElementById('contributor') as HTMLInputElement;
+  who.value = loadContributorName();
+  let phone: { lng: number; lat: number; at: number } | null = null;
+  panel.querySelectorAll<HTMLLabelElement>('.photo-snap, .photo-add--quiet').forEach((l) => {
+    // Ask for the phone's location in the same tap that opens the camera.
+    l.addEventListener('click', () => {
+      navigator.geolocation?.getCurrentPosition(
+        (p) => { phone = { lng: p.coords.longitude, lat: p.coords.latitude, at: Date.now() }; },
+        () => {}, { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 },
+      );
+    });
+  });
+  panel.querySelectorAll<HTMLInputElement>('input[type=file]').forEach((input) => {
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      input.value = '';
+      if (!file) return;
+      const last = document.getElementById('lastadded')!;
+      last.textContent = 'Getting the photo ready…';
+      try {
+        const { bytes, meta: pm } = await preparePhoto(file, { dataSaver: !!meta.schema.data_saver, source: input.dataset.src as 'camera' | 'gallery' });
+        // The camera's place first; the phone's (if fresh) next; the crosshair last.
+        const fromPhoto = pm.lat !== undefined && pm.lng !== undefined && isInIndia(pm.lng, pm.lat);
+        const fromPhone = !fromPhoto && phone && Date.now() - phone.at < 120_000 && isInIndia(phone.lng, phone.lat);
+        const where: Coord = fromPhoto ? [pm.lng!, pm.lat!] : fromPhone ? [phone!.lng, phone!.lat] : crosshairLngLat();
+        const geometry: GeoJSON.Point = { type: 'Point', coordinates: where };
+        const contributor = who.value.trim();
+        saveContributorName(contributor);
+        const saved = await savePoint({
+          collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: {}, contributor,
+          label: 'Photo', noun: 'point', captured_at: earlierThanNow(pm.taken_at),
+          photos: [{ client_id: newClientId(), field: field.key, bytes, meta: pm }],
+        }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
+        if (saved.state === 'refused') { last.textContent = `Couldn't save: ${saved.error}`; return; }
+        pin(geometry, saved.state === 'waiting' ? saved.client_id : undefined);
+        const placed = fromPhoto ? 'where the photo was taken' : fromPhone ? 'at your location' : 'at the crosshair (no location in the photo or from the phone)';
+        lastAdded = saved.state === 'sent' ? `✓ Added ${placed}. <a href="${saved.link}">edit it</a>` : `✓ Saved on this phone ${placed}, waiting to send.`;
+        if (saved.state === 'waiting') lastQueued = saved.client_id;
+        last.innerHTML = lastAdded;
+        toast(saved.state === 'sent' ? 'Photo added ✓' : "Saved on this phone ✓ It'll be sent when you're back online.");
+      } catch (e) {
+        last.textContent = (e as Error).message;
+      }
+    };
+  });
+}
+
+/** A photo's time, kept as when the point was captured if it is in the past. */
+function earlierThanNow(iso?: string): string | undefined {
+  const t = iso ? Date.parse(iso) : NaN;
+  return Number.isFinite(t) && t < Date.now() - 60_000 ? new Date(t).toISOString() : undefined;
 }
 
 function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   const fields = meta.schema.fields.filter((f) => !f.deleted);
   const noun = NOUN[drawMode];
   const panel = document.getElementById('panel')!;
+  const aiNote = modeOf(meta.schema) === 'form_ai' && fields.some((f) => f.type === 'photo')
+    ? `<p class="hint">After it's sent, a model describes the photo and suggests answers for the map's owner to check. It won't change your answers.</p>` : '';
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
     <form class="body" id="capform">
       <strong>${cap(noun)} details</strong>
       <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
       ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
+      <div id="photo-place" aria-live="polite"></div>
+      ${aiNote}
       <label for="contributor">Your name <span class="hint">(optional, published with the data, remembered on this device)</span></label>
       <input id="contributor" autocomplete="name" />
     </form>
@@ -695,6 +936,26 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   </div>`;
   (document.getElementById('contributor') as HTMLInputElement).value = loadContributorName();
   panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => c.classList.toggle('on'); });
+
+  // A point can move to where its photo was taken (and take the photo's time).
+  let place = geometry;
+  let capturedAt: string | undefined;
+  const placeBox = document.getElementById('photo-place')!;
+  const offerPhotoPlace = (item: PhotoItem): void => {
+    if (geometry.type !== 'Point' || item.meta.lat === undefined || item.meta.lng === undefined || !isInIndia(item.meta.lng, item.meta.lat)) return;
+    const at: Coord = [item.meta.lng, item.meta.lat];
+    const d = metresBetween(geometry.coordinates as Coord, at);
+    if (d < 10) return;
+    placeBox.innerHTML = `<div class="notice notice--inline"><div>This photo has a location, ${formatLength(d)} from the crosshair.</div><button type="button" id="use-photo-place">Use it for the point</button></div>`;
+    document.getElementById('use-photo-place')!.onclick = () => {
+      place = { type: 'Point', coordinates: at };
+      capturedAt = earlierThanNow(item.meta.taken_at);
+      placeBox.innerHTML = '<p class="ok">✓ The point is where the photo was taken.</p>';
+      map.easeTo({ center: at, offset: crosshairScreenOffset(), duration: 300 });
+    };
+  };
+  const photos = mountPhotoFields(panel, fields, !!meta.schema.data_saver, () => ({ onAdded: offerPhotoPlace }));
+
   // Back keeps a line/area's vertices so drawing work isn't lost.
   (document.getElementById('cancel') as HTMLButtonElement).onclick = () => renderPlaceBar(modes);
 
@@ -702,30 +963,23 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     const btn = ev.currentTarget as HTMLButtonElement;
     const form = document.getElementById('capform') as HTMLFormElement;
     if (!form.reportValidity()) return;
-    const raw: Record<string, unknown> = {};
-    for (const f of fields) {
-      const el = panel.querySelector(`[data-k="${f.key}"]`);
-      if (!el) continue;
-      if (f.type === 'multiselect') {
-        const on = [...el.querySelectorAll('.chip.on')].map((c2) => (c2 as HTMLElement).dataset.v);
-        if (on.length) raw[f.key] = on;
-      } else {
-        const val = (el as HTMLInputElement).value;
-        if (val) raw[f.key] = val;
-      }
-    }
-    const valid = validateRecordProperties(fields, raw);
+    if (photos.some((p) => p.busy())) { toast('One moment: a photo is still being made ready'); return; }
+    const raw = readAnswers(panel, fields);
+    const valid = validateRecordProperties(fields.filter((f) => f.type !== 'photo'), raw);
     if (!valid.ok) { toast(valid.error); return; }
+    const missing = photos.find((p) => p.field.required && !p.items().length);
+    if (missing) { toast(`${missing.field.label}: add a photo`); return; }
     btn.disabled = true;
     const contributor = (document.getElementById('contributor') as HTMLInputElement).value.trim();
     saveContributorName(contributor);
-    // Kept on this phone first, then sent (straight away when there's signal).
-    // A sent point's edit link joins "Your additions" (send-queue.ts): it's the
-    // contributor's only way back to edit, delete or de-identify it (no accounts).
+    // Kept on this phone first (photos too), then sent (straight away when there's
+    // signal). A sent point's edit link joins "Your additions" (send-queue.ts): it's
+    // the contributor's only way back to edit, delete or de-identify it (no accounts).
     const saved = await savePoint({
-      collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: valid.properties,
-      contributor, label: recordLabel(valid.properties, noun), noun,
-    }).catch((e: Error): Saved => ({ state: 'refused', error: e.message }));
+      collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry: place, properties: valid.properties,
+      contributor, label: recordLabel(valid.properties, noun), noun, captured_at: capturedAt,
+      photos: photos.flatMap((p) => p.items().map((it) => ({ client_id: it.client_id, field: p.field.key, bytes: it.bytes!, meta: it.meta }))),
+    }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
     if (saved.state === 'refused') {
       toast(`Couldn't save: ${saved.error}. Your details are kept, tap Save to retry.`);
       btn.disabled = false;
@@ -733,7 +987,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     }
     // In admin the status-coloured review layer owns the on-map display; a plain
     // pin here would double it once they return to Review. Contributors get the pin.
-    if (ctx.mode !== 'admin' || saved.state === 'waiting') pin(geometry, saved.state === 'waiting' ? saved.client_id : undefined);
+    if (ctx.mode !== 'admin' || saved.state === 'waiting') pin(place, saved.state === 'waiting' ? saved.client_id : undefined);
     if (saved.state === 'sent') {
       toast(meta.moderation ? 'Added, pending review ✓' : 'Added ✓');
       lastAdded = `✓ Added. <a href="${saved.link}">edit this ${noun}</a>`;
@@ -745,6 +999,30 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     verts = []; redrawDraw();
     renderPlaceBar(modes); // back to the map, ready for the next one
   };
+}
+
+// The Photo questions on a form, each mounted into its placeholder.
+function mountPhotoFields(root: HTMLElement, fields: Field[], dataSaver: boolean, per: (f: Field) => Partial<PhotoFieldOptions> = () => ({})): PhotoField[] {
+  return fields.filter((f) => f.type === 'photo').map((f) =>
+    mountPhotoField(root.querySelector<HTMLElement>(`[data-k="${f.key}"]`)!, f, { dataSaver, onError: toast, ...per(f) }));
+}
+
+// The non-photo answers on a form, as typed.
+function readAnswers(root: HTMLElement, fields: Field[]): Record<string, unknown> {
+  const raw: Record<string, unknown> = {};
+  for (const f of fields) {
+    if (f.type === 'photo') continue;
+    const el = root.querySelector(`[data-k="${f.key}"]`);
+    if (!el) continue;
+    if (f.type === 'multiselect') {
+      const on = [...el.querySelectorAll('.chip.on')].map((c) => (c as HTMLElement).dataset.v);
+      if (on.length) raw[f.key] = on;
+    } else {
+      const v = (el as HTMLInputElement).value;
+      if (v) raw[f.key] = v;
+    }
+  }
+  return raw;
 }
 
 // Admin "Edit map settings" — fix the name/description/purpose/category/data
@@ -762,6 +1040,10 @@ async function editSettings(): Promise<void> {
       <label>What's it for?</label><textarea id="e-purpose" maxlength="2000">${escapeHtml(meta.purpose)}</textarea>
       <label>Description <span class="hint">(optional)</span></label><input id="e-desc" maxlength="2000" value="${escapeHtml(meta.description || '')}" />
       <label>Category</label><select id="e-category">${CATEGORIES.map(([id, l]) => `<option value="${id}"${sel(id, s.category || 'other')}>${l}</option>`).join('')}</select>
+      <label for="e-mode">How people collect</label>
+      <select id="e-mode">${modeChoices(s.geometry).map((m) => `<option value="${m.id}"${sel(m.id, modeOf(s))}${m.disabled ? ' disabled' : ''}>${m.title}${m.disabled ? ' (places only)' : ''}</option>`).join('')}</select>
+      <p class="hint">AI notes need a Photo question in the form (✎ Form). Points already added keep what they have.</p>
+      <label class="toggle"><input type="checkbox" id="e-saver"${s.data_saver ? ' checked' : ''}> <span><strong>Data saver</strong><span class="hint">Smaller photos (about 150 KB instead of 300 KB), for paid or weak mobile data.</span></span></label>
       <label>Data year <span class="hint">(optional)</span></label><input id="e-year" inputmode="numeric" value="${meta.data_year ?? ''}" />
       <label>Reference layer</label>
       <div id="e-refnow">${s.reference_layer ? `<div class="link-box"><code>${escapeHtml(s.reference_layer.id)}</code><button type="button" id="e-ref-remove">Remove</button></div>` : '<p class="hint">None.</p>'}</div>
@@ -800,6 +1082,8 @@ async function editSettings(): Promise<void> {
       description: (document.getElementById('e-desc') as HTMLInputElement).value,
       category: (document.getElementById('e-category') as HTMLSelectElement).value,
       data_year: yr === '' ? null : Number(yr),
+      mode: (document.getElementById('e-mode') as HTMLSelectElement).value,
+      data_saver: (document.getElementById('e-saver') as HTMLInputElement).checked,
     };
     if (!locked) patch.license = (document.getElementById('e-license') as HTMLSelectElement).value;
     if (refChange !== undefined) patch.reference_layer = refChange ? { id: refChange.id, pmtiles_url: refChange.pmtiles_url } : null;
@@ -889,6 +1173,10 @@ const minted: { edit?: string; view?: string } = {};
 
 async function manageSheet(): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
+  // Leaving capture mid-walk or mid-corner: stop the GPS and let the screen sleep.
+  stopRecording();
+  trace = null;
+  clearVertexMarkers();
   // meta was loaded at boot; counts are kept fresh from the record cache, so no
   // per-open refetch (this ran on every tab-in and every back-out of a review).
   const c = meta.counts;
@@ -960,10 +1248,10 @@ function renderReviewTab(body: HTMLElement): void {
   if (approveAll) approveAll.onclick = async () => {
     approveAll.disabled = true;
     try {
-      const res = await apiJson<{ changed: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
+      const res = await apiJson<{ changed: number; skipped?: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
       invalidateReview();
       await ensureReviewData(true);
-      toast(`Approved ${res.changed} ✓`);
+      toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
       renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
     } catch (e) { toast((e as Error).message); approveAll.disabled = false; }
   };
@@ -1337,7 +1625,9 @@ function cardTitle(props: Record<string, unknown>): string {
   for (const [k, v] of Object.entries(props)) {
     if (!k.startsWith('_') && typeof v === 'string' && v.trim()) return v;
   }
-  return '(no name)';
+  // A "just photos" point before it's checked: what the model says the photo shows.
+  const said = (props._ai as { description?: string } | null | undefined)?.description;
+  return said ? said : (props._photos as unknown[] | undefined)?.length ? 'Photo' : '(no name)';
 }
 
 // The admin point manager: every marked point (filtered) with per-point CRUD —
@@ -1376,6 +1666,10 @@ function renderPoints(): void {
   });
 }
 
+const photoCount = (v: unknown): string => {
+  const n = Array.isArray(v) ? v.length : 0;
+  return n ? `${n} photo${n === 1 ? '' : 's'}` : '—';
+};
 const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? '—' : String(v));
 
 // One attribute row per (non-deleted) field — shared by the review sheet
@@ -1383,7 +1677,7 @@ const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == n
 function attrRowsHtml(p: Record<string, unknown>, prefix: string): string {
   return meta.schema.fields
     .filter((x) => !x.deleted)
-    .map((fl) => `<div class="${prefix}"><span class="${prefix}__k">${escapeHtml(fl.label)}</span><span class="${prefix}__v">${escapeHtml(fmtVal(p[fl.key]))}</span></div>`)
+    .map((fl) => `<div class="${prefix}"><span class="${prefix}__k">${escapeHtml(fl.label)}</span><span class="${prefix}__v">${escapeHtml(fl.type === 'photo' ? photoCount(p[fl.key]) : fmtVal(p[fl.key]))}</span></div>`)
     .join('');
 }
 
@@ -1405,7 +1699,10 @@ function clearHighlight(): void {
 function openReview(idx: number): void {
   const f = reviewFeats[idx];
   if (!f) return;
-  const p = f.properties as { _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; _link_label?: string | null; _captured_at?: string | null; _created_at?: string; [k: string]: unknown };
+  const p = f.properties as {
+    _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; _link_label?: string | null; _captured_at?: string | null; _created_at?: string;
+    _photos?: Array<{ field: string; id: string; url: string }>; _ai?: Notes | null; [k: string]: unknown;
+  };
   const st = p._status || 'published';
 
   const c = representativeCoord(f.geometry);
@@ -1431,7 +1728,9 @@ function openReview(idx: number): void {
         <span class="badge badge--${st}">${st}</span>
       </div>
       ${meta ? `<p class="hint">${meta}</p>` : ''}
+      ${p._photos?.length ? '<div class="review-photos" id="rv-photos"></div>' : ''}
       <div class="attrs">${attrs || '<p class="hint">No fields on this map.</p>'}</div>
+      ${aiNotesHtml(p._ai ?? null, mapFields(), p, modeOf(mapSchema()), st)}
     </div>
     <div class="foot">
       ${st === 'pending'
@@ -1449,6 +1748,10 @@ function openReview(idx: number): void {
 
   const back = () => { clearHighlight(); void manageSheet(); };
   (document.getElementById('rv-back') as HTMLButtonElement).onclick = back;
+  if (p._photos?.length) showReviewPhotos(document.getElementById('rv-photos')!, p._photos.map((x) => x.url));
+  // A point filled in from its photo is approved with its notes ("Looks right, approve").
+  if (document.getElementById('ai-approve')) document.getElementById('rv-approve')?.remove();
+  wireAiReview(String(f.id), back);
   (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = `/c/${ctx.id}/r/${f.id}#${ctx.token}`; };
   const moderate = async (s: string) => {
     try { await apiJson(`/records/${f.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: s }) }); await refreshCounts(); back(); }
@@ -1464,6 +1767,54 @@ function openReview(idx: number): void {
     catch (e) { toast((e as Error).message); }
   };
 }
+
+// The point's photos in review: the first one large, the rest as thumbnails;
+// any of them full screen on tap. Pending photos are private, so fetched with the token.
+function showReviewPhotos(box: HTMLElement, urls: string[]): void {
+  void Promise.all(urls.map((u) => authedSrc(u, ctx.token))).then((srcs) => {
+    const ok = srcs.filter(Boolean);
+    if (!ok.length) { box.innerHTML = '<p class="hint">Photos could not be loaded.</p>'; return; }
+    box.innerHTML = ok.map((src, i) => `<button type="button" class="${i === 0 ? 'review-photo--main' : 'review-photo'}" data-i="${i}" aria-label="Photo ${i + 1} of ${ok.length}, open full screen"><img src="${escapeHtml(src)}" alt=""></button>`).join('');
+    box.querySelectorAll<HTMLButtonElement>('button[data-i]').forEach((b) => { b.onclick = () => openViewer(ok, Number(b.dataset.i)); });
+  });
+  box.innerHTML = '<span class="spinner"></span>';
+}
+
+// Accept, discard, or (a "just photos" point) accept and approve, then go on
+// to the next point waiting for a check.
+function wireAiReview(id: string, back: () => void): void {
+  const send = async (body: Record<string, unknown>): Promise<boolean> => {
+    const desc = document.getElementById('ai-desc') as HTMLTextAreaElement | null;
+    if (desc && body.action === 'accept') body.description = desc.value;
+    try {
+      await apiJson(`/records/${id}/ai`, ctx.token, { method: 'POST', body: JSON.stringify(body) });
+      await refreshCounts();
+      return true;
+    } catch (e) { toast((e as Error).message); return false; }
+  };
+  document.getElementById('ai-discard')?.addEventListener('click', async () => { if (await send({ action: 'discard' })) { toast('Notes discarded'); reopen(id, back); } });
+  document.getElementById('ai-accept')?.addEventListener('click', async () => { if (await send({ action: 'accept' })) { toast('Notes accepted ✓'); reopen(id, back); } });
+  document.getElementById('ai-approve')?.addEventListener('click', async () => {
+    if (!(await send({ action: 'accept', approve: true }))) return;
+    toast('Approved ✓');
+    const next = allFeats.findIndex((x) => String(x.id) !== id && statusOf(x) === 'pending');
+    if (next < 0) { back(); return; }
+    reviewFeats = allFeats;
+    syncReviewLayer();
+    openReview(next);
+  });
+}
+
+// The same point again, from the refreshed records (its notes have changed).
+function reopen(id: string, back: () => void): void {
+  reviewFeats = allFeats;
+  syncReviewLayer();
+  const i = allFeats.findIndex((x) => String(x.id) === id);
+  if (i >= 0) openReview(i); else back();
+}
+
+const mapSchema = (): Meta['schema'] => meta.schema;
+const mapFields = (): Field[] => meta.schema.fields;
 
 // Publishing to the public catalog is a bigger step than "save" — the points are
 // already on this map. Explain that first; it curbs accidental catalog submissions
@@ -1509,7 +1860,8 @@ async function recordEditor(): Promise<void> {
     id: string; status: string; contributor: string | null;
     geometry: { type: string; coordinates: number[] };
     properties: Record<string, unknown>;
-    schema: { geometry: string[]; fields: Field[]; basemap?: string }; collection_name: string;
+    photos?: Array<{ field: string; id: string; url: string }>;
+    schema: Meta['schema']; collection_name: string;
   }>(`/records/${ctx.recordId}`, ctx.token);
   const fields = rec.schema.fields.filter((f) => !f.deleted);
   const isPoint = rec.geometry.type === 'Point';
@@ -1564,7 +1916,13 @@ async function recordEditor(): Promise<void> {
   });
 
   const panel = document.getElementById('panel')!;
+  // Photos: shown with this link's token; only the map's admin can add new ones here.
+  const isAdmin = ctx.token.startsWith('adm_');
+  const photoInputs = mountPhotoFields(panel, fields, !!rec.schema.data_saver, (f) => ({
+    token: ctx.token, canAdd: isAdmin, initial: (rec.photos ?? []).filter((x) => x.field === f.key),
+  }));
   for (const f of fields) {
+    if (f.type === 'photo') continue;
     const el = panel.querySelector(`[data-k="${f.key}"]`);
     if (!el) continue;
     const val = rec.properties[f.key];
@@ -1595,20 +1953,21 @@ async function recordEditor(): Promise<void> {
     const btn = ev.currentTarget as HTMLButtonElement;
     const form = document.getElementById('recform') as HTMLFormElement;
     if (!form.reportValidity()) return;
+    if (photoInputs.some((p) => p.busy())) { toast('One moment: a photo is still being made ready'); return; }
     btn.disabled = true;
     try {
-      const raw: Record<string, unknown> = {};
-      for (const f of fields) {
-        const el = panel.querySelector(`[data-k="${f.key}"]`);
-        if (!el) continue;
-        if (f.type === 'multiselect') {
-          const on = [...el.querySelectorAll('.chip.on')].map((c) => (c as HTMLElement).dataset.v);
-          if (on.length) raw[f.key] = on;
-        } else {
-          const v = (el as HTMLInputElement).value; if (v) raw[f.key] = v;
+      const raw = readAnswers(panel, fields);
+      for (const p of photoInputs) {
+        const ids: string[] = [];
+        for (const it of p.items()) {
+          if (it.id) { ids.push(it.id); continue; }
+          const up = await uploadPhoto(ctx.id, ctx.token, { client_id: it.client_id, bytes: it.bytes!, meta: it.meta });
+          if (!up.ok) throw new Error(`Couldn't upload a photo: ${up.error}`);
+          ids.push(up.id);
         }
+        if (ids.length) raw[p.field.key] = ids;
       }
-      const valid = validateRecordProperties(fields, raw);
+      const valid = validateRecordProperties(fields, raw, { photosOnly: !isAdmin && modeOf(rec.schema) === 'photos_ai' });
       if (!valid.ok) { toast(valid.error); btn.disabled = false; return; }
       // Points can be repositioned by panning; shapes edit properties only. Only
       // write geometry when the user actually moved the map (else leave it put).

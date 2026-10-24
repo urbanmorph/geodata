@@ -168,6 +168,7 @@ export interface NewRecordRow {
   token_id?: string | null; // collection_tokens.id that added it; NULL = imported
   client_key_hash?: string | null; // SHA-256 of a queued point's client_id; NULL = not queued
   captured_at?: string | null; // when the phone captured it; NULL = use created_at
+  ai?: string | null; // JSON notes from the model (functions/lib/ai.ts); NULL = none
 }
 
 /** The INSERT for one record, unrun (bulk import writes these in batches). */
@@ -175,10 +176,10 @@ export function recordInsert(db: DB, r: NewRecordRow): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO records
-       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id, client_key_hash, captured_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id, client_key_hash, captured_at, ai)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null, r.client_key_hash ?? null, r.captured_at ?? null);
+    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null, r.client_key_hash ?? null, r.captured_at ?? null, r.ai ?? null);
 }
 
 export async function insertRecord(db: DB, r: NewRecordRow): Promise<void> {
@@ -210,6 +211,7 @@ export interface RecordRow {
   source: string | null;
   token_id: string | null;
   captured_at: string | null;
+  ai: string | null;
 }
 
 /** Every record's properties (only that column, page by page): what the form-edit check needs. */

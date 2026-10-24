@@ -301,7 +301,8 @@ const TOOLS = [
     name: "get_records",
     description:
       "A collect map's records as a GeoJSON FeatureCollection — for reading, analysis, or backup/export. " +
-      "view and collect scope return published points; admin can also read pending/rejected via status.",
+      "view and collect scope return published points; admin can also read pending/rejected via status. " +
+      "Each record's properties._photos lists its photo links (public once the point is approved); _ai holds notes a model wrote from the photo (others see only notes the owner accepted).",
     inputSchema: {
       type: "object",
       properties: { id: { type: "string" }, status: { type: "string", description: "admin only: pending | published | rejected" } },
@@ -373,7 +374,8 @@ const TOOLS = [
         purpose: { type: "string", description: "shown to contributors" },
         description: { type: "string" },
         geometry: { type: "array", items: { enum: ["point", "line", "polygon"] }, description: "what contributors may add" },
-        fields: { type: "array", items: { type: "object" }, description: "the form for each record (see collect.bharatlas.com/schema/v1.json)" },
+        fields: { type: "array", items: { type: "object" }, description: "the form for each record (see collect.bharatlas.com/schema/v1.json); a field of type \"photo\" (max_photos 1-3) asks for photos" },
+        mode: { enum: ["form", "form_ai", "photos_ai"], description: "how people collect: form (default); form_ai = form plus notes a model writes from the photo, for the owner to check; photos_ai = people only take photos and the model fills the form (places only). AI modes need a photo field." },
         license: { type: "string", description: "open licence id; default CC-BY-4.0" },
         category: { type: "string" },
         data_year: { type: "integer" },
@@ -602,6 +604,7 @@ async function handleTool(name, args) {
       const schema_doc = { version: 1, geometry: args.geometry, fields: args.fields };
       if (args.category) schema_doc.category = args.category;
       if (args.basemap) schema_doc.basemap = args.basemap;
+      if (args.mode && args.mode !== "form") schema_doc.mode = args.mode;
       const body = {
         name: args.name, purpose: args.purpose, description: args.description,
         license: args.license || "CC-BY-4.0", data_year: args.data_year,

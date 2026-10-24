@@ -4,7 +4,7 @@
 import { api } from './api';
 import { turnstileToken } from './turnstile';
 import { rememberRecord } from './maps-store';
-import { flush, idbOutbox, newClientId, sendBody, type QueuedPoint, type SendResult, type FlushResult } from './outbox';
+import { flush, idbOutbox, newClientId, sendBody, uploadPhotos, forgetUploads, photosMissing, type QueuedPoint, type QueuedPhoto, type SendResult, type FlushResult, type UploadResult } from './outbox';
 
 export const OUTBOX_CHANGED = 'collect:outbox-changed';
 /** What changed: points the server now has (with their edit links), or ones discarded. */
@@ -12,7 +12,38 @@ export interface OutboxChange { sent: { client_id: string; link: string }[]; dis
 const changed = (detail: Partial<OutboxChange> = {}): void =>
   void window.dispatchEvent(new CustomEvent<OutboxChange>(OUTBOX_CHANGED, { detail: { sent: [], discarded: [], ...detail } }));
 
-async function send(p: QueuedPoint): Promise<SendResult> {
+const LINK_GONE = 'this collect link no longer works; the map owner may have turned it off';
+
+/** One photo to the map (raw JPEG; where and when it was taken in a header). */
+export async function uploadPhoto(collectionId: string, token: string, photo: Pick<QueuedPhoto, 'client_id' | 'bytes' | 'meta'>): Promise<UploadResult> {
+  try {
+    const res = await fetch(`/api/collect/v1/collections/${collectionId}/photos`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${token}`, 'content-type': 'image/jpeg', 'x-client-id': photo.client_id, 'x-photo-meta': JSON.stringify(photo.meta) },
+      body: photo.bytes,
+    });
+    const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+    if (res.ok && body.id) return { ok: true, id: body.id };
+    return { ok: false, status: res.status, error: res.status === 401 ? LINK_GONE : body.error || `HTTP ${res.status}` };
+  } catch {
+    return { ok: false, status: 0, error: 'no connection' };
+  }
+}
+
+async function send(p: QueuedPoint, again = true): Promise<SendResult> {
+  const r = await sendOnce(p);
+  if (!r.ok && again && photosMissing(r) && p.photos?.length) {
+    const fresh = forgetUploads(p);
+    await idbOutbox.put(fresh);
+    return send(fresh, false);
+  }
+  return r;
+}
+
+async function sendOnce(p: QueuedPoint): Promise<SendResult> {
+  // Photos first, so the point arrives with them; each is uploaded once.
+  const up = await uploadPhotos(p, idbOutbox, (pt, photo) => uploadPhoto(pt.collection_id, pt.token, photo));
+  if (!up.ok) return up;
   try {
     const turnstile_token = await turnstileToken();
     const res = await api(`/collections/${p.collection_id}/records`, p.token, {
@@ -22,7 +53,7 @@ async function send(p: QueuedPoint): Promise<SendResult> {
     const body = (await res.json().catch(() => ({}))) as { id?: string; status?: string; edit_token?: string; error?: string };
     if (res.ok && body.id && body.edit_token) return { ok: true, id: body.id, status: body.status ?? '', edit_token: body.edit_token };
     // 401 here means the collect link stopped working, usually because the map's owner turned it off.
-    const error = res.status === 401 ? 'this collect link no longer works; the map owner may have turned it off' : body.error || `HTTP ${res.status}`;
+    const error = res.status === 401 ? LINK_GONE : body.error || `HTTP ${res.status}`;
     return { ok: false, status: res.status, error };
   } catch {
     return { ok: false, status: 0, error: 'no connection' };

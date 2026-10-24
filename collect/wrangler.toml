@@ -15,5 +15,10 @@ database_id = "c7c0c69e-02aa-482c-ac9a-541b36f21cc4"   # the shared D1
 binding = "R2"
 bucket_name = "geodata-data"                            # the shared R2
 
+# Workers AI: notes from photos (functions/lib/ai.ts). Runs on Cloudflare even
+# in local dev (there is no local copy of the model).
+[ai]
+binding = "AI"
+
 [vars]
 PUBLIC_TURNSTILE_SITEKEY = "0x4AAAAAAEUVQ4gS3xN4W2l1"   # collect Turnstile widget (public sitekey)

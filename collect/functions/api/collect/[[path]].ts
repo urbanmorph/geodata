@@ -5,11 +5,13 @@
 import type { Env } from '../../types';
 import { bad } from '../../lib/http';
 import * as h from '../../lib/handlers';
+import { uploadPhoto, getPhoto } from '../../lib/photos';
+import { reviewAi } from '../../lib/ai';
 
 const CORS = {
   'access-control-allow-origin': '*',
   'access-control-allow-methods': 'GET,POST,PUT,PATCH,DELETE,OPTIONS',
-  'access-control-allow-headers': 'authorization,content-type',
+  'access-control-allow-headers': 'authorization,content-type,x-client-id,x-photo-meta',
 };
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
@@ -47,9 +49,12 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       return bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'records') {
-      if (method === 'GET') return h.listRecords(env, request, id);
+      if (method === 'GET') return h.listRecords(env, request, id, defer);
       if (method === 'POST') return h.addRecord(env, request, id, defer);
       return bad(405, 'method not allowed');
+    }
+    if (p.length === 3 && p[2] === 'photos') {
+      return method === 'POST' ? uploadPhoto(env, request, id, defer) : bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'fields') {
       return method === 'PATCH' ? h.editForm(env, request, id, defer) : bad(405, 'method not allowed');
@@ -81,6 +86,11 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     return bad(405, 'method not allowed');
   }
 
+  // /v1/photos/:id — a point's photo (public once the point is approved)
+  if (p[0] === 'photos' && p.length === 2) {
+    return method === 'GET' ? getPhoto(env, request, p[1]) : bad(405, 'method not allowed');
+  }
+
   // /v1/records/:id  and  /v1/records/:id/{moderate|deidentify}
   if (p[0] === 'records' && p[1]) {
     const rid = p[1];
@@ -92,6 +102,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     }
     if (p.length === 3 && p[2] === 'moderate') {
       return method === 'POST' ? h.moderateRecord(env, request, rid) : bad(405, 'method not allowed');
+    }
+    if (p.length === 3 && p[2] === 'ai') {
+      return method === 'POST' ? reviewAi(env, request, rid) : bad(405, 'method not allowed');
     }
     if (p.length === 3 && p[2] === 'deidentify') {
       return method === 'POST' ? h.deidentifyRecordHandler(env, request, rid) : bad(405, 'method not allowed');

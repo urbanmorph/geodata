@@ -63,3 +63,5 @@ export const checkKeyDayRate = (db: DB, keyHash: string, limit: number): Promise
 // Keyring writes: their own rate_limits row (prefixed key) so sync never eats
 // into a contributor's record budget.
 export const checkKeyringRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, `kr:${ipHash}`, 'hour', 120);
+// Photo uploads: their own row (up to 3 photos a point, so 3x the record budget).
+export const checkPhotoRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, `ph:${ipHash}`, 'hour', 600);

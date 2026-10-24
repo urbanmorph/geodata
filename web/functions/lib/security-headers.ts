@@ -50,6 +50,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
     "'self'",
     'blob:',
     'data:',                                       // inline data URIs (favicons, svg)
+    'https://collect.bharatlas.com',               // photos on published collect maps, in map pop-ups
     'https://tiles.openfreemap.org',               // Streets (Liberty) sprite and relief tiles
     'https://tile.openstreetmap.org',              // OSM basemap tiles
     'https://ibasemaps-api.arcgis.com',           // Esri World Imagery (keyed, shared/esri-imagery.ts) — via fetch()
