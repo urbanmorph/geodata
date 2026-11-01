@@ -89,6 +89,7 @@ def main():
     con = duckdb.connect()
     con.install_extension('spatial')
     con.load_extension('spatial')
+    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
 
     targets = [t for t in LAYERS if not filt or filt in t[0].lower() or filt in t[1]]
     print(f'Baking {len(targets)} layer(s)...\n')

@@ -224,6 +224,7 @@ const NAME_KEYS = [
   'sdtname', 'subdt_name',                // sub-district
   'dtname',                                // district
   'stname', 'STNAME',                     // state
+  'wardname', 'ward_name', 'WARD_NAME',   // city ward
   'NAME', 'name',                          // generic fallback
 ];
 
