@@ -105,6 +105,9 @@ FORMATS = ("parquet", "geojson", "kml")
 def make_con() -> duckdb.DuckDBPyConnection:
     con = duckdb.connect()
     con.execute("INSTALL spatial; LOAD spatial")
+    # GDAL writes EPSG:4326-tagged geometry as lat,lon unless told otherwise,
+    # which put every city ward layer's downloads in the wrong place.
+    con.execute("SET geometry_always_xy = true")
     return con
 
 
@@ -209,6 +212,7 @@ NAME_KEYS = (
     "sdtname", "subdt_name",               # sub-district
     "dtname",                              # district
     "stname", "STNAME",                    # state
+    "wardname", "ward_name", "WARD_NAME",  # city ward
     "NAME", "name",                        # generic fallback
 )
 

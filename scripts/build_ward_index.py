@@ -62,7 +62,7 @@ OVERRIDES: dict[str, tuple[str, str | None, str | None]] = {
     # string, or absent. We never fabricate an area; these get no table.
     'wards_kolkata':           ('WARD',           None,             None),
     'wards_mumbai':            ('NAME2',          None,             None),
-    'wards_patna':             ('wardcode',       None,             None),  # "wardname" is spelled-out numbers (One, Two…)
+    'wards_patna':             ('wardname',       None,             None),  # "Ward N" only (cleaned Nov 2026)
     'wards_pcmc':              ('wardnum',        None,             None),  # "name" is "NN, Zone X", not a locality
     'wards_guwahati':          ('sourcewardcode', None,             None),  # sourcewardname is "<Null>" for every row
     'wards_faridabad':         ('Ward_No',        None,             None),

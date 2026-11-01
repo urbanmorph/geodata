@@ -25,6 +25,7 @@ LAYERS = [
 
 con = duckdb.connect()
 con.execute("INSTALL spatial; LOAD spatial")
+con.execute("SET geometry_always_xy = true")  # else EPSG:4326 writes lat,lon
 
 for st_abbr, st_lgd in STATES.items():
     for parquet, st_col, sub, name in LAYERS:

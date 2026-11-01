@@ -609,6 +609,7 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
     try:
         con = duckdb.connect()
         con.execute('INSTALL spatial; LOAD spatial;')
+        con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
         con.execute(
             f"COPY (SELECT * FROM read_parquet('{src_parquet}')) "
             f"TO '{geojson_path}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')"

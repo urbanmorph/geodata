@@ -284,6 +284,7 @@ def normalize_to_geojson(raw: Path, fmt: str, out_geojson: Path) -> None:
         import duckdb
         con = duckdb.connect()
         con.execute('INSTALL spatial; LOAD spatial;')
+        con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
         cols = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{raw}')").fetchall()
         geom = next((c[0] for c in cols if c[0] in ('geometry', 'geom', 'wkb_geometry')), 'geometry')
         gtype = next((c[1] for c in cols if c[0] == geom), 'BLOB')

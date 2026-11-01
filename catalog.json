@@ -2300,11 +2300,11 @@
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.geojson",
-        "bytes": 3052583
+        "bytes": 3052581
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.kml",
-        "bytes": 2807446
+        "bytes": 2812404
       },
       "shapefile": null,
       "licence": "ODbL-1.0",
@@ -2337,11 +2337,11 @@
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.geojson",
-        "bytes": 282033
+        "bytes": 282030
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.kml",
-        "bytes": 222286
+        "bytes": 222283
       },
       "shapefile": null,
       "licence": "ODbL-1.0",
@@ -2382,7 +2382,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.shp.zip",
-        "bytes": 781372
+        "bytes": 779388
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2462,7 +2462,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.shp.zip",
-        "bytes": 152539
+        "bytes": 152284
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2494,11 +2494,11 @@
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.geojson",
-        "bytes": 2281100
+        "bytes": 2281098
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.kml",
-        "bytes": 1578550
+        "bytes": 1578548
       },
       "shapefile": null,
       "licence": "ODbL-1.0",
@@ -2539,7 +2539,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.shp.zip",
-        "bytes": 69669
+        "bytes": 69585
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2579,7 +2579,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.shp.zip",
-        "bytes": 269598
+        "bytes": 272086
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2619,7 +2619,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.shp.zip",
-        "bytes": 717022
+        "bytes": 715593
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2651,11 +2651,11 @@
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.geojson",
-        "bytes": 2113397
+        "bytes": 2113398
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.kml",
-        "bytes": 1442654
+        "bytes": 1442655
       },
       "shapefile": null,
       "licence": "ODbL-1.0",
@@ -2696,7 +2696,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.shp.zip",
-        "bytes": 67723
+        "bytes": 67658
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2736,7 +2736,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.shp.zip",
-        "bytes": 74568
+        "bytes": 75502
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2776,7 +2776,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.shp.zip",
-        "bytes": 79624
+        "bytes": 79664
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2816,7 +2816,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.shp.zip",
-        "bytes": 54195
+        "bytes": 53929
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2856,7 +2856,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.shp.zip",
-        "bytes": 134410
+        "bytes": 134308
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2888,11 +2888,11 @@
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.geojson",
-        "bytes": 533046
+        "bytes": 533045
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.kml",
-        "bytes": 509526
+        "bytes": 509525
       },
       "shapefile": null,
       "licence": "ODbL-1.0",
@@ -2933,7 +2933,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.shp.zip",
-        "bytes": 158172
+        "bytes": 158054
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -2973,7 +2973,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.shp.zip",
-        "bytes": 62992
+        "bytes": 63021
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -3432,28 +3432,26 @@
       "id": "wards_patna",
       "level": "wards_patna",
       "source": "datta07",
-      "rows": 628,
+      "rows": 75,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.parquet",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-patna/wards_patna.parquet",
-        "bytes": 339062
+        "bytes": 250944
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-patna/wards_patna.pmtiles",
-        "bytes": 239323
+        "bytes": 126275
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.geojson",
-        "bytes": 8408424
+        "bytes": 1157046
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.kml",
-        "bytes": 6867250
+        "bytes": 818596
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.shp.zip",
-        "bytes": 3010956
+        "bytes": 317662
       },
       "licence": "MIT",
       "attribution": {
@@ -3465,8 +3463,8 @@
       },
       "category": "city-wards",
       "provenance": "curated",
-      "fetched_at": "2026-05-26T14:44:38.109170+00:00",
-      "notes": "Patna Municipal Corporation \u2014 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names."
+      "fetched_at": "2026-11-01T17:46:03+00:00",
+      "notes": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward."
     },
     {
       "id": "wards_surat",
@@ -3489,11 +3487,11 @@
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.kml",
-        "bytes": 768262
+        "bytes": 768889
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.shp.zip",
-        "bytes": 370532
+        "bytes": 372390
       },
       "licence": "MIT",
       "attribution": {
@@ -3529,11 +3527,11 @@
       },
       "kml": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.kml",
-        "bytes": 36101
+        "bytes": 36195
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.shp.zip",
-        "bytes": 18447
+        "bytes": 18452
       },
       "licence": "CC-BY-4.0",
       "attribution": {
@@ -3613,7 +3611,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.shp.zip",
-        "bytes": 68284
+        "bytes": 68274
       },
       "licence": "CC-BY-4.0",
       "attribution": {
@@ -3653,7 +3651,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.shp.zip",
-        "bytes": 25173
+        "bytes": 25152
       },
       "licence": "CC-BY-4.0",
       "attribution": {
