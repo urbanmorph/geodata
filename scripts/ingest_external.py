@@ -530,7 +530,7 @@ DATASETS: list[Dataset] = [
         unit='wards',
         r2_prefix='admin/wards-patna',
         features=75,
-        attr_key='datta07',
+        attr_key='Keswani',
     ),
 
     # ──────── Surat ────────

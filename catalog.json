@@ -3431,7 +3431,7 @@
     {
       "id": "wards_patna",
       "level": "wards_patna",
-      "source": "datta07",
+      "source": "Keswani",
       "rows": 75,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-patna/wards_patna.parquet",
@@ -3456,7 +3456,7 @@
       "licence": "MIT",
       "attribution": {
         "primary": {
-          "name": "datta07/INDIAN-SHAPEFILES",
+          "name": "Jayesh Keswani (cleaned from datta07/INDIAN-SHAPEFILES)",
           "url": "https://github.com/datta07/INDIAN-SHAPEFILES"
         },
         "publisher": null

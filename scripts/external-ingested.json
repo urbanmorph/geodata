@@ -555,7 +555,7 @@
     "name": "Patna (PMC) Wards (~2019)",
     "level": "wards_patna",
     "category": "city-wards",
-    "source": "datta07",
+    "source": "Keswani",
     "description": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward.",
     "unit": "wards",
     "features": 75,
