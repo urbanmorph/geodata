@@ -98,6 +98,8 @@ ATTR = {
     'bharatviz':     {'name': 'bharatviz (Saket Choudhary)',  'url': 'https://bharatviz.org/'},
     'DataMeet':      {'name': 'DataMeet community',           'url': 'https://datameet.org/'},
     'datta07':       {'name': 'datta07/INDIAN-SHAPEFILES',    'url': 'https://github.com/datta07/INDIAN-SHAPEFILES'},
+    # Patna wards: a user's cleanup of the datta07 file (Nov 2026), credited on the card.
+    'Keswani': {'name': 'Jayesh Keswani (cleaned from datta07/INDIAN-SHAPEFILES)', 'url': 'https://github.com/datta07/INDIAN-SHAPEFILES'},
     'osm-in':        {'name': 'osm-in (community)',           'url': 'https://github.com/osm-in/mapbox-gl-styles'},
     'NIC-Health':    {'name': 'NIC HealthGIS',               'url': 'https://healthgis.nic.in/'},
     'CWC':           {'name': 'Central Water Commission (WRIS)', 'url': 'https://cwc.gov.in/en/water-resources-information-system-wris'},
