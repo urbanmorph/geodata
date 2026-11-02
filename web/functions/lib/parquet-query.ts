@@ -61,13 +61,25 @@ export function topLevelColumns(metadata: FileMetaData): { name: string; element
   }));
 }
 
-/** Nested columns can't be compared to a value or used as a group key. */
+/** Geometry columns (geometry, geom, wkb_geometry...) hold WKB, never a filter value. */
+function isGeomColumn(name: string): boolean {
+  return name.toLowerCase().includes('geom');
+}
+
+/**
+ * Nested and geometry columns can't be compared to a value or used as a group
+ * key. Checking `?geometry=true` as a filter read every polygon of lgd_blocks
+ * and the Worker hit its resource limit (503), so it is refused before any read.
+ */
 function assertFlat(cols: ReturnType<typeof topLevelColumns>, names: string[]): void {
   const nested = new Set(cols.filter((c) => c.nested).map((c) => c.name));
-  const flat = cols.filter((c) => !c.nested && !c.name.toLowerCase().includes('geom')).map((c) => c.name);
+  const flat = cols.filter((c) => !c.nested && !isGeomColumn(c.name)).map((c) => c.name);
   for (const n of names) {
     if (nested.has(n)) {
       throw new QueryInputError(`Column "${n}" is nested (struct, list or map) and can't be filtered or grouped. Flat columns: ${flat.join(', ')}`);
+    }
+    if (isGeomColumn(n) && cols.some((c) => c.name === n)) {
+      throw new QueryInputError(`Column "${n}" is the geometry and can't be filtered or grouped. For a point per row use include_centroid=true; for shapes use the layer's downloads. Flat columns: ${flat.join(', ')}`);
     }
   }
 }
@@ -82,7 +94,7 @@ export async function getSchema(file: AsyncBuffer): Promise<{
 
   const columns: ColumnSchema[] = [];
   for (const { name, element: el, nested } of topLevelColumns(metadata)) {
-    if (!name || name.toLowerCase().includes('geom') || name === 'wkb_geometry') continue;
+    if (!name || isGeomColumn(name)) continue;
     columns.push({ name, type: nested ? 'nested' : schemaType(el.type, el.converted_type) });
   }
 
@@ -269,7 +281,7 @@ async function selectQuery(
 ): Promise<QueryResult> {
   const selectCols = opts.select?.length
     ? opts.select.filter((c) => allCols.includes(c))
-    : allCols.filter((c) => !c.toLowerCase().includes('geom') && c !== 'wkb_geometry' && !isJunkColumn(c));
+    : allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c));
 
   if (selectCols.length === 0) {
     return { columns: [], rows: [], total: 0, truncated: false };
@@ -303,7 +315,7 @@ async function selectQuery(
   // FIX #2: on zero results, provide hints (distinct values for filtered columns)
   const missing = where.filter(([c]) => !allCols.includes(c));
   if (missing.length) {
-    const avail = allCols.filter((c) => !c.toLowerCase().includes('geom')).join(', ');
+    const avail = allCols.filter((c) => !isGeomColumn(c)).join(', ');
     return {
       columns: selectCols, rows: [], total: 0, truncated: false,
       hints: Object.fromEntries(missing.map(([c]) => [c, [`Column "${c}" not found. Available: ${avail}`]])),
@@ -361,7 +373,7 @@ async function groupByQuery(
   sumCols: string[] = [],
 ): Promise<GroupByResult> {
   if (!allCols.includes(groupCol)) {
-    const available = allCols.filter((c) => !c.toLowerCase().includes('geom') && c !== 'wkb_geometry' && !isJunkColumn(c));
+    const available = allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c));
     throw new QueryInputError(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
   }
 
