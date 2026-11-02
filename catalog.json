@@ -677,12 +677,12 @@
     "wards_patna": {
       "label": "Patna (PMC) Wards (~2019)",
       "unit": "wards",
-      "description": "Patna Municipal Corporation \u2014 75 wards (628 sub-ward polygons). Two naming schemes: numbered \"Ward N\" and spelled-out names.",
+      "description": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward.",
       "source_url": "https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES",
-      "source_org": "datta07/INDIAN-SHAPEFILES",
+      "source_org": "Jayesh Keswani (cleaned from datta07/INDIAN-SHAPEFILES)",
       "notes": "",
-      "seo_title": "Patna Ward Map: 628 wards (PMC)",
-      "seo_description": "Interactive map of all 628 wards in Patna (PMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
+      "seo_title": "Patna Ward Map: 75 wards (PMC)",
+      "seo_description": "Interactive map of all 75 wards in Patna (PMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_surat": {
       "label": "Surat (SMC) Wards (~2019)",
@@ -3464,7 +3464,8 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-11-01T17:46:03+00:00",
-      "notes": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward."
+      "notes": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward.",
+      "description": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward."
     },
     {
       "id": "wards_surat",
