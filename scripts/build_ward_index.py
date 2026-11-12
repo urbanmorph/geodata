@@ -11,8 +11,12 @@ Outputs:
   web/public/ward-index/{layer_id}.json   -- {id, place, updated, nameLabel, rows[]}
 
 Only layers that genuinely carry an area/locality (or zone) name are emitted.
-Number-only sources (Kolkata, Mumbai letter-codes, Faridabad) are skipped — we
-never invent an area name. Data is what it is.
+Number-only sources (Kolkata, Mumbai letter-codes, Faridabad) carry no name of
+their own — we never invent one. Where scripts/fetch_osm_areas.py has fetched
+OpenStreetMap's suburbs and neighbourhoods for such a city, each ward gets the
+`areas` whose point lies inside it, kept apart from the layer's own fields and
+credited to OSM (ODbL). The sidecar is view-only: the layer and its downloads
+keep what the source published.
 
 Run after baking ward parquets. Gracefully skips layers whose parquets are absent.
 
@@ -30,6 +34,9 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
 OUT = ROOT / 'web' / 'public' / 'ward-index'
 CATALOG = ROOT / 'catalog.json'
+OSM_CACHE = ROOT / 'data' / 'osm-areas'      # scripts/fetch_osm_areas.py writes it
+OSM_KIND_ORDER = {'suburb': 0, 'quarter': 1, 'neighbourhood': 2}
+MAX_AREAS = 8                                 # the biggest places first, so a dense ward stays readable
 
 # Per-layer column maps, keyed by the columns each city's source actually ships
 # (verified against the live schemas). (number_col, name_col_or_None, label).
@@ -161,6 +168,48 @@ def real_name(name: str) -> str:
     return '' if (not name or NAME_REJECT.search(name)) else name
 
 
+def natural(name: str) -> list:
+    """Sort key that reads the numbers in a name as numbers: Sector 2 before Sector 10."""
+    return [(0, int(t), '') if t.isdigit() else (1, 0, t) for t in re.findall(r'\d+|\D+', name.lower())]
+
+
+def areas_by_ward(con, pq: Path, no_col: str, pts: list[dict]) -> dict[str, list[str]]:
+    """OSM place names per ward number: each place goes to the ward whose polygon contains its point; suburbs
+    first, then quarters, then neighbourhoods, each A to Z; a name once per ward; at most MAX_AREAS."""
+    import fetch_osm_areas
+    con.execute('INSTALL spatial; LOAD spatial;')
+    geom = next(c for c, t, *_ in con.execute(f"DESCRIBE SELECT * FROM '{pq}'").fetchall() if str(t).startswith('GEOMETRY'))
+    con.execute('CREATE OR REPLACE TEMP TABLE osm_pts (name VARCHAR, kind VARCHAR, lon DOUBLE, lat DOUBLE)')
+    con.executemany('INSERT INTO osm_pts VALUES (?, ?, ?, ?)', [(p['name'], p['kind'], p['lon'], p['lat']) for p in pts])
+    hits = con.execute(f"""SELECT w.no, p.name, p.kind FROM (SELECT "{no_col}" AS no, "{geom}" AS g FROM '{pq}') w
+                           JOIN osm_pts p ON ST_Contains(w.g, ST_Point(p.lon, p.lat))""").fetchall()
+    out: dict[str, list[tuple]] = {}
+    for no, name, kind in hits:
+        if fetch_osm_areas.junk(name):
+            continue
+        out.setdefault(clean(no), []).append((OSM_KIND_ORDER.get(kind, 9), natural(name), name.lower(), name))
+    result = {}
+    for no, items in out.items():
+        seen, names = set(), []
+        for _, _, low, name in sorted(items):
+            if low not in seen:
+                seen.add(low)
+                names.append(name)
+        result[no] = names[:MAX_AREAS]
+    return result
+
+
+def osm_areas(con, layer_id: str, pq: Path, no_col: str) -> tuple[dict[str, list[str]], dict] | None:
+    """The layer's OSM areas per ward and their credit, from the fetched cache; None when not fetched."""
+    f = OSM_CACHE / f'{layer_id}.json'
+    if not f.exists():
+        return None
+    import fetch_osm_areas
+    cached = json.loads(f.read_text())
+    by_no = areas_by_ward(con, pq, no_col, fetch_osm_areas.places(cached))
+    return by_no, {'name': 'OpenStreetMap contributors', 'licence': 'ODbL-1.0', 'fetched': cached.get('fetched')}
+
+
 def build_one(con, layer: dict, level_meta: dict) -> dict | None:
     layer_id = layer['id']
     pq = find_parquet(layer)
@@ -191,8 +240,17 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
             print(f'  {layer_id}: no ward-number column found — skipped')
             return None
         if not name_col:
-            print(f'  {layer_id}: number-only source — skipped (no area names to give)')
-            return None
+            osm = osm_areas(con, layer_id, pq, no_col)
+            if not osm:
+                print(f'  {layer_id}: number-only source, no OSM areas fetched — skipped')
+                return None
+            areas, credit = osm
+            nos = {clean(v) for (v,) in con.execute(f'SELECT "{no_col}" FROM \'{pq}\'').fetchall()} - {''}
+            rows = [{'no': no, 'name': '', 'areas': areas.get(no, [])} for no in sorted(nos, key=sort_key)]
+            print(f'  {layer_id}: number-only source; OSM areas for {sum(1 for r in rows if r["areas"])} of {len(rows)} wards')
+            return {'id': layer_id, 'place': place_name(layer_id, level_meta),
+                    'updated': (layer.get('fetched_at') or '')[:10] or None,
+                    'nameLabel': None, 'rows': rows, 'areasSource': credit}
         raw = con.execute(f'SELECT "{no_col}" AS no, "{name_col}" AS name FROM \'{pq}\'').fetchall()
         for no_v, name_v in raw:
             no, name = clean(no_v), real_name(clean(name_v))

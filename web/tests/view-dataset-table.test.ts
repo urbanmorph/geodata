@@ -113,3 +113,39 @@ describe('buildViewContent ward wiring', () => {
     expect(without.wardListJsonLd).toBeUndefined();
   });
 });
+
+// A number-only layer (Jaipur) whose wards have OpenStreetMap area names in its sidecar. The view shows them in
+// their own column, credited to OSM (ODbL); the layer's own fields (and its downloads) stay as the source published.
+const JAIPUR_OSM: WardIndex = {
+  id: 'wards_jaipur',
+  place: 'Jaipur',
+  updated: '2026-05-26',
+  nameLabel: null,
+  rows: [
+    { no: '1', name: '', areas: ['Raja Park', 'Adarsh Nagar'] },
+    { no: '2', name: '', areas: [] },
+  ],
+  areasSource: { name: 'OpenStreetMap contributors', licence: 'ODbL-1.0', fetched: '2026-11-12' },
+};
+
+describe('buildWardTable with OpenStreetMap areas', () => {
+  it('adds an "Areas (OpenStreetMap)" column and credits OSM, apart from the layer\'s own names', () => {
+    const { html, jsonLd } = buildWardTable(JAIPUR_OSM);
+    expect(html).toContain('<th scope="col">Areas (OpenStreetMap)</th>');
+    expect(html).toContain('<td>Raja Park, Adarsh Nagar</td>');
+    expect(html).toContain('Jaipur ward numbers and the areas in each');
+    expect(html).toMatch(/OpenStreetMap contributors.*ODbL/);
+    expect(html).toMatch(/not part of the ward layer or its downloads/);
+    expect(html).not.toContain('<th scope="col">Area</th>');   // no column for names the layer doesn't have
+    expect(JSON.stringify(jsonLd)).toContain('Ward 1: Raja Park, Adarsh Nagar (OpenStreetMap)');
+    expect(JSON.stringify(jsonLd)).not.toContain('Ward 2:');   // a ward with no area is not listed with an empty name
+  });
+
+  it('a layer with its own names and OSM areas shows both columns', () => {
+    const both: WardIndex = { ...AHMEDABAD, rows: [{ no: '1', name: 'Gota', areas: ['Vande Mataram'] }],
+      areasSource: JAIPUR_OSM.areasSource };
+    const { html } = buildWardTable(both);
+    expect(html).toContain('<th scope="col">Area</th><th scope="col">Areas (OpenStreetMap)</th>');
+    expect(html).toContain('<td>1</td><td>Gota</td><td>Vande Mataram</td>');
+  });
+});

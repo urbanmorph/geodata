@@ -169,7 +169,9 @@ export function wardSeo(seoTitle: string, count: string | null, origDescription?
   };
 }
 
-export type WardRow = { no: string; name: string };
+/** One ward: its number, its name as the layer gives it ('' when none), and, view-only, the OpenStreetMap
+ *  places inside it (scripts/fetch_osm_areas.py; never part of the layer or its downloads). */
+export type WardRow = { no: string; name: string; areas?: string[] };
 
 // A ward layer's resolved number↔area pairs, baked by scripts/build_ward_index.py
 // (which reads the parquet and maps each layer's idiosyncratic columns down to
@@ -187,6 +189,8 @@ export type WardIndex = {
   nameLabel: string | null;
   /** Pre-sorted ward rows; `name` is '' when the layer has no name for it. */
   rows: WardRow[];
+  /** Credit for the rows' `areas`, when they come from OpenStreetMap. */
+  areasSource?: { name: string; licence: string; fetched?: string | null };
 };
 
 // The crawlable ward#→area answer table. This is the payload for the loudest
@@ -200,34 +204,54 @@ export function buildWardTable(idx: WardIndex | null | undefined): {
 } {
   if (!idx || !idx.rows?.length) return { html: '', jsonLd: null };
   const hasNames = idx.nameLabel != null && idx.rows.some((r) => r.name);
+  const hasAreas = idx.rows.some((r) => r.areas?.length);
   const label = hasNames ? idx.nameLabel! : null;
   const caption = hasNames
     ? `${idx.place} ward numbers and ${label!.toLowerCase()} names`
-    : `${idx.place} ward numbers`;
-  const head = hasNames
-    ? `<tr><th scope="col">Ward</th><th scope="col">${esc(label!)}</th></tr>`
-    : `<tr><th scope="col">Ward</th></tr>`;
+    : hasAreas
+      ? `${idx.place} ward numbers and the areas in each`
+      : `${idx.place} ward numbers`;
+  const head =
+    `<tr><th scope="col">Ward</th>` +
+    (hasNames ? `<th scope="col">${esc(label!)}</th>` : '') +
+    (hasAreas ? `<th scope="col">Areas (OpenStreetMap)</th>` : '') +
+    `</tr>`;
   const body = idx.rows
-    .map((r) =>
-      hasNames
-        ? `<tr><td>${esc(r.no)}</td><td>${esc(r.name)}</td></tr>`
-        : `<tr><td>${esc(r.no)}</td></tr>`,
+    .map(
+      (r) =>
+        `<tr><td>${esc(r.no)}</td>` +
+        (hasNames ? `<td>${esc(r.name)}</td>` : '') +
+        (hasAreas ? `<td>${esc((r.areas ?? []).join(', '))}</td>` : '') +
+        `</tr>`,
     )
     .join('');
   const updated = idx.updated ? ` <span class="ward-index__src">Source snapshot: ${esc(idx.updated)}.</span>` : '';
+  // OSM's places are placed in the ward that contains their point; they are a guide for readers, credited to OSM,
+  // and kept out of the layer: its downloads carry only what the source published.
+  const src = idx.areasSource;
+  const osm = hasAreas
+    ? ` <span class="ward-index__src">Areas: places from ${esc(src?.name ?? 'OpenStreetMap contributors')} (${esc(src?.licence ?? 'ODbL-1.0')}), ` +
+      `placed in the ward that contains them${src?.fetched ? `, ${esc(src.fetched)}` : ''}; not part of the ward layer or its downloads.</span>`
+    : '';
   const html =
-    `<table class="ward-index"><caption>${esc(caption)}.${updated}</caption>` +
+    `<table class="ward-index"><caption>${esc(caption)}.${updated}${osm}</caption>` +
     `<thead>${head}</thead><tbody>${body}</tbody></table>`;
-  const jsonLd = hasNames
+  const listed = idx.rows
+    .map((r) => {
+      const parts = [r.name, r.areas?.length ? `${r.areas.join(', ')} (OpenStreetMap)` : ''].filter(Boolean);
+      return parts.length ? { no: r.no, text: parts.join('; ') } : null;
+    })
+    .filter((x): x is { no: string; text: string } => x != null);
+  const jsonLd = hasNames || hasAreas
     ? {
         '@context': 'https://schema.org',
         '@type': 'ItemList',
         name: caption,
         numberOfItems: idx.rows.length,
-        itemListElement: idx.rows.map((r, i) => ({
+        itemListElement: listed.map((r, i) => ({
           '@type': 'ListItem',
           position: i + 1,
-          name: `Ward ${r.no}: ${r.name}`,
+          name: `Ward ${r.no}: ${r.text}`,
         })),
       }
     : null;
