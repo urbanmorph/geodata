@@ -7,7 +7,7 @@
 import { pickFeatureName } from './locate-format';
 import type { LocateConfig } from './locate-config';
 import { escapeHtml } from './util';
-import { shareUrl } from './locate-actions';
+import { shareUrl, skyUrl } from './locate-actions';
 import { blurFocusWithin } from './focus-utils';
 
 type LocateApiResponse = {
@@ -110,7 +110,12 @@ export function openLocate(opts: {
     const actions = '<div class="ls-actions">' +
       (onZoom ? '<button type="button" class="ls-act ls-zoom primary">Zoom to it</button>' : '') +
       '<button type="button" class="ls-act ls-share">Share</button></div>';
-    result(isNearest ? 'Nearest to you' : 'You are here', escapeHtml(name), sub + actions);
+    // a ward you are in: the sky over it now, on mugilu (a link out, opened by the reader)
+    const sky = !isNearest ? skyUrl(layerId, lat, lng) : null;
+    const skyLink = sky
+      ? `<p class="ls-sub ls-sky"><a href="${sky}" target="_blank" rel="noopener">The sky over this ward now · mugilu ↗</a></p>`
+      : '';
+    result(isNearest ? 'Nearest to you' : 'You are here', escapeHtml(name), sub + actions + skyLink);
 
     const zoom = () => onZoom?.(props, zp.lng, zp.lat);
     sheet.querySelector('.ls-zoom')?.addEventListener('click', zoom);

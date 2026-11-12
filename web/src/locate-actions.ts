@@ -21,6 +21,12 @@ export function shareUrl(origin: string, layerId: string, lat: number, lng: numb
   return `${origin}/view/${encodeURIComponent(layerId)}?at=${lat.toFixed(5)},${lng.toFixed(5)}`;
 }
 
+// The sky over a located ward, on mugilu (mugilu.live/c/<lat>,<lng>): ward layers only. The point is rounded to
+// 2 decimals (about 1 km), enough for the air and weather there and no more precise than that.
+export function skyUrl(layerId: string, lat: number, lng: number): string | null {
+  return /^wards_/.test(layerId) ? `https://mugilu.live/c/${lat.toFixed(2)},${lng.toFixed(2)}` : null;
+}
+
 // Parse the ?at=lat,lng deep-link back into coords. Rejects anything outside the
 // India bbox (same gate as the endpoint) so a malformed/hostile param can't
 // drive the map somewhere nonsensical.

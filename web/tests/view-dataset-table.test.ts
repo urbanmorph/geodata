@@ -149,3 +149,34 @@ describe('buildWardTable with OpenStreetMap areas', () => {
     expect(html).toContain('<td>1</td><td>Gota</td><td>Vande Mataram</td>');
   });
 });
+
+// The same place on the sister sites: a ward page links mugilu (the sky over the city now) and yellide (the
+// species of its state), as plain links in the crawler article, so readers and search engines can follow them.
+describe('ward page links to mugilu and yellide', () => {
+  it('a ward layer names its city on mugilu and its state on yellide', () => {
+    const html = buildViewContent(WARD_LAYER, WARD_META, 'https://bharatlas.com', AHMEDABAD);
+    expect(html).toContain('aria-label="Around Ahmedabad"');
+    expect(html).toContain('<a href="https://mugilu.live/c/ahmedabad">Air, heat and warnings in Ahmedabad now (mugilu)</a>');
+    expect(html).toContain('<a href="https://yellide.com/in/gujarat">Species of Gujarat (yellide)</a>');
+  });
+
+  it('a city mugilu has no page for links mugilu\'s page for its centre', () => {
+    const html = buildViewContent({ ...WARD_LAYER, id: 'wards_vijayawada' }, WARD_META, 'https://bharatlas.com', null);
+    expect(html).toMatch(/href="https:\/\/mugilu\.live\/c\/16\.5\d*,80\.6\d*"/);
+    expect(html).toContain('https://yellide.com/in/andhra-pradesh');
+  });
+
+  it('every ward layer in the catalog has its city and state', async () => {
+    const { WARD_PLACES } = await import('../functions/lib/ward-places');
+    const { readFileSync } = await import('node:fs');
+    const cat = JSON.parse(readFileSync(new URL('../../catalog.json', import.meta.url), 'utf8'));
+    const ids = cat.layers.map((l: { id: string }) => l.id).filter((id: string) => id.startsWith('wards_'));
+    expect(ids.filter((id: string) => !WARD_PLACES[id])).toEqual([]);
+  });
+
+  it('a layer that is not a ward map gets no such links', () => {
+    const html = buildViewContent(NON_WARD, { label: 'Districts', unit: 'districts' }, 'https://bharatlas.com', null);
+    expect(html).not.toContain('mugilu.live');
+    expect(html).not.toContain('yellide.com');
+  });
+});
