@@ -177,6 +177,8 @@ def areas_by_ward(con, pq: Path, no_col: str, pts: list[dict]) -> dict[str, list
     """OSM place names per ward number: each place goes to the ward whose polygon contains its point; suburbs
     first, then quarters, then neighbourhoods, each A to Z; a name once per ward; at most MAX_AREAS."""
     import fetch_osm_areas
+    if not pts:
+        return {}
     con.execute('INSTALL spatial; LOAD spatial;')
     geom = next(c for c, t, *_ in con.execute(f"DESCRIBE SELECT * FROM '{pq}'").fetchall() if str(t).startswith('GEOMETRY'))
     con.execute('CREATE OR REPLACE TEMP TABLE osm_pts (name VARCHAR, kind VARCHAR, lon DOUBLE, lat DOUBLE)')
@@ -219,6 +221,9 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
     cols = [r[0] for r in con.execute(f"DESCRIBE SELECT * FROM '{pq}'").fetchall()]
 
     by_no: dict[str, str] = {}
+    # Which column holds the ward number (and, where it sits inside a name, how to read it), so the view can find
+    # a located ward's row: the "My ward" sheet titles it by number (web/src/locate-format.ts wardTitle).
+    number = {}
     if layer_id in PARSE_WARD_NAME:
         # Number and name packed into one column, e.g. "Ward 91 Khairatabad".
         src_col, label = PARSE_WARD_NAME[layer_id]
@@ -227,6 +232,7 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
         if not col:
             print(f'  {layer_id}: parse column {src_col!r} absent — skipped')
             return None
+        number = {'numberCol': col, 'numberFrom': PARSE_RE.pattern}
         for (val,) in con.execute(f'SELECT "{col}" FROM \'{pq}\'').fetchall():
             m = PARSE_RE.match(clean(val))
             if not m:
@@ -239,6 +245,7 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
         if not no_col:
             print(f'  {layer_id}: no ward-number column found — skipped')
             return None
+        number = {'numberCol': no_col}
         if not name_col:
             osm = osm_areas(con, layer_id, pq, no_col)
             if not osm:
@@ -250,7 +257,7 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
             print(f'  {layer_id}: number-only source; OSM areas for {sum(1 for r in rows if r["areas"])} of {len(rows)} wards')
             return {'id': layer_id, 'place': place_name(layer_id, level_meta),
                     'updated': (layer.get('fetched_at') or '')[:10] or None,
-                    'nameLabel': None, 'rows': rows, 'areasSource': credit}
+                    'nameLabel': None, 'rows': rows, 'areasSource': credit, **number}
         raw = con.execute(f'SELECT "{no_col}" AS no, "{name_col}" AS name FROM \'{pq}\'').fetchall()
         for no_v, name_v in raw:
             no, name = clean(no_v), real_name(clean(name_v))
@@ -272,6 +279,7 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
         'updated': updated,
         'nameLabel': label,
         'rows': rows,
+        **number,
     }
 
 

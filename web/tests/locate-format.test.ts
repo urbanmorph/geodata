@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { pickFeatureName } from '../src/locate-format';
+import { pickFeatureName, wardTitle } from '../src/locate-format';
 
 // The locate result sheet needs a human title out of a generic feature's
 // properties (column names vary per layer). pickFeatureName is best-effort:
@@ -45,5 +45,39 @@ describe('pickFeatureName', () => {
   it('returns a sane fallback for an empty / unnamed feature', () => {
     expect(pickFeatureName({})).toBe('Found');
     expect(pickFeatureName({ OBJECTID: 7 })).toBe('Found');
+  });
+});
+
+// A located ward is titled by its number, from the city's ward-index sidecar (which column holds the number, and
+// for "Ward 91 Khairatabad" values how to read it), with the layer's own name or the OSM areas under it.
+describe('wardTitle', () => {
+  const JAIPUR = { numberCol: 'wardcode', nameLabel: null,
+    rows: [{ no: '102', name: '', areas: ['Malviya Nagar', 'Jawahar Nagar'] }, { no: '5', name: '', areas: [] }] };
+  const AHMEDABAD = { numberCol: 'sourcewardcode', nameLabel: 'Area', rows: [{ no: '22', name: 'India colony' }] };
+  const HYDERABAD = { numberCol: 'Name', numberFrom: '^ward\\s+(\\d+)', nameLabel: 'Area', rows: [{ no: '91', name: 'Khairatabad' }] };
+  const PATNA = { numberCol: 'wardname', nameLabel: null, rows: [{ no: 'Ward 22C', name: '', areas: [] }] };
+
+  it('titles the ward by its number, not the town that also carries a name', () => {
+    expect(wardTitle({ townname: 'Greater Jaipur', ward_lgd_name: 'Jaipur (M Corp.) (Part) - Ward No.102', wardcode: 102 }, JAIPUR))
+      .toEqual({ title: 'Ward 102', sub: 'Areas (OpenStreetMap): Malviya Nagar, Jawahar Nagar' });
+    expect(wardTitle({ wardcode: 5 }, JAIPUR)).toEqual({ title: 'Ward 5', sub: '' });
+  });
+
+  it('gives the layer\'s own name, read the Hyderabad way where the number sits in a name', () => {
+    expect(wardTitle({ sourcewardcode: 22, sourcewardname: 'India colony' }, AHMEDABAD)).toEqual({ title: 'Ward 22', sub: 'India colony' });
+    expect(wardTitle({ Name: 'Ward 91 Khairatabad' }, HYDERABAD)).toEqual({ title: 'Ward 91', sub: 'Khairatabad' });
+    expect(wardTitle({ wardname: 'Ward 22C' }, PATNA)).toEqual({ title: 'Ward 22C', sub: '' });
+  });
+
+  it('without a sidecar, or a number it cannot place, it gives way to the generic picker', () => {
+    expect(wardTitle({ wardcode: 102 }, null)).toBeNull();
+    expect(wardTitle({ other: 1 }, JAIPUR)).toBeNull();
+  });
+});
+
+describe('pickFeatureName skips a town, city or corporation name and corporation strings', () => {
+  it('takes the ward number over "Greater Jaipur" and "Jaipur (M Corp.) (Part) - Ward No.102"', () => {
+    expect(pickFeatureName({ townname: 'Greater Jaipur', ward_lgd_name: 'Jaipur (M Corp.) (Part) - Ward No.102', wardcode: 102 })).toBe('Ward 102');
+    expect(pickFeatureName({ ulbname: 'Patna', wardname: 'Ward 7' })).toBe('Ward 7');
   });
 });
