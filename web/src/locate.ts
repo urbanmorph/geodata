@@ -4,7 +4,7 @@
 // actions. The sheet is governed by the single-open overlay controller (scrim +
 // close), so this module only owns its own content.
 
-import { pickFeatureName } from './locate-format';
+import { pickFeatureName, wardTitle, type WardSidecar } from './locate-format';
 import type { LocateConfig } from './locate-config';
 import { escapeHtml } from './util';
 import { shareUrl, skyUrl } from './locate-actions';
@@ -75,6 +75,12 @@ export function openLocate(opts: {
 
   async function run(lat: number, lng: number, autoZoom: boolean) {
     stopPulse();
+    // A ward map's sidecar says which column holds the ward number, its name and its OpenStreetMap areas, so the
+    // sheet titles a ward "Ward 102" (not the town its feature also names). Fetched alongside the lookup; none for
+    // other layers, and a missing one just leaves the generic title.
+    const sidecar: Promise<WardSidecar | null> = /^wards_/.test(layerId)
+      ? fetch(`/ward-index/${encodeURIComponent(layerId)}.json`).then((x) => (x.ok ? (x.json() as Promise<WardSidecar>) : null)).catch(() => null)
+      : Promise.resolve(null);
     try {
       const r = await fetch(
         `/api/v1/layers/${encodeURIComponent(layerId)}/locate?lat=${lat}&lng=${lng}&mode=${config.mode}`,
@@ -86,13 +92,13 @@ export function openLocate(opts: {
         return;
       }
       if (!r.ok) throw new Error(String(r.status));
-      renderResult((await r.json()) as LocateApiResponse, lat, lng, autoZoom);
+      renderResult((await r.json()) as LocateApiResponse, lat, lng, autoZoom, await sidecar);
     } catch {
       render(msg("Couldn't look that up — try again."));
     }
   }
 
-  function renderResult(data: LocateApiResponse, lat: number, lng: number, autoZoom: boolean) {
+  function renderResult(data: LocateApiResponse, lat: number, lng: number, autoZoom: boolean, sidecar: WardSidecar | null) {
     const isNearest = data.mode === 'nearest';
     if (!data.feature) {
       result(isNearest ? 'Nothing nearby' : 'Not found', "You're outside this layer's area",
@@ -100,10 +106,12 @@ export function openLocate(opts: {
       return;
     }
     const props = data.feature.properties;
-    const name = pickFeatureName(props);
-    const sub = isNearest && data.distance_km != null
+    const ward = wardTitle(props, sidecar);
+    const name = ward?.title ?? pickFeatureName(props);
+    const wardSub = ward?.sub ? `<p class="ls-sub">${escapeHtml(ward.sub)}</p>` : '';
+    const sub = wardSub + (isNearest && data.distance_km != null
       ? `<p class="ls-sub"><span class="ls-dist">${data.distance_km} km${data.bearing ? ' ' + escapeHtml(data.bearing) : ''}</span></p>`
-      : '';
+      : '');
     // Zoom target: the feature for nearest (it's elsewhere); the user for
     // contains (they're inside it).
     const zp = isNearest && data.feature_point ? data.feature_point : { lat, lng };

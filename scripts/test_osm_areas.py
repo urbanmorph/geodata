@@ -103,3 +103,12 @@ def test_junk_names_are_dropped_and_numbers_in_names_sort_as_numbers(two_wards):
            for n in ("friend's house", "meow's hose", 'Sector 10', 'Sector 2', 'Sector 11', 'RBI staff quarter')]
     assert w.areas_by_ward(con, pq, 'ward_no', pts) == {'1': ['RBI staff quarter', 'Sector 2', 'Sector 10', 'Sector 11']}
     assert f.junk("friend's house") and f.junk('a place') and not f.junk("St. Mary's Colony") and not f.junk('Sector 2')
+
+
+def test_the_sidecar_says_which_column_holds_the_ward_number(two_wards, tmp_path, monkeypatch):
+    con, pq = two_wards
+    (tmp_path / 'wards_test.json').write_text(json.dumps({'fetched': '2026-11-12', 'elements': []}))
+    monkeypatch.setattr(w, 'OSM_CACHE', tmp_path)
+    monkeypatch.setitem(w.OVERRIDES, 'wards_test', ('ward_no', None, None))
+    monkeypatch.setattr(w, 'find_parquet', lambda layer: pq)
+    assert w.build_one(con, {'id': 'wards_test'}, {})['numberCol'] == 'ward_no'
