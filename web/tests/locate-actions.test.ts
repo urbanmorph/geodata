@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildFeatureFilter, shareUrl, parseAtParam } from '../src/locate-actions';
+import { buildFeatureFilter, shareUrl, parseAtParam, skyUrl } from '../src/locate-actions';
 
 describe('buildFeatureFilter', () => {
   it('matches a feature on all its scalar properties', () => {
@@ -41,5 +41,14 @@ describe('parseAtParam', () => {
     expect(parseAtParam('abc,def')).toBeNull();
     expect(parseAtParam('51.5,-0.12')).toBeNull(); // London, outside India bbox
     expect(parseAtParam('12.9716,77.5946,5')).toBeNull();
+  });
+});
+
+describe('skyUrl: the sky over a located ward, on mugilu', () => {
+  it('a ward layer links mugilu\'s page for the point, rounded to about 1 km', () => {
+    expect(skyUrl('wards_jaipur', 26.912345, 75.787654)).toBe('https://mugilu.live/c/26.91,75.79');
+  });
+  it('other layers get no link', () => {
+    expect(skyUrl('lgd_districts', 26.9, 75.8)).toBeNull();
   });
 });

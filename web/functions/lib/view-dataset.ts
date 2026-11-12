@@ -1,3 +1,4 @@
+import { WARD_PLACES, mugiluUrl, yellideUrl } from './ward-places';
 // Pure builder for the /view/<id> page's per-layer meta + Dataset JSON-LD.
 // Extracted from functions/view/[id].ts so the description-length rule
 // (Google Dataset Search requires ≥50 chars) is unit-testable.
@@ -363,6 +364,16 @@ function renderWardCrosslinks(currentId: string): string {
   return `<nav class="view-seo__wards" aria-label="Ward maps for other cities"><p>Ward maps for other cities: ${links.join(' · ')}</p></nav>`;
 }
 
+// The same place on the sister sites: the sky over the city now (mugilu) and the species of its state (yellide).
+// Plain links, so readers and search engines follow them.
+function renderAround(layerId: string): string {
+  const p = WARD_PLACES[layerId];
+  if (!p) return '';
+  return `<nav class="view-seo__around" aria-label="Around ${esc(p.city)}"><p>Around ${esc(p.city)}: ` +
+    `<a href="${esc(mugiluUrl(p))}">Air, heat and warnings in ${esc(p.city)} now (mugilu)</a> · ` +
+    `<a href="${esc(yellideUrl(p))}">Species of ${esc(p.stateName)} (yellide)</a></p></nav>`;
+}
+
 export function buildViewContent(
   layer: CatalogLayer,
   levelMeta: LevelMeta | undefined,
@@ -390,6 +401,7 @@ export function buildViewContent(
   const isWard = /^wards_/.test(layer.id);
   const wardTable = isWard ? buildWardTable(wardIndex).html : '';
   const crosslinks = isWard ? renderWardCrosslinks(layer.id) : '';
+  const around = isWard ? renderAround(layer.id) : '';
 
   // Colors/layout live in the .view-seo CSS in index.template.html (theme-aware
   // via tokens) — NOT inline hex, which fails contrast in dark mode and gives
@@ -401,6 +413,7 @@ export function buildViewContent(
   ${desc ? `<p>${esc(desc)}</p>` : ''}
   ${downloads.length ? `<p>Download: ${downloads.join(' · ')}</p>` : ''}
   ${wardTable}
+  ${around}
   <p>View this layer on an interactive map at <a href="${esc(origin)}/view/${esc(layer.id)}">${esc(origin)}/view/${esc(layer.id)}</a>. Filter by what the data contains and export as Parquet, GeoJSON, or KML.</p>
   ${crosslinks}
   <p><a href="/">Browse all layers on bharatlas</a></p>
