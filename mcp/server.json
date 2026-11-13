@@ -4,18 +4,42 @@
   "title": "bharatlas",
   "description": "Query India's open geo data, and author collect maps: register a link, moderate, publish.",
   "websiteUrl": "https://bharatlas.com",
-  "repository": { "url": "https://github.com/urbanmorph/geodata", "source": "github", "subfolder": "mcp" },
+  "repository": {
+    "url": "https://github.com/urbanmorph/geodata",
+    "source": "github",
+    "subfolder": "mcp"
+  },
   "icons": [
-    { "src": "https://bharatlas.com/favicon.svg", "mimeType": "image/svg+xml", "sizes": ["any"] },
-    { "src": "https://bharatlas.com/apple-touch-icon.png", "mimeType": "image/png", "sizes": ["180x180"] }
+    {
+      "src": "https://bharatlas.com/favicon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
+    },
+    {
+      "src": "https://bharatlas.com/apple-touch-icon.png",
+      "mimeType": "image/png",
+      "sizes": [
+        "180x180"
+      ]
+    }
   ],
-  "version": "1.3.1",
+  "version": "1.4.0",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "bharatlas-mcp",
-      "version": "1.3.0",
-      "transport": { "type": "stdio" }
+      "version": "1.4.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ],
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://bharatlas.com/mcp"
     }
   ]
 }

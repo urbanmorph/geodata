@@ -6,7 +6,9 @@ bharatlas is a visual catalog, REST API, and MCP server for India's geospatial d
 
 ## MCP server
 
-Install: `npx bharatlas-mcp@latest`
+Hosted (no install, the 8 query tools, read-only): https://bharatlas.com/mcp (Streamable HTTP). Claude Code: `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`
+
+Install (all 17 tools, including collect authoring): `npx bharatlas-mcp@latest`
 
 17 tools. Query (8): list_layers, get_layer_schema, query_layer, locate, nearby, get_layer_detail, list_categories, list_submissions. Authoring collect maps (9): register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish, create_map (optional).
 

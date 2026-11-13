@@ -91,7 +91,15 @@ The files are served from Cloudflare R2. `GET /api/v1/layers/<id>` returns the U
 
 ## Use it from an AI assistant (MCP)
 
-`bharatlas-mcp` is a stdio MCP server published on [npm](https://www.npmjs.com/package/bharatlas-mcp) and in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.sathya-sankaran/bharatlas-mcp) as `io.github.sathya-sankaran/bharatlas-mcp` (v1.3.0). It is also listed on [Glama](https://glama.ai/mcp/servers/urbanmorph/geodata). Read tools need no key; collect tools act only on maps whose share link you register.
+`bharatlas-mcp` is a stdio MCP server published on [npm](https://www.npmjs.com/package/bharatlas-mcp) and in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.sathya-sankaran/bharatlas-mcp) as `io.github.sathya-sankaran/bharatlas-mcp` (v1.4.0). It is also listed on [Glama](https://glama.ai/mcp/servers/urbanmorph/geodata). Read tools need no key; collect tools act only on maps whose share link you register.
+
+**Hosted, nothing to install.** The eight read tools also run at `https://bharatlas.com/mcp` (Streamable HTTP, no key, read-only). Add it as a custom connector in Claude.ai or ChatGPT, or:
+
+```bash
+claude mcp add --transport http bharatlas https://bharatlas.com/mcp
+```
+
+The collect (authoring) tools need the npm package below, which keeps share links on your machine.
 
 **Any MCP client.** Add this to the client's config:
 
