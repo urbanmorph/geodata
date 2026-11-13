@@ -2,7 +2,12 @@
   "name": "bharatlas",
   "description": "India's open atlas. Query geo layers (locate, filter, nearby, download), and author your own maps with collect.",
   "url": "https://bharatlas.com",
-  "version": "1.3.0",
+  "version": "1.4.0",
+  "remote": {
+    "url": "https://bharatlas.com/mcp",
+    "transport": "streamable-http",
+    "tools": "read-only (the eight query tools)"
+  },
   "server": {
     "command": "npx",
     "args": ["-y", "bharatlas-mcp@latest"],

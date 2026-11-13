@@ -7,6 +7,8 @@ Ask questions about India's geo data in natural language. This MCP server connec
 
 ## Install
 
+No install needed for the eight read tools: they also run hosted at `https://bharatlas.com/mcp` (Streamable HTTP, read-only), e.g. `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`. Install this package for all 17 tools, including collect authoring.
+
 Add to your MCP client config:
 
 ```json
