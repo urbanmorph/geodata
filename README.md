@@ -12,6 +12,7 @@ India's open geo data in one place: browse, filter and download curated layers, 
 [![npm: bharatlas-mcp](https://img.shields.io/npm/v/bharatlas-mcp?label=bharatlas-mcp&color=indigo)](https://www.npmjs.com/package/bharatlas-mcp)
 [![MCP Registry](https://img.shields.io/badge/MCP%20Registry-io.github.sathya--sankaran%2Fbharatlas--mcp-blue)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.sathya-sankaran/bharatlas-mcp)
 [![bharatlas MCP server: tool definition quality on Glama](https://glama.ai/mcp/servers/urbanmorph/geodata/badges/score.svg)](https://glama.ai/mcp/servers/urbanmorph/geodata)
+[![bharatlas MCP server on mcptry](https://mcptry.com/badge/io.github.sathya-sankaran/bharatlas-mcp)](https://mcptry.com/servers/io.github.sathya-sankaran/bharatlas-mcp)
 
 **Live:** [bharatlas.com](https://bharatlas.com) · map authoring at [collect.bharatlas.com](https://collect.bharatlas.com) · API docs at [bharatlas.com/docs](https://bharatlas.com/docs) · MCP setup at [bharatlas.com/mcp](https://bharatlas.com/mcp)
 
