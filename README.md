@@ -14,6 +14,7 @@ India's open geo data in one place: browse, filter and download curated layers, 
 [![bharatlas MCP server: tool definition quality on Glama](https://glama.ai/mcp/servers/urbanmorph/geodata/badges/score.svg)](https://glama.ai/mcp/servers/urbanmorph/geodata)
 [![bharatlas MCP connector: tool definition quality and endpoint health on Glama](https://glama.ai/mcp/connectors/io.github.sathya-sankaran/bharatlas-mcp/badges/score.svg)](https://glama.ai/mcp/connectors/io.github.sathya-sankaran/bharatlas-mcp)
 [![bharatlas MCP server on mcptry](https://mcptry.com/badge/io.github.sathya-sankaran/bharatlas-mcp)](https://mcptry.com/servers/io.github.sathya-sankaran/bharatlas-mcp)
+[![Listed on mcpservers.org](https://mcpservers.org/badge.svg)](https://mcpservers.org/servers/urbanmorph/geodata)
 
 **Live:** [bharatlas.com](https://bharatlas.com) · map authoring at [collect.bharatlas.com](https://collect.bharatlas.com) · API docs at [bharatlas.com/docs](https://bharatlas.com/docs) · MCP setup at [bharatlas.com/mcp](https://bharatlas.com/mcp)
 
