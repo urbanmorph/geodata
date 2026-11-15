@@ -111,6 +111,8 @@ ATTR = {
     # alongside OpenCity / DataMeet / datta07.
     'ramSeraph':     {'name': 'ramSeraph/indianopenmaps',     'url': 'https://github.com/ramSeraph/indianopenmaps'},
     # New primary upstream sources unlocked by the v2 ingest plan.
+    'NHP':           {'name': 'National Health Portal (MoHFW)', 'url': 'https://www.data.gov.in/'},
+    'UDISE':         {'name': 'UDISE+ (Ministry of Education), mapped by NCOG', 'url': 'https://udiseplus.gov.in/'},
     'SBM':           {'name': 'Swachh Bharat Mission (Urban), MoHUA', 'url': 'https://sbmurban.org/'},
     'VEDAS':         {'name': 'ISRO VEDAS Energymap',         'url': 'https://vedas.sac.gov.in/energymap/'},
     'SLUSI':         {'name': 'SLUSI (Soil & Land Use Survey of India)', 'url': 'https://slusi.dacnet.nic.in/'},

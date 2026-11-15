@@ -122,3 +122,73 @@ def test_shapefile_zip_is_byte_identical_across_runs(tmp_path, monkeypatch):
     time.sleep(2.1)  # zip timestamps have 2-second resolution
     second = ir.bake_whole_layer(_ds(), src)['shapefile'].read_bytes()
     assert first == second
+
+
+def test_facilities_batch_layers_are_defined_with_traced_licences():
+    # Hospitals trace to data.gov.in (GODL); schools' original (NCOG) states
+    # no terms, so the compiler's CC0 applies. All formats, named Placemarks.
+    by_id = {d.id: d for d in ir.DATASETS}
+    expect = {
+        'nhp_hospitals': ('GODL-India', 'Hospital_Name', 'health-edu'),
+        'nin_health_facilities': ('GODL-India', 'health_facility_name', 'health-edu'),
+        'udise_schools': ('CC0-1.0', 'school_nam', 'health-edu'),
+    }
+    for lid, (lic, name_field, cat) in expect.items():
+        d = by_id[lid]
+        assert (d.license, d.kml_name_field, d.category) == (lic, name_field, cat)
+        assert d.bake_all_formats and 'ramSeraph' in d.notes
+    # Held: traceable originals whose terms require permission.
+    for held in ('rbi_bank_branches', 'postal_post_offices', 'ir_stations', 'ir_tracks'):
+        assert held not in by_id
+
+
+def _two_state_parquet(tmp_path: Path) -> Path:
+    p = tmp_path / 'Schools.parquet'
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    con.execute(
+        "COPY (SELECT * FROM (VALUES ('A School', 'KERALA', ST_Point(76.2, 10.5)), "
+        "('B School', 'KERALA', ST_Point(76.3, 10.6)), ('C School', 'BIHAR', ST_Point(85.1, 25.6))) "
+        f"t(school_nam, state_name, geometry)) TO '{p}' (FORMAT PARQUET)"
+    )
+    return p
+
+
+def test_shapefile_split_by_state_keeps_every_feature(tmp_path, monkeypatch):
+    # UDISE's single .dbf was 5.8 GB; most GIS tools refuse a .dbf over 2 GB.
+    import zipfile
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    out = ir.bake_whole_layer(_ds({'shp_split_by': 'state_name'}), _two_state_parquet(tmp_path))
+    names = sorted(zipfile.ZipFile(out['shapefile']).namelist())
+    shps = [n for n in names if n.endswith('.shp')]
+    assert shps == ['Test_bihar.shp', 'Test_kerala.shp']  # named from the release file
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    total = sum(con.execute(f"select count(*) from ST_Read('/vsizip/{out['shapefile']}/{s}')").fetchone()[0] for s in shps)
+    assert total == 3
+
+
+def test_a_dbf_over_the_limit_drops_the_shapefile(tmp_path, monkeypatch):
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    monkeypatch.setattr(ir, 'DBF_MAX_BYTES', 10)  # every .dbf is "too big"
+    out = ir.bake_whole_layer(_ds(), _two_state_parquet(tmp_path))
+    assert 'shapefile' not in out and {'geojson', 'kml'} <= set(out)
+
+
+def test_rebake_is_byte_identical_with_hilbert_ties(tmp_path):
+    # UDISE has many schools at the same point: equal Hilbert keys sorted in
+    # parallel came out in a different order each run, so every re-run
+    # re-uploaded about 6.7 GB. Ties must break on the source row order.
+    import hashlib
+    src = tmp_path / 'ties.parquet'
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial; SET threads = 8')
+    con.execute(
+        "COPY (SELECT i AS id, ST_Point(76 + (i % 50) / 100.0, 10 + (i % 50) / 100.0) AS geometry "
+        f"FROM range(400000) t(i)) TO '{src}' (FORMAT PARQUET)")
+    digests = set()
+    for run in range(3):
+        dst = tmp_path / f'out{run}.parquet'
+        ir.rebake_flatten_bbox(src, dst)
+        digests.add(hashlib.md5(dst.read_bytes()).hexdigest())
+    assert len(digests) == 1
