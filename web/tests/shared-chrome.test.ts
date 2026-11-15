@@ -9,12 +9,11 @@ describe('TOKENS', () => {
     expect(TOKENS).toContain('--fs-display: 36px');
   });
 
-  it('uses a WCAG-AA indigo accent in both modes', () => {
-    // Light accent darkened #6366f1 -> #4f46e5 so link/button text clears 4.5:1
-    // (diverges from mdshare's #6366f1; see contrast.test.ts for the proof).
-    // Dark accent #818cf8 already passes as text on #0a0a0a.
-    expect(TOKENS).toContain('--accent: #4f46e5');
-    expect(TOKENS).toContain('--accent: #818cf8'); // dark-mode variant
+  it('takes its colours from the brand module (navy links, saffron buttons)', () => {
+    // Contrast is proven in contrast.test.ts and brand.test.ts.
+    expect(TOKENS).toContain('--accent: #1A2A6C');
+    expect(TOKENS).toContain('--accent-fill: #F28C28');
+    expect(TOKENS).toContain('--accent: #F5A04A'); // dark-mode variant
   });
 
   it('declares dark-mode surface tokens that match mdshare bg/fg', () => {
@@ -30,16 +29,17 @@ describe('TOKENS', () => {
     expect(TOKENS).toContain('.site-header');
     expect(TOKENS).toContain('.site-nav');
     expect(TOKENS).toContain('.site-footer');
-    expect(TOKENS).toContain('.site-brand .mark-accent');
+    expect(TOKENS).toContain('.site-brand .brand-mark');
   });
 });
 
 describe('renderNav', () => {
-  it('emits the bharatlas wordmark with the "atlas" suffix accented (semantic root)', () => {
+  it('emits the logo mark and the whole-word bharatlas wordmark', () => {
     const html = renderNav('catalog');
     expect(html).toContain('<a class="site-brand"');
-    expect(html).toContain('bhar<span class="mark-accent">atlas</span>');
-    expect(html).toContain("India's open atlas");
+    expect(html).toContain('class="brand-mark"');
+    expect(html).toContain('<span class="brand-name">bharatlas</span>');
+    expect(html).toContain('India&#39;s open atlas');
   });
 
   it('marks the active link with data-active', () => {

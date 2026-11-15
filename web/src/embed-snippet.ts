@@ -20,6 +20,11 @@ export function isViewPath(pathname: string): { view: true; layerId: string } | 
 // tab title also has to flip back from the per-layer "lgd states · bharatlas"
 // (injected by the /view/<id> edge function via HTMLRewriter) to the home
 // title. Returns the new title to apply, or null if no change is needed.
+/** The catalog shows on load only on the home page; /view and /embed open the map over it. */
+export function catalogVisibleOnLoad(pathname: string): boolean {
+  return !isViewPath(pathname).view && !isEmbedPath(pathname).embed;
+}
+
 export function titleAfterCloseMap(pathname: string, hash: string, homeTitle: string): string | null {
   if (hash.startsWith('#view/')) return homeTitle;
   if (isViewPath(pathname).view) return homeTitle;

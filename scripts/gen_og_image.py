@@ -7,8 +7,8 @@ Workflow:
      country polygon via DuckDB-spatial (ST_Union + ST_Simplify).
   2. Project lon/lat to SVG coords with a manual equirectangular fit
      centred on India.
-  3. Compose the SVG (indigo bg, India outline at low opacity,
-     "bhar*atlas*" wordmark, tagline, footer line).
+  3. Compose the SVG (chakra-navy bg, saffron India outline at low
+     opacity, the three-layer mark, "bharatlas" wordmark, tagline, footer).
   4. Render to PNG via headless Chromium (web/scripts/render_og.mjs).
 
 Run:
@@ -28,7 +28,7 @@ OUT_DIR = ROOT / 'web' / 'public'
 CANVAS_W, CANVAS_H = 1200, 630
 
 # One variant per page. Same wordmark + India silhouette; only the
-# sub-tagline differs. The page's seoHead() picks which file to point at.
+# sub-tagline differs. prerender.mjs's seoHead() picks which file to point at.
 VARIANTS = [
     {
         'name': 'og-default',          # home / index / fallback
@@ -50,11 +50,10 @@ VARIANTS = [
     },
 ]
 
-# Brand tokens — mirrored from web/scripts/shared-chrome.mjs CSS vars.
-INDIGO_BG = '#4338ca'        # bg-accent darker (accent-strong) for contrast
-INDIGO_OUTLINE = '#a5b4fc'   # tint of accent for the India watermark
-FG_LIGHT = '#f5f3ff'         # near-white wordmark + tagline
-ACCENT_MARK = '#fbbf24'      # warm amber for "atlas" — high contrast vs indigo
+# Brand colours, mirrored from shared/brand.mjs (PALETTE).
+NAVY_BG = '#13265A'          # gradient end; starts at chakra navy #0B1B3F
+SAFFRON = '#F28C28'          # India watermark
+FG_LIGHT = '#FFFFFF'         # wordmark + tagline
 
 
 def dissolve_india() -> str:
@@ -141,8 +140,8 @@ SVG_TMPL = """<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#312e81"/>
-      <stop offset="100%" stop-color="{indigo}"/>
+      <stop offset="0%" stop-color="#0B1B3F"/>
+      <stop offset="100%" stop-color="{navy}"/>
     </linearGradient>
   </defs>
   <rect width="{w}" height="{h}" fill="url(#bg)"/>
@@ -151,15 +150,21 @@ SVG_TMPL = """<?xml version="1.0" encoding="UTF-8"?>
        Filled at low opacity + thin stroke reads as a watermark; the
        outline-only version was too faint to show the Himalayan arc. -->
   <g>
-    <path d="{path}" fill="{outline}" fill-opacity="0.22" fill-rule="evenodd"
-          stroke="{outline}" stroke-opacity="0.5" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="{path}" fill="#FFFFFF" fill-opacity="0.06" fill-rule="evenodd"
+          stroke="{outline}" stroke-opacity="0.85" stroke-width="2" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Logo mark: three map layers in saffron, white and India green (shared/brand.mjs). -->
+  <g transform="translate(643,96) scale(2)">
+    <path d="M20 22 L36 30 L20 38 L4 30 Z" fill="#12804A"/>
+    <path d="M20 14 L36 22 L20 30 L4 22 Z" fill="#FFFFFF" stroke="#0B1B3F" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M20 4 L36 12 L20 20 L4 12 Z" fill="#F28C28"/>
   </g>
 
   <!-- Wordmark + tagline, right-aligned column -->
   <g font-family="ui-sans-serif, -apple-system, 'Segoe UI', system-ui, sans-serif">
-    <!-- Single text element so "bhar" + "atlas" flow inline; tspan
-         only changes the colour, x position auto-advances. -->
-    <text x="640" y="305" font-size="120" font-weight="800" letter-spacing="-3" fill="{fg}">bhar<tspan fill="{accent}">atlas</tspan></text>
+    <!-- One word, one colour: the colour lives in the mark. -->
+    <text x="640" y="305" font-size="120" font-weight="800" letter-spacing="-3" fill="{fg}">bharatlas</text>
 
     <!-- Tagline -->
     <text x="643" y="360" font-size="32" font-weight="500" fill="{fg}" opacity="0.94">{tagline}</text>
@@ -213,10 +218,9 @@ def main() -> None:
     for v in VARIANTS:
         svg = SVG_TMPL.format(
             w=CANVAS_W, h=CANVAS_H,
-            indigo=INDIGO_BG,
-            outline=INDIGO_OUTLINE,
+            navy=NAVY_BG,
+            outline=SAFFRON,
             fg=FG_LIGHT,
-            accent=ACCENT_MARK,
             path=path_d,
             tagline=v['tagline'],
             sub=v['sub'],

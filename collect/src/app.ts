@@ -5,14 +5,12 @@
 import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { buildBaseStyle, setBasemap, getStoredBasemap, setStoredBasemap, normalizeBasemap, BASEMAPS, INDIA_CENTER, type BasemapId } from './basemap';
-import { addReferenceOverlay, setReferenceVisible } from './geo/reference';
 import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, api, apiJson, jsonWithOfflineCopy, loadErrorText, ApiError, type Ctx } from './api';
-import { mountSchemaBuilder, type BuilderField } from './schema-builder';
-import { summarizeErrors } from './import/check';
-import { importReport, importReportHtml, importInChunks, type ImportReply } from './import/report';
+import type { BuilderField } from './schema-builder';
+import type { ImportReply } from './import/report';
 import { basemapOfflineNote, isConnectionError } from './offline-notes';
 import { savePoint, queuedFor, discardQueued, sendQueued, sendWhenOnline, OUTBOX_CHANGED, type Saved, type OutboxChange } from './send-queue';
 import { validateRecordProperties, type Field } from './schema/validate-record';
@@ -21,9 +19,9 @@ import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
 import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen } from './review';
 import { escapeHtml, downloadText } from './util';
-import { toGeoJSON, toCSV, toKML, type ExportFeature } from './export/formats';
-import { detectFormat, parseImport, type Parsed } from './import/parse';
-import { autoMapping, buildRecords, errorsToCSV, type Mapping } from './import/build';
+import type { ExportFeature } from './export/formats';
+import type { Parsed } from './import/parse';
+import type { Mapping } from './import/build';
 import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
 import { fitsLocalPicker } from './schema/dates';
@@ -43,6 +41,8 @@ import { mountPhotoField, authedSrc, openViewer, type PhotoField, type PhotoFiel
 import { newClientId } from './outbox';
 import { uploadPhoto } from './send-queue';
 import { aiNotesHtml, type Notes } from './review-ai';
+import { PALETTE } from '../../shared/brand.mjs';
+import { fetchAllPages } from './paging';
 import './register-sw';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
@@ -58,7 +58,7 @@ let ctx: Ctx;
 
 // Draw state (Phase 4). Points use the map centre; lines/polygons collect
 // vertices by panning the crosshair and tapping "+ vertex".
-const ACCENT = '#4f46e5';
+const ACCENT = PALETTE.navyLink; // brand navy: reads on the light basemap, distinct from pending amber
 const TAP_PX = 14; // a tap counts for a point this close (fingertip, not cursor)
 
 // The map screen is an app surface: a pinch zooms the map, never the page. iPad
@@ -118,9 +118,9 @@ const pendingPins = new Map<string, maplibregl.Marker>(); // client_id → its g
 
 // A point (or shape) on the map; a queued point gets a grey pin until it's sent.
 function pin(geometry: GeoJSON.Geometry, queuedAs?: string): void {
-  if (geometry.type !== 'Point') return addRecordShape(geometry);
-  const m = marker(geometry.coordinates, queuedAs ? PENDING : ACCENT);
-  if (queuedAs && m) pendingPins.set(queuedAs, m);
+  if (geometry.type !== 'Point' || !queuedAs) return addRecordShape(geometry);
+  const m = marker(geometry.coordinates, PENDING);
+  if (m) pendingPins.set(queuedAs, m);
 }
 
 async function showQueued(): Promise<void> {
@@ -136,7 +136,7 @@ function settlePins({ sent, discarded }: OutboxChange): void {
     pendingPins.delete(client_id);
     const { lng, lat } = grey.getLngLat();
     grey.remove();
-    marker([lng, lat]);
+    addRecordShape({ type: 'Point', coordinates: [lng, lat] });
   }
   for (const id of discarded) {
     pendingPins.get(id)?.remove();
@@ -316,7 +316,11 @@ async function boot(): Promise<void> {
   map.on('load', () => {
     document.getElementById('maploading')?.remove();
     if (!isView && allowsShapes) setupDrawLayers();
-    if (meta.schema.reference_layer) void addReferenceOverlay(map, meta.schema.reference_layer.pmtiles_url).catch(() => {});
+    // Loaded only when the form has a reference layer (it pulls in pmtiles).
+    if (meta.schema.reference_layer) {
+      const url = meta.schema.reference_layer.pmtiles_url;
+      void import('./geo/reference').then((r) => r.addReferenceOverlay(map, url)).catch(() => {});
+    }
     if (isAdmin) syncReviewLayer();   // admin: the clickable, status-coloured review layer (driven by the list)
     else void loadRecords();          // view / collect: published points as context
     if (!isView) void showQueued();   // points kept on this phone, not sent yet
@@ -327,7 +331,7 @@ async function boot(): Promise<void> {
     const on = reftoggle.getAttribute('aria-pressed') !== 'true';
     reftoggle.setAttribute('aria-pressed', String(on));
     reftoggle.style.opacity = on ? '1' : '0.55';
-    setReferenceVisible(map, on);
+    void import('./geo/reference').then((r) => r.setReferenceVisible(map, on));
   };
 
   if (!isView) {
@@ -520,8 +524,10 @@ function selectFromMap(idx: number): void {
   }
 }
 
-// The non-point records overlay: one accumulating source for existing +
-// just-added lines/polygons. Points are plain markers.
+// The records overlay: one accumulating source for existing + just-added
+// points, lines and polygons. Points draw as a circle layer, not DOM markers:
+// hundreds of markers are each moved on every frame of a pan (slow on phones).
+// Only a queued point keeps a (grey) DOM marker until it's sent.
 function syncRecordShapes(): void {
   if (!map.isStyleLoaded()) return;
   const data = { type: 'FeatureCollection', features: recordShapes } as GeoJSON.FeatureCollection;
@@ -530,6 +536,7 @@ function syncRecordShapes(): void {
   map.addSource('records', { type: 'geojson', data });
   map.addLayer({ id: 'records-fill', type: 'fill', source: 'records', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.1 } });
   map.addLayer({ id: 'records-line', type: 'line', source: 'records', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2, 'line-opacity': 0.7 } });
+  map.addLayer({ id: 'records-point', type: 'circle', source: 'records', filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 6, 'circle-color': ACCENT, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
 }
 
 function addRecordShape(geometry: GeoJSON.Geometry): void {
@@ -543,12 +550,14 @@ async function loadRecords(): Promise<void> {
   try {
     // Published-only on the capture map (admin's un-moderated pins live in the queue).
     // Kept on the phone (up to ~500 KB) so a map opened offline still shows what others added.
+    // Every published record, not just the server's first page.
     const { data: fc } = await jsonWithOfflineCopy<{ features: Feature[] }>(
-      `collect:records:${ctx.id}`, () => api(`/collections/${ctx.id}/records?status=published`, ctx.token), localStorage, 500_000);
+      `collect:records:${ctx.id}`,
+      async () => new Response(JSON.stringify({ features: await allRecords<Feature>('published') })),
+      localStorage, 500_000);
     recordShapes = [];
     for (const f of fc.features || []) {
-      if (f.geometry?.type === 'Point') marker(f.geometry.coordinates);
-      else if (f.geometry) recordShapes.push({ type: 'Feature', geometry: f.geometry as GeoJSON.Geometry, properties: {} });
+      if (f.geometry) recordShapes.push({ type: 'Feature', geometry: f.geometry as GeoJSON.Geometry, properties: {} });
     }
     if (recordShapes.length) syncRecordShapes();
     fitToFeatures(fc.features || []);
@@ -1111,6 +1120,7 @@ async function editSettings(): Promise<void> {
 // again on save): options the points use stay, new options and fields can be
 // added, and a field is hidden rather than removed so no collected data is lost.
 async function editFormSheet(): Promise<void> {
+  const { mountSchemaBuilder } = await import('./schema-builder'); // admin-only code, loaded on demand
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">${GRAB}<div class="body"><p class="hint">Loading the points to check the form against…</p></div></div>`;
   let points: Record<string, unknown>[];
@@ -1460,19 +1470,17 @@ function renderDataTab(body: HTMLElement): void {
 const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
 
 // Every record of the map, page by page (the server returns at most 2000 a request).
-async function allRecords<T>(): Promise<T[]> {
-  const out: T[] = [];
-  const PAGE = 2000;
-  for (let offset = 0; ; offset += PAGE) {
-    const fc = await apiJson<{ features: T[] }>(`/collections/${ctx.id}/records?limit=${PAGE}&offset=${offset}`, ctx.token);
-    out.push(...(fc.features || []));
-    if ((fc.features || []).length < PAGE) return out;
-  }
+// Every record (the server pages at 2000), optionally one status only.
+function allRecords<T>(status?: string): Promise<T[]> {
+  const q = status ? `&status=${status}` : '';
+  return fetchAllPages(async (limit, offset) =>
+    (await apiJson<{ features: T[] }>(`/collections/${ctx.id}/records?limit=${limit}&offset=${offset}${q}`, ctx.token)).features || [], 2000);
 }
 
 // Fetch every record and hand the author a file — no server round-trip.
 async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
   try {
+    const { toGeoJSON, toCSV, toKML } = await import('./export/formats'); // admin-only, loaded on demand
     const features = await allRecords<ExportFeature>();
     if (!features.length) { toast('No points to download yet'); return; }
     // The owner's download keeps hidden fields too: hiding keeps the data.
@@ -1492,6 +1500,9 @@ async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
 async function importFlow(file: File): Promise<void> {
   const panel = document.getElementById('import-panel');
   if (!panel) return;
+  // Admin-only import code, loaded on demand.
+  const [{ detectFormat, parseImport }, { autoMapping, buildRecords, errorsToCSV }, { importReport, importReportHtml, importInChunks }, { summarizeErrors }] =
+    await Promise.all([import('./import/parse'), import('./import/build'), import('./import/report'), import('./import/check')]);
   const format = detectFormat(file.name);
   if (!format) { panel.innerHTML = '<p class="warn">Use a .csv, .geojson or .kml file.</p>'; return; }
   let parsed: Parsed;
@@ -1583,9 +1594,9 @@ async function ensureReviewData(force = false): Promise<void> {
   if (reviewLoaded && !force) return;
   const gen = reviewGen;
   try {
-    const fc = await apiJson<{ features: Feature[] }>(`/collections/${ctx.id}/records?limit=2000`, ctx.token);
+    const feats = await allRecords<Feature>();
     if (gen !== reviewGen) return; // invalidated mid-flight (e.g. a point was added) — discard this snapshot
-    allFeats = fc.features || [];
+    allFeats = feats;
     reviewLoaded = true;
     lastReviewFetch = Date.now();
     meta.counts = countsOf(allFeats);
@@ -1882,7 +1893,7 @@ async function recordEditor(): Promise<void> {
       ${GRAB}
       <form class="body" id="recform">
         <strong>Edit your ${noun}</strong>
-        <p class="hint">${isPoint ? 'Move the map to reposition; update the details.' : 'Update the details below.'} Status: ${rec.status}.</p>
+        <p class="hint">${isPoint ? 'Move the map to reposition; update the details.' : 'Update the details below.'} Status: ${escapeHtml(rec.status)}.</p>
         ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
       </form>
       <div class="foot">

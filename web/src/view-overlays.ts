@@ -10,7 +10,7 @@
 // scrim, focus, map.resize) lives in map.ts where the elements are; this module
 // is just the state machine so it unit-tests without a browser.
 
-export type Surface = 'basemap' | 'filter' | 'download' | 'findward';
+export type Surface = 'basemap' | 'filter' | 'download' | 'findward' | 'about';
 
 export type OverlayState = { active: Surface | null };
 

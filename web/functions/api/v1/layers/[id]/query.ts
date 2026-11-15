@@ -3,6 +3,7 @@ import { loadCatalog } from '../../../../lib/catalog-loader';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, QueryInputError } from '../../../../lib/parquet-query';
 import { parseQueryParams } from '../../../../lib/query-params';
+import { json, safeStringify } from '../../../../lib/http';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const id = (ctx.params as { id: string }).id;
@@ -34,15 +35,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     });
   } catch (e) {
     const msg = (e as Error).message;
-    if (e instanceof QueryInputError || msg.includes('not found')) return json(400, { error: msg, status: 400 });
+    if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
     return json(500, { error: `Query failed: ${msg}`, status: 500 });
   }
 };
-
-function safeStringify(obj: unknown): string {
-  return JSON.stringify(obj, (_k, v) => typeof v === 'bigint' ? Number(v) : v);
-}
-
-function json(status: number, body: unknown) {
-  return new Response(safeStringify(body), { status, headers: { 'content-type': 'application/json' } });
-}

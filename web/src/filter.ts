@@ -12,7 +12,7 @@ import {
   query,
 } from './db';
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
-import { getFullCatalog } from './catalog';
+import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { fmtBytes } from './format-hints';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
@@ -161,7 +161,7 @@ export function mountFilterPanel(
   // path (one IN on a state column with one value). Lazy-fetched.
   let extracts: Record<string, Record<string, { url: string; bytes: number }>> = {};
   let stateNameToCode = new Map<string, number>();
-  getFullCatalog()
+  getCatalog()
     .then((c) => {
       extracts = (layer.level ? c.extracts?.[layer.level] : undefined) || {};
       if (c.states) {

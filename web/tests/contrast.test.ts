@@ -26,7 +26,6 @@ function tokenScope(scope: 'light' | 'dark'): Record<string, string> {
   return map;
 }
 
-const WHITE = '#ffffff';
 const AA_TEXT = 4.5; // normal-size text
 const AA_UI = 3; // UI components / large text (1.4.11, 1.4.3 large)
 
@@ -53,8 +52,9 @@ describe('design tokens meet WCAG 2.2 AA (light)', () => {
     expect(contrast(t['--accent'], t['--bg-card'])).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
-  it('white text on filled accent buttons', () => {
-    expect(contrast(WHITE, t['--accent-fill'])).toBeGreaterThanOrEqual(AA_TEXT);
+  it('button text on filled accent buttons', () => {
+    expect(contrast(t['--on-accent-fill'], t['--accent-fill'])).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast(t['--on-accent-fill'], t['--accent-fill-hover'])).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
   it('focus outline is visible against the background', () => {
@@ -75,7 +75,8 @@ describe('design tokens meet WCAG 2.2 AA (dark)', () => {
     expect(contrast(t['--accent'], t['--bg'])).toBeGreaterThanOrEqual(AA_TEXT);
   });
 
-  it('white text on filled accent buttons', () => {
-    expect(contrast(WHITE, t['--accent-fill'])).toBeGreaterThanOrEqual(AA_TEXT);
+  it('button text on filled accent buttons', () => {
+    expect(contrast(t['--on-accent-fill'], t['--accent-fill'])).toBeGreaterThanOrEqual(AA_TEXT);
+    expect(contrast(t['--on-accent-fill'], t['--accent-fill-hover'])).toBeGreaterThanOrEqual(AA_TEXT);
   });
 });

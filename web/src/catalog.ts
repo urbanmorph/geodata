@@ -58,31 +58,21 @@ export type Catalog = {
   attribution?: Record<string, unknown>;
 };
 
-let inlineCache: Promise<Catalog> | null = null;
-let fullCache: Promise<Catalog> | null = null;
+let cache: Promise<Catalog> | null = null;
 
 /**
- * Small catalog — states, counts, bounds, layer metadata. Inlined in the
- * page by prerender, so this resolves with zero network for the common case.
+ * The catalog (layers, level metadata, extracts, filter stats), fetched once
+ * per page. Not inlined in the HTML: the home page would carry ~38 KB gzipped
+ * that only the map uses. main.ts starts this fetch early (hover on a map link,
+ * or a /view load) so it runs alongside the map chunk download.
  */
 export function getCatalog(): Promise<Catalog> {
-  if (inlineCache) return inlineCache;
-  const inline = document.getElementById('catalog-data');
-  if (inline?.textContent) {
-    try {
-      inlineCache = Promise.resolve(JSON.parse(inline.textContent) as Catalog);
-      return inlineCache;
-    } catch {
-      /* fall through */
-    }
+  if (!cache) {
+    cache = fetch('/catalog.json').then((r) => {
+      if (!r.ok) throw new Error(`catalog.json ${r.status}`);
+      return r.json() as Promise<Catalog>;
+    });
+    cache.catch(() => { cache = null; }); // a failed fetch can be retried
   }
-  inlineCache = fetch('/catalog.json').then((r) => r.json() as Promise<Catalog>);
-  return inlineCache;
-}
-
-/** Full catalog including the extracts manifest. Lazy-fetched on first need. */
-export function getFullCatalog(): Promise<Catalog> {
-  if (fullCache) return fullCache;
-  fullCache = fetch('/catalog.json').then((r) => r.json() as Promise<Catalog>);
-  return fullCache;
+  return cache;
 }

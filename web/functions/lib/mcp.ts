@@ -12,6 +12,7 @@ import {
   INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams,
 } from '../../../mcp/read-tools.js';
 import { checkApiRateLimit } from './api-ratelimit';
+import { safeStringify } from './http';
 import { sha256Hex } from './submit-helpers';
 import { onRequestGet as layersIndex } from '../api/v1/layers/index';
 import { onRequestGet as layerDetail } from '../api/v1/layers/[id]';
@@ -84,7 +85,7 @@ function rpc(body: unknown): Response {
   });
 }
 const toolText = (value: unknown, isError = false) => ({
-  content: [{ type: 'text', text: JSON.stringify(value, (_k, v) => (typeof v === 'bigint' ? Number(v) : v), 2) }],
+  content: [{ type: 'text', text: safeStringify(value, 2) }],
   ...(isError ? { isError: true } : {}),
 });
 

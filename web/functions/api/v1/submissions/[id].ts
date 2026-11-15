@@ -1,4 +1,6 @@
 import type { Env } from '../../_middleware';
+import { SUBMISSION_DETAIL_SQL } from '../../../lib/submissions-sql';
+import { json } from '../../../lib/http';
 
 type Params = { id: string };
 
@@ -8,21 +10,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
     return json(400, { error: 'Invalid submission ID', status: 400 });
   }
 
-  let row;
-  try {
-    row = await ctx.env.DB.prepare(
-      `SELECT id, created_at, updated_at, status, name, description, category, license,
-              attribution, source_url, data_year, format, bytes, feature_count,
-              geometry_types, r2_key, useful_count
-       FROM submissions WHERE id = ? AND status = 'accepted'`,
-    ).bind(id).first();
-  } catch {
-    row = await ctx.env.DB.prepare(
-      `SELECT id, created_at, status, name, description, category, license,
-              attribution, source_url, format, bytes, feature_count, geometry_types, r2_key
-       FROM submissions WHERE id = ? AND status = 'accepted'`,
-    ).bind(id).first();
-  }
+  const row = await ctx.env.DB.prepare(SUBMISSION_DETAIL_SQL).bind(id).first();
 
   if (!row) return json(404, { error: 'Submission not found', status: 404 });
 
@@ -33,10 +21,3 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
     },
   });
 };
-
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  });
-}

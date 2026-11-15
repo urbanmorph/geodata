@@ -1,6 +1,9 @@
-// Stable design tokens + nav + footer — kept in sync with mdshare
-// (urbanmorph stable). Indigo accent. Type scale 11/12/13/14/16/20/28/36.
-// Radii 4/6/8/12. Pure module so vitest can test renderNav() etc.
+// Stable design tokens + nav + footer. Colours and the logo come from
+// shared/brand.mjs (saffron / India green / chakra navy). Type scale
+// 11/12/13/14/16/20/28/36. Radii 4/6/8/12. Pure module so vitest can test
+// renderNav() etc.
+import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../shared/brand.mjs';
+import { footerHtml } from '../../shared/footer.mjs';
 
 export const TOKENS = `
   :root {
@@ -10,19 +13,17 @@ export const TOKENS = `
     --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
     --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
     --bg: #ffffff; --bg-elevated: #fafafa; --bg-card: #f5f5f5;
-    --fg: #0a0a0a; --muted: #525965; --muted-strong: #374151;
+    --muted: #525965; --muted-strong: #374151;
     --subtle: #9ca3af; --line: #e5e7eb; --line-bright: #d1d5db;
-    --accent: #4f46e5; --accent-strong: #4338ca;
-    --accent-fill: #4f46e5; --accent-fill-hover: #4338ca;
+    ${themeDecls('light')}
     --ok: #16a34a; --warn: #d97706; --err: #dc2626;
   }
   @media (prefers-color-scheme: dark) {
     :root {
       --bg: #0a0a0a; --bg-elevated: #15151a; --bg-card: #1a1a1f;
-      --fg: #ededed; --muted: #9ca3af; --muted-strong: #d4d4d8;
+      --muted: #9ca3af; --muted-strong: #d4d4d8;
       --subtle: #525252; --line: #262626; --line-bright: #404040;
-      --accent: #818cf8; --accent-strong: #6366f1;
-      --accent-fill: #4f46e5; --accent-fill-hover: #4338ca;
+      ${themeDecls('dark')}
       --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
     }
   }
@@ -48,15 +49,11 @@ export const TOKENS = `
   .skip-link:focus { left: var(--sp-2); }
   main :is(p, li) a { text-decoration: underline; text-underline-offset: 2px; }
   .site-header {
-    display: flex; align-items: baseline; justify-content: space-between;
+    display: flex; align-items: center; justify-content: space-between;
     gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
   }
-  .site-brand {
-    font-size: var(--fs-lg); font-weight: 600; letter-spacing: -.01em;
-    color: var(--fg); text-decoration: none;
-  }
-  .site-brand:hover { text-decoration: none; }
-  .site-brand .mark-accent { color: var(--accent); }
+  ${WORDMARK_CSS}
+  .site-brand { font-size: var(--fs-lg); }
   .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
   .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
   .site-nav a {
@@ -116,7 +113,7 @@ export const TOKENS = `
   .install-guide li + li { margin-top: var(--sp-2); }
   .install-guide form { display: flex; justify-content: flex-end; }
   .install-guide button {
-    min-height: 44px; padding: 0 var(--sp-5); font: inherit; font-weight: 500; color: #fff;
+    min-height: 44px; padding: 0 var(--sp-5); font: inherit; font-weight: 600; color: var(--on-accent-fill);
     background: var(--accent-fill); border: 0; border-radius: var(--radius-md); cursor: pointer;
   }
   .install-guide button:hover { background: var(--accent-fill-hover); }
@@ -142,7 +139,7 @@ export const NAV_LINKS = [
 export function renderNav(activeKey) {
   return `<a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
-      <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">India's open atlas</span></a>
+      ${wordmarkHtml({ tagline: "India's open atlas" })}
       <input type="checkbox" id="nav-toggle" class="nav-toggle" />
       <label for="nav-toggle" class="nav-burger" aria-label="Menu">☰</label>
       <nav class="site-nav" id="site-nav" aria-label="Primary">
@@ -156,14 +153,5 @@ export function renderNav(activeKey) {
     <script type="module" src="/src/install.ts"></script>`;
 }
 
-export const FOOTER = `<footer class="site-footer">
-      <p>Open licences only. Each layer carries its source link on the card.</p>
-      <p>
-        <a href="/privacy">privacy</a> ·
-        <a href="/terms">terms</a> ·
-        <a href="https://status.bharatlas.com/">status</a> ·
-        <a href="https://github.com/urbanmorph/geodata">code</a> ·
-        made by <a href="https://urbanmorph.com">urbanmorph</a> ·
-        a digital commons · <a href="https://pdgi.org">pdgi.org</a>
-      </p>
-    </footer>`;
+// One footer for every surface (shared/footer.mjs).
+export const FOOTER = footerHtml();

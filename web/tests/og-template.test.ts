@@ -14,6 +14,17 @@ describe('renderOgSvg — shape', () => {
   });
 });
 
+describe('renderOgSvg — brand', () => {
+  it('draws the three-layer mark and a one-colour "bharatlas" on chakra navy', () => {
+    const svg = renderOgSvg({ title: 'X' });
+    expect(svg).toContain('stop-color="#0B1B3F"');
+    expect(svg).toContain('fill="#F28C28"');
+    expect(svg).toContain('fill="#12804A"');
+    expect(svg).toContain('>bharatlas</text>');
+    expect(svg).not.toContain('<tspan');
+  });
+});
+
 describe('renderOgSvg — content', () => {
   it('renders the title', () => {
     const svg = renderOgSvg({ title: 'Indian villages' });

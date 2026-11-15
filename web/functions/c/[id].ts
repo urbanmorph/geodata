@@ -7,11 +7,12 @@ import { countVotes } from '../lib/ratings';
 import { renderViewPage } from '../lib/render-view';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import type { Env as MiddlewareEnv } from '../api/_middleware';
+import { notFoundHtml } from '../lib/not-found';
 
 type Env = MiddlewareEnv;
 type Params = { id: string };
 
-const NOT_FOUND_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>Not found · geodata</title><meta name="robots" content="noindex"></head><body style="font:15px/1.5 ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:80px auto;padding:0 24px;color:#444"><h1 style="font-size:22px">404 — submission not found</h1><p>This submission ID doesn't exist, has been retracted, or hasn't been accepted yet.</p><p><a href="/" style="color:#0a58ca">← back to the catalog</a></p></body></html>`;
+const NOT_FOUND_HTML = notFoundHtml('submission not found', "This submission doesn't exist, was retracted, or hasn't been accepted yet.");
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const id = ctx.params.id as string;
@@ -59,6 +60,9 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
     },
   });
 };
+
+// HEAD (link checkers, crawlers) is answered like GET; other methods are not allowed.
+export const onRequestHead = onRequestGet;
 
 export const onRequest: PagesFunction<Env, keyof Params> = async () =>
   new Response('method not allowed', { status: 405 });

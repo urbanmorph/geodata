@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
-import { bakedCounts, countFor, totalDownloads, fetchLiveCounts } from '../scripts/download-counts.mjs';
+import { bakedCounts, countFor, totalDownloads, fetchLiveCounts, mostDownloaded } from '../scripts/download-counts.mjs';
 
 // The home page baked a stale catalog snapshot (948) while D1 counted ~22k;
 // crawlers and link previews only see the baked HTML.
@@ -29,5 +29,17 @@ describe('download counts at build time', () => {
     expect(await fetchLiveCounts('https://x', async () => { throw new Error('offline'); })).toBeNull();
     expect(await fetchLiveCounts('https://x', async () => new Response('nope', { status: 500 }))).toBeNull();
     expect(await fetchLiveCounts('https://x', async () => Response.json(live))).toEqual(live);
+  });
+});
+
+describe('mostDownloaded', () => {
+  const counts = { layers: { a: { geojson: 5, kml: 1 }, b: { parquet: 50 }, c: {}, d: { geojson: 9 } }, total: 65 };
+
+  it('ranks layers by total downloads across formats, highest first', () => {
+    expect(mostDownloaded(counts, 3)).toEqual(['b', 'd', 'a']);
+  });
+
+  it('skips layers with no downloads and ids the caller excludes', () => {
+    expect(mostDownloaded(counts, 10, (id) => id !== 'b')).toEqual(['d', 'a']);
   });
 });

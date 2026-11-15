@@ -59,7 +59,3 @@ const BY_ID = new Map<string, Licence>(OPEN_LICENCES.map((l) => [l.id, l]));
 export function isOpenLicence(id: string): boolean {
   return typeof id === 'string' && BY_ID.has(id);
 }
-
-export function requiresAttribution(id: string): boolean {
-  return BY_ID.get(id)?.requiresAttribution ?? false;
-}

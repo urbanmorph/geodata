@@ -1,6 +1,7 @@
 /* collect — bharatlas's contribution tool.
    Design system "a precise instrument": ONE control family, layered surfaces
-   for depth, indigo accent, the surveyor crosshair as the recurring motif.
+   for depth, bharatlas brand colours (saffron actions, chakra-navy ink),
+   the surveyor crosshair as the recurring motif.
    Mobile-first · light default + dark via prefers-color-scheme · WCAG AA.
 
    Control types (each internally consistent — no ad-hoc shapes):
@@ -8,22 +9,25 @@
      · toggle / filter — pill, --radius-pill                     (.chip)
      · segmented       — one rounded track, equal cells          (.seg) */
 
-/* Tokens shared with bharatlas.com (web/scripts/shared-chrome.mjs) for brand
-   parity — same bg/fg/line/muted/accent hex. Extra collect-only tokens (surface,
-   radius, control height, tints, shadows) sit alongside. */
+/* Brand colours come from shared/brand.mjs (THEME); bg/line/muted match
+   bharatlas.com (web/scripts/shared-chrome.mjs). web/tests/brand.test.ts checks
+   the brand values below. Extra collect-only tokens (surface, radius, control
+   height, tints, shadows) sit alongside. */
 :root {
   color-scheme: light dark;
   --bg: #ffffff;
   --surface: #f5f5f5;        /* = apex --bg-card; raised sections */
   --card: #ffffff;
-  --fg: #0a0a0a;             /* apex */
+  --fg: #0B1B3F;             /* brand ink (chakra navy) */
   --muted: #525965;          /* apex */
   --line: #e5e7eb;           /* apex */
   --line-strong: #d1d5db;    /* apex --line-bright */
-  --accent: #4f46e5;         /* apex — indigo text/borders/links */
-  --accent-strong: #4338ca;  /* apex */
-  --accent-solid: #4f46e5;   /* = apex --accent-fill; solid indigo under WHITE text, AA both themes */
-  --accent-fill: #eef2ff;    /* collect tint for chips (not apex's solid fill) */
+  --accent: #1A2A6C;         /* brand --accent: navy text/borders/links */
+  --accent-strong: #0B1B3F;  /* brand */
+  --accent-solid: #F28C28;   /* = brand --accent-fill: solid saffron under NAVY text (white fails AA) */
+  --accent-solid-hover: #E8730C;
+  --on-accent-solid: #0B1B3F;
+  --accent-fill: #FFF1E3;    /* collect tint for chips (not apex's solid fill) */
   --danger: #dc2626;
   --amber: #b45309;
   --ok: #15803d;            /* success text, AA on --bg */
@@ -34,7 +38,7 @@
   --shadow-sheet: 0 -10px 34px rgba(15, 17, 21, .12);
   --shadow-card: 0 1px 2px rgba(15, 17, 21, .05);
   --shadow-pop: 0 6px 22px rgba(15, 17, 21, .16);
-  --ring: 0 0 0 3px rgba(79, 70, 229, .40);
+  --ring: 0 0 0 3px rgba(26, 42, 108, .40);
   --sheet-h: 0px;            /* live height of the bottom sheet; JS keeps it current
                                 so the map's crosshair + floating controls sit above it */
   --peek-h: 44px;            /* visible strip when a sheet is collapsed (CSS + JS read this); a full touch target */
@@ -49,10 +53,11 @@
     --muted: #9ca3af;        /* apex */
     --line: #262626;         /* apex */
     --line-strong: #404040;  /* apex --line-bright */
-    --accent: #818cf8;       /* apex */
-    --accent-strong: #6366f1;/* apex */
-    --accent-solid: #4f46e5; /* = apex --accent-fill (same both themes) */
-    --accent-fill: #1e1b4b;  /* collect tint */
+    --accent: #F5A04A;       /* brand */
+    --accent-strong: #F28C28;/* brand */
+    --accent-solid: #F28C28; /* = brand --accent-fill (same both themes) */
+    --accent-solid-hover: #F5A04A;
+    --accent-fill: #3A2410;  /* collect tint */
     --danger: #f87171;
     --amber: #fbbf24;
     --ok: #4ade80;
@@ -60,7 +65,7 @@
     --shadow-sheet: 0 -10px 34px rgba(0, 0, 0, .6);
     --shadow-card: 0 1px 2px rgba(0, 0, 0, .35);
     --shadow-pop: 0 6px 22px rgba(0, 0, 0, .5);
-    --ring: 0 0 0 3px rgba(129, 140, 248, .45);
+    --ring: 0 0 0 3px rgba(245, 160, 74, .45);
   }
 }
 
@@ -85,10 +90,11 @@ strong { font-weight: 650; letter-spacing: -.01em; }
 }
 .topbar a { color: var(--fg); text-decoration: none; font-size: 20px; line-height: 1; }
 .topbar > span:first-of-type { font-size: 17px; }
+.topbar .collect-name { font-weight: 800; letter-spacing: -.025em; } /* the collect wordmark, as heavy as bharatlas */
 .topbar .muted { color: var(--muted); font-weight: 400; font-size: 13px; letter-spacing: 0; }
 /* bharatlas wordmark — matches apex: bhar + accent "atlas" */
-.topbar .brand { margin-left: auto; font-size: 16px; font-weight: 600; letter-spacing: -.01em; color: var(--fg); text-decoration: none; }
-.topbar .brand-accent { color: var(--accent); }
+.topbar .brand { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; letter-spacing: -.025em; color: var(--fg); text-decoration: none; }
+.topbar .brand .brand-mark { flex: none; }
 
 /* ── action buttons: one shape, one height ─────────────────────────────── */
 button, .btn {
@@ -105,13 +111,12 @@ button:focus-visible, .btn:focus-visible,
 input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 button:disabled, .btn:disabled { opacity: .5; cursor: default; transform: none; }
 
-/* Primary = solid indigo. Mobile has no hover, so the brand CTA colour shows
-   permanently (this is exactly what apex's monochrome primary becomes on hover);
-   --accent-solid keeps white text AA in both themes. Darkens on desktop hover. */
+/* Primary = solid saffron with navy text (AA in both themes). Mobile has no
+   hover, so the brand CTA colour shows permanently. Darkens on desktop hover. */
 button.primary, .btn.primary {
-  background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; width: 100%;
+  background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent-solid); width: 100%;
 }
-button.primary:hover, .btn.primary:hover { background: #4338ca; border-color: #4338ca; }
+button.primary:hover, .btn.primary:hover { background: var(--accent-solid-hover); border-color: var(--accent-solid-hover); }
 button.ghost { background: transparent; border-color: var(--line); }
 button.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-fill); }
 button.danger { border-color: var(--line-strong); color: var(--danger); background: var(--card); }
@@ -151,7 +156,7 @@ textarea { min-height: 92px; line-height: 1.5; }
   min-height: 34px; border: 0; border-radius: 9px; background: transparent;
   font-size: 14px; font-weight: 600; padding: 0 16px; color: var(--muted);
 }
-.seg button.on { background: var(--accent-solid); color: #fff; box-shadow: var(--shadow-card); }
+.seg button.on { background: var(--accent-solid); color: var(--on-accent-solid); box-shadow: var(--shadow-card); }
 
 /* Landing and form pages scroll as a normal page; the map screens keep the
    fixed full-screen #app. (An inner scroll box inside a fixed-height #app was
@@ -182,7 +187,7 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 .install-guide ol { margin: 0 0 16px; padding-left: 20px; color: var(--muted); font-size: 15px; }
 .install-guide li + li { margin-top: 8px; }
 .install-guide form { display: flex; justify-content: flex-end; }
-.install-guide button { background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; }
+.install-guide button { background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent-solid); }
 .masthead-stat strong { color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
 .warn { color: var(--danger); font-size: 13px; line-height: 1.5; }
 /* attention box — pending points need approval to be visible/exported */
@@ -285,7 +290,7 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
   flex: 1; min-height: 36px; border: 0; border-radius: 9px; background: transparent;
   font-size: 13px; font-weight: 600; padding: 0 6px; color: var(--muted);
 }
-.tabs button.on { background: var(--accent-solid); color: #fff; box-shadow: var(--shadow-card); }
+.tabs button.on { background: var(--accent-solid); color: var(--on-accent-solid); box-shadow: var(--shadow-card); }
 
 /* import column-mapping rows (field ← column) */
 .maplabel { font-size: 13px; font-weight: 600; color: var(--fg); margin: 14px 0 6px; }
@@ -486,7 +491,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
   border: 1px solid var(--line-strong); border-radius: var(--radius);
   background: var(--card); color: var(--fg); font-size: 13px; font-weight: 600; cursor: pointer;
 }
-.pop-btn--approve { background: var(--accent-solid); border-color: var(--accent-solid); color: #fff; }
+.pop-btn--approve { background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent-solid); }
 .pop-btn--reject { color: var(--danger); }
 .pop-review { flex-basis: 100%; color: var(--muted); font-weight: 500; }
 
@@ -591,7 +596,7 @@ details.more > summary { min-height: 44px; display: flex; align-items: center; c
 .photo-add--quiet { border-color: var(--line-strong); background: var(--card); color: var(--fg); }
 .photo-add:focus-within, .photo-snap:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 label.btn { margin: 0; color: inherit; font-size: 14px; }
-label.btn.primary { color: #fff; }
+label.btn.primary { color: var(--on-accent-solid); }
 .photo-snap { min-height: 56px; font-size: 16px; font-weight: 600; margin: 4px 0 8px; }
 .review-photos { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
 .review-photos button { min-height: 0; padding: 0; border: 0; border-radius: var(--radius); overflow: hidden; aspect-ratio: 1; }

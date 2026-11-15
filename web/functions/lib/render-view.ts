@@ -14,17 +14,12 @@
 // Result: no link the user can click jumps off 5173 in dev.
 
 import type { SubmissionView } from './submissions';
+import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../../shared/brand.mjs';
+import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
+import { licenceUrl } from '../../../shared/licences.mjs';
+import { footerHtml } from '../../../shared/footer.mjs';
 
 const PUBLIC_ORIGIN = 'https://bharatlas.com';
-
-const LICENSE_URLS: Record<string, string> = {
-  'CC0-1.0': 'https://creativecommons.org/publicdomain/zero/1.0/',
-  'CC-BY-4.0': 'https://creativecommons.org/licenses/by/4.0/',
-  'CC-BY-SA-4.0': 'https://creativecommons.org/licenses/by-sa/4.0/',
-  'ODbL-1.0': 'https://opendatacommons.org/licenses/odbl/1-0/',
-  'ODC-PDDL-1.0': 'https://opendatacommons.org/licenses/pddl/1-0/',
-  'GODL-India': 'https://data.gov.in/government-open-data-license-india',
-};
 
 const FORMAT_MIME: Record<string, string> = {
   geojson: 'application/geo+json',
@@ -33,23 +28,6 @@ const FORMAT_MIME: Record<string, string> = {
   kmz: 'application/vnd.google-earth.kmz',
   parquet: 'application/x-parquet',
 };
-
-function esc(s: string | null | undefined): string {
-  if (s == null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 
 function relativeTime(iso: string, now: Date = new Date()): string {
   const t = new Date(iso).getTime();
@@ -88,12 +66,12 @@ export function renderViewPage(opts: RenderOpts): string {
   // port-bound dev URL.
   const r2Url = `${PUBLIC_ORIGIN}/api/r2/${s.r2_key}`;
   const canonical = `${PUBLIC_ORIGIN}/c/${s.id}`;
-  const licenseUrl = LICENSE_URLS[s.license] || s.license;
+  const licenseUrl = licenceUrl(s.license) ?? s.license;
   const filename = s.r2_key.split('/').pop() || 'download';
 
   const description =
     s.description ||
-    `Community-submitted geo layer on geodata: ${s.name}. ${s.feature_count ?? '—'} features, ${fmtBytes(s.bytes)}.`;
+    `Community-submitted geo layer on bharatlas: ${s.name}. ${s.feature_count ?? '—'} features, ${fmtBytes(s.bytes)}.`;
   // Google Dataset Search rejects descriptions under ~50 chars. Pad with a
   // contextual suffix so terse contributor-supplied descriptions still pass.
   const ldDescription = description.length >= 80
@@ -124,7 +102,7 @@ export function renderViewPage(opts: RenderOpts): string {
   const header = embed
     ? ''
     : `<header class="site-header">
-      <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">· ${esc(s.name)}</span></a>
+      ${wordmarkHtml({ tagline: `· ${s.name}` })}
       <nav class="site-nav">
         <a href="/">catalog</a>
         <a href="/preview">contribute</a>
@@ -158,9 +136,8 @@ export function renderViewPage(opts: RenderOpts): string {
     <link rel="manifest" href="/manifest.webmanifest" />
     <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
     <style>
-      /* Edge-rendered — inlines the same tokens as scripts/shared-chrome.mjs.
-         Keep in sync with that file. Vitest does NOT cover this string —
-         the prerendered surfaces own the canonical tokens; this is a copy. */
+      /* Edge-rendered. Colours and the wordmark come from shared/brand.mjs;
+         spacing/type mirror scripts/shared-chrome.mjs. */
       :root {
         --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px;
         --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px;
@@ -168,15 +145,13 @@ export function renderViewPage(opts: RenderOpts): string {
         --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
         --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
         --bg: #ffffff; --bg-card: #f5f5f5;
-        --fg: #0a0a0a; --muted: #6b7280; --line: #e5e7eb;
-        --accent: #6366f1; --accent-strong: #4f46e5;
-        --accent-fill: #6366f1; --ok: #16a34a;
+        --muted: #525965; --line: #e5e7eb; --ok: #16a34a;
+        ${themeDecls('light')}
       }
       @media (prefers-color-scheme: dark) {
         :root { --bg: #0a0a0a; --bg-card: #1a1a1f;
-          --fg: #ededed; --muted: #9ca3af; --line: #262626;
-          --accent: #818cf8; --accent-strong: #6366f1;
-          --accent-fill: #6366f1; --ok: #4ade80; }
+          --muted: #9ca3af; --line: #262626; --ok: #4ade80;
+          ${themeDecls('dark')} }
       }
       *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; background: var(--bg); color: var(--fg); }
@@ -187,11 +162,11 @@ export function renderViewPage(opts: RenderOpts): string {
         outline-offset: 2px !important; border-radius: var(--radius-sm);
       }
       .site-header {
-        display: flex; align-items: baseline; justify-content: space-between;
+        display: flex; align-items: center; justify-content: space-between;
         gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
       }
-      .site-brand { font-size: var(--fs-lg); font-weight: 600; letter-spacing: -.01em; color: var(--fg); text-decoration: none; }
-      .site-brand .mark-accent { color: var(--accent); }
+      ${WORDMARK_CSS}
+      .site-brand { font-size: var(--fs-lg); }
       .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
       .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
       .site-nav a { color: var(--muted); text-decoration: none; font-size: var(--fs-base); padding: 4px 0; }
@@ -211,7 +186,7 @@ export function renderViewPage(opts: RenderOpts): string {
         font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer;
         border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-decoration: none;
       }
-      a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+      a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
       a.btn:hover, button.btn:hover { border-color: var(--accent); }
       button.btn:disabled { opacity: .55; cursor: default; border-color: var(--line); }
       .vote-useful { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 6px 12px; background: var(--bg); font: inherit; cursor: pointer; color: var(--muted); line-height: 1; min-height: 36px; }
@@ -261,11 +236,7 @@ export function renderViewPage(opts: RenderOpts): string {
       </button>
     </div>
 
-    <footer class="site-footer">
-      <p>Anyone can submit a layer at <a href="/preview">/preview</a> — open licences only.
-      All community submissions are auto-moderated; the platform doesn't vouch for accuracy.
-      Verify provenance via the source link above.</p>
-    </footer>
+    ${footerHtml({ note: "A community layer: bharatlas doesn't vouch for its accuracy, so check it against the source link above. Anyone can add a layer under an open licence." })}
 
     <script src="/c-vote.js" defer></script>
   </body>

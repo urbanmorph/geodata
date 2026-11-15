@@ -1,14 +1,16 @@
 // Build-time prerender: produce one large card per admin level.
 // Zero JS needed to read or navigate the catalog.
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
-import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads } from './download-counts.mjs';
+import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { execSync } from 'node:child_process';
+import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
+import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate } from '../../shared/format.mjs';
+import { licenceUrl } from '../../shared/licences.mjs';
 import { docsStats } from './docs-stats.mjs';
-import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
+import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -27,27 +29,8 @@ const dlCounts = bakedCounts(catalog, liveCounts);
 console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
 await copyFile(catalogPath, resolve(WEB, 'public', 'catalog.json'));
 
-// Keep in sync with web/src/format-hints.ts:fmtBytes
-function fmtBytes(n) {
-  if (n == null) return '—';
-  if (n < 1024) return n + ' B';
-  if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
-  if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
-  return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
-}
+// Row counts in Indian grouping (5,84,615).
 const fmtRows = (n) => (n == null ? '—' : n.toLocaleString('en-IN'));
-// Compact count formatter — "1,234" gets noisy in line; short forms scan.
-// Keep in lockstep with src/format-hints.ts fmtCount (that copy is unit-tested);
-// this Node copy exists only because prerender can't import the TS module.
-// One decimal while it reads cleanly (10.3k, 99.9k), whole thousands once the
-// decimal is noise (250k), then millions.
-function fmtCount(n) {
-  const compact = (v, suffix) =>
-    (v < 100 ? v.toFixed(1).replace(/\.0$/, '') : String(Math.round(v))) + suffix;
-  if (n < 1000) return String(n);
-  if (n < 1_000_000) return compact(n / 1000, 'k');
-  return compact(n / 1_000_000, 'M');
-}
 
 // Human-readable "X ago" — coarse buckets, no library needed.
 function relativeTime(iso) {
@@ -69,33 +52,13 @@ function isStale(iso) {
   return (Date.now() - new Date(iso).getTime()) / 86400000 > STALE_DAYS;
 }
 // Keep in sync with web/src/util.ts:escapeHtml
-const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
-// Build-time mirror of web/src/seo.ts. Both produce the same head block;
-// keep them in sync. Edge runtimes use the TS version.
+// SEO head block (title, description, canonical, OG/Twitter, JSON-LD) for the
+// prerendered pages. /view pages rewrite theirs at the edge (functions/view).
 const ORIGIN = 'https://bharatlas.com';
 
 // TOKENS, renderNav, FOOTER imported from ./shared-chrome.mjs above
 // (extracted so vitest can test the pure helpers).
-
-// Canonical-URL form of a licence id, used in schema.org Dataset.license.
-function licenseUrl(id) {
-  const map = {
-    'CC0-1.0':       'https://creativecommons.org/publicdomain/zero/1.0/',
-    'CC-BY-4.0':     'https://creativecommons.org/licenses/by/4.0/',
-    'CC-BY-SA-4.0':  'https://creativecommons.org/licenses/by-sa/4.0/',
-    'CC-BY-SA-2.5-IN': 'https://creativecommons.org/licenses/by-sa/2.5/in/',
-    'ODbL-1.0':      'https://opendatacommons.org/licenses/odbl/1-0/',
-    'ODC-PDDL-1.0':  'https://opendatacommons.org/licenses/pddl/1-0/',
-    'GODL-India':    'https://data.gov.in/government-open-data-license-india',
-    'CDLA-Permissive-2.0': 'https://cdla.dev/permissive-2-0/',
-    'MIT':           'https://opensource.org/licenses/MIT',
-  };
-  if (!id) return undefined;
-  // dual e.g. "CC0-1.0 / CC-BY-4.0" — pick the most permissive.
-  const first = id.split('/')[0].trim();
-  return map[first] || undefined;
-}
 
 // Google Dataset Search rejects schema.org Dataset entries whose description
 // is under ~50 chars. Pad short notes with a stable contextual suffix so
@@ -364,24 +327,17 @@ function pickPrimary(layers) {
 
 // Map an R2 public URL to the /api/dl/<path> route so every click hits the
 // counter Pages Function. PMTiles bypasses (Range-fetched by MapLibre).
-function dlUrl(r2Url, fmt) {
-  if (!r2Url) return r2Url;
-  if (fmt === 'pmtiles') return r2Url;
-  const m = r2Url.match(/^https?:\/\/[^/]+\/(.+)$/);
-  return m ? `/api/dl/${m[1]}` : r2Url;
-}
-
 function countFor(layer, fmt) {
   return layerCount(dlCounts, layer.id, fmt);
 }
 
 function downloadLinks(layer) {
   const items = [];
-  if (layer.parquet?.url) items.push({ fmt: 'parquet', url: dlUrl(layer.parquet.url, 'parquet'), size: layer.parquet.bytes, count: countFor(layer, 'parquet') });
-  if (layer.pmtiles?.url) items.push({ fmt: 'pmtiles', url: dlUrl(layer.pmtiles.url, 'pmtiles'), size: layer.pmtiles.bytes, count: countFor(layer, 'pmtiles') });
-  if (layer.geojson?.url) items.push({ fmt: 'geojson', url: dlUrl(layer.geojson.url, 'geojson'), size: layer.geojson.bytes, count: countFor(layer, 'geojson') });
-  if (layer.kml?.url) items.push({ fmt: 'kml', url: dlUrl(layer.kml.url, 'kml'), size: layer.kml.bytes, count: countFor(layer, 'kml') });
-  if (layer.shapefile?.url) items.push({ fmt: 'shp', url: dlUrl(layer.shapefile.url, 'shapefile'), size: layer.shapefile.bytes, count: countFor(layer, 'shapefile') });
+  if (layer.parquet?.url) items.push({ fmt: 'parquet', url: dlProxyUrl(layer.parquet.url, 'parquet'), size: layer.parquet.bytes, count: countFor(layer, 'parquet') });
+  if (layer.pmtiles?.url) items.push({ fmt: 'pmtiles', url: dlProxyUrl(layer.pmtiles.url, 'pmtiles'), size: layer.pmtiles.bytes, count: countFor(layer, 'pmtiles') });
+  if (layer.geojson?.url) items.push({ fmt: 'geojson', url: dlProxyUrl(layer.geojson.url, 'geojson'), size: layer.geojson.bytes, count: countFor(layer, 'geojson') });
+  if (layer.kml?.url) items.push({ fmt: 'kml', url: dlProxyUrl(layer.kml.url, 'kml'), size: layer.kml.bytes, count: countFor(layer, 'kml') });
+  if (layer.shapefile?.url) items.push({ fmt: 'shp', url: dlProxyUrl(layer.shapefile.url, 'shapefile'), size: layer.shapefile.bytes, count: countFor(layer, 'shapefile') });
   return items;
 }
 
@@ -494,6 +450,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     `data-id="${esc(primary.id)}"`,
     `data-level="${esc(level)}"`,
     `data-category="${esc(primary.category || 'boundaries')}"`,
+    `data-layers="${layersForLevel.length}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
     `data-search-primary="${esc(primaryHaystack)}"`,
@@ -563,27 +520,6 @@ const attrLinks = Object.entries(catalog.attribution || {})
   .map(([, val]) => `<a href="${esc(val.url)}" target="_blank" rel="noopener">${esc(val.name)}</a>`)
   .join(' · ');
 
-// Inline the SMALL parts of the catalog so map + filter open with zero
-// network roundtrips for the common case. The extracts manifest, state
-// extracts and filter_stats are only needed when the user opens a layer's
-// Filter & export panel — that lazy-fetches the full catalog.
-const inlineCatalogObj = { ...catalog };
-delete inlineCatalogObj.extracts;
-delete inlineCatalogObj.state_extracts;
-delete inlineCatalogObj.filter_stats;
-
-// Escape sequences that are unsafe inside a <script> tag. JSON.stringify
-// already escapes 0x00–0x1F, but parse5 (and other strict HTML parsers)
-// reject C1 control chars (0x80–0x9F) too, and U+2028 / U+2029 break some
-// older JS parsers when JSON is embedded as literal JS.
-function safeForHtmlScript(s) {
-  return s
-    .replace(/</g, '\\u003c')
-    .replace(new RegExp('\u2028', 'g'), '\\u2028')
-    .replace(new RegExp('\u2029', 'g'), '\\u2029')
-    .replace(/[\x7f-\x9f]/g, (m) => '\\u' + m.charCodeAt(0).toString(16).padStart(4, '0'));
-}
-const inlineCatalog = safeForHtmlScript(JSON.stringify(inlineCatalogObj));
 
 // SEO head for the home page (+ JSON-LD Dataset for each curated layer)
 const homeSeo = seoHead({
@@ -644,7 +580,7 @@ const homeSeo = seoHead({
             name: `${meta.label ?? l.id} (${l.source})`,
             description: padDatasetDescription(meta.description ?? l.notes ?? '', meta.label ?? l.id, l.source),
             url: ORIGIN + '/#' + lvl,
-            license: licenseUrl(l.licence),
+            license: licenceUrl(l.licence),
             isAccessibleForFree: true,
             keywords,
             creator: l.attribution?.primary
@@ -665,9 +601,9 @@ const homeSeo = seoHead({
   },
 });
 
-// Category chips: count = visible level rows per category (not raw layer
-// rows). Raw-layer counts double-counted alt sources and included dead
-// gb_adm placeholders, making the pill total mismatch the section title.
+// Category chips: count = layers per category. A row holds a level's primary
+// source plus its alternates, so it adds byLevel[lvl].length; the site talks
+// about layers everywhere (chips, section headings, the All total).
 // `categoryCounts` is initialised here from visible levels; community
 // submissions get added below once communityByCategory is built; chip
 // HTML is rendered AFTER that so the totals are final.
@@ -676,7 +612,7 @@ const categoryCounts = {};
 for (const lvl of LEVEL_ORDER) {
   if (!byLevel[lvl]?.length) continue;
   const cat = knownCats.has(categoryByLevel[lvl]) ? categoryByLevel[lvl] : 'other';
-  categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  categoryCounts[cat] = (categoryCounts[cat] || 0) + byLevel[lvl].length;
 }
 
 // Community submissions: query D1 (local for dev, --remote for the
@@ -698,7 +634,6 @@ if (!COMMUNITY_FROM) {
 const COMMUNITY_SCOPE = COMMUNITY_FROM ?? 'local';
 // Prefer a PATH-resolved wrangler (mise / homebrew) over npx, which has
 // hit a workerd arch mismatch on this machine's npx cache.
-import { execFileSync } from 'node:child_process';
 const WRANGLER_BIN = (() => {
   try { execFileSync('which', ['wrangler'], { stdio: 'pipe' }); return 'wrangler'; }
   catch { return null; }
@@ -844,6 +779,31 @@ const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('')
 // Density management: sections with > VISIBLE_LIMIT layers collapse the
 // overflow under a "show all N" toggle (data-overflow attr); main.ts wires
 // the toggle. Per-layer `.row--collapsed` class hides them by default.
+// Quick links under the search: the most downloaded curated layers, one per
+// level (the alternates of a level would read as duplicates).
+const POPULAR_N = 6;
+const curatedById = new Map(catalog.layers.filter((l) => l.provenance !== 'community').map((l) => [l.id, l]));
+const popularLevels = new Set();
+const popularIds = mostDownloaded(dlCounts, 60, (id) => curatedById.has(id))
+  .filter((id) => {
+    const lvl = curatedById.get(id).level;
+    if (!LEVEL_META[lvl] || popularLevels.has(lvl)) return false;
+    popularLevels.add(lvl);
+    return true;
+  })
+  .slice(0, POPULAR_N);
+const popularHtml = popularIds.length
+  ? `<nav class="popular" aria-label="Popular maps"><span class="popular__label">Popular:</span>${popularIds
+      .map((id) => `<a href="/view/${esc(id)}">${esc(LEVEL_META[curatedById.get(id).level].label)}</a>`)
+      .join('')}</nav>`
+  : '';
+
+// "updated <date>": the newest layer fetch in the catalogue.
+const newestFetch = catalog.layers.map((l) => l.fetched_at || '').sort().pop()?.slice(0, 10) || '';
+const updatedHtml = newestFetch
+  ? `<time datetime="${newestFetch}">${fmtDate(newestFetch)}</time>`
+  : '';
+
 const VISIBLE_LIMIT = 6;
 
 function renderCategorySection(cat) {
@@ -851,8 +811,8 @@ function renderCategorySection(cat) {
   const commInCat = communityByCategory[cat] || [];
   if (!levelsInCat.length && !commInCat.length) return '';
   const catLabel = (catalog.categories || {})[cat] || cat;
-  const total = levelsInCat.length + commInCat.length;
-  const overflows = total > VISIBLE_LIMIT;
+  const total = levelsInCat.reduce((n, lvl) => n + byLevel[lvl].length, 0) + commInCat.length;
+  const overflows = levelsInCat.length + commInCat.length > VISIBLE_LIMIT;
 
   // Tag rows beyond VISIBLE_LIMIT with `row--collapsed`; main.ts toggles
   // the section's `.expanded` state to reveal them. Search + category-pill
@@ -902,7 +862,9 @@ const out = tmpl
   .replace('<!-- TOKENS -->', TOKENS)
   .replace('<!-- NAV -->', renderNav('catalog'))
   .replace('<!-- FOOTER -->', FOOTER)
-  .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog}</script>`)
+  .replace('<!-- POPULAR -->', popularHtml)
+  .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
+  .replace('<!-- UPDATED -->', updatedHtml)
   .replace('<!-- DOWNLOAD_TOTAL -->', (() => {
     const total = totalDownloads(dlCounts);
     return total > 0 ? ` · <span class="search-meta__count">${fmtCount(total)}</span> downloads` : '';

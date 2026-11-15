@@ -18,7 +18,6 @@ export { syncSecretFrom } from '../../shared/keyring';
 
 export const SUBMISSIONS_LABEL = 'bharatlas-submissions';
 const STATE_KEY = 'bharatlas:keyring';
-export const SUBMISSIONS_CHANGED = 'bharatlas:submissions-changed';
 
 export interface SyncState { secret: string; synced_at?: string; passkey?: PasskeyHandle }
 

@@ -1,11 +1,12 @@
 import type { Env } from '../../_middleware';
+import { clampNum } from '../../../lib/query-params';
+import { submissionCountSql, submissionListSql, type SubmissionSort } from '../../../lib/submissions-sql';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
-  const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '20', 10), 1), 100);
-  const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10), 0);
-  const sortParam = url.searchParams.get('sort');
-  const sort = sortParam === 'useful' ? 'useful_count DESC' : 'created_at DESC';
+  const limit = clampNum(url.searchParams.get('limit'), 20, 1, 100, true);
+  const offset = clampNum(url.searchParams.get('offset'), 0, 0, Number.MAX_SAFE_INTEGER, true);
+  const sort: SubmissionSort = url.searchParams.get('sort') === 'useful' ? 'useful' : 'newest';
   const category = url.searchParams.get('category');
   const q = url.searchParams.get('q');
 
@@ -21,24 +22,12 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     binds.push(`%${q}%`, `%${q}%`);
   }
 
-  const countRow = await ctx.env.DB.prepare(`SELECT COUNT(*) as n FROM submissions WHERE ${where}`)
-    .bind(...binds).first<{ n: number }>();
-  const total = countRow?.n ?? 0;
-
-  let rows;
-  try {
-    rows = await ctx.env.DB.prepare(
-      `SELECT id, created_at, name, description, category, license, attribution,
-              source_url, data_year, format, bytes, feature_count, geometry_types, useful_count
-       FROM submissions WHERE ${where} ORDER BY ${sort} LIMIT ? OFFSET ?`,
-    ).bind(...binds, limit, offset).all();
-  } catch {
-    rows = await ctx.env.DB.prepare(
-      `SELECT id, created_at, name, description, category, license, attribution,
-              source_url, format, bytes, feature_count, geometry_types
-       FROM submissions WHERE ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`,
-    ).bind(...binds, limit, offset).all();
-  }
+  // One round trip: the total and the page together.
+  const [countRes, rows] = await ctx.env.DB.batch([
+    ctx.env.DB.prepare(submissionCountSql(where)).bind(...binds),
+    ctx.env.DB.prepare(submissionListSql(where, sort)).bind(...binds, limit, offset),
+  ]);
+  const total = (countRes.results?.[0] as { n?: number } | undefined)?.n ?? 0;
 
   return new Response(JSON.stringify({
     data: rows.results ?? [],

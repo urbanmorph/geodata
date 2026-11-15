@@ -1,4 +1,6 @@
 import { WARD_PLACES, mugiluUrl, yellideUrl } from './ward-places';
+import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
+import { licenceUrl } from '../../../shared/licences.mjs';
 // Pure builder for the /view/<id> page's per-layer meta + Dataset JSON-LD.
 // Extracted from functions/view/[id].ts so the description-length rule
 // (Google Dataset Search requires ≥50 chars) is unit-testable.
@@ -91,15 +93,6 @@ export function resolveLevelMeta(
   catalogLevelMeta: Record<string, LevelMeta> | undefined,
 ): LevelMeta | undefined {
   return catalogLevelMeta?.[layer.id] ?? (layer.level ? BUILTIN_LEVEL_META[layer.level] : undefined);
-}
-
-export function mapLicenceUrl(licence: string): string {
-  if (licence.includes('CC0')) return 'https://creativecommons.org/publicdomain/zero/1.0/';
-  if (licence.includes('CC-BY-SA-2.5-IN')) return 'https://creativecommons.org/licenses/by-sa/2.5/in/';
-  if (licence.includes('CC-BY-SA')) return 'https://creativecommons.org/licenses/by-sa/4.0/';
-  if (licence.includes('CC-BY')) return 'https://creativecommons.org/licenses/by/4.0/';
-  if (licence.includes('ODbL')) return 'https://opendatacommons.org/licenses/odbl/1-0/';
-  return licence;
 }
 
 // schema.org DataDownload entries for every format the layer publishes. This
@@ -349,7 +342,7 @@ export function buildViewDataset(
       name: title,
       description: ldDescription,
       url: canonical,
-      license: layer.licence ? mapLicenceUrl(layer.licence) : undefined,
+      license: layer.licence ? licenceUrl(layer.licence) ?? layer.licence : undefined,
       isAccessibleForFree: true,
       creditText,
       conditionsOfAccess: 'Free and open. No account or API key required.',
@@ -377,13 +370,6 @@ export function buildViewDataset(
   };
 }
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] || c));
-
-function fmtSize(n: number | null | undefined): string {
-  if (n == null) return '';
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(0)} KB`;
-  return `${(n / 1024 / 1024).toFixed(1)} MB`;
-}
 
 // Prominent city ward maps, cross-linked from every ward page so the cluster
 // shares internal link equity — the lever for the ward pages stuck at GSC pos
@@ -433,7 +419,7 @@ export function buildViewContent(
   for (const [fmt, label] of [['parquet', 'Parquet'], ['geojson', 'GeoJSON'], ['kml', 'KML'], ['shapefile', 'Shapefile']]) {
     const obj = (layer as Record<string, unknown>)[fmt] as { url: string; bytes: number } | null | undefined;
     if (obj?.url) {
-      downloads.push(`<a href="${esc(obj.url)}">${label}</a> (${fmtSize(obj.bytes)})`);
+      downloads.push(`<a href="${esc(obj.url)}">${label}</a> (${fmtBytes(obj.bytes)})`);
     }
   }
 

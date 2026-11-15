@@ -62,14 +62,14 @@ self.addEventListener('activate', (event) => {
 const OFFLINE_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex"><title>You're offline · collect</title>
-<style>:root{color-scheme:light dark;--bg:#fff;--ink:#111827;--muted:#4b5563;--accent:#4f46e5}
-@media (prefers-color-scheme: dark){:root{--bg:#0b0b10;--ink:#f3f4f6;--muted:#9ca3af;--accent:#818cf8}}
+<style>:root{color-scheme:light dark;--bg:#fff;--ink:#0B1B3F;--muted:#4b5563;--accent:#1A2A6C}
+@media (prefers-color-scheme: dark){:root{--bg:#0b0b10;--ink:#f3f4f6;--muted:#9ca3af;--accent:#F5A04A}}
 body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);
 font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
 padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
 main{max-width:30rem;text-align:center}h1{font-size:1.6rem;margin:0 0 .5rem}p{color:var(--muted);margin:0 0 1.4rem}
 a{display:inline-block;margin:.25rem;padding:.6rem 1.1rem;border-radius:999px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-weight:600}
-a.go{background:var(--accent);color:#fff}</style></head>
+a.go{background:#F28C28;border-color:#F28C28;color:#0B1B3F}</style></head>
 <body><main><h1>You're offline</h1>
 <p>This page isn't saved on this phone. Maps you've opened before with a connection still work, and points you add are kept and sent when you're back online.</p>
 <a class="go" href="">Try again</a><a href="/">Your maps</a></main></body></html>`;

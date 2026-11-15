@@ -2,6 +2,7 @@ import type { Env } from '../../../_middleware';
 import { loadCatalog } from '../../../../lib/catalog-loader';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
+import { json, safeStringify } from '../../../../lib/http';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
@@ -29,11 +30,3 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return json(500, { error: `Schema read failed: ${(e as Error).message}`, status: 500 });
   }
 };
-
-function safeStringify(obj: unknown): string {
-  return JSON.stringify(obj, (_k, v) => typeof v === 'bigint' ? Number(v) : v);
-}
-
-function json(status: number, body: unknown) {
-  return new Response(safeStringify(body), { status, headers: { 'content-type': 'application/json' } });
-}

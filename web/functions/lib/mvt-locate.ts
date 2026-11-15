@@ -2,6 +2,7 @@ import { VectorTile } from '@mapbox/vector-tile';
 import Pbf from 'pbf';
 import { tileBounds } from './tile-math';
 import { pointInPolygon } from './point-in-polygon';
+import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
 
 export interface LocateHit {
   layer_name: string;
@@ -83,13 +84,7 @@ function signedArea(ring: [number, number][]): number {
   return sum;
 }
 
-// FIX #6: strip internal/computed fields from MVT properties
-const JUNK_PROPS = new Set([
-  'shape_leng', 'shape_area', 'shape_length', 'shape.starea()', 'shape.stlength()',
-  'shape_le_1', 'st_area(shape)', 'st_perimeter(shape)',
-  'inpoly_fid', 'simpgnflag', 'maxsimptol', 'minsimptol',
-  'ogc_fid',
-]);
+// FIX #6: strip internal/computed fields from MVT properties (junk-columns.ts).
 
 function cleanProperties(props: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};

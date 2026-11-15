@@ -15,7 +15,8 @@ import maplibregl from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { validate, INDIA_BBOX, type FC, type Report } from './validate';
 import { fileToFC, type Format } from './parse-geo';
-import { popHandoff, stashForSubmit } from './handoff';
+import { popHandoff } from './handoff';
+import { fmtBytes } from './format-hints';
 import { overlayLoader, VERBS_VERIFY_RENDER, VERBS_VERIFY_FETCH, VERBS_ENGINE, inlineLoader } from './loading';
 import { escapeHtml } from './util';
 import {
@@ -767,15 +768,7 @@ void refreshSummaries();
 void bootSync();
 
 // ---------- Utils --------------------------------------------------------
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 function bboxStr(b: [number, number, number, number]): string {
   return b.map((v) => v.toFixed(2)).join(', ');
 }
 
-// Re-export so future code can stash from this page too if needed.
-export { stashForSubmit };

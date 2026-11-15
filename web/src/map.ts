@@ -3,7 +3,7 @@ import maplibregl, { Map as MlMap } from 'maplibre-gl';
 import { Protocol, PMTiles } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_MAP } from './loading';
-import { getCatalog, getFullCatalog } from './catalog';
+import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { popupValueHtml } from './popup-value';
 import { availableDownloads, fmtBytes } from './format-hints';
@@ -23,6 +23,8 @@ import { resolveLocateConfig } from './locate-config';
 // user-gesture window, which mobile Chrome silently drops (no prompt, no sheet).
 // locate is tiny and folds into this already-lazy map chunk.
 import { openLocate, closeLocate } from './locate';
+import { aboutLayerHtml, type AboutMeta } from './about-layer';
+import { fetchWardIndex, type WardIndexFile } from './ward-index';
 import { buildFeatureFilter, parseAtParam } from './locate-actions';
 
 type Layer = {
@@ -224,12 +226,23 @@ function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, 
 }
 
 
+// Arrival framing: the base padding (clears the top controls), widened on the
+// side an open panel covers.
+function arrivalPadding(): Padding {
+  const p = panelAwarePadding();
+  return {
+    top: Math.max(BASE_PADDING.top, p.top), bottom: Math.max(BASE_PADDING.bottom, p.bottom),
+    left: Math.max(BASE_PADDING.left, p.left), right: Math.max(BASE_PADDING.right, p.right),
+  };
+}
+
 function panelAwarePadding(): Padding {
   const base = 20;
-  const panel = document.querySelector<HTMLElement>('.filter-panel');
+  const filter = document.querySelector<HTMLElement>('.filter-panel');
+  const about = document.querySelector<HTMLElement>('.about-panel:not([hidden])');
+  const panel = filter ?? about;
   if (!panel) return { top: base, bottom: base, left: base, right: base };
-  const r = panel.getBoundingClientRect();
-  return paddingForPanelRect(r, window.innerWidth, base);
+  return paddingForPanelRect(panel.getBoundingClientRect(), window.innerWidth, base, filter ? 'right' : 'left');
 }
 
 // ---------------------------------------------------------------------------
@@ -402,7 +415,9 @@ function bindPopupToLayers() {
       ?? f.properties?.objectid
       ?? f.properties?.vil_lgd
       ?? f.properties?.soi_code
-      ?? `${e.lngLat.lng.toFixed(5)},${e.lngLat.lat.toFixed(5)}`;
+      // Stable per feature (never the cursor position, which changed on every
+      // pixel and rebuilt the popup HTML on each mousemove).
+      ?? JSON.stringify(f.properties ?? {});
     if (fid !== popupId) {
       popup.setHTML(buildRows(f.properties));
       popupId = fid;
@@ -454,7 +469,7 @@ async function attachData(layer: Layer) {
       maxzoom: header.maxZoom,
     });
     layerBounds = snapToIndiaIfLarge([header.minLon, header.minLat, header.maxLon, header.maxLat]);
-    flyTo(layerBounds, { padding: BASE_PADDING, duration: 0 });
+    flyTo(layerBounds, { padding: arrivalPadding(), duration: 0 });
     addDataLayers('layer', sourceLayer);
   } else if (layer.geojson?.url) {
     // No pmtiles header to read bounds from. Fetch the geojson once, derive its
@@ -469,7 +484,7 @@ async function attachData(layer: Layer) {
         const b = featureCollectionBounds(fc);
         if (b) {
           layerBounds = snapToIndiaIfLarge(b);
-          flyTo(layerBounds, { padding: BASE_PADDING, duration: 0 });
+          flyTo(layerBounds, { padding: arrivalPadding(), duration: 0 });
         }
       }
     } catch {
@@ -529,7 +544,7 @@ async function loadFilterColumns(
   if (!layer.parquet?.url) return null;
 
   const { rankColumns } = await import('./filter-schema');
-  const fullCat = await getFullCatalog();
+  const fullCat = await getCatalog();
   const baked = fullCat.filter_stats?.[layer.id];
 
   let columns: import('./filter-schema').ColumnStats[];
@@ -896,6 +911,48 @@ function wireLocateButton(
   };
 }
 
+// "About this layer": the answer, licence, downloads and (ward maps) the ward
+// list, in a left drawer on desktop and a bottom sheet on phones. Opens by
+// default on wide screens so the page leads with the answer; the ward list is
+// fetched the first time the panel shows.
+const ABOUT_OPEN_BY_DEFAULT = '(min-width: 1100px)';
+
+function wireAboutButton(layer: Layer, levelMeta: AboutMeta, container: HTMLElement): void {
+  const btn = document.getElementById('map-about') as HTMLButtonElement | null;
+  delete surfaceHandles.about;
+  if (!btn) return;
+  const panel = document.createElement('aside');
+  panel.className = 'about-panel';
+  panel.hidden = true;
+  panel.setAttribute('aria-labelledby', 'about-title');
+  const render = (wardIndex: WardIndexFile | null = null) => {
+    panel.innerHTML = `<button type="button" class="about-panel__close" aria-label="Close">×</button>` +
+      aboutLayerHtml({ layer, meta: levelMeta, wardIndex });
+    panel.querySelector('.about-panel__close')?.addEventListener('click', () => dispatchOverlay({ type: 'close' }));
+  };
+  render();
+  container.appendChild(panel);
+  let wardsAsked = false;
+  surfaceHandles.about = {
+    btn,
+    show: () => {
+      panel.hidden = false;
+      if (wardsAsked) return;
+      wardsAsked = true;
+      fetchWardIndex(layer.id).then((idx) => { if (idx && panel.isConnected) render(idx); });
+    },
+    hide: () => { panel.hidden = true; },
+  };
+  btn.classList.add('shown');
+  btn.onclick = (e) => {
+    e.stopPropagation();
+    dispatchOverlay({ type: 'toggle', surface: 'about' });
+  };
+  if (window.matchMedia(ABOUT_OPEN_BY_DEFAULT).matches && !new URLSearchParams(location.search).has('at')) {
+    dispatchOverlay({ type: 'open', surface: 'about' });
+  }
+}
+
 // ---------------------------------------------------------------------------
 // Public API
 // ---------------------------------------------------------------------------
@@ -946,6 +1003,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     attributionControl: false,
     preserveDrawingBuffer: true,
   });
+  wireAboutButton(layer, levelMeta, container);
   map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
   // Attribution as a compact (i) docked top-left, off the bottom bar; it expands
   // on tap (satisfies the licence). Scale is desktop-only — on mobile it just

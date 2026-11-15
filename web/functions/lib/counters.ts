@@ -20,17 +20,3 @@ export async function incrementDownload(
     .bind(layer_id, state_code, format, new Date().toISOString())
     .run();
 }
-
-/** Returns one row per (layer_id, state_code, format). Used by build_catalog
- *  to inline counts into catalog.json. */
-export async function listDownloadCounts(
-  db: RunnableD1,
-): Promise<Array<{ layer_id: string; state_code: string; format: string; count: number }>> {
-  const r = await db.prepare('SELECT layer_id, state_code, format, count FROM download_counts').all();
-  return (r.results || []) as Array<{
-    layer_id: string;
-    state_code: string;
-    format: string;
-    count: number;
-  }>;
-}

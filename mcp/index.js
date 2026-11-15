@@ -6,8 +6,7 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
-import https from "node:https";
-import { readFileSync, writeFileSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams } from "./read-tools.js";
@@ -160,26 +159,26 @@ const TOOLS = [
   },
 ];
 
-function httpGet(url) {
-  return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
-      if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return httpGet(res.headers.location).then(resolve, reject);
-      }
-      let body = "";
-      res.on("data", (chunk) => (body += chunk));
-      res.on("end", () => {
-        if (res.statusCode >= 400) reject(new Error(`API ${res.statusCode}: ${body.slice(0, 200)}`));
-        else resolve(JSON.parse(body));
-      });
-      res.on("error", reject);
-    }).on("error", reject);
-  });
+// One HTTP helper for the read API and collect. fetch follows redirects and
+// times out; a reply that is not JSON becomes a rejected promise (the old
+// https.get helper threw inside the 'end' callback and crashed the server).
+async function request(method, url, { headers = {}, body } = {}) {
+  const init = { method, headers: { ...headers }, signal: AbortSignal.timeout(30_000) };
+  if (body !== undefined) {
+    init.body = JSON.stringify(body);
+    init.headers["content-type"] = "application/json";
+  }
+  const res = await fetch(url, init);
+  const text = await res.text();
+  let parsed;
+  try { parsed = text ? JSON.parse(text) : {}; } catch { parsed = { raw: text }; }
+  if (!res.ok) throw new Error(parsed.error || `HTTP ${res.status}: ${text.slice(0, 200)}`);
+  return parsed;
 }
 
 async function callApi(path, params = {}) {
   const qs = toSearchParams(params).toString();
-  return httpGet(`${API}${path}${qs ? `?${qs}` : ""}`);
+  return request("GET", `${API}${path}${qs ? `?${qs}` : ""}`);
 }
 
 // ---- collect: local credential store + scoped auth --------------------------
@@ -192,7 +191,13 @@ function loadStore() {
   try { return existsSync(COLLECT_STORE) ? JSON.parse(readFileSync(COLLECT_STORE, "utf8")) : { maps: {} }; }
   catch { return { maps: {} }; }
 }
-function saveStore(s) { try { writeFileSync(COLLECT_STORE, JSON.stringify(s, null, 2)); } catch { /* best effort */ } }
+// The store holds share-link tokens (admin ones included): owner-only.
+function saveStore(s) {
+  try {
+    writeFileSync(COLLECT_STORE, JSON.stringify(s, null, 2), { mode: 0o600 });
+    chmodSync(COLLECT_STORE, 0o600); // also tighten a file created before this
+  } catch { /* best effort */ }
+}
 function rememberMap(id, entry) { const s = loadStore(); s.maps[id] = { ...s.maps[id], ...entry }; saveStore(s); }
 function mapEntry(id) {
   const m = loadStore().maps[id];
@@ -219,32 +224,12 @@ function parseShareLink(link) {
   return { id, token, scope, link: u.toString() };
 }
 
-// ---- collect: HTTP (GET/POST/PATCH with auth headers) -----------------------
-function httpReq(method, urlStr, { headers = {}, body } = {}) {
-  return new Promise((resolve, reject) => {
-    const data = body !== undefined ? JSON.stringify(body) : undefined;
-    const opts = { method, headers: { ...headers } };
-    if (data) opts.headers["content-type"] = "application/json";
-    const req = https.request(new URL(urlStr), opts, (res) => {
-      let buf = "";
-      res.on("data", (c) => (buf += c));
-      res.on("end", () => {
-        let parsed;
-        try { parsed = buf ? JSON.parse(buf) : {}; } catch { parsed = { raw: buf }; }
-        if (res.statusCode >= 400) reject(new Error(parsed.error || `HTTP ${res.statusCode}: ${buf.slice(0, 200)}`));
-        else resolve(parsed);
-      });
-    });
-    req.on("error", reject);
-    if (data) req.write(data);
-    req.end();
-  });
-}
+// ---- collect: HTTP (GET/POST/PATCH with auth headers): request() above ------
 function collectApi(method, path, { token, apiKey, body } = {}) {
   const headers = {};
   if (token) headers.authorization = `Bearer ${token}`;
   if (apiKey) headers["x-api-key"] = apiKey;
-  return httpReq(method, COLLECT_API + path, { headers, body });
+  return request(method, COLLECT_API + path, { headers, body });
 }
 
 async function handleTool(name, args) {

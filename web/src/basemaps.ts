@@ -220,6 +220,3 @@ export function setStoredBasemap(id: BasemapId, storage: Storage = globalThis.lo
   }
 }
 
-export function getBasemap(id: BasemapId): Basemap {
-  return BASEMAPS.find((b) => b.id === id) || BASEMAPS[0];
-}

@@ -21,9 +21,11 @@ import { parquetQuery, parquetReadObjects, parquetSchema } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2';
+import { QueryInputError } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
+import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
 
 export interface NearbyHit {
   properties: Record<string, unknown>;
@@ -47,11 +49,6 @@ const KM_PER_DEG_LAT = 111.32;
 const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
 const MAX_FULLSCAN_BYTES = 200 * 1024 * 1024;
 
-const JUNK_PROPS = new Set([
-  'shape_leng', 'shape_area', 'shape_length', 'shape.starea()', 'shape.stlength()',
-  'shape_le_1', 'st_area(shape)', 'st_perimeter(shape)',
-  'inpoly_fid', 'simpgnflag', 'maxsimptol', 'minsimptol', 'ogc_fid',
-]);
 
 export function queryBbox(lat: number, lng: number, radiusKm: number) {
   const dLat = radiusKm / KM_PER_DEG_LAT;
@@ -188,13 +185,13 @@ export async function nearby(
   const start = Date.now();
 
   const layer = catalog.layers.find((l) => l.id === layerId) as CatalogLayer | undefined;
-  if (!layer) throw new Error(`Layer ${layerId} not found`);
+  if (!layer) throw new QueryInputError(`Layer ${layerId} not found`);
   if (!layer.parquet) {
-    throw new Error(`Layer ${layerId} has no parquet — nearby unsupported (only layers with geometry can be queried)`);
+    throw new QueryInputError(`Layer ${layerId} has no parquet — nearby unsupported (only layers with geometry can be queried)`);
   }
 
   const r2Key = r2KeyFromLayer(layer);
-  if (!r2Key) throw new Error(`Layer ${layerId} has no R2 parquet key`);
+  if (!r2Key) throw new QueryInputError(`Layer ${layerId} has no R2 parquet key`);
 
   const file = await asyncBufferFromR2(r2, r2Key);
   const metadata = await cachedMetadata(file);
@@ -202,7 +199,7 @@ export async function nearby(
   // children like `bbox.{xmin,ymin,xmax,ymax}` as top-level cols.
   const allCols = parquetSchema(metadata).children.map((c) => c.element.name);
   const geomCol = pickGeomCol(allCols);
-  if (!geomCol) throw new Error(`Layer ${layerId} parquet has no geometry column`);
+  if (!geomCol) throw new QueryInputError(`Layer ${layerId} parquet has no geometry column`);
 
   const hasBboxCols = BBOX_COLS.every((c) => allCols.includes(c));
   let rowsScanned: number;
@@ -219,7 +216,7 @@ export async function nearby(
   } else {
     const bytes = layer.parquet.bytes ?? 0;
     if (bytes > MAX_FULLSCAN_BYTES) {
-      throw new Error(
+      throw new QueryInputError(
         `Layer ${layerId} parquet is ${Math.round(bytes / 1e6)} MB without spatial bbox columns; ` +
         `full-scan nearby is unavailable until the layer is rebaked with xmin/ymin/xmax/ymax.`,
       );

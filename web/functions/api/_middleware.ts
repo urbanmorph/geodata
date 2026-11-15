@@ -1,4 +1,5 @@
 import { notFoundForUnmatched } from '../lib/api-not-found';
+import { SECURITY_HEADERS_NON_HTML } from '../lib/security-headers';
 
 // CORS preflight + shared environment shape.
 // Pages Functions read this from each /api/* handler via the `data` arg.
@@ -23,8 +24,10 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     });
   }
   const resp = notFoundForUnmatched(await ctx.next(), new URL(ctx.request.url).pathname);
-  // Add CORS headers to the actual response.
+  // CORS, plus the shared security headers (nosniff, HSTS, ...) where the
+  // handler didn't set its own.
   const headers = new Headers(resp.headers);
   headers.set('access-control-allow-origin', '*');
+  for (const [k, v] of Object.entries(SECURITY_HEADERS_NON_HTML)) if (!headers.has(k)) headers.set(k, v);
   return new Response(resp.body, { status: resp.status, headers });
 };

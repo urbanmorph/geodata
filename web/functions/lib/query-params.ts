@@ -19,13 +19,19 @@ export interface ParsedQueryParams {
 export const QUERY_OPTIONS = ['select', 'group_by', 'sum', 'limit', 'where', 'order_by', 'include_centroid'] as const;
 const RESERVED = new Set<string>(QUERY_OPTIONS);
 
+/** A numeric query param, clamped to [lo, hi]; the default when absent or not a number. */
+export function clampNum(v: string | null, def: number, lo: number, hi: number, int = false): number {
+  const n = v == null || v === '' ? NaN : int ? parseInt(v, 10) : parseFloat(v);
+  return Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : def;
+}
+
 function list(v: string | null): string[] | undefined {
   const items = v?.split(',').map((s) => s.trim()).filter(Boolean);
   return items?.length ? items : undefined;
 }
 
 export function parseQueryParams(sp: URLSearchParams): ParsedQueryParams {
-  const limit = Math.min(Math.max(parseInt(sp.get('limit') || '100', 10), 1), 1000);
+  const limit = clampNum(sp.get('limit'), 100, 1, 1000, true);
 
   // where: ?where=col1=val1,col2=val2 and/or direct ?col=val params
   const where: Record<string, string> = {};

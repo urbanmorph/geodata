@@ -15,6 +15,7 @@ import { loadCatalog } from '../../../../lib/catalog-loader';
 import { locate } from '../../../../lib/locate';
 import { nearby } from '../../../../lib/nearby';
 import { pickContains, bearingLabel } from '../../../../lib/locate-layer';
+import { json } from '../../../../lib/http';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const id = (ctx.params as { id: string }).id;
@@ -89,8 +90,4 @@ function ok(body: unknown) {
   return new Response(JSON.stringify(body), {
     headers: { 'content-type': 'application/json', 'cache-control': 'private, no-store' },
   });
-}
-
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
 }

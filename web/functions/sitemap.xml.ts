@@ -7,6 +7,7 @@
 
 import type { Env } from './api/_middleware';
 import { SECURITY_HEADERS_NON_HTML } from './lib/security-headers';
+import { loadCatalog } from './lib/catalog-loader';
 
 const ORIGIN = 'https://bharatlas.com';
 
@@ -49,11 +50,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   let curated: Array<{ id: string; fetched_at?: string }> = [];
   try {
     const origin = new URL(ctx.request.url).origin;
-    const r = await fetch(`${origin}/catalog.json`);
-    if (r.ok) {
-      const cat = (await r.json()) as { layers?: Array<{ id: string; fetched_at?: string }> };
-      curated = (cat.layers || []).map((l) => ({ id: l.id, fetched_at: l.fetched_at }));
-    }
+    const cat = (await loadCatalog(origin)) as { layers?: Array<{ id: string; fetched_at?: string }> };
+    curated = (cat.layers || []).map((l) => ({ id: l.id, fetched_at: l.fetched_at }));
   } catch {
     // curated /view URLs are nice-to-have for sitemap; fall through quietly
   }

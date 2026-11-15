@@ -5,6 +5,7 @@ import { curatedMetadata } from '../../lib/og-metadata';
 import { renderOgPng } from '../../lib/og-render';
 import { ogError, PNG_HEADERS } from '../../lib/og-response';
 import { renderOgSvg } from '../../lib/og-template';
+import { loadCatalog } from '../../lib/catalog-loader';
 
 type Params = { id: string };
 
@@ -18,9 +19,9 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) return ogError(404, 'invalid layer id');
 
   const origin = new URL(ctx.request.url).origin;
-  const r = await fetch(`${origin}/catalog.json`);
-  if (!r.ok) return ogError(503, `catalog ${r.status}`);
-  const catalog = (await r.json()) as Catalog;
+  // Cached per isolate (catalog.json only changes with a deploy).
+  const catalog = (await loadCatalog(origin).catch(() => null)) as Catalog | null;
+  if (!catalog) return ogError(503, 'catalog unavailable');
 
   const layer = catalog.layers?.find((l) => l.id === id);
   if (!layer) return ogError(404, 'layer not found');

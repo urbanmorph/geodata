@@ -274,3 +274,18 @@ describe('Security headers — keyring sync', () => {
   });
 });
 
+
+describe('API responses carry the shared security headers', () => {
+  it('adds nosniff and HSTS to every /api response without overriding a handler', async () => {
+    const { onRequest } = await import('../functions/api/_middleware');
+    const ctx = {
+      request: new Request('https://bharatlas.com/api/v1/layers'),
+      next: async () => new Response('{}', { headers: { 'content-type': 'application/json', 'referrer-policy': 'no-referrer' } }),
+    };
+    const r = await onRequest(ctx as never);
+    expect(r.headers.get('x-content-type-options')).toBe('nosniff');
+    expect(r.headers.get('strict-transport-security')).toContain('max-age=');
+    expect(r.headers.get('referrer-policy')).toBe('no-referrer');
+    expect(r.headers.get('access-control-allow-origin')).toBe('*');
+  });
+});

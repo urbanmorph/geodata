@@ -1,6 +1,9 @@
 import type { Env } from '../_middleware';
+import { clampNum } from '../../lib/query-params';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { nearby } from '../../lib/nearby';
+import { QueryInputError } from '../../lib/parquet-query';
+import { json, safeStringify } from '../../lib/http';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -18,8 +21,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return json(400, { error: 'lat must be 6-38, lng must be 68-98 (India bounding box)', status: 400 });
   }
 
-  const radiusKm = Math.min(Math.max(parseFloat(url.searchParams.get('radius_km') || '25'), 1), 200);
-  const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '20', 10), 1), 100);
+  const radiusKm = clampNum(url.searchParams.get('radius_km'), 25, 1, 200);
+  const limit = clampNum(url.searchParams.get('limit'), 20, 1, 100, true);
 
   const catalog = await loadCatalog(url.origin);
 
@@ -32,14 +35,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       },
     });
   } catch (e) {
-    return json(400, { error: (e as Error).message, status: 400 });
+    const msg = (e as Error).message;
+    if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
+    return json(500, { error: `Nearby failed: ${msg}`, status: 500 });
   }
 };
-
-function safeStringify(obj: unknown): string {
-  return JSON.stringify(obj, (_k, v) => typeof v === 'bigint' ? Number(v) : v);
-}
-
-function json(status: number, body: unknown) {
-  return new Response(safeStringify(body), { status, headers: { 'content-type': 'application/json' } });
-}

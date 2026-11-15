@@ -2,7 +2,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import {
   saveSubmission,
   listSubmissions,
-  removeSubmission,
   getSubmission,
   hydrateLegacyTokens,
   MAX_SUBMISSIONS,
@@ -68,15 +67,9 @@ describe('my-submissions — save & list', () => {
   });
 });
 
-describe('my-submissions — remove & get', () => {
+describe('my-submissions — get', () => {
   let s: Storage;
   beforeEach(() => { s = memStorage(); });
-
-  it('remove deletes the record', () => {
-    saveSubmission(rec(), s);
-    removeSubmission('abc1234567', s);
-    expect(listSubmissions(s)).toEqual([]);
-  });
 
   it('get returns the record or null', () => {
     saveSubmission(rec(), s);
@@ -118,10 +111,6 @@ describe('my-submissions — storage unavailable', () => {
 
   it('saveSubmission is a no-op when storage throws', () => {
     expect(() => saveSubmission(rec(), throwingStorage())).not.toThrow();
-  });
-
-  it('removeSubmission is a no-op when storage throws', () => {
-    expect(() => removeSubmission('abc1234567', throwingStorage())).not.toThrow();
   });
 });
 

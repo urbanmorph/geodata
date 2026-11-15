@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { availableDownloads, formatLabel, formatHint, fmtBytes, fmtCount } from '../src/format-hints';
+import { availableDownloads, fmtBytes, fmtCount } from '../src/format-hints';
 
 describe('format-hints — availableDownloads', () => {
   it('returns empty list for a layer with nothing downloadable', () => {
@@ -68,24 +68,6 @@ describe('format-hints — availableDownloads', () => {
       expect(d.label.length).toBeGreaterThan(0);
       expect(d.hint.length).toBeGreaterThan(0);
     }
-  });
-});
-
-describe('format-hints — labels + hints', () => {
-  it('labels are human-readable', () => {
-    expect(formatLabel('parquet')).toBe('Parquet');
-    expect(formatLabel('pmtiles')).toBe('PMTiles');
-    expect(formatLabel('geojson')).toBe('GeoJSON');
-    expect(formatLabel('kml')).toBe('KML');
-    expect(formatLabel('shapefile')).toBe('Shapefile');
-  });
-
-  it('hints mention the canonical use case', () => {
-    expect(formatHint('parquet')).toMatch(/DuckDB|pandas|R/);
-    expect(formatHint('pmtiles')).toMatch(/vector tiles|MapLibre/);
-    expect(formatHint('geojson')).toMatch(/QGIS|web|Earth/);
-    expect(formatHint('kml')).toMatch(/Google Earth/);
-    expect(formatHint('shapefile')).toMatch(/QGIS|ArcGIS|\.shp/);
   });
 });
 
