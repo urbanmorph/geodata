@@ -1,0 +1,207 @@
+{
+ "code": "bharatlas-cw-2026.11",
+ "dataset": "cw",
+ "title": "Census 2011 <-> LGD crosswalk",
+ "description": "One table per level (states, districts, subdistricts, blocks, villages): each LGD unit with the Census 2011 code its LGD layer carries, and the relation (1:1, split, merge, post-2011 code) derived from how the codes repeat.",
+ "released": "2026-11-15",
+ "sha256": "e786c0a11ef62b233dfde2f2fd3e0053ab11c86908b0976a4699f9d448db106f",
+ "sha256_of": "SHA256SUMS",
+ "pin": "bharatlas-cw-2026.11+sha256:e786c0a11ef62b233dfde2f2fd3e0053ab11c86908b0976a4699f9d448db106f",
+ "files": [
+  {
+   "name": "cw_blocks.csv",
+   "sha256": "1f858dadc85ee1640f242c1eea1f6af9193062f06e02912aac92ff0c2ae53f93",
+   "bytes": 446434,
+   "rows": 7124,
+   "licence": "CC0-1.0",
+   "source_layer": "lgd_blocks",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_blocks.csv"
+  },
+  {
+   "name": "cw_blocks.parquet",
+   "sha256": "1661e2171381aba1cc951d5eee1425be6ac7a34b9f7ce3cd0bef733ec07ffea0",
+   "bytes": 94221,
+   "rows": 7124,
+   "licence": "CC0-1.0",
+   "source_layer": "lgd_blocks",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_blocks.parquet"
+  },
+  {
+   "name": "cw_districts.csv",
+   "sha256": "31cf83d017e8d9ec859cd34cd8196e27c372338303e485eff3526aa42647fd9e",
+   "bytes": 47695,
+   "rows": 785,
+   "licence": "CC0-1.0 / CC-BY-4.0",
+   "source_layer": "lgd_districts",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_districts.csv"
+  },
+  {
+   "name": "cw_districts.parquet",
+   "sha256": "ad49dc8b6e3f64d92b2ce552be37cba539d4c7f5a1be9b5c10fde07b622b2406",
+   "bytes": 11277,
+   "rows": 785,
+   "licence": "CC0-1.0 / CC-BY-4.0",
+   "source_layer": "lgd_districts",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_districts.parquet"
+  },
+  {
+   "name": "cw_states.csv",
+   "sha256": "20bfc8b7d17cc7e72093fce68192b182874dddf0dc777204abee405da8830d87",
+   "bytes": 1505,
+   "rows": 36,
+   "licence": "CC0-1.0 / CC-BY-4.0",
+   "source_layer": "lgd_states",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_states.csv"
+  },
+  {
+   "name": "cw_states.parquet",
+   "sha256": "160bcd1c1785b9daf5c0c6e57e78e09d16a222e81b34a642935841436973e700",
+   "bytes": 2264,
+   "rows": 36,
+   "licence": "CC0-1.0 / CC-BY-4.0",
+   "source_layer": "lgd_states",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_states.parquet"
+  },
+  {
+   "name": "cw_subdistricts.csv",
+   "sha256": "38fac84a087a67f8e15b0cbee488efd1ea663eb32003dffd3e2986d5d8dbe220",
+   "bytes": 371108,
+   "rows": 6395,
+   "licence": "CC0-1.0",
+   "source_layer": "lgd_subdistricts",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_subdistricts.csv"
+  },
+  {
+   "name": "cw_subdistricts.parquet",
+   "sha256": "b2e135af406c50fda1e403a4dfeedfeb611de536e97eed971bfe64deb465b142",
+   "bytes": 71944,
+   "rows": 6395,
+   "licence": "CC0-1.0",
+   "source_layer": "lgd_subdistricts",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_subdistricts.parquet"
+  },
+  {
+   "name": "cw_villages.csv",
+   "sha256": "7164e697ab66d409305eefb6db0318060285f23ea6e16730b4e5270a9d66b14d",
+   "bytes": 36314875,
+   "rows": 541042,
+   "licence": "CC0-1.0",
+   "source_layer": "lgd_villages",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_villages.csv"
+  },
+  {
+   "name": "cw_villages.parquet",
+   "sha256": "7d46295c53974918958e653350e3a7cb1355cef3497f2d68b1714d0a92381cd1",
+   "bytes": 6658887,
+   "rows": 541042,
+   "licence": "CC0-1.0",
+   "source_layer": "lgd_villages",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_villages.parquet"
+  }
+ ],
+ "licence": "Each file keeps its source layer's licence (named per file); bharatlas does not relicense",
+ "attribution": {
+  "sources": [
+   {
+    "name": "Local Government Directory (LGD), Ministry of Panchayati Raj, Government of India",
+    "url": "https://lgdirectory.gov.in/",
+    "note": "LGD codes, and the Census 2011 codes as carried in the LGD boundary data"
+   },
+   {
+    "name": "yashveeeeeeer/india-geodata",
+    "url": "https://github.com/yashveeeeeeer/india-geodata",
+    "version": {
+     "lgd_states": {
+      "kind": "github-release",
+      "repo": "yashveeeeeeer/india-geodata",
+      "tag": "admin/states",
+      "asset": "LGD_States.parquet",
+      "asset_updated_at": "2026-03-08T04:56:14Z",
+      "asset_sha256": "68f2c83096077de5290dc3762b852a0dc7d267e79de4a18aabbe93677fdeb417",
+      "asset_bytes": 7365957
+     },
+     "lgd_districts": {
+      "kind": "github-release",
+      "repo": "yashveeeeeeer/india-geodata",
+      "tag": "admin/districts",
+      "asset": "LGD_Districts.parquet",
+      "asset_updated_at": "2026-03-08T04:56:26Z",
+      "asset_sha256": "c205da56ce0538b33b2f66838a4032cef79be7585543686892c8a85a5d21aebc",
+      "asset_bytes": 22178335
+     },
+     "lgd_subdistricts": {
+      "kind": "github-release",
+      "repo": "yashveeeeeeer/india-geodata",
+      "tag": "admin/subdistricts",
+      "asset": "LGD_Subdistricts.parquet",
+      "asset_updated_at": "2026-03-08T04:56:42Z",
+      "asset_sha256": "459025bad42363afbe945bdced6c904ec173b91bed791ee88b1660c5e3996fd1",
+      "asset_bytes": 65955060
+     },
+     "lgd_blocks": {
+      "kind": "github-release",
+      "repo": "yashveeeeeeer/india-geodata",
+      "tag": "admin/blocks",
+      "asset": "LGD_Blocks.parquet",
+      "asset_updated_at": "2026-03-08T04:57:31Z",
+      "asset_sha256": "db29c41da1bc30861d227b1a686cd25267ed8c70375587e2a9e760d7ff2542d7",
+      "asset_bytes": 69148863
+     },
+     "lgd_villages": {
+      "kind": "github-release",
+      "repo": "yashveeeeeeer/india-geodata",
+      "tag": "admin/villages",
+      "asset": "LGD_Villages.parquet",
+      "asset_updated_at": "2026-03-08T05:40:35Z",
+      "asset_sha256": "0b4afd82ed5ee45f707a87dd554ed1a53702535495aaca55f379a0de2379c3d3",
+      "asset_bytes": 474332457
+     }
+    },
+    "fetched": {
+     "lgd_states": "2026-05-19T07:56:35.410177+00:00",
+     "lgd_districts": "2026-05-19T07:56:49.392838+00:00",
+     "lgd_subdistricts": "2026-05-19T07:57:28.791492+00:00",
+     "lgd_blocks": "2026-05-19T07:58:07.316028+00:00",
+     "lgd_villages": "2026-04-26T13:08:10.529947+00:00"
+    }
+   },
+   {
+    "name": "bharatlas (the LGD layers as served, read for this crosswalk)",
+    "url": "https://bharatlas.com",
+    "version": {
+     "lgd_states": {
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.parquet",
+      "sha256": "68f2c83096077de5290dc3762b852a0dc7d267e79de4a18aabbe93677fdeb417",
+      "bytes": 7365957
+     },
+     "lgd_districts": {
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.parquet",
+      "sha256": "c205da56ce0538b33b2f66838a4032cef79be7585543686892c8a85a5d21aebc",
+      "bytes": 22178335
+     },
+     "lgd_subdistricts": {
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.parquet",
+      "sha256": "459025bad42363afbe945bdced6c904ec173b91bed791ee88b1660c5e3996fd1",
+      "bytes": 65955060
+     },
+     "lgd_blocks": {
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.parquet",
+      "sha256": "db29c41da1bc30861d227b1a686cd25267ed8c70375587e2a9e760d7ff2542d7",
+      "bytes": 69148863
+     },
+     "lgd_villages": {
+      "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.parquet",
+      "sha256": "783a640316aaec0131dafdaec53a0a481d842ecbaaf895c1174c753ea78301c1",
+      "bytes": 437980882
+     }
+    }
+   }
+  ],
+  "compiled_by": "bharatlas (https://bharatlas.com; https://github.com/urbanmorph/geodata)"
+ },
+ "citation": "Local Government Directory (LGD), Ministry of Panchayati Raj, Government of India; yashveeeeeeer/india-geodata; bharatlas (the LGD layers as served, read for this crosswalk). Census 2011 <-> LGD crosswalk, as released by bharatlas: bharatlas-cw-2026.11 (sha256:e786c0a11ef62b233dfde2f2fd3e0053ab11c86908b0976a4699f9d448db106f). https://bharatlas.com/releases/bharatlas-cw-2026.11/",
+ "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/",
+ "w3id_proposed": "https://w3id.org/bharatlas/cw/2026.11",
+ "previous": null,
+ "method": "Build the Census 2011 <-> LGD crosswalk: one tidy table per level (states, districts, subdistricts, blocks,\nvillages), from the Census 2011 codes that bharatlas's own LGD layers already carry beside their LGD codes.\n\nEach row is one distinct (LGD code, Census 2011 code) pair found on that level's polygons, with the unit's name, a\n`code_status` for the 2011 code and a `relation` derived from how the pairs repeat:\n\n    1:1            the 2011 code is on one LGD unit, and that unit carries no other 2011 code\n    split          one 2011 unit's code is on several LGD units\n    merge          one LGD unit carries several 2011 codes\n    split+merge    both\n    post-2011 code the code is past the Census 2011 range: the source numbers units made after 2011 (states,\n                   districts, sub-districts, blocks) past it, and LGD numbers villages it adds, including urban\n                   units such as BBMP, from 800,000\n    no 2011 code   the layer carries none (blank, zero, or a word such as \"Urban\")\n    no LGD code    the polygon has no LGD code (e.g. the districts the source draws in Pakistan-administered Kashmir)\n\nWhat the data cannot show: the source gives a district created after 2011 a new code (past 640) instead of its\nparent's 2011 code, so the district table cannot say which 2011 district a new one came from; splits show at the\nsubdistrict, block and village levels, where the 2011 codes are kept. A 1:1 pair means the code continues, not\nthat the boundary is unchanged.\n\nCodes are kept exactly as carried (never re-padded or cleaned); bharatlas never edits a source's attributes.\nEach table keeps its source layer's licence (see release-meta.json)."
+}

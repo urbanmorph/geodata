@@ -53,6 +53,7 @@ export const OPENAPI = {
     { name: 'Layers', description: 'The catalogue and each layer’s rows' },
     { name: 'Catalogue', description: 'Categories, levels and download counts' },
     { name: 'Community', description: 'Layers people contributed' },
+    { name: 'Releases', description: 'Dated, immutable releases pinned by SHA-256: the Census 2011 ↔ LGD crosswalks and the catalogue record' },
   ],
   paths: {
     '/locate': {
@@ -264,6 +265,19 @@ export const OPENAPI = {
         responses: { '200': ok('The submission', data({ type: 'object' })), ...errors('400', '404', '429') },
       },
     },
+    '/releases': {
+      get: {
+        operationId: 'listReleases',
+        tags: ['Releases'],
+        summary: 'Dated releases, newest first, with each code’s SHA-256 pin and files',
+        description:
+          'A release code is `bharatlas-<dataset>-<year>.<month>` (e.g. `bharatlas-cw-2026.11`); it is never reused and its files never change. ' +
+          'Cite it with its pin, `<code>+sha256:<hex>`, where the hex is the SHA-256 of the release’s `SHA256SUMS`. ' +
+          'Files are served unchanged at `https://bharatlas.com/releases/<code>/<file>` beside `manifest.json`, `CHANGES.md` and `SHA256SUMS`; ' +
+          'the same index is at `https://bharatlas.com/releases/index.json`. Sourced data keeps its source’s licence: each file names it, and the source is credited first.',
+        responses: { '200': ok('The release index', data(ref('schemas', 'ReleaseIndex'))), ...errors('429', '500') },
+      },
+    },
   },
   components: {
     parameters: {
@@ -306,6 +320,31 @@ export const OPENAPI = {
         },
       },
       Credit: { type: 'object', properties: { name: { type: 'string' }, url: { type: 'string', format: 'uri' } } },
+      ReleaseIndex: {
+        type: 'object',
+        properties: {
+          latest: { type: 'object', description: 'Dataset → its newest release code.', additionalProperties: { type: 'string' } },
+          releases: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                code: { type: 'string', examples: ['bharatlas-cw-2026.11'] },
+                dataset: { type: 'string' },
+                title: { type: 'string' },
+                released: { type: 'string', format: 'date' },
+                sha256: { type: 'string', description: 'SHA-256 of the release’s SHA256SUMS file.' },
+                pin: { type: 'string', description: '`<code>+sha256:<hex>`' },
+                url: { type: 'string', format: 'uri' },
+                manifest: { type: 'string', format: 'uri' },
+                w3id_proposed: { type: 'string', format: 'uri', description: 'The persistent address the code will resolve through once registered.' },
+                previous: { type: ['string', 'null'] },
+                files: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, url: { type: 'string', format: 'uri' }, sha256: { type: 'string' }, bytes: { type: 'integer' }, rows: { type: ['integer', 'null'] }, licence: { type: 'string' } } } },
+              },
+            },
+          },
+        },
+      },
       LocateResult: {
         type: 'object',
         properties: {

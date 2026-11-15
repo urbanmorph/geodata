@@ -8,6 +8,9 @@
 //   geoboundaries/IND_ADM<N>.geojson           cross-check layers
 //   boundaries/<level-plural>/<stem>_<ab>.<ext>  legacy CG/JH/OD slices
 
+/** Public base URL of the geodata-data R2 bucket. */
+export const R2_PUBLIC_BASE = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
+
 export type Classified = {
   layer_id: string;
   state_code: string;    // '' for pan-India / non-state slicing

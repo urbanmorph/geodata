@@ -41,8 +41,16 @@ Endpoints:
 - GET /api/v1/downloads/counts — download statistics
 - GET /api/v1/submissions — community-contributed layers
 - GET /api/v1/submissions/:id — single submission detail
+- GET /api/v1/releases — dated, immutable releases (same as https://bharatlas.com/releases/index.json)
 
 Join on LGD codes: State_LGD (lgd_states), dist_lgd (lgd_districts), subdt_lgd (lgd_subdistricts), block_lgd (lgd_blocks), vil_lgd (lgd_villages). The LGD layers also carry Census 2011 codes (stcode11, dtcode11, sdtcode11).
+
+## Releases and the Census 2011 ↔ LGD crosswalk
+
+Dated releases are named `bharatlas-<dataset>-<year>.<month>` (e.g. bharatlas-cw-2026.11), never reused, and pinned by SHA-256: cite `<code>+sha256:<hex>`. Each lives at https://bharatlas.com/releases/<code>/ with manifest.json (files, sha256, bytes, rows, licence, the source credited first and its version), CHANGES.md and SHA256SUMS. Index: https://bharatlas.com/releases/index.json.
+
+- bharatlas-cw-…: the Census 2011 ↔ LGD crosswalk, one table per level (cw_states, cw_districts, cw_subdistricts, cw_blocks, cw_villages; CSV and Parquet). Each row is an LGD code, its name, the Census 2011 code its LGD layer carries, and a relation (1:1, split, merge, split+merge, post-2011 code, no 2011 code, no LGD code). Districts made after 2011 carry a code past 640, not their parent's, so their parent is not in this data; splits show at the subdistrict, block and village levels. Each table keeps its LGD layer's licence.
+- bharatlas-catalog-…: the dated catalogue record: per layer the source, the source's version, fetch date, SHA-256 of the served file, licence and source link.
 
 ## What you can ask
 
