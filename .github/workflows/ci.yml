@@ -134,3 +134,14 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
         run: npx wrangler pages deploy dist/ --project-name=geodata --branch=main
+
+      - name: purge the edge cache for changed pages
+        # Pages are edge-cached with stale-while-revalidate (public/_headers),
+        # so without a purge some locations serve the previous version for up
+        # to a day. Needs the deploy token's Zone → Cache Purge permission.
+        # Warns rather than fails: the deploy itself already succeeded.
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ZONE_ID: 531b8b31a2ad1bd700d4cd38bfc384ce
+        run: node scripts/purge-cache.mjs
