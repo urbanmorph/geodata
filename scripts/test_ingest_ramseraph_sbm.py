@@ -235,3 +235,20 @@ def test_significant_batch_is_defined_under_policy_b():
     # Personal data (lessee names, phones, emails; editor name + mobile) stays out.
     for held in ('gsi_major_mining_leases_2022', 'ncog_major_mining_leases', 'police_stations_rajasthan'):
         assert held not in by_id
+
+
+def test_ogr2ogr_reads_geojson_features_of_any_size(tmp_path, monkeypatch):
+    # One CRZ 2019 line is over GDAL's 200 MB per-feature GeoJSON limit, so the
+    # KML and shapefile conversions failed ("GeoJSON object too complex/large").
+    import subprocess
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    seen = []
+    real_run = subprocess.run
+
+    def spy(cmd, *a, **kw):
+        if cmd and cmd[0] == 'ogr2ogr':
+            seen.append((kw.get('env') or {}).get('OGR_GEOJSON_MAX_OBJ_SIZE'))
+        return real_run(cmd, *a, **kw)
+    monkeypatch.setattr(ir.subprocess, 'run', spy)
+    ir.bake_whole_layer(_ds(), _ward_parquet(tmp_path))
+    assert seen and all(v == '0' for v in seen)

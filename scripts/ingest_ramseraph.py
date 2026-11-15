@@ -759,6 +759,10 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
     return n, non_geom
 
 
+# Lift GDAL's 200 MB per-feature GeoJSON read limit: one CRZ 2019 line alone
+# is larger, and ogr2ogr then fails the KML and shapefile conversions.
+OGR_ENV = {**os.environ, 'OGR_GEOJSON_MAX_OBJ_SIZE': '0'}
+
 DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf of 2 GB or more
 
 
@@ -824,7 +828,7 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
             ['ogr2ogr', '-f', 'KML',
              *(['-dsco', f'NameField={d.kml_name_field}'] if d.kml_name_field else []),
              str(kml_path), str(geojson_path)],
-            check=True, capture_output=True, timeout=600,
+            check=True, capture_output=True, timeout=600, env=OGR_ENV,
         )
         outputs['kml'] = kml_path
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
@@ -843,7 +847,7 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
             subprocess.run(
                 ['ogr2ogr', '-f', 'ESRI Shapefile', '-lco', 'ENCODING=UTF-8', '-lco', 'RESIZE=YES',
                  str(shp_dir / f'{basename}.shp'), str(geojson_path)],
-                check=True, capture_output=True, timeout=600,
+                check=True, capture_output=True, timeout=600, env=OGR_ENV,
             )
         too_big = [f.name for f in shp_dir.glob('*.dbf') if f.stat().st_size >= DBF_MAX_BYTES]
         if too_big:
