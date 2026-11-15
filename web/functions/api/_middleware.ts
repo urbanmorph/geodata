@@ -1,3 +1,5 @@
+import { notFoundForUnmatched } from '../lib/api-not-found';
+
 // CORS preflight + shared environment shape.
 // Pages Functions read this from each /api/* handler via the `data` arg.
 
@@ -19,7 +21,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       },
     });
   }
-  const resp = await ctx.next();
+  const resp = notFoundForUnmatched(await ctx.next(), new URL(ctx.request.url).pathname);
   // Add CORS headers to the actual response.
   const headers = new Headers(resp.headers);
   headers.set('access-control-allow-origin', '*');
