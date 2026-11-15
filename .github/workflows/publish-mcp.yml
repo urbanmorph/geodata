@@ -1,0 +1,71 @@
+name: Publish to MCP Registry
+
+# Keeps this server's MCP Registry listing (registry.modelcontextprotocol.io) at the version in
+# SERVER_JSON. Runs when that file changes on main, once a day, and by hand.
+#   - The registry already has this version: nothing to do.
+#   - An npm package it names isn't on npm yet (npm publishing is done by hand, with a passkey):
+#     wait, without failing; the daily run publishes once npm has it.
+#   - Otherwise: publish.
+# The listing is under the owner's personal namespace (io.github.sathya-sankaran/*), which a
+# workflow's own OIDC identity can't claim, so it logs in with MCP_PUBLISHER_TOKEN: a fine-grained
+# token of sathya-sankaran with no permissions (the registry only checks whose it is). It expires;
+# ops reminds the owner to renew it.
+
+on:
+  push:
+    branches: [main]
+    paths: ["mcp/server.json"]
+  schedule:
+    - cron: "24 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-mcp
+  cancel-in-progress: false
+
+env:
+  SERVER_JSON: mcp/server.json
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is there anything to publish?
+        id: check
+        run: |
+          set -euo pipefail
+          name=$(jq -r .name "$SERVER_JSON"); version=$(jq -r .version "$SERVER_JSON")
+          echo "$name $version"
+          if curl -fsS "https://registry.modelcontextprotocol.io/v0/servers?search=${name##*/}&limit=100" |
+             jq -e --arg n "$name" --arg v "$version" '[.servers[].server | select(.name == $n and .version == $v)] | length > 0' >/dev/null; then
+            echo "The registry already has $name $version."; echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          for pkg in $(jq -r '.packages[]? | select(.registryType == "npm") | "\(.identifier)@\(.version)"' "$SERVER_JSON"); do
+            if ! npm view "$pkg" version >/dev/null 2>&1; then
+              echo "::notice::$pkg is not on npm yet. Publish it to npm; the next daily run (or Run workflow) registers it."
+              echo "go=false" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "go=true" >> "$GITHUB_OUTPUT"
+
+      - name: Install mcp-publisher
+        if: steps.check.outputs.go == 'true'
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+          sudo mv mcp-publisher /usr/local/bin/
+
+      - name: Publish
+        if: steps.check.outputs.go == 'true'
+        env:
+          MCP_PUBLISHER_TOKEN: ${{ secrets.MCP_PUBLISHER_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$MCP_PUBLISHER_TOKEN" ]; then echo "::error::The MCP_PUBLISHER_TOKEN secret is not set."; exit 1; fi
+          cd "$(dirname "$SERVER_JSON")"
+          mcp-publisher login github --token "$MCP_PUBLISHER_TOKEN"
+          mcp-publisher publish

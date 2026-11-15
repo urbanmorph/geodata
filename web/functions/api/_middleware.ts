@@ -7,6 +7,7 @@ import { SECURITY_HEADERS_NON_HTML } from '../lib/security-headers';
 export type Env = {
   DB: D1Database;
   R2: R2Bucket;
+  ASSETS: Fetcher;     // Pages' static assets (e.g. /releases/index.json)
   TURNSTILE_SECRET?: string;
 };
 
