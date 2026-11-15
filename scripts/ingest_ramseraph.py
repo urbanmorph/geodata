@@ -698,7 +698,10 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
         )
         with zipfile.ZipFile(shp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
             for f in sorted(shp_dir.iterdir()):
-                zf.write(f, f.name)
+                # Fixed timestamp: same input, same bytes, same md5 (no re-upload).
+                info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                zf.writestr(info, f.read_bytes())
         outputs['shapefile'] = shp_zip
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         print(f'  shapefile bake skipped: {e}')

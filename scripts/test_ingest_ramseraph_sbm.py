@@ -110,3 +110,15 @@ def test_a_new_layer_gets_fetched_at():
     c['layers'][0]['fetched_at'] = '2026-01-01T00:00:00+00:00'
     ir.merge_layer_into_catalog(c, _ds(), 100, 200, 50)
     assert c['layers'][0]['fetched_at'] == '2026-01-01T00:00:00+00:00'  # kept on re-run
+
+
+def test_shapefile_zip_is_byte_identical_across_runs(tmp_path, monkeypatch):
+    # Zip entries stored each file's mtime, so every run changed the md5 and
+    # re-uploaded unchanged shapefiles.
+    import time
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    src = _ward_parquet(tmp_path)
+    first = ir.bake_whole_layer(_ds(), src)['shapefile'].read_bytes()
+    time.sleep(2.1)  # zip timestamps have 2-second resolution
+    second = ir.bake_whole_layer(_ds(), src)['shapefile'].read_bytes()
+    assert first == second
