@@ -1036,6 +1036,11 @@
       "unit": "ULBs",
       "description": "Income and expenditure of Indian cities (urban local bodies) from their annual accounts, as standardised by CityFinance.in (MoHUA): tax revenue, fees and user charges, grants, establishment and operation costs, totals and surplus, in rupees, on Swachh Bharat Mission ULB boundaries."
     },
+    "state_finance": {
+      "label": "State Economy & Finance",
+      "unit": "states",
+      "description": "State and UT economy and finance: GSDP and per capita income, state debt as a share of GSDP, GST and direct tax collections, Mudra loans, Kisan Credit Cards and Jan Dhan accounts, from official tables tabled in Rajya Sabha."
+    },
     "wards_kalyan_dombivli": {
       "label": "Kalyan-Dombivli (KDMC) Wards",
       "unit": "wards",
@@ -1212,6 +1217,7 @@
     "jjm_facilities",
     "mgnrega_districts",
     "cityfinance_ulbs",
+    "state_finance",
     "wards_kalyan_dombivli",
     "zones_bengaluru_gba",
     "wards_pune_2025",
@@ -6703,6 +6709,62 @@
       ]
     },
     {
+      "id": "state_finance",
+      "level": "state_finance",
+      "source": "data.gov.in (Rajya Sabha)",
+      "rows": 36,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.parquet",
+        "bytes": 7879432
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.pmtiles",
+        "bytes": 3389181
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.geojson",
+        "bytes": 27103590
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.kml",
+        "bytes": 21349451
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.shp.zip",
+        "bytes": 11712164
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Rajya Sabha answers (MoSPI, RBI, Ministry of Finance, Income Tax Department, GSTN, MUDRA, NABARD, banks), via data.gov.in",
+          "url": "https://www.data.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "economy",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T14:37:19+00:00",
+      "notes": "Official state-wise tables from Rajya Sabha answers, published on data.gov.in under GODL-India. Each is a one-off snapshot with its own year or date, named in every column; figures are kept as published (numbers cast to numbers, NA left empty). Money is in Rs crore unless a column says otherwise. Source state names are matched to LGD states by name with hand-checked aliases. gsdp_current_2021_22_rs_crore: GSDP at current prices (2011-12 base), Rs crore; 2021-22 is the latest year reported for nearly every state. Jammu and Kashmir is the UT figure; not compiled for Ladakh, Lakshadweep, and Dadra and Nagar Haveli and Daman and Diu. Source: \"State/UT-wise Gross State Domestic Product (GSDP) and Percentage Growth of GSDP at Current as well as Constant (2011-12) form 2017-18 to 2022-23\", Rajya Sabha session 259, unstarred question 2238, answered 20 March 2023; figures of state Directorates of Economics and Statistics as on 15-03-2023 (data.gov.in resource b94407cc-7748-41f8-b199-b2916af3228a). nsdp_per_capita_current_2021_22_rs: per capita NSDP at current prices, Rs per person (the table note says Rs crore, but the figures are rupees per person and equal the NSO per capita figures tabled in July 2024). Source: \"State/UT-wise Details of Per Capita Net State Domestic Product at Current Prices from 2019-20 to 2022-23\", Rajya Sabha session 262, starred question 94, answered 11 December 2023; data as on 01-08-2023 (data.gov.in resource c9bfd3c0-b9de-4a5b-8752-f72a4f2932ad). outstanding_liabilities_pct_gsdp_mar_2021_actual, outstanding_liabilities_pct_gsdp_mar_2023_be: total outstanding liabilities of the state government as percent of GSDP at end-March, 2021 actual and 2023 budget estimate (states and UTs with a legislature only). Source: \"State/UT-wise Details of Total Outstanding Liabilities of States & UT with Legislature as Percent of (GSDP) from 2021 to 2023\", Rajya Sabha session 260, unstarred question 1353, answered 1 August 2023; RBI, State Finances: A Study of Budgets of 2022-23 (data.gov.in resource b53abcb0-fcb2-4de9-82d5-6df1cd2a6306). gst_gross_2023_24_rs_crore: gross GST collection on domestic supplies, 2023-24 (the latest full year; the table's 2024-25 runs only to October 2024), Rs crore. Dadra and Nagar Haveli and Daman and Diu, reported separately, are summed. Source: \"State/UT-wise Details of Gross Goods and Service Tax (GST) Collection from 2020-21 to 2024-25\", Rajya Sabha session 266, unstarred question 881, answered 3 December 2024 (data.gov.in resource 5d0b81aa-d513-4dfd-9f57-84571829c049). direct_tax_gross_2022_23_rs_crore: gross direct tax collection, 2022-23, Rs crore, placed by the state code of the assessing officer's jurisdiction (so states hosting company head offices, such as Maharashtra and Delhi, carry tax earned elsewhere). Source: \"State/UT-wise Details of Total Amount of Direct tax Collection during 2022-23\", Rajya Sabha session 262, unstarred question 232, answered 5 December 2023 (data.gov.in resource e3b6c58c-0292-4b1b-b39a-8388a0d4a35b). mudra_loan_accounts_apr_2015_to_jan_2026, mudra_disbursed_apr_2015_to_jan_2026_rs_crore: PM Mudra Yojana loan accounts and amount disbursed, cumulative 08-04-2015 to 02-01-2026, Rs crore. Source: \"State/UT-wise Details of Loan Accounts and Disbursed Amount under Pradhan Mantri Mudra Yojana (PMMY) from 08-04-2015 to 02-01-2026\", Rajya Sabha session 270, unstarred question 1199, answered 10 February 2026; provisional, as uploaded by lending institutions on the Mudra portal (data.gov.in resource 5848e4ad-2a80-4045-bae6-e705bfc05493). kcc_operative_accounts_sep_2024, kcc_outstanding_sep_2024_rs_crore: operative Kisan Credit Card accounts and amount outstanding as on 30-09-2024, Rs crore. Source: \"State/UT-wise Details of Operative Kisan Credit Card (KCC) and Amount Outstanding including Maharashtra as on 30-09-2024\", Rajya Sabha session 266, unstarred question 1676, answered 10 December 2024 (data.gov.in resource d7cf9477-e439-426e-9ee5-1b43dbcaabc9). pmjdy_accounts_jan_2025: PM Jan Dhan Yojana accounts as on 15-01-2025. Source: \"State/UT-wise Number of PMJDY accounts, PMJJBY, PMSBY, and APY Enrolments under National Mission for Financial Inclusion (NMFI) during 31-12-2024 and 15-01-2025\", Rajya Sabha session 267, unstarred question 220, answered 4 February 2025; source: banks (data.gov.in resource 996d63c6-4759-4b12-90b4-b6ce61d337e3). Rows skipped on purpose: gsdp: the erstwhile state of Jammu and Kashmir including Ladakh (figures to 2018-19 only); the UT row is used. Source rows with no LGD state: gst: Other Territory; gst: Centre Jurisdiction; direct_tax: N/A.",
+      "tags": [
+        "GSDP",
+        "NSDP",
+        "per capita income",
+        "state debt",
+        "GST",
+        "direct tax",
+        "Mudra",
+        "Kisan Credit Card",
+        "KCC",
+        "Jan Dhan",
+        "PMJDY",
+        "financial inclusion",
+        "public finance",
+        "state",
+        "economy",
+        "finance"
+      ]
+    },
+    {
       "id": "wards_kalyan_dombivli",
       "level": "wards_kalyan_dombivli",
       "source": "OpenCity",
@@ -9351,6 +9413,10 @@
     "CityFinance": {
       "name": "CityFinance.in, Ministry of Housing and Urban Affairs",
       "url": "https://cityfinance.in/"
+    },
+    "data.gov.in (Rajya Sabha)": {
+      "name": "Rajya Sabha answers (MoSPI, RBI, Ministry of Finance, Income Tax Department, GSTN, MUDRA, NABARD, banks), via data.gov.in",
+      "url": "https://www.data.gov.in/"
     }
   },
   "licence_summary": {
