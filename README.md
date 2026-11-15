@@ -61,7 +61,7 @@ bharatlas is a catalog of India's open geo layers, from the national boundary do
 
 ## Layers and sources
 
-The live catalog lists 137 layers (`GET /api/v1/layers`, checked 15 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
+The live catalog lists 138 layers (`GET /api/v1/layers`, checked 15 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
 
 | Category | Layers | Examples |
 |---|---:|---|
@@ -74,7 +74,7 @@ The live catalog lists 137 layers (`GET /api/v1/layers`, checked 15 November 202
 | Agriculture and land use | 4 | agro-ecological and agro-climatic zones, soil health, land use by block |
 | Transport and mobility | 3 | highways, airports, PMGSY roads |
 | Health and education | 4 | NIC HealthGIS health facilities; NHP hospital directory and NIN health facilities (2025); UDISE schools (2.9 million) |
-| Economy and finance | 1 | MGNREGA by district (2025-26): spending, wages, persondays, households, women, SC and ST work, with yearly spend since 2018-19 |
+| Economy and finance | 2 | MGNREGA by district (2025-26): spending, wages, persondays, households, women, SC and ST work, with yearly spend since 2018-19; city finances from CityFinance.in: income and expenditure by account head for about 3,000 towns and cities |
 
 The full catalog, with each layer's source, licence, row count, freshness and download sizes, lives in [`catalog.json`](./catalog.json) and on [bharatlas.com](https://bharatlas.com). Known data caveats (name spellings across sources, coverage gaps, polygon precision) are on [/about#caveats](https://bharatlas.com/about#caveats).
 
