@@ -913,6 +913,116 @@
       "label": "Schools (UDISE)",
       "unit": "schools",
       "description": "About 2.9 million schools from UDISE (Ministry of Education) as mapped by NCOG: UDISE code, management, category, year established, enrolment, teachers, electricity and drinking water, with LGD state and district codes. About 920,000 schools have no state or district in the source; the shapefile has one file per state."
+    },
+    "fsi_circles": {
+      "label": "Forest circles (FSI)",
+      "unit": "circle polygons",
+      "description": "Forest administrative circles from the Forest Survey of India, the level above divisions."
+    },
+    "fsi_divisions": {
+      "label": "Forest divisions (FSI)",
+      "unit": "division polygons",
+      "description": "Forest divisions from the Forest Survey of India, with circle and state."
+    },
+    "fsi_ranges": {
+      "label": "Forest ranges (FSI)",
+      "unit": "range polygons",
+      "description": "Forest ranges from the Forest Survey of India, with division, circle, district and LGD codes."
+    },
+    "fsi_beats": {
+      "label": "Forest beats (FSI)",
+      "unit": "beat polygons",
+      "description": "Forest beats, the smallest unit of forest administration, from the Forest Survey of India, with reserved forest, compartment, range, division and LGD codes. Many name fields are blank in the source."
+    },
+    "wildlife_corridors": {
+      "label": "Wildlife reserves and corridors (PARIVESH)",
+      "unit": "reserves and corridors",
+      "description": "Tiger reserves, wildlife corridors and other reserves from PARIVESH, the environment ministry clearance portal."
+    },
+    "crz2019_zones": {
+      "label": "Coastal Regulation Zones 2019 (PARIVESH)",
+      "unit": "zone polygons",
+      "description": "Coastal Regulation Zone areas (CRZ-I to CRZ-IV) under the CRZ Notification 2019, from approved Coastal Zone Management Plans. For reference; the approved state CZMP maps are the legal record."
+    },
+    "crz2019_lines": {
+      "label": "Coastal regulation lines 2019 (PARIVESH)",
+      "unit": "lines",
+      "description": "High tide, low tide, hazard and no-development lines under the CRZ Notification 2019. For reference; the approved state CZMP maps are the legal record."
+    },
+    "gw_quality_premonsoon": {
+      "label": "Groundwater quality, pre-monsoon (Bhuvan)",
+      "unit": "samples",
+      "description": "Pre-monsoon groundwater quality samples (pH, TDS, hardness, fluoride, nitrate, iron, arsenic and more, with a potability class) from Bhuvan. Columns vary by state and year in the source."
+    },
+    "gw_quality_postmonsoon": {
+      "label": "Groundwater quality, post-monsoon (Bhuvan)",
+      "unit": "samples",
+      "description": "Post-monsoon groundwater quality samples (pH, TDS, hardness, fluoride, nitrate, iron, arsenic and more, with a potability class) from Bhuvan. Columns vary by state and year in the source."
+    },
+    "gsi_geology_2m": {
+      "label": "Geology 1:2M (GSI)",
+      "unit": "rock units",
+      "description": "Geological map of India at 1:2 million: rock units with age, supergroup, group and stratigraphy, from the Geological Survey of India."
+    },
+    "gsi_coal_blocks": {
+      "label": "Coal blocks (GSI)",
+      "unit": "coal blocks",
+      "description": "Coal blocks with coalfield, exploration status, resources and allotted company, from the Geological Survey of India."
+    },
+    "gsi_critical_minerals": {
+      "label": "Critical mineral occurrences (GSI)",
+      "unit": "localities",
+      "description": "Critical mineral localities (copper, rare earths, lithium and others) with commodity, resource, grade, host rock and age, from the Geological Survey of India."
+    },
+    "gsi_lineaments_250k": {
+      "label": "Lineaments 1:250k (GSI)",
+      "unit": "lineaments",
+      "description": "Structural and geomorphic lineaments (faults, fractures, joints) mapped at 1:250,000 by the Geological Survey of India."
+    },
+    "police_stations_ap": {
+      "label": "Police station areas, Andhra Pradesh (APSAC)",
+      "unit": "police stations",
+      "description": "Police station jurisdictions in Andhra Pradesh with circle, sub-division, division, district and station phone number."
+    },
+    "police_stations_bihar": {
+      "label": "Police station areas, Bihar (i-Bhugoal)",
+      "unit": "thanas",
+      "description": "Police thana jurisdictions in Bihar with district and thana code."
+    },
+    "police_stations_delhi": {
+      "label": "Police station areas, Delhi (GSDL)",
+      "unit": "police stations",
+      "description": "Police station jurisdictions in Delhi with district, sub-division and range."
+    },
+    "police_stations_tn": {
+      "label": "Police station areas, Tamil Nadu (TNGIS)",
+      "unit": "police stations",
+      "description": "Law-and-order police station jurisdictions in Tamil Nadu with district and taluk."
+    },
+    "traffic_police_stations_tn": {
+      "label": "Traffic police station areas, Tamil Nadu (TNGIS)",
+      "unit": "police stations",
+      "description": "Traffic police station jurisdictions in Tamil Nadu with district and taluk."
+    },
+    "police_stations_telangana": {
+      "label": "Police station areas, Telangana (TGRAC)",
+      "unit": "police stations",
+      "description": "Police station jurisdictions in Telangana with mandal, district, circle and sub-division."
+    },
+    "marine_police_stations": {
+      "label": "Marine police station areas (NCOG)",
+      "unit": "areas",
+      "description": "Coastal villages grouped by marine police station, with LGD state, district and sub-district codes."
+    },
+    "amrit_sarovar_ponds": {
+      "label": "Amrit Sarovar ponds",
+      "unit": "ponds",
+      "description": "Ponds built or rejuvenated under Mission Amrit Sarovar (mostly via MGNREGA), with status, scheme, village, block and district."
+    },
+    "jjm_facilities": {
+      "label": "Jal Jeevan Mission facilities",
+      "unit": "facilities",
+      "description": "Schools, anganwadis and other public institutions in rural habitations recorded by the Jal Jeevan Mission, with category, class and LGD village code."
     }
   },
   "level_order": [
@@ -1015,7 +1125,29 @@
     "sbm_ulbs",
     "nhp_hospitals",
     "nin_health_facilities",
-    "udise_schools"
+    "udise_schools",
+    "fsi_circles",
+    "fsi_divisions",
+    "fsi_ranges",
+    "fsi_beats",
+    "wildlife_corridors",
+    "crz2019_zones",
+    "crz2019_lines",
+    "gw_quality_premonsoon",
+    "gw_quality_postmonsoon",
+    "gsi_geology_2m",
+    "gsi_coal_blocks",
+    "gsi_critical_minerals",
+    "gsi_lineaments_250k",
+    "police_stations_ap",
+    "police_stations_bihar",
+    "police_stations_delhi",
+    "police_stations_tn",
+    "traffic_police_stations_tn",
+    "police_stations_telangana",
+    "marine_police_stations",
+    "amrit_sarovar_ponds",
+    "jjm_facilities"
   ],
   "layers": [
     {
@@ -5514,6 +5646,886 @@
         "bytes": 110534474
       },
       "fetched_at": "2026-11-15T09:52:25+00:00"
+    },
+    {
+      "id": "fsi_circles",
+      "level": "fsi_circles",
+      "source": "FSI",
+      "rows": 42540,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Circles.parquet",
+        "bytes": 71062441
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Circles.pmtiles",
+        "bytes": 37761024
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Forest Survey of India (MoEFCC)",
+          "url": "https://fsi.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.geojson",
+        "bytes": 239119472
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.kml",
+        "bytes": 216923259
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.shp.zip",
+        "bytes": 96033824
+      },
+      "fetched_at": "2026-11-15T11:36:15+00:00"
+    },
+    {
+      "id": "fsi_divisions",
+      "level": "fsi_divisions",
+      "source": "FSI",
+      "rows": 92981,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Divisions.parquet",
+        "bytes": 172459428
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Divisions.pmtiles",
+        "bytes": 75523267
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Forest Survey of India (MoEFCC)",
+          "url": "https://fsi.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.geojson",
+        "bytes": 579142018
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.kml",
+        "bytes": 526548299
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.shp.zip",
+        "bytes": 235097552
+      },
+      "fetched_at": "2026-11-15T11:38:01+00:00"
+    },
+    {
+      "id": "fsi_ranges",
+      "level": "fsi_ranges",
+      "source": "FSI",
+      "rows": 84919,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Ranges.parquet",
+        "bytes": 144253317
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Ranges.pmtiles",
+        "bytes": 65999499
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Forest Survey of India (MoEFCC)",
+          "url": "https://fsi.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.geojson",
+        "bytes": 503064663
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.kml",
+        "bytes": 473015894
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.shp.zip",
+        "bytes": 197344707
+      },
+      "fetched_at": "2026-11-15T11:39:35+00:00"
+    },
+    {
+      "id": "fsi_beats",
+      "level": "fsi_beats",
+      "source": "FSI",
+      "rows": 429122,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Beats.parquet",
+        "bytes": 328028526
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Beats.pmtiles",
+        "bytes": 184052619
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Forest Survey of India (MoEFCC)",
+          "url": "https://fsi.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.geojson",
+        "bytes": 1424589326
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.kml",
+        "bytes": 1608176857
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.shp.zip",
+        "bytes": 448391224
+      },
+      "fetched_at": "2026-11-15T11:44:48+00:00"
+    },
+    {
+      "id": "wildlife_corridors",
+      "level": "wildlife_corridors",
+      "source": "Parivesh",
+      "rows": 2068,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wildlife-corridors/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.parquet",
+        "bytes": 7578501
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wildlife-corridors/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.pmtiles",
+        "bytes": 3718112
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "PARIVESH (MoEFCC), via Bharatmaps",
+          "url": "https://parivesh.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PARIVESH (MoEFCC), via Bharatmaps. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wildlife-corridors/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.geojson",
+        "bytes": 26466558
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wildlife-corridors/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.kml",
+        "bytes": 22158377
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wildlife-corridors/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.shp.zip",
+        "bytes": 9431578
+      },
+      "fetched_at": "2026-11-15T11:44:57+00:00"
+    },
+    {
+      "id": "crz2019_zones",
+      "level": "crz2019_zones",
+      "source": "Parivesh",
+      "rows": 32264,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-zones/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/coastal/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.parquet",
+        "bytes": 83769588
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-zones/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/coastal/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.pmtiles",
+        "bytes": 34495593
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "PARIVESH (MoEFCC), via Bharatmaps",
+          "url": "https://parivesh.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PARIVESH (MoEFCC), via Bharatmaps. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-zones/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.geojson",
+        "bytes": 305147510
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-zones/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.kml",
+        "bytes": 259580916
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-zones/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.shp.zip",
+        "bytes": 115121382
+      },
+      "fetched_at": "2026-11-15T11:45:58+00:00"
+    },
+    {
+      "id": "crz2019_lines",
+      "level": "crz2019_lines",
+      "source": "Parivesh",
+      "rows": 10600,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-lines/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/coastal/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.parquet",
+        "bytes": 154343155
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-lines/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/coastal/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.pmtiles",
+        "bytes": 59049963
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "PARIVESH (MoEFCC), via Bharatmaps",
+          "url": "https://parivesh.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PARIVESH (MoEFCC), via Bharatmaps. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-lines/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.geojson",
+        "bytes": 521196020
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-lines/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.kml",
+        "bytes": 414209452
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-lines/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.shp.zip",
+        "bytes": 190231142
+      },
+      "fetched_at": "2026-11-15T11:47:36+00:00"
+    },
+    {
+      "id": "gw_quality_premonsoon",
+      "level": "gw_quality_premonsoon",
+      "source": "Bhuvan",
+      "rows": 549982,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-premonsoon/Bhuvan_Groundwater_Quality_Premonsoon.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Premonsoon.parquet",
+        "bytes": 26110918
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-premonsoon/Bhuvan_Groundwater_Quality_Premonsoon.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Premonsoon.pmtiles",
+        "bytes": 22541076
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bhuvan (NRSC, ISRO)",
+          "url": "https://bhuvan.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-premonsoon/Bhuvan_Groundwater_Quality_Premonsoon.geojson",
+        "bytes": 409130168
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-premonsoon/Bhuvan_Groundwater_Quality_Premonsoon.kml",
+        "bytes": 737058079
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-premonsoon/Bhuvan_Groundwater_Quality_Premonsoon.shp.zip",
+        "bytes": 29515463
+      },
+      "fetched_at": "2026-11-15T11:49:32+00:00"
+    },
+    {
+      "id": "gw_quality_postmonsoon",
+      "level": "gw_quality_postmonsoon",
+      "source": "Bhuvan",
+      "rows": 525502,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-postmonsoon/Bhuvan_Groundwater_Quality_Postmonsoon.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Postmonsoon.parquet",
+        "bytes": 25900099
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-postmonsoon/Bhuvan_Groundwater_Quality_Postmonsoon.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Postmonsoon.pmtiles",
+        "bytes": 21359034
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bhuvan (NRSC, ISRO)",
+          "url": "https://bhuvan.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-postmonsoon/Bhuvan_Groundwater_Quality_Postmonsoon.geojson",
+        "bytes": 390581277
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-postmonsoon/Bhuvan_Groundwater_Quality_Postmonsoon.kml",
+        "bytes": 702169776
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-postmonsoon/Bhuvan_Groundwater_Quality_Postmonsoon.shp.zip",
+        "bytes": 28970932
+      },
+      "fetched_at": "2026-11-15T11:51:17+00:00"
+    },
+    {
+      "id": "gsi_geology_2m",
+      "level": "gsi_geology_2m",
+      "source": "NGDR",
+      "rows": 4531,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geology-2m/NGDR_Geology_2M.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geology/NGDR_Geology_2M.parquet",
+        "bytes": 24874481
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geology-2m/NGDR_Geology_2M.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geology/NGDR_Geology_2M.pmtiles",
+        "bytes": 14473849
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geology-2m/NGDR_Geology_2M.geojson",
+        "bytes": 85516399
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geology-2m/NGDR_Geology_2M.kml",
+        "bytes": 71464320
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geology-2m/NGDR_Geology_2M.shp.zip",
+        "bytes": 32590490
+      },
+      "fetched_at": "2026-11-15T11:51:38+00:00"
+    },
+    {
+      "id": "gsi_coal_blocks",
+      "level": "gsi_coal_blocks",
+      "source": "NGDR",
+      "rows": 1060,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-coal-blocks/NGDR_Coal_Blocks.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Coal_Blocks.parquet",
+        "bytes": 2580446
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-coal-blocks/NGDR_Coal_Blocks.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Coal_Blocks.pmtiles",
+        "bytes": 1615960
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-coal-blocks/NGDR_Coal_Blocks.geojson",
+        "bytes": 7531705
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-coal-blocks/NGDR_Coal_Blocks.kml",
+        "bytes": 6865530
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-coal-blocks/NGDR_Coal_Blocks.shp.zip",
+        "bytes": 2569776
+      },
+      "fetched_at": "2026-11-15T11:51:43+00:00"
+    },
+    {
+      "id": "gsi_critical_minerals",
+      "level": "gsi_critical_minerals",
+      "source": "NGDR",
+      "rows": 590,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-critical-minerals/NGDR_Critical_Minerals.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Critical_Minerals.parquet",
+        "bytes": 49313
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-critical-minerals/NGDR_Critical_Minerals.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Critical_Minerals.pmtiles",
+        "bytes": 94157
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-critical-minerals/NGDR_Critical_Minerals.geojson",
+        "bytes": 517835
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-critical-minerals/NGDR_Critical_Minerals.kml",
+        "bytes": 850749
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-critical-minerals/NGDR_Critical_Minerals.shp.zip",
+        "bytes": 57918
+      },
+      "fetched_at": "2026-11-15T11:51:46+00:00"
+    },
+    {
+      "id": "gsi_lineaments_250k",
+      "level": "gsi_lineaments_250k",
+      "source": "NGDR",
+      "rows": 35330,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/NGDR_Lineament_250k.parquet",
+        "bytes": 7856121
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/NGDR_Lineament_250k.pmtiles",
+        "bytes": 6168846
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.geojson",
+        "bytes": 27360116
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.kml",
+        "bytes": 42830897
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.shp.zip",
+        "bytes": 8044339
+      },
+      "fetched_at": "2026-11-15T11:51:56+00:00"
+    },
+    {
+      "id": "police_stations_ap",
+      "level": "police_stations_ap",
+      "source": "APSAC",
+      "rows": 1088,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-ap/APSAC_Police_station_boundaries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/APSAC_Police_station_boundaries.parquet",
+        "bytes": 6179269
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-ap/APSAC_Police_station_boundaries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/APSAC_Police_station_boundaries.pmtiles",
+        "bytes": 4451520
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Andhra Pradesh Space Applications Centre (APSAC)",
+          "url": "https://apsac.ap.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "people",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Andhra Pradesh Space Applications Centre (APSAC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-ap/APSAC_Police_station_boundaries.geojson",
+        "bytes": 25092510
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-ap/APSAC_Police_station_boundaries.kml",
+        "bytes": 20523589
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-ap/APSAC_Police_station_boundaries.shp.zip",
+        "bytes": 9111818
+      },
+      "fetched_at": "2026-11-15T11:52:05+00:00"
+    },
+    {
+      "id": "police_stations_bihar",
+      "level": "police_stations_bihar",
+      "source": "Bhugoal",
+      "rows": 896,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-bihar/Bhugoal_BH_Police_Thana_Boundaries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/Bhugoal_BH_Police_Thana_Boundaries.parquet",
+        "bytes": 3214457
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-bihar/Bhugoal_BH_Police_Thana_Boundaries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/Bhugoal_BH_Police_Thana_Boundaries.pmtiles",
+        "bytes": 1669408
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "i-Bhugoal (Government of Bihar)",
+          "url": "https://gis.bih.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "people",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from i-Bhugoal (Government of Bihar). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-bihar/Bhugoal_BH_Police_Thana_Boundaries.geojson",
+        "bytes": 13064570
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-bihar/Bhugoal_BH_Police_Thana_Boundaries.kml",
+        "bytes": 10901090
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-bihar/Bhugoal_BH_Police_Thana_Boundaries.shp.zip",
+        "bytes": 4479856
+      },
+      "fetched_at": "2026-11-15T11:52:10+00:00"
+    },
+    {
+      "id": "police_stations_delhi",
+      "level": "police_stations_delhi",
+      "source": "GSDL",
+      "rows": 180,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-delhi/GSDL_DL_Police_Station_Boundaries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/GSDL_DL_Police_Station_Boundaries.parquet",
+        "bytes": 1121137
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-delhi/GSDL_DL_Police_Station_Boundaries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/GSDL_DL_Police_Station_Boundaries.pmtiles",
+        "bytes": 318690
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geospatial Delhi Limited (GSDL)",
+          "url": "https://gsdl.org.in/"
+        },
+        "publisher": null
+      },
+      "category": "people",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geospatial Delhi Limited (GSDL). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-delhi/GSDL_DL_Police_Station_Boundaries.geojson",
+        "bytes": 3077944
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-delhi/GSDL_DL_Police_Station_Boundaries.kml",
+        "bytes": 2524998
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-delhi/GSDL_DL_Police_Station_Boundaries.shp.zip",
+        "bytes": 1244730
+      },
+      "fetched_at": "2026-11-15T11:52:13+00:00"
+    },
+    {
+      "id": "police_stations_tn",
+      "level": "police_stations_tn",
+      "source": "TNGIS",
+      "rows": 1333,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-tn/TNGIS_TN_Police_Station_Boundaries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TNGIS_TN_Police_Station_Boundaries.parquet",
+        "bytes": 7450532
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-tn/TNGIS_TN_Police_Station_Boundaries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TNGIS_TN_Police_Station_Boundaries.pmtiles",
+        "bytes": 3151451
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "TNGIS (Government of Tamil Nadu)",
+          "url": "https://tngis.tn.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "people",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from TNGIS (Government of Tamil Nadu). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-tn/TNGIS_TN_Police_Station_Boundaries.geojson",
+        "bytes": 30306035
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-tn/TNGIS_TN_Police_Station_Boundaries.kml",
+        "bytes": 24616992
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-tn/TNGIS_TN_Police_Station_Boundaries.shp.zip",
+        "bytes": 11245649
+      },
+      "fetched_at": "2026-11-15T11:52:23+00:00"
+    },
+    {
+      "id": "traffic_police_stations_tn",
+      "level": "traffic_police_stations_tn",
+      "source": "TNGIS",
+      "rows": 1149,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/traffic-police-stations-tn/TNGIS_TN_Traffic_Police_Station_Boundaries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TNGIS_TN_Traffic_Police_Station_Boundaries.parquet",
+        "bytes": 7261655
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/traffic-police-stations-tn/TNGIS_TN_Traffic_Police_Station_Boundaries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TNGIS_TN_Traffic_Police_Station_Boundaries.pmtiles",
+        "bytes": 3065021
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "TNGIS (Government of Tamil Nadu)",
+          "url": "https://tngis.tn.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "people",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from TNGIS (Government of Tamil Nadu). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/traffic-police-stations-tn/TNGIS_TN_Traffic_Police_Station_Boundaries.geojson",
+        "bytes": 29447610
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/traffic-police-stations-tn/TNGIS_TN_Traffic_Police_Station_Boundaries.kml",
+        "bytes": 23836007
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/traffic-police-stations-tn/TNGIS_TN_Traffic_Police_Station_Boundaries.shp.zip",
+        "bytes": 10999189
+      },
+      "fetched_at": "2026-11-15T11:52:33+00:00"
+    },
+    {
+      "id": "police_stations_telangana",
+      "level": "police_stations_telangana",
+      "source": "TGRAC",
+      "rows": 712,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-telangana/TRACGIS_TG_Police_Station_Boundaries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TRACGIS_TG_Police_Station_Boundaries.parquet",
+        "bytes": 3930018
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-telangana/TRACGIS_TG_Police_Station_Boundaries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TRACGIS_TG_Police_Station_Boundaries.pmtiles",
+        "bytes": 1756319
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Telangana Remote Sensing Applications Centre (TGRAC)",
+          "url": "https://tgrac.telangana.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "people",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Telangana Remote Sensing Applications Centre (TGRAC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-telangana/TRACGIS_TG_Police_Station_Boundaries.geojson",
+        "bytes": 15933989
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-telangana/TRACGIS_TG_Police_Station_Boundaries.kml",
+        "bytes": 13013600
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-telangana/TRACGIS_TG_Police_Station_Boundaries.shp.zip",
+        "bytes": 5746018
+      },
+      "fetched_at": "2026-11-15T11:52:39+00:00"
+    },
+    {
+      "id": "marine_police_stations",
+      "level": "marine_police_stations",
+      "source": "NCOG",
+      "rows": 580,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/marine-police-stations/NCOG_Marine_Police_Boundaries.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/NCOG_Marine_Police_Boundaries.parquet",
+        "bytes": 841271
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/marine-police-stations/NCOG_Marine_Police_Boundaries.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/NCOG_Marine_Police_Boundaries.pmtiles",
+        "bytes": 667586
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "National Centre of Geo-informatics (BISAG-N)",
+          "url": "https://ncog.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "people",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from National Centre of Geo-informatics (BISAG-N). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/marine-police-stations/NCOG_Marine_Police_Boundaries.geojson",
+        "bytes": 3361910
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/marine-police-stations/NCOG_Marine_Police_Boundaries.kml",
+        "bytes": 3052282
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/marine-police-stations/NCOG_Marine_Police_Boundaries.shp.zip",
+        "bytes": 910080
+      },
+      "fetched_at": "2026-11-15T11:52:43+00:00"
+    },
+    {
+      "id": "amrit_sarovar_ponds",
+      "level": "amrit_sarovar_ponds",
+      "source": "AmritSarovar",
+      "rows": 67499,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/Amrit_Sarovar_Water_Observatory_Ponds.parquet",
+        "bytes": 4820995
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/Amrit_Sarovar_Water_Observatory_Ponds.pmtiles",
+        "bytes": 8952938
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory",
+          "url": "https://amritsarovar.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.geojson",
+        "bytes": 39692778
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.kml",
+        "bytes": 74197540
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.shp.zip",
+        "bytes": 5390704
+      },
+      "fetched_at": "2026-11-15T11:52:57+00:00"
+    },
+    {
+      "id": "jjm_facilities",
+      "level": "jjm_facilities",
+      "source": "JJM",
+      "rows": 1431977,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infrastructure/jjm-facilities/JJM_facilities.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_facilities/releases/download/jjm-facilities/JJM_facilities.parquet",
+        "bytes": 84851130
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infrastructure/jjm-facilities/JJM_facilities.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_facilities/releases/download/jjm-facilities/JJM_facilities.pmtiles",
+        "bytes": 105432460
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Jal Jeevan Mission (Ministry of Jal Shakti)",
+          "url": "https://jaljeevanmission.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Jal Jeevan Mission (Ministry of Jal Shakti). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infrastructure/jjm-facilities/JJM_facilities.geojson",
+        "bytes": 623047748
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infrastructure/jjm-facilities/JJM_facilities.kml",
+        "bytes": 1209208830
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infrastructure/jjm-facilities/JJM_facilities.shp.zip",
+        "bytes": 86230637
+      },
+      "fetched_at": "2026-11-15T11:55:23+00:00"
     }
   ],
   "state_extracts": [],
