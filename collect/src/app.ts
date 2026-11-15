@@ -1197,8 +1197,8 @@ async function manageSheet(): Promise<void> {
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong>Manage map</strong>
         <span class="row" style="gap:6px">
-          <button id="edit-form" style="min-height:36px;font-size:13px">✎ Form</button>
-          <button id="edit-settings" style="min-height:36px;font-size:13px">✎ Settings</button>
+          <button id="edit-form" style="min-height:36px;font-size:var(--fs-sm)">✎ Form</button>
+          <button id="edit-settings" style="min-height:36px;font-size:var(--fs-sm)">✎ Settings</button>
         </span>
       </div>
       <div class="tabs" id="mtabs" role="tablist" aria-label="Manage sections">
@@ -1529,7 +1529,7 @@ async function importFlow(file: File): Promise<void> {
     <div id="map-preview" class="hint" style="margin:10px 0"></div>
     <div class="maplabel">Where's this data from? <span class="hint">(the source, shown in the published credit)</span></div>
     <input id="imp-source" placeholder="e.g. SOI Forest Atlas 2021, or a link" maxlength="200" />
-    <label class="chip" style="gap:8px;margin-top:10px;align-items:flex-start;border-radius:12px;padding:10px 12px"><input type="checkbox" id="imp-rights" style="width:auto;min-height:auto;margin-top:3px"><span style="white-space:normal;font-weight:400;font-size:13px">I have the right to publish this under the map's licence (${escapeHtml(meta.license)}): it's my own data, or from a source whose terms allow it.</span></label>
+    <label class="chip" style="gap:8px;margin-top:10px;align-items:flex-start;border-radius:12px;padding:10px 12px"><input type="checkbox" id="imp-rights" style="width:auto;min-height:auto;margin-top:3px"><span style="white-space:normal;font-weight:400;font-size:var(--fs-sm)">I have the right to publish this under the map's licence (${escapeHtml(meta.license)}): it's my own data, or from a source whose terms allow it.</span></label>
     <button class="primary" id="do-import" style="margin-top:12px">Import all ${n} rows</button>
     <div id="import-result"></div>`;
 

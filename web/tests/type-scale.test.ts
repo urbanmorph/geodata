@@ -28,4 +28,14 @@ describe('type scale', () => {
       expect(raw, raw.join(', ')).toEqual([]);
     });
   }
+
+  it('collect uses the same ten steps, and no raw sizes in its CSS or inline styles', () => {
+    const css = readFileSync(resolve(__dirname, '../../collect/src/styles.css'), 'utf8');
+    for (const [k, v] of Object.entries(SCALE)) expect(css).toContain(`--fs-${k}: ${v}px`);
+    const body = css.replace(/--fs-[a-z0-9]+: \d+px;?/g, '');
+    const raw = [...body.matchAll(/font-size:\s*[0-9.]+(px|rem|em)|font:[^;]*?\b[0-9.]+px/g)].map((m) => m[0]);
+    expect(raw, raw.join(', ')).toEqual([]);
+    const app = readFileSync(resolve(__dirname, '../../collect/src/app.ts'), 'utf8');
+    expect(app).not.toMatch(/font-size:\s*\d+px/);
+  });
 });
