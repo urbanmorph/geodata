@@ -123,3 +123,10 @@ def test_write_record_is_idempotent_and_sorted_by_layer(tmp_path):
     assert cr.write_record(tmp_path, list(reversed(rows)), '2026-11-15') is False
     assert (tmp_path / 'catalog-record.json').read_bytes() == first
     assert (tmp_path / 'catalog-record.csv').read_text().splitlines()[0].startswith('id,')
+
+
+def test_the_record_itself_is_cc_by_so_bharatlas_is_credited_and_each_layer_keeps_its_own_licence():
+    meta = cr.release_meta('2026-11-15', '2026-11-15T00:00:00Z', 148)
+    assert meta['licence'].startswith('CC-BY-4.0 ')
+    assert 'each layer it describes keeps its source' in meta['licence']
+    assert {f['licence'] for f in meta['files'].values()} == {'CC-BY-4.0'}

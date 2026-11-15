@@ -13,7 +13,7 @@
    "sha256": "0c9351bef25e5ba9cdf93fce23a583de2c0263553bd70737bc7a44c05fedc4a5",
    "bytes": 85178,
    "rows": 148,
-   "licence": "CC0-1.0",
+   "licence": "CC-BY-4.0",
    "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/catalog-record.csv"
   },
   {
@@ -21,11 +21,11 @@
    "sha256": "e95b73123b4f61b9c61e1c44dacd70217e3ad8730bf39ce3ca519563571ab4ee",
    "bytes": 145909,
    "rows": 148,
-   "licence": "CC0-1.0",
+   "licence": "CC-BY-4.0",
    "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/catalog-record.json"
   }
  ],
- "licence": "CC0-1.0 (this record is bharatlas's own compilation of facts about the layers); each layer it describes keeps its source's licence, named per row",
+ "licence": "CC-BY-4.0 (this record is bharatlas's own compilation of facts about the layers; credit bharatlas); each layer it describes keeps its source's licence, named per row",
  "attribution": {
   "sources": [
    {

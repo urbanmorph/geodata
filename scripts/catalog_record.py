@@ -262,14 +262,14 @@ def release_meta(as_of: str, catalog_generated: str | None, rows: int) -> dict:
         'as_of': as_of,
         'description': 'Every layer bharatlas served on this date: source, source version, fetch date, '
                        'SHA-256 of the served file, licence and source link.',
-        'licence': 'CC0-1.0 (this record is bharatlas\'s own compilation of facts about the layers); '
+        'licence': 'CC-BY-4.0 (this record is bharatlas\'s own compilation of facts about the layers; credit bharatlas); '
                    'each layer it describes keeps its source\'s licence, named per row',
         'sources': [{'name': 'The source named first in each row (credit it for that layer)',
                      'version': 'per row (source_version)',
                      'fetched': 'per row (fetched_at)'},
                     {'name': 'bharatlas catalogue', 'url': LIVE_CATALOG, 'version': catalog_generated}],
-        'files': {'catalog-record.json': {'licence': 'CC0-1.0', 'rows': rows},
-                  'catalog-record.csv': {'licence': 'CC0-1.0', 'rows': rows}},
+        'files': {'catalog-record.json': {'licence': 'CC-BY-4.0', 'rows': rows},
+                  'catalog-record.csv': {'licence': 'CC-BY-4.0', 'rows': rows}},
     }
 
 
