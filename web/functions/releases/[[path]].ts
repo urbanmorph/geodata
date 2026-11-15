@@ -32,3 +32,7 @@ const notFound = () =>
     status: 404,
     headers: { 'content-type': 'application/json' },
   });
+
+// HEAD gets the same answer (the runtime drops the body), so link checkers see the redirect or the 404,
+// not the site's single-page-app fallback.
+export const onRequestHead = onRequestGet;

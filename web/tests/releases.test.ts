@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { releaseRoute } from '../functions/lib/releases';
-import { onRequestGet as releasesFn } from '../functions/releases/[[path]]';
+import { onRequestGet as releasesFn, onRequestHead as releasesHead } from '../functions/releases/[[path]]';
 import { onRequestGet as apiReleases } from '../functions/api/v1/releases';
 import { isKnownRoute } from '../functions/lib/routes';
 
@@ -79,6 +79,12 @@ describe('the /releases function', () => {
     const spa = { ...ctx(['bharatlas-cw-1999.01', 'manifest.json']),
       next: async () => new Response('<!doctype html>', { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }) };
     expect((await releasesFn(spa)).status).toBe(404);
+  });
+
+  it('answers HEAD as GET, so link checkers see the redirect, not the site’s HTML page', async () => {
+    const r = await releasesHead(ctx(['bharatlas-cw-2026.11']));
+    expect(r.status).toBe(302);
+    expect(r.headers.get('location')).toBe('/releases/bharatlas-cw-2026.11/manifest.json');
   });
 
   it('is a known route, so the soft-404 guard leaves /releases/<code> alone', () => {
