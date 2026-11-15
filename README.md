@@ -61,12 +61,12 @@ bharatlas is a catalog of India's open geo layers, from the national boundary do
 
 ## Layers and sources
 
-The live catalog lists 109 layers (`GET /api/v1/layers`, checked 12 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
+The live catalog lists 111 layers (`GET /api/v1/layers`, checked 15 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
 
 | Category | Layers | Examples |
 |---|---:|---|
-| Boundaries | 20 | `lgd_states` to `lgd_villages`; SOI, Bhuvan and geoBoundaries alternates; PMGSY blocks and habitations |
-| City wards | 34 | `wards_bengaluru_gba`, `wards_chennai`, `wards_mumbai`, `wards_delhi`; BDA jurisdiction and layouts |
+| Boundaries | 21 | `lgd_states` to `lgd_villages`; SOI, Bhuvan and geoBoundaries alternates; PMGSY blocks and habitations; town and city boundaries (SBM) |
+| City wards | 35 | `wards_bengaluru_gba`, `wards_chennai`, `wards_mumbai`, `wards_delhi`; BDA jurisdiction and layouts; `sbm_wards` (about 3,300 towns and cities) |
 | Water | 19 | WRIS rivers, canals, basins, dams, reservoirs; CGWB aquifers and groundwater extraction; India Flood Inventory; NDEM floods 1998-2022 |
 | Infrastructure and utilities | 12 | pincode polygons, VEDAS power plants and transmission lines, Overture places |
 | Environment | 10 | wildlife sanctuaries and national parks, eco-sensitive zones, SOI forests, seismic zones, landslides, earthquakes, cyclone tracks |
@@ -294,12 +294,13 @@ Data sources:
 - [DataMeet](https://github.com/datameet/Municipal_Spatial_Data): community-curated municipal spatial data.
 - [datta07/INDIAN-SHAPEFILES](https://github.com/datta07/INDIAN-SHAPEFILES): metropolitan city ward shapefiles; Patna wards cleaned by Jayesh Keswani.
 - [Central Water Commission (India-WRIS)](https://indiawris.gov.in/): basins, rivers, canals, dams, reservoirs, lakes, waterbodies.
-- [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps): selectively republished layers (WRIS waterbodies, SLUSI watersheds and soil, VEDAS power infrastructure, PMGSY roads and habitations).
+- [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps): selectively republished layers (WRIS waterbodies, SLUSI watersheds and soil, VEDAS power infrastructure, PMGSY roads and habitations, Swachh Bharat Mission urban wards and town boundaries).
 - [CoRE Stack](https://core-stack.org/): republished CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, Wildlife Institute of India biogeographic zones.
 - [PMGSY](https://omms.nic.in/): rural blocks, roads and habitations.
 - [PM GatiShakti](https://gis.pmgatishakti.gov.in/): wildlife sanctuaries, national parks, highways.
 - [Bharatmaps](https://bharatmaps.gov.in/) (NIC): eco-sensitive zones, dams, Ramsar sites, wetlands.
 - [NIC HealthGIS](https://healthgis.nic.in/): health facilities.
+- [Swachh Bharat Mission (Urban), MoHUA](https://sbmurban.org/): ward and town boundaries for about 3,300 urban local bodies (via ramSeraph, CC0).
 - [ISRO VEDAS Energymap](https://vedas.sac.gov.in/energymap/): power plants, refineries, oil wells, wind and solar.
 - [Geological Survey of India](https://gsi.gov.in/) and [NGDR / Bhukosh](https://bhukosh.gsi.gov.in/): landslide inventory, earthquakes.
 - [Minor Irrigation Census](https://mowr.nic.in/irrigationcensus/) (Ministry of Jal Shakti): district well counts.

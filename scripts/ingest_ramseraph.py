@@ -24,11 +24,13 @@ Run:
     python3 scripts/ingest_ramseraph.py vedas_power_plants  # one layer
     python3 scripts/ingest_ramseraph.py vedas               # category prefix
     python3 scripts/ingest_ramseraph.py                     # all layers
+    python3 scripts/ingest_ramseraph.py sbm --no-upload     # build locally, touch nothing live
 
-Idempotent: skips a layer if its R2 objects already exist at matching sizes
-AND it's already present in external-ingested.json.
+Idempotent: skips each R2 upload whose stored md5 matches the local file
+(sizes alone miss a lat,lon swap); manifest and catalog merges are id-keyed.
 """
 from __future__ import annotations
+import hashlib
 import json
 import os
 import subprocess
@@ -36,6 +38,7 @@ import sys
 import urllib.request
 import zipfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import boto3
@@ -82,6 +85,8 @@ class Dataset:
     source_url: str         # canonical upstream link
     source_org: str         # primary attribution org (e.g. 'ISRO VEDAS Energymap')
     notes: str              # mentions ramSeraph as compiler
+    bake_all_formats: bool = False  # bake geojson/kml/shapefile even above WHOLE_LAYER_MAX_MB
+    kml_name_field: str = ''        # column that names each KML Placemark (map labels)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -108,6 +113,12 @@ RAMSERAPH_NOTE = (
     '(DataMeet community) from {src}.'
 )
 
+
+SBM_URBAN_BASE = 'https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban'
+SBM_NOTE = RAMSERAPH_NOTE.format(src='Swachh Bharat Mission (Urban) GIS') + (
+    ' Licence: CC0 1.0 from the compiler (the government source states none);'
+    ' credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025.'
+)
 
 DATASETS: list[Dataset] = [
     # ── 1. PMGSY (transport / settlements) ─────────────────────────────
@@ -479,6 +490,48 @@ DATASETS: list[Dataset] = [
         source_org='ISRO VEDAS Energymap',
         notes=RAMSERAPH_NOTE.format(src='ISRO VEDAS energymap (AI-derived)'),
     ),
+    # ── SBM urban local bodies + wards (Nov 2026) ──────────────────────
+    # National coverage (3,300 ULBs, 70k wards). Published as the source has
+    # it; city ward layers stay the better answer where bharatlas has them.
+    Dataset(
+        id='sbm_wards',
+        name='Urban wards, all India (SBM)',
+        level='sbm_wards',
+        category='city-wards',
+        source='SBM',
+        description=('Ward boundaries for about 3,300 towns and cities from Swachh Bharat Mission (Urban). '
+                     'Quality varies by town: some repeat wards or use an older delimitation, so where '
+                     'bharatlas has a city ward map, prefer it. No data for West Bengal, Tripura, Mizoram or Manipur.'),
+        unit='wards',
+        license='CC0-1.0',
+        r2_prefix='boundaries/sbm-wards',
+        parquet_url=f'{SBM_URBAN_BASE}/SBM_Wards.parquet',
+        pmtiles_url=f'{SBM_URBAN_BASE}/SBM_Wards.pmtiles',
+        source_url='https://sbmurban.org/',
+        source_org='Swachh Bharat Mission (Urban), MoHUA',
+        notes=SBM_NOTE,
+        bake_all_formats=True,
+        kml_name_field='wardname',
+    ),
+    Dataset(
+        id='sbm_ulbs',
+        name='Towns and cities, all India (SBM)',
+        level='sbm_ulbs',
+        category='boundaries',
+        source='SBM',
+        description=('Boundaries of about 3,370 urban local bodies (municipal corporations, councils and '
+                     'nagar panchayats) from Swachh Bharat Mission (Urban). No data for Tripura, Mizoram or Manipur.'),
+        unit='towns and cities',
+        license='CC0-1.0',
+        r2_prefix='boundaries/sbm-ulbs',
+        parquet_url=f'{SBM_URBAN_BASE}/SBM_ULBs.parquet',
+        pmtiles_url=f'{SBM_URBAN_BASE}/SBM_ULBs.pmtiles',
+        source_url='https://sbmurban.org/',
+        source_org='Swachh Bharat Mission (Urban), MoHUA',
+        notes=SBM_NOTE,
+        bake_all_formats=True,
+        kml_name_field='ulbnm',
+    ),
 ]
 
 
@@ -555,9 +608,9 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
     if has_bbox_struct:
         # Flatten the struct into top-level cols, drop the struct itself.
         bbox_clause = (
-            f"SELECT * EXCLUDE (bbox), "
-            f"bbox.xmin AS xmin, bbox.ymin AS ymin, "
-            f"bbox.xmax AS xmax, bbox.ymax AS ymax"
+            "SELECT * EXCLUDE (bbox), "
+            "bbox.xmin AS xmin, bbox.ymin AS ymin, "
+            "bbox.xmax AS xmax, bbox.ymax AS ymax"
         )
     elif has_flat_bbox:
         bbox_clause = "SELECT *"
@@ -587,15 +640,16 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
 def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
     """Bake geojson + kml + shapefile.zip from the source parquet so the
     catalog card surfaces "Download whole layer" buttons. Skips silently if
-    the parquet exceeds WHOLE_LAYER_MAX_MB (default 100). Returns a dict of
-    {format: local_path} for successfully baked outputs.
+    the parquet exceeds WHOLE_LAYER_MAX_MB (default 100), unless the layer sets
+    bake_all_formats. Returns a dict of {format: local_path} for successfully
+    baked outputs.
 
-    Honours the always-bake-parquet rule indirectly: parquet is already
-    uploaded by the time this runs. These extras are nice-to-haves for QGIS
-    / Google Earth / ArcGIS users; failures here don't block the ingest.
+    The parquet (always baked) drives the viewer, query and filter; these
+    extras serve QGIS / Google Earth / ArcGIS users. A failure here doesn't
+    block the ingest.
     """
     pq_bytes = src_parquet.stat().st_size
-    if pq_bytes > WHOLE_LAYER_MAX_MB * 1024 * 1024:
+    if not d.bake_all_formats and pq_bytes > WHOLE_LAYER_MAX_MB * 1024 * 1024:
         print(f'  whole-layer bake skipped (parquet {pq_bytes / 1024 / 1024:.0f} MB > {WHOLE_LAYER_MAX_MB} MB cap)')
         return {}
 
@@ -622,7 +676,9 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
     kml_path = bake_dir / f'{basename}.kml'
     try:
         subprocess.run(
-            ['ogr2ogr', '-f', 'KML', str(kml_path), str(geojson_path)],
+            ['ogr2ogr', '-f', 'KML',
+             *(['-dsco', f'NameField={d.kml_name_field}'] if d.kml_name_field else []),
+             str(kml_path), str(geojson_path)],
             check=True, capture_output=True, timeout=600,
         )
         outputs['kml'] = kml_path
@@ -642,7 +698,10 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
         )
         with zipfile.ZipFile(shp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
             for f in sorted(shp_dir.iterdir()):
-                zf.write(f, f.name)
+                # Fixed timestamp: same input, same bytes, same md5 (no re-upload).
+                info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
+                info.compress_type = zipfile.ZIP_DEFLATED
+                zf.writestr(info, f.read_bytes())
         outputs['shapefile'] = shp_zip
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         print(f'  shapefile bake skipped: {e}')
@@ -660,14 +719,25 @@ def r2_client():
     )
 
 
+def file_md5(path: Path) -> str:
+    h = hashlib.md5()
+    with path.open('rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def r2_upload(s3, local: Path, key: str) -> None:
     ext = ''.join(local.suffixes[-1:])
     ct = CONTENT_TYPES.get(ext, 'application/octet-stream')
-    # Skip if remote already matches in size (idempotent).
+    # Skip only when the remote holds the same bytes. Sizes can't tell (a
+    # lat,lon swap keeps the byte count) and a multipart ETag isn't an MD5,
+    # so each upload stores its MD5 in metadata and that is compared.
+    md5 = file_md5(local)
     try:
         head = s3.head_object(Bucket=BUCKET, Key=key)
-        if head.get('ContentLength') == local.stat().st_size:
-            print(f'  R2 skip (size match): s3://{BUCKET}/{key}')
+        if head.get('Metadata', {}).get('md5') == md5:
+            print(f'  R2 skip (md5 match): s3://{BUCKET}/{key}')
             return
     except s3.exceptions.ClientError:
         pass
@@ -678,6 +748,7 @@ def r2_upload(s3, local: Path, key: str) -> None:
         # Parquet downloads should trigger save; pmtiles should be inline so the viewer can fetch.
         'ContentDisposition': f'attachment; filename="{local.name}"' if ext == '.parquet' else 'inline',
         'CacheControl': 'public, max-age=604800, immutable',
+        'Metadata': {'md5': md5},
     }
     print(f'  uploading → s3://{BUCKET}/{key}  ({local.stat().st_size:,} bytes)')
     s3.upload_file(str(local), BUCKET, key, ExtraArgs=extra, Config=transfer)
@@ -761,9 +832,10 @@ def merge_layer_into_catalog(
             merged[fmt] = prev[fmt]
         else:
             merged.setdefault(fmt, None)
-    # fetched_at: leave previous if present, else None for downstream fill.
-    if 'fetched_at' not in merged:
-        merged['fetched_at'] = None
+    # fetched_at drives the card's "Updated" line: set it on first ingest,
+    # keep it on re-runs (the merge must stay a no-op the second time).
+    if not merged.get('fetched_at'):
+        merged['fetched_at'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     catalog['layers'] = [l for l in catalog['layers'] if l.get('id') != d.id]
     catalog['layers'].append(merged)
@@ -829,8 +901,12 @@ def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, f
     f.write_text(json.dumps(items, indent=2) + '\n')
 
 
-def ingest(d: Dataset) -> None:
-    print(f'\n→ {d.id}')
+def ingest(d: Dataset, upload: bool = True) -> None:
+    """Download, flatten, bake every format, then (upload=True) put the files
+    on R2 and record the layer in the manifest + catalog. upload=False builds
+    the same local files under WORK for checking, and records nothing: the
+    catalog must never point at files that are not on R2."""
+    print(f'\n→ {d.id}' + ('' if upload else '  (no upload: local build only)'))
 
     raw_parquet = WORK / f'_raw_{d.id}.parquet'
     flat_parquet = WORK / f'{d.id}.parquet'
@@ -841,25 +917,31 @@ def ingest(d: Dataset) -> None:
     print(f'  features: {features:,}; columns post-flatten: {cols}')
 
     pq_bytes = flat_parquet.stat().st_size
-
-    s3 = r2_client()
-    r2_upload(s3, flat_parquet, f'{d.r2_prefix}/{Path(d.parquet_url).name}')
+    files = {flat_parquet: Path(d.parquet_url).name}
 
     pm_bytes: int | None = None
     if d.pmtiles_url:
         raw_pmtiles = WORK / f'{d.id}.pmtiles'
         http_download(d.pmtiles_url, raw_pmtiles)
         pm_bytes = raw_pmtiles.stat().st_size
-        r2_upload(s3, raw_pmtiles, f'{d.r2_prefix}/{Path(d.pmtiles_url).name}')
+        files[raw_pmtiles] = Path(d.pmtiles_url).name
     else:
         print('  pmtiles skipped (opted out for this layer)')
 
-    # Whole-layer geojson/kml/shapefile bakes for ≤100 MB layers. Bake from
-    # the flat parquet (geometry survives the bbox-flatten copy). Each baked
-    # output is uploaded under the same r2_prefix as parquet + pmtiles.
+    # Whole-layer geojson/kml/shapefile bakes (≤ WHOLE_LAYER_MAX_MB unless the
+    # layer sets bake_all_formats), from the flat parquet.
     bakes = bake_whole_layer(d, flat_parquet)
-    for fmt, path in bakes.items():
-        r2_upload(s3, path, f'{d.r2_prefix}/{path.name}')
+    files.update({path: path.name for path in bakes.values()})
+
+    if not upload:
+        for local in files:
+            print(f'  built {local}  ({local.stat().st_size:,} bytes)')
+        print(f'  ✓ {d.id}: {len(files)} files built locally; R2, manifest and catalog untouched')
+        return
+
+    s3 = r2_client()
+    for local, name in files.items():
+        r2_upload(s3, local, f'{d.r2_prefix}/{name}')
 
     append_manifest(d, pq_bytes, pm_bytes, features)
     patch_catalog(d, pq_bytes, pm_bytes, features, bakes)
@@ -867,8 +949,10 @@ def ingest(d: Dataset) -> None:
 
 
 def main(argv: list[str]) -> int:
+    upload = '--no-upload' not in argv
+    argv = [a for a in argv if a != '--no-upload']
     for key in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
-        if key not in os.environ:
+        if upload and key not in os.environ:
             print(f'ERROR: {key} not set in env')
             return 2
 
@@ -881,7 +965,7 @@ def main(argv: list[str]) -> int:
             return 2
 
     for d in targets:
-        ingest(d)
+        ingest(d, upload=upload)
     return 0
 
 

@@ -888,6 +888,16 @@
       "label": "Wells by District (Minor Irrigation Census 2017-18)",
       "unit": "districts",
       "description": "Wells per LGD district from the 6th Minor Irrigation Census (reference year 2017-18): dugwells and shallow, medium and deep tubewells, with status, pump energy source, depth and irrigation potential. Official census counts summed to districts."
+    },
+    "sbm_wards": {
+      "label": "Urban wards, all India (SBM)",
+      "unit": "wards",
+      "description": "Ward boundaries for about 3,300 towns and cities from Swachh Bharat Mission (Urban). Quality varies by town: some repeat wards or use an older delimitation, so where bharatlas has a city ward map, prefer it. No data for West Bengal, Tripura, Mizoram or Manipur."
+    },
+    "sbm_ulbs": {
+      "label": "Towns and cities, all India (SBM)",
+      "unit": "towns and cities",
+      "description": "Boundaries of about 3,370 urban local bodies (municipal corporations, councils and nagar panchayats) from Swachh Bharat Mission (Urban). No data for Tripura, Mizoram or Manipur."
     }
   },
   "level_order": [
@@ -985,7 +995,9 @@
     "agro_climatic_zones",
     "biogeographic_zones",
     "corestack_lulc_blocks",
-    "mi6_wells_districts"
+    "mi6_wells_districts",
+    "sbm_wards",
+    "sbm_ulbs"
   ],
   "layers": [
     {
@@ -5284,6 +5296,86 @@
         "district",
         "Jal Shakti"
       ]
+    },
+    {
+      "id": "sbm_wards",
+      "level": "sbm_wards",
+      "source": "SBM",
+      "rows": 70417,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/SBM_Wards.parquet",
+        "bytes": 66680769
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/SBM_Wards.pmtiles",
+        "bytes": 77731364
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Swachh Bharat Mission (Urban), MoHUA",
+          "url": "https://sbmurban.org/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.geojson",
+        "bytes": 280788155
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.kml",
+        "bytes": 281352604
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.shp.zip",
+        "bytes": 84695745
+      },
+      "fetched_at": "2026-11-15T08:46:31+00:00"
+    },
+    {
+      "id": "sbm_ulbs",
+      "level": "sbm_ulbs",
+      "source": "SBM",
+      "rows": 3368,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-ulbs/SBM_ULBs.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/SBM_ULBs.parquet",
+        "bytes": 14907624
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-ulbs/SBM_ULBs.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/SBM_ULBs.pmtiles",
+        "bytes": 11175910
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Swachh Bharat Mission (Urban), MoHUA",
+          "url": "https://sbmurban.org/"
+        },
+        "publisher": null
+      },
+      "category": "boundaries",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-ulbs/SBM_ULBs.geojson",
+        "bytes": 46034416
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-ulbs/SBM_ULBs.kml",
+        "bytes": 38523035
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-ulbs/SBM_ULBs.shp.zip",
+        "bytes": 18893235
+      },
+      "fetched_at": "2026-11-15T08:46:46+00:00"
     }
   ],
   "state_extracts": [],

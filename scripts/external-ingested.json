@@ -1354,5 +1354,43 @@
       "district",
       "Jal Shakti"
     ]
+  },
+  {
+    "id": "sbm_wards",
+    "name": "Urban wards, all India (SBM)",
+    "level": "sbm_wards",
+    "category": "city-wards",
+    "source": "SBM",
+    "description": "Ward boundaries for about 3,300 towns and cities from Swachh Bharat Mission (Urban). Quality varies by town: some repeat wards or use an older delimitation, so where bharatlas has a city ward map, prefer it. No data for West Bengal, Tripura, Mizoram or Manipur.",
+    "unit": "wards",
+    "features": 70417,
+    "license": "CC0-1.0",
+    "r2_prefix": "boundaries/sbm-wards",
+    "parquet_file": "SBM_Wards.parquet",
+    "parquet_bytes": 66680769,
+    "pmtiles_file": "SBM_Wards.pmtiles",
+    "pmtiles_bytes": 77731364,
+    "source_url": "https://sbmurban.org/",
+    "source_org": "Swachh Bharat Mission (Urban), MoHUA",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025."
+  },
+  {
+    "id": "sbm_ulbs",
+    "name": "Towns and cities, all India (SBM)",
+    "level": "sbm_ulbs",
+    "category": "boundaries",
+    "source": "SBM",
+    "description": "Boundaries of about 3,370 urban local bodies (municipal corporations, councils and nagar panchayats) from Swachh Bharat Mission (Urban). No data for Tripura, Mizoram or Manipur.",
+    "unit": "towns and cities",
+    "features": 3368,
+    "license": "CC0-1.0",
+    "r2_prefix": "boundaries/sbm-ulbs",
+    "parquet_file": "SBM_ULBs.parquet",
+    "parquet_bytes": 14907624,
+    "pmtiles_file": "SBM_ULBs.pmtiles",
+    "pmtiles_bytes": 11175910,
+    "source_url": "https://sbmurban.org/",
+    "source_org": "Swachh Bharat Mission (Urban), MoHUA",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025."
   }
 ]
