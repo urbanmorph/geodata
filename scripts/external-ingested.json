@@ -1867,5 +1867,38 @@
     "source_url": "https://jaljeevanmission.gov.in/",
     "source_org": "Jal Jeevan Mission (Ministry of Jal Shakti)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Jal Jeevan Mission (Ministry of Jal Shakti). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+  },
+  {
+    "id": "mgnrega_districts",
+    "name": "MGNREGA by District (2025-26)",
+    "level": "mgnrega_districts",
+    "category": "economy",
+    "source": "MoRD",
+    "description": "MGNREGA rural jobs scheme by district, financial year 2025-26: spending, wages, households and persondays of work, women, SC and ST participation, works and job cards, plus total spending each year since 2018-19.",
+    "unit": "districts",
+    "features": 785,
+    "license": "GODL-India",
+    "r2_prefix": "economy/mgnrega-districts",
+    "parquet_file": "MGNREGA_Districts_2025_26.parquet",
+    "parquet_bytes": 24229000,
+    "pmtiles_file": "MGNREGA_Districts_2025_26.pmtiles",
+    "pmtiles_bytes": 10853165,
+    "source_url": "https://www.data.gov.in/",
+    "source_org": "Ministry of Rural Development (MGNREGA), via data.gov.in",
+    "notes": "\"District-wise MGNREGA Data at a Glance\", Ministry of Rural Development, on data.gov.in under GODL-India. Values are each district's latest cumulative snapshot of the year as published (March for most; the month column shows which); money columns (Total_Exp, Wages, Material_and_skilled_Wages, Total_Adm_Expenditure, exp_*) are in Rs lakh. NREGA districts are matched to LGD districts by name within the state, with hand-checked renames; districts without a match have no values. MGNREGA reports Rajasthan as its 33 districts before the 2023 reorganisation and Nagaland as 11 districts, so there an older district's figures include the newer districts carved from it, which show no values. Urban districts (Delhi, Mumbai, Chennai, Kolkata, Hyderabad, Chandigarh) have no MGNREGA. Darjeeling covers the Siliguri subdivision only (the hill areas report as GTA, which spans Darjeeling and Kalimpong). NREGA districts with no LGD polygon: ARUNACHAL PRADESH / KEYI PANYOR; WEST BENGAL / GORKHALAND TERRITORIAL ADMINISTRATION (GTA).",
+    "tags": [
+      "MGNREGA",
+      "NREGA",
+      "rural employment",
+      "jobs scheme",
+      "wages",
+      "persondays",
+      "job cards",
+      "rural development",
+      "public spending",
+      "district",
+      "economy",
+      "finance"
+    ]
   }
 ]
