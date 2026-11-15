@@ -130,7 +130,7 @@ function renderSync(note = ''): void {
   box.innerHTML = `<label>Your maps on all your devices</label>
     <p class="hint">Use a passkey (Face ID, fingerprint or screen lock) to see your maps on your phone, tablet and computer.${homeScreenApp() ? ' This app keeps its own list, so set it up here too.' : ''}</p>
     ${warn}
-    <button class="wide primary" id="sync-setup">Set up on this device</button>
+    <button class="wide" id="sync-setup">Set up on this device</button>
     <button class="wide" id="sync-join" style="margin-top:8px">I've set this up already</button>
     <p class="hint">Already using collect on another device? Choose <strong>I've set this up already</strong>, so all your devices share one list.</p>
     <p class="hint">${SYNC_NOTICE}</p>`;

@@ -174,8 +174,9 @@ textarea { min-height: 92px; line-height: 1.5; }
    is possible (src/landing.ts + web/src/install-button.ts). */
 button.install-app {
   min-height: 36px; padding: 0 14px; margin: 0 0 14px; border-radius: var(--radius-pill);
-  font-size: 13px; color: var(--accent); background: var(--accent-fill); border-color: var(--accent);
+  font-size: 13px; color: var(--accent); background: transparent; border-color: var(--line-strong);
 }
+button.install-app:hover { border-color: var(--accent); }
 button.install-app[hidden] { display: none; }
 dialog.install-guide {
   max-width: min(360px, calc(100vw - 32px)); padding: 20px;

@@ -55,8 +55,7 @@
         padding: 16px 18px;
       }
       .ws-side h2 {
-        font-size: 12px; font-weight: 600; letter-spacing: .08em;
-        text-transform: uppercase; color: var(--muted); margin: 0 0 12px;
+        font-size: 15px; font-weight: 700; color: var(--fg); margin: 0 0 12px;
       }
       .ws-side .reset {
         display: block; width: 100%; margin: 14px 0 0;
@@ -207,8 +206,7 @@
          stack and overlap the map. Returns when workspace.show is removed. */
       body:has(#workspace.show) #my-subs { display: none; }
       #my-subs h2 {
-        font-size: 12px; font-weight: 600; letter-spacing: .08em;
-        text-transform: uppercase; color: var(--muted); margin: 0 0 8px;
+        font-size: 15px; font-weight: 700; color: var(--fg); margin: 0 0 8px;
       }
       #my-subs-list { display: flex; flex-direction: column; }
       .my-subs-row {
@@ -235,6 +233,7 @@
         font-variant-numeric: tabular-nums;
       }
       #paste-back-toggle {
+        min-height: 44px;
         margin-top: 8px;
         background: transparent; border: 0; cursor: pointer;
         color: var(--muted); font: inherit; font-size: 12px;
@@ -323,7 +322,7 @@
         <!-- Publish CTA — view-by-default; clicking expands the form. -->
         <div id="publish-cta">
           <p class="cta-line">Want to share this with others?</p>
-          <button type="button" class="primary" id="publish-open">Publish to catalog →</button>
+          <button type="button" class="primary" id="publish-open">Publish to catalog</button>
           <p class="cta-hint">Or leave it. Nothing has been uploaded.</p>
         </div>
 
@@ -409,7 +408,7 @@
 
           <div id="captcha" data-sitekey="<!-- TURNSTILE_SITEKEY -->"></div>
 
-          <button type="submit" class="primary" id="submit-btn" disabled>Publish →</button>
+          <button type="submit" class="primary" id="submit-btn" disabled>Publish</button>
           <div id="submit-status"></div>
         </form>
 
@@ -432,7 +431,7 @@
         <div class="hint">Lose this and you can't edit or delete your submission.</div>
       </div>
 
-      <a href="/" class="cta" id="goto-submission">Back to the catalog →</a>
+      <a href="/" class="cta" id="goto-submission">Back to the catalog</a>
     </section>
 
     <div class="helper">
