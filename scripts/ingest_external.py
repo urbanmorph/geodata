@@ -350,10 +350,11 @@ DATASETS: list[Dataset] = [
         description='Municipal Corporation of Delhi, NDMC, and Delhi Cantonment Board wards. 290 ward boundaries.',
         source_org='DataMeet',
         source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Delhi',
-        license='CC-BY-SA-4.0',
+        license='CC-BY-SA-2.5-IN',
         unit='wards',
         r2_prefix='admin/wards-delhi',
         features=290,
+        attr_key='DataMeet',
     ),
 
     # ──────── Indore ────────
@@ -382,10 +383,11 @@ DATASETS: list[Dataset] = [
         description='Coimbatore City Municipal Corporation — 100 ward boundaries. Census 2011 reorganization.',
         source_org='DataMeet',
         source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore',
-        license='CC-BY-SA-4.0',
+        license='CC-BY-SA-2.5-IN',
         unit='wards',
         r2_prefix='admin/wards-coimbatore',
         features=100,
+        attr_key='DataMeet',
     ),
 
     # ──────── Madurai ────────
@@ -476,12 +478,13 @@ DATASETS: list[Dataset] = [
         category='city-wards',
         level='wards_chandigarh',
         description='Municipal Corporation of Chandigarh — 28 ward boundaries.',
-        source_org='Municipal Corporation of Chandigarh',
+        source_org='DataMeet',
         source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chandigarh',
-        license='CC-BY-SA-4.0',
+        license='CC-BY-SA-2.5-IN',
         unit='wards',
         r2_prefix='admin/wards-chandigarh',
         features=28,
+        attr_key='DataMeet',
     ),
 
     # ──────── Lucknow ────────
@@ -492,12 +495,13 @@ DATASETS: list[Dataset] = [
         category='city-wards',
         level='wards_lucknow',
         description='Lucknow Municipal Corporation — 112 ward boundaries.',
-        source_org='Lucknow Municipal Corporation',
+        source_org='DataMeet',
         source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow',
-        license='CC-BY-SA-4.0',
+        license='CC-BY-4.0',
         unit='wards',
         r2_prefix='admin/wards-lucknow',
         features=112,
+        attr_key='DataMeet',
     ),
 
     # ──────── Kanpur ────────
@@ -508,12 +512,13 @@ DATASETS: list[Dataset] = [
         category='city-wards',
         level='wards_kanpur',
         description='Kanpur Municipal Corporation — 58 ward boundaries.',
-        source_org='Kanpur Municipal Corporation',
+        source_org='DataMeet',
         source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur',
-        license='CC-BY-SA-4.0',
+        license='CC-BY-4.0',
         unit='wards',
         r2_prefix='admin/wards-kanpur',
         features=58,
+        attr_key='DataMeet',
     ),
 
     # ──────── Patna ────────

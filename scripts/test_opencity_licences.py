@@ -108,3 +108,26 @@ def test_ingest_config_matches_ckan(manifest):
         assert d.license == _expected(layer_id), layer_id
         assert d.source_url == _opencity_url(slug), layer_id
         assert d.description == manifest[layer_id]['description'], layer_id
+
+
+# Five layers were labelled OpenCity but are DataMeet's Municipal_Spatial_Data
+# files (feature counts match: 290, 100, 28, 112, 58). Folder readmes give
+# CC BY-SA 2.5 India for Delhi, Coimbatore and Chandigarh; Lucknow and Kanpur
+# state none, so the repository default CC BY 4.0 applies.
+DATAMEET = {
+    'wards_delhi': ('Delhi', 'CC-BY-SA-2.5-IN'),
+    'wards_coimbatore': ('Coimbatore', 'CC-BY-SA-2.5-IN'),
+    'wards_chandigarh': ('Chandigarh', 'CC-BY-SA-2.5-IN'),
+    'wards_lucknow': ('Lucknow', 'CC-BY-4.0'),
+    'wards_kanpur': ('Kanpur', 'CC-BY-4.0'),
+}
+
+
+@pytest.mark.parametrize('layer_id', sorted(DATAMEET))
+def test_datameet_layers_credit_datameet_with_the_folder_licence(catalog, manifest, layer_id):
+    folder, lic = DATAMEET[layer_id]
+    layer = next(l for l in catalog['layers'] if l['id'] == layer_id)
+    assert layer['source'] == 'DataMeet' and layer['licence'] == lic
+    assert layer['attribution']['primary']['url'].endswith(f'/Municipal_Spatial_Data/tree/master/{folder}')
+    entry = manifest[layer_id]
+    assert entry['license'] == lic and entry.get('attr_key', entry.get('source')) == 'DataMeet'

@@ -3155,7 +3155,7 @@
     {
       "id": "wards_delhi",
       "level": "wards_delhi",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 290,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.parquet",
@@ -3179,11 +3179,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.shp.zip",
         "bytes": 168691
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Delhi"
         },
         "publisher": null
       },
@@ -3235,7 +3235,7 @@
     {
       "id": "wards_coimbatore",
       "level": "wards_coimbatore",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 100,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.parquet",
@@ -3259,11 +3259,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.shp.zip",
         "bytes": 76511
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore"
         },
         "publisher": null
       },
@@ -3475,7 +3475,7 @@
     {
       "id": "wards_chandigarh",
       "level": "wards_chandigarh",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 28,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.parquet",
@@ -3499,11 +3499,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.shp.zip",
         "bytes": 12313
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chandigarh"
         },
         "publisher": null
       },
@@ -3515,7 +3515,7 @@
     {
       "id": "wards_lucknow",
       "level": "wards_lucknow",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 112,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.parquet",
@@ -3539,11 +3539,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.shp.zip",
         "bytes": 96027
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow"
         },
         "publisher": null
       },
@@ -3555,7 +3555,7 @@
     {
       "id": "wards_kanpur",
       "level": "wards_kanpur",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 58,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.parquet",
@@ -3579,11 +3579,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.shp.zip",
         "bytes": 62884
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur"
         },
         "publisher": null
       },
