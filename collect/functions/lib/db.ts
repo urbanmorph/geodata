@@ -169,21 +169,36 @@ export interface NewRecordRow {
   client_key_hash?: string | null; // SHA-256 of a queued point's client_id; NULL = not queued
   captured_at?: string | null; // when the phone captured it; NULL = use created_at
   ai?: string | null; // JSON notes from the model (functions/lib/ai.ts); NULL = none
+  import_client_id?: string | null; // the importer's own id for the row; NULL = none (re-import adds it again)
 }
 
-/** The INSERT for one record, unrun (bulk import writes these in batches). */
-export function recordInsert(db: DB, r: NewRecordRow): D1PreparedStatement {
-  return db
-    .prepare(
-      `INSERT INTO records
-       (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id, client_key_hash, captured_at, ai)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-    .bind(r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash, r.source ?? null, r.token_id ?? null, r.client_key_hash ?? null, r.captured_at ?? null, r.ai ?? null);
+const INSERT_RECORD = `INSERT INTO records
+  (id, collection_id, created_at, status, geometry, properties, admin_ctx, contributor, edit_token_hash, ip_hash, source, token_id, client_key_hash, captured_at, ai, import_client_id)
+  VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`;
+
+function recordStatement(db: DB, sql: string, r: NewRecordRow): D1PreparedStatement {
+  return db.prepare(sql).bind(
+    r.id, r.collectionId, now(), r.status, r.geometry, r.properties, r.admin_ctx, r.contributor, r.edit_token_hash, r.ip_hash,
+    r.source ?? null, r.token_id ?? null, r.client_key_hash ?? null, r.captured_at ?? null, r.ai ?? null, r.import_client_id ?? null,
+  );
 }
 
 export async function insertRecord(db: DB, r: NewRecordRow): Promise<void> {
-  await recordInsert(db, r).run();
+  await recordStatement(db, INSERT_RECORD, r).run();
+}
+
+/** One imported row, unrun (bulk import writes these in batches). A row whose
+ *  (map, import_client_id) already exists is updated in place, keeping its id,
+ *  status and edit token; it is touched only if its data differs. RETURNING id
+ *  tells the three apart: r.id = added, another id = updated, no row = unchanged. */
+export function recordImport(db: DB, r: NewRecordRow): D1PreparedStatement {
+  return recordStatement(db, `${INSERT_RECORD}
+    ON CONFLICT (collection_id, import_client_id) WHERE import_client_id IS NOT NULL DO UPDATE SET
+      geometry = excluded.geometry, properties = excluded.properties, source = excluded.source, contributor = excluded.contributor,
+      admin_ctx = CASE WHEN records.geometry = excluded.geometry THEN records.admin_ctx END
+    WHERE records.geometry IS NOT excluded.geometry OR records.properties IS NOT excluded.properties
+       OR records.source IS NOT excluded.source OR records.contributor IS NOT excluded.contributor
+    RETURNING id`, r);
 }
 
 // A queued point already saved on this map (the offline queue may send it twice).
