@@ -9,6 +9,7 @@ import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate } from '../../shared/format.mjs';
 import { licenceUrl } from '../../shared/licences.mjs';
+import { brandMarkSvg } from '../../shared/brand.mjs';
 import { THEME_DESC } from './themes.mjs';
 import { docsStats } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
@@ -355,7 +356,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   // v4.7: link to the canonical /view/<id> path. Edge function serves the
   // home HTML with layer-specific OG meta; main.ts opens the map on load.
   const viewBtn = viewable
-    ? `<a href="/view/${esc(primary.id)}" class="btn-primary">View map →</a>`
+    ? `<a href="/view/${esc(primary.id)}" class="btn-primary">View map</a>`
     : `<span class="btn-primary disabled" title="No map for this layer">no map</span>`;
 
   const downloads = downloadLinks(primary);
@@ -858,7 +859,7 @@ function renderCategorySection(cat) {
     .join('\n');
 
   const showMore = overflows
-    ? `<button type="button" class="show-more" data-show-more aria-expanded="false">show all ${total} ${esc(catLabel.toLowerCase())} layers ↓</button>`
+    ? `<button type="button" class="show-more" data-show-more aria-expanded="false">Show all ${total} ${esc(catLabel.toLowerCase())} layers</button>`
     : '';
 
   return `<section class="category-section" data-category="${esc(cat)}" ${overflows ? 'data-overflow' : ''}>
@@ -871,7 +872,7 @@ function renderCategorySection(cat) {
         ${commHtml}
         ${showMore}
       </div>
-      <a href="/preview?category=${esc(cat)}" class="category-cta">contribute a ${esc(catLabel.toLowerCase())} layer →</a>
+      <a href="/preview?category=${esc(cat)}" class="category-cta">Contribute a ${esc(catLabel.toLowerCase())} layer</a>
     </section>`;
 }
 
@@ -896,6 +897,7 @@ const out = tmpl
   .replace('<!-- NAV -->', renderNav('catalog'))
   .replace('<!-- FOOTER -->', FOOTER)
   .replace('<!-- POPULAR -->', popularHtml)
+  .replace('<!-- MAP_BRAND -->', `<a class="map-brand" href="/" aria-label="bharatlas home">${brandMarkSvg(26)}</a>`)
   .replace('<!-- QUICK_SEARCH -->', quickSearchHtml)
   .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
   .replace('<!-- UPDATED -->', updatedHtml)

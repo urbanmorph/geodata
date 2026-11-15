@@ -14,7 +14,7 @@
 // Result: no link the user can click jumps off 5173 in dev.
 
 import type { SubmissionView } from './submissions';
-import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../../shared/brand.mjs';
+import { TOKENS, renderNav } from '../../scripts/shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
 import { licenceUrl } from '../../../shared/licences.mjs';
 import { footerHtml } from '../../../shared/footer.mjs';
@@ -99,16 +99,8 @@ export function renderViewPage(opts: RenderOpts): string {
     spatialCoverage: { '@type': 'Place', name: 'India' },
   };
 
-  const header = embed
-    ? ''
-    : `<header class="site-header">
-      ${wordmarkHtml({ tagline: `· ${s.name}` })}
-      <nav class="site-nav">
-        <a href="/">catalog</a>
-        <a href="/preview">contribute</a>
-        <a href="/about">about</a>
-      </nav>
-    </header>`;
+  // The site's own header (shared-chrome), minus the /src install script.
+  const header = embed ? '' : renderNav('community', { installScript: false });
 
   return `<!doctype html>
 <html lang="en">
@@ -136,75 +128,30 @@ export function renderViewPage(opts: RenderOpts): string {
     <link rel="manifest" href="/manifest.webmanifest" />
     <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
     <style>
-      /* Edge-rendered. Colours and the wordmark come from shared/brand.mjs;
-         spacing/type mirror scripts/shared-chrome.mjs. */
-      :root {
-        --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px;
-        --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px;
-        --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
-        --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
-        --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
-        --bg: #ffffff; --bg-card: #f5f5f5;
-        --muted: #525965; --line: #e5e7eb; --ok: #16a34a;
-        ${themeDecls('light')}
-      }
-      @media (prefers-color-scheme: dark) {
-        :root { --bg: #0a0a0a; --bg-card: #1a1a1f;
-          --muted: #9ca3af; --line: #262626; --ok: #4ade80;
-          ${themeDecls('dark')} }
-      }
-      *, *::before, *::after { box-sizing: border-box; }
-      html, body { margin: 0; background: var(--bg); color: var(--fg); }
-      body { font: var(--fs-base)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;
-        max-width: 720px; margin: 0 auto; padding: 28px 24px 64px; }
-      a:focus-visible, button:focus-visible {
-        outline: 2px solid var(--accent-strong) !important;
-        outline-offset: 2px !important; border-radius: var(--radius-sm);
-      }
-      .site-header {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
-      }
-      ${WORDMARK_CSS}
-      .site-brand { font-size: var(--fs-lg); }
-      .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
-      .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
-      .site-nav a { color: var(--muted); text-decoration: none; font-size: var(--fs-base); padding: 4px 0; }
-      .site-nav a:hover { color: var(--fg); }
-      .badge { display: inline-block; font-size: var(--fs-xs); font-weight: 600;
-        padding: 2px 6px; border-radius: var(--radius-sm); letter-spacing: .04em; text-transform: uppercase;
-        background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
-      h1 { font-size: var(--fs-2xl); line-height: 1.2; margin: 4px 0 var(--sp-2); font-weight: 700; }
-      .desc { color: var(--muted); margin: 0 0 var(--sp-6); }
-      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 6px var(--sp-4); margin: var(--sp-4) 0 var(--sp-6); font-size: var(--fs-base); }
+      /* Edge-rendered with the site's shared tokens, header and page classes
+         (scripts/shared-chrome.mjs); only this page's own pieces are below. */
+      ${TOKENS}
+      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 64px; line-height: 1.55; }
+      .tag { display: inline-block; margin: 8px 0 0; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 650;
+        background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); }
+      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px var(--sp-5); margin: 0 0 var(--sp-6); font-size: 15px; }
       .kv dt { color: var(--muted); }
-      .kv dd { margin: 0; }
-      .kv code { font: var(--fs-sm) ui-monospace, SFMono-Regular, Menlo, monospace; }
-      .actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin: var(--sp-6) 0; }
-      a.btn, button.btn {
-        display: inline-block; padding: 9px 16px; border-radius: var(--radius-md);
-        font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer;
-        border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-decoration: none;
-      }
-      a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
-      a.btn:hover, button.btn:hover { border-color: var(--accent); }
-      button.btn:disabled { opacity: .55; cursor: default; border-color: var(--line); }
-      .vote-useful { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 6px 12px; background: var(--bg); font: inherit; cursor: pointer; color: var(--muted); line-height: 1; min-height: 36px; }
-      .vote-useful:hover { color: var(--fg); border-color: var(--accent); }
-      .vote-useful[aria-pressed=true] { color: var(--accent); border-color: var(--accent); }
-      .vote-useful .vote-count { font-weight: 600; font-variant-numeric: tabular-nums; }
-      .vote-useful .vote-label { font-weight: 500; }
-      .site-footer { margin-top: var(--sp-8); padding-top: var(--sp-5); border-top: 1px solid var(--line);
-        font-size: var(--fs-sm); color: var(--muted); line-height: 1.6; }
-      .site-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+      .kv dd { margin: 0; overflow-wrap: anywhere; }
+      .kv code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: var(--sp-6) 0; }
+      .vote-useful { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border: 1.5px solid var(--line-bright); border-radius: 12px; background: var(--bg); font: inherit; cursor: pointer; color: var(--muted); }
+      .vote-useful:hover { color: var(--fg); border-color: var(--accent-fill); }
+      .vote-useful[aria-pressed=true] { color: var(--fg); border-color: var(--accent-fill); }
+      .vote-useful .vote-count { font-weight: 650; font-variant-numeric: tabular-nums; }
+      @media (max-width: 640px) { body { padding: 0 16px 48px; } .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 8px; } }
     </style>
   </head>
   <body data-submission-id="${esc(s.id)}">
     ${header}
-
-    <span class="badge">community</span>
-    <h1>${esc(s.name)}</h1>
-    <p class="desc">${esc(description)}</p>
+    <main id="main" class="prose">
+    <p class="tag">Community layer</p>
+    <h1 class="page-title">${esc(s.name)}</h1>
+    <p class="page-lead">${esc(description)}</p>
 
     <dl class="kv">
       ${s.is_original
@@ -227,8 +174,8 @@ export function renderViewPage(opts: RenderOpts): string {
     </dl>
 
     <div class="actions">
-      <a class="btn primary" href="${esc(verifyUrl)}">View on map →</a>
-      <a class="btn" href="${esc(r2Path)}" download="${esc(filename)}">Download <code>.${esc(s.format)}</code></a>
+      <a class="btn btn--fill" href="${esc(verifyUrl)}">View on map</a>
+      <a class="btn btn--line" href="${esc(r2Path)}" download="${esc(filename)}">Download .${esc(s.format)}</a>
       <button class="vote-useful" id="vote-useful" type="button" aria-pressed="false">
         <span aria-hidden="true">👍</span>
         <span class="vote-count" id="vote-count">${ratingsCount}</span>
@@ -236,6 +183,7 @@ export function renderViewPage(opts: RenderOpts): string {
       </button>
     </div>
 
+    </main>
     ${footerHtml({ note: "A community layer: bharatlas doesn't vouch for its accuracy, so check it against the source link above. Anyone can add a layer under an open licence." })}
 
     <script src="/c-vote.js" defer></script>

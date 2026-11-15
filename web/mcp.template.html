@@ -17,7 +17,10 @@
       :root { --row-hover: var(--bg-card); }
       :root { --page-max: 880px; }
       body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
-      h2 { font-size: 20px; margin: var(--sp-6) 0 var(--sp-2); font-weight: 600; color: var(--fg); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+      .page-title .badge--stable { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 3px 10px; border-radius: 999px; font-size: 14px; font-weight: 650; letter-spacing: 0; background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); }
+      /* Reading width: prose stops near 75 characters; tables, code and cards keep the page width. */
+      main :is(p, ul, ol) { max-width: 720px; }
+      h2 { margin: 44px 0 14px; font-size: 24px; line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); }
       h3 { font-size: 16px; margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
       p, li { font-size: 15px; color: var(--muted); }
       ul { padding-left: 20px; }
@@ -33,7 +36,7 @@
       .badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 500; background: #F28C2822; color: var(--accent); }
       @media (max-width: 640px) {
         body { padding: 24px 14px 60px; }
-        h2 { font-size: 17px; }
+        h2 { font-size: 21px; margin-top: 36px; }
         pre { font-size: 12px; }
         .install-box { padding: 12px 14px; }
         .install-box pre { font-size: 12px; }

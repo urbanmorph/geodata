@@ -88,6 +88,11 @@ describe('renderNav', () => {
     expect(renderNav('preview')).toMatch(/class="nav-cta" href="\/preview" data-active/);
   });
 
+  it('can leave out the install-button script (edge-rendered pages have no /src)', () => {
+    expect(renderNav('community')).toContain('/src/install.ts');
+    expect(renderNav('community', { installScript: false })).not.toContain('/src/install.ts');
+  });
+
   it('emits a unique active marker even when no key matches', () => {
     const html = renderNav('nonexistent');
     expect(html).not.toContain('data-active');

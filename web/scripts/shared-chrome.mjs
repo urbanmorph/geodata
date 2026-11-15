@@ -168,7 +168,8 @@ export const NAV_LINKS = [
   { keys: ['about'], href: '/about', label: 'About' },
 ];
 
-export function renderNav(activeKey) {
+/** The site header. Edge-rendered pages pass installScript: false (no /src there). */
+export function renderNav(activeKey, { installScript = true } = {}) {
   return `<a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       ${wordmarkHtml({ tagline: "India's open atlas" })}
@@ -182,8 +183,7 @@ export function renderNav(activeKey) {
         <a class="nav-cta" href="/preview"${activeKey === 'preview' ? ' data-active' : ''}>Add a map</a>
       </nav>
       <button type="button" id="install-app" class="install-app" hidden>Install app</button>
-    </header>
-    <script type="module" src="/src/install.ts"></script>`;
+    </header>${installScript ? '\n    <script type="module" src="/src/install.ts"></script>' : ''}`;
 }
 
 // One footer for every surface (shared/footer.mjs).
