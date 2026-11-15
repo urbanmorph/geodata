@@ -192,3 +192,63 @@ def test_rebake_is_byte_identical_with_hilbert_ties(tmp_path):
         ir.rebake_flatten_bbox(src, dst)
         digests.add(hashlib.md5(dst.read_bytes()).hexdigest())
     assert len(digests) == 1
+
+
+def test_shapefile_text_fields_are_resized_not_padded(tmp_path, monkeypatch):
+    # Without RESIZE every text field is 80+ chars wide, so a wide layer (FSI
+    # beats: 429k rows x 23 columns) blows the 2 GB .dbf limit.
+    import zipfile
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    out = ir.bake_whole_layer(_ds(), _ward_parquet(tmp_path))
+    dbf = next(n for n in zipfile.ZipFile(out['shapefile']).namelist() if n.endswith('.dbf'))
+    head = zipfile.ZipFile(out['shapefile']).read(dbf)[:32 * 8]
+    # dBase field descriptors start at byte 32, 32 bytes each; width at offset 16
+    widths = {head[32 * i:32 * i + 11].rstrip(b'\0').decode(): head[32 * i + 16] for i in range(1, 3)}
+    assert widths['wardname'] <= 10 and widths['ulbname'] <= 10
+
+
+SIGNIFICANT = {
+    # id: (category, kml name field)
+    'fsi_circles': ('environment', 'Circle_Nam'), 'fsi_divisions': ('environment', 'Division'),
+    'fsi_ranges': ('environment', 'Range'), 'fsi_beats': ('environment', 'Beat_Name'),
+    'wildlife_corridors': ('environment', 'name'),
+    'crz2019_zones': ('environment', 'category'), 'crz2019_lines': ('environment', 'category'),
+    'gw_quality_premonsoon': ('water', 'GWQ'), 'gw_quality_postmonsoon': ('water', 'GWQ'),
+    'gsi_geology_2m': ('environment', 'index_'), 'gsi_coal_blocks': ('environment', 'block_name'),
+    'gsi_critical_minerals': ('environment', 'locality'), 'gsi_lineaments_250k': ('environment', 'l2descript'),
+    'police_stations_ap': ('people', 'police_station_name'), 'police_stations_bihar': ('people', 'PS_NAME'),
+    'police_stations_delhi': ('people', 'POL_STN_NM'), 'police_stations_tn': ('people', 'police_station_name'),
+    'traffic_police_stations_tn': ('people', 'police_station'), 'police_stations_telangana': ('people', 'PS_Name'),
+    'marine_police_stations': ('people', 'vname'),
+    'amrit_sarovar_ponds': ('water', 'Name_of_Sarovar'), 'jjm_facilities': ('infrastructure', 'fac_name'),
+}
+
+
+def test_significant_batch_is_defined_under_policy_b():
+    # Republished government data (bharatlas.com/about#sources-and-licensing):
+    # CC0 from the compiler, crediting the original publisher.
+    by_id = {d.id: d for d in ir.DATASETS}
+    for lid, (cat, name_field) in SIGNIFICANT.items():
+        d = by_id[lid]
+        assert (d.category, d.kml_name_field, d.license) == (cat, name_field, 'CC0-1.0'), lid
+        assert d.bake_all_formats and 'sources-and-licensing' in d.notes and d.source_org, lid
+    # Personal data (lessee names, phones, emails; editor name + mobile) stays out.
+    for held in ('gsi_major_mining_leases_2022', 'ncog_major_mining_leases', 'police_stations_rajasthan'):
+        assert held not in by_id
+
+
+def test_ogr2ogr_reads_geojson_features_of_any_size(tmp_path, monkeypatch):
+    # One CRZ 2019 line is over GDAL's 200 MB per-feature GeoJSON limit, so the
+    # KML and shapefile conversions failed ("GeoJSON object too complex/large").
+    import subprocess
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    seen = []
+    real_run = subprocess.run
+
+    def spy(cmd, *a, **kw):
+        if cmd and cmd[0] == 'ogr2ogr':
+            seen.append((kw.get('env') or {}).get('OGR_GEOJSON_MAX_OBJ_SIZE'))
+        return real_run(cmd, *a, **kw)
+    monkeypatch.setattr(ir.subprocess, 'run', spy)
+    ir.bake_whole_layer(_ds(), _ward_parquet(tmp_path))
+    assert seen and all(v == '0' for v in seen)
