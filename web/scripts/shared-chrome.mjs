@@ -1,14 +1,15 @@
 // Stable design tokens + nav + footer. Colours and the logo come from
 // shared/brand.mjs (saffron / India green / chakra navy). Type scale
-// 11/12/13/14/16/20/28/36. Radii 4/6/8/12. Pure module so vitest can test
+// (--fs-*) 12/13/15/16/18/22/24/32/44/56: every font size on every page uses it
+// (tests/type-scale.test.ts). Radii 4/6/8/12. Pure module so vitest can test
 // renderNav() etc.
 import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../shared/brand.mjs';
 import { footerHtml } from '../../shared/footer.mjs';
 
 export const TOKENS = `
   :root {
-    --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px;
-    --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px; --fs-display: 36px;
+    --fs-xs: 12px; --fs-sm: 13px; --fs-base: 15px; --fs-md: 16px; --fs-lg: 18px;
+    --fs-xl: 22px; --fs-2xl: 24px; --fs-3xl: 32px; --fs-4xl: 44px; --fs-display: 56px;
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
     --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
     --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
@@ -61,11 +62,11 @@ export const TOKENS = `
     background: var(--bg); border-bottom: 1px solid var(--line);
   }
   ${WORDMARK_CSS}
-  .site-brand { font-size: var(--fs-lg); }
+  .site-brand { font-size: var(--fs-md); }
   .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
   .site-nav { display: flex; gap: var(--sp-5); flex-wrap: wrap; align-items: center; }
   .site-nav a {
-    color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500;
+    color: var(--muted); text-decoration: none; font-size: var(--fs-base); font-weight: 500;
     padding: 6px 2px;
     min-height: 44px;
     display: inline-flex;
@@ -82,7 +83,7 @@ export const TOKENS = `
   .nav-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
   .nav-burger {
     display: none; align-items: center; justify-content: center;
-    min-width: 44px; min-height: 44px; font-size: 20px; line-height: 1;
+    min-width: 44px; min-height: 44px; font-size: var(--fs-xl); line-height: 1;
     color: var(--fg); cursor: pointer; border: 1px solid var(--line); border-radius: var(--radius-md);
   }
   .nav-toggle:focus-visible ~ .nav-burger { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
@@ -100,7 +101,7 @@ export const TOKENS = `
   .site-nav { margin-left: auto; }
   .install-app {
     display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--sp-3);
-    font: inherit; font-size: var(--fs-md); font-weight: 500; color: var(--accent);
+    font: inherit; font-size: var(--fs-sm); font-weight: 500; color: var(--accent);
     background: transparent; border: 1px solid var(--line-bright); border-radius: 999px; cursor: pointer;
   }
   .install-app:hover { border-color: var(--accent); }
@@ -118,7 +119,7 @@ export const TOKENS = `
   dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
   /* Reset per-page h2 / li styles (uppercase headings, "›" bullets): the dialog lives on <body>. */
   .install-guide h2 {
-    margin: 0 0 var(--sp-3); padding: 0; border: 0; font-size: var(--fs-lg); font-weight: 600;
+    margin: 0 0 var(--sp-3); padding: 0; border: 0; font-size: var(--fs-md); font-weight: 600;
     text-transform: none; letter-spacing: normal; color: var(--fg);
   }
   .install-guide ol { margin: 0 0 var(--sp-4); padding-left: var(--sp-5); list-style: decimal; color: var(--muted-strong); }
@@ -132,27 +133,27 @@ export const TOKENS = `
   }
   .install-guide button:hover { background: var(--accent-fill-hover); }
   /* Content pages: one type scale for every page (the home page's too). */
-  .page-title { margin: 24px 0 14px; max-width: 760px; font-size: 44px; line-height: 1.06; font-weight: 760; letter-spacing: -.035em; text-wrap: balance; }
-  .page-lead { margin: 0 0 28px; max-width: 660px; font-size: 18px; line-height: 1.55; color: var(--muted); }
-  .section-title, .prose h2 { margin: 44px 0 14px; font-size: 24px; line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
+  .page-title { margin: 24px 0 14px; max-width: 760px; font-size: var(--fs-4xl); line-height: 1.06; font-weight: 760; letter-spacing: -.035em; text-wrap: balance; }
+  .page-lead { margin: 0 0 28px; max-width: 660px; font-size: var(--fs-lg); line-height: 1.55; color: var(--muted); }
+  .section-title, .prose h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
   .prose { max-width: 720px; }
   .prose ul { list-style: none; margin: 0 0 16px; padding: 0; }
   .prose li { position: relative; padding: 4px 0 4px 20px; }
   .prose li::before { content: ""; position: absolute; left: 4px; top: .9em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fill); }
-  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 12px; font-size: 16px; font-weight: 700; text-decoration: none !important; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 12px; font-size: var(--fs-md); font-weight: 700; text-decoration: none !important; }
   .btn--fill { background: var(--accent-fill); color: var(--on-accent-fill) !important; }
   .btn--fill:hover { background: var(--accent-fill-hover); }
   .btn--line { border: 1.5px solid var(--line-bright); color: var(--fg) !important; }
   .btn--line:hover { border-color: var(--accent-fill); }
   @media (max-width: 640px) {
-    .page-title { font-size: 32px; }
-    .page-lead { font-size: 16px; }
-    .section-title, .prose h2 { margin-top: 36px; font-size: 21px; }
+    .page-title { font-size: var(--fs-3xl); }
+    .page-lead { font-size: var(--fs-md); }
+    .section-title, .prose h2 { margin-top: 36px; font-size: var(--fs-xl); }
   }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
     border-top: 1px solid var(--line);
-    color: var(--muted); font-size: var(--fs-sm); line-height: 1.7;
+    color: var(--muted); font-size: var(--fs-xs); line-height: 1.7;
   }
   .site-footer p { margin: 0 0 var(--sp-2); }
   .site-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }

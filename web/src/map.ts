@@ -801,7 +801,7 @@ async function wireFilterButton(layer: Layer) {
     const { VERBS_ENGINE } = await import('./loading');
     const panel = document.createElement('div');
     panel.className = 'filter-panel';
-    panel.innerHTML = `<div style="padding:24px;color:var(--muted);font-size:14px"></div>`;
+    panel.innerHTML = `<div style="padding:24px;color:var(--muted);font-size:var(--fs-base)"></div>`;
     container.appendChild(panel);
     const msg = panel.firstElementChild!;
     let vi = 0;
