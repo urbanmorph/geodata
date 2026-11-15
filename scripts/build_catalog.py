@@ -123,6 +123,7 @@ ATTR = {
     'NCOG':          {'name': 'National Centre of Geo-informatics (BISAG-N)', 'url': 'https://ncog.gov.in/'},
     'AmritSarovar':  {'name': 'Mission Amrit Sarovar (MoRD)', 'url': 'https://amritsarovar.gov.in/'},
     'JJM':           {'name': 'Jal Jeevan Mission (Ministry of Jal Shakti)', 'url': 'https://jaljeevanmission.gov.in/'},
+    'MoRD':          {'name': 'Ministry of Rural Development (MGNREGA), via data.gov.in', 'url': 'https://www.data.gov.in/'},
     'SBM':           {'name': 'Swachh Bharat Mission (Urban), MoHUA', 'url': 'https://sbmurban.org/'},
     'VEDAS':         {'name': 'ISRO VEDAS Energymap',         'url': 'https://vedas.sac.gov.in/energymap/'},
     'SLUSI':         {'name': 'SLUSI (Soil & Land Use Survey of India)', 'url': 'https://slusi.dacnet.nic.in/'},
@@ -178,6 +179,7 @@ CATEGORIES = {
     'infrastructure': 'Infrastructure & utilities',
     'culture': 'Culture & heritage',
     'health-edu': 'Health & education',
+    'economy': 'Economy & finance',
     'other': 'Other',
 }
 

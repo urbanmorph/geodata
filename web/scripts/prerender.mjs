@@ -83,6 +83,7 @@ function licenseUrl(id) {
     'CC0-1.0':       'https://creativecommons.org/publicdomain/zero/1.0/',
     'CC-BY-4.0':     'https://creativecommons.org/licenses/by/4.0/',
     'CC-BY-SA-4.0':  'https://creativecommons.org/licenses/by-sa/4.0/',
+    'CC-BY-SA-2.5-IN': 'https://creativecommons.org/licenses/by-sa/2.5/in/',
     'ODbL-1.0':      'https://opendatacommons.org/licenses/odbl/1-0/',
     'ODC-PDDL-1.0':  'https://opendatacommons.org/licenses/pddl/1-0/',
     'GODL-India':    'https://data.gov.in/government-open-data-license-india',
@@ -329,7 +330,7 @@ const LEVEL_ORDER = [...BUILTIN_LEVEL_ORDER, ...externalLevels];
 // this list fall to the end in catalog.categories declaration order.
 const CATEGORY_ORDER = [
   'boundaries', 'city-wards', 'people', 'environment', 'agriculture',
-  'transport', 'infrastructure', 'culture', 'health-edu', 'other',
+  'transport', 'infrastructure', 'culture', 'health-edu', 'economy', 'other',
 ];
 
 // Search-index alias dictionary + haystack builders live in

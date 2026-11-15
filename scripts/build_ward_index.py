@@ -36,6 +36,7 @@ OUT = ROOT / 'web' / 'public' / 'ward-index'
 CATALOG = ROOT / 'catalog.json'
 OSM_CACHE = ROOT / 'data' / 'osm-areas'      # scripts/fetch_osm_areas.py writes it
 OSM_KIND_ORDER = {'suburb': 0, 'quarter': 1, 'neighbourhood': 2}
+ZONE_MIN_UNIQUE = 0.9                         # share of features with their own ward number, for zones to be read
 MAX_AREAS = 8                                 # the biggest places first, so a dense ward stays readable
 
 # Per-layer column maps, keyed by the columns each city's source actually ships
@@ -136,6 +137,36 @@ def resolve_columns(layer_id: str, cols: list[str]) -> tuple[str | None, str | N
     return no, name, ('Area' if name else None)
 
 
+def zone_column(layer_id: str, cols: list[str]) -> str | None:
+    """The layer's own zone column: one named zone (any case), else the column its override already reads as the
+    zone (Bhubaneswar's municipalzone). None when the layer has no zone."""
+    named = next((c for c in cols if c.lower() == 'zone'), None)
+    if named:
+        return named
+    no_col, name_col, label = OVERRIDES.get(layer_id, (None, None, None))
+    present = {c.lower(): c for c in cols}
+    return present.get(name_col.lower()) if name_col and label == 'Zone' else None
+
+
+def zones_by_ward(con, pq: Path, no_col: str, zone_col: str) -> dict[str, str]:
+    """Each ward number's zone, as the layer gives it. A ward whose features sit in different zones gets none, and
+    a layer whose ward numbers repeat across many features (Greater Bengaluru numbers each corporation's wards from
+    1) gets none at all: there a number names no single ward, so its zone would be a guess."""
+    raw = con.execute(f'SELECT "{no_col}", "{zone_col}" FROM \'{pq}\'').fetchall()
+    seen: dict[str, set[str]] = {}
+    for no_v, zone_v in raw:
+        if clean(no_v):
+            seen.setdefault(clean(no_v), set()).add(clean(zone_v))
+    if len(seen) < ZONE_MIN_UNIQUE * len(raw):
+        return {}
+    return {no: next(iter(z)) for no, z in seen.items() if len(z) == 1 and z != {''}}
+
+
+def with_zones(rows: list[dict], zones: dict[str, str]) -> list[dict]:
+    """The rows, each with its zone where the layer gives one."""
+    return [{**r, 'zone': zones[r['no']]} if r['no'] in zones else r for r in rows]
+
+
 def clean(v) -> str:
     if v is None:
         return ''
@@ -224,6 +255,7 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
     # Which column holds the ward number (and, where it sits inside a name, how to read it), so the view can find
     # a located ward's row: the "My ward" sheet titles it by number (web/src/locate-format.ts wardTitle).
     number = {}
+    zones: dict[str, str] = {}
     if layer_id in PARSE_WARD_NAME:
         # Number and name packed into one column, e.g. "Ward 91 Khairatabad".
         src_col, label = PARSE_WARD_NAME[layer_id]
@@ -246,6 +278,8 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
             print(f'  {layer_id}: no ward-number column found — skipped')
             return None
         number = {'numberCol': no_col}
+        zone_col = zone_column(layer_id, cols)
+        zones = zones_by_ward(con, pq, no_col, zone_col) if zone_col else {}
         if not name_col:
             osm = osm_areas(con, layer_id, pq, no_col)
             if not osm:
@@ -253,7 +287,7 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
                 return None
             areas, credit = osm
             nos = {clean(v) for (v,) in con.execute(f'SELECT "{no_col}" FROM \'{pq}\'').fetchall()} - {''}
-            rows = [{'no': no, 'name': '', 'areas': areas.get(no, [])} for no in sorted(nos, key=sort_key)]
+            rows = with_zones([{'no': no, 'name': '', 'areas': areas.get(no, [])} for no in sorted(nos, key=sort_key)], zones)
             print(f'  {layer_id}: number-only source; OSM areas for {sum(1 for r in rows if r["areas"])} of {len(rows)} wards')
             return {'id': layer_id, 'place': place_name(layer_id, level_meta),
                     'updated': (layer.get('fetched_at') or '')[:10] or None,
@@ -267,7 +301,7 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
             if no not in by_no or (not by_no[no] and name):
                 by_no[no] = name
 
-    rows = [{'no': no, 'name': by_no[no]} for no in sorted(by_no, key=sort_key)]
+    rows = with_zones([{'no': no, 'name': by_no[no]} for no in sorted(by_no, key=sort_key)], zones)
     if not any(r['name'] for r in rows):
         print(f'  {layer_id}: resolved name column is empty — skipped')
         return None
