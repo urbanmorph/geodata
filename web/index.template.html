@@ -20,25 +20,27 @@
       :root { --card-bg: var(--bg-card); --row-hover: var(--bg-card); }
       body { max-width: 880px; margin: 0 auto; padding: 48px 24px 64px; }
 
-      .hero { text-align: center; margin: 32px 0 28px; }
-      .hero__title { font-size: 30px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 10px; }
-      .hero__sub { color: var(--muted); margin: 0 auto; max-width: 560px; font-size: 14px; line-height: 1.55; }
+      .hero { text-align: center; margin: 24px 0 24px; }
+      .hero__title { font-size: 40px; line-height: 1.08; font-weight: 760; letter-spacing: -.035em; margin: 0 auto 12px; max-width: 640px; text-wrap: balance; }
+      .hero__sub { color: var(--muted); margin: 0 auto; max-width: 580px; font-size: 16px; line-height: 1.5; }
       .hero__sub a { color: var(--fg); }
 
+      .search-row { display: flex; gap: 10px; max-width: 700px; margin: 0 auto; }
       .search-bar {
+        flex: 1; min-width: 0;
         display: flex; align-items: center; gap: 8px;
-        max-width: 640px; margin: 0 auto;
-        padding: 10px 14px;
+        padding: 8px 10px 8px 16px;
         background: var(--bg);
-        border: 2px solid var(--line);
+        border: 2px solid var(--fg);
         border-radius: 14px;
+        box-shadow: 0 6px 24px color-mix(in srgb, var(--fg) 8%, transparent);
         transition: border-color 140ms ease, box-shadow 140ms ease;
       }
       .search-bar:focus-within {
         border-color: var(--accent);
         box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 14%, transparent);
       }
-      .search-bar__icon { font-size: 16px; opacity: .55; user-select: none; }
+      .search-bar__icon { flex: none; color: var(--fg); }
       .catalog-search {
         flex: 1; min-width: 0;
         font: 16px ui-sans-serif, system-ui, sans-serif;
@@ -46,6 +48,8 @@
         border: none; outline: none; background: transparent; color: var(--fg);
       }
       .catalog-search::placeholder { color: var(--muted); }
+      /* The bar draws the focus ring (.search-bar:focus-within); a second ring inside it is noise. */
+      .catalog-search:focus-visible { outline: none !important; }
       .search-bar__attach {
         display: inline-flex; align-items: center; justify-content: center;
         width: 34px; height: 34px;
@@ -70,6 +74,54 @@
          proof. Not --accent: that's the link colour here, and a coloured but
          unclickable number would be a false affordance. */
       .search-meta__count { color: var(--fg); font-weight: 600; }
+      .search-meta__layers { color: var(--fg); font-weight: 600; font-variant-numeric: tabular-nums; }
+
+      /* Find my ward: the most-searched job on the site, so it sits beside search. */
+      .find-ward {
+        flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        min-height: 52px; padding: 0 18px;
+        font: inherit; font-size: 15px; font-weight: 700;
+        color: var(--on-accent-fill); background: var(--accent-fill);
+        border: 0; border-radius: 14px; cursor: pointer;
+      }
+      .find-ward:hover { background: var(--accent-fill-hover); }
+      .find-ward__status { text-align: center; font-size: 14px; color: var(--fg); margin: 10px auto 0; max-width: 640px; }
+
+      .ward-answer {
+        display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 4px 16px;
+        max-width: 700px; margin: 14px auto 0; padding: 16px 18px;
+        background: color-mix(in srgb, var(--accent-fill) 12%, var(--bg));
+        border: 1.5px solid color-mix(in srgb, var(--accent-fill) 55%, var(--bg)); border-radius: 14px;
+      }
+      .ward-answer[hidden] { display: none; }
+      .ward-answer__title { margin: 0; font-size: 20px; font-weight: 600; letter-spacing: -.01em; color: var(--fg); }
+      .ward-answer__title strong { font-weight: 760; }
+      .ward-answer__meta { grid-column: 1; margin: 0; font-size: 13px; color: var(--muted); }
+      .ward-answer__go {
+        grid-column: 2; grid-row: 1 / span 2; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
+        border-radius: 10px; background: var(--accent-fill); color: var(--on-accent-fill) !important; font-weight: 700; text-decoration: none;
+      }
+      @media (max-width: 640px) { .ward-answer { grid-template-columns: 1fr; } .ward-answer__go { grid-column: 1; grid-row: auto; justify-content: center; margin-top: 8px; } }
+      .popular { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 6px; margin: 14px auto 0; max-width: 700px; font-size: 13px; }
+      .popular__label { color: var(--muted); margin-right: 2px; }
+      .popular a { padding: 5px 11px; border-radius: 999px; background: var(--bg-card); color: var(--fg); text-decoration: none; }
+      .popular a:hover { background: color-mix(in srgb, var(--accent-fill) 22%, var(--bg-card)); }
+
+      /* AI / API band: fixed navy ground in both themes. */
+      .ask-ai {
+        display: flex; flex-wrap: wrap; gap: 24px; align-items: center;
+        margin: 48px 0 0; padding: 28px; border-radius: 16px;
+        background: #0B1B3F; color: #fff;
+      }
+      .ask-ai__text { flex: 1 1 320px; }
+      .ask-ai h2 { margin: 0 0 8px; font-size: 22px; letter-spacing: -.02em; color: #fff; }
+      .ask-ai p { margin: 0; color: #C8D0E3; font-size: 15px; line-height: 1.5; }
+      .ask-ai__links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px !important; }
+      .ask-ai__links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; font-weight: 650; text-decoration: none; }
+      .ask-ai__primary { background: var(--accent-fill); color: var(--on-accent-fill) !important; }
+      .ask-ai__secondary { border: 1.5px solid #5A6A94; color: #fff !important; }
+      .ask-ai__code code { background: none; padding: 0; color: inherit; font: inherit; }
+      .ask-ai__code { flex: 1 1 320px; margin: 0; padding: 16px; border-radius: 12px; background: #13265A; color: #E6EAF4; font: 13px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
 
       .catalog-chips {
         display: flex; gap: 6px;
@@ -397,11 +449,15 @@
         .card { padding: 20px; border-radius: 12px; }
         .card__count { font-size: 28px; }
 
-        .hero { margin: 16px 0 20px; }
-        .hero__title { font-size: 22px; }
-        .hero__sub { font-size: 13px; }
+        .hero { margin: 12px 0 18px; }
+        .hero__title { font-size: 28px; }
+        .hero__sub { font-size: 15px; }
 
-        .search-bar { max-width: 100%; padding: 8px 10px; border-radius: 12px; }
+        /* Phone: Find my ward first and full width (the thumb's main job), search below. */
+        .search-row { flex-direction: column; }
+        .find-ward { order: -1; }
+        .search-bar { max-width: 100%; padding: 6px 8px 6px 12px; border-radius: 12px; }
+        .ask-ai { padding: 20px; }
         .catalog-search { font-size: 15px; }
 
         /* Pills become horizontally scrollable — top ~5 visible, rest swipe. */
@@ -487,7 +543,7 @@
       .ls-kicker { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
         display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
       .ls-kicker svg { width: 14px; height: 14px; color: var(--accent); flex: 0 0 auto; }
-      .ls-name { font-size: 20px; font-weight: 700; letter-spacing: -.02em; margin: 0 0 2px; line-height: 1.2; }
+      .ls-name { font-size: 26px; font-weight: 760; letter-spacing: -.03em; margin: 0 0 4px; line-height: 1.15; }
       .ls-sub { color: var(--muted); margin: 0; font-size: 13px; }
       .ls-dist { color: var(--accent); font-weight: 600; }
       .ls-caveat { margin: 8px 0 0; font-size: 12px; color: var(--muted);
@@ -565,6 +621,41 @@
       }
 
       /* Filter panel (v2 — DuckDB-WASM in-browser slicing) */
+      /* About this layer: left drawer on desktop, bottom sheet on phones (below). */
+      .about-panel {
+        position: absolute; top: 0; left: 0; bottom: 0; z-index: 6;
+        width: min(360px, 90vw); overflow-y: auto; padding: 18px 20px 24px;
+        background: var(--bg); border-right: 1px solid var(--line);
+        box-shadow: 8px 0 24px rgba(0,0,0,0.06);
+      }
+      .about-panel[hidden] { display: none; }
+      .about-panel__close {
+        position: absolute; top: 10px; right: 10px; width: 36px; height: 36px;
+        border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: 22px; cursor: pointer;
+      }
+      .about-panel__close:hover { background: var(--bg-card); color: var(--fg); }
+      .about-panel__title { margin: 0 36px 8px 0; font-size: 20px; line-height: 1.25; letter-spacing: -.02em; }
+      .about-panel__facts { margin: 0 0 10px; font-size: 14px; color: var(--muted); }
+      .about-panel__facts strong { color: var(--fg); font-variant-numeric: tabular-nums; }
+      .about-panel__lic { margin: 0 0 12px; }
+      .lic-badge {
+        display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 650;
+        background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); text-decoration: none;
+      }
+      a.lic-badge:hover { text-decoration: underline; }
+      .lic-badge--nc { background: color-mix(in srgb, var(--err) 14%, var(--bg)); }
+      .about-panel__desc { margin: 0 0 14px; font-size: 14px; line-height: 1.55; }
+      .about-panel__h { margin: 16px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+      .about-panel__dl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+      .about-panel__dl a {
+        display: flex; justify-content: space-between; min-height: 44px; align-items: center; padding: 0 12px;
+        border: 1px solid var(--line-bright); border-radius: 10px; color: var(--fg); font-weight: 600; text-decoration: none;
+      }
+      .about-panel__dl a:hover { border-color: var(--accent-fill); }
+      .about-panel__size { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+      .about-panel .ward-index { width: 100%; margin-top: 16px; border-collapse: collapse; font-size: 13px; }
+      .about-panel .ward-index caption { text-align: left; font-size: 12px; color: var(--muted); padding-bottom: 6px; }
+      .about-panel .ward-index th, .about-panel .ward-index td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
       .filter-panel {
         position: absolute;
         top: 0; right: 0; bottom: 0;
@@ -714,6 +805,11 @@
            seats it flush on the toolbar. (Using var(--map-toolbar-h) here would
            double-count that reservation and leave a ~60px gap — unlike the
            popover, which is position:fixed against the viewport.) */
+        .about-panel {
+          top: auto; right: 0; width: 100%; height: 52vh;
+          border-right: none; border-top: 1px solid var(--line);
+          border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,0.10); z-index: 16;
+        }
         .filter-panel {
           top: auto; left: 0; right: 0; bottom: 0;
           width: 100%; height: 52vh;
@@ -920,26 +1016,30 @@
     <!-- NAV -->
     <main id="main">
     <header class="hero">
-      <h1 class="hero__title">Find a map. Or share one.</h1>
+      <h1 class="hero__title">Every boundary in India, one search away</h1>
       <p class="hero__sub">
-        India's open geo layers, from state boundaries to village polygons. View, filter, download, or contribute your own. Or skip the browser and ask any LLM via <a href="/mcp">MCP</a>.
+        Wards, districts, villages, forests, water and public money. View it on a map, ask it a question, or download it for your own tools. Free, no sign-up.
       </p>
     </header>
-
-    <div class="search-bar" id="search-bar">
-      <span class="search-bar__icon" aria-hidden="true">🔍</span>
-      <input
-        type="search"
-        id="catalog-search"
-        class="catalog-search"
-        placeholder="What map are you looking for?"
-        aria-label="Search maps"
-        autocomplete="off"
-      />
-      <a href="/preview" class="search-bar__attach" id="search-attach" aria-label="Preview or share a file" title="Preview or share a file">📎</a>
+    <div class="search-row">
+      <div class="search-bar" id="search-bar">
+        <svg class="search-bar__icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input
+          type="search"
+          id="catalog-search"
+          class="catalog-search"
+          placeholder="Search a ward, place or map"
+          aria-label="Search maps"
+          autocomplete="off"
+        />
+        <a href="/preview" class="search-bar__attach" id="search-attach" aria-label="Preview or share a file" title="Preview or share a file"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></a>
+      </div>
+      <button type="button" class="find-ward" id="find-my-ward"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>Find my ward</button>
     </div>
-    <p class="search-meta" id="search-meta">type to search · drop a file to view or share<span id="dl-total"><!-- DOWNLOAD_TOTAL --></span></p>
-
+    <p class="find-ward__status" id="find-ward-status" role="status" hidden></p>
+    <div class="ward-answer" id="ward-answer" aria-live="polite" hidden></div>
+    <!-- POPULAR -->
+    <p class="search-meta" id="search-meta"><span class="search-meta__layers"><!-- LAYER_TOTAL --> layers</span><span id="dl-total"><!-- DOWNLOAD_TOTAL --></span> · <span class="search-meta__updated">updated <!-- UPDATED --></span></p>
     <div class="catalog-chips" role="toolbar" aria-label="Filter by category">
       <!-- CATEGORY_CHIPS -->
     </div>
@@ -948,6 +1048,16 @@
     <div class="catalog" id="catalog-grid">
       <!-- CATEGORY_SECTIONS -->
     </div>
+    <section class="ask-ai" aria-labelledby="ask-ai-title">
+      <div class="ask-ai__text">
+        <h2 id="ask-ai-title">Ask your AI assistant instead</h2>
+        <p>Connect Claude, ChatGPT or any MCP client and ask in plain words, such as "Which ward is MG Road, Bengaluru in?" Every answer cites its source and licence.</p>
+        <p class="ask-ai__links"><a class="ask-ai__primary" href="/mcp">Connect via MCP</a><a class="ask-ai__secondary" href="/docs">REST API docs</a></p>
+      </div>
+      <pre class="ask-ai__code"><code>GET /api/v1/locate?lat=12.9757&amp;lng=77.6061
+&rarr; Ward 25 Ashokanagar · Central corporation
+  Bengaluru Urban · Karnataka · pincode 560001</code></pre>
+    </section>
     </main>
 
     <!-- FOOTER -->
@@ -956,6 +1066,7 @@
       <header class="map-bar">
         <span class="map-title" id="map-title">map</span>
         <div class="map-actions">
+          <button class="filter-toggle tbtn" id="map-about" aria-label="About this layer" aria-expanded="false"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg></span><span class="tb-label">About</span></button>
           <div class="map-pop-wrap">
             <button class="filter-toggle tbtn" id="map-basemap" aria-label="Choose base map" aria-expanded="false" aria-haspopup="menu"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tb-label">Base map</span></button>
             <div class="map-popover" id="map-basemap-popover" role="menu"></div>

@@ -9,6 +9,7 @@ import type { LocateConfig } from './locate-config';
 import { escapeHtml } from './util';
 import { shareUrl, skyUrl } from './locate-actions';
 import { blurFocusWithin } from './focus-utils';
+import { fetchWardIndex } from './ward-index';
 
 type LocateApiResponse = {
   mode: 'contains' | 'nearest';
@@ -78,9 +79,7 @@ export function openLocate(opts: {
     // A ward map's sidecar says which column holds the ward number, its name and its OpenStreetMap areas, so the
     // sheet titles a ward "Ward 102" (not the town its feature also names). Fetched alongside the lookup; none for
     // other layers, and a missing one just leaves the generic title.
-    const sidecar: Promise<WardSidecar | null> = /^wards_/.test(layerId)
-      ? fetch(`/ward-index/${encodeURIComponent(layerId)}.json`).then((x) => (x.ok ? (x.json() as Promise<WardSidecar>) : null)).catch(() => null)
-      : Promise.resolve(null);
+    const sidecar = fetchWardIndex(layerId);
     try {
       const r = await fetch(
         `/api/v1/layers/${encodeURIComponent(layerId)}/locate?lat=${lat}&lng=${lng}&mode=${config.mode}`,
@@ -123,7 +122,7 @@ export function openLocate(opts: {
     const skyLink = sky
       ? `<p class="ls-sub ls-sky"><a href="${sky}" target="_blank" rel="noopener">The sky over this ward now · mugilu ↗</a></p>`
       : '';
-    result(isNearest ? 'Nearest to you' : 'You are here', escapeHtml(name), sub + actions + skyLink);
+    result(isNearest ? 'Nearest to you' : 'You are in', escapeHtml(name), sub + actions + skyLink);
 
     const zoom = () => onZoom?.(props, zp.lng, zp.lat);
     sheet.querySelector('.ls-zoom')?.addEventListener('click', zoom);

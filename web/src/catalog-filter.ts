@@ -31,6 +31,9 @@ export type CardLike = {
    *  of category because community submissions inherit a content category
    *  (environment, infrastructure, etc.) for the section they render in. */
   provenance?: string;
+  /** Layers this card stands for (a level's primary source + alternates).
+   *  Counts add these up, because the site counts layers. Default 1. */
+  layers?: number;
 };
 
 export type FilterResult = {
@@ -77,33 +80,30 @@ export function cardVisibility(
   });
 }
 
+// Every token in the same tier: primary if any card matches there, else body.
+function matchTokens(cards: CardLike[], tokens: string[]): boolean[] {
+  if (!tokens.length) return cards.map(() => true);
+  const matchAll = (hay: string) => tokens.every((t) => hay.includes(t));
+  const primary = cards.map((c) => matchAll(c.primary));
+  return primary.some(Boolean) ? primary : cards.map((c) => matchAll(c.body));
+}
+
 export function filterCards(cards: CardLike[], query: string): FilterResult {
   const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 
-  if (!tokens.length) {
-    const counts = new Map<string, number>();
-    for (const c of cards) counts.set(c.category, (counts.get(c.category) || 0) + 1);
-    return {
-      matches: cards.map(() => true),
-      countsByCategory: counts,
-      totalMatches: cards.length,
-    };
-  }
-
-  const matchAll = (hay: string) => tokens.every((t) => hay.includes(t));
-
-  const primaryMatches = cards.map((c) => matchAll(c.primary));
-  const anyPrimary = primaryMatches.some(Boolean);
-
-  const matches = anyPrimary ? primaryMatches : cards.map((c) => matchAll(c.body));
+  let matches = matchTokens(cards, tokens);
+  // "ward 9 ahmedabad": no card holds "9". Retry without bare numbers so the
+  // Ahmedabad ward map still shows (the home search's answer card names ward 9).
+  const words = tokens.filter((t) => !/^\d+$/.test(t));
+  if (!matches.some(Boolean) && words.length && words.length < tokens.length) matches = matchTokens(cards, words);
 
   const counts = new Map<string, number>();
   let total = 0;
-  for (let i = 0; i < cards.length; i++) {
-    if (matches[i]) {
-      counts.set(cards[i].category, (counts.get(cards[i].category) || 0) + 1);
-      total++;
-    }
-  }
+  cards.forEach((c, i) => {
+    if (!matches[i]) return;
+    const n = c.layers ?? 1;
+    counts.set(c.category, (counts.get(c.category) || 0) + n);
+    total += n;
+  });
   return { matches, countsByCategory: counts, totalMatches: total };
 }

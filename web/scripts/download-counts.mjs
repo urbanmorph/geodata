@@ -39,6 +39,16 @@ export function totalDownloads(counts) {
   return counts.total;
 }
 
+/** Layer ids with the most downloads (all formats), highest first. */
+export function mostDownloaded(counts, n, keep = () => true) {
+  return Object.entries(counts.layers)
+    .map(([id, byFmt]) => [id, sumObj(byFmt)])
+    .filter(([id, total]) => total > 0 && keep(id))
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, n)
+    .map(([id]) => id);
+}
+
 function sumObj(o) {
   return Object.values(o).reduce((s, n) => s + (typeof n === 'number' ? n : 0), 0);
 }

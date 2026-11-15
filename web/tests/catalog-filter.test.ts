@@ -163,3 +163,47 @@ describe('catalog-filter — community pill (provenance filter)', () => {
     expect(v).toEqual([true, true, false, false]);
   });
 });
+
+// One card can hold several layers (a level's primary source plus its
+// alternates, e.g. Districts from LGD, SOI, Bhuvan and geoBoundaries). The
+// site talks about layers, so counts add up layers, not cards.
+describe('filterCards: counts layers, not cards', () => {
+  const cards: CardLike[] = [
+    { category: 'boundaries', primary: 'districts', body: '', layers: 4 },
+    { category: 'boundaries', primary: 'states', body: '', layers: 4 },
+    { category: 'water', primary: 'rivers', body: '' },
+  ];
+
+  it('idle: totals and per-category counts sum layers (missing = 1)', () => {
+    const r = filterCards(cards, '');
+    expect(r.totalMatches).toBe(9);
+    expect(r.countsByCategory.get('boundaries')).toBe(8);
+    expect(r.countsByCategory.get('water')).toBe(1);
+  });
+
+  it('searching: only matching cards add their layers', () => {
+    const r = filterCards(cards, 'districts');
+    expect(r.totalMatches).toBe(4);
+    expect(r.countsByCategory.get('boundaries')).toBe(4);
+    expect(r.matches).toEqual([true, false, false]);
+  });
+});
+
+// "ward 9 ahmedabad": no card holds "9", but the Ahmedabad ward map is what the
+// person wants (the answer card above names ward 9). When nothing matches with
+// the bare numbers, retry without them.
+describe('filterCards: numbers fall back', () => {
+  const cards: CardLike[] = [
+    { category: 'city-wards', primary: 'ahmedabad ward map wards', body: '' },
+    { category: 'boundaries', primary: 'districts (2024)', body: '' },
+  ];
+
+  it('drops bare-number tokens when nothing matches with them', () => {
+    expect(filterCards(cards, 'ward 9 ahmedabad').matches).toEqual([true, false]);
+  });
+
+  it('keeps numbers that do match (years in titles)', () => {
+    expect(filterCards(cards, 'districts 2024').matches).toEqual([false, true]);
+    expect(filterCards(cards, 'districts 2011').matches).toEqual([false, true]);
+  });
+});

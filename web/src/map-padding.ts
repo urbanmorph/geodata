@@ -1,5 +1,5 @@
-// Pure decision for how the map should be padded while the Filter & export
-// panel is open, so the fitted data frames clear of the panel.
+// Pure decision for how the map should be padded while a side panel (Filter
+// & export on the right, About this layer on the left) is open, so the fitted data frames clear of the panel.
 //
 // Detect the panel kind by WIDTH relative to the viewport: a full-width panel
 // is the mobile bottom sheet (reserve vertical room below the data); a narrow
@@ -17,9 +17,10 @@ export function paddingForPanelRect(
   r: { width: number; height: number },
   vw: number,
   base = 20,
+  side: 'left' | 'right' = 'right',
 ): Padding {
   if (r.width >= vw * 0.7) {
     return { top: base, bottom: base + r.height, left: base, right: base };
   }
-  return { top: base, bottom: base, left: base, right: base + r.width };
+  return { top: base, bottom: base, left: base, right: base, [side]: base + r.width };
 }

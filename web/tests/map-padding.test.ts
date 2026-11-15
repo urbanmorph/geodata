@@ -42,3 +42,13 @@ describe('paddingForPanelRect', () => {
     expect(paddingForPanelRect({ width: 360, height: 600 }, 1100).right).toBe(20 + 360);
   });
 });
+
+describe('paddingForPanelRect: a left drawer (About this layer)', () => {
+  it('reserves room on the left on desktop', () => {
+    expect(paddingForPanelRect({ width: 360, height: 800 }, 1280, 20, 'left')).toEqual({ top: 20, bottom: 20, left: 380, right: 20 });
+  });
+
+  it('is still a bottom sheet on a phone', () => {
+    expect(paddingForPanelRect({ width: 390, height: 400 }, 390, 20, 'left')).toEqual({ top: 20, bottom: 420, left: 20, right: 20 });
+  });
+});

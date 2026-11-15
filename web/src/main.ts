@@ -5,6 +5,8 @@ import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
 import { blurFocusWithin } from './focus-utils';
 import { fmtCount } from './format-hints';
 import { showLayerError } from './layer-errors';
+import { findMyWard } from './find-my-ward';
+import { fetchWardIndex } from './ward-index';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
 // injects is NOT removed on hydrate — doing so shrank the body and was the
@@ -134,6 +136,42 @@ for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href
   a.addEventListener('focus', prefetch, { once: true });
 }
 
+// Home "Find my ward". Static import, not dynamic: the location must be
+// requested synchronously in the tap or iOS drops it (find-my-ward.ts).
+const findWardBtn = document.getElementById('find-my-ward');
+const findWardStatus = document.getElementById('find-ward-status');
+if (findWardBtn && findWardStatus) {
+  const say = (message: string) => { findWardStatus.hidden = false; findWardStatus.textContent = message; };
+  findWardBtn.addEventListener('click', () => {
+    if (!('geolocation' in navigator)) return say("Your browser can't share your location. Search your area instead.");
+    findMyWard({ geolocation: navigator.geolocation, fetch: (url) => fetch(url), go: (url) => location.assign(url), say });
+  });
+}
+
+// Answer-first search: "ward 9 ahmedabad" shows "Ward 9, Ahmedabad is
+// Naranpura" above the results. The parser and city list load only once a
+// query has "ward" and a number; each city's ward index is fetched once
+// (ward-index.ts).
+const wardBox = document.getElementById('ward-answer');
+let wardSeq = 0;
+async function showWardAnswer(raw: string): Promise<void> {
+  if (!wardBox) return;
+  const seq = ++wardSeq;
+  let html = '';
+  if (/ward/i.test(raw) && /\d/.test(raw)) {
+    const m = await import('./ward-answer');
+    const q = m.parseWardQuery(raw, m.wardCities());
+    if (q) {
+      const idx = await fetchWardIndex(q.layerId);
+      const a = idx && m.wardAnswer(idx, q.number);
+      if (a) html = m.wardAnswerHtml(q, a);
+    }
+  }
+  if (seq !== wardSeq) return; // a newer keystroke owns the box
+  wardBox.innerHTML = html;
+  wardBox.hidden = !html;
+}
+
 // Catalog search + category filter (home page only).
 // Operates on category sections + pre-rendered cards via data-* attributes.
 // Pill click → show only that category section. Search → two-tier matcher
@@ -154,6 +192,7 @@ if (searchInput && grid) {
     primary: el.dataset.searchPrimary || '',
     body: el.dataset.searchBody || '',
     provenance: el.dataset.provenance || '',
+    layers: Number(el.dataset.layers) || 1,
   }));
   let activeCat = 'all';
   let query = '';
@@ -177,11 +216,13 @@ if (searchInput && grid) {
     const visible = cardVisibility(result.matches, cardLikes, activeCat, query);
     const visiblePerSection = new Map<HTMLElement, number>();
     let totalVisible = 0;
+    let layersVisible = 0;
     for (let i = 0; i < cardEls.length; i++) {
       const el = cardEls[i];
       el.classList.toggle('hidden', !visible[i]);
       if (visible[i]) {
         totalVisible++;
+        layersVisible += cardLikes[i].layers ?? 1;
         const sec = el.closest<HTMLElement>('.category-section');
         if (sec) visiblePerSection.set(sec, (visiblePerSection.get(sec) || 0) + 1);
       }
@@ -234,7 +275,7 @@ if (searchInput && grid) {
       } else {
         const chip = chips.find((c) => c.dataset.cat === activeCat);
         const label = (chip?.firstChild?.textContent || activeCat).trim().toLowerCase();
-        searchMeta.textContent = `${totalVisible} ${label} layer${totalVisible === 1 ? '' : 's'}`;
+        searchMeta.textContent = `${layersVisible} ${label} layer${layersVisible === 1 ? '' : 's'}`;
       }
     }
   };
@@ -242,6 +283,7 @@ if (searchInput && grid) {
   searchInput.addEventListener('input', () => {
     query = searchInput.value.trim().toLowerCase();
     apply();
+    void showWardAnswer(searchInput.value);
   });
 
   // ?q=… support — required for the WebSite SearchAction in JSON-LD to be
@@ -252,6 +294,7 @@ if (searchInput && grid) {
     searchInput.value = qParam;
     query = qParam.trim().toLowerCase();
     apply();
+    void showWardAnswer(qParam);
     searchInput.focus();
   }
   for (const chip of chips) {

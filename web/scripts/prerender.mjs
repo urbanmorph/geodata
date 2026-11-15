@@ -1,7 +1,7 @@
 // Build-time prerender: produce one large card per admin level.
 // Zero JS needed to read or navigate the catalog.
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
-import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads } from './download-counts.mjs';
+import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -493,6 +493,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     `data-id="${esc(primary.id)}"`,
     `data-level="${esc(level)}"`,
     `data-category="${esc(primary.category || 'boundaries')}"`,
+    `data-layers="${layersForLevel.length}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
     `data-search-primary="${esc(primaryHaystack)}"`,
@@ -664,9 +665,9 @@ const homeSeo = seoHead({
   },
 });
 
-// Category chips: count = visible level rows per category (not raw layer
-// rows). Raw-layer counts double-counted alt sources and included dead
-// gb_adm placeholders, making the pill total mismatch the section title.
+// Category chips: count = layers per category. A row holds a level's primary
+// source plus its alternates, so it adds byLevel[lvl].length; the site talks
+// about layers everywhere (chips, section headings, the All total).
 // `categoryCounts` is initialised here from visible levels; community
 // submissions get added below once communityByCategory is built; chip
 // HTML is rendered AFTER that so the totals are final.
@@ -675,7 +676,7 @@ const categoryCounts = {};
 for (const lvl of LEVEL_ORDER) {
   if (!byLevel[lvl]?.length) continue;
   const cat = knownCats.has(categoryByLevel[lvl]) ? categoryByLevel[lvl] : 'other';
-  categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+  categoryCounts[cat] = (categoryCounts[cat] || 0) + byLevel[lvl].length;
 }
 
 // Community submissions: query D1 (local for dev, --remote for the
@@ -843,6 +844,31 @@ const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('')
 // Density management: sections with > VISIBLE_LIMIT layers collapse the
 // overflow under a "show all N" toggle (data-overflow attr); main.ts wires
 // the toggle. Per-layer `.row--collapsed` class hides them by default.
+// Quick links under the search: the most downloaded curated layers, one per
+// level (the alternates of a level would read as duplicates).
+const POPULAR_N = 6;
+const curatedById = new Map(catalog.layers.filter((l) => l.provenance !== 'community').map((l) => [l.id, l]));
+const popularLevels = new Set();
+const popularIds = mostDownloaded(dlCounts, 60, (id) => curatedById.has(id))
+  .filter((id) => {
+    const lvl = curatedById.get(id).level;
+    if (!LEVEL_META[lvl] || popularLevels.has(lvl)) return false;
+    popularLevels.add(lvl);
+    return true;
+  })
+  .slice(0, POPULAR_N);
+const popularHtml = popularIds.length
+  ? `<nav class="popular" aria-label="Popular maps"><span class="popular__label">Popular:</span>${popularIds
+      .map((id) => `<a href="/view/${esc(id)}">${esc(LEVEL_META[curatedById.get(id).level].label)}</a>`)
+      .join('')}</nav>`
+  : '';
+
+// "updated <date>": the newest layer fetch in the catalogue.
+const newestFetch = catalog.layers.map((l) => l.fetched_at || '').sort().pop()?.slice(0, 10) || '';
+const updatedHtml = newestFetch
+  ? `<time datetime="${newestFetch}">${new Date(newestFetch + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</time>`
+  : '';
+
 const VISIBLE_LIMIT = 6;
 
 function renderCategorySection(cat) {
@@ -850,8 +876,8 @@ function renderCategorySection(cat) {
   const commInCat = communityByCategory[cat] || [];
   if (!levelsInCat.length && !commInCat.length) return '';
   const catLabel = (catalog.categories || {})[cat] || cat;
-  const total = levelsInCat.length + commInCat.length;
-  const overflows = total > VISIBLE_LIMIT;
+  const total = levelsInCat.reduce((n, lvl) => n + byLevel[lvl].length, 0) + commInCat.length;
+  const overflows = levelsInCat.length + commInCat.length > VISIBLE_LIMIT;
 
   // Tag rows beyond VISIBLE_LIMIT with `row--collapsed`; main.ts toggles
   // the section's `.expanded` state to reveal them. Search + category-pill
@@ -902,6 +928,9 @@ const out = tmpl
   .replace('<!-- NAV -->', renderNav('catalog'))
   .replace('<!-- FOOTER -->', FOOTER)
   .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog}</script>`)
+  .replace('<!-- POPULAR -->', popularHtml)
+  .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
+  .replace('<!-- UPDATED -->', updatedHtml)
   .replace('<!-- DOWNLOAD_TOTAL -->', (() => {
     const total = totalDownloads(dlCounts);
     return total > 0 ? ` · <span class="search-meta__count">${fmtCount(total)}</span> downloads` : '';
