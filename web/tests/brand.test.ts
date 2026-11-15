@@ -139,7 +139,7 @@ describe('every surface uses the brand (no leftover violet)', () => {
   });
 
   it('buttons on the saffron fill use navy text, not white', () => {
-    for (const f of ['web/index.template.html', 'web/preview.template.html', 'web/submit.html', 'web/functions/lib/render-view.ts', 'web/scripts/shared-chrome.mjs']) {
+    for (const f of ['web/index.template.html', 'web/preview.template.html', 'web/docs.template.html', 'web/mcp.template.html', 'web/submit.html', 'web/functions/lib/render-view.ts', 'web/scripts/shared-chrome.mjs']) {
       const lines = read(f).split('\n').filter((l) => l.includes('var(--accent-fill)'));
       for (const l of lines) expect(l, `${f}: ${l.trim()}`).not.toMatch(/color: ?#fff\b/);
     }
@@ -155,4 +155,14 @@ describe('wordmark weight', () => {
     expect(css).toMatch(/\.topbar \.collect-name \{[^}]*font-weight: 800/);
     expect(read('collect/src/landing.ts')).toContain('<span class="collect-name">collect</span>');
   });
+});
+
+describe('content pages share one type scale (shared-chrome page classes)', () => {
+  for (const page of ['about', 'docs', 'mcp', 'privacy', 'terms', 'preview']) {
+    it(`${page}: a .page-title heading and no page-local title or uppercase-h2 styles`, () => {
+      const t = read(`web/${page}.template.html`);
+      expect(t).toMatch(/<h1 class="page-title"/);
+      expect(t).not.toMatch(/\.page-title \{|\.hero \{|text-transform: uppercase; letter-spacing: \.08em; color: var\(--muted\); margin: var\(--sp-7\)/);
+    });
+  }
 });

@@ -25,6 +25,11 @@ describe('TOKENS', () => {
     expect(TOKENS).toMatch(/:focus-visible[\s\S]*outline:.*var\(--accent-strong\)/);
   });
 
+  it('draws the header as a full-width bar aligned to the page column (--page-max)', () => {
+    expect(TOKENS).toMatch(/\.site-header \{[^}]*margin-inline: calc\(50% - 50vw\)/);
+    expect(TOKENS).toContain('--page-max');
+  });
+
   it('defines shared .site-header / .site-nav / .site-footer classes', () => {
     expect(TOKENS).toContain('.site-header');
     expect(TOKENS).toContain('.site-nav');
@@ -63,8 +68,24 @@ describe('renderNav', () => {
 
   it('keeps internal links target-less', () => {
     const html = renderNav('catalog');
-    expect(html).toMatch(/href="\/preview"[^>]*>contribute<\/a>/);
+    expect(html).toMatch(/href="\/docs"[^>]*>API &amp; MCP<\/a>/);
     expect(html).not.toMatch(/href="\/preview"[^>]*target="_blank"/);
+  });
+
+  it('follows the mockup: Layers, Collect, API & MCP, About, then an "Add a map" button', () => {
+    const html = renderNav('catalog');
+    expect(NAV_LINKS.map((l: { label: string }) => l.label)).toEqual(['Layers', 'Collect', 'API &amp; MCP', 'About']);
+    expect(html).toMatch(/<a class="nav-cta" href="\/preview"[^>]*>Add a map<\/a>/);
+    expect(html).toMatch(/href="\/"[^>]*\bdata-active\b[^>]*>Layers</);
+  });
+
+  it('marks API & MCP active on both the docs and the MCP page', () => {
+    expect(renderNav('mcp')).toMatch(/href="\/docs"[^>]*\bdata-active\b/);
+    expect(renderNav('docs')).toMatch(/href="\/docs"[^>]*\bdata-active\b/);
+  });
+
+  it('marks Add a map active on the contribute page', () => {
+    expect(renderNav('preview')).toMatch(/class="nav-cta" href="\/preview" data-active/);
   });
 
   it('emits a unique active marker even when no key matches', () => {

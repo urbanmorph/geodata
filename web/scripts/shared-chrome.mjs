@@ -48,23 +48,36 @@ export const TOKENS = `
   }
   .skip-link:focus { left: var(--sp-2); }
   main :is(p, li) a { text-decoration: underline; text-underline-offset: 2px; }
+  /* Page column: each page sets --page-max (its body max-width). The header is
+     a full-width bar whose content lines up with that column. */
+  :root { --page-max: 880px; }
+  html { overflow-x: clip; }
+  body { padding-top: 0 !important; }
   .site-header {
     display: flex; align-items: center; justify-content: space-between;
-    gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
+    gap: var(--sp-4); flex-wrap: wrap;
+    margin-inline: calc(50% - 50vw); margin-bottom: var(--sp-6);
+    padding: 12px max(16px, calc(50vw - var(--page-max) / 2 + 24px));
+    background: var(--bg); border-bottom: 1px solid var(--line);
   }
   ${WORDMARK_CSS}
   .site-brand { font-size: var(--fs-lg); }
   .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
-  .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
+  .site-nav { display: flex; gap: var(--sp-5); flex-wrap: wrap; align-items: center; }
   .site-nav a {
-    color: var(--muted); text-decoration: none; font-size: var(--fs-base);
+    color: var(--muted); text-decoration: none; font-size: 15px; font-weight: 500;
     padding: 6px 2px;
     min-height: 44px;
     display: inline-flex;
     align-items: center;
   }
   .site-nav a:hover { color: var(--fg); }
-  .site-nav a[data-active] { color: var(--fg); font-weight: 500; }
+  .site-nav a[data-active] { color: var(--fg); font-weight: 650; }
+  .site-nav a.nav-cta {
+    min-height: 40px; padding: 0 14px; color: var(--fg); font-weight: 650;
+    border: 1.5px solid var(--line-bright); border-radius: 10px;
+  }
+  .site-nav a.nav-cta:hover, .site-nav a.nav-cta[data-active] { border-color: var(--accent-fill); text-decoration: none; }
   /* mobile hamburger (CSS-only, checkbox toggle) */
   .nav-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
   .nav-burger {
@@ -80,6 +93,7 @@ export const TOKENS = `
     .site-nav { display: none; flex-direction: column; align-items: stretch; gap: 0; width: 100%; margin-top: var(--sp-2); }
     .nav-toggle:checked ~ .site-nav { display: flex; }
     .site-nav a { width: 100%; padding: 12px 4px; min-height: 48px; border-top: 1px solid var(--line); }
+    .site-nav a.nav-cta { border-radius: 0; border-width: 1px 0 0; padding: 12px 4px; }
   }
   /* "Install app": shown by src/install.ts only where install is possible.
      Desktop: after the nav links. Mobile: between the wordmark and the burger. */
@@ -117,6 +131,24 @@ export const TOKENS = `
     background: var(--accent-fill); border: 0; border-radius: var(--radius-md); cursor: pointer;
   }
   .install-guide button:hover { background: var(--accent-fill-hover); }
+  /* Content pages: one type scale for every page (the home page's too). */
+  .page-title { margin: 24px 0 14px; max-width: 760px; font-size: 44px; line-height: 1.06; font-weight: 760; letter-spacing: -.035em; text-wrap: balance; }
+  .page-lead { margin: 0 0 28px; max-width: 660px; font-size: 18px; line-height: 1.55; color: var(--muted); }
+  .section-title, .prose h2 { margin: 44px 0 14px; font-size: 24px; line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
+  .prose { max-width: 720px; }
+  .prose ul { list-style: none; margin: 0 0 16px; padding: 0; }
+  .prose li { position: relative; padding: 4px 0 4px 20px; }
+  .prose li::before { content: ""; position: absolute; left: 4px; top: .9em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fill); }
+  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 12px; font-size: 16px; font-weight: 700; text-decoration: none !important; }
+  .btn--fill { background: var(--accent-fill); color: var(--on-accent-fill) !important; }
+  .btn--fill:hover { background: var(--accent-fill-hover); }
+  .btn--line { border: 1.5px solid var(--line-bright); color: var(--fg) !important; }
+  .btn--line:hover { border-color: var(--accent-fill); }
+  @media (max-width: 640px) {
+    .page-title { font-size: 32px; }
+    .page-lead { font-size: 16px; }
+    .section-title, .prose h2 { margin-top: 36px; font-size: 21px; }
+  }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
     border-top: 1px solid var(--line);
@@ -127,13 +159,13 @@ export const TOKENS = `
   .site-footer a:hover { color: var(--fg); }
 `;
 
+// The mockup's nav. `keys` are the page keys a link is active on; labels are
+// HTML (escaped). Adding a map (/preview) is the outlined button after them.
 export const NAV_LINKS = [
-  { k: 'catalog', href: '/', label: 'catalog' },
-  { k: 'preview', href: '/preview', label: 'contribute' },
-  { k: 'collect', href: 'https://collect.bharatlas.com', label: 'collect' },
-  { k: 'docs', href: '/docs', label: 'docs' },
-  { k: 'mcp', href: '/mcp', label: 'mcp' },
-  { k: 'about', href: '/about', label: 'about' },
+  { keys: ['catalog'], href: '/', label: 'Layers' },
+  { keys: ['collect'], href: 'https://collect.bharatlas.com', label: 'Collect' },
+  { keys: ['docs', 'mcp'], href: '/docs', label: 'API &amp; MCP' },
+  { keys: ['about'], href: '/about', label: 'About' },
 ];
 
 export function renderNav(activeKey) {
@@ -145,8 +177,9 @@ export function renderNav(activeKey) {
       <nav class="site-nav" id="site-nav" aria-label="Primary">
         ${NAV_LINKS.map(
           (l) =>
-            `<a href="${l.href}"${l.k === activeKey ? ' data-active' : ''}${l.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${l.label}</a>`,
+            `<a href="${l.href}"${l.keys.includes(activeKey) ? ' data-active' : ''}${l.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${l.label}</a>`,
         ).join('\n        ')}
+        <a class="nav-cta" href="/preview"${activeKey === 'preview' ? ' data-active' : ''}>Add a map</a>
       </nav>
       <button type="button" id="install-app" class="install-app" hidden>Install app</button>
     </header>

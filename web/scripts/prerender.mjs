@@ -451,6 +451,10 @@ function renderRow(level, layersForLevel, opts = {}) {
     `data-level="${esc(level)}"`,
     `data-category="${esc(primary.category || 'boundaries')}"`,
     `data-layers="${layersForLevel.length}"`,
+    // What the search dropdown shows for this card (src/search-pop.ts).
+    `data-title="${esc(meta.label)}"`,
+    `data-sub="${esc([primary.rows != null ? `${fmtRows(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · '))}"`,
+    `data-href="${viewable ? `/view/${esc(primary.id)}` : `#${esc(level)}`}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
     `data-search-primary="${esc(primaryHaystack)}"`,
@@ -707,6 +711,9 @@ function renderCommunityCard(s, opts = {}) {
     `data-created="${esc(s.created_at)}"`,
     `data-category="${esc(cat)}"`,
     `data-provenance="community"`,
+    `data-title="${esc(s.name)}"`,
+    `data-sub="${esc(`community · ${s.format}`)}"`,
+    `data-href="/c/${esc(s.id)}"`,
     `data-search-primary="${esc(primaryHaystack)}"`,
     `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
@@ -755,19 +762,37 @@ const activeCats = Object.entries(catalog.categories || {})
 // data-total stays as the raw category size; data-count is what the
 // client mutates as the user filters. The count span displays either
 // "N" (idle) or "filtered/N" (when a search/filter is active).
+// Theme cards (the mockup's "Browse by theme"). They are the category filter:
+// same .catalog-chip class and data-* contract main.ts drives, so search and
+// filtering are unchanged; the count span is what the filter rewrites.
+const THEME_DESC = {
+  all: 'Every layer in the atlas',
+  boundaries: 'Country to village: states, districts, blocks, panchayats and towns',
+  'city-wards': 'Ward and zone maps for over 30 cities',
+  people: 'Constituencies, courts and police station areas',
+  environment: 'Forests, coasts, geology, minerals and natural hazards',
+  water: 'Rivers, lakes, watersheds, aquifers, groundwater and floods',
+  agriculture: 'Agro-climatic zones, soil health and cropping',
+  transport: 'Railways, highways, airports and rural roads',
+  infrastructure: 'Pincodes, power plants, renewables, oil and gas',
+  'health-edu': 'Hospitals, health facilities and schools',
+  economy: 'MGNREGA, city budgets and state finances',
+  community: 'Layers people added under open licences',
+};
+const themeCard = (id, name, n, active = false) =>
+  `<button class="catalog-chip theme-card${active ? ' active' : ''}" data-cat="${esc(id)}" data-count="${n}" data-total="${n}">` +
+  `<span class="theme-card__name">${esc(name)}</span><span class="theme-card__n"><span class="count">${n}</span> layers</span>` +
+  (THEME_DESC[id] ? `<span class="theme-card__desc">${esc(THEME_DESC[id])}</span>` : '') +
+  `</button>`;
 const chips = [
-  `<button class="catalog-chip active" data-cat="all" data-count="${totalLayers}" data-total="${totalLayers}">All <span class="count">${totalLayers}</span></button>`,
-  ...activeCats.map(
-    ([id, name]) => `<button class="catalog-chip" data-cat="${esc(id)}" data-count="${categoryCounts[id]}" data-total="${categoryCounts[id]}">${esc(name)} <span class="count">${categoryCounts[id]}</span></button>`,
-  ),
+  themeCard('all', 'All layers', totalLayers, true),
+  ...activeCats.map(([id, name]) => themeCard(id, name, categoryCounts[id])),
 ];
 // Community pill: appears only when there's at least one community submission.
 // It filters on provenance, not category — cardVisibility special-cases the
 // activeCat='community' lookup so cards from any content category surface.
 if (community.length > 0) {
-  chips.push(
-    `<button class="catalog-chip" data-cat="community" data-count="${community.length}" data-total="${community.length}">Community <span class="count">${community.length}</span></button>`,
-  );
+  chips.push(themeCard('community', 'Community', community.length));
 }
 // Only render chips when there's more than one category to switch between.
 const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('') : '';
@@ -781,10 +806,10 @@ const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('')
 // the toggle. Per-layer `.row--collapsed` class hides them by default.
 // Quick links under the search: the most downloaded curated layers, one per
 // level (the alternates of a level would read as duplicates).
-const POPULAR_N = 6;
+const POPULAR_N = 8;
 const curatedById = new Map(catalog.layers.filter((l) => l.provenance !== 'community').map((l) => [l.id, l]));
 const popularLevels = new Set();
-const popularIds = mostDownloaded(dlCounts, 60, (id) => curatedById.has(id))
+const popularIds = mostDownloaded(dlCounts, 80, (id) => curatedById.has(id))
   .filter((id) => {
     const lvl = curatedById.get(id).level;
     if (!LEVEL_META[lvl] || popularLevels.has(lvl)) return false;
@@ -792,11 +817,32 @@ const popularIds = mostDownloaded(dlCounts, 60, (id) => curatedById.has(id))
     return true;
   })
   .slice(0, POPULAR_N);
+// "Most popular": the most downloaded layers (one per level), with their counts.
 const popularHtml = popularIds.length
-  ? `<nav class="popular" aria-label="Popular maps"><span class="popular__label">Popular:</span>${popularIds
-      .map((id) => `<a href="/view/${esc(id)}">${esc(LEVEL_META[curatedById.get(id).level].label)}</a>`)
-      .join('')}</nav>`
+  ? `<section class="home-section home-browse" id="popular" aria-labelledby="popular-title">` +
+    `<h2 class="section-title" id="popular-title">Most popular</h2><div class="popular-list">${popularIds
+      .map((id) => {
+        const l = curatedById.get(id);
+        const meta = LEVEL_META[l.level];
+        const count = l.rows != null ? `${fmtRows(l.rows)} ${meta.unit || 'features'}` : '';
+        return `<a class="popular-item" href="/view/${esc(id)}"><span class="popular-item__name">${esc(meta.label)}</span><span class="popular-item__count">${esc(count)}</span></a>`;
+      })
+      .join('')}<a class="popular-item popular-item--all" href="#layers"><span class="popular-item__name">All ${totalLayers} layers</span><span aria-hidden="true">→</span></a></div></section>`
   : '';
+
+// Quick searches under the search box: real queries people make (ward
+// lookups lead search demand). Each must find layers (tests/home-counts).
+const QUICK_SEARCHES = [
+  ['Ward 9, Ahmedabad', 'ward 9 ahmedabad'],
+  ['Bengaluru wards', 'bengaluru wards'],
+  ['Pincodes', 'pincode'],
+  ['Villages', 'villages'],
+  ['MGNREGA', 'mgnrega'],
+  ['Groundwater', 'groundwater'],
+];
+const quickSearchHtml = `<nav class="quick-search" aria-label="Try a search"><span class="quick-search__label">Try:</span>${QUICK_SEARCHES
+  .map(([label, q]) => `<a href="/?q=${encodeURIComponent(q).replace(/%20/g, '+')}" data-q="${esc(q)}">${esc(label)}</a>`)
+  .join('')}</nav>`;
 
 // "updated <date>": the newest layer fetch in the catalogue.
 const newestFetch = catalog.layers.map((l) => l.fetched_at || '').sort().pop()?.slice(0, 10) || '';
@@ -830,7 +876,7 @@ function renderCategorySection(cat) {
 
   return `<section class="category-section" data-category="${esc(cat)}" ${overflows ? 'data-overflow' : ''}>
       <header class="category-section__head">
-        <h2 class="category-section__title">${esc(catLabel)}</h2>
+        <h3 class="category-section__title">${esc(catLabel)}</h3>
         <span class="category-section__count">${total} layer${total === 1 ? '' : 's'}</span>
       </header>
       <div class="category-section__body">
@@ -863,6 +909,7 @@ const out = tmpl
   .replace('<!-- NAV -->', renderNav('catalog'))
   .replace('<!-- FOOTER -->', FOOTER)
   .replace('<!-- POPULAR -->', popularHtml)
+  .replace('<!-- QUICK_SEARCH -->', quickSearchHtml)
   .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
   .replace('<!-- UPDATED -->', updatedHtml)
   .replace('<!-- DOWNLOAD_TOTAL -->', (() => {

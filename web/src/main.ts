@@ -7,6 +7,7 @@ import { fmtCount } from './format-hints';
 import { showLayerError } from './layer-errors';
 import { findMyWard } from './find-my-ward';
 import { fetchWardIndex } from './ward-index';
+import { rankHits, hitsHtml, moveActive, type Hit } from './search-pop';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
 // injects is NOT removed on hydrate — doing so shrank the body and was the
@@ -199,6 +200,26 @@ if (searchInput && grid) {
     layers: Number(el.dataset.layers) || 1,
   }));
   const cardSections = cardEls.map((el) => el.closest<HTMLElement>('.category-section'));
+  // What the results popover shows for each card (prerender's data-title/-sub/-href).
+  const cardHits: Hit[] = cardEls.map((el) => ({ title: el.dataset.title || '', sub: el.dataset.sub || '', href: el.dataset.href || '#layers' }));
+  const pop = document.getElementById('search-pop');
+  const resultsBox = document.getElementById('search-results');
+  let activeHit = -1;
+  const setPop = (open: boolean) => {
+    if (!pop) return;
+    pop.hidden = !open;
+    searchInput.setAttribute('aria-expanded', String(open));
+    if (!open) searchInput.removeAttribute('aria-activedescendant');
+  };
+  const renderPop = (matches: boolean[]) => {
+    if (!resultsBox) return;
+    if (!query) { setPop(false); return; }
+    const hits = rankHits(cardHits, matches, query, 6);
+    resultsBox.innerHTML = hitsHtml(hits, matches.filter(Boolean).length, searchInput.value.trim());
+    activeHit = -1;
+    searchInput.removeAttribute('aria-activedescendant');
+    setPop(true);
+  };
   let activeCat = 'all';
   let query = '';
   // innerHTML, not textContent: the idle line carries the #dl-total slot and its
@@ -271,6 +292,9 @@ if (searchInput && grid) {
     }
 
     if (emptyMsg) emptyMsg.hidden = totalVisible > 0;
+    // While searching, the results lead: themes and popular step aside.
+    document.body.classList.toggle('searching', !!query);
+    renderPop(result.matches);
     if (searchMeta) {
       if (!query && activeCat === 'all') {
         searchMeta.innerHTML = idleMeta;
@@ -302,6 +326,7 @@ if (searchInput && grid) {
     void showWardAnswer(qParam);
     searchInput.focus();
   }
+  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   for (const chip of chips) {
     chip.addEventListener('click', () => {
       if (chip.dataset.count === '0') return;
@@ -309,6 +334,50 @@ if (searchInput && grid) {
       activeCat = chip.dataset.cat || 'all';
       try { sessionStorage.setItem('cat', activeCat); } catch {}
       apply();
+      // A theme card filters the list below it: take the reader there.
+      document.getElementById('layers')?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
+    });
+  }
+
+  // Results popover: arrow keys move, Enter opens, Esc closes; a click
+  // outside closes it; "/" focuses search from anywhere on the page.
+  searchInput.addEventListener('keydown', (e) => {
+    const opts = Array.from(resultsBox?.querySelectorAll<HTMLAnchorElement>('.search-hit') ?? []);
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!opts.length) return;
+      e.preventDefault();
+      setPop(true);
+      activeHit = moveActive(activeHit, e.key, opts.length);
+      opts.forEach((o, i) => o.setAttribute('aria-selected', String(i === activeHit)));
+      searchInput.setAttribute('aria-activedescendant', opts[activeHit].id);
+      opts[activeHit].scrollIntoView({ block: 'nearest' });
+    } else if (e.key === 'Enter' && activeHit >= 0 && opts[activeHit]) {
+      e.preventDefault();
+      location.assign(opts[activeHit].href);
+    } else if (e.key === 'Escape') {
+      setPop(false);
+    }
+  });
+  searchInput.addEventListener('focus', () => { if (query) setPop(true); });
+  document.addEventListener('click', (e) => {
+    if (!(e.target as Element).closest?.('.search-wrap')) setPop(false);
+  });
+  pop?.addEventListener('click', (e) => {
+    if ((e.target as Element).closest('.search-pop__all')) setPop(false);
+  });
+  document.addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement;
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || t.closest('input, textarea, select, [contenteditable]')) return;
+    e.preventDefault();
+    searchInput.focus();
+  });
+  // Quick searches ("Try: ...") run in place; without JS they are ?q= links.
+  for (const a of document.querySelectorAll<HTMLAnchorElement>('.quick-search a[data-q]')) {
+    a.addEventListener('click', (e) => {
+      e.preventDefault();
+      searchInput.value = a.dataset.q || '';
+      searchInput.dispatchEvent(new Event('input'));
+      searchInput.focus();
     });
   }
 

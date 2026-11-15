@@ -14,25 +14,20 @@
     <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
       <!-- TOKENS -->
-      body { max-width: 720px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.6; }
-      .hero { font-size: var(--fs-2xl); font-weight: 600; letter-spacing: -.02em; margin: var(--sp-4) 0 var(--sp-3); }
-      .lede { color: var(--muted); font-size: var(--fs-lg); margin: 0 0 var(--sp-7); max-width: 600px; }
-      h2 { font-size: var(--fs-base); font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: var(--sp-7) 0 var(--sp-3); }
-      ul { margin: 0; padding-left: 0; list-style: none; }
-      li { padding: var(--sp-1) 0 var(--sp-1) 18px; position: relative; }
-      li::before { content: "›"; position: absolute; left: 0; color: var(--accent); font-weight: 700; }
+      :root { --page-max: 880px; }
+      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
       li strong { font-weight: 600; color: var(--fg); }
       a { text-decoration: underline; text-underline-offset: 2px; }
       code { font: var(--fs-sm) ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--bg-card); padding: 1px 5px; border-radius: var(--radius-sm); color: var(--fg); }
       .footnote { color: var(--muted); font-size: var(--fs-sm); margin-top: var(--sp-7); }
-      @media (max-width: 640px) { body { padding: 32px 16px 60px; } .hero { font-size: var(--fs-xl); } }
+      @media (max-width: 640px) { body { padding: 32px 16px 60px; } }
     </style>
   </head>
   <body>
     <!-- NAV -->
-    <main id="main">
-    <h1 class="hero">Terms</h1>
-    <p class="lede">
+    <main id="main" class="prose">
+    <h1 class="page-title">Terms</h1>
+    <p class="page-lead">
       By using bharatlas you agree to these terms. They're short because the platform is
       simple.
     </p>

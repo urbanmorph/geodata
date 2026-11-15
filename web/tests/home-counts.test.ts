@@ -34,7 +34,7 @@ describe('home page layer counts', () => {
     const cats = [...new Set(rows.map((r) => r.category))];
     for (const cat of cats) {
       const layers = rows.filter((r) => r.category === cat).reduce((n, r) => n + r.layers, 0);
-      const section = html.match(new RegExp(`data-category="${cat}"[^>]*>\\s*<header[^>]*>\\s*<h2[^>]*>[^<]*</h2>\\s*<span class="category-section__count">(\\d+) layers?`));
+      const section = html.match(new RegExp(`data-category="${cat}"[^>]*>\\s*<header[^>]*>\\s*<h3[^>]*>[^<]*</h3>\\s*<span class="category-section__count">(\\d+) layers?`));
       expect(Number(section?.[1]), cat).toBeGreaterThanOrEqual(layers);
       expect(chip(cat), cat).toBe(Number(section?.[1]));
     }
@@ -51,11 +51,28 @@ describe('home hero', () => {
     expect(html).toContain(`<span class="search-meta__updated">updated <time datetime="${newest}">`);
   });
 
-  it('links the most downloaded layers as quick links under the search', () => {
-    const nav = html.match(/<nav class="popular"[^>]*>([\s\S]*?)<\/nav>/)?.[1] || '';
-    const links = [...nav.matchAll(/href="\/view\/([a-z0-9_]+)"/g)].map((m) => m[1]);
-    expect(links.length).toBeGreaterThanOrEqual(3);
-    for (const id of links) expect(catalog.layers.some((l) => l.id === id), id).toBe(true);
+  it('lists the most downloaded layers under "Most popular", with counts', () => {
+    const sec = html.match(/<section[^>]*id="popular"[^>]*>([\s\S]*?)<\/section>/)?.[1] || '';
+    const items = [...sec.matchAll(/<a class="popular-item" href="\/view\/([a-z0-9_]+)"><span class="popular-item__name">[^<]+<\/span><span class="popular-item__count">[^<]+<\/span><\/a>/g)].map((m) => m[1]);
+    expect(items.length).toBeGreaterThanOrEqual(6);
+    for (const id of items) expect(catalog.layers.some((l) => l.id === id), id).toBe(true);
+  });
+
+  it('offers quick searches that each find at least one layer', async () => {
+    const { filterCards } = await import('../src/catalog-filter');
+    const cards = [...html.matchAll(/data-category="([^"]+)"[^>]*data-search-primary="([^"]*)" data-search-body="([^"]*)"/g)].map((m) => ({ category: m[1], primary: m[2], body: m[3] }));
+    const nav = html.match(/<nav class="quick-search"[^>]*>([\s\S]*?)<\/nav>/)?.[1] || '';
+    const queries = [...nav.matchAll(/href="\/\?q=([^"]+)"/g)].map((m) => decodeURIComponent(m[1].replace(/\+/g, ' ')));
+    expect(queries.length).toBeGreaterThanOrEqual(4);
+    for (const q of queries) expect(filterCards(cards, q).totalMatches, q).toBeGreaterThan(0);
+  });
+
+  it('follows the mockup: an open-data pill, theme cards with descriptions, an "All layers" section', () => {
+    expect(html).toContain('Free and open data. No sign-up.');
+    const themes = [...html.matchAll(/<button class="catalog-chip theme-card[^"]*" data-cat="([a-z-]+)"[\s\S]*?<\/button>/g)];
+    expect(themes.length).toBeGreaterThan(5);
+    for (const t of themes) if (t[1] !== 'all' && t[1] !== 'community') expect(t[0], t[1]).toMatch(/<span class="theme-card__desc">[^<]{10,}<\/span>/);
+    expect(html).toMatch(/<section[^>]*id="layers"[\s\S]*?<h2[^>]*>All layers<\/h2>[\s\S]*?id="catalog-grid"/);
   });
 
   it('offers Find my ward next to the search box', () => {
@@ -71,5 +88,17 @@ describe('home page weight', () => {
   it('stays under 85 KB gzipped', async () => {
     const { gzipSync } = await import('node:zlib');
     expect(gzipSync(html).length).toBeLessThan(85 * 1024);
+  });
+});
+
+describe('cards carry what the search dropdown shows', () => {
+  it('every curated row has a title, a subtitle and a link', () => {
+    const rowsMeta = [...html.matchAll(/<section class="row row--curated[^>]*>/g)].map((m) => m[0]);
+    expect(rowsMeta.length).toBeGreaterThan(10);
+    for (const r of rowsMeta) {
+      expect(r, r.slice(0, 80)).toMatch(/data-title="[^"]+"/);
+      expect(r).toMatch(/data-sub="[^"]+"/);
+      expect(r).toMatch(/data-href="(\/view\/[a-z0-9_]+|#[a-z0-9_]+)"/);
+    }
   });
 });
