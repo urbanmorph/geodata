@@ -679,6 +679,10 @@ export async function deidentifyRecordHandler(env: Env, req: Request, recordId: 
 // trusts the client); admin-authed so it skips the per-contributor rate limit.
 // A throwaway edit-token hash means imported records have no contributor owner
 // (admin manages them). Enrichment is skipped in bulk (admin_ctx stays null).
+// A row may carry `client_id`, the importer's own id for it (scoped to the map):
+// re-importing it updates that record in place instead of adding a copy, so a
+// re-run adds nothing and a corrected re-run fixes the rows it changed. Rows
+// without client_id are added every time, as before.
 
 export async function importRecords(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const attemptId = `att_${nanoid(10)}`;
@@ -701,6 +705,8 @@ export async function importRecords(env: Env, req: Request, id: string, defer?: 
 }
 
 const IMPORT_BATCH = 100; // rows per D1 batch (one transaction each)
+const IMPORT_CLIENT_ID_MAX = 128;
+const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 const reasonList = (rs: Array<{ reason: string; count: number }>): string => rs.map((r) => `${r.reason} (${r.count})`).join('; ');
 
 async function importInto(
@@ -736,8 +742,17 @@ async function importInto(
   const errors: Array<{ index: number; error: string }> = [];
   const rows: db.NewRecordRow[] = [];
   const rowIndex: number[] = []; // rows[k] came from recs[rowIndex[k]]
+  const firstRowOf = new Map<string, number>(); // client_id → the row that carried it first
   for (let i = 0; i < recs.length; i++) {
-    const r = recs[i] as { geometry?: unknown; properties?: unknown };
+    const r = recs[i] as { geometry?: unknown; properties?: unknown; client_id?: unknown };
+    const clientId = r?.client_id;
+    if (clientId !== undefined && !(typeof clientId === 'string' && clientId.length > 0 && clientId.length <= IMPORT_CLIENT_ID_MAX && !CONTROL_CHARS.test(clientId))) {
+      errors.push({ index: i, error: `client_id must be text of 1 to ${IMPORT_CLIENT_ID_MAX} characters` }); continue;
+    }
+    if (typeof clientId === 'string') {
+      const first = firstRowOf.get(clientId);
+      if (first !== undefined) { errors.push({ index: i, error: `client_id ${JSON.stringify(clientId)} repeats row ${first + 1}` }); continue; }
+    }
     const bounds = checkIndiaBounds(r?.geometry);
     if (!bounds.ok) { errors.push({ index: i, error: bounds.error }); continue; }
     const bucket = geomBucket((r.geometry as { type: string }).type);
@@ -750,8 +765,10 @@ async function importInto(
       admin_ctx: null, contributor,
       edit_token_hash: await hashToken(generateRecordToken()), // discarded — no owner
       ip_hash: ipHash, source, // per-record provenance
+      import_client_id: clientId ?? null,
     });
     rowIndex.push(i);
+    if (typeof clientId === 'string') firstRowOf.set(clientId, i);
   }
 
   // Rows the browser could not send (e.g. no coordinates): counted in the log
@@ -766,29 +783,45 @@ async function importInto(
     : [];
   const refused = new Map<string, number>();
   for (const e of errors) refused.set(e.error, (refused.get(e.error) ?? 0) + 1);
-  const describe = (added: number): string => [
-    `${added} of ${recs.length + skippedCount} rows in the file added`,
+  let added = 0, updated = 0, unchanged = 0;
+  const describe = (): string => [
+    `${added} of ${recs.length + skippedCount} rows in the file added${updated || unchanged ? `, ${updated} updated, ${unchanged} unchanged` : ''}`,
     errors.length ? `refused: ${reasonList([...refused].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count))}` : '',
     skippedCount ? `skipped in the browser: ${skippedCount}${skippedReasons.length ? ` (${reasonList(skippedReasons)})` : ''}` : '',
   ].filter(Boolean).join('; ');
 
-  let imported = 0;
+  // One round trip per batch. Each upsert returns the record's id if it wrote:
+  // the new id = added, an existing one = updated in place, nothing = unchanged.
+  // `rows` in each batch numbers the records as sent (1-based), refused ones included in the span.
+  const batches: Array<{ rows: string; added: number; updated: number; unchanged: number }> = [];
   for (let i = 0; i < rows.length; i += IMPORT_BATCH) {
+    const chunk = rows.slice(i, i + IMPORT_BATCH);
+    let results: D1Result[];
     try {
-      await env.DB.batch(rows.slice(i, i + IMPORT_BATCH).map((r) => db.recordInsert(env.DB, r)));
+      results = await env.DB.batch(chunk.map((r) => db.recordImport(env.DB, r)));
     } catch (e) {
       const msg = (e as Error).message;
-      log({ outcome: 'rejected', gate: 'persist', reason: 'database write failed', step: 'write_rows', detail: `${describe(imported)}; failed writing rows ${i + 1}-${Math.min(i + IMPORT_BATCH, rows.length)}: ${msg}` });
+      log({ outcome: 'rejected', gate: 'persist', reason: 'database write failed', step: 'write_rows', detail: `${describe()}; failed writing rows ${i + 1}-${i + chunk.length}: ${msg}` });
       return json(500, {
-        error: `Only ${imported} of ${recs.length} rows were added before the database refused a write. Please try again with the rows that are missing.`,
-        imported, total: recs.length, errors, not_saved: rowIndex.slice(i), attempt_id: attemptId,
+        error: `Only ${added} of ${recs.length} rows were added before the database refused a write. Please try again with the rows that are missing.`,
+        imported: added, added, updated, unchanged, total: recs.length, errors, batches, not_saved: rowIndex.slice(i), attempt_id: attemptId,
       });
     }
-    imported += Math.min(IMPORT_BATCH, rows.length - i);
+    const b = { rows: `${rowIndex[i] + 1}-${rowIndex[i + chunk.length - 1] + 1}`, added: 0, updated: 0, unchanged: 0 };
+    chunk.forEach((r, k) => {
+      const wrote = (results[k]?.results?.[0] as { id?: string } | undefined)?.id;
+      if (wrote === undefined) b.unchanged++;
+      else if (wrote === r.id) b.added++;
+      else b.updated++;
+    });
+    batches.push(b);
+    added += b.added; updated += b.updated; unchanged += b.unchanged;
   }
-  await db.touchCollection(env.DB, id);
-  log({ outcome: imported ? 'ok' : 'rejected', gate: imported ? null : 'schema', detail: describe(imported) });
-  return json(200, { imported, total: recs.length, errors, attempt_id: attemptId });
+  if (added || updated) await db.touchCollection(env.DB, id);
+  const saved = rows.length > 0;
+  log({ outcome: saved ? 'ok' : 'rejected', gate: saved ? null : 'schema', detail: describe() });
+  // `imported` is the count added (its meaning before updates existed).
+  return json(200, { imported: added, added, updated, unchanged, total: recs.length, errors, batches, attempt_id: attemptId });
 }
 
 // ---- POST /collections/:id/publish -----------------------------------------

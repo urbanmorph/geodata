@@ -24,7 +24,15 @@ export function sqliteD1(): D1Database & { raw: DB } {
     let args: unknown[] = [];
     const stmt = {
       bind(...a: unknown[]) { args = a.map(norm); return stmt; },
-      async run() { const r = raw.prepare(sql).run(...(args as never[])); return { success: true, meta: { changes: Number(r.changes) } }; },
+      // As D1 does, a RETURNING statement's run() carries the returned rows.
+      async run() {
+        if (/\bRETURNING\b/i.test(sql)) {
+          const results = raw.prepare(sql).all(...(args as never[]));
+          return { success: true, results, meta: { changes: results.length } };
+        }
+        const r = raw.prepare(sql).run(...(args as never[]));
+        return { success: true, results: [], meta: { changes: Number(r.changes) } };
+      },
       async first<T>() { return (raw.prepare(sql).get(...(args as never[])) as T) ?? null; },
       async all<T>() { return { success: true, results: raw.prepare(sql).all(...(args as never[])) as T[] }; },
     };

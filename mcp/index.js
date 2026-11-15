@@ -11,6 +11,7 @@ import { readFileSync, writeFileSync, existsSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams } from "./read-tools.js";
+import { withClientIds, importSummary } from "./import-records.js";
 
 const API = process.env.BHARATLAS_API || "https://bharatlas.com/api/v1";
 
@@ -93,14 +94,20 @@ const TOOLS = [
     name: "import_points",
     description:
       "Bulk-import points you already hold into a collect map (needs the admin link). NOT for synthetic data. " +
-      "Requires a named source + rights confirmation; each row lands with that source as its provenance.",
+      "Requires a named source + rights confirmation; each row lands with that source as its provenance. " +
+      "Re-running is safe for rows with a client id (the row's own stable id, unique within the map, up to 128 characters): " +
+      "a row already imported with that id is updated in place if its data changed and otherwise left alone, so the same import twice adds nothing. " +
+      "The client id is the record's `client_id`, else the property named by client_id_field, else (by default) the GeoJSON feature `id`, then an `id` property. " +
+      "Rows without one are added again on every run. The result says how many were added, updated and unchanged (per batch of 100 in `batches`). " +
+      "Up to 5000 records per call.",
     inputSchema: {
       type: "object",
       properties: {
         id: { type: "string" },
-        records: { type: "array", items: { type: "object" }, description: "GeoJSON-like {geometry, properties}" },
+        records: { type: "array", items: { type: "object" }, description: "GeoJSON-like {geometry, properties}, optionally with client_id" },
         source: { type: "string" },
         rights_confirmed: { type: "boolean", description: "you have the right to publish this under the map's licence" },
+        client_id_field: { type: "string", description: "property holding each row's stable id (e.g. \"code\"); default: feature id, then an `id` property; \"\" for none" },
       },
       required: ["id", "records", "source", "rights_confirmed"],
     },
@@ -287,11 +294,14 @@ async function handleTool(name, args) {
         body: { status: args.status, reason: args.reason },
       });
 
-    case "import_points":
-      return collectApi("POST", `/collections/${args.id}/import`, {
+    case "import_points": {
+      const records = withClientIds(Array.isArray(args.records) ? args.records : [], args.client_id_field);
+      const res = await collectApi("POST", `/collections/${args.id}/import`, {
         token: tokenFor(args.id, "admin"),
-        body: { records: args.records, source: args.source, rights_confirmed: !!args.rights_confirmed },
+        body: { records, source: args.source, rights_confirmed: !!args.rights_confirmed },
       });
+      return { summary: importSummary(res, records.filter((r) => r?.client_id === undefined).length), ...res };
+    }
 
     case "edit_map": {
       const { id, ...patch } = args;

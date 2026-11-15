@@ -41,7 +41,8 @@ export const OPENAPI = {
       'Public, read-only and free. No key, no sign-up; CORS is open. `/v1` only grows: fields are added, never renamed or removed, and every response carries `x-api-version: v1`. ' +
       'Each layer keeps the open licence its source published it under: read `licence` and `attribution` from `/layers/{id}` and credit the source when you use the data. ' +
       'Please send a `User-Agent` naming your app and a link, so we can tell you before a change. ' +
-      'Rate limits: 120 requests a minute per IP, 60 a minute for the locate endpoints; over the limit you get 429 with `retry-after`.',
+      'Rate limits: 120 requests a minute per IP, 60 a minute for the locate endpoints; over the limit you get 429 with `retry-after`. ' +
+      'Authoring maps is a separate API on collect.bharatlas.com (`/api/collect/v1`, behind a map’s share link, not described here). Its bulk import, `POST /collections/{id}/import` (admin link), takes up to 5000 `records` of `{geometry, properties, client_id?}`: `client_id` is your own stable id for the row (text, 1–128 characters, unique within the map). Re-importing a row with the same `client_id` updates that record in place if its data changed and otherwise leaves it alone, so running the same import twice adds nothing; the response counts `added`, `updated` and `unchanged` overall and per batch of 100 (`batches`). Rows without `client_id` are added again on every run.',
     contact: { name: 'bharatlas', url: 'https://bharatlas.com/docs' },
     license: { name: 'API code: MIT. Data: each layer keeps its source licence (see `licence` on every layer).', identifier: 'MIT' },
   },
