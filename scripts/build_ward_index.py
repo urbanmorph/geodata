@@ -101,6 +101,13 @@ NAME_REJECT = re.compile(
 # Heuristic fallbacks for ward layers without an explicit override, lowest match
 # index wins. Kept conservative: a name is only claimed from an unmistakable
 # area/locality column, never from a bare "name" that might be the city.
+# Layers whose ward numbers restart per sub-body: (group column, its label).
+# Greater Bengaluru's 5 corporations each number their wards from 1 (369 wards,
+# 112 distinct numbers), so a ward is (corporation, number), never a number alone.
+GROUPS = {
+    'wards_bengaluru_gba': ('Corporation', 'Corporation'),
+}
+
 NUMBER_PATTERNS = [
     'sourcewardcode', 'ward_no', 'wardno', 'ward_num', 'wardnum',
     'ward_number', 'wardnumber', 'ward_code', 'wardcode', 'ward',
@@ -292,6 +299,10 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
             return {'id': layer_id, 'place': place_name(layer_id, level_meta),
                     'updated': (layer.get('fetched_at') or '')[:10] or None,
                     'nameLabel': None, 'rows': rows, 'areasSource': credit, **number}
+        group_col, group_label = GROUPS.get(layer_id, (None, None))
+        group_col = {c.lower(): c for c in cols}.get(group_col.lower()) if group_col else None
+        if group_col:
+            return grouped_index(con, layer, level_meta, pq, no_col, name_col, label, group_col, group_label)
         raw = con.execute(f'SELECT "{no_col}" AS no, "{name_col}" AS name FROM \'{pq}\'').fetchall()
         for no_v, name_v in raw:
             no, name = clean(no_v), real_name(clean(name_v))
@@ -314,6 +325,29 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
         'nameLabel': label,
         'rows': rows,
         **number,
+    }
+
+
+def grouped_index(con, layer: dict, level_meta: dict, pq: Path, no_col: str, name_col: str, label: str,
+                  group_col: str, group_label: str) -> dict:
+    """A sidecar keyed by (group, number): every ward listed once per group,
+    sorted by group then number. No zones: numbers repeat across groups."""
+    by_key: dict[tuple[str, str], str] = {}
+    sql = f'SELECT "{group_col}", "{no_col}", "{name_col}" FROM \'{pq}\''
+    for g_v, no_v, name_v in con.execute(sql).fetchall():
+        g, no, name = clean(g_v), clean(no_v), real_name(clean(name_v))
+        if no and ((g, no) not in by_key or (not by_key[(g, no)] and name)):
+            by_key[(g, no)] = name
+    keys = sorted(by_key, key=lambda k: (k[0].lower(), sort_key(k[1])))
+    return {
+        'id': layer['id'],
+        'place': place_name(layer['id'], level_meta),
+        'updated': (layer.get('fetched_at') or '')[:10] or None,
+        'nameLabel': label,
+        'rows': [{'group': g, 'no': no, 'name': by_key[(g, no)]} for g, no in keys],
+        'numberCol': no_col,
+        'groupCol': group_col,
+        'groupLabel': group_label,
     }
 
 

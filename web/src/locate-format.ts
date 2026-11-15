@@ -48,7 +48,10 @@ export type WardSidecar = {
   /** where the number sits inside a name ("Ward 91 Khairatabad"): the pattern, number in group 1, name in group 2 */
   numberFrom?: string;
   nameLabel?: string | null;
-  rows: { no: string; name: string; areas?: string[] }[];
+  /** Wards numbered per sub-body (Greater Bengaluru's corporations): match on this column too. */
+  groupCol?: string;
+  groupLabel?: string;
+  rows: { no: string; name: string; areas?: string[]; group?: string }[];
 };
 
 /** A located ward's title and the line under it: "Ward 102", then the layer's own name, or the OpenStreetMap areas
@@ -64,8 +67,10 @@ export function wardTitle(props: Record<string, unknown>, idx: WardSidecar | nul
     no = m[1];
     parsedName = clean(m[2]);
   }
-  const row = idx.rows.find((r) => r.no === no);
+  const group = idx.groupCol ? clean(props[idx.groupCol]) : '';
+  const row = idx.rows.find((r) => r.no === no && (!idx.groupCol || r.group === group));
   if (!row) return null;
-  const sub = row.name || parsedName || (row.areas?.length ? `Areas (OpenStreetMap): ${row.areas.join(', ')}` : '');
+  const named = row.name || parsedName || (row.areas?.length ? `Areas (OpenStreetMap): ${row.areas.join(', ')}` : '');
+  const sub = group ? [`${group} ${idx.groupLabel ?? ''}`.trim(), named].filter(Boolean).join(' · ') : named;
   return { title: /^ward\b/i.test(no) ? no : `Ward ${no}`, sub };
 }
