@@ -61,7 +61,7 @@ bharatlas is a catalog of India's open geo layers, from the national boundary do
 
 ## Layers and sources
 
-The live catalog lists 111 layers (`GET /api/v1/layers`, checked 15 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
+The live catalog lists 114 layers (`GET /api/v1/layers`, checked 15 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
 
 | Category | Layers | Examples |
 |---|---:|---|
@@ -73,7 +73,7 @@ The live catalog lists 111 layers (`GET /api/v1/layers`, checked 15 November 202
 | People and places | 6 | parliament and assembly constituencies, high courts, NGT zones, NCLT benches |
 | Agriculture and land use | 4 | agro-ecological and agro-climatic zones, soil health, land use by block |
 | Transport and mobility | 3 | highways, airports, PMGSY roads |
-| Health and education | 1 | NIC HealthGIS health facilities |
+| Health and education | 4 | NIC HealthGIS health facilities; NHP hospital directory and NIN health facilities (2025); UDISE schools (2.9 million) |
 
 The full catalog, with each layer's source, licence, row count, freshness and download sizes, lives in [`catalog.json`](./catalog.json) and on [bharatlas.com](https://bharatlas.com). Known data caveats (name spellings across sources, coverage gaps, polygon precision) are on [/about#caveats](https://bharatlas.com/about#caveats).
 
@@ -294,7 +294,7 @@ Data sources:
 - [DataMeet](https://github.com/datameet/Municipal_Spatial_Data): community-curated municipal spatial data.
 - [datta07/INDIAN-SHAPEFILES](https://github.com/datta07/INDIAN-SHAPEFILES): metropolitan city ward shapefiles; Patna wards cleaned by Jayesh Keswani.
 - [Central Water Commission (India-WRIS)](https://indiawris.gov.in/): basins, rivers, canals, dams, reservoirs, lakes, waterbodies.
-- [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps): selectively republished layers (WRIS waterbodies, SLUSI watersheds and soil, VEDAS power infrastructure, PMGSY roads and habitations, Swachh Bharat Mission urban wards and town boundaries).
+- [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps): selectively republished layers (WRIS waterbodies, SLUSI watersheds and soil, VEDAS power infrastructure, PMGSY roads and habitations, Swachh Bharat Mission urban wards and town boundaries, NHP hospitals and NIN health facilities, UDISE schools).
 - [CoRE Stack](https://core-stack.org/): republished CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, Wildlife Institute of India biogeographic zones.
 - [PMGSY](https://omms.nic.in/): rural blocks, roads and habitations.
 - [PM GatiShakti](https://gis.pmgatishakti.gov.in/): wildlife sanctuaries, national parks, highways.
