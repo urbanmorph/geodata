@@ -93,8 +93,9 @@ export function resolveLevelMeta(
   return catalogLevelMeta?.[layer.id] ?? (layer.level ? BUILTIN_LEVEL_META[layer.level] : undefined);
 }
 
-function mapLicenceUrl(licence: string): string {
+export function mapLicenceUrl(licence: string): string {
   if (licence.includes('CC0')) return 'https://creativecommons.org/publicdomain/zero/1.0/';
+  if (licence.includes('CC-BY-SA-2.5-IN')) return 'https://creativecommons.org/licenses/by-sa/2.5/in/';
   if (licence.includes('CC-BY-SA')) return 'https://creativecommons.org/licenses/by-sa/4.0/';
   if (licence.includes('CC-BY')) return 'https://creativecommons.org/licenses/by/4.0/';
   if (licence.includes('ODbL')) return 'https://opendatacommons.org/licenses/odbl/1-0/';
