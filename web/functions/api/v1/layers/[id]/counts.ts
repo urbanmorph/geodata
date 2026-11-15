@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { loadCatalog } from '../../../../lib/catalog-loader';
+import { json } from '../../../../lib/http';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
@@ -71,9 +72,6 @@ function respond(data: unknown) {
   });
 }
 
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
-}
 
 interface LayerStats {
   row_count: number;

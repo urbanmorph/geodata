@@ -71,6 +71,18 @@ export async function locate(
   };
 }
 
+// One reader per R2 key per isolate, so the archive's header and directory
+// cache survive between requests (keys are versioned, so a rebake is a new key).
+const readers = new Map<string, PMTiles>();
+export function pmtilesFor(r2: R2Bucket, key: string): PMTiles {
+  let pm = readers.get(key);
+  if (!pm) {
+    pm = new PMTiles(new R2Source(r2, key));
+    readers.set(key, pm);
+  }
+  return pm;
+}
+
 async function queryLayer(
   layer: CatalogLayer,
   z: number,
@@ -79,8 +91,7 @@ async function queryLayer(
 ) {
   const pmtilesUrl = layer.pmtiles!.url;
   const r2Key = pmtilesUrl.replace(/^https:\/\/[^/]+\//, '');
-  const source = new R2Source(r2, r2Key);
-  const pm = new PMTiles(source);
+  const pm = pmtilesFor(r2, r2Key);
 
   // Use the layer's max zoom if lower than requested
   const header = await pm.getHeader();

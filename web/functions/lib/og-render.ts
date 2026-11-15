@@ -15,7 +15,12 @@ let fontPromise: Promise<Uint8Array> | null = null;
 
 async function ensureInit(): Promise<void> {
   if (initPromise) return initPromise;
-  initPromise = initWasm(wasmModule as WebAssembly.Module);
+  // A failed init must not stay cached, or every later render in this
+  // isolate fails too (ensureFont resets the same way).
+  initPromise = initWasm(wasmModule as WebAssembly.Module).catch((e) => {
+    initPromise = null;
+    throw e;
+  });
   return initPromise;
 }
 
@@ -44,7 +49,14 @@ export async function renderOgPng(svg: string, origin: string): Promise<Uint8Arr
       loadSystemFonts: false,
     },
   });
-  return resvg.render().asPng();
+  // Resvg objects live in WASM memory: free them, or each render leaks.
+  const image = resvg.render();
+  try {
+    return image.asPng();
+  } finally {
+    image.free();
+    resvg.free();
+  }
 }
 
 export function __resetForTest(): void {

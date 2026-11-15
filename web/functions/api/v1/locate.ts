@@ -1,7 +1,9 @@
 import type { Env } from '../_middleware';
+import { clampNum } from '../../lib/query-params';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { locate, DEFAULT_LOCATE_LAYERS } from '../../lib/locate';
 import { resolveLocateLayers, wardFallbackNeeded, mergeLocateResults, fallbackWardLayers } from '../../lib/ward-locate';
+import { json } from '../../lib/http';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -19,7 +21,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return json(400, { error: 'lat must be 6-38, lng must be 68-98 (India bounding box)', status: 400 });
   }
 
-  const zoom = Math.min(Math.max(parseInt(url.searchParams.get('zoom') || '14', 10), 4), 16);
+  const zoom = clampNum(url.searchParams.get('zoom'), 14, 4, 16, true);
 
   // Default path auto-includes the city ward layer(s) covering the point (ward
   // lookup is the top demand); an explicit `layers=` is honoured verbatim.
@@ -45,10 +47,3 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     },
   });
 };
-
-function json(status: number, body: unknown) {
-  return new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  });
-}

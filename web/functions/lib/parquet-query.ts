@@ -8,6 +8,7 @@ import type { FileMetaData, SchemaElement } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
+import { QUERY_JUNK_COLUMNS } from './junk-columns';
 
 export interface ColumnSchema {
   name: string;
@@ -39,15 +40,9 @@ const MAX_ROWS = 1000;
 const MAX_GROUP_BY_VALUES = 500;
 const MAX_DISTINCT_SAMPLE = 20;
 
-const JUNK_COLUMNS = new Set([
-  'shape_leng', 'shape_area', 'shape_length', 'shape.starea()', 'shape.stlength()',
-  'shape_le_1', 'st_area(shape)', 'st_perimeter(shape)',
-  'inpoly_fid', 'simpgnflag', 'maxsimptol', 'minsimptol',
-  'ogc_fid', 'objectid', 'objectid_1', 'objectid_2', 'objectid_3',
-]);
 
 function isJunkColumn(name: string): boolean {
-  return JUNK_COLUMNS.has(name.toLowerCase());
+  return QUERY_JUNK_COLUMNS.has(name.toLowerCase());
 }
 
 /**
@@ -248,11 +243,17 @@ function rowGroupSpans(metadata: FileMetaData): Array<{ start: number; end: numb
   return spans;
 }
 
-/** Case-insensitive equality on every where column (nulls never match). */
+/** where entries with the values lowercased once, for matchesWhere. */
+function lowerWhere(where: Record<string, string> | undefined): Array<[string, string]> {
+  return Object.entries(where ?? {}).map(([c, v]) => [c, v.toLowerCase()]);
+}
+
+/** Case-insensitive equality on every where column (nulls never match).
+ *  `where` values are already lowercased (lowerWhere): this runs per row. */
 function matchesWhere(row: Record<string, unknown>, where: Array<[string, string]>): boolean {
   return where.every(([col, val]) => {
     const rv = row[col];
-    return rv !== null && rv !== undefined && String(rv).toLowerCase() === val.toLowerCase();
+    return rv !== null && rv !== undefined && String(rv).toLowerCase() === val;
   });
 }
 
@@ -303,7 +304,7 @@ async function selectQuery(
     return out;
   };
 
-  const where = Object.entries(opts.where ?? {});
+  const where = lowerWhere(opts.where);
   if (where.length === 0) {
     const total = Number(metadata.num_rows);
     const rows = await parquetReadObjects({
@@ -377,7 +378,7 @@ async function groupByQuery(
     throw new QueryInputError(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
   }
 
-  const where = Object.entries(whereObj ?? {});
+  const where = lowerWhere(whereObj);
   const readCols = new Set([groupCol, ...sumCols, ...where.map(([c]) => c)]);
   const colList = [...readCols].filter((c) => allCols.includes(c));
   const acc = groupAccumulator(groupCol, sumCols);

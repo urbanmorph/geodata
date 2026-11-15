@@ -7,6 +7,8 @@
 
 import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
+import { loadCatalog } from '../lib/catalog-loader';
+import { notFoundHtml } from '../lib/not-found';
 
 type Params = { id: string };
 
@@ -15,7 +17,7 @@ type Catalog = {
   level_meta?: Record<string, LevelMeta>;
 };
 
-const NOT_FOUND_HTML = `<!doctype html><html><head><meta charset="utf-8"><title>Not found · geodata</title><meta name="robots" content="noindex"></head><body style="font:15px/1.5 ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:80px auto;padding:0 24px;color:#444"><h1 style="font-size:22px">404 — layer not found</h1><p>This layer id doesn't exist in the catalog.</p><p><a href="/" style="color:#0a58ca">← back to the catalog</a></p></body></html>`;
+const NOT_FOUND_HTML = notFoundHtml('layer not found', "This layer id doesn't exist in the catalog.");
 
 export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
@@ -34,19 +36,20 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
   // number-only cities (and any city whose parquet hasn't been processed) — a
   // cached 404 we tolerate, leaving the page table-less.
   const isWard = /^wards_/.test(id);
-  const [catalogResp, indexResp, wardResp] = await Promise.all([
-    fetch(`${origin}/catalog.json`),
-    fetch(`${origin}/index.html`),
+  // The catalog is cached per isolate; a rejected fetch is a 503, not a crash.
+  const [loaded, indexResp, wardResp] = await Promise.all([
+    loadCatalog(origin).catch(() => null),
+    fetch(`${origin}/index.html`).catch(() => null),
     isWard ? fetch(`${origin}/ward-index/${id}.json`).catch(() => null) : Promise.resolve(null),
   ]);
-  if (!catalogResp.ok || !indexResp.ok) {
+  if (!loaded || !indexResp?.ok) {
     return new Response('upstream unavailable', { status: 503 });
   }
   let wardIndex: WardIndex | null = null;
   if (wardResp && wardResp.ok) {
     wardIndex = await wardResp.json<WardIndex>().catch(() => null);
   }
-  const catalog = (await catalogResp.json()) as Catalog;
+  const catalog = loaded as unknown as Catalog;
   const layer = catalog.layers?.find((l) => l.id === id);
   if (!layer) {
     return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });

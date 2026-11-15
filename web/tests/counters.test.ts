@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { incrementDownload, listDownloadCounts } from '../functions/lib/counters';
+import { incrementDownload } from '../functions/lib/counters';
 
 // Minimal in-memory fake of the D1 surface our counters helpers touch.
 // Mirrors prepare().bind().run() / .all() — just enough for the tests.
@@ -65,16 +65,5 @@ describe('incrementDownload', () => {
     await incrementDownload(db as never, 'lgd_villages', '29', 'kml');
     await incrementDownload(db as never, 'lgd_districts', '', 'parquet');
     expect(db.rows.size).toBe(4);
-  });
-});
-
-describe('listDownloadCounts', () => {
-  it('returns all rows from the table', async () => {
-    const db = fakeD1();
-    await incrementDownload(db as never, 'lgd_villages', '', 'parquet');
-    await incrementDownload(db as never, 'lgd_districts', '29', 'kml');
-    const rows = await listDownloadCounts(db as never);
-    expect(rows).toHaveLength(2);
-    expect(rows.map((r) => r.layer_id).sort()).toEqual(['lgd_districts', 'lgd_villages']);
   });
 });

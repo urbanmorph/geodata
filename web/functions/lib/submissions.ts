@@ -1,5 +1,6 @@
 // D1 helpers for the submissions + submission_tokens tables.
 // Functions are tiny so tests can mock D1 with a fake prepare/bind/run/first.
+import { SUBMISSION_VIEW_SQL } from './submissions-sql';
 
 type RunnableD1 = Pick<D1Database, 'prepare'>;
 
@@ -124,11 +125,7 @@ export async function getSubmissionForView(
   id: string,
 ): Promise<SubmissionView | null> {
   const row = (await db
-    .prepare(
-      `SELECT id, created_at, updated_at, status, name, description, category, license,
-              attribution, source_url, is_original, format, bytes, feature_count, geometry_types, r2_key
-       FROM submissions WHERE id = ? AND status = 'accepted' LIMIT 1`,
-    )
+    .prepare(SUBMISSION_VIEW_SQL)
     .bind(id)
     .first()) as SubmissionView | null;
   return row ?? null;
