@@ -82,3 +82,11 @@ describe('10. buttons say what they do, without arrows', () => {
     expect(sources).not.toMatch(/class="[^"]*\b(btn|btn-primary|cta|primary)\b[^"]*"[^>]*>[^<]*→<\/a>/);
   });
 });
+
+describe('reading width on docs and MCP', () => {
+  for (const f of ['docs.template.html', 'mcp.template.html']) {
+    it(`${f}: paragraphs and lists stop at 720px; tables and code keep the page width`, () => {
+      expect(read(f)).toMatch(/main :is\(p, ul, ol\) \{ max-width: 720px; \}/);
+    });
+  }
+});
