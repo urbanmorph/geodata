@@ -125,6 +125,27 @@ SBM_NOTE = RAMSERAPH_NOTE.format(src='Swachh Bharat Mission (Urban) GIS') + (
 FAC_HEALTH_BASE = 'https://github.com/ramSeraph/indian_facilities/releases/download/health'
 FAC_EDU_BASE = 'https://github.com/ramSeraph/indian_facilities/releases/download/education'
 
+RS = 'https://github.com/ramSeraph'
+
+
+def republished(id: str, name: str, category: str, source: str, release: str, file: str,
+                description: str, unit: str, source_url: str, source_org: str,
+                kml_name_field: str, r2_prefix: str, **kw) -> Dataset:
+    """A government layer republished under bharatlas's sources policy (B):
+    the publisher states no open licence, so the compiler's CC0 applies and
+    the publisher is credited. `release` is '<repo>/<tag>' under ramSeraph."""
+    base = f'{RS}/{release.split("/")[0]}/releases/download/{release.split("/")[1]}/{file}'
+    return Dataset(
+        id=id, name=name, level=id, category=category, source=source, description=description,
+        unit=unit, license='CC0-1.0', r2_prefix=r2_prefix,
+        parquet_url=f'{base}.parquet', pmtiles_url=f'{base}.pmtiles',
+        source_url=source_url, source_org=source_org,
+        notes=RAMSERAPH_NOTE.format(src=source_org) + (
+            ' The publisher states no open licence; republished with credit under'
+            ' bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).'),
+        bake_all_formats=True, kml_name_field=kml_name_field, **kw)
+
+
 DATASETS: list[Dataset] = [
     # ── 1. PMGSY (transport / settlements) ─────────────────────────────
     Dataset(
@@ -604,6 +625,31 @@ DATASETS: list[Dataset] = [
         kml_name_field='school_nam',
         shp_split_by='state_name',  # one India-wide .dbf is 5.8 GB
     ),
+    # ── Significant batch, policy B (Nov 2026) ─────────────────────────
+    # Left out: mining leases (lessee names, phones, emails) and Rajasthan
+    # police (editor name + mobile on every row): personal data.
+    republished('fsi_circles', 'Forest circles (FSI)', 'environment', 'FSI', 'indian_admin_boundaries/forests', 'FSI_Circles', 'Forest administrative circles from the Forest Survey of India, the level above divisions.', 'circle polygons', 'https://fsi.nic.in/', 'Forest Survey of India (MoEFCC)', 'Circle_Nam', 'environment/fsi-circles'),
+    republished('fsi_divisions', 'Forest divisions (FSI)', 'environment', 'FSI', 'indian_admin_boundaries/forests', 'FSI_Divisions', 'Forest divisions from the Forest Survey of India, with circle and state.', 'division polygons', 'https://fsi.nic.in/', 'Forest Survey of India (MoEFCC)', 'Division', 'environment/fsi-divisions'),
+    republished('fsi_ranges', 'Forest ranges (FSI)', 'environment', 'FSI', 'indian_admin_boundaries/forests', 'FSI_Ranges', 'Forest ranges from the Forest Survey of India, with division, circle, district and LGD codes.', 'range polygons', 'https://fsi.nic.in/', 'Forest Survey of India (MoEFCC)', 'Range', 'environment/fsi-ranges'),
+    republished('fsi_beats', 'Forest beats (FSI)', 'environment', 'FSI', 'indian_admin_boundaries/forests', 'FSI_Beats', 'Forest beats, the smallest unit of forest administration, from the Forest Survey of India, with reserved forest, compartment, range, division and LGD codes. Many name fields are blank in the source.', 'beat polygons', 'https://fsi.nic.in/', 'Forest Survey of India (MoEFCC)', 'Beat_Name', 'environment/fsi-beats'),
+    republished('wildlife_corridors', 'Wildlife reserves and corridors (PARIVESH)', 'environment', 'Parivesh', 'indian_admin_boundaries/forests', 'Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors', 'Tiger reserves, wildlife corridors and other reserves from PARIVESH, the environment ministry clearance portal.', 'reserves and corridors', 'https://parivesh.nic.in/', 'PARIVESH (MoEFCC), via Bharatmaps', 'name', 'environment/wildlife-corridors'),
+    republished('crz2019_zones', 'Coastal Regulation Zones 2019 (PARIVESH)', 'environment', 'Parivesh', 'indian_admin_boundaries/coastal', 'Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones', 'Coastal Regulation Zone areas (CRZ-I to CRZ-IV) under the CRZ Notification 2019, from approved Coastal Zone Management Plans. For reference; the approved state CZMP maps are the legal record.', 'zone polygons', 'https://parivesh.nic.in/', 'PARIVESH (MoEFCC), via Bharatmaps', 'category', 'environment/crz2019-zones'),
+    republished('crz2019_lines', 'Coastal regulation lines 2019 (PARIVESH)', 'environment', 'Parivesh', 'indian_admin_boundaries/coastal', 'Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines', 'High tide, low tide, hazard and no-development lines under the CRZ Notification 2019. For reference; the approved state CZMP maps are the legal record.', 'lines', 'https://parivesh.nic.in/', 'PARIVESH (MoEFCC), via Bharatmaps', 'category', 'environment/crz2019-lines'),
+    republished('gw_quality_premonsoon', 'Groundwater quality, pre-monsoon (Bhuvan)', 'water', 'Bhuvan', 'indian_land_features/groundwater-prospects', 'Bhuvan_Groundwater_Quality_Premonsoon', 'Pre-monsoon groundwater quality samples (pH, TDS, hardness, fluoride, nitrate, iron, arsenic and more, with a potability class) from Bhuvan. Columns vary by state and year in the source.', 'samples', 'https://bhuvan.nrsc.gov.in/', 'Bhuvan (NRSC, ISRO)', 'GWQ', 'water/gw-quality-premonsoon'),
+    republished('gw_quality_postmonsoon', 'Groundwater quality, post-monsoon (Bhuvan)', 'water', 'Bhuvan', 'indian_land_features/groundwater-prospects', 'Bhuvan_Groundwater_Quality_Postmonsoon', 'Post-monsoon groundwater quality samples (pH, TDS, hardness, fluoride, nitrate, iron, arsenic and more, with a potability class) from Bhuvan. Columns vary by state and year in the source.', 'samples', 'https://bhuvan.nrsc.gov.in/', 'Bhuvan (NRSC, ISRO)', 'GWQ', 'water/gw-quality-postmonsoon'),
+    republished('gsi_geology_2m', 'Geology 1:2M (GSI)', 'environment', 'NGDR', 'indian_land_features/geology', 'NGDR_Geology_2M', 'Geological map of India at 1:2 million: rock units with age, supergroup, group and stratigraphy, from the Geological Survey of India.', 'rock units', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'index_', 'environment/gsi-geology-2m'),
+    republished('gsi_coal_blocks', 'Coal blocks (GSI)', 'environment', 'NGDR', 'indian_land_features/geology', 'NGDR_Coal_Blocks', 'Coal blocks with coalfield, exploration status, resources and allotted company, from the Geological Survey of India.', 'coal blocks', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'block_name', 'environment/gsi-coal-blocks'),
+    republished('gsi_critical_minerals', 'Critical mineral occurrences (GSI)', 'environment', 'NGDR', 'indian_land_features/geology', 'NGDR_Critical_Minerals', 'Critical mineral localities (copper, rare earths, lithium and others) with commodity, resource, grade, host rock and age, from the Geological Survey of India.', 'localities', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'locality', 'environment/gsi-critical-minerals'),
+    republished('gsi_lineaments_250k', 'Lineaments 1:250k (GSI)', 'environment', 'NGDR', 'indian_land_features/geomorphology', 'NGDR_Lineament_250k', 'Structural and geomorphic lineaments (faults, fractures, joints) mapped at 1:250,000 by the Geological Survey of India.', 'lineaments', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'l2descript', 'environment/gsi-lineaments-250k'),
+    republished('police_stations_ap', 'Police station areas, Andhra Pradesh (APSAC)', 'people', 'APSAC', 'indian_admin_boundaries/police', 'APSAC_Police_station_boundaries', 'Police station jurisdictions in Andhra Pradesh with circle, sub-division, division, district and station phone number.', 'police stations', 'https://apsac.ap.gov.in/', 'Andhra Pradesh Space Applications Centre (APSAC)', 'police_station_name', 'people/police-stations-ap'),
+    republished('police_stations_bihar', 'Police station areas, Bihar (i-Bhugoal)', 'people', 'Bhugoal', 'indian_admin_boundaries/police', 'Bhugoal_BH_Police_Thana_Boundaries', 'Police thana jurisdictions in Bihar with district and thana code.', 'thanas', 'https://gis.bih.nic.in/', 'i-Bhugoal (Government of Bihar)', 'PS_NAME', 'people/police-stations-bihar'),
+    republished('police_stations_delhi', 'Police station areas, Delhi (GSDL)', 'people', 'GSDL', 'indian_admin_boundaries/police', 'GSDL_DL_Police_Station_Boundaries', 'Police station jurisdictions in Delhi with district, sub-division and range.', 'police stations', 'https://gsdl.org.in/', 'Geospatial Delhi Limited (GSDL)', 'POL_STN_NM', 'people/police-stations-delhi'),
+    republished('police_stations_tn', 'Police station areas, Tamil Nadu (TNGIS)', 'people', 'TNGIS', 'indian_admin_boundaries/police', 'TNGIS_TN_Police_Station_Boundaries', 'Law-and-order police station jurisdictions in Tamil Nadu with district and taluk.', 'police stations', 'https://tngis.tn.gov.in/', 'TNGIS (Government of Tamil Nadu)', 'police_station_name', 'people/police-stations-tn'),
+    republished('traffic_police_stations_tn', 'Traffic police station areas, Tamil Nadu (TNGIS)', 'people', 'TNGIS', 'indian_admin_boundaries/police', 'TNGIS_TN_Traffic_Police_Station_Boundaries', 'Traffic police station jurisdictions in Tamil Nadu with district and taluk.', 'police stations', 'https://tngis.tn.gov.in/', 'TNGIS (Government of Tamil Nadu)', 'police_station', 'people/traffic-police-stations-tn'),
+    republished('police_stations_telangana', 'Police station areas, Telangana (TGRAC)', 'people', 'TGRAC', 'indian_admin_boundaries/police', 'TRACGIS_TG_Police_Station_Boundaries', 'Police station jurisdictions in Telangana with mandal, district, circle and sub-division.', 'police stations', 'https://tgrac.telangana.gov.in/', 'Telangana Remote Sensing Applications Centre (TGRAC)', 'PS_Name', 'people/police-stations-telangana'),
+    republished('marine_police_stations', 'Marine police station areas (NCOG)', 'people', 'NCOG', 'indian_admin_boundaries/police', 'NCOG_Marine_Police_Boundaries', 'Coastal villages grouped by marine police station, with LGD state, district and sub-district codes.', 'areas', 'https://ncog.gov.in/', 'National Centre of Geo-informatics (BISAG-N)', 'vname', 'people/marine-police-stations'),
+    republished('amrit_sarovar_ponds', 'Amrit Sarovar ponds', 'water', 'AmritSarovar', 'indian_water_features/waterbodies', 'Amrit_Sarovar_Water_Observatory_Ponds', 'Ponds built or rejuvenated under Mission Amrit Sarovar (mostly via MGNREGA), with status, scheme, village, block and district.', 'ponds', 'https://amritsarovar.gov.in/', 'Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory', 'Name_of_Sarovar', 'water/amrit-sarovar-ponds'),
+    republished('jjm_facilities', 'Jal Jeevan Mission facilities', 'infrastructure', 'JJM', 'indian_facilities/jjm-facilities', 'JJM_facilities', 'Schools, anganwadis and other public institutions in rural habitations recorded by the Jal Jeevan Mission, with category, class and LGD village code.', 'facilities', 'https://jaljeevanmission.gov.in/', 'Jal Jeevan Mission (Ministry of Jal Shakti)', 'fac_name', 'infrastructure/jjm-facilities'),
 ]
 
 
@@ -795,7 +841,8 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
             write_split_shapefiles(src_parquet, shp_dir, basename, d.shp_split_by)
         else:
             subprocess.run(
-                ['ogr2ogr', '-f', 'ESRI Shapefile', str(shp_dir / f'{basename}.shp'), str(geojson_path)],
+                ['ogr2ogr', '-f', 'ESRI Shapefile', '-lco', 'ENCODING=UTF-8', '-lco', 'RESIZE=YES',
+                 str(shp_dir / f'{basename}.shp'), str(geojson_path)],
                 check=True, capture_output=True, timeout=600,
             )
         too_big = [f.name for f in shp_dir.glob('*.dbf') if f.stat().st_size >= DBF_MAX_BYTES]
