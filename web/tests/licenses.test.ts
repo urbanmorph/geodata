@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { OPEN_LICENCES, isOpenLicence, requiresAttribution } from '../functions/lib/licenses';
+import { OPEN_LICENCES, isOpenLicence } from '../functions/lib/licenses';
 
 describe('OPEN_LICENCES', () => {
   it('includes the seven expected open licences', () => {
@@ -62,21 +62,3 @@ describe('isOpenLicence', () => {
   });
 });
 
-describe('requiresAttribution', () => {
-  it('returns true for BY-style licences', () => {
-    expect(requiresAttribution('CC-BY-4.0')).toBe(true);
-    expect(requiresAttribution('CC-BY-SA-4.0')).toBe(true);
-    expect(requiresAttribution('ODbL-1.0')).toBe(true);
-    expect(requiresAttribution('GODL-India')).toBe(true);
-  });
-
-  it('returns false for public domain dedications', () => {
-    expect(requiresAttribution('CC0-1.0')).toBe(false);
-    expect(requiresAttribution('ODC-PDDL-1.0')).toBe(false);
-  });
-
-  it('returns false for unknown licences (defensive)', () => {
-    expect(requiresAttribution('All Rights Reserved')).toBe(false);
-    expect(requiresAttribution('')).toBe(false);
-  });
-});

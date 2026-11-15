@@ -3,6 +3,7 @@
 
 import { INDIA_PATH } from './og-india-path';
 import { PALETTE } from '../../../shared/brand.mjs';
+import { escapeHtml as esc } from '../../../shared/format.mjs';
 
 export type OgMetadata = {
   title: string;
@@ -14,15 +15,6 @@ export type OgMetadata = {
 
 const W = 1200;
 const H = 630;
-
-function esc(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
 
 // resvg has no text overflow handling, so we hard-clip before rendering.
 function clip(s: string, max: number): string {

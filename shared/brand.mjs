@@ -4,6 +4,7 @@
 // collect can all import it. Every surface that draws the brand reads from
 // here; web/tests/brand.test.ts keeps the copies that cannot import it
 // (submit.html, favicon.svg) in sync.
+import { escapeHtml as esc } from './format.mjs';
 
 export const PALETTE = Object.freeze({
   saffron: '#F28C28', // actions: buttons, highlights. Carries navy text, never white.
@@ -71,8 +72,6 @@ export function collectFaviconSvg() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40">${markPaths(2.4)}${PIN_BADGE}</svg>`;
 }
 
-const esc = (s) =>
-  String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
 /** The logo link: mark + "bharatlas" in one ink colour + optional tagline. */
 export function wordmarkHtml({ href = '/', tagline = '', className = 'site-brand', size = 24 } = {}) {

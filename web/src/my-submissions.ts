@@ -79,17 +79,6 @@ export function getSubmission(id: string, storage?: Storage | null): StoredSubmi
   }
 }
 
-export function removeSubmission(id: string, storage?: Storage | null): void {
-  const s = storage ?? defaultStorage();
-  if (!s) return;
-  try {
-    s.removeItem(PREFIX + id);
-    s.removeItem(TOKEN_PREFIX + id);
-  } catch {
-    /* no-op */
-  }
-}
-
 // Synthesise minimal rows for any geodata:tokens:<id> that lacks a rich record.
 // Pre-v4.8 contributors only had the token key — calling this on /preview init
 // keeps their submissions visible in the panel until they next visit /c/<id>

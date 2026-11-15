@@ -3,7 +3,7 @@ import maplibregl, { Map as MlMap } from 'maplibre-gl';
 import { Protocol, PMTiles } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_MAP } from './loading';
-import { getCatalog, getFullCatalog } from './catalog';
+import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { popupValueHtml } from './popup-value';
 import { availableDownloads, fmtBytes } from './format-hints';
@@ -415,7 +415,9 @@ function bindPopupToLayers() {
       ?? f.properties?.objectid
       ?? f.properties?.vil_lgd
       ?? f.properties?.soi_code
-      ?? `${e.lngLat.lng.toFixed(5)},${e.lngLat.lat.toFixed(5)}`;
+      // Stable per feature (never the cursor position, which changed on every
+      // pixel and rebuilt the popup HTML on each mousemove).
+      ?? JSON.stringify(f.properties ?? {});
     if (fid !== popupId) {
       popup.setHTML(buildRows(f.properties));
       popupId = fid;
@@ -542,7 +544,7 @@ async function loadFilterColumns(
   if (!layer.parquet?.url) return null;
 
   const { rankColumns } = await import('./filter-schema');
-  const fullCat = await getFullCatalog();
+  const fullCat = await getCatalog();
   const baked = fullCat.filter_stats?.[layer.id];
 
   let columns: import('./filter-schema').ColumnStats[];

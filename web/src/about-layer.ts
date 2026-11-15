@@ -4,8 +4,9 @@
 // inlined catalog entry, so it works on a direct /view load and when a layer
 // is opened from the home page. Reuses the server's ward table builder.
 import { availableDownloads, fmtBytes } from './format-hints';
-import { escapeHtml as esc } from './util';
-import { buildWardTable, mapLicenceUrl, type WardIndex } from '../functions/lib/view-dataset';
+import { escapeHtml as esc, fmtDate } from '../../shared/format.mjs';
+import { buildWardTable, type WardIndex } from '../functions/lib/view-dataset';
+import { licenceUrl, isNonCommercial } from '../../shared/licences.mjs';
 
 type Fmt = { url: string; bytes: number } | null | undefined;
 export type AboutLayer = {
@@ -15,13 +16,11 @@ export type AboutLayer = {
 };
 export type AboutMeta = { label?: string; seo_title?: string; unit?: string; description?: string } | undefined;
 
-const fmtDate = (iso: string) =>
-  new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
 
 function licenceBadge(licence: string): string {
-  const nc = /\bNC\b|-NC-|non-commercial/i.test(licence);
-  const href = mapLicenceUrl(licence);
-  const link = /^https?:\/\//.test(href) ? ` href="${esc(href)}" target="_blank" rel="noopener"` : '';
+  const nc = isNonCommercial(licence);
+  const href = licenceUrl(licence);
+  const link = href ? ` href="${esc(href)}" target="_blank" rel="noopener"` : '';
   return `<a class="lic-badge${nc ? ' lic-badge--nc' : ''}"${link}>${esc(licence)}</a>` +
     (nc ? ` <span class="lic-badge lic-badge--nc">Non-commercial only</span>` : '');
 }

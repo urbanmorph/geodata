@@ -28,7 +28,7 @@ OUT_DIR = ROOT / 'web' / 'public'
 CANVAS_W, CANVAS_H = 1200, 630
 
 # One variant per page. Same wordmark + India silhouette; only the
-# sub-tagline differs. The page's seoHead() picks which file to point at.
+# sub-tagline differs. prerender.mjs's seoHead() picks which file to point at.
 VARIANTS = [
     {
         'name': 'og-default',          # home / index / fallback

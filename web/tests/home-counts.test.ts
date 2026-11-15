@@ -62,3 +62,14 @@ describe('home hero', () => {
     expect(html).toMatch(/<button[^>]*id="find-my-ward"[^>]*>[\s\S]*?Find my ward<\/button>/);
   });
 });
+
+describe('home page weight', () => {
+  it('does not inline the catalog (the map fetches it when it opens)', () => {
+    expect(html).not.toContain('id="catalog-data"');
+  });
+
+  it('stays under 85 KB gzipped', async () => {
+    const { gzipSync } = await import('node:zlib');
+    expect(gzipSync(html).length).toBeLessThan(85 * 1024);
+  });
+});

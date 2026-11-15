@@ -15,17 +15,10 @@
 
 import type { SubmissionView } from './submissions';
 import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../../shared/brand.mjs';
+import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
+import { licenceUrl } from '../../../shared/licences.mjs';
 
 const PUBLIC_ORIGIN = 'https://bharatlas.com';
-
-const LICENSE_URLS: Record<string, string> = {
-  'CC0-1.0': 'https://creativecommons.org/publicdomain/zero/1.0/',
-  'CC-BY-4.0': 'https://creativecommons.org/licenses/by/4.0/',
-  'CC-BY-SA-4.0': 'https://creativecommons.org/licenses/by-sa/4.0/',
-  'ODbL-1.0': 'https://opendatacommons.org/licenses/odbl/1-0/',
-  'ODC-PDDL-1.0': 'https://opendatacommons.org/licenses/pddl/1-0/',
-  'GODL-India': 'https://data.gov.in/government-open-data-license-india',
-};
 
 const FORMAT_MIME: Record<string, string> = {
   geojson: 'application/geo+json',
@@ -34,23 +27,6 @@ const FORMAT_MIME: Record<string, string> = {
   kmz: 'application/vnd.google-earth.kmz',
   parquet: 'application/x-parquet',
 };
-
-function esc(s: string | null | undefined): string {
-  if (s == null) return '';
-  return String(s)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} B`;
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`;
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-}
 
 function relativeTime(iso: string, now: Date = new Date()): string {
   const t = new Date(iso).getTime();
@@ -89,12 +65,12 @@ export function renderViewPage(opts: RenderOpts): string {
   // port-bound dev URL.
   const r2Url = `${PUBLIC_ORIGIN}/api/r2/${s.r2_key}`;
   const canonical = `${PUBLIC_ORIGIN}/c/${s.id}`;
-  const licenseUrl = LICENSE_URLS[s.license] || s.license;
+  const licenseUrl = licenceUrl(s.license) ?? s.license;
   const filename = s.r2_key.split('/').pop() || 'download';
 
   const description =
     s.description ||
-    `Community-submitted geo layer on geodata: ${s.name}. ${s.feature_count ?? '—'} features, ${fmtBytes(s.bytes)}.`;
+    `Community-submitted geo layer on bharatlas: ${s.name}. ${s.feature_count ?? '—'} features, ${fmtBytes(s.bytes)}.`;
   // Google Dataset Search rejects descriptions under ~50 chars. Pad with a
   // contextual suffix so terse contributor-supplied descriptions still pass.
   const ldDescription = description.length >= 80

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap, nextStateOnClose, shouldRestoreCategory } from '../src/embed-snippet';
+import { embedIframeHtml, isEmbedPath, isViewPath, urlAfterCloseMap, titleAfterCloseMap, nextStateOnClose, shouldRestoreCategory, catalogVisibleOnLoad } from '../src/embed-snippet';
 
 describe('shouldRestoreCategory (breadcrumb restore, CLS-safe first paint)', () => {
   it('restores on back/forward with a saved non-all category', () => {
@@ -165,5 +165,13 @@ describe('urlAfterCloseMap', () => {
   it('returns unchanged for non-view paths (defensive no-op)', () => {
     expect(urlAfterCloseMap('/', '', '')).toBe('/');
     expect(urlAfterCloseMap('/about', '', '?q=1')).toBe('/about?q=1');
+  });
+});
+
+describe('catalogVisibleOnLoad', () => {
+  it('is true on the home page, false where the map covers it', () => {
+    expect(catalogVisibleOnLoad('/')).toBe(true);
+    expect(catalogVisibleOnLoad('/view/lgd_states')).toBe(false);
+    expect(catalogVisibleOnLoad('/embed/lgd_states')).toBe(false);
   });
 });

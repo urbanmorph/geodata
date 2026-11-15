@@ -4,7 +4,6 @@ import {
   DEFAULT_BASEMAP,
   getStoredBasemap,
   setStoredBasemap,
-  getBasemap,
   type BasemapId,
 } from '../src/basemaps';
 import { LIBERTY } from '../../shared/liberty';
@@ -153,17 +152,6 @@ describe('basemaps — persistence', () => {
     // we degrade gracefully when the registry shrinks across deploys.
     storage.setItem('bharatlas:basemap', 'voyager' as unknown as BasemapId);
     expect(getStoredBasemap(storage)).toBe(DEFAULT_BASEMAP);
-  });
-});
-
-describe('basemaps — getBasemap', () => {
-  it('returns the matching basemap by id', () => {
-    expect(getBasemap('liberty').id).toBe('liberty');
-    expect(getBasemap('minimal').id).toBe('minimal');
-  });
-
-  it('falls back to the first registered basemap for unknown ids', () => {
-    expect(getBasemap('what-even' as BasemapId).id).toBe(BASEMAPS[0].id);
   });
 });
 

@@ -340,9 +340,6 @@
         letter-spacing: -.005em;
         color: var(--fg);
       }
-      .row__meta { color: var(--muted); font-size: 13px; }
-      .row__meta .dot { color: var(--line); margin: 0 6px; }
-      .row__meta .lic { font-size: 12px; }
       .row__desc { color: var(--muted); font-size: 13px; margin: 0 0 6px; max-width: 640px; line-height: 1.5; }
       .row__source { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
       .row__source a { color: var(--fg); }
@@ -367,7 +364,6 @@
         vertical-align: middle;
         line-height: 1.4;
       }
-      .badge--curated { background: color-mix(in srgb, var(--accent) 18%, transparent); color: var(--accent); }
       .badge--community { background: color-mix(in srgb, #d97706 22%, transparent); color: #d97706; }
       @media (prefers-color-scheme: dark) {
         .badge--community { color: #f59e0b; }
@@ -447,7 +443,6 @@
         body { padding: 24px 12px 60px; }
         h1 { font-size: 19px; }
         .card { padding: 20px; border-radius: 12px; }
-        .card__count { font-size: 28px; }
 
         .hero { margin: 12px 0 18px; }
         .hero__title { font-size: 28px; }
@@ -546,8 +541,6 @@
       .ls-name { font-size: 26px; font-weight: 760; letter-spacing: -.03em; margin: 0 0 4px; line-height: 1.15; }
       .ls-sub { color: var(--muted); margin: 0; font-size: 13px; }
       .ls-dist { color: var(--accent); font-weight: 600; }
-      .ls-caveat { margin: 8px 0 0; font-size: 12px; color: var(--muted);
-        background: var(--card-bg); border-radius: 6px; padding: 8px 11px; }
       .ls-actions { display: flex; gap: 8px; margin-top: 14px; }
       .ls-actions button { flex: 1; min-height: 44px; cursor: pointer; touch-action: manipulation;
         font: 600 13px/1 ui-sans-serif, system-ui, sans-serif; border-radius: 6px;
@@ -676,14 +669,6 @@
       .filter-panel__body { padding: 18px; display: flex; flex-direction: column; gap: 16px; flex: 1; overflow-y: auto; }
       .filter-panel__field { display: flex; flex-direction: column; gap: 6px; }
       .filter-panel__label { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
-      .filter-panel__select {
-        font: 14px ui-sans-serif, system-ui, sans-serif;
-        padding: 8px 10px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        background: var(--bg);
-        color: var(--fg);
-      }
       .filter-panel__row { font-size: 13px; padding: 10px 12px; background: var(--card-bg); border-radius: 6px; }
       .filter-panel__muted { color: var(--muted); }
       .filter-panel__err { color: #b91c1c; }
@@ -848,7 +833,6 @@
         #map-overlay button.close,
         #map-overlay button.filter-toggle,
         .filter-panel__close { min-height: 44px; padding: 8px 14px; }
-        .filter-panel__select,
         .filter-search,
         .filter-range__input { min-height: 44px; padding: 10px 12px; font-size: 16px; }
 
@@ -1085,7 +1069,6 @@
       <div class="locate-sheet" id="locate-sheet" role="dialog" aria-modal="false" aria-hidden="true"></div>
     </div>
 
-    <!-- CATALOG_INLINE -->
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
