@@ -80,6 +80,10 @@ describe('FOOTER', () => {
     expect(FOOTER).toContain('pdgi.org');
   });
 
+  it('links the public status page, so it can be found from every page', () => {
+    expect(FOOTER).toContain('<a href="https://status.bharatlas.com/">status</a>');
+  });
+
   it('mentions the open-licences policy', () => {
     expect(FOOTER).toMatch(/Open licences only/i);
   });

@@ -161,6 +161,7 @@ export const FOOTER = `<footer class="site-footer">
       <p>
         <a href="/privacy">privacy</a> ·
         <a href="/terms">terms</a> ·
+        <a href="https://status.bharatlas.com/">status</a> ·
         <a href="https://github.com/urbanmorph/geodata">code</a> ·
         made by <a href="https://urbanmorph.com">urbanmorph</a> ·
         a digital commons · <a href="https://pdgi.org">pdgi.org</a>
