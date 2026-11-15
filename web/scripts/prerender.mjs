@@ -9,6 +9,7 @@ import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate } from '../../shared/format.mjs';
 import { licenceUrl } from '../../shared/licences.mjs';
+import { THEME_DESC } from './themes.mjs';
 import { docsStats } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
@@ -765,20 +766,6 @@ const activeCats = Object.entries(catalog.categories || {})
 // Theme cards (the mockup's "Browse by theme"). They are the category filter:
 // same .catalog-chip class and data-* contract main.ts drives, so search and
 // filtering are unchanged; the count span is what the filter rewrites.
-const THEME_DESC = {
-  all: 'Every layer in the atlas',
-  boundaries: 'Country to village: states, districts, blocks, panchayats and towns',
-  'city-wards': 'Ward and zone maps for over 30 cities',
-  people: 'Constituencies, courts and police station areas',
-  environment: 'Forests, coasts, geology, minerals and natural hazards',
-  water: 'Rivers, lakes, watersheds, aquifers, groundwater and floods',
-  agriculture: 'Agro-climatic zones, soil health and cropping',
-  transport: 'Railways, highways, airports and rural roads',
-  infrastructure: 'Pincodes, power plants, renewables, oil and gas',
-  'health-edu': 'Hospitals, health facilities and schools',
-  economy: 'MGNREGA, city budgets and state finances',
-  community: 'Layers people added under open licences',
-};
 const themeCard = (id, name, n, active = false) =>
   `<button class="catalog-chip theme-card${active ? ' active' : ''}" data-cat="${esc(id)}" data-count="${n}" data-total="${n}">` +
   `<span class="theme-card__name">${esc(name)}</span><span class="theme-card__n"><span class="count">${n}</span> layers</span>` +
