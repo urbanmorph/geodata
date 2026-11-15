@@ -23,6 +23,18 @@ export const WARD_MARGIN_DEG = 0.01;
 // cities too. City layers stay first choice: they are cleaner where they exist.
 export const FALLBACK_WARD_LAYER = 'sbm_wards';
 
+// SBM has no West Bengal; WB AMRUT's ward layer covers 52 towns there. Asked
+// only for points inside West Bengal's extent, so elsewhere costs nothing.
+const WB_WARD_LAYER = 'wb_amrut_wards';
+const WEST_BENGAL_BBOX = [85.8, 21.5, 89.9, 27.3] as const; // [west, south, east, north]
+
+/** The national ward layer(s) to ask where no city ward layer answers. */
+export function fallbackWardLayers(lng: number, lat: number): string[] {
+  const [w, s, e, n] = WEST_BENGAL_BBOX;
+  const inWB = lng >= w && lng <= e && lat >= s && lat <= n;
+  return inWB ? [FALLBACK_WARD_LAYER, WB_WARD_LAYER] : [FALLBACK_WARD_LAYER];
+}
+
 /** Ward layer ids whose (margin-padded) bbox contains the point, sorted. */
 export function wardLayersAt(
   lng: number,
@@ -61,7 +73,7 @@ export function resolveLocateLayers(
   if (explicit.length) return explicit;
 
   const cityWards = wardLayersAt(lng, lat, bboxes, margin);
-  const wards = cityWards.length ? cityWards : [FALLBACK_WARD_LAYER];
+  const wards = cityWards.length ? cityWards : fallbackWardLayers(lng, lat);
   const seen = new Set<string>();
   const out: string[] = [];
   for (const id of [...defaults, ...wards]) {
@@ -88,7 +100,7 @@ export function wardFallbackNeeded(
   results: LocateGroups,
 ): boolean {
   if ((layersParam ?? '').trim()) return false;
-  if (askedIds.includes(FALLBACK_WARD_LAYER)) return false;
+  if (askedIds.includes(FALLBACK_WARD_LAYER) || askedIds.includes(WB_WARD_LAYER)) return false;
   const wardIds = new Set(askedIds.filter((id) => id.startsWith('wards_')));
   return !Object.values(results).flat().some((hit) => wardIds.has(hit.layer_id));
 }
