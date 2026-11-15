@@ -944,12 +944,12 @@
     "crz2019_zones": {
       "label": "Coastal Regulation Zones 2019 (PARIVESH)",
       "unit": "zone polygons",
-      "description": "Coastal Regulation Zone areas (CRZ-I to CRZ-IV) under the CRZ Notification 2019, from approved Coastal Zone Management Plans. For reference; the approved state CZMP maps are the legal record."
+      "description": "Coastal Regulation Zone areas (CRZ-I to CRZ-IV) under the CRZ Notification 2019, from approved Coastal Zone Management Plans. For reference; the approved state CZMP maps are the legal record. The source covers Maharashtra, Karnataka and Odisha only."
     },
     "crz2019_lines": {
       "label": "Coastal regulation lines 2019 (PARIVESH)",
       "unit": "lines",
-      "description": "High tide, low tide, hazard and no-development lines under the CRZ Notification 2019. For reference; the approved state CZMP maps are the legal record."
+      "description": "High tide, low tide, hazard and no-development lines under the CRZ Notification 2019. For reference; the approved state CZMP maps are the legal record. The source covers Maharashtra, Karnataka and Odisha only."
     },
     "gw_quality_premonsoon": {
       "label": "Groundwater quality, pre-monsoon (Bhuvan)",
