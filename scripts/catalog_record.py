@@ -262,7 +262,8 @@ def release_meta(as_of: str, catalog_generated: str | None, rows: int) -> dict:
         'as_of': as_of,
         'description': 'Every layer bharatlas served on this date: source, source version, fetch date, '
                        'SHA-256 of the served file, licence and source link.',
-        'licence': 'CC-BY-4.0 (this record is bharatlas\'s own compilation of facts about the layers; credit bharatlas); '
+        'licence': 'CC-BY-4.0 (this record is bharatlas\'s own compilation of facts about the layers; '
+                   'credit bharatlas); '
                    'each layer it describes keeps its source\'s licence, named per row',
         'sources': [{'name': 'The source named first in each row (credit it for that layer)',
                      'version': 'per row (source_version)',
