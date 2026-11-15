@@ -33,6 +33,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import subprocess
 import sys
 import urllib.request
@@ -87,6 +88,7 @@ class Dataset:
     notes: str              # mentions ramSeraph as compiler
     bake_all_formats: bool = False  # bake geojson/kml/shapefile even above WHOLE_LAYER_MAX_MB
     kml_name_field: str = ''        # column that names each KML Placemark (map labels)
+    shp_split_by: str = ''          # one shapefile per value of this column (keeps each .dbf < 2 GB)
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -119,6 +121,9 @@ SBM_NOTE = RAMSERAPH_NOTE.format(src='Swachh Bharat Mission (Urban) GIS') + (
     ' Licence: CC0 1.0 from the compiler (the government source states none);'
     ' credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025.'
 )
+
+FAC_HEALTH_BASE = 'https://github.com/ramSeraph/indian_facilities/releases/download/health'
+FAC_EDU_BASE = 'https://github.com/ramSeraph/indian_facilities/releases/download/education'
 
 DATASETS: list[Dataset] = [
     # ── 1. PMGSY (transport / settlements) ─────────────────────────────
@@ -532,6 +537,73 @@ DATASETS: list[Dataset] = [
         bake_all_formats=True,
         kml_name_field='ulbnm',
     ),
+    # ── Facilities batch (Nov 2026) ────────────────────────────────────
+    # Licences traced to the original: hospitals = data.gov.in (GODL);
+    # schools = NCOG states no terms, so the compiler's CC0 applies. Held
+    # (original requires permission): RBI branches, PostalGIS, IR stations/tracks.
+    Dataset(
+        id='nhp_hospitals',
+        name='Hospitals directory (NHP 2025)',
+        level='nhp_hospitals',
+        category='health-edu',
+        source='NHP',
+        description=('Hospitals listed in the National Health Portal directory, with category, care type, '
+                     'system of medicine, address and phone numbers. About 170 entries have coordinates '
+                     'outside India in the source.'),
+        unit='hospitals',
+        license='GODL-India',
+        r2_prefix='healthcare/nhp-hospitals',
+        parquet_url=f'{FAC_HEALTH_BASE}/NHP_Hospital_Directory_2025.parquet',
+        pmtiles_url=f'{FAC_HEALTH_BASE}/NHP_Hospital_Directory_2025.pmtiles',
+        source_url='https://www.data.gov.in/',
+        source_org='National Health Portal (MoHFW), via data.gov.in',
+        notes=RAMSERAPH_NOTE.format(src='the data.gov.in NHP hospital directory') + ' Licence: GODL-India.',
+        bake_all_formats=True,
+        kml_name_field='Hospital_Name',
+    ),
+    Dataset(
+        id='nin_health_facilities',
+        name='Health facilities (NIN 2025)',
+        level='nin_health_facilities',
+        category='health-edu',
+        source='NHP',
+        description=('Public health facilities registered with a National Identification Number (NIN): '
+                     'sub-centres, primary and community health centres and hospitals, with address and type.'),
+        unit='health facilities',
+        license='GODL-India',
+        r2_prefix='healthcare/nin-health-facilities',
+        parquet_url=f'{FAC_HEALTH_BASE}/Datagov_NIN_Health_Facilties_2025.parquet',
+        pmtiles_url=f'{FAC_HEALTH_BASE}/Datagov_NIN_Health_Facilties_2025.pmtiles',
+        source_url='https://www.data.gov.in/',
+        source_org='National Health Portal (MoHFW), via data.gov.in',
+        notes=RAMSERAPH_NOTE.format(src='the data.gov.in NIN health facilities list') + ' Licence: GODL-India.',
+        bake_all_formats=True,
+        kml_name_field='health_facility_name',
+    ),
+    Dataset(
+        id='udise_schools',
+        name='Schools (UDISE)',
+        level='udise_schools',
+        category='health-edu',
+        source='UDISE',
+        description=('About 2.9 million schools from UDISE (Ministry of Education) as mapped by NCOG: '
+                     'UDISE code, management, category, year established, enrolment, teachers, '
+                     'electricity and drinking water, with LGD state and district codes. About 920,000 '
+                     'schools have no state or district in the source; the shapefile has one file per state.'),
+        unit='schools',
+        license='CC0-1.0',
+        r2_prefix='education/udise-schools',
+        parquet_url=f'{FAC_EDU_BASE}/NCOG_UDISE_Schools.parquet',
+        pmtiles_url=f'{FAC_EDU_BASE}/NCOG_UDISE_Schools.pmtiles',
+        source_url='https://ncog.gov.in/',
+        source_org='UDISE+ (Ministry of Education), mapped by NCOG (BISAG-N)',
+        notes=RAMSERAPH_NOTE.format(src='NCOG UDISE schools') + (
+            ' Licence: CC0 1.0 from the compiler (the source states no terms);'
+            ' credit DataMeet, UDISE+ and NCOG.'),
+        bake_all_formats=True,
+        kml_name_field='school_nam',
+        shp_split_by='state_name',  # one India-wide .dbf is 5.8 GB
+    ),
 ]
 
 
@@ -637,6 +709,29 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
     return n, non_geom
 
 
+DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf of 2 GB or more
+
+
+def slug(value: str) -> str:
+    return re.sub(r'[^a-z0-9]+', '_', str(value).lower()).strip('_') or 'unknown'
+
+
+def write_split_shapefiles(src_parquet: Path, out_dir: Path, basename: str, column: str) -> None:
+    """One shapefile per distinct `column` value (e.g. state), so each .dbf
+    stays under 2 GB. Read from the parquet, not the GeoJSON: one scan per
+    value of a multi-GB GeoJSON would be slow. Same columns as the GeoJSON."""
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+    src = f"read_parquet('{src_parquet}')"
+    for (value,) in con.execute(f'SELECT DISTINCT "{column}" FROM {src} ORDER BY 1').fetchall():
+        cond = f'"{column}" IS NULL' if value is None else f'"{column}" = ?'
+        con.execute(
+            f"COPY (SELECT * FROM {src} WHERE {cond}) TO '{out_dir / f'{basename}_{slug(value)}.shp'}' "
+            "WITH (FORMAT GDAL, DRIVER 'ESRI Shapefile', LAYER_CREATION_OPTIONS ('ENCODING=UTF-8', 'RESIZE=YES'))",
+            [] if value is None else [value])
+
+
 def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
     """Bake geojson + kml + shapefile.zip from the source parquet so the
     catalog card surfaces "Download whole layer" buttons. Skips silently if
@@ -692,18 +787,26 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
         # Clear any prior shapefile pieces (idempotent re-run)
         for f in shp_dir.iterdir():
             f.unlink()
-        subprocess.run(
-            ['ogr2ogr', '-f', 'ESRI Shapefile', str(shp_dir / f'{basename}.shp'), str(geojson_path)],
-            check=True, capture_output=True, timeout=600,
-        )
-        with zipfile.ZipFile(shp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
-            for f in sorted(shp_dir.iterdir()):
-                # Fixed timestamp: same input, same bytes, same md5 (no re-upload).
-                info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                zf.writestr(info, f.read_bytes())
-        outputs['shapefile'] = shp_zip
-    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        if d.shp_split_by:
+            write_split_shapefiles(src_parquet, shp_dir, basename, d.shp_split_by)
+        else:
+            subprocess.run(
+                ['ogr2ogr', '-f', 'ESRI Shapefile', str(shp_dir / f'{basename}.shp'), str(geojson_path)],
+                check=True, capture_output=True, timeout=600,
+            )
+        too_big = [f.name for f in shp_dir.glob('*.dbf') if f.stat().st_size >= DBF_MAX_BYTES]
+        if too_big:
+            # Most GIS tools refuse a .dbf of 2 GB or more: ship no shapefile rather than a broken one.
+            print(f'  shapefile skipped: .dbf over {DBF_MAX_BYTES:,} bytes ({", ".join(too_big)}); set shp_split_by')
+        else:
+            with zipfile.ZipFile(shp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
+                for f in sorted(shp_dir.iterdir()):
+                    # Fixed timestamp: same input, same bytes, same md5 (no re-upload).
+                    info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
+                    info.compress_type = zipfile.ZIP_DEFLATED
+                    zf.writestr(info, f.read_bytes())
+            outputs['shapefile'] = shp_zip
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, duckdb.Error) as e:
         print(f'  shapefile bake skipped: {e}')
 
     return outputs
