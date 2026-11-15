@@ -697,9 +697,13 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
     row_count = con.execute(f"SELECT COUNT(*) FROM read_parquet('{src}')").fetchone()[0]
     rgs = row_group_size_for(row_count)
     rgs_clause = f", ROW_GROUP_SIZE {rgs}" if rgs is not None else ""
+    # Ties on the Hilbert key (many features at one point) break on the source
+    # row number: a parallel sort otherwise orders them differently each run,
+    # changing the bytes (and the md5) of an unchanged layer.
     con.execute(
-        f"COPY ({bbox_clause} FROM read_parquet('{src}') "
-        f"ORDER BY ST_Hilbert({geom_expr}, {india_bbox})) TO '{dst}' "
+        f"COPY (SELECT * EXCLUDE (file_row_number) FROM ("
+        f"{bbox_clause} FROM read_parquet('{src}', file_row_number = true)) "
+        f"ORDER BY ST_Hilbert({geom_expr}, {india_bbox}), file_row_number) TO '{dst}' "
         f"(FORMAT PARQUET, COMPRESSION ZSTD, COMPRESSION_LEVEL 9{rgs_clause})"
     )
 

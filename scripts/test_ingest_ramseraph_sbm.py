@@ -173,3 +173,22 @@ def test_a_dbf_over_the_limit_drops_the_shapefile(tmp_path, monkeypatch):
     monkeypatch.setattr(ir, 'DBF_MAX_BYTES', 10)  # every .dbf is "too big"
     out = ir.bake_whole_layer(_ds(), _two_state_parquet(tmp_path))
     assert 'shapefile' not in out and {'geojson', 'kml'} <= set(out)
+
+
+def test_rebake_is_byte_identical_with_hilbert_ties(tmp_path):
+    # UDISE has many schools at the same point: equal Hilbert keys sorted in
+    # parallel came out in a different order each run, so every re-run
+    # re-uploaded about 6.7 GB. Ties must break on the source row order.
+    import hashlib
+    src = tmp_path / 'ties.parquet'
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial; SET threads = 8')
+    con.execute(
+        "COPY (SELECT i AS id, ST_Point(76 + (i % 50) / 100.0, 10 + (i % 50) / 100.0) AS geometry "
+        f"FROM range(400000) t(i)) TO '{src}' (FORMAT PARQUET)")
+    digests = set()
+    for run in range(3):
+        dst = tmp_path / f'out{run}.parquet'
+        ir.rebake_flatten_bbox(src, dst)
+        digests.add(hashlib.md5(dst.read_bytes()).hexdigest())
+    assert len(digests) == 1
