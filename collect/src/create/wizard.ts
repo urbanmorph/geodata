@@ -7,6 +7,7 @@
 // Only the create screens live here: leaving the flow returns to the home
 // screen, which keeps "Your maps on all your devices" (passkey sync) as it was.
 import { apiJson } from '../api';
+import { wordmarkHtml } from '../../../shared/brand.mjs';
 import { turnstileToken } from '../turnstile';
 import { mountSchemaBuilder, type BuilderField } from '../schema-builder';
 import { escapeHtml, downloadText } from '../util';
@@ -366,7 +367,7 @@ export function ready(host: WizardHost, m: Made): void {
   const { app } = host;
   const synced = !!syncState()?.passkey;
   app.innerHTML = `
-    <div class="topbar"><a href="#" id="rd-home" aria-label="Back to your maps">←</a><span>Map ready</span><a class="brand" href="https://bharatlas.com">bhar<span class="brand-accent">atlas</span></a></div>
+    <div class="topbar"><a href="#" id="rd-home" aria-label="Back to your maps">←</a><span>Map ready</span>${wordmarkHtml({ href: 'https://bharatlas.com', className: 'brand', size: 18 })}</div>
     <div class="pad wizard">
       <svg class="ready-mark" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>
       <h1>${escapeHtml(m.name)} is ready</h1>

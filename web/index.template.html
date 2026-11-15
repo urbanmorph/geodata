@@ -338,7 +338,7 @@
         transition: background 140ms ease;
         white-space: nowrap;
       }
-      .btn-primary:hover { background: var(--accent-fill); color: #fff; text-decoration: none; }
+      .btn-primary:hover { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
       .btn-primary.disabled { background: transparent; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
 
       .dl-inline { display: inline-flex; gap: 16px; align-items: center; font-size: 13px; color: var(--muted); }
@@ -384,7 +384,7 @@
       .alt__row .links a { color: var(--fg); }
       .alt__row .links .dot { color: var(--line); margin: 0 4px; }
       .alt__row--primary { padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
-      .alt__row .tag { font-size: 12px; padding: 1px 6px; background: var(--accent-fill); color: #fff; border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
+      .alt__row .tag { font-size: 12px; padding: 1px 6px; background: var(--accent-fill); color: var(--on-accent-fill); border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
 
       footer { margin-top: 56px; color: var(--muted); font-size: 12px; line-height: 1.7; }
       footer p { margin: 6px 0; }
@@ -501,7 +501,7 @@
       @media (hover: hover) {
         .ls-actions button:hover { border-color: var(--accent); color: var(--accent); }
       }
-      .ls-actions button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+      .ls-actions button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
       .ls-close { position: absolute; top: 8px; right: 12px; background: none; border: none;
         color: var(--muted); font-size: 20px; line-height: 1; cursor: pointer; }
       .ls-msg { color: var(--muted); font-size: 14px; }
@@ -621,7 +621,7 @@
         border-color: var(--fg);
       }
       .filter-panel__btn--primary .muted { color: color-mix(in srgb, var(--bg) 70%, var(--fg)); }
-      .filter-panel__btn--primary:hover:not(:disabled) { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+      .filter-panel__btn--primary:hover:not(:disabled) { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
       .filter-panel__btn--primary:hover:not(:disabled) .muted { color: rgba(255,255,255,0.7); }
       .filter-panel__btn:disabled { background: transparent; color: var(--muted); border-color: var(--line); cursor: not-allowed; opacity: .55; }
       .filter-panel__hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 0; }
@@ -683,7 +683,7 @@
       .filter-typeahead__item {
         padding: 6px 11px; cursor: pointer; font-size: 13px; color: var(--fg);
       }
-      .filter-typeahead__item:hover { background: var(--accent-fill); color: #fff; }
+      .filter-typeahead__item:hover { background: var(--accent-fill); color: var(--on-accent-fill); }
       .filter-typeahead__clear {
         position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
         background: none; border: none; color: var(--muted); cursor: pointer;

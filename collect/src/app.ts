@@ -43,6 +43,7 @@ import { mountPhotoField, authedSrc, openViewer, type PhotoField, type PhotoFiel
 import { newClientId } from './outbox';
 import { uploadPhoto } from './send-queue';
 import { aiNotesHtml, type Notes } from './review-ai';
+import { PALETTE } from '../../shared/brand.mjs';
 import './register-sw';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
 interface Meta {
@@ -58,7 +59,7 @@ let ctx: Ctx;
 
 // Draw state (Phase 4). Points use the map centre; lines/polygons collect
 // vertices by panning the crosshair and tapping "+ vertex".
-const ACCENT = '#4f46e5';
+const ACCENT = PALETTE.navyLink; // brand navy: reads on the light basemap, distinct from pending amber
 const TAP_PX = 14; // a tap counts for a point this close (fingertip, not cursor)
 
 // The map screen is an app surface: a pinch zooms the map, never the page. iPad

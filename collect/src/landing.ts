@@ -5,6 +5,7 @@ import { escapeHtml } from './util';
 import { myMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { startCreate } from './create/wizard';
 import { mountInstallButton } from '../../web/src/install-button';
+import { wordmarkHtml } from '../../shared/brand.mjs';
 import { syncSecretFrom } from './keyring';
 import { syncState, syncDevice, setUpSync, joinSync, turnOffSync, startAutoSync, unlockWithPasskey, SyncGone } from './syncing';
 import { passkeysAvailable } from './passkey';
@@ -65,7 +66,7 @@ function recordsList(m: SavedMap): string {
 // create flow. focusSync brings the sync section into view (from "Set up sync").
 function home(focusSync = false) {
   app.innerHTML = `
-    <div class="topbar"><span>collect</span><a class="brand" href="https://bharatlas.com">bhar<span class="brand-accent">atlas</span></a></div>
+    <div class="topbar"><span>collect</span>${wordmarkHtml({ href: 'https://bharatlas.com', className: 'brand', size: 18 })}</div>
     <div class="pad">
       <h1>Make a map, collect together</h1>
       <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Download the data, or publish it to the bharatlas catalog when it's ready.</p>

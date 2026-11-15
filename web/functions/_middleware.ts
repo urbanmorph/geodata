@@ -7,7 +7,7 @@
 import { isKnownRoute } from './lib/routes';
 import { SECURITY_HEADERS_HTML } from './lib/security-headers';
 
-const NOT_FOUND_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Not found · bharatlas</title><meta name="robots" content="noindex"><style>:root{color-scheme:light dark}body{font:15px/1.6 ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:80px auto;padding:0 24px;color:#0a0a0a;background:#fff}h1{font-size:22px;margin:0 0 8px}a{color:#4f46e5}@media(prefers-color-scheme:dark){body{color:#ededed;background:#0a0a0a}a{color:#818cf8}}</style></head><body><h1>404 — page not found</h1><p>This page doesn't exist on bharatlas.</p><p><a href="/">← back to the catalog</a></p></body></html>`;
+const NOT_FOUND_HTML = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Not found · bharatlas</title><meta name="robots" content="noindex"><style>:root{color-scheme:light dark}body{font:15px/1.6 ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:80px auto;padding:0 24px;color:#0B1B3F;background:#fff}h1{font-size:22px;margin:0 0 8px}a{color:#1A2A6C}@media(prefers-color-scheme:dark){body{color:#ededed;background:#0a0a0a}a{color:#F5A04A}}</style></head><body><h1>404 — page not found</h1><p>This page doesn't exist on bharatlas.</p><p><a href="/">← back to the catalog</a></p></body></html>`;
 
 export const onRequest: PagesFunction = async (ctx) => {
   if (isKnownRoute(new URL(ctx.request.url).pathname)) return ctx.next();

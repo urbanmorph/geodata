@@ -14,6 +14,7 @@
 // Result: no link the user can click jumps off 5173 in dev.
 
 import type { SubmissionView } from './submissions';
+import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../../shared/brand.mjs';
 
 const PUBLIC_ORIGIN = 'https://bharatlas.com';
 
@@ -124,7 +125,7 @@ export function renderViewPage(opts: RenderOpts): string {
   const header = embed
     ? ''
     : `<header class="site-header">
-      <a class="site-brand" href="/">bhar<span class="mark-accent">atlas</span><span class="tagline">· ${esc(s.name)}</span></a>
+      ${wordmarkHtml({ tagline: `· ${s.name}` })}
       <nav class="site-nav">
         <a href="/">catalog</a>
         <a href="/preview">contribute</a>
@@ -158,9 +159,8 @@ export function renderViewPage(opts: RenderOpts): string {
     <link rel="manifest" href="/manifest.webmanifest" />
     <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
     <style>
-      /* Edge-rendered — inlines the same tokens as scripts/shared-chrome.mjs.
-         Keep in sync with that file. Vitest does NOT cover this string —
-         the prerendered surfaces own the canonical tokens; this is a copy. */
+      /* Edge-rendered. Colours and the wordmark come from shared/brand.mjs;
+         spacing/type mirror scripts/shared-chrome.mjs. */
       :root {
         --fs-xs: 11px; --fs-sm: 12px; --fs-md: 13px; --fs-base: 14px;
         --fs-lg: 16px; --fs-xl: 20px; --fs-2xl: 28px;
@@ -168,15 +168,13 @@ export function renderViewPage(opts: RenderOpts): string {
         --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
         --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
         --bg: #ffffff; --bg-card: #f5f5f5;
-        --fg: #0a0a0a; --muted: #6b7280; --line: #e5e7eb;
-        --accent: #6366f1; --accent-strong: #4f46e5;
-        --accent-fill: #6366f1; --ok: #16a34a;
+        --muted: #525965; --line: #e5e7eb; --ok: #16a34a;
+        ${themeDecls('light')}
       }
       @media (prefers-color-scheme: dark) {
         :root { --bg: #0a0a0a; --bg-card: #1a1a1f;
-          --fg: #ededed; --muted: #9ca3af; --line: #262626;
-          --accent: #818cf8; --accent-strong: #6366f1;
-          --accent-fill: #6366f1; --ok: #4ade80; }
+          --muted: #9ca3af; --line: #262626; --ok: #4ade80;
+          ${themeDecls('dark')} }
       }
       *, *::before, *::after { box-sizing: border-box; }
       html, body { margin: 0; background: var(--bg); color: var(--fg); }
@@ -187,11 +185,11 @@ export function renderViewPage(opts: RenderOpts): string {
         outline-offset: 2px !important; border-radius: var(--radius-sm);
       }
       .site-header {
-        display: flex; align-items: baseline; justify-content: space-between;
+        display: flex; align-items: center; justify-content: space-between;
         gap: var(--sp-4); flex-wrap: wrap; margin-bottom: var(--sp-6);
       }
-      .site-brand { font-size: var(--fs-lg); font-weight: 600; letter-spacing: -.01em; color: var(--fg); text-decoration: none; }
-      .site-brand .mark-accent { color: var(--accent); }
+      ${WORDMARK_CSS}
+      .site-brand { font-size: var(--fs-lg); }
       .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
       .site-nav { display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
       .site-nav a { color: var(--muted); text-decoration: none; font-size: var(--fs-base); padding: 4px 0; }
@@ -211,7 +209,7 @@ export function renderViewPage(opts: RenderOpts): string {
         font: inherit; font-size: var(--fs-base); font-weight: 500; cursor: pointer;
         border: 1px solid var(--line); background: var(--bg); color: var(--fg); text-decoration: none;
       }
-      a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: #fff; }
+      a.btn.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
       a.btn:hover, button.btn:hover { border-color: var(--accent); }
       button.btn:disabled { opacity: .55; cursor: default; border-color: var(--line); }
       .vote-useful { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: var(--radius-md); padding: 6px 12px; background: var(--bg); font: inherit; cursor: pointer; color: var(--muted); line-height: 1; min-height: 36px; }
