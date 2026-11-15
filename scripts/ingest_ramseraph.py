@@ -38,6 +38,7 @@ import sys
 import urllib.request
 import zipfile
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 import boto3
@@ -828,9 +829,10 @@ def merge_layer_into_catalog(
             merged[fmt] = prev[fmt]
         else:
             merged.setdefault(fmt, None)
-    # fetched_at: leave previous if present, else None for downstream fill.
-    if 'fetched_at' not in merged:
-        merged['fetched_at'] = None
+    # fetched_at drives the card's "Updated" line: set it on first ingest,
+    # keep it on re-runs (the merge must stay a no-op the second time).
+    if not merged.get('fetched_at'):
+        merged['fetched_at'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
     catalog['layers'] = [l for l in catalog['layers'] if l.get('id') != d.id]
     catalog['layers'].append(merged)

@@ -99,3 +99,14 @@ def test_r2_upload_compares_checksums_not_sizes(tmp_path):
     f.write_text('[25.6,85.1]')  # same size, different content
     ir.r2_upload(s3, f, 'k')
     assert s3.uploads == 2
+
+
+def test_a_new_layer_gets_fetched_at():
+    # Cards show "Updated: YYYY-MM-DD" from fetched_at; None hides it.
+    import datetime
+    c = {}
+    ir.merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+    assert c['layers'][0]['fetched_at'][:10] == datetime.date.today().isoformat()
+    c['layers'][0]['fetched_at'] = '2026-01-01T00:00:00+00:00'
+    ir.merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+    assert c['layers'][0]['fetched_at'] == '2026-01-01T00:00:00+00:00'  # kept on re-run
