@@ -18,6 +18,11 @@ type BboxTable = Record<string, WardBbox | readonly number[]>;
 // ~0.01 deg is roughly 1.1 km. A false candidate only costs one empty PMTiles read.
 export const WARD_MARGIN_DEG = 0.01;
 
+// National ward layer (Swachh Bharat Mission, ~3,300 towns) used when no city
+// ward layer covers the point, so "which ward am I in" answers outside the ~34
+// cities too. City layers stay first choice: they are cleaner where they exist.
+export const FALLBACK_WARD_LAYER = 'sbm_wards';
+
 /** Ward layer ids whose (margin-padded) bbox contains the point, sorted. */
 export function wardLayersAt(
   lng: number,
@@ -41,8 +46,8 @@ export function wardLayersAt(
  * The final locate layer list for a request.
  * - An explicit `layers=` param wins verbatim (trimmed, blanks dropped); the caller
  *   has chosen, so nothing is auto-added.
- * - Otherwise: the default set plus the ward layer(s) covering the point, deduped,
- *   defaults first.
+ * - Otherwise: the default set plus the city ward layer(s) covering the point, or
+ *   the national SBM ward layer when none does; deduped, defaults first.
  */
 export function resolveLocateLayers(
   layersParam: string | null | undefined,
@@ -55,13 +60,45 @@ export function resolveLocateLayers(
   const explicit = (layersParam ?? '').split(',').map((s) => s.trim()).filter(Boolean);
   if (explicit.length) return explicit;
 
+  const cityWards = wardLayersAt(lng, lat, bboxes, margin);
+  const wards = cityWards.length ? cityWards : [FALLBACK_WARD_LAYER];
   const seen = new Set<string>();
   const out: string[] = [];
-  for (const id of [...defaults, ...wardLayersAt(lng, lat, bboxes, margin)]) {
+  for (const id of [...defaults, ...wards]) {
     if (!seen.has(id)) {
       seen.add(id);
       out.push(id);
     }
   }
+  return out;
+}
+
+type LocateHit = { layer_id: string };
+type LocateGroups = Record<string, LocateHit[]>;
+
+/**
+ * Second pass: a point can sit inside a city ward layer's bbox yet outside its
+ * wards (Jaipur's layer is Greater Jaipur only, so Hawa Mahal in Heritage finds
+ * nothing). On the default path, when no ward layer answered and the national
+ * layer wasn't asked, ask it.
+ */
+export function wardFallbackNeeded(
+  layersParam: string | null | undefined,
+  askedIds: readonly string[],
+  results: LocateGroups,
+): boolean {
+  if ((layersParam ?? '').trim()) return false;
+  if (askedIds.includes(FALLBACK_WARD_LAYER)) return false;
+  const wardIds = new Set(askedIds.filter((id) => id.startsWith('wards_')));
+  return !Object.values(results).flat().some((hit) => wardIds.has(hit.layer_id));
+}
+
+/** Append a second locate's grouped results to the first's, group by group. */
+export function mergeLocateResults<T extends LocateHit>(
+  a: Record<string, T[]>,
+  b: Record<string, T[]>,
+): Record<string, T[]> {
+  const out: Record<string, T[]> = { ...a };
+  for (const [group, hits] of Object.entries(b)) out[group] = [...(out[group] ?? []), ...hits];
   return out;
 }

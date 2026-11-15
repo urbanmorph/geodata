@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { wardLayersAt, resolveLocateLayers } from '../functions/lib/ward-locate';
+import { wardLayersAt, resolveLocateLayers, FALLBACK_WARD_LAYER, wardFallbackNeeded, mergeLocateResults } from '../functions/lib/ward-locate';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate';
 
@@ -66,8 +66,18 @@ describe('resolveLocateLayers', () => {
       .toEqual(['lgd_states', 'wards_alpha']);
   });
 
-  it('default path with no covering ward returns just the defaults', () => {
-    expect(resolveLocateLayers(null, 90, 30, DEFAULTS, FIX, 0)).toEqual([...DEFAULTS]);
+  it('default path with no city ward layer falls back to the national SBM wards', () => {
+    // "Ward number of my location" is the top search; SBM covers ~3,300 towns.
+    expect(resolveLocateLayers(null, 90, 30, DEFAULTS, FIX, 0)).toEqual([...DEFAULTS, FALLBACK_WARD_LAYER]);
+    expect(FALLBACK_WARD_LAYER).toBe('sbm_wards');
+  });
+
+  it('does not add the fallback where a city ward layer covers the point', () => {
+    expect(resolveLocateLayers(null, 77.2, 12.2, DEFAULTS, FIX, 0)).not.toContain(FALLBACK_WARD_LAYER);
+  });
+
+  it('never adds the fallback to an explicit layers list', () => {
+    expect(resolveLocateLayers('lgd_states', 90, 30, DEFAULTS, FIX, 0)).toEqual(['lgd_states']);
   });
 });
 
@@ -110,9 +120,28 @@ describe('default locate layer set (real wiring)', () => {
     expect(new Set(ids).size).toBe(ids.length); // no dupes
   });
 
-  it('leaves the default set unchanged where no city ward covers the point', () => {
-    // Rural point in interior Madhya Pradesh — no city ward layer there.
+  it('adds only the national SBM wards where no city ward covers the point', () => {
+    // Interior Madhya Pradesh: no city ward layer there, so the SBM fallback.
     expect(resolveLocateLayers(null, 78.5, 23.5, DEFAULT_LOCATE_LAYERS))
-      .toEqual([...DEFAULT_LOCATE_LAYERS]);
+      .toEqual([...DEFAULT_LOCATE_LAYERS, FALLBACK_WARD_LAYER]);
+  });
+});
+
+describe('second-pass ward fallback', () => {
+  const ward = (id: string) => ({ layer_id: id, feature: { properties: {} } });
+  it('is needed when city ward layers were asked but found no ward (Jaipur Heritage)', () => {
+    expect(wardFallbackNeeded(null, ['lgd_states', 'wards_jaipur'], { boundaries: [ward('lgd_states')] })).toBe(true);
+  });
+  it('is not needed when a city ward layer answered', () => {
+    expect(wardFallbackNeeded(null, ['wards_indore'], { 'city-wards': [ward('wards_indore')] })).toBe(false);
+  });
+  it('is not needed when the fallback was already asked, or for an explicit layers list', () => {
+    expect(wardFallbackNeeded(null, ['sbm_wards'], { boundaries: [] })).toBe(false);
+    expect(wardFallbackNeeded('wards_jaipur', ['wards_jaipur'], { boundaries: [] })).toBe(false);
+  });
+  it('merges a second locate result into the first, by group', () => {
+    const merged = mergeLocateResults(
+      { boundaries: [ward('lgd_states')] }, { 'city-wards': [ward('sbm_wards')], boundaries: [ward('x')] });
+    expect(merged).toEqual({ boundaries: [ward('lgd_states'), ward('x')], 'city-wards': [ward('sbm_wards')] });
   });
 });

@@ -892,7 +892,9 @@
     "sbm_wards": {
       "label": "Urban wards, all India (SBM)",
       "unit": "wards",
-      "description": "Ward boundaries for about 3,300 towns and cities from Swachh Bharat Mission (Urban). Quality varies by town: some repeat wards or use an older delimitation, so where bharatlas has a city ward map, prefer it. No data for West Bengal, Tripura, Mizoram or Manipur."
+      "description": "Ward boundaries for about 3,300 towns and cities from Swachh Bharat Mission (Urban). Quality varies by town: some repeat wards or use an older delimitation, so where bharatlas has a city ward map, prefer it. No data for West Bengal, Tripura, Mizoram or Manipur.",
+      "locate_label": "My ward",
+      "locate_mode": "contains"
     },
     "sbm_ulbs": {
       "label": "Towns and cities, all India (SBM)",
