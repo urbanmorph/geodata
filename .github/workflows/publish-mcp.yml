@@ -53,19 +53,21 @@ jobs:
           done
           echo "go=true" >> "$GITHUB_OUTPUT"
 
+      # Install and log in on every run, so a token that has expired or was set wrong fails the daily
+      # run at once, not only on the next release.
       - name: Install mcp-publisher
-        if: steps.check.outputs.go == 'true'
         run: |
           curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
           sudo mv mcp-publisher /usr/local/bin/
 
-      - name: Publish
-        if: steps.check.outputs.go == 'true'
+      - name: Log in to the registry
         env:
           MCP_PUBLISHER_TOKEN: ${{ secrets.MCP_PUBLISHER_TOKEN }}
         run: |
           set -euo pipefail
           if [ -z "$MCP_PUBLISHER_TOKEN" ]; then echo "::error::The MCP_PUBLISHER_TOKEN secret is not set."; exit 1; fi
-          cd "$(dirname "$SERVER_JSON")"
           mcp-publisher login github --token "$MCP_PUBLISHER_TOKEN"
-          mcp-publisher publish
+
+      - name: Publish
+        if: steps.check.outputs.go == 'true'
+        run: cd "$(dirname "$SERVER_JSON")" && mcp-publisher publish
