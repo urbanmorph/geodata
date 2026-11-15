@@ -137,8 +137,9 @@ def test_facilities_batch_layers_are_defined_with_traced_licences():
         d = by_id[lid]
         assert (d.license, d.kml_name_field, d.category) == (lic, name_field, cat)
         assert d.bake_all_formats and 'ramSeraph' in d.notes
-    # Held: traceable originals whose terms require permission.
-    for held in ('rbi_bank_branches', 'postal_post_offices', 'ir_stations', 'ir_tracks'):
+    # Held: traceable originals whose terms require permission. (IR stations
+    # and tracks came in later under policy B.)
+    for held in ('rbi_bank_branches', 'postal_post_offices'):
         assert held not in by_id
 
 
@@ -235,6 +236,32 @@ def test_significant_batch_is_defined_under_policy_b():
     # Personal data (lessee names, phones, emails; editor name + mobile) stays out.
     for held in ('gsi_major_mining_leases_2022', 'ncog_major_mining_leases', 'police_stations_rajasthan'):
         assert held not in by_id
+
+
+WB_AND_RAILWAYS = {
+    # id: (category, kml name field, ATTR source key)
+    'wb_amrut_wards': ('city-wards', 'Ward_No', 'WBAMRUT'),
+    'wb_amrut_ulbs': ('boundaries', 'Name', 'WBAMRUT'),
+    'ir_stations': ('transport', 'sttnname', 'IRGIS'),
+    'ir_tracks': ('transport', 'tmssection', 'IRGIS'),
+}
+
+
+def test_wb_wards_and_railways_are_defined_under_policy_b():
+    # West Bengal AMRUT fills the state SBM wards leave out; Indian Railways
+    # (irgeoportal, CRIS) was held until policy B. Neither publisher states an
+    # open licence, so the compiler's CC0 applies with credit.
+    from build_catalog import ATTR
+    by_id = {d.id: d for d in ir.DATASETS}
+    for lid, (cat, name_field, src) in WB_AND_RAILWAYS.items():
+        d = by_id[lid]
+        assert (d.category, d.kml_name_field, d.license, d.source) == (cat, name_field, 'CC0-1.0', src), lid
+        assert src in ATTR and d.source_url == ATTR[src]['url'], lid
+        assert d.bake_all_formats and 'sources-and-licensing' in d.notes, lid
+        assert '—' not in d.name + d.description, lid
+    # An exact id never pulls in another layer (main() matches substrings).
+    for lid in WB_AND_RAILWAYS:
+        assert [d.id for d in ir.DATASETS if lid in d.id] == [lid]
 
 
 def test_ogr2ogr_reads_geojson_features_of_any_size(tmp_path, monkeypatch):
