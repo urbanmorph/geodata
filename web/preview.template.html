@@ -15,24 +15,25 @@
     <style>
       <!-- TOKENS -->
       :root { --card-bg: var(--bg-card); }
-      body { max-width: 1100px; margin: 0 auto; padding: 24px 24px 80px; }
+      :root { --page-max: 1100px; }
+      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; }
 
-      .page-title { font-size: 22px; font-weight: 700; letter-spacing: -.01em; margin: 8px 0 4px; }
-      .page-sub { color: var(--muted); font-size: 14px; margin: 0 0 24px; max-width: 580px; }
 
       /* === Initial drop state =============================================== */
+      /* Intro, drop zone and past submissions share one left-aligned column. */
       #drop {
-        display: block; max-width: 640px; margin: 0 auto;
-        border: 2px dashed var(--line); border-radius: 14px; padding: 56px 24px;
+        display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 760px; margin: 0;
+        border: 2px dashed var(--line-bright); border-radius: 18px; padding: 56px 24px;
         text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
-        background: var(--card-bg);
+        background: var(--bg);
       }
       #drop:hover, #drop.dragover {
-        border-color: var(--accent);
-        background: color-mix(in srgb, var(--accent) 8%, var(--card-bg));
+        border-color: var(--accent-fill);
+        background: color-mix(in srgb, var(--accent-fill) 8%, var(--bg));
       }
-      #drop strong { font-size: 16px; font-weight: 600; display: block; margin-bottom: 6px; }
-      #drop .hint { color: var(--muted); font-size: 13px; }
+      .drop__icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 8px; border-radius: 50%; background: var(--accent-fill); color: var(--on-accent-fill); }
+      #drop strong { font-size: 18px; font-weight: 700; display: block; }
+      #drop .hint { color: var(--muted); font-size: 14px; }
       #drop input[type=file] { display: none; }
 
       /* === Workspace (after a file is loaded) ============================== */
@@ -196,9 +197,9 @@
 
       /* === Your submissions (v4.8) ========================================== */
       #my-subs {
-        display: block; max-width: 640px; margin: 18px auto 0;
-        background: var(--bg-card); border: 1px solid var(--line);
-        border-radius: 10px; padding: 12px 14px;
+        display: block; max-width: 760px; margin: 18px 0 0;
+        background: var(--bg); border: 1px solid var(--line);
+        border-radius: 14px; padding: 16px 18px;
       }
       #my-subs[hidden] { display: none; }
       /* When the user has dropped a file (workspace.show), the verify flow
@@ -292,9 +293,10 @@
 
     <main id="main">
     <h1 class="page-title">View, verify, or publish a geo file</h1>
-    <p class="page-sub">Drop a file to render it on a map and check it. Optionally publish to the open catalog. Nothing is uploaded unless you click <strong>Publish</strong>.</p>
+    <p class="page-lead">Drop a file to render it on a map and check it. Optionally publish to the open catalog. Nothing is uploaded unless you click <strong>Publish</strong>.</p>
 
     <label id="drop" for="file">
+      <span class="drop__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></svg></span>
       <strong>Drop a file or click to choose</strong>
       <span class="hint">GeoJSON · KML · KMZ · GPX · TCX · Parquet · up to 500 MB</span>
       <input type="file" id="file" accept=".geojson,.json,.kml,.kmz,.gpx,.tcx,.parquet" />

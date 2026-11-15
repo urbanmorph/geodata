@@ -15,8 +15,8 @@
     <style>
       <!-- TOKENS -->
       :root { --row-hover: var(--bg-card); }
-      body { max-width: 880px; margin: 0 auto; padding: 48px 24px 80px; line-height: 1.6; }
-      h1 { font-size: 28px; margin: 0 0 var(--sp-2); font-weight: 700; }
+      :root { --page-max: 880px; }
+      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
       h2 { font-size: 20px; margin: var(--sp-6) 0 var(--sp-2); font-weight: 600; color: var(--fg); border-bottom: 1px solid var(--line); padding-bottom: 6px; }
       h3 { font-size: 16px; margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
       p, li { font-size: 15px; color: var(--muted); overflow-wrap: anywhere; }
@@ -41,7 +41,7 @@
       .hero-meta { margin: 0 0 var(--sp-4); }
       .cta-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-4) 0 var(--sp-6); }
       .cta { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: var(--radius-lg); font-weight: 600; font-size: 15px; }
-      .cta--primary { background: var(--accent-fill); color: #fff; }
+      .cta--primary { background: var(--accent-fill); color: var(--on-accent-fill); }
       .cta--primary:hover { background: var(--accent-fill-hover); text-decoration: none; }
       .cta--plain { border: 1px solid var(--line-bright); color: var(--fg); }
       .cta--plain:hover { border-color: var(--accent); text-decoration: none; }
@@ -74,8 +74,8 @@
     <!-- NAV -->
 
     <main id="main">
-      <h1>Build on India’s geography</h1>
-      <p class="lead">Turn any point into its state, district, sub-district, block, constituency and city ward, with the government’s LGD codes to join your data on. Query <!-- DOCS_LAYERS --> open layers, or download them whole.</p>
+      <h1 class="page-title">Build on India’s geography</h1>
+      <p class="lead page-lead">Turn any point into its state, district, sub-district, block, constituency and city ward, with the government’s LGD codes to join your data on. Query <!-- DOCS_LAYERS --> open layers, or download them whole.</p>
       <p class="hero-meta">Free. No key, no sign-up. CORS on. Every layer keeps its source’s open licence. <span class="badge badge--stable">API v1 stable</span></p>
       <pre><code># Where is MG Road, Bengaluru? (the JSON answer, trimmed to names and codes)
 curl "https://bharatlas.com/api/v1/locate?lat=12.9716&amp;lng=77.5946"
