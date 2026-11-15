@@ -541,7 +541,7 @@
       "source_url": "https://data.opencity.in/dataset/bhubaneswar-administrative-boundaries",
       "source_org": "Bhubaneshwar Municipal Corporation",
       "notes": "",
-      "seo_title": "Bhubaneswar Ward Map: 67 wards (BMC)",
+      "seo_title": "Bhubaneswar Ward Map: zone-wise list of 67 wards (BMC)",
       "seo_description": "Interactive map of all 67 wards in Bhubaneswar (BMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_vizag": {
@@ -551,7 +551,7 @@
       "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards-map-2024",
       "source_org": "Greater Visakhapatnam Municipal Corporation",
       "notes": "",
-      "seo_title": "Visakhapatnam Ward Map: 98 wards (GVMC)",
+      "seo_title": "Visakhapatnam Ward Map: zone-wise list of 98 wards (GVMC)",
       "seo_description": "Interactive map of all 98 wards in Visakhapatnam (GVMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_thane": {
@@ -591,7 +591,7 @@
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore",
       "source_org": "DataMeet",
       "notes": "",
-      "seo_title": "Coimbatore Ward Map: 100 wards (CCMC)",
+      "seo_title": "Coimbatore Ward Map: zone-wise list of 100 wards (CCMC)",
       "seo_description": "Interactive map of all 100 wards in Coimbatore (CCMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_madurai": {
@@ -601,7 +601,7 @@
       "source_url": "https://data.opencity.in/dataset/madurai-wards-map",
       "source_org": "Madurai City Municipal Corporation",
       "notes": "",
-      "seo_title": "Madurai Ward Map: 100 wards (MCM)",
+      "seo_title": "Madurai Ward Map: zone-wise list of 100 wards (MCM)",
       "seo_description": "Interactive map of all 100 wards in Madurai (MCM). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_navi_mumbai": {
@@ -641,7 +641,7 @@
       "source_url": "https://data.opencity.in/dataset/bhopal-wards-map",
       "source_org": "Bhopal Municipal Corporation",
       "notes": "",
-      "seo_title": "Bhopal Ward Map: 86 wards (BMC)",
+      "seo_title": "Bhopal Ward Map: zone-wise list of 86 wards (BMC)",
       "seo_description": "Interactive map of all 86 wards in Bhopal (BMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_chandigarh": {
@@ -661,7 +661,7 @@
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow",
       "source_org": "Lucknow Municipal Corporation",
       "notes": "",
-      "seo_title": "Lucknow Ward Map: 112 wards (LMC)",
+      "seo_title": "Lucknow Ward Map: zone-wise list of 112 wards (LMC)",
       "seo_description": "Interactive map of all 112 wards in Lucknow (LMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_kanpur": {
@@ -721,7 +721,7 @@
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/PCMC",
       "source_org": "DataMeet",
       "notes": "",
-      "seo_title": "Pimpri-Chinchwad Ward Map: 66 wards (PCMC)",
+      "seo_title": "Pimpri-Chinchwad Ward Map: zone-wise list of 66 wards (PCMC)",
       "seo_description": "Interactive map of all 66 wards in Pimpri-Chinchwad (PCMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_vijayawada": {

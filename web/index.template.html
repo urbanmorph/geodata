@@ -441,6 +441,13 @@
       .view-seo .ward-index td:first-child { white-space: nowrap; width: 1%;
         color: var(--muted); }
       .view-seo .ward-index__src { color: var(--muted); }
+      /* Zone-wise ward list: each zone's wards in columns that reflow on a phone. */
+      .view-seo .ward-zones { margin: 16px 0; font-size: 14px; }
+      .view-seo .ward-zones h2 { font-size: 18px; font-weight: 600; margin: 16px 0 4px; }
+      .view-seo .ward-zones h3 { font-size: 15px; font-weight: 600; margin: 12px 0 4px; }
+      .view-seo .ward-zones ul { margin: 0; padding: 0; list-style: none;
+        columns: 14em auto; column-gap: 16px; }
+      .view-seo .ward-zones li { break-inside: avoid; }
       .view-seo__wards { margin: 16px 0; font-size: 14px; color: var(--muted); }
 
       /* Map overlay */
