@@ -2,7 +2,8 @@
 //
 //   /releases/index.json                       every release (static, committed)
 //   /releases/<code>/manifest.json|CHANGES.md|SHA256SUMS   static, committed
-//   /releases/<code>/<data file>               302 to the same key on R2, bytes unchanged
+//   /releases/<code>/<data file>               302 to the same key on R2, bytes unchanged, if the release's
+//                                              SHA256SUMS lists it; otherwise 404 here
 //   /releases/<code>                           302 to its manifest (where the w3id.org address will point)
 //   /releases                                  302 to the index
 import { R2_PUBLIC_BASE } from './r2-keys';
@@ -10,6 +11,7 @@ import { R2_PUBLIC_BASE } from './r2-keys';
 export type ReleaseRoute =
   | { kind: 'static'; headers: Record<string, string> }
   | { kind: 'redirect'; location: string; status: 302 }
+  | { kind: 'data'; sums: string; file: string; location: string }
   | { kind: 'notfound' };
 
 /** bharatlas-<dataset>-<year>.<two-digit month> */
@@ -44,5 +46,10 @@ export function releaseRoute(segs: string[]): ReleaseRoute {
   if (segs.length === 1) return redirect(`/releases/${code}/manifest.json`);
   if (file !== 'index.json' && STATIC_TYPES[file]) return staticFile(file);
   if (!FILE_NAME.test(file) || file.includes('..')) return { kind: 'notfound' };
-  return redirect(`${R2_PUBLIC_BASE}/releases/${code}/${file}`);
+  return { kind: 'data', sums: `/releases/${code}/SHA256SUMS`, file,
+    location: `${R2_PUBLIC_BASE}/releases/${code}/${file}` };
 }
+
+/** Whether a SHA256SUMS file ("<hex>  <name>" per line) lists this file. */
+export const sumsList = (sums: string, file: string): boolean =>
+  sums.split('\n').some((line) => line.trim().split(/\s+/)[1]?.replace(/^\*/, '') === file);

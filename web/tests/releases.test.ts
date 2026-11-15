@@ -17,9 +17,10 @@ describe('releaseRoute', () => {
     expect(releaseRoute(['bharatlas-cw-2026.11', 'CHANGES.md'])).toMatchObject({ headers: { 'content-type': 'text/markdown; charset=utf-8' } });
   });
 
-  it('redirects a release data file to the same key on R2, unchanged', () => {
+  it('sends a release data file to the same key on R2, once the release is checked to list it', () => {
     expect(releaseRoute(['bharatlas-cw-2026.11', 'cw_villages.parquet'])).toEqual({
-      kind: 'redirect', location: `${R2}/releases/bharatlas-cw-2026.11/cw_villages.parquet`, status: 302,
+      kind: 'data', sums: '/releases/bharatlas-cw-2026.11/SHA256SUMS', file: 'cw_villages.parquet',
+      location: `${R2}/releases/bharatlas-cw-2026.11/cw_villages.parquet`,
     });
   });
 
@@ -41,10 +42,18 @@ describe('releaseRoute', () => {
 });
 
 describe('the /releases function', () => {
+  // the committed SHA256SUMS of the one release that exists here; any other path is the SPA fallback
+  const SUMS = 'aa11  cw_states.csv\nbb22  cw_states.parquet\n';
+  const assets = {
+    fetch: async (req: Request) => new URL(req.url).pathname === '/releases/bharatlas-cw-2026.11/SHA256SUMS'
+      ? new Response(SUMS, { status: 200, headers: { 'content-type': 'text/plain' } })
+      : new Response('<!doctype html>', { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
+  };
   const ctx = (path: string[]) => ({
     params: { path },
     request: new Request(`https://bharatlas.com/releases/${path.join('/')}`),
     next: async () => new Response('static', { status: 200 }),
+    env: { ASSETS: assets },
   }) as any;
 
   it('passes static files through, redirects data files, 404s the rest', async () => {
@@ -56,6 +65,14 @@ describe('the /releases function', () => {
     expect(r.status).toBe(302);
     expect(r.headers.get('location')).toBe(`${R2}/releases/bharatlas-cw-2026.11/cw_states.csv`);
     expect((await releasesFn(ctx(['nope']))).status).toBe(404);
+  });
+
+  it('404s a data file its release does not list, or of a release that does not exist, without sending anyone to R2', async () => {
+    for (const path of [['bharatlas-cw-2026.11', 'nope.csv'], ['bharatlas-cw-1999.01', 'cw_states.csv']]) {
+      const r = await releasesFn(ctx(path));
+      expect(r.status).toBe(404);
+      expect(r.headers.get('location')).toBeNull();
+    }
   });
 
   it('turns the single-page-app fallback for a release that does not exist into a 404', async () => {
