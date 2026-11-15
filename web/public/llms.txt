@@ -22,7 +22,10 @@ The server sends instructions at connection time that teach schema-first queryin
 ## REST API
 
 Base URL: https://bharatlas.com/api/v1
-No auth. No API key. CORS enabled.
+No auth. No API key. CORS enabled. Please send a User-Agent naming your app and a link.
+OpenAPI 3.1 description: https://bharatlas.com/api/v1/openapi.json
+Developer guide: https://bharatlas.com/docs
+Rate limits: 120 requests/minute per IP; 60/minute for the locate endpoints.
 
 Endpoints:
 - GET /api/v1/layers — list layers with ?category, ?level, ?source, ?q, ?limit, ?offset
@@ -30,13 +33,16 @@ Endpoints:
 - GET /api/v1/layers/:id/schema — column names, types (nested columns marked), distinct values
 - GET /api/v1/layers/:id/query — select any column; filter (exact, case-insensitive) and group_by on flat columns
 - GET /api/v1/layers/:id/counts — feature counts with optional grouping
-- GET /api/v1/locate — point-in-polygon across admin layers + zones
+- GET /api/v1/locate — point-in-polygon across admin layers + zones, with LGD codes (and the city ward where covered)
+- GET /api/v1/layers/:id/locate — the feature of one layer containing, or nearest to, a point
 - GET /api/v1/nearby — find features within a radius (points, polygons, lines)
 - GET /api/v1/categories — data categories with layer counts
 - GET /api/v1/levels — admin hierarchy levels
 - GET /api/v1/downloads/counts — download statistics
 - GET /api/v1/submissions — community-contributed layers
 - GET /api/v1/submissions/:id — single submission detail
+
+Join on LGD codes: State_LGD (lgd_states), dist_lgd (lgd_districts), subdt_lgd (lgd_subdistricts), block_lgd (lgd_blocks), vil_lgd (lgd_villages). The LGD layers also carry Census 2011 codes (stcode11, dtcode11, sdtcode11).
 
 ## What you can ask
 
@@ -63,6 +69,8 @@ Layers are available as Parquet and PMTiles, and most also as GeoJSON, KML and S
 
 - Website: https://bharatlas.com
 - API docs: https://bharatlas.com/docs
+- OpenAPI: https://bharatlas.com/api/v1/openapi.json
+- Status (website, API, collect; checked every 5 minutes): https://status.bharatlas.com (JSON: https://status.bharatlas.com/status.json)
 - MCP setup: https://bharatlas.com/mcp
 - npm: https://www.npmjs.com/package/bharatlas-mcp
 - GitHub: https://github.com/urbanmorph/geodata
