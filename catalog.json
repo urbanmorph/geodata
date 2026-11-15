@@ -1035,6 +1035,56 @@
       "label": "City Finances (CityFinance.in)",
       "unit": "ULBs",
       "description": "Income and expenditure of Indian cities (urban local bodies) from their annual accounts, as standardised by CityFinance.in (MoHUA): tax revenue, fees and user charges, grants, establishment and operation costs, totals and surplus, in rupees, on Swachh Bharat Mission ULB boundaries."
+    },
+    "wards_kalyan_dombivli": {
+      "label": "Kalyan-Dombivli (KDMC) Wards",
+      "unit": "wards",
+      "description": "Kalyan-Dombivli Municipal Corporation: 123 electoral ward boundaries, with LGD ward codes.",
+      "source_url": "https://data.opencity.in/dataset/kalyan-dombivli-wards-map",
+      "source_org": "Kalyan-Dombivli Municipal Corporation",
+      "notes": "",
+      "seo_title": "Kalyan-Dombivli Ward Map: 123 wards (KDMC)",
+      "seo_description": "Map of all 123 electoral wards of Kalyan-Dombivli Municipal Corporation (KDMC). View ward boundaries and numbers; download as GeoJSON, KML or Parquet."
+    },
+    "zones_bengaluru_gba": {
+      "label": "Greater Bengaluru Zones (2025)",
+      "unit": "zones",
+      "description": "Greater Bengaluru Authority: 10 zones, two in each of its five corporations (2025).",
+      "source_url": "https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025",
+      "source_org": "Greater Bengaluru Authority",
+      "notes": "Each zone carries its corporation (Corporatio) and zone (Zone).",
+      "seo_title": "Bengaluru Zone Map: 10 zones across 5 GBA corporations",
+      "seo_description": "Map of the 10 zones of the 5 Greater Bengaluru Authority corporations (2025). View zone boundaries; download as GeoJSON, KML or Parquet."
+    },
+    "wards_pune_2025": {
+      "label": "Pune (PMC) Administrative Wards (2025)",
+      "unit": "wards",
+      "description": "Pune Municipal Corporation: 15 administrative wards (ward offices), 2025.",
+      "source_url": "https://data.opencity.in/dataset/pune-wards-info",
+      "source_org": "Pune Municipal Corporation",
+      "notes": "",
+      "seo_title": "Pune Administrative Ward Map 2025: 15 ward offices (PMC)",
+      "seo_description": "Map of Pune Municipal Corporation's 15 administrative wards (ward offices), 2025. View boundaries; download as GeoJSON, KML or Parquet."
+    },
+    "zones_pune": {
+      "label": "Pune (PMC) Zones",
+      "unit": "zones",
+      "description": "Pune Municipal Corporation: 5 zones (Deputy Municipal Commissioner zones).",
+      "source_url": "https://data.opencity.in/dataset/pune-wards-info",
+      "source_org": "Pune Municipal Corporation",
+      "notes": "",
+      "seo_title": "Pune Zone Map: 5 zones (PMC)",
+      "seo_description": "Map of the 5 zones of Pune Municipal Corporation. View zone boundaries; download as GeoJSON, KML or Parquet."
+    },
+    "zones_chennai": {
+      "label": "Chennai (GCC) Zones",
+      "unit": "zones",
+      "description": "Greater Chennai Corporation: 15 zones, plus St. Thomas Mount as a 16th area, from Transparent Chennai via DataMeet.",
+      "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chennai",
+      "source_org": "DataMeet",
+      "notes": "",
+      "seo_title": "Chennai Zone Map: 15 zones (GCC)",
+      "seo_description": "Map of Greater Chennai Corporation's 15 zones (plus St. Thomas Mount). View zone boundaries; download as GeoJSON, KML or Parquet."
     }
   },
   "level_order": [
@@ -1161,7 +1211,12 @@
     "amrit_sarovar_ponds",
     "jjm_facilities",
     "mgnrega_districts",
-    "cityfinance_ulbs"
+    "cityfinance_ulbs",
+    "wards_kalyan_dombivli",
+    "zones_bengaluru_gba",
+    "wards_pune_2025",
+    "zones_pune",
+    "zones_chennai"
   ],
   "layers": [
     {
@@ -6646,6 +6701,196 @@
         "NMAM",
         "MoHUA"
       ]
+    },
+    {
+      "id": "wards_kalyan_dombivli",
+      "level": "wards_kalyan_dombivli",
+      "source": "OpenCity",
+      "rows": 123,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kalyan-dombivli/wards_kalyan_dombivli.parquet",
+        "bytes": 120019
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kalyan-dombivli/wards_kalyan_dombivli.pmtiles",
+        "bytes": 138727
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kalyan-dombivli/wards_kalyan_dombivli.geojson",
+        "bytes": 637773
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kalyan-dombivli/wards_kalyan_dombivli.kml",
+        "bytes": 604477
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kalyan-dombivli/wards_kalyan_dombivli.shp.zip",
+        "bytes": 123844
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/dataset/kalyan-dombivli-wards-map"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T14:39:39+00:00",
+      "notes": "Kalyan-Dombivli Municipal Corporation: 123 electoral ward boundaries, with LGD ward codes."
+    },
+    {
+      "id": "zones_bengaluru_gba",
+      "level": "zones_bengaluru_gba",
+      "source": "OpenCity",
+      "rows": 10,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-bengaluru-gba/zones_bengaluru_gba.parquet",
+        "bytes": 187992
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-bengaluru-gba/zones_bengaluru_gba.pmtiles",
+        "bytes": 52661
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-bengaluru-gba/zones_bengaluru_gba.geojson",
+        "bytes": 750761
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-bengaluru-gba/zones_bengaluru_gba.kml",
+        "bytes": 601741
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-bengaluru-gba/zones_bengaluru_gba.shp.zip",
+        "bytes": 203152
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T14:39:39+00:00",
+      "notes": "Each zone carries its corporation (Corporatio) and zone (Zone)."
+    },
+    {
+      "id": "wards_pune_2025",
+      "level": "wards_pune_2025",
+      "source": "OpenCity",
+      "rows": 15,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune-2025/wards_pune_2025.parquet",
+        "bytes": 43879
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune-2025/wards_pune_2025.pmtiles",
+        "bytes": 44603
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune-2025/wards_pune_2025.geojson",
+        "bytes": 225017
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune-2025/wards_pune_2025.kml",
+        "bytes": 158436
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune-2025/wards_pune_2025.shp.zip",
+        "bytes": 46602
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/dataset/pune-wards-info"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T14:39:39+00:00",
+      "notes": "Pune Municipal Corporation: 15 administrative wards (ward offices), 2025."
+    },
+    {
+      "id": "zones_pune",
+      "level": "zones_pune",
+      "source": "OpenCity",
+      "rows": 5,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-pune/zones_pune.parquet",
+        "bytes": 80719
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-pune/zones_pune.pmtiles",
+        "bytes": 26567
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-pune/zones_pune.geojson",
+        "bytes": 227085
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-pune/zones_pune.kml",
+        "bytes": 185693
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-pune/zones_pune.shp.zip",
+        "bytes": 84368
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/dataset/pune-wards-info"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T14:39:39+00:00",
+      "notes": "Pune Municipal Corporation: 5 zones (Deputy Municipal Commissioner zones)."
+    },
+    {
+      "id": "zones_chennai",
+      "level": "zones_chennai",
+      "source": "DataMeet",
+      "rows": 16,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-chennai/zones_chennai.parquet",
+        "bytes": 46594
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-chennai/zones_chennai.pmtiles",
+        "bytes": 37011
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-chennai/zones_chennai.geojson",
+        "bytes": 203148
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-chennai/zones_chennai.kml",
+        "bytes": 164217
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/zones-chennai/zones_chennai.shp.zip",
+        "bytes": 44147
+      },
+      "licence": "CC-BY-SA-2.5-IN",
+      "attribution": {
+        "primary": {
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chennai"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T14:39:39+00:00",
+      "notes": "Greater Chennai Corporation: 15 zones, plus St. Thomas Mount as a 16th area, from Transparent Chennai via DataMeet."
     }
   ],
   "state_extracts": [],
