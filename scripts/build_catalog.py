@@ -143,6 +143,8 @@ ATTR = {
     # Minor Irrigation Census counts (data.gov.in, GODL-India), summed to
     # districts by Land Ledger (credited in the layer's notes).
     'MIWing':        {'name': 'Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti', 'url': 'https://mowr.nic.in/irrigationcensus/'},
+    # Standardised ULB income statements; the site states no licence, treated as GODL-India.
+    'CityFinance':   {'name': 'CityFinance.in, Ministry of Housing and Urban Affairs', 'url': 'https://cityfinance.in/'},
 }
 PUBLISHER = {
     'name': 'yashveeeeeeer/india-geodata',
