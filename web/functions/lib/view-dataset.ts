@@ -175,7 +175,7 @@ export function wardSeo(seoTitle: string, count: string | null, origDescription?
 
 /** One ward: its number, its name as the layer gives it ('' when none), and, view-only, the OpenStreetMap
  *  places inside it (scripts/fetch_osm_areas.py; never part of the layer or its downloads). */
-export type WardRow = { no: string; name: string; areas?: string[]; zone?: string };
+export type WardRow = { no: string; name: string; areas?: string[]; zone?: string; group?: string };
 
 // A ward layer's resolved number↔area pairs, baked by scripts/build_ward_index.py
 // (which reads the parquet and maps each layer's idiosyncratic columns down to
@@ -193,6 +193,10 @@ export type WardIndex = {
   nameLabel: string | null;
   /** Pre-sorted ward rows; `name` is '' when the layer has no name for it. */
   rows: WardRow[];
+  /** Set when ward numbers restart per sub-body (Greater Bengaluru's corporations):
+   *  each row carries its `group`, and a ward is (group, number). */
+  groupCol?: string;
+  groupLabel?: string;
   /** Credit for the rows' `areas`, when they come from OpenStreetMap. */
   areasSource?: { name: string; licence: string; fetched?: string | null };
 };
@@ -215,15 +219,16 @@ export function buildWardTable(idx: WardIndex | null | undefined): {
     : hasAreas
       ? `${idx.place} ward numbers and the areas in each`
       : `${idx.place} ward numbers`;
+  const grouped = !!idx.groupLabel && idx.rows.some((r) => r.group);
   const head =
-    `<tr><th scope="col">Ward</th>` +
+    `<tr>` + (grouped ? `<th scope="col">${esc(idx.groupLabel!)}</th>` : '') + `<th scope="col">Ward</th>` +
     (hasNames ? `<th scope="col">${esc(label!)}</th>` : '') +
     (hasAreas ? `<th scope="col">Areas (OpenStreetMap)</th>` : '') +
     `</tr>`;
   const body = idx.rows
     .map(
       (r) =>
-        `<tr><td>${esc(r.no)}</td>` +
+        `<tr>` + (grouped ? `<td>${esc(r.group ?? '')}</td>` : '') + `<td>${esc(r.no)}</td>` +
         (hasNames ? `<td>${esc(r.name)}</td>` : '') +
         (hasAreas ? `<td>${esc((r.areas ?? []).join(', '))}</td>` : '') +
         `</tr>`,
@@ -243,7 +248,8 @@ export function buildWardTable(idx: WardIndex | null | undefined): {
   const listed = idx.rows
     .map((r) => {
       const parts = [r.name, r.areas?.length ? `${r.areas.join(', ')} (OpenStreetMap)` : ''].filter(Boolean);
-      return parts.length ? { no: r.no, text: parts.join('; ') } : null;
+      const no = grouped && r.group ? `${r.no} (${r.group})` : r.no;
+      return parts.length ? { no, text: parts.join('; ') } : null;
     })
     .filter((x): x is { no: string; text: string } => x != null);
   const jsonLd = hasNames || hasAreas
