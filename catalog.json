@@ -1030,6 +1030,11 @@
       "label": "MGNREGA by District (2025-26)",
       "unit": "districts",
       "description": "MGNREGA rural jobs scheme by district, financial year 2025-26: spending, wages, households and persondays of work, women, SC and ST participation, works and job cards, plus total spending each year since 2018-19."
+    },
+    "cityfinance_ulbs": {
+      "label": "City Finances (CityFinance.in)",
+      "unit": "ULBs",
+      "description": "Income and expenditure of Indian cities (urban local bodies) from their annual accounts, as standardised by CityFinance.in (MoHUA): tax revenue, fees and user charges, grants, establishment and operation costs, totals and surplus, in rupees, on Swachh Bharat Mission ULB boundaries."
     }
   },
   "level_order": [
@@ -1155,7 +1160,8 @@
     "marine_police_stations",
     "amrit_sarovar_ponds",
     "jjm_facilities",
-    "mgnrega_districts"
+    "mgnrega_districts",
+    "cityfinance_ulbs"
   ],
   "layers": [
     {
@@ -6586,6 +6592,60 @@
         "economy",
         "finance"
       ]
+    },
+    {
+      "id": "cityfinance_ulbs",
+      "level": "cityfinance_ulbs",
+      "source": "CityFinance",
+      "rows": 3368,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.parquet",
+        "bytes": 15265584
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.pmtiles",
+        "bytes": 11330467
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.geojson",
+        "bytes": 51957473
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.kml",
+        "bytes": 44321124
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.shp.zip",
+        "bytes": 19487641
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "CityFinance.in, Ministry of Housing and Urban Affairs",
+          "url": "https://cityfinance.in/"
+        },
+        "publisher": null
+      },
+      "category": "economy",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T13:59:39.037282+00:00",
+      "notes": "Figures from the standardised income statements on CityFinance.in (Ministry of Housing and Urban Affairs; run by NIUA and Janaagraha), in rupees, by National Municipal Accounts Manual line item, as published. Each polygon carries every line item for its latest year with figures (fy) and total income and expenditure for every year it has (2015-16 to 2023-24; few cities have 2017-18 or 2018-19). Tax revenue includes property tax; CityFinance does not publish it separately here. Cities are matched to Swachh Bharat Mission ULB polygons by Census 2011 town code or SBM code, never by name, and only when the states agree; each match must also be corroborated by CityFinance's own location for the city falling on (or within 2 km of) the polygon, or by the two names agreeing. Some SBM codes point at another town; a match failing both checks is left out. Both names are kept (ulbnm from SBM, cf_ulb_name from CityFinance); where they differ, SBM's label is the one that is off (e.g. Bapatla's polygon is named GUNTUR in SBM). Cities with figures but no polygon (including all of West Bengal, which SBM does not map) are not shown. CityFinance states no licence; treated here as GODL-India.",
+      "tags": [
+        "municipal finance",
+        "urban local body",
+        "ULB",
+        "city finance",
+        "property tax",
+        "tax revenue",
+        "own revenue",
+        "income statement",
+        "expenditure",
+        "municipal corporation",
+        "municipality",
+        "nagar panchayat",
+        "NMAM",
+        "MoHUA"
+      ]
     }
   ],
   "state_extracts": [],
@@ -9042,6 +9102,10 @@
     "MoRD": {
       "name": "Ministry of Rural Development (MGNREGA), via data.gov.in",
       "url": "https://www.data.gov.in/"
+    },
+    "CityFinance": {
+      "name": "CityFinance.in, Ministry of Housing and Urban Affairs",
+      "url": "https://cityfinance.in/"
     }
   },
   "licence_summary": {

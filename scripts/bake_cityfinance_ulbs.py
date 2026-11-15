@@ -48,12 +48,14 @@ RAW = ROOT / 'data' / 'raw' / 'cityfinance'
 
 LAYER_ID = 'cityfinance_ulbs'
 BASENAME = 'CityFinance_ULBs'
-R2_PREFIX = 'people/cityfinance-ulbs'
+R2_PREFIX = 'economy/cityfinance-ulbs'
 EXT = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'kml': 'kml', 'shapefile': 'shp.zip'}
 # Outside data/baked/: upload_baked.py mirrors that whole tree to the public bucket.
 SUMMARY = ROOT / 'data' / f'{LAYER_ID}.summary.json'
 UNMATCHED = ROOT / 'data' / f'{LAYER_ID}.unmatched.csv'
 REVIEW = ROOT / 'data' / f'{LAYER_ID}.name_review.csv'
+SBM_CODE_ERRORS = ROOT / 'data' / f'{LAYER_ID}.sbm_code_errors.csv'
+CF_LOCATION_OFF = ROOT / 'data' / f'{LAYER_ID}.cityfinance_location_off.csv'
 
 API = 'https://www.cityfinance.in/api/v1/'
 USER_AGENT = 'Mozilla/5.0 (bharatlas data pull)'
@@ -213,6 +215,49 @@ def match_ulbs(sbm_rows: list[dict], cf_ulbs: list[dict], cf_state_code: dict[st
     return matches, rejects
 
 
+MAX_KM = 2.0  # how far CityFinance's point may sit outside the matched polygon
+
+
+NAME_AGREES = 0.6  # name_similarity at or above which SBM's and CityFinance's names corroborate a code
+
+
+def check_locations(con, src: str, matches: dict, by_id: dict, max_km: float = MAX_KM):
+    """Corroborate each code match with a second, independent signal: CityFinance's
+    own point for the ULB on (or within max_km of) the SBM polygon, or the two
+    names agreeing. A match fails only when both fail: then SBM's code points at
+    another town (Chamarajanagar's polygon carries Yelandur's code).
+    A far point with agreeing names is CityFinance's geocoding (Akola placed at
+    Akole), kept and reported. Returns (kept, dropped, cf_location_off):
+    dropped = [(sbm_index, cf_id, reason, distance_km)],
+    cf_location_off = [(sbm_index, cf_id, distance_km)]."""
+    rows = con.execute(f'SELECT file_row_number, ulbnm, ST_AsWKB(geometry) FROM {src}').fetchall()
+    sbm = {i: (name, wkb) for i, name, wkb in rows}
+    kept, dropped, cf_off = {}, [], []
+    for i, (cf_id, key) in matches.items():
+        u = by_id.get(cf_id, {})
+        name_ok = name_similarity(sbm[i][0] or '', u.get('name') or '') >= NAME_AGREES
+        loc = u.get('location') or {}
+        try:
+            lat, lng = float(loc['lat']), float(loc['lng'])
+        except (KeyError, TypeError, ValueError):
+            if name_ok:
+                kept[i] = (cf_id, key)
+            else:
+                dropped.append((i, cf_id, 'no_coordinates_and_name_differs', None))
+            continue
+        # degrees -> km (overstates east-west a little: errs toward a failed location check)
+        km = con.execute('SELECT ST_Distance(ST_GeomFromWKB(?), ST_Point(?, ?))',
+                         [sbm[i][1], lng, lat]).fetchone()[0] * 111.32
+        if km <= max_km:
+            kept[i] = (cf_id, key)
+        elif name_ok:
+            kept[i] = (cf_id, key)
+            cf_off.append((i, cf_id, round(km, 1)))
+        else:
+            dropped.append((i, cf_id, 'far_and_name_differs', round(km, 1)))
+    return kept, dropped, cf_off
+
+
 def unmatched(finance: dict, matches: dict, rejects: list, ulbs: dict) -> list[tuple[str, str]]:
     """Every ULB with figures that is on no polygon, with the reason."""
     placed = {cf_id for cf_id, _ in matches.values()}
@@ -353,6 +398,23 @@ def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
     sbm_rows = [dict(zip(SBM_COLS, r)) for r in con.execute(
         f"SELECT {', '.join(SBM_COLS)} FROM {src} ORDER BY file_row_number").fetchall()]
     matches, rejects = match_ulbs(sbm_rows, ulbs, states)
+    # Codes can point at another town in SBM: keep a match only where
+    # CityFinance's own point for the ULB is on the polygon.
+    matches, loc_dropped, cf_off = check_locations(con, src, matches, by_id)
+    rejects += [(i, cf_id, f'sbm_code_{why}') for i, cf_id, why, _ in loc_dropped]
+    with CF_LOCATION_OFF.open('w', newline='') as fh:
+        w = csv.writer(fh)
+        w.writerow(['sbm_ulbcode', 'sbm_name', 'cf_ulb_name', 'cf_lat', 'cf_lng', 'distance_km'])
+        for i, cf_id, km in sorted(cf_off, key=lambda x: -x[2]):
+            loc = by_id[cf_id].get('location') or {}
+            w.writerow([sbm_rows[i]['ulbcode'], sbm_rows[i]['ulbnm'], by_id[cf_id].get('name'),
+                        loc.get('lat'), loc.get('lng'), km])
+    with SBM_CODE_ERRORS.open('w', newline='') as fh:
+        w = csv.writer(fh)
+        w.writerow(['sbm_ulbcode', 'sbm_name', 'sbm_state', 'cf_ulb_name_for_that_code', 'reason', 'distance_km'])
+        for i, cf_id, why, km in sorted(loc_dropped, key=lambda x: (x[2], -(x[3] or 0))):
+            r = sbm_rows[i]
+            w.writerow([r['ulbcode'], r['ulbnm'], r['stnm'], by_id.get(cf_id, {}).get('name'), why, km])
 
     fin_cols = finance_columns()
     cf_types = {'cf_ulb_id': 'VARCHAR', 'cf_ulb_name': 'VARCHAR', 'cf_ulb_type': 'VARCHAR',
@@ -407,7 +469,7 @@ def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
         'polygons_matched_by': {k: sum(1 for _, kk in matches.values() if kk == k) for k in ('censusCode', 'sbCode')},
         'polygons_with_figures': sum(1 for cf_id, _ in matches.values() if cf_id in finance),
         'cf_ulbs_with_figures_placed': len(placed & set(finance)),
-        'rejected_matches': {r: sum(1 for *_, rr in rejects if rr == r) for r in ('state_mismatch', 'no_state_code')},
+        'rejected_matches': dict(Counter(rr for *_, rr in rejects)),
         'unmatched_with_figures': dict(Counter(r for _, r in un)),
         'low_name_similarity_matches': len(review),
         'latest_fy': dict(sorted(Counter(f['fy'] for f in finance.values()).items())),
@@ -465,7 +527,11 @@ def notes() -> str:
             'few cities have 2017-18 or 2018-19). Tax revenue includes property tax; '
             'CityFinance does not publish it separately here. Cities are matched to Swachh Bharat Mission '
             'ULB polygons by Census 2011 town code or SBM code, never by name, and only when the states '
-            'agree; both names are kept (ulbnm from SBM, cf_ulb_name from CityFinance). Cities with '
+            'agree; each match must also be corroborated by CityFinance\'s own location for the city '
+            'falling on (or within 2 km of) the polygon, or by the two names agreeing. Some SBM codes point '
+            'at another town; a match failing both checks is left out. Both names are kept '
+            '(ulbnm from SBM, cf_ulb_name from CityFinance); where they differ, SBM\'s label is the one '
+            'that is off (e.g. Bapatla\'s polygon is named GUNTUR in SBM). Cities with '
             'figures but no polygon (including all of West Bengal, which SBM does not map) are not shown. '
             'CityFinance states no licence; treated here as GODL-India.')
 
@@ -481,7 +547,7 @@ def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: 
     entry.update({
         'licence': 'GODL-India',
         'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
-        'category': 'people',
+        'category': 'economy',
         'provenance': 'curated',
         'fetched_at': fetched_at,
         'notes': notes(),
@@ -492,7 +558,7 @@ def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: 
 
 def manifest_entry(rows: int, sizes: dict[str, int]) -> dict:
     return {
-        'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'people',
+        'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'economy',
         'source': SOURCE, 'description': description(), 'unit': 'ULBs', 'features': rows,
         'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
         'parquet_file': f'{BASENAME}.parquet', 'parquet_bytes': sizes['parquet'],
@@ -500,6 +566,14 @@ def manifest_entry(rows: int, sizes: dict[str, int]) -> dict:
         'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
         'notes': notes(), 'tags': TAGS,
     }
+
+
+def upload(out_dir: Path) -> None:
+    """Upload every format to R2, skipping files whose stored md5 matches."""
+    from ingest_ramseraph import r2_client, r2_upload
+    s3 = r2_client()
+    for ext in EXT.values():
+        r2_upload(s3, out_dir / f'{BASENAME}.{ext}', f'{R2_PREFIX}/{BASENAME}.{ext}')
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
@@ -527,7 +601,7 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'register'])
+    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
     ap.add_argument('--max-minutes', type=float, default=20)
     ap.add_argument('--out', type=Path, default=ROOT / 'data' / 'baked' / R2_PREFIX)
     a = ap.parse_args()
@@ -535,6 +609,8 @@ def main() -> None:
         sys.exit(0 if pull(max_minutes=a.max_minutes) else 3)
     elif a.step == 'bake':
         log(json.dumps(bake(a.out), indent=2))
+    elif a.step == 'upload':
+        upload(a.out)
     else:
         register()
 

@@ -233,3 +233,64 @@ def test_name_similarity_flags_a_different_town():
 def test_check_columns_rejects_personal_fields():
     with pytest.raises(ValueError, match='mobile'):
         b.check_columns(['tax_revenue', 'commissioner_mobile'])
+
+
+# ── location check (Nov 2026) ────────────────────────────────────────────────
+# Some SBM codes point at the wrong town. Two kinds: SBM labels Bapatla's
+# polygon "GUNTUR" (code, polygon and figures agree: keep), or SBM gives
+# Chamarajanagar's polygon Yelandur's code (figures belong elsewhere: drop).
+# A match is kept only if CityFinance's own point for the ULB is inside the
+# polygon or within MAX_KM of it.
+
+def _sbm_fixture(tmp_path):
+    import duckdb
+    p = tmp_path / 'sbm.parquet'
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    con.execute(f"""COPY (SELECT * FROM (VALUES
+        ('GUNTUR', ST_GeomFromText('POLYGON((80.46 15.87, 80.51 15.87, 80.51 15.92, 80.46 15.92, 80.46 15.87))')),
+        ('CHAMARAJANAGAR', ST_GeomFromText('POLYGON((76.92 11.90, 76.97 11.90, 76.97 11.95, 76.92 11.95, 76.92 11.90))'))
+    ) t(ulbnm, geometry)) TO '{p}' (FORMAT PARQUET)""")
+    return con, f"read_parquet('{p}', file_row_number = true)"
+
+
+def test_a_match_is_kept_when_the_cityfinance_point_is_on_the_polygon(tmp_path):
+    con, src = _sbm_fixture(tmp_path)
+    by_id = {'bapatla': {'name': 'Bapatla Municipality', 'location': {'lat': '15.9048', 'lng': '80.4744'}},  # inside polygon 0
+             'yelandur': {'name': 'Yelandur Town Panchayat', 'location': {'lat': '12.0469', 'lng': '77.0296'}}}  # ~15 km off
+    kept, dropped, cf_off = b.check_locations(con, src, {0: ('bapatla', 'censusCode'), 1: ('yelandur', 'censusCode')}, by_id)
+    assert kept == {0: ('bapatla', 'censusCode')} and cf_off == []
+    assert [(i, c, why) for i, c, why, _ in dropped] == [(1, 'yelandur', 'far_and_name_differs')]
+    assert dropped[0][3] > 10  # distance in km is reported
+
+
+def test_a_far_point_with_the_same_name_is_cityfinance_s_geocoding_and_is_kept(tmp_path):
+    # Akola's SBM polygon is Akola city; CityFinance placed its point at Akole
+    # (Ahmednagar), 350 km away. Code and name agree, so the figures are Akola's.
+    con, src = _sbm_fixture(tmp_path)
+    by_id = {'cmc': {'name': 'Chamarajanagar City Municipal Council', 'location': {'lat': '19.54', 'lng': '74.01'}}}
+    kept, dropped, cf_off = b.check_locations(con, src, {1: ('cmc', 'censusCode')}, by_id)
+    assert kept == {1: ('cmc', 'censusCode')} and dropped == []
+    assert [(i, c) for i, c, _ in cf_off] == [(1, 'cmc')]
+
+
+def test_a_point_just_outside_within_the_tolerance_is_kept(tmp_path):
+    con, src = _sbm_fixture(tmp_path)
+    by_id = {'near': {'name': 'Somewhere Else', 'location': {'lat': '15.93', 'lng': '80.48'}}}  # ~1 km north of polygon 0
+    kept, dropped, _ = b.check_locations(con, src, {0: ('near', 'sbCode')}, by_id)
+    assert kept == {0: ('near', 'sbCode')} and dropped == []
+
+
+def test_without_coordinates_only_the_name_can_corroborate(tmp_path):
+    con, src = _sbm_fixture(tmp_path)
+    by_id = {'x': {'name': 'Other Town', 'location': {}}, 'g': {'name': 'Guntur Municipal Corporation', 'location': {}}}
+    kept, dropped, _ = b.check_locations(con, src, {0: ('x', 'censusCode')}, by_id)
+    assert kept == {} and dropped[0][2] == 'no_coordinates_and_name_differs'
+    kept, dropped, _ = b.check_locations(con, src, {0: ('g', 'censusCode')}, by_id)
+    assert kept == {0: ('g', 'censusCode')} and dropped == []
+
+
+def test_the_layer_lives_under_economy_and_finance():
+    e = b.catalog_entry(10, {f: 1 for f in b.EXT}, '2026-11-15T00:00:00+00:00', 'https://r2.example')
+    assert e['category'] == 'economy' and b.R2_PREFIX == 'economy/cityfinance-ulbs'
+    assert '2 km' in e['notes'] and e['licence'] == 'GODL-India'
