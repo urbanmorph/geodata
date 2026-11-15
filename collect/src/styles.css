@@ -90,9 +90,10 @@ strong { font-weight: 650; letter-spacing: -.01em; }
 }
 .topbar a { color: var(--fg); text-decoration: none; font-size: 20px; line-height: 1; }
 .topbar > span:first-of-type { font-size: 17px; }
+.topbar .collect-name { font-weight: 800; letter-spacing: -.025em; } /* the collect wordmark, as heavy as bharatlas */
 .topbar .muted { color: var(--muted); font-weight: 400; font-size: 13px; letter-spacing: 0; }
 /* bharatlas wordmark — matches apex: bhar + accent "atlas" */
-.topbar .brand { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 700; letter-spacing: -.02em; color: var(--fg); text-decoration: none; }
+.topbar .brand { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; font-size: 16px; font-weight: 800; letter-spacing: -.025em; color: var(--fg); text-decoration: none; }
 .topbar .brand .brand-mark { flex: none; }
 
 /* ── action buttons: one shape, one height ─────────────────────────────── */

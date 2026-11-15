@@ -9,6 +9,7 @@ import {
   wordmarkHtml,
   faviconSvg,
   collectFaviconSvg,
+  WORDMARK_CSS,
 } from '../../shared/brand.mjs';
 
 // WCAG 2.x relative luminance + contrast ratio.
@@ -142,5 +143,16 @@ describe('every surface uses the brand (no leftover violet)', () => {
       const lines = read(f).split('\n').filter((l) => l.includes('var(--accent-fill)'));
       for (const l of lines) expect(l, `${f}: ${l.trim()}`).not.toMatch(/color: ?#fff\b/);
     }
+  });
+});
+
+describe('wordmark weight', () => {
+  it('is heavy (800) everywhere the name is set', () => {
+    expect(WORDMARK_CSS).toContain('font-weight: 800');
+    expect(read('web/submit.html')).toContain(WORDMARK_CSS);
+    const css = read('collect/src/styles.css');
+    expect(css).toMatch(/\.topbar \.brand \{[^}]*font-weight: 800/);
+    expect(css).toMatch(/\.topbar \.collect-name \{[^}]*font-weight: 800/);
+    expect(read('collect/src/landing.ts')).toContain('<span class="collect-name">collect</span>');
   });
 });

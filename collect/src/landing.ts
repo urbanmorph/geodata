@@ -67,7 +67,7 @@ function recordsList(m: SavedMap): string {
 // create flow. focusSync brings the sync section into view (from "Set up sync").
 function home(focusSync = false) {
   app.innerHTML = `
-    <div class="topbar"><span>collect</span>${wordmarkHtml({ href: 'https://bharatlas.com', className: 'brand', size: 18 })}</div>
+    <div class="topbar"><span class="collect-name">collect</span>${wordmarkHtml({ href: 'https://bharatlas.com', className: 'brand', size: 18 })}</div>
     <div class="pad">
       <h1>Make a map, collect together</h1>
       <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Download the data, or publish it to the bharatlas catalog when it's ready.</p>

@@ -80,6 +80,6 @@ export function wordmarkHtml({ href = '/', tagline = '', className = 'site-brand
 }
 
 /** Layout CSS for the wordmark; colours come from the theme tokens. */
-export const WORDMARK_CSS = `.site-brand { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-ink); text-decoration: none; font-weight: 700; letter-spacing: -.02em; }
+export const WORDMARK_CSS = `.site-brand { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-ink); text-decoration: none; font-weight: 800; letter-spacing: -.025em; }
   .site-brand:hover { text-decoration: none; }
   .site-brand .brand-mark { flex: none; }`;
