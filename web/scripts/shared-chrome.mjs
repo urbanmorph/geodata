@@ -3,6 +3,7 @@
 // 11/12/13/14/16/20/28/36. Radii 4/6/8/12. Pure module so vitest can test
 // renderNav() etc.
 import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../shared/brand.mjs';
+import { footerHtml } from '../../shared/footer.mjs';
 
 export const TOKENS = `
   :root {
@@ -152,13 +153,5 @@ export function renderNav(activeKey) {
     <script type="module" src="/src/install.ts"></script>`;
 }
 
-export const FOOTER = `<footer class="site-footer">
-      <p>Open licences only. Each layer carries its source link on the card.</p>
-      <p>
-        <a href="/privacy">privacy</a> ·
-        <a href="/terms">terms</a> ·
-        <a href="https://github.com/urbanmorph/geodata">code</a> ·
-        made by <a href="https://urbanmorph.com">urbanmorph</a> ·
-        a digital commons · <a href="https://pdgi.org">pdgi.org</a>
-      </p>
-    </footer>`;
+// One footer for every surface (shared/footer.mjs).
+export const FOOTER = footerHtml();

@@ -6,6 +6,7 @@ import { myMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { startCreate } from './create/wizard';
 import { mountInstallButton } from '../../web/src/install-button';
 import { wordmarkHtml } from '../../shared/brand.mjs';
+import { footerLinksHtml } from '../../shared/footer.mjs';
 import { syncSecretFrom } from './keyring';
 import { syncState, syncDevice, setUpSync, joinSync, turnOffSync, startAutoSync, unlockWithPasskey, SyncGone } from './syncing';
 import { passkeysAvailable } from './passkey';
@@ -79,7 +80,7 @@ function home(focusSync = false) {
       <div id="sync"></div>
       <footer class="foot-note">
         <span>Part of <a href="https://bharatlas.com">bharatlas</a>, built for the field and optimised for mobile.</span>
-        <span><a href="https://bharatlas.com/about">About</a> · <a href="https://bharatlas.com/terms">Terms</a></span>
+        <span>${footerLinksHtml({ absolute: true })}</span>
       </footer>
     </div>`;
   app.querySelector('#install-slot')!.replaceWith(installBtn);

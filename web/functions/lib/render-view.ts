@@ -17,6 +17,7 @@ import type { SubmissionView } from './submissions';
 import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../../shared/brand.mjs';
 import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
 import { licenceUrl } from '../../../shared/licences.mjs';
+import { footerHtml } from '../../../shared/footer.mjs';
 
 const PUBLIC_ORIGIN = 'https://bharatlas.com';
 
@@ -235,11 +236,7 @@ export function renderViewPage(opts: RenderOpts): string {
       </button>
     </div>
 
-    <footer class="site-footer">
-      <p>Anyone can submit a layer at <a href="/preview">/preview</a> — open licences only.
-      All community submissions are auto-moderated; the platform doesn't vouch for accuracy.
-      Verify provenance via the source link above.</p>
-    </footer>
+    ${footerHtml({ note: "A community layer: bharatlas doesn't vouch for its accuracy, so check it against the source link above. Anyone can add a layer under an open licence." })}
 
     <script src="/c-vote.js" defer></script>
   </body>
