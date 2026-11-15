@@ -329,7 +329,7 @@ const LEVEL_ORDER = [...BUILTIN_LEVEL_ORDER, ...externalLevels];
 // this list fall to the end in catalog.categories declaration order.
 const CATEGORY_ORDER = [
   'boundaries', 'city-wards', 'people', 'environment', 'agriculture',
-  'transport', 'infrastructure', 'culture', 'health-edu', 'other',
+  'transport', 'infrastructure', 'culture', 'health-edu', 'economy', 'other',
 ];
 
 // Search-index alias dictionary + haystack builders live in
