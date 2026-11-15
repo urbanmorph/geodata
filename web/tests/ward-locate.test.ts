@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { wardLayersAt, resolveLocateLayers, FALLBACK_WARD_LAYER, wardFallbackNeeded, mergeLocateResults } from '../functions/lib/ward-locate';
+import { wardLayersAt, resolveLocateLayers, FALLBACK_WARD_LAYER, wardFallbackNeeded, mergeLocateResults, fallbackWardLayers } from '../functions/lib/ward-locate';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate';
 
@@ -143,5 +143,19 @@ describe('second-pass ward fallback', () => {
     const merged = mergeLocateResults(
       { boundaries: [ward('lgd_states')] }, { 'city-wards': [ward('sbm_wards')], boundaries: [ward('x')] });
     expect(merged).toEqual({ boundaries: [ward('lgd_states'), ward('x')], 'city-wards': [ward('sbm_wards')] });
+  });
+});
+
+describe('West Bengal ward fallback', () => {
+  // SBM's national ward layer has no West Bengal; WB AMRUT wards cover 52 towns there.
+  it('adds the WB AMRUT wards only for points in West Bengal', () => {
+    expect(fallbackWardLayers(88.31, 22.59)).toEqual(['sbm_wards', 'wb_amrut_wards']); // Howrah
+    expect(fallbackWardLayers(79.09, 21.15)).toEqual(['sbm_wards']); // Nagpur
+  });
+  it('the default path in West Bengal asks both fallback layers', () => {
+    expect(resolveLocateLayers(null, 88.31, 22.59, DEFAULTS, FIX, 0)).toEqual([...DEFAULTS, 'sbm_wards', 'wb_amrut_wards']);
+  });
+  it('no second pass once a fallback layer was asked', () => {
+    expect(wardFallbackNeeded(null, ['wb_amrut_wards'], { boundaries: [] })).toBe(false);
   });
 });

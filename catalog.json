@@ -1090,6 +1090,26 @@
       "notes": "",
       "seo_title": "Chennai Zone Map: 15 zones (GCC)",
       "seo_description": "Map of Greater Chennai Corporation's 15 zones (plus St. Thomas Mount). View zone boundaries; download as GeoJSON, KML or Parquet."
+    },
+    "wb_amrut_wards": {
+      "label": "Urban wards, West Bengal (AMRUT)",
+      "unit": "wards",
+      "description": "Ward boundaries for 52 West Bengal towns and cities from the state AMRUT GIS, with ward number, town and district codes. Fills the West Bengal gap in the national SBM wards; Kolkata has its own ward map."
+    },
+    "wb_amrut_ulbs": {
+      "label": "Towns and cities, West Bengal (AMRUT)",
+      "unit": "towns and cities",
+      "description": "Boundaries of 57 West Bengal urban local bodies (municipal corporations, municipalities and development authorities) from the state AMRUT GIS. Kolkata is not included."
+    },
+    "ir_stations": {
+      "label": "Railway stations (Indian Railways GIS)",
+      "unit": "stations",
+      "description": "Railway stations and halts from the Indian Railways GIS portal, with station code, category, zone, division, section and state. About a third have no station name in the source."
+    },
+    "ir_tracks": {
+      "label": "Railway tracks (Indian Railways GIS)",
+      "unit": "track segments",
+      "description": "Railway track segments from the Indian Railways GIS portal, with section, zone, division, chainage and state."
     }
   },
   "level_order": [
@@ -1222,7 +1242,11 @@
     "zones_bengaluru_gba",
     "wards_pune_2025",
     "zones_pune",
-    "zones_chennai"
+    "zones_chennai",
+    "wb_amrut_wards",
+    "wb_amrut_ulbs",
+    "ir_stations",
+    "ir_tracks"
   ],
   "layers": [
     {
@@ -6953,6 +6977,166 @@
       "provenance": "curated",
       "fetched_at": "2026-11-15T14:39:39+00:00",
       "notes": "Greater Chennai Corporation: 15 zones, plus St. Thomas Mount as a 16th area, from Transparent Chennai via DataMeet."
+    },
+    {
+      "id": "wb_amrut_wards",
+      "level": "wb_amrut_wards",
+      "source": "WBAMRUT",
+      "rows": 1633,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-wards/WB_AMRUT_Wards.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/WB_AMRUT_Wards.parquet",
+        "bytes": 5390936
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-wards/WB_AMRUT_Wards.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/WB_AMRUT_Wards.pmtiles",
+        "bytes": 2105594
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "West Bengal AMRUT (Nagar GIS Pariseva)",
+          "url": "https://nagargispariseva.wb.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from West Bengal AMRUT (Nagar GIS Pariseva). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-wards/WB_AMRUT_Wards.geojson",
+        "bytes": 20324161
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-wards/WB_AMRUT_Wards.kml",
+        "bytes": 17671611
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-wards/WB_AMRUT_Wards.shp.zip",
+        "bytes": 5876880
+      },
+      "fetched_at": "2026-11-15T14:41:41+00:00"
+    },
+    {
+      "id": "wb_amrut_ulbs",
+      "level": "wb_amrut_ulbs",
+      "source": "WBAMRUT",
+      "rows": 57,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-ulbs/WB_AMRUT_ULBs.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/WB_AMRUT_ULBs.parquet",
+        "bytes": 1250778
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-ulbs/WB_AMRUT_ULBs.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/WB_AMRUT_ULBs.pmtiles",
+        "bytes": 467181
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "West Bengal AMRUT (Nagar GIS Pariseva)",
+          "url": "https://nagargispariseva.wb.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "boundaries",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from West Bengal AMRUT (Nagar GIS Pariseva). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-ulbs/WB_AMRUT_ULBs.geojson",
+        "bytes": 2933161
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-ulbs/WB_AMRUT_ULBs.kml",
+        "bytes": 2382564
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-ulbs/WB_AMRUT_ULBs.shp.zip",
+        "bytes": 1126185
+      },
+      "fetched_at": "2026-11-15T14:41:45+00:00"
+    },
+    {
+      "id": "ir_stations",
+      "level": "ir_stations",
+      "source": "IRGIS",
+      "rows": 12780,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations/IR_Stations.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/railways/IR_Stations.parquet",
+        "bytes": 1204554
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations/IR_Stations.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/railways/IR_Stations.pmtiles",
+        "bytes": 4981941
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Indian Railways GIS portal (CRIS)",
+          "url": "https://irgeoportal.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Indian Railways GIS portal (CRIS). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations/IR_Stations.geojson",
+        "bytes": 12125215
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations/IR_Stations.kml",
+        "bytes": 21931088
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations/IR_Stations.shp.zip",
+        "bytes": 1245427
+      },
+      "fetched_at": "2026-11-15T14:41:55+00:00"
+    },
+    {
+      "id": "ir_tracks",
+      "level": "ir_tracks",
+      "source": "IRGIS",
+      "rows": 35545,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-tracks/IR_Tracks.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/railways/IR_Tracks.parquet",
+        "bytes": 12077709
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-tracks/IR_Tracks.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/railways/IR_Tracks.pmtiles",
+        "bytes": 12354942
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Indian Railways GIS portal (CRIS)",
+          "url": "https://irgeoportal.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Indian Railways GIS portal (CRIS). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-tracks/IR_Tracks.geojson",
+        "bytes": 53379578
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-tracks/IR_Tracks.kml",
+        "bytes": 65351232
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-tracks/IR_Tracks.shp.zip",
+        "bytes": 13881942
+      },
+      "fetched_at": "2026-11-15T14:42:16+00:00"
     }
   ],
   "state_extracts": [],

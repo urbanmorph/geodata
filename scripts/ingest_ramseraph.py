@@ -561,7 +561,8 @@ DATASETS: list[Dataset] = [
     # ── Facilities batch (Nov 2026) ────────────────────────────────────
     # Licences traced to the original: hospitals = data.gov.in (GODL);
     # schools = NCOG states no terms, so the compiler's CC0 applies. Held
-    # (original requires permission): RBI branches, PostalGIS, IR stations/tracks.
+    # (original requires permission): RBI branches, PostalGIS. IR stations/tracks
+    # came in later under policy B (see below).
     Dataset(
         id='nhp_hospitals',
         name='Hospitals directory (NHP 2025)',
@@ -650,6 +651,13 @@ DATASETS: list[Dataset] = [
     republished('marine_police_stations', 'Marine police station areas (NCOG)', 'people', 'NCOG', 'indian_admin_boundaries/police', 'NCOG_Marine_Police_Boundaries', 'Coastal villages grouped by marine police station, with LGD state, district and sub-district codes.', 'areas', 'https://ncog.gov.in/', 'National Centre of Geo-informatics (BISAG-N)', 'vname', 'people/marine-police-stations'),
     republished('amrit_sarovar_ponds', 'Amrit Sarovar ponds', 'water', 'AmritSarovar', 'indian_water_features/waterbodies', 'Amrit_Sarovar_Water_Observatory_Ponds', 'Ponds built or rejuvenated under Mission Amrit Sarovar (mostly via MGNREGA), with status, scheme, village, block and district.', 'ponds', 'https://amritsarovar.gov.in/', 'Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory', 'Name_of_Sarovar', 'water/amrit-sarovar-ponds'),
     republished('jjm_facilities', 'Jal Jeevan Mission facilities', 'infrastructure', 'JJM', 'indian_facilities/jjm-facilities', 'JJM_facilities', 'Schools, anganwadis and other public institutions in rural habitations recorded by the Jal Jeevan Mission, with category, class and LGD village code.', 'facilities', 'https://jaljeevanmission.gov.in/', 'Jal Jeevan Mission (Ministry of Jal Shakti)', 'fac_name', 'infrastructure/jjm-facilities'),
+    # ── West Bengal wards + Indian Railways (Nov 2026, policy B) ────────
+    # SBM wards have no West Bengal; WB AMRUT covers 52 towns (not Kolkata,
+    # which has wards_kolkata). Railways were held until policy B.
+    republished('wb_amrut_wards', 'Urban wards, West Bengal (AMRUT)', 'city-wards', 'WBAMRUT', 'indian_admin_boundaries/urban', 'WB_AMRUT_Wards', 'Ward boundaries for 52 West Bengal towns and cities from the state AMRUT GIS, with ward number, town and district codes. Fills the West Bengal gap in the national SBM wards; Kolkata has its own ward map.', 'wards', 'https://nagargispariseva.wb.gov.in/', 'West Bengal AMRUT (Nagar GIS Pariseva)', 'Ward_No', 'boundaries/wb-amrut-wards'),
+    republished('wb_amrut_ulbs', 'Towns and cities, West Bengal (AMRUT)', 'boundaries', 'WBAMRUT', 'indian_admin_boundaries/urban', 'WB_AMRUT_ULBs', 'Boundaries of 57 West Bengal urban local bodies (municipal corporations, municipalities and development authorities) from the state AMRUT GIS. Kolkata is not included.', 'towns and cities', 'https://nagargispariseva.wb.gov.in/', 'West Bengal AMRUT (Nagar GIS Pariseva)', 'Name', 'boundaries/wb-amrut-ulbs'),
+    republished('ir_stations', 'Railway stations (Indian Railways GIS)', 'transport', 'IRGIS', 'indian_transport/railways', 'IR_Stations', 'Railway stations and halts from the Indian Railways GIS portal, with station code, category, zone, division, section and state. About a third have no station name in the source.', 'stations', 'https://irgeoportal.gov.in/', 'Indian Railways GIS portal (CRIS)', 'sttnname', 'transport/ir-stations'),
+    republished('ir_tracks', 'Railway tracks (Indian Railways GIS)', 'transport', 'IRGIS', 'indian_transport/railways', 'IR_Tracks', 'Railway track segments from the Indian Railways GIS portal, with section, zone, division, chainage and state.', 'track segments', 'https://irgeoportal.gov.in/', 'Indian Railways GIS portal (CRIS)', 'tmssection', 'transport/ir-tracks'),
 ]
 
 

@@ -61,18 +61,18 @@ bharatlas is a catalog of India's open geo layers, from the national boundary do
 
 ## Layers and sources
 
-The live catalog lists 144 layers (`GET /api/v1/layers`, checked 15 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
+The live catalog lists 148 layers (`GET /api/v1/layers`, checked 15 November 2026), plus community submissions (`GET /api/v1/submissions`). Counts by category, from `GET /api/v1/categories`:
 
 | Category | Layers | Examples |
 |---|---:|---|
-| Boundaries | 21 | `lgd_states` to `lgd_villages`; SOI, Bhuvan and geoBoundaries alternates; PMGSY blocks and habitations; town and city boundaries (SBM) |
-| City wards | 40 | `wards_bengaluru_gba`, `wards_chennai`, `wards_mumbai`, `wards_delhi`; BDA jurisdiction and layouts; `sbm_wards` (about 3,300 towns and cities); Kalyan-Dombivli wards; Pune 2025 administrative wards; zones for Greater Bengaluru, Pune and Chennai |
+| Boundaries | 22 | `lgd_states` to `lgd_villages`; SOI, Bhuvan and geoBoundaries alternates; PMGSY blocks and habitations; town and city boundaries (SBM); West Bengal town boundaries (AMRUT) |
+| City wards | 41 | `wards_bengaluru_gba`, `wards_chennai`, `wards_mumbai`, `wards_delhi`; BDA jurisdiction and layouts; `sbm_wards` (about 3,300 towns and cities); Kalyan-Dombivli wards; Pune 2025 administrative wards; zones for Greater Bengaluru, Pune and Chennai; West Bengal wards (AMRUT, 52 towns) |
 | Water | 22 | WRIS rivers, canals, basins, dams, reservoirs; CGWB aquifers and groundwater extraction; groundwater quality pre- and post-monsoon (Bhuvan); Amrit Sarovar ponds; India Flood Inventory; NDEM floods 1998-2022 |
 | Infrastructure and utilities | 13 | pincode polygons, VEDAS power plants and transmission lines, Jal Jeevan Mission facilities, Overture places |
 | Environment | 21 | forest circles, divisions, ranges and beats (FSI); wildlife sanctuaries, reserves and corridors; eco-sensitive zones; Coastal Regulation Zones 2019; geology, coal blocks, critical minerals and lineaments (GSI); seismic zones, landslides, earthquakes, cyclone tracks |
 | People and places | 13 | parliament and assembly constituencies, high courts, NGT zones, NCLT benches; police station jurisdictions (Andhra Pradesh, Bihar, Delhi, Tamil Nadu, Telangana, marine) |
 | Agriculture and land use | 4 | agro-ecological and agro-climatic zones, soil health, land use by block |
-| Transport and mobility | 3 | highways, airports, PMGSY roads |
+| Transport and mobility | 5 | highways, airports, PMGSY roads; Indian Railways stations and tracks |
 | Health and education | 4 | NIC HealthGIS health facilities; NHP hospital directory and NIN health facilities (2025); UDISE schools (2.9 million) |
 | Economy and finance | 3 | MGNREGA by district (2025-26): spending, wages, persondays, households, women, SC and ST work, with yearly spend since 2018-19; city finances from CityFinance.in: income and expenditure by account head for about 3,000 towns and cities; state economy and finance: GSDP, per-capita NSDP, debt, GST and direct tax, MUDRA, KCC and Jan Dhan accounts |
 

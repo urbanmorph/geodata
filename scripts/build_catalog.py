@@ -3,7 +3,7 @@ Generate catalog.json from local files. Single source of truth for the viewer.
 
 Run after scripts/fetch.sh + scripts/extract_per_state.py.
 """
-import json, os, sys
+import json, sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -125,6 +125,8 @@ ATTR = {
     'JJM':           {'name': 'Jal Jeevan Mission (Ministry of Jal Shakti)', 'url': 'https://jaljeevanmission.gov.in/'},
     'MoRD':          {'name': 'Ministry of Rural Development (MGNREGA), via data.gov.in', 'url': 'https://www.data.gov.in/'},
     'SBM':           {'name': 'Swachh Bharat Mission (Urban), MoHUA', 'url': 'https://sbmurban.org/'},
+    'WBAMRUT':       {'name': 'West Bengal AMRUT (Nagar GIS Pariseva)', 'url': 'https://nagargispariseva.wb.gov.in/'},
+    'IRGIS':         {'name': 'Indian Railways GIS portal (CRIS)', 'url': 'https://irgeoportal.gov.in/'},
     'VEDAS':         {'name': 'ISRO VEDAS Energymap',         'url': 'https://vedas.sac.gov.in/energymap/'},
     'SLUSI':         {'name': 'SLUSI (Soil & Land Use Survey of India)', 'url': 'https://slusi.dacnet.nic.in/'},
     # Wave 2 — natural disasters.
