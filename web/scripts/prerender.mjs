@@ -1,6 +1,7 @@
 // Build-time prerender: produce one large card per admin level.
 // Zero JS needed to read or navigate the catalog.
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
+import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads } from './download-counts.mjs';
 import { existsSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,6 +20,10 @@ if (!existsSync(catalogPath)) {
   process.exit(1);
 }
 const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
+// Live download counts (falls back to the catalog snapshot if unreachable).
+const liveCounts = await fetchLiveCounts();
+const dlCounts = bakedCounts(catalog, liveCounts);
+console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
 await copyFile(catalogPath, resolve(WEB, 'public', 'catalog.json'));
 
 // Keep in sync with web/src/format-hints.ts:fmtBytes
@@ -365,8 +370,7 @@ function dlUrl(r2Url, fmt) {
 }
 
 function countFor(layer, fmt) {
-  const cnt = catalog.download_counts?.[layer.id]?.['']?.[fmt];
-  return typeof cnt === 'number' && cnt > 0 ? cnt : 0;
+  return layerCount(dlCounts, layer.id, fmt);
 }
 
 function downloadLinks(layer) {
@@ -898,10 +902,7 @@ const out = tmpl
   .replace('<!-- FOOTER -->', FOOTER)
   .replace('<!-- CATALOG_INLINE -->', `<script type="application/json" id="catalog-data">${inlineCatalog}</script>`)
   .replace('<!-- DOWNLOAD_TOTAL -->', (() => {
-    const dc = catalog.download_counts || {};
-    const total = Object.values(dc).reduce(
-      (sum, layer) => sum + Object.values(layer).reduce(
-        (s2, state) => s2 + Object.values(state).reduce((s3, n) => s3 + n, 0), 0), 0);
+    const total = totalDownloads(dlCounts);
     return total > 0 ? ` · <span class="search-meta__count">${fmtCount(total)}</span> downloads` : '';
   })());
 
@@ -942,7 +943,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'What licences apply?',
-    a: 'Curated layers carry CC0-1.0, CC-BY-4.0, ODbL-1.0, GODL-India, CDLA-Permissive-2.0 or Apache-2.0 depending on the upstream source (each card names its licence). Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
+    a: 'Curated layers carry CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, ODbL-1.0, GODL-India, MIT, or CDLA-Permissive-2.0 / Apache-2.0 depending on the source (each card names its licence). Publicly funded government geodata is republished with full credit to the publishing department; data under a non-commercial licence, privately owned data without an open licence, and personal data are left out, and publishers can ask for corrections or removal. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
   },
   {
     q: 'Is my file uploaded when I drop it?',

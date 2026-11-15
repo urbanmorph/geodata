@@ -1,7 +1,7 @@
 import type { Env } from '../_middleware';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { locate, DEFAULT_LOCATE_LAYERS } from '../../lib/locate';
-import { resolveLocateLayers } from '../../lib/ward-locate';
+import { resolveLocateLayers, wardFallbackNeeded, mergeLocateResults, FALLBACK_WARD_LAYER } from '../../lib/ward-locate';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -29,6 +29,14 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   const catalog = await loadCatalog(url.origin);
   const result = await locate(lat, lng, layerIds, zoom, catalog, ctx.env.R2);
+
+  // A city ward layer chosen by bbox can miss the point (Jaipur's layer is
+  // Greater Jaipur only): ask the national SBM ward layer as a second pass.
+  if (wardFallbackNeeded(url.searchParams.get('layers'), layerIds, result.results)) {
+    const extra = await locate(lat, lng, [FALLBACK_WARD_LAYER], zoom, catalog, ctx.env.R2);
+    result.results = mergeLocateResults(result.results, extra.results);
+    result.queried_layers = [...result.queried_layers, ...extra.queried_layers];
+  }
 
   return new Response(JSON.stringify(result), {
     headers: {
