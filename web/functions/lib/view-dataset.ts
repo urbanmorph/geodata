@@ -93,8 +93,9 @@ export function resolveLevelMeta(
   return catalogLevelMeta?.[layer.id] ?? (layer.level ? BUILTIN_LEVEL_META[layer.level] : undefined);
 }
 
-function mapLicenceUrl(licence: string): string {
+export function mapLicenceUrl(licence: string): string {
   if (licence.includes('CC0')) return 'https://creativecommons.org/publicdomain/zero/1.0/';
+  if (licence.includes('CC-BY-SA-2.5-IN')) return 'https://creativecommons.org/licenses/by-sa/2.5/in/';
   if (licence.includes('CC-BY-SA')) return 'https://creativecommons.org/licenses/by-sa/4.0/';
   if (licence.includes('CC-BY')) return 'https://creativecommons.org/licenses/by/4.0/';
   if (licence.includes('ODbL')) return 'https://opendatacommons.org/licenses/odbl/1-0/';
@@ -142,7 +143,7 @@ function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> 
 // (the catalog carries no column schema) for whether the layer actually has
 // area names. Only claim "name" / "area names" when it's there; never promise
 // data the layer doesn't have. Data is what it is.
-export function wardSeo(seoTitle: string, count: string | null, origDescription?: string): {
+export function wardSeo(seoTitle: string, count: string | null, origDescription?: string, zones = 0): {
   description: string;
   howTo: Record<string, unknown>;
 } {
@@ -151,7 +152,10 @@ export function wardSeo(seoTitle: string, count: string | null, origDescription?
   const n = count ? `${count} ` : '';
   const named = /\bnames?\b/i.test(origDescription || '');
   const youGet = named ? 'ward number and name' : 'ward number';
-  const tail = named ? `${n}${place} wards with area names` : `${n}${place} wards`;
+  // A layer with zones answers "zone wise ward list <city>"; say so instead of the ward count.
+  const tail = zones
+    ? `${place} zone-wise ward list for ${zones} zones`
+    : named ? `${n}${place} wards with area names` : `${n}${place} wards`;
   return {
     description:
       `Which ward is your location in? Tap the map for your ${youGet}. ` +
@@ -172,7 +176,7 @@ export function wardSeo(seoTitle: string, count: string | null, origDescription?
 
 /** One ward: its number, its name as the layer gives it ('' when none), and, view-only, the OpenStreetMap
  *  places inside it (scripts/fetch_osm_areas.py; never part of the layer or its downloads). */
-export type WardRow = { no: string; name: string; areas?: string[] };
+export type WardRow = { no: string; name: string; areas?: string[]; zone?: string };
 
 // A ward layer's resolved number↔area pairs, baked by scripts/build_ward_index.py
 // (which reads the parquet and maps each layer's idiosyncratic columns down to
@@ -259,6 +263,36 @@ export function buildWardTable(idx: WardIndex | null | undefined): {
   return { html, jsonLd };
 }
 
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? '' : 's'}`;
+// "1" reads "Zone 1"; a value that names itself ("North Zone", "Zone-3") stays as the source writes it.
+const zoneLabel = (z: string) => (/zone/i.test(z) ? z : `Zone ${z}`);
+const wardItem = (r: WardRow) => `<li>Ward ${esc(r.no)}${r.name && r.name !== r.zone ? ` ${esc(r.name)}` : ''}</li>`;
+
+// The zone-wise ward list ("zone wise ward list lucknow", "bhopal nagar nigam zone list"): the wards grouped under
+// the zone the layer's own zone column gives them (scripts/build_ward_index.py). Rendered only when the layer has
+// at least two zones; wards the source gives no zone are named as such, never placed in one.
+export function buildZoneList(idx: WardIndex | null | undefined): { html: string; zones: number } {
+  const groups = new Map<string, WardRow[]>();
+  for (const r of idx?.rows ?? []) {
+    if (r.zone) groups.set(r.zone, [...(groups.get(r.zone) ?? []), r]);
+  }
+  if (!idx || groups.size < 2) return { html: '', zones: 0 };
+  const zoned = [...groups.values()].reduce((n, rows) => n + rows.length, 0);
+  const unzoned = idx.rows.filter((r) => !r.zone);
+  const sections = [...groups]
+    .sort(([a], [b]) => a.localeCompare(b, 'en', { numeric: true }))
+    .map(([z, rows]) => `<h3>${esc(zoneLabel(z))} (${plural(rows.length, 'ward')})</h3><ul>${rows.map(wardItem).join('')}</ul>`)
+    .join('');
+  const none = unzoned.length
+    ? ` ${plural(unzoned.length, 'ward')} ${unzoned.length === 1 ? 'has' : 'have'} no zone in the source: ` +
+      `${unzoned.map((r) => `Ward ${esc(r.no)}`).join(', ')}.`
+    : '';
+  const html =
+    `<section class="ward-zones"><h2>${esc(idx.place)} zone-wise ward list</h2>` +
+    `<p>${plural(zoned, 'ward')} in ${groups.size} zones, as the source groups them.${none}</p>${sections}</section>`;
+  return { html, zones: groups.size };
+}
+
 export function buildViewDataset(
   layer: CatalogLayer,
   levelMeta: LevelMeta | undefined,
@@ -271,7 +305,9 @@ export function buildViewDataset(
   // Ward layers are the #1 search intent ("which ward am I in"); override the
   // dataset-framed snippet with a task-framed one + HowTo. Titles stay as-is —
   // they already match the dominant "<city> ward map" / "<corp> ward map" query.
-  const ward = /^wards_/.test(layer.id) ? wardSeo(title, count, levelMeta?.seo_description) : null;
+  const ward = /^wards_/.test(layer.id)
+    ? wardSeo(title, count, levelMeta?.seo_description, buildZoneList(wardIndex).zones)
+    : null;
   const baseDescription =
     ward?.description ??
     levelMeta?.seo_description ??
@@ -399,7 +435,7 @@ export function buildViewContent(
   // carries names) and the city cross-link cluster. Both are empty strings on
   // non-ward layers, so the article shape is unchanged there.
   const isWard = /^wards_/.test(layer.id);
-  const wardTable = isWard ? buildWardTable(wardIndex).html : '';
+  const wardTable = isWard ? buildZoneList(wardIndex).html + buildWardTable(wardIndex).html : '';
   const crosslinks = isWard ? renderWardCrosslinks(layer.id) : '';
   const around = isWard ? renderAround(layer.id) : '';
 

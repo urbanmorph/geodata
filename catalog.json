@@ -411,7 +411,7 @@
     "wards_bengaluru_bbmp_2022": {
       "label": "BBMP Wards (2022, historical)",
       "unit": "wards",
-      "description": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme.",
+      "description": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and BBMP.",
       "source_url": "https://data.opencity.in/dataset/bbmp-ward-information",
       "source_org": "BBMP",
       "notes": "Use the GBA 2025 layer for current ward boundaries.",
@@ -437,7 +437,7 @@
     "wards_chennai": {
       "label": "Chennai (GCC) Wards",
       "unit": "wards",
-      "description": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones.",
+      "description": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Greater Chennai Corporation.",
       "source_url": "https://data.opencity.in/dataset/gcc-ward-information",
       "source_org": "Greater Chennai Corporation",
       "notes": "",
@@ -537,11 +537,11 @@
     "wards_bhubaneshwar": {
       "label": "Bhubaneshwar (BMC) Wards",
       "unit": "wards",
-      "description": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal.",
+      "description": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal. OpenCity lists it as CC BY-SA without a version; labelled CC-BY-SA-4.0.",
       "source_url": "https://data.opencity.in/dataset/bhubaneswar-administrative-boundaries",
       "source_org": "Bhubaneshwar Municipal Corporation",
       "notes": "",
-      "seo_title": "Bhubaneswar Ward Map: 67 wards (BMC)",
+      "seo_title": "Bhubaneswar Ward Map: zone-wise list of 67 wards (BMC)",
       "seo_description": "Interactive map of all 67 wards in Bhubaneswar (BMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_vizag": {
@@ -551,7 +551,7 @@
       "source_url": "https://data.opencity.in/dataset/visakhapatnam-wards-map-2024",
       "source_org": "Greater Visakhapatnam Municipal Corporation",
       "notes": "",
-      "seo_title": "Visakhapatnam Ward Map: 98 wards (GVMC)",
+      "seo_title": "Visakhapatnam Ward Map: zone-wise list of 98 wards (GVMC)",
       "seo_description": "Interactive map of all 98 wards in Visakhapatnam (GVMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_thane": {
@@ -591,7 +591,7 @@
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore",
       "source_org": "DataMeet",
       "notes": "",
-      "seo_title": "Coimbatore Ward Map: 100 wards (CCMC)",
+      "seo_title": "Coimbatore Ward Map: zone-wise list of 100 wards (CCMC)",
       "seo_description": "Interactive map of all 100 wards in Coimbatore (CCMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_madurai": {
@@ -601,7 +601,7 @@
       "source_url": "https://data.opencity.in/dataset/madurai-wards-map",
       "source_org": "Madurai City Municipal Corporation",
       "notes": "",
-      "seo_title": "Madurai Ward Map: 100 wards (MCM)",
+      "seo_title": "Madurai Ward Map: zone-wise list of 100 wards (MCM)",
       "seo_description": "Interactive map of all 100 wards in Madurai (MCM). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_navi_mumbai": {
@@ -627,7 +627,7 @@
     "wards_mysuru": {
       "label": "Mysuru (MCC) Wards",
       "unit": "wards",
-      "description": "Mysuru City Corporation \u2014 65 ward boundaries.",
+      "description": "Mysuru City Corporation \u2014 65 ward boundaries. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Mysuru City Corporation.",
       "source_url": "https://data.opencity.in/dataset/mysuru-city-corporation-wards-info",
       "source_org": "Mysuru City Corporation",
       "notes": "",
@@ -641,7 +641,7 @@
       "source_url": "https://data.opencity.in/dataset/bhopal-wards-map",
       "source_org": "Bhopal Municipal Corporation",
       "notes": "",
-      "seo_title": "Bhopal Ward Map: 86 wards (BMC)",
+      "seo_title": "Bhopal Ward Map: zone-wise list of 86 wards (BMC)",
       "seo_description": "Interactive map of all 86 wards in Bhopal (BMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_chandigarh": {
@@ -661,7 +661,7 @@
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow",
       "source_org": "Lucknow Municipal Corporation",
       "notes": "",
-      "seo_title": "Lucknow Ward Map: 112 wards (LMC)",
+      "seo_title": "Lucknow Ward Map: zone-wise list of 112 wards (LMC)",
       "seo_description": "Interactive map of all 112 wards in Lucknow (LMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_kanpur": {
@@ -721,7 +721,7 @@
       "source_url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/PCMC",
       "source_org": "DataMeet",
       "notes": "",
-      "seo_title": "Pimpri-Chinchwad Ward Map: 66 wards (PCMC)",
+      "seo_title": "Pimpri-Chinchwad Ward Map: zone-wise list of 66 wards (PCMC)",
       "seo_description": "Interactive map of all 66 wards in Pimpri-Chinchwad (PCMC). View ward boundaries and numbers, filter by ward, and download as GeoJSON, KML or Parquet."
     },
     "wards_vijayawada": {
@@ -2477,7 +2477,7 @@
         "bytes": 2812404
       },
       "shapefile": null,
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2514,7 +2514,7 @@
         "bytes": 222283
       },
       "shapefile": null,
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2565,7 +2565,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme."
+      "notes": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and BBMP."
     },
     {
       "id": "bda_jurisdiction",
@@ -2594,7 +2594,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.shp.zip",
         "bytes": 1037
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2634,7 +2634,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.shp.zip",
         "bytes": 152284
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2682,7 +2682,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones."
+      "notes": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Greater Chennai Corporation."
     },
     {
       "id": "wards_hyderabad",
@@ -2711,7 +2711,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.shp.zip",
         "bytes": 69585
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2751,7 +2751,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.shp.zip",
         "bytes": 272086
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2791,7 +2791,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.shp.zip",
         "bytes": 715593
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2828,7 +2828,7 @@
         "bytes": 1442655
       },
       "shapefile": null,
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2868,7 +2868,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.shp.zip",
         "bytes": 67658
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2908,7 +2908,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.shp.zip",
         "bytes": 75502
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2948,7 +2948,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.shp.zip",
         "bytes": 79664
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -2988,7 +2988,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.shp.zip",
         "bytes": 53929
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3028,7 +3028,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.shp.zip",
         "bytes": 134308
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3065,7 +3065,7 @@
         "bytes": 509525
       },
       "shapefile": null,
-      "licence": "ODbL-1.0",
+      "licence": "CC-BY-SA-4.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3076,7 +3076,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal."
+      "notes": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal. OpenCity lists it as CC BY-SA without a version; labelled CC-BY-SA-4.0."
     },
     {
       "id": "wards_vizag",
@@ -3105,7 +3105,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.shp.zip",
         "bytes": 158054
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3145,7 +3145,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.shp.zip",
         "bytes": 63021
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3161,7 +3161,7 @@
     {
       "id": "wards_delhi",
       "level": "wards_delhi",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 290,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.parquet",
@@ -3185,11 +3185,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.shp.zip",
         "bytes": 168691
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Delhi"
         },
         "publisher": null
       },
@@ -3225,7 +3225,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.shp.zip",
         "bytes": 89461
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3241,7 +3241,7 @@
     {
       "id": "wards_coimbatore",
       "level": "wards_coimbatore",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 100,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.parquet",
@@ -3265,11 +3265,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.shp.zip",
         "bytes": 76511
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore"
         },
         "publisher": null
       },
@@ -3305,7 +3305,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.shp.zip",
         "bytes": 147482
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3345,7 +3345,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.shp.zip",
         "bytes": 86124
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3385,7 +3385,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.shp.zip",
         "bytes": 201051
       },
-      "licence": "ODbL-1.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3436,7 +3436,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Mysuru City Corporation \u2014 65 ward boundaries."
+      "notes": "Mysuru City Corporation \u2014 65 ward boundaries. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Mysuru City Corporation."
     },
     {
       "id": "wards_bhopal",
@@ -3465,7 +3465,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.shp.zip",
         "bytes": 118717
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC0-1.0",
       "attribution": {
         "primary": {
           "name": "OpenCity / Oorvani Foundation",
@@ -3481,7 +3481,7 @@
     {
       "id": "wards_chandigarh",
       "level": "wards_chandigarh",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 28,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.parquet",
@@ -3505,11 +3505,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.shp.zip",
         "bytes": 12313
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chandigarh"
         },
         "publisher": null
       },
@@ -3521,7 +3521,7 @@
     {
       "id": "wards_lucknow",
       "level": "wards_lucknow",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 112,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.parquet",
@@ -3545,11 +3545,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.shp.zip",
         "bytes": 96027
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow"
         },
         "publisher": null
       },
@@ -3561,7 +3561,7 @@
     {
       "id": "wards_kanpur",
       "level": "wards_kanpur",
-      "source": "OpenCity",
+      "source": "DataMeet",
       "rows": 58,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.parquet",
@@ -3585,11 +3585,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.shp.zip",
         "bytes": 62884
       },
-      "licence": "CC-BY-SA-4.0",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "DataMeet India",
+          "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur"
         },
         "publisher": null
       },
