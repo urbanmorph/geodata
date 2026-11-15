@@ -786,7 +786,8 @@ def write_split_shapefiles(src_parquet: Path, out_dir: Path, basename: str, colu
             [] if value is None else [value])
 
 
-def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
+def bake_whole_layer(d: Dataset, src_parquet: Path, bake_dir: Path | None = None,
+                     basename: str | None = None) -> dict[str, Path]:
     """Bake geojson + kml + shapefile.zip from the source parquet so the
     catalog card surfaces "Download whole layer" buttons. Skips silently if
     the parquet exceeds WHOLE_LAYER_MAX_MB (default 100), unless the layer sets
@@ -802,9 +803,9 @@ def bake_whole_layer(d: Dataset, src_parquet: Path) -> dict[str, Path]:
         print(f'  whole-layer bake skipped (parquet {pq_bytes / 1024 / 1024:.0f} MB > {WHOLE_LAYER_MAX_MB} MB cap)')
         return {}
 
-    bake_dir = WORK / f'bake_{d.id}'
-    bake_dir.mkdir(exist_ok=True)
-    basename = Path(d.parquet_url).stem
+    bake_dir = bake_dir or WORK / f'bake_{d.id}'
+    bake_dir.mkdir(parents=True, exist_ok=True)
+    basename = basename or Path(d.parquet_url).stem
 
     outputs: dict[str, Path] = {}
 
