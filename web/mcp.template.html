@@ -17,29 +17,29 @@
       :root { --row-hover: var(--bg-card); }
       :root { --page-max: 880px; }
       body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
-      .page-title .badge--stable { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 3px 10px; border-radius: 999px; font-size: 14px; font-weight: 650; letter-spacing: 0; background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); }
+      .page-title .badge--stable { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: 0; background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); }
       /* Reading width: prose stops near 75 characters; tables, code and cards keep the page width. */
       main :is(p, ul, ol) { max-width: 720px; }
-      h2 { margin: 44px 0 14px; font-size: 24px; line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); }
-      h3 { font-size: 16px; margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
-      p, li { font-size: 15px; color: var(--muted); }
+      h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); }
+      h3 { font-size: var(--fs-md); margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
+      p, li { font-size: var(--fs-base); color: var(--muted); }
       ul { padding-left: 20px; }
-      code { font: 13px ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
-      pre { background: var(--row-hover); padding: var(--sp-3); border-radius: 8px; overflow-x: auto; font-size: 13px; line-height: 1.5; }
+      code { font: var(--fs-sm) ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+      pre { background: var(--row-hover); padding: var(--sp-3); border-radius: 8px; overflow-x: auto; font-size: var(--fs-sm); line-height: 1.5; }
       pre code { background: none; padding: 0; }
       a { color: var(--accent); text-decoration: none; }
       a:hover { text-decoration: underline; }
-      .question { font-size: 15px; font-weight: 500; color: var(--fg); margin: 12px 0 4px; }
-      .answer { font-size: 14px; color: var(--muted); margin: 0 0 12px; padding-left: 16px; border-left: 2px solid var(--line); }
+      .question { font-size: var(--fs-base); font-weight: 500; color: var(--fg); margin: 12px 0 4px; }
+      .answer { font-size: var(--fs-base); color: var(--muted); margin: 0 0 12px; padding-left: 16px; border-left: 2px solid var(--line); }
       .install-box { background: var(--row-hover); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
       .install-box h3 { margin-top: 0; }
-      .badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 10px; font-weight: 500; background: #F28C2822; color: var(--accent); }
+      .badge { display: inline-block; font-size: var(--fs-xs); padding: 2px 8px; border-radius: 10px; font-weight: 500; background: #F28C2822; color: var(--accent); }
       @media (max-width: 640px) {
         body { padding: 24px 14px 60px; }
-        h2 { font-size: 21px; margin-top: 36px; }
-        pre { font-size: 12px; }
+        h2 { font-size: var(--fs-xl); margin-top: 36px; }
+        pre { font-size: var(--fs-xs); }
         .install-box { padding: 12px 14px; }
-        .install-box pre { font-size: 12px; }
+        .install-box pre { font-size: var(--fs-xs); }
       }
     </style>
   </head>
@@ -98,7 +98,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 .vscode/mcp.json (project) or settings.json</code></pre>
       </div>
 
-      <p style="font-size:13px;color:var(--muted)">Developers: test tools without an LLM via <code>npx @modelcontextprotocol/inspector npx bharatlas-mcp@latest</code></p>
+      <p style="font-size:var(--fs-sm);color:var(--muted)">Developers: test tools without an LLM via <code>npx @modelcontextprotocol/inspector npx bharatlas-mcp@latest</code></p>
 
       <h2>What you can ask</h2>
 
@@ -167,7 +167,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
   "env": { "COLLECT_API_KEY": "cak_…" }
 }</code></pre>
       </div>
-      <p style="font-size:13px;color:var(--muted)">Authoring tools: register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish (plus optional create_map). It is deliberately not a bulk-contribution surface: human field contributors are the source, and published maps show up here via <code>list_submissions</code> once a maintainer approves them.</p>
+      <p style="font-size:var(--fs-sm);color:var(--muted)">Authoring tools: register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish (plus optional create_map). It is deliberately not a bulk-contribution surface: human field contributors are the source, and published maps show up here via <code>list_submissions</code> once a maintainer approves them.</p>
 
       <h2>How it works</h2>
       <p>Both the hosted server and the npm package are thin wrappers over the <a href="/docs">bharatlas REST API</a>, sharing one set of tool definitions. It translates LLM tool calls into API requests and returns structured JSON. No API key needed. All data is read-only and openly licensed.</p>

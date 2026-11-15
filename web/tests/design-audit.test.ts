@@ -48,7 +48,7 @@ describe('3, 5, 6. touch targets', () => {
 
 describe('4. the MCP title badge stays badge-sized', () => {
   it('sizes .badge--stable inside the page title', () => {
-    expect(read('mcp.template.html')).toMatch(/\.page-title \.badge--stable \{[^}]*font-size: 14px/);
+    expect(read('mcp.template.html')).toMatch(/\.page-title \.badge--stable \{[^}]*font-size: var\(--fs-sm\)/);
   });
 });
 

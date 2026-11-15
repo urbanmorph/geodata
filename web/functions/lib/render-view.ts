@@ -132,12 +132,12 @@ export function renderViewPage(opts: RenderOpts): string {
          (scripts/shared-chrome.mjs); only this page's own pieces are below. */
       ${TOKENS}
       body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 64px; line-height: 1.55; }
-      .tag { display: inline-block; margin: 8px 0 0; padding: 4px 10px; border-radius: 999px; font-size: 13px; font-weight: 650;
+      .tag { display: inline-block; margin: 8px 0 0; padding: 4px 10px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 650;
         background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); }
-      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px var(--sp-5); margin: 0 0 var(--sp-6); font-size: 15px; }
+      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px var(--sp-5); margin: 0 0 var(--sp-6); font-size: var(--fs-base); }
       .kv dt { color: var(--muted); }
       .kv dd { margin: 0; overflow-wrap: anywhere; }
-      .kv code { font: 13px ui-monospace, SFMono-Regular, Menlo, monospace; }
+      .kv code { font: var(--fs-sm) ui-monospace, SFMono-Regular, Menlo, monospace; }
       .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: var(--sp-6) 0; }
       .vote-useful { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border: 1.5px solid var(--line-bright); border-radius: 12px; background: var(--bg); font: inherit; cursor: pointer; color: var(--muted); }
       .vote-useful:hover { color: var(--fg); border-color: var(--accent-fill); }
