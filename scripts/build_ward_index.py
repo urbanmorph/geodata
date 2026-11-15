@@ -81,6 +81,9 @@ OVERRIDES: dict[str, tuple[str, str | None, str | None]] = {
     'wards_gurugram':          ('sourcewardcode', None,             None),
     'wards_thane':             ('sourcewardcode', None,             None),
     'wards_navi_mumbai':       ('sourcewardcode', None,             None),
+    'wards_kalyan_dombivli':   ('sourcewardcode', None,             None),  # ward_lgd_name is the corp string
+    # Pune's 15 administrative wards are its ward offices, each named.
+    'wards_pune_2025':         ('AdminNo',        'Field',          'Ward office'),
 }
 
 # A few cities pack "Ward 91 Khairatabad" into one column. (column, label).

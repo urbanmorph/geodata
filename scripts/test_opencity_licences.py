@@ -38,6 +38,10 @@ CKAN = {
     'wards_gurugram': ('gurugram-wards-map', 'other-pd'),
     'wards_kochi': ('kochi-wards-map', 'other-pd'),
     'wards_bhubaneshwar': ('bhubaneswar-administrative-boundaries', 'cc-by-sa'),
+    'wards_kalyan_dombivli': ('kalyan-dombivli-wards-map', 'other-pd'),
+    'zones_bengaluru_gba': ('greater-bengaluru-authority-corporations-delimitation-2025', 'other-pd'),
+    'wards_pune_2025': ('pune-wards-info', 'other-pd'),
+    'zones_pune': ('pune-wards-info', 'other-pd'),
     'wards_vizag': ('visakhapatnam-wards-map-2024', 'other-pd'),
     'wards_thane': ('thane-wards-map', 'other-pd'),
     'wards_indore': ('indore-wards-map', 'other-pd'),
@@ -120,6 +124,7 @@ DATAMEET = {
     'wards_chandigarh': ('Chandigarh', 'CC-BY-SA-2.5-IN'),
     'wards_lucknow': ('Lucknow', 'CC-BY-4.0'),
     'wards_kanpur': ('Kanpur', 'CC-BY-4.0'),
+    'zones_chennai': ('Chennai', 'CC-BY-SA-2.5-IN'),
 }
 
 

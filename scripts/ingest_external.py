@@ -2,17 +2,23 @@
 """
 Ingest external geo datasets into the bharatlas catalog.
 
-Pipeline per dataset:
-  1. KML → GeoJSON via ogr2ogr (skipped if input is already GeoJSON)
-  2. GeoJSON → Parquet via DuckDB-spatial (zstd-compressed)
-  3. GeoJSON → PMTiles via tippecanoe (vector tiles for the viewer)
-  4. Upload Parquet + PMTiles to R2 via boto3 multipart
-  5. Emit Python catalog entries (LEVELS + LAYERS rows) to stdout — paste
-     into scripts/build_catalog.py
+Pipeline per dataset (files land at data/baked/<r2_prefix>/<id>.<ext>):
+  1. KML / GeoJSON -> GeoJSON via ogr2ogr (EPSG:4326)
+  2. GeoJSON -> Parquet via DuckDB-spatial, then rebake_flatten_bbox: flat
+     xmin/ymin/xmax/ymax columns + Hilbert order (/api/v1/nearby needs both)
+  3. GeoJSON -> PMTiles via tippecanoe, z0-z12 (locate tests a point at the
+     tileset's max zoom; -zg once stopped at z4)
+  4. Parquet -> GeoJSON, KML (Placemarks named by kml_name_field) and a
+     zipped Shapefile, longitude first
+  5. Upload every file to R2 (skips on a matching md5) and merge the layer
+     rows into scripts/external-ingested.json by id
+
+Idempotent: a dataset whose outputs are all newer than its source is skipped.
 
 Run:
     pip install boto3 duckdb
     brew install gdal tippecanoe
+    python3 scripts/ingest_external.py zones_pune --no-upload   # build locally only
     export R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... CLOUDFLARE_ACCOUNT_ID=...
     python3 scripts/ingest_external.py            # all datasets
     python3 scripts/ingest_external.py chennai    # one by id substring
@@ -20,21 +26,24 @@ Run:
 from __future__ import annotations
 import json
 import os
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
 
 import duckdb
-import boto3
-from botocore.config import Config
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from ingest_ramseraph import bake_whole_layer, r2_client, r2_upload, rebake_flatten_bbox  # noqa: E402
+from rebake_locate_tiles import tippecanoe_cmd  # noqa: E402
 
 HOME = Path.home()
-ROOT = Path(__file__).resolve().parent.parent
-WORK = Path('/tmp/ingest')
-
-# R2 bucket the catalog reads from.
-BUCKET = 'geodata-data'
+ROOT = HERE.parent
+OUT = ROOT / 'data' / 'baked'          # same layout as R2: OUT/<r2_prefix>/<id>.<ext>
+SRC = ROOT / 'data' / 'external-src'   # fetched by hand (OpenCity sits behind a Cloudflare challenge)
+MANIFEST = HERE / 'external-ingested.json'
 
 
 @dataclass
@@ -53,6 +62,9 @@ class Dataset:
     features: int | None = None  # feature count; filled in post-conversion if None
     notes: str = ''         # extra note shown on the card
     attr_key: str = 'OpenCity'  # key into build_catalog.py ATTR dict for attribution
+    kml_name_field: str = ''    # column that names each KML Placemark (map labels)
+    bake_all_formats: bool = False  # read by ingest_ramseraph.bake_whole_layer
+    shp_split_by: str = ''          # read by ingest_ramseraph.bake_whole_layer
 
 
 # All datasets ingested in v4.1 (notf + BDA).
@@ -622,47 +634,110 @@ DATASETS: list[Dataset] = [
         features=77,
         attr_key='DataMeet',
     ),
+
+    # ──────── Ward and zone batch (Nov 2026) ────────
+    # Sources in data/external-src/ (gitignored), downloaded 2026-11-15:
+    # OpenCity resources through a browser (Cloudflare challenge), DataMeet
+    # from GitHub raw. CKAN license_id other-pd maps to CC0-1.0.
+    Dataset(
+        id='wards_kalyan_dombivli',
+        name='Kalyan-Dombivli (KDMC) Wards',
+        src=str(SRC / 'kdmc_wards.kml'),
+        category='city-wards',
+        level='wards_kalyan_dombivli',
+        description='Kalyan-Dombivli Municipal Corporation: 123 electoral ward boundaries, with LGD ward codes.',
+        source_org='Kalyan-Dombivli Municipal Corporation',
+        source_url='https://data.opencity.in/dataset/kalyan-dombivli-wards-map',
+        license='CC0-1.0',
+        unit='wards',
+        r2_prefix='admin/wards-kalyan-dombivli',
+        features=123,
+        kml_name_field='sourcewardcode',  # ward_lgd_name is empty for one polygon (9001)
+    ),
+    Dataset(
+        id='zones_bengaluru_gba',
+        name='Greater Bengaluru Zones (2025)',
+        src=str(SRC / 'gba_zones_2025.kml'),
+        category='city-wards',
+        level='zones_bengaluru_gba',
+        description='Greater Bengaluru Authority: 10 zones, two in each of its five corporations (2025).',
+        source_org='Greater Bengaluru Authority',
+        source_url='https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025',
+        license='CC0-1.0',
+        unit='zones',
+        r2_prefix='admin/zones-bengaluru-gba',
+        features=10,
+        notes='Each zone carries its corporation (Corporatio) and zone (Zone).',
+        kml_name_field='Zone',
+    ),
+    Dataset(
+        id='wards_pune_2025',
+        name='Pune (PMC) Administrative Wards (2025)',
+        src=str(SRC / 'pune_admin_wards_2025.geojson'),
+        category='city-wards',
+        level='wards_pune_2025',
+        description='Pune Municipal Corporation: 15 administrative wards (ward offices), 2025.',
+        source_org='Pune Municipal Corporation',
+        source_url='https://data.opencity.in/dataset/pune-wards-info',
+        license='CC0-1.0',
+        unit='wards',
+        r2_prefix='admin/wards-pune-2025',
+        features=15,
+        kml_name_field='Field',
+    ),
+    Dataset(
+        id='zones_pune',
+        name='Pune (PMC) Zones',
+        src=str(SRC / 'pmc_zones.kml'),
+        category='city-wards',
+        level='zones_pune',
+        description='Pune Municipal Corporation: 5 zones (Deputy Municipal Commissioner zones).',
+        source_org='Pune Municipal Corporation',
+        source_url='https://data.opencity.in/dataset/pune-wards-info',
+        license='CC0-1.0',
+        unit='zones',
+        r2_prefix='admin/zones-pune',
+        features=5,
+        kml_name_field='Zone_Name',
+    ),
+    Dataset(
+        id='zones_chennai',
+        name='Chennai (GCC) Zones',
+        src=str(SRC / 'chennai_zones.geojson'),
+        category='city-wards',
+        level='zones_chennai',
+        description='Greater Chennai Corporation: 15 zones, plus St. Thomas Mount as a 16th area, from Transparent Chennai via DataMeet.',
+        source_org='DataMeet',
+        source_url='https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chennai',
+        license='CC-BY-SA-2.5-IN',
+        unit='zones',
+        r2_prefix='admin/zones-chennai',
+        features=16,
+        attr_key='DataMeet',
+        kml_name_field='Zone Name',
+    ),
 ]
 
 
 # ───────────────────── pipeline ─────────────────────
 
-def r2_client():
-    acc = os.environ['CLOUDFLARE_ACCOUNT_ID']
-    return boto3.client(
-        's3',
-        endpoint_url=f'https://{acc}.r2.cloudflarestorage.com',
-        aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
-        aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
-        region_name='auto',
-        config=Config(signature_version='s3v4', s3={'addressing_style': 'path'}),
-    )
+FORMATS = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'kml': 'kml', 'shapefile': 'shp.zip'}
 
 
-def upload(s3, path: Path, key: str, content_type: str) -> None:
-    """Idempotent: skip if R2 already has an object of matching size."""
-    size = path.stat().st_size
-    try:
-        head = s3.head_object(Bucket=BUCKET, Key=key)
-        if head['ContentLength'] == size:
-            print(f'    skip  {key}  ({size:,} bytes — already on R2)')
-            return
-    except s3.exceptions.ClientError as e:
-        if e.response['Error']['Code'] not in ('404', 'NoSuchKey'):
-            raise
-    with path.open('rb') as f:
-        s3.put_object(
-            Bucket=BUCKET, Key=key, Body=f, ContentType=content_type,
-            CacheControl='public, max-age=31536000, immutable',
-        )
-    print(f'    put   {key}  ({size:,} bytes)')
+def outputs(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
+    """Where each of the layer's files is built: its R2 key under out_root."""
+    return {fmt: out_root / ds.r2_prefix / f'{ds.id}.{ext}' for fmt, ext in FORMATS.items()}
+
+
+def tippecanoe_args(gj: Path, out: Path, layer_name: str) -> list[str]:
+    """z0-z12 like every locate-able layer (rebake_locate_tiles), tileset named after the layer."""
+    *args, src = tippecanoe_cmd(gj, out, layer_name)
+    return [*args, '-n', layer_name, src]
 
 
 def to_geojson(src: Path, out: Path) -> None:
-    """KML → GeoJSON via ogr2ogr (no-op if already .geojson/.json)."""
-    if src.suffix.lower() in ('.geojson', '.json'):
-        # ogr2ogr-roundtrip even GeoJSON to enforce CRS=4326 + drop NaN coords
-        pass
+    """KML or GeoJSON -> GeoJSON in EPSG:4326 (GeoJSON is always written lon,lat)."""
+    out.unlink(missing_ok=True)
     subprocess.run(
         ['ogr2ogr', '-f', 'GeoJSON', '-t_srs', 'EPSG:4326',
          '-skipfailures', str(out), str(src)],
@@ -671,58 +746,59 @@ def to_geojson(src: Path, out: Path) -> None:
 
 
 def to_parquet(gj: Path, out: Path) -> int:
-    """GeoJSON → Parquet via DuckDB-spatial. Returns feature count."""
+    """GeoJSON -> Parquet with flat bbox columns in Hilbert order. Returns feature count."""
+    raw = out.with_name(f'{out.stem}.raw.parquet')
     con = duckdb.connect()
-    con.install_extension('spatial')
-    con.load_extension('spatial')
-    con.execute(f"""
-        COPY (SELECT * FROM ST_Read('{gj}'))
-        TO '{out}' (FORMAT 'parquet', COMPRESSION 'zstd')
-    """)
-    (n,) = con.execute(f"SELECT COUNT(*) FROM '{out}'").fetchone()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    con.execute(f"COPY (SELECT * FROM ST_Read('{gj}')) TO '{raw}' (FORMAT 'parquet', COMPRESSION 'zstd')")
+    n, _ = rebake_flatten_bbox(raw, out, con)
+    raw.unlink()
     return n
 
 
 def to_pmtiles(gj: Path, out: Path, layer_name: str) -> None:
-    """GeoJSON → PMTiles via tippecanoe."""
     out.unlink(missing_ok=True)
-    subprocess.run(
-        ['tippecanoe',
-         '-o', str(out),
-         '-l', layer_name,
-         '-zg',
-         '--drop-densest-as-needed',
-         '--extend-zooms-if-still-dropping',
-         '--force',
-         '--no-progress-indicator',
-         str(gj)],
-        check=True, capture_output=True,
-    )
+    subprocess.run(tippecanoe_args(gj, out, layer_name), check=True, capture_output=True)
 
 
-def ingest(ds: Dataset, s3) -> dict:
-    print(f'  {ds.id}  ({ds.src})')
+def up_to_date(src: Path, files: dict[str, Path]) -> bool:
+    return all(f.exists() and f.stat().st_mtime >= src.stat().st_mtime for f in files.values())
+
+
+def build(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
+    """Build every format for one dataset under out_root; skip when already built from this source."""
     src = Path(ds.src)
     if not src.exists():
         raise FileNotFoundError(src)
-    work = WORK / ds.id
-    work.mkdir(parents=True, exist_ok=True)
+    files = outputs(ds, out_root)
+    if up_to_date(src, files):
+        print(f'    skip  {ds.id}: built and newer than its source', flush=True)
+        return files
+    folder = files['parquet'].parent
+    folder.mkdir(parents=True, exist_ok=True)
+    for f in files.values():
+        f.unlink(missing_ok=True)
 
-    gj = work / f'{ds.id}.geojson'
-    pq = work / f'{ds.id}.parquet'
-    pmt = work / f'{ds.id}.pmtiles'
-
-    to_geojson(src, gj)
-    n = to_parquet(gj, pq)
+    src_gj = folder / f'{ds.id}.src.geojson'
+    to_geojson(src, src_gj)
+    n = to_parquet(src_gj, files['parquet'])
     if ds.features and n != ds.features:
-        print(f'    !!  feature count drifted: expected {ds.features}, got {n}')
-    to_pmtiles(gj, pmt, ds.id)
+        print(f'    !!  feature count drifted: expected {ds.features}, got {n}', flush=True)
+    to_pmtiles(src_gj, files['pmtiles'], ds.id)
+    src_gj.unlink()
 
-    pq_key = f'{ds.r2_prefix}/{ds.id}.parquet'
-    pmt_key = f'{ds.r2_prefix}/{ds.id}.pmtiles'
-    upload(s3, pq, pq_key, 'application/x-parquet')
-    upload(s3, pmt, pmt_key, 'application/vnd.pmtiles')
+    baked = bake_whole_layer(ds, files['parquet'], bake_dir=folder, basename=ds.id)
+    shutil.rmtree(folder / f'{ds.id}_shp', ignore_errors=True)
+    missing = sorted(set(FORMATS) - {'parquet', 'pmtiles'} - set(baked))
+    if missing:
+        raise RuntimeError(f'{ds.id}: failed to bake {missing}')
+    for fmt, f in files.items():
+        print(f'    built {fmt:<9} {f.relative_to(out_root)}  ({f.stat().st_size:,} bytes)', flush=True)
+    return files
 
+
+def manifest_row(ds: Dataset, files: dict[str, Path]) -> dict:
+    (n,) = duckdb.connect().execute(f"SELECT COUNT(*) FROM '{files['parquet']}'").fetchone()
     return {
         'id': ds.id,
         'name': ds.name,                # friendly label shown on the card
@@ -734,45 +810,58 @@ def ingest(ds: Dataset, s3) -> dict:
         'features': n,
         'license': ds.license,
         'r2_prefix': ds.r2_prefix,
-        'parquet_file': f'{ds.id}.parquet',
-        'parquet_bytes': pq.stat().st_size,
-        'pmtiles_file': f'{ds.id}.pmtiles',
-        'pmtiles_bytes': pmt.stat().st_size,
+        'parquet_file': files['parquet'].name,
+        'parquet_bytes': files['parquet'].stat().st_size,
+        'pmtiles_file': files['pmtiles'].name,
+        'pmtiles_bytes': files['pmtiles'].stat().st_size,
         'source_url': ds.source_url,
         'source_org': ds.source_org,
         'notes': ds.notes,
     }
 
 
-def main() -> None:
-    needed_env = ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY')
-    missing = [k for k in needed_env if k not in os.environ]
-    if missing:
-        sys.exit(f'missing env: {", ".join(missing)}')
+def merge_manifest(old: list[dict], new: list[dict]) -> list[dict]:
+    """Replace rows by id where they stand and append new ids; every other row stays."""
+    fresh = {r['id']: r for r in new}
+    merged = [fresh.pop(r['id'], r) for r in old]
+    return merged + list(fresh.values())
 
-    filt = sys.argv[1] if len(sys.argv) > 1 else None
+
+def main(argv: list[str]) -> int:
+    upload = '--no-upload' not in argv
+    args = [a for a in argv[1:] if a != '--no-upload']
+    missing = [k for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY') if k not in os.environ]
+    if upload and missing:
+        sys.exit(f'missing env: {", ".join(missing)} (or pass --no-upload)')
+
+    filt = args[0] if args else None
     todo = [d for d in DATASETS if not filt or filt in d.id]
     if not todo:
         sys.exit(f'no datasets match "{filt}"')
 
-    print(f'ingesting {len(todo)} dataset(s)…')
-    s3 = r2_client()
-    WORK.mkdir(parents=True, exist_ok=True)
-
-    results = []
+    print(f'ingesting {len(todo)} dataset(s)' + ('' if upload else ' (local build only)'), flush=True)
+    s3 = r2_client() if upload else None
+    rows = []
     for ds in todo:
+        print(f'  {ds.id}  ({ds.src})', flush=True)
         try:
-            results.append(ingest(ds, s3))
+            files = build(ds)
         except Exception as e:
-            print(f'    ✗ FAIL  {ds.id}: {e}')
+            print(f'    FAIL  {ds.id}: {e}', flush=True)
             continue
+        if s3:
+            for f in files.values():
+                r2_upload(s3, f, f'{ds.r2_prefix}/{f.name}')
+        rows.append(manifest_row(ds, files))
 
-    # Write manifest for build_catalog.py to consume
-    manifest = ROOT / 'scripts' / 'external-ingested.json'
-    manifest.write_text(json.dumps(results, indent=2))
-    print(f'\nwrote {manifest.relative_to(ROOT)} ({len(results)}/{len(todo)} succeeded)')
-    print('\nNext: update scripts/build_catalog.py LEVELS + LAYERS to surface these in the catalog.')
+    if s3:
+        MANIFEST.write_text(json.dumps(merge_manifest(json.loads(MANIFEST.read_text()), rows), indent=2))
+        print(f'\nmerged {len(rows)}/{len(todo)} row(s) into {MANIFEST.relative_to(ROOT)}', flush=True)
+        print('Next: patch catalog.json for these layers (patch in place; do not rebuild).', flush=True)
+    else:
+        print(f'\nbuilt {len(rows)}/{len(todo)} locally; R2 and {MANIFEST.name} untouched', flush=True)
+    return 0 if len(rows) == len(todo) else 1
 
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main(sys.argv))

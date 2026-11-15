@@ -16,6 +16,8 @@ export const WARD_PLACES: Record<string, WardPlace> = {
   wards_chennai: { city: 'Chennai', mugilu: 'chennai', state: 'tamil-nadu', stateName: 'Tamil Nadu' },
   wards_kolkata: { city: 'Kolkata', mugilu: 'kolkata', state: 'west-bengal', stateName: 'West Bengal' },
   wards_pune: { city: 'Pune', mugilu: 'pune', state: 'maharashtra', stateName: 'Maharashtra' },
+  wards_pune_2025: { city: 'Pune', mugilu: 'pune', state: 'maharashtra', stateName: 'Maharashtra' },
+  wards_kalyan_dombivli: { city: 'Kalyan-Dombivli', mugilu: [19.2437, 73.1305], state: 'maharashtra', stateName: 'Maharashtra' },
   wards_pcmc: { city: 'Pimpri-Chinchwad', mugilu: [18.629, 73.8], state: 'maharashtra', stateName: 'Maharashtra' },
   wards_thane: { city: 'Thane', mugilu: 'thane', state: 'maharashtra', stateName: 'Maharashtra' },
   wards_navi_mumbai: { city: 'Navi Mumbai', mugilu: [19.033, 73.029], state: 'maharashtra', stateName: 'Maharashtra' },
