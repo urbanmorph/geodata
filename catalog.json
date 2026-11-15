@@ -1025,6 +1025,11 @@
       "label": "Jal Jeevan Mission facilities",
       "unit": "facilities",
       "description": "Schools, anganwadis and other public institutions in rural habitations recorded by the Jal Jeevan Mission, with category, class and LGD village code."
+    },
+    "mgnrega_districts": {
+      "label": "MGNREGA by District (2025-26)",
+      "unit": "districts",
+      "description": "MGNREGA rural jobs scheme by district, financial year 2025-26: spending, wages, households and persondays of work, women, SC and ST participation, works and job cards, plus total spending each year since 2018-19."
     }
   },
   "level_order": [
@@ -1149,7 +1154,8 @@
     "police_stations_telangana",
     "marine_police_stations",
     "amrit_sarovar_ponds",
-    "jjm_facilities"
+    "jjm_facilities",
+    "mgnrega_districts"
   ],
   "layers": [
     {
@@ -6528,6 +6534,58 @@
         "bytes": 86230637
       },
       "fetched_at": "2026-11-15T11:55:23+00:00"
+    },
+    {
+      "id": "mgnrega_districts",
+      "level": "mgnrega_districts",
+      "source": "MoRD",
+      "rows": 785,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.parquet",
+        "bytes": 24229000
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.pmtiles",
+        "bytes": 10853165
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.geojson",
+        "bytes": 94213743
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.kml",
+        "bytes": 75385397
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.shp.zip",
+        "bytes": 39491753
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Ministry of Rural Development (MGNREGA), via data.gov.in",
+          "url": "https://www.data.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "economy",
+      "provenance": "curated",
+      "fetched_at": "2026-11-15T13:35:02+00:00",
+      "notes": "\"District-wise MGNREGA Data at a Glance\", Ministry of Rural Development, on data.gov.in under GODL-India. Values are each district's latest cumulative snapshot of the year as published (March for most; the month column shows which); money columns (Total_Exp, Wages, Material_and_skilled_Wages, Total_Adm_Expenditure, exp_*) are in Rs lakh. NREGA districts are matched to LGD districts by name within the state, with hand-checked renames; districts without a match have no values. MGNREGA reports Rajasthan as its 33 districts before the 2023 reorganisation and Nagaland as 11 districts, so there an older district's figures include the newer districts carved from it, which show no values. Urban districts (Delhi, Mumbai, Chennai, Kolkata, Hyderabad, Chandigarh) have no MGNREGA. Darjeeling covers the Siliguri subdivision only (the hill areas report as GTA, which spans Darjeeling and Kalimpong). NREGA districts with no LGD polygon: ARUNACHAL PRADESH / KEYI PANYOR; WEST BENGAL / GORKHALAND TERRITORIAL ADMINISTRATION (GTA).",
+      "tags": [
+        "MGNREGA",
+        "NREGA",
+        "rural employment",
+        "jobs scheme",
+        "wages",
+        "persondays",
+        "job cards",
+        "rural development",
+        "public spending",
+        "district",
+        "economy",
+        "finance"
+      ]
     }
   ],
   "state_extracts": [],
@@ -6542,6 +6600,7 @@
     "infrastructure": "Infrastructure & utilities",
     "culture": "Culture & heritage",
     "health-edu": "Health & education",
+    "economy": "Economy & finance",
     "other": "Other"
   },
   "states": [],
@@ -8979,6 +9038,10 @@
     "MIWing": {
       "name": "Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti",
       "url": "https://mowr.nic.in/irrigationcensus/"
+    },
+    "MoRD": {
+      "name": "Ministry of Rural Development (MGNREGA), via data.gov.in",
+      "url": "https://www.data.gov.in/"
     }
   },
   "licence_summary": {
