@@ -6,6 +6,7 @@ import { notFoundForUnmatched } from '../lib/api-not-found';
 export type Env = {
   DB: D1Database;
   R2: R2Bucket;
+  ASSETS: Fetcher;     // Pages' static assets (e.g. /releases/index.json)
   TURNSTILE_SECRET?: string;
 };
 

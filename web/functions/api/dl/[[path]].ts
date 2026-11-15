@@ -3,12 +3,10 @@
 // is never blocked on D1.
 
 import type { Env } from '../_middleware';
-import { classifyKey } from '../../lib/r2-keys';
+import { classifyKey, R2_PUBLIC_BASE as R2_BASE } from '../../lib/r2-keys';
 import { incrementDownload } from '../../lib/counters';
 
 type Params = { path: string[] };
-
-const R2_BASE = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];

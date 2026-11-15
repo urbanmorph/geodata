@@ -28,6 +28,7 @@ India's open geo data in one place: browse, filter and download curated layers, 
 - [Downloads and formats](#downloads-and-formats)
 - [Use it from an AI assistant (MCP)](#use-it-from-an-ai-assistant-mcp)
 - [API](#api)
+- [Releases and the Census 2011 ↔ LGD crosswalk](#releases-and-the-census-2011--lgd-crosswalk)
 - [Data principles and attribution](#data-principles-and-attribution)
 - [Architecture](#architecture)
 - [Project layout](#project-layout)
@@ -184,6 +185,21 @@ curl 'https://bharatlas.com/api/v1/nearby?lat=12.9716&lng=77.5946&layer=nic_heal
 ```
 
 collect has its own token-authenticated write API at `https://collect.bharatlas.com/api/collect/v1`.
+
+## Releases and the Census 2011 ↔ LGD crosswalk
+
+Dated, immutable releases, each named by a code `bharatlas-<dataset>-<year>.<month>` that is never reused and pinned by SHA-256 (`<code>+sha256:<hex>`, the hex being the SHA-256 of the release's `SHA256SUMS`). The index is [`/releases/index.json`](https://bharatlas.com/releases/index.json) (also `GET /api/v1/releases`); each release lives at `https://bharatlas.com/releases/<code>/` with `manifest.json` (per file: SHA-256, bytes, rows, licence; the source credited first with its version and fetch date), `CHANGES.md` and `SHA256SUMS`. The numbering follows the schemes register (`schemes-register-2026.11`): the month a release is cut, so one release per dataset a month.
+
+- **`bharatlas-cw-…`**: the Census 2011 ↔ LGD crosswalk, one table per level (`cw_states`, `cw_districts`, `cw_subdistricts`, `cw_blocks`, `cw_villages`; CSV and Parquet), built by [`scripts/build_crosswalks.py`](./scripts/build_crosswalks.py) from the Census 2011 codes the LGD layers already carry. Each row is an LGD code, its name, the 2011 code, and a relation derived from how the codes repeat (1:1, split, merge, split+merge, post-2011 code, no 2011 code, no LGD code). The source gives districts made after 2011 a code past 640 instead of their parent's, so a new district's parent is not in this data; splits show at the subdistrict, block and village levels. Each table keeps its LGD layer's licence.
+- **`bharatlas-catalog-…`**: the dated catalogue record ([`scripts/catalog_record.py`](./scripts/catalog_record.py)): per layer the source, the source's own version (a GitHub release asset's digest where there is one), fetch date, SHA-256 of the served file, licence and source link.
+
+Cut with [`scripts/release.py`](./scripts/release.py): manifests are committed under `web/public/releases/<code>/`; data files go to R2 at `releases/<code>/` and `/releases/<code>/<file>` redirects there. A re-run with the same files changes nothing; different files under an existing code are refused. No DOIs for now; `w3id.org/bharatlas/<dataset>/<year>.<month>` is the proposed persistent address.
+
+```bash
+python3 scripts/build_crosswalks.py                 # -> data/release-staging/cw/
+python3 scripts/catalog_record.py                   # -> data/release-staging/catalog/ (downloads every served file once; cached, resumable)
+python3 scripts/release.py data/release-staging/cw data/release-staging/catalog   # prints the R2 upload commands
+```
 
 ## Data principles and attribution
 

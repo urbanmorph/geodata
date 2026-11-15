@@ -1,0 +1,48 @@
+{
+ "code": "bharatlas-catalog-2026.11",
+ "dataset": "catalog",
+ "title": "bharatlas catalogue record",
+ "description": "Every layer bharatlas served on this date: source, source version, fetch date, SHA-256 of the served file, licence and source link.",
+ "released": "2026-11-15",
+ "sha256": "3a376857b8770888759a9431c1ccf99770ca3b2a6b30edb407f0cf5b9198b42d",
+ "sha256_of": "SHA256SUMS",
+ "pin": "bharatlas-catalog-2026.11+sha256:3a376857b8770888759a9431c1ccf99770ca3b2a6b30edb407f0cf5b9198b42d",
+ "files": [
+  {
+   "name": "catalog-record.csv",
+   "sha256": "0c9351bef25e5ba9cdf93fce23a583de2c0263553bd70737bc7a44c05fedc4a5",
+   "bytes": 85178,
+   "rows": 148,
+   "licence": "CC0-1.0",
+   "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/catalog-record.csv"
+  },
+  {
+   "name": "catalog-record.json",
+   "sha256": "e95b73123b4f61b9c61e1c44dacd70217e3ad8730bf39ce3ca519563571ab4ee",
+   "bytes": 145909,
+   "rows": 148,
+   "licence": "CC0-1.0",
+   "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/catalog-record.json"
+  }
+ ],
+ "licence": "CC0-1.0 (this record is bharatlas's own compilation of facts about the layers); each layer it describes keeps its source's licence, named per row",
+ "attribution": {
+  "sources": [
+   {
+    "name": "The source named first in each row (credit it for that layer)",
+    "version": "per row (source_version)",
+    "fetched": "per row (fetched_at)"
+   },
+   {
+    "name": "bharatlas catalogue",
+    "url": "https://bharatlas.com/catalog.json",
+    "version": "2026-05-26T16:04:31.902412+00:00"
+   }
+  ],
+  "compiled_by": "bharatlas (https://bharatlas.com; https://github.com/urbanmorph/geodata)"
+ },
+ "citation": "The source named first in each row (credit it for that layer); bharatlas catalogue. bharatlas catalogue record, as released by bharatlas: bharatlas-catalog-2026.11 (sha256:3a376857b8770888759a9431c1ccf99770ca3b2a6b30edb407f0cf5b9198b42d). https://bharatlas.com/releases/bharatlas-catalog-2026.11/",
+ "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/",
+ "w3id_proposed": "https://w3id.org/bharatlas/catalog/2026.11",
+ "previous": null
+}

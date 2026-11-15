@@ -1,0 +1,133 @@
+{
+ "note": "bharatlas releases: each code is immutable and pinned by its SHA-256. Data from others keeps its source's licence; credit the source first.",
+ "latest": {
+  "catalog": "bharatlas-catalog-2026.11",
+  "cw": "bharatlas-cw-2026.11"
+ },
+ "releases": [
+  {
+   "code": "bharatlas-cw-2026.11",
+   "dataset": "cw",
+   "title": "Census 2011 <-> LGD crosswalk",
+   "released": "2026-11-15",
+   "sha256": "e786c0a11ef62b233dfde2f2fd3e0053ab11c86908b0976a4699f9d448db106f",
+   "pin": "bharatlas-cw-2026.11+sha256:e786c0a11ef62b233dfde2f2fd3e0053ab11c86908b0976a4699f9d448db106f",
+   "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/",
+   "w3id_proposed": "https://w3id.org/bharatlas/cw/2026.11",
+   "manifest": "https://bharatlas.com/releases/bharatlas-cw-2026.11/manifest.json",
+   "previous": null,
+   "files": [
+    {
+     "name": "cw_blocks.csv",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_blocks.csv",
+     "sha256": "1f858dadc85ee1640f242c1eea1f6af9193062f06e02912aac92ff0c2ae53f93",
+     "bytes": 446434,
+     "rows": 7124,
+     "licence": "CC0-1.0"
+    },
+    {
+     "name": "cw_blocks.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_blocks.parquet",
+     "sha256": "1661e2171381aba1cc951d5eee1425be6ac7a34b9f7ce3cd0bef733ec07ffea0",
+     "bytes": 94221,
+     "rows": 7124,
+     "licence": "CC0-1.0"
+    },
+    {
+     "name": "cw_districts.csv",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_districts.csv",
+     "sha256": "31cf83d017e8d9ec859cd34cd8196e27c372338303e485eff3526aa42647fd9e",
+     "bytes": 47695,
+     "rows": 785,
+     "licence": "CC0-1.0 / CC-BY-4.0"
+    },
+    {
+     "name": "cw_districts.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_districts.parquet",
+     "sha256": "ad49dc8b6e3f64d92b2ce552be37cba539d4c7f5a1be9b5c10fde07b622b2406",
+     "bytes": 11277,
+     "rows": 785,
+     "licence": "CC0-1.0 / CC-BY-4.0"
+    },
+    {
+     "name": "cw_states.csv",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_states.csv",
+     "sha256": "20bfc8b7d17cc7e72093fce68192b182874dddf0dc777204abee405da8830d87",
+     "bytes": 1505,
+     "rows": 36,
+     "licence": "CC0-1.0 / CC-BY-4.0"
+    },
+    {
+     "name": "cw_states.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_states.parquet",
+     "sha256": "160bcd1c1785b9daf5c0c6e57e78e09d16a222e81b34a642935841436973e700",
+     "bytes": 2264,
+     "rows": 36,
+     "licence": "CC0-1.0 / CC-BY-4.0"
+    },
+    {
+     "name": "cw_subdistricts.csv",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_subdistricts.csv",
+     "sha256": "38fac84a087a67f8e15b0cbee488efd1ea663eb32003dffd3e2986d5d8dbe220",
+     "bytes": 371108,
+     "rows": 6395,
+     "licence": "CC0-1.0"
+    },
+    {
+     "name": "cw_subdistricts.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_subdistricts.parquet",
+     "sha256": "b2e135af406c50fda1e403a4dfeedfeb611de536e97eed971bfe64deb465b142",
+     "bytes": 71944,
+     "rows": 6395,
+     "licence": "CC0-1.0"
+    },
+    {
+     "name": "cw_villages.csv",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_villages.csv",
+     "sha256": "7164e697ab66d409305eefb6db0318060285f23ea6e16730b4e5270a9d66b14d",
+     "bytes": 36314875,
+     "rows": 541042,
+     "licence": "CC0-1.0"
+    },
+    {
+     "name": "cw_villages.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-cw-2026.11/cw_villages.parquet",
+     "sha256": "7d46295c53974918958e653350e3a7cb1355cef3497f2d68b1714d0a92381cd1",
+     "bytes": 6658887,
+     "rows": 541042,
+     "licence": "CC0-1.0"
+    }
+   ]
+  },
+  {
+   "code": "bharatlas-catalog-2026.11",
+   "dataset": "catalog",
+   "title": "bharatlas catalogue record",
+   "released": "2026-11-15",
+   "sha256": "3a376857b8770888759a9431c1ccf99770ca3b2a6b30edb407f0cf5b9198b42d",
+   "pin": "bharatlas-catalog-2026.11+sha256:3a376857b8770888759a9431c1ccf99770ca3b2a6b30edb407f0cf5b9198b42d",
+   "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/",
+   "w3id_proposed": "https://w3id.org/bharatlas/catalog/2026.11",
+   "manifest": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/manifest.json",
+   "previous": null,
+   "files": [
+    {
+     "name": "catalog-record.csv",
+     "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/catalog-record.csv",
+     "sha256": "0c9351bef25e5ba9cdf93fce23a583de2c0263553bd70737bc7a44c05fedc4a5",
+     "bytes": 85178,
+     "rows": 148,
+     "licence": "CC0-1.0"
+    },
+    {
+     "name": "catalog-record.json",
+     "url": "https://bharatlas.com/releases/bharatlas-catalog-2026.11/catalog-record.json",
+     "sha256": "e95b73123b4f61b9c61e1c44dacd70217e3ad8730bf39ce3ca519563571ab4ee",
+     "bytes": 145909,
+     "rows": 148,
+     "licence": "CC0-1.0"
+    }
+   ]
+  }
+ ]
+}
