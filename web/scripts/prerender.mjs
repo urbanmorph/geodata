@@ -7,6 +7,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
+import { docsStats } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
 
@@ -921,7 +922,7 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
     .replace('<!-- TOKENS -->', TOKENS)
     .replace('<!-- NAV -->', renderNav(navKey))
     .replace('<!-- FOOTER -->', FOOTER);
-  for (const [k, v] of Object.entries(extra)) out = out.replace(`<!-- ${k} -->`, v);
+  for (const [k, v] of Object.entries(extra)) out = out.replaceAll(`<!-- ${k} -->`, v);
   await writeFile(resolve(WEB, `${name}.html`), out);
   console.log(`prerendered /${name}`);
 }
@@ -1105,7 +1106,7 @@ await renderPage('terms', {
 const DOCS_FAQ = [
   {
     q: 'Do I need an API key to use the bharatlas API?',
-    a: 'No. The API is public, read-only and CORS-enabled. No auth, no signup, no API key. Rate limit is 120 requests per minute per IP for most endpoints, 60/min for /locate and /nearby.',
+    a: 'No. The API is public, read-only and CORS-enabled. No auth, no signup, no API key. Rate limit is 120 requests per minute per IP, 60/min for the locate endpoints. Please send a User-Agent naming your app and a link. The full description is at https://bharatlas.com/api/v1/openapi.json (OpenAPI 3.1).',
   },
   {
     q: 'How do I list all geo layers via the API?',
@@ -1113,7 +1114,7 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I find what state or district a coordinate is in?',
-    a: 'GET https://bharatlas.com/api/v1/locate?lat=12.97&lng=77.59 runs point-in-polygon across 12 admin and zone layers in a single call. Returns state, district, ward, pincode, seismic zone, eco-zone and more.',
+    a: 'GET https://bharatlas.com/api/v1/locate?lat=12.97&lng=77.59 runs point-in-polygon across 13 admin and zone layers (plus the city ward layer covering the point) in a single call. Returns state, district, ward, pincode, seismic zone, eco-zone and more, with LGD codes to join on.',
   },
   {
     q: 'How do I find features near a point?',
@@ -1149,6 +1150,7 @@ const DOCS_FAQ = [
   },
 ];
 
+const docs = docsStats(catalog, totalDownloads(dlCounts));
 const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) => `      <h3>${q}</h3>\n      <p>${a}</p>`).join('\n')}\n`;
 
 await renderPage('docs', {
@@ -1185,7 +1187,14 @@ await renderPage('docs', {
       },
     ],
   },
-}, { DOCS_FAQ_HTML: docsFaqHtml });
+}, {
+  DOCS_FAQ_HTML: docsFaqHtml,
+  DOCS_LAYERS: String(docs.layers),
+  DOCS_DOWNLOADS: docs.downloads > 0 ? `${docs.downloads.toLocaleString('en-IN')} downloads so far.` : '',
+  DOCS_LICENCES: docs.licences
+    .map(([lic, n]) => `<li><b>${n}</b>${esc(lic)}</li>`)
+    .join(''),
+});
 
 // /mcp FAQ — kept in sync with the visible <p class="question"> / <p class="answer">
 // pairs in mcp.template.html. FAQPage JSON-LD lights up Google rich results
