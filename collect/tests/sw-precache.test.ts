@@ -12,7 +12,7 @@ const put = (path: string, body = path) => {
 
 beforeEach(() => {
   dist = mkdtempSync(join(tmpdir(), 'collect-dist-'));
-  for (const p of ['/index.html', '/c.html', '/assets/app-DJmT4Z1m.js', '/assets/main-DEq_NYP-.js', '/india-outline.geojson', '/world-land.geojson', '/og.png']) put(p);
+  for (const p of ['/index.html', '/c.html', '/assets/app-DJmT4Z1m.js', '/assets/main-DEq_NYP-.js', '/india-outline.geojson', '/og.png']) put(p);
 });
 afterEach(() => rmSync(dist, { recursive: true, force: true }));
 

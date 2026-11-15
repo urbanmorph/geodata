@@ -7,9 +7,13 @@ export { escapeHtml } from '../../shared/format.mjs';
 
 /** Hand the person a file made in the browser. */
 export function downloadText(content: string, filename: string, mime: string): void {
+  const url = URL.createObjectURL(new Blob([content], { type: mime }));
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.href = url;
   a.download = filename;
+  document.body.appendChild(a); // Firefox ignores a click on a detached link
   a.click();
-  URL.revokeObjectURL(a.href);
+  a.remove();
+  // Revoke later: Safari can abort a download whose URL is revoked in the same tick.
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

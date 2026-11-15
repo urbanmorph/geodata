@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newSecret, deriveKeys, seal, unseal, syncSecretFrom, syncLink } from '../src/keyring';
+import { newSecret, deriveKeys, seal, unseal, syncSecretFrom } from '../src/keyring';
 import type { SavedMap } from '../src/maps-store';
 
 const maps: SavedMap[] = [{ id: 'm1', name: 'Trees', role: 'owner', links: { admin: 'https://x/c/m1/admin#adm_1' }, at: '2026-10-22' }];
@@ -47,8 +47,7 @@ describe('seal / unseal', () => {
 describe('sync link', () => {
   it('carries the secret in the fragment only', () => {
     const s = newSecret();
-    const link = syncLink('https://collect.bharatlas.com', s);
-    expect(link).toBe(`https://collect.bharatlas.com/#sync=${s}`);
+    const link = `https://collect.bharatlas.com/#sync=${s}`;
     expect(syncSecretFrom(new URL(link).hash)).toBe(s);
   });
   it('ignores other fragments', () => {

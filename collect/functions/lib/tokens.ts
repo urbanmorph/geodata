@@ -12,11 +12,6 @@ export function generateRecordToken(): string {
   return randomToken('rec');
 }
 
-/** `cak_` collect API key — programmatic create gate. Same shape/entropy. */
-export function generateApiKey(): string {
-  return randomToken('cak');
-}
-
 function randomToken(prefix: string): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
