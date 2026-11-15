@@ -1732,9 +1732,9 @@
         "bytes": 1762991
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/bharatviz_pincodes.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/bharatviz_pincodes.z12.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/bharatviz_pincodes.pmtiles",
-        "bytes": 2362790
+        "bytes": 33231007
       },
       "geojson": null,
       "kml": null,
@@ -2440,9 +2440,9 @@
         "bytes": 2929
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.z12.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-jurisdiction/bda_jurisdiction.pmtiles",
-        "bytes": 905
+        "bytes": 9133
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.geojson",
@@ -2557,9 +2557,9 @@
         "bytes": 61292
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.z12.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-hyderabad/wards_hyderabad.pmtiles",
-        "bytes": 50706
+        "bytes": 143941
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.geojson",
@@ -3031,9 +3031,9 @@
         "bytes": 138208
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.z12.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-delhi/wards_delhi.pmtiles",
-        "bytes": 97475
+        "bytes": 246099
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.geojson",
@@ -3351,9 +3351,9 @@
         "bytes": 13963
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.z12.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chandigarh/wards_chandigarh.pmtiles",
-        "bytes": 15217
+        "bytes": 29848
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.geojson",
@@ -3550,9 +3550,9 @@
         "bytes": 21798
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.z12.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vadodara/wards_vadodara.pmtiles",
-        "bytes": 13863
+        "bytes": 27796
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.geojson",
@@ -3590,9 +3590,9 @@
         "bytes": 19888
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.pmtiles",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.z12.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-faridabad/wards_faridabad.pmtiles",
-        "bytes": 22083
+        "bytes": 42559
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.geojson",
