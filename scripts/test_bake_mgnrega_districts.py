@@ -207,3 +207,14 @@ def test_register_adds_the_economy_category_and_is_idempotent(tmp_path):
     assert c['level_order'] == ['mgnrega_districts'] and c['categories']['economy'] == 'Economy & finance'
     assert list(c['categories']).index('economy') < list(c['categories']).index('other')
     assert len(json.loads(man.read_text())) == 1
+
+
+def test_trend_columns_stop_at_the_layer_year():
+    # 2026-27 was in progress when pulled; a part-year column beside full years misleads.
+    full = [{'fin_year': '2025-2026', 'state_name': 'MAHARASHTRA', 'district_code': '1', 'district_name': 'NAGPUR', 'month': 'March', 'Total_Exp': '3'}]
+    trend = [
+        {'fin_year': '2025-2026', 'state_name': 'MAHARASHTRA', 'district_code': '1', 'district_name': 'NAGPUR', 'month': 'March', 'Total_Exp': '3'},
+        {'fin_year': '2026-2027', 'state_name': 'MAHARASHTRA', 'district_code': '1', 'district_name': 'NAGPUR', 'month': 'April', 'Total_Exp': '1'},
+    ]
+    rows, _ = m.district_rows(full, trend, LGD)
+    assert 'exp_2025_26' in rows[484] and 'exp_2026_27' not in rows[484]

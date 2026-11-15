@@ -272,7 +272,8 @@ def district_rows(full: list[dict], trend: list[dict], lgd: list[dict]) -> tuple
     t_hits, _ = match_districts(sorted({(r['state_name'], r['district_name']) for r in trend}), lgd)
     for r in year_end(trend):
         code = t_hits.get((r['state_name'], r['district_name']))
-        if code in rows and re.fullmatch(r'\d{4}-\d{4}', r.get('fin_year') or '') and r.get('Total_Exp') is not None:
+        complete = re.fullmatch(r'\d{4}-\d{4}', r.get('fin_year') or '') and r['fin_year'] <= YEAR
+        if code in rows and complete and r.get('Total_Exp') is not None:
             col = year_col(r['fin_year'])
             rows[code][col] = (rows[code].get(col) or 0) + r['Total_Exp']
     return rows, unmatched
@@ -289,10 +290,14 @@ def description() -> str:
 def notes(unmatched: list[str]) -> str:
     left = '; '.join(unmatched) if unmatched else 'none'
     return ('"District-wise MGNREGA Data at a Glance", Ministry of Rural Development, on data.gov.in '
-            'under GODL-India. Values are the year-end (March) cumulative snapshot as published; money '
+            'under GODL-India. Values are each district\'s latest cumulative snapshot of the year as published (March for '
+            'most; the month column shows which); money '
             'columns (Total_Exp, Wages, Material_and_skilled_Wages, Total_Adm_Expenditure, exp_*) are in '
             'Rs lakh. NREGA districts are matched to LGD districts by name within the state, with '
-            'hand-checked renames; districts without a match have no values. Darjeeling covers the '
+            'hand-checked renames; districts without a match have no values. MGNREGA reports Rajasthan as its 33 '
+            'districts before the 2023 reorganisation and Nagaland as 11 districts, so there an older district\'s '
+            'figures include the newer districts carved from it, which show no values. Urban districts '
+            '(Delhi, Mumbai, Chennai, Kolkata, Hyderabad, Chandigarh) have no MGNREGA. Darjeeling covers the '
             'Siliguri subdivision only (the hill areas report as GTA, which spans Darjeeling and '
             f'Kalimpong). NREGA districts with no LGD polygon: {left}.')
 
@@ -380,8 +385,10 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         values = tmp / 'values.json'
         values.write_text(json.dumps([{'dist_lgd_key': k, **v} for k, v in rows.items()]))
         sel = ', '.join(f'v."{c}"' for c in cols)
+        geom = next(c for c, t, *_ in con.execute(f"DESCRIBE SELECT * FROM '{districts}'").fetchall()
+                    if 'GEOMETRY' in t or c in ('geometry', 'geom'))
         joined = tmp / 'joined.parquet'
-        con.execute(f"""COPY (SELECT g.dist_lgd, g.dtname, g.stname, g.state_lgd, {sel}, g.geom AS geometry
+        con.execute(f"""COPY (SELECT g.dist_lgd, g.dtname, g.stname, g.state_lgd, {sel}, g."{geom}" AS geometry
             FROM read_parquet('{districts}') g LEFT JOIN read_json_auto('{values}') v ON v.dist_lgd_key = g.dist_lgd
             ORDER BY g.dist_lgd) TO '{joined}' (FORMAT PARQUET)""")
         n, filled = con.execute(f"SELECT count(*), count(fin_year) FROM '{joined}'").fetchone()
