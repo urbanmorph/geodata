@@ -52,8 +52,10 @@ describe('renderOgPng', () => {
     await renderOgPng('<svg/>', 'https://x');
     await renderOgPng('<svg/>', 'https://x');
     expect(m.initWasm).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(fetchMock).toHaveBeenCalledWith('https://x/og-font.ttf');
+    // Three static weights (400 body, 600 title, 800 wordmark): resvg can't
+    // apply a variable font's weight axis (scripts/gen_og_fonts.py).
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    for (const w of [400, 600, 800]) expect(fetchMock).toHaveBeenCalledWith(`https://x/og-font-${w}.ttf`);
   });
 
   it('passes the SVG and a fontBuffers config into Resvg', async () => {

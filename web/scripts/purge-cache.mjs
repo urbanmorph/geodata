@@ -7,6 +7,8 @@
 //   CLOUDFLARE_API_TOKEN (needs Zone → Cache Purge) and CF_ZONE_ID in the env;
 //   node scripts/purge-cache.mjs          (from web/)
 //
+// About 320 URLs: pages, /view/<id>, /og/view/<id>.png and the data files.
+//
 // Purge by URL, 30 per request (the per-call limit on this plan). A failure
 // is reported as a CI warning and does not fail the job: the deploy already
 // succeeded, and the cache still refreshes on its own within a day.
@@ -16,11 +18,13 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const PAGES = ['/', '/index.html', '/about', '/docs', '/preview', '/mcp', '/privacy', '/terms'];
-const FILES = ['/catalog.json', '/sitemap.xml', '/llms.txt'];
+const FILES = ['/catalog.json', '/sitemap.xml', '/llms.txt', '/og-default.png', '/og-about.png', '/og-preview.png'];
 
-/** Every URL a deploy can change: pages, layer pages (built from index.html), data files. */
+/** Every URL a deploy can change: pages, layer pages (built from index.html), share images, data files. */
 export function purgeUrls(catalog, origin) {
-  const paths = [...PAGES, ...FILES, ...(catalog.layers || []).map((l) => `/view/${l.id}`)];
+  const ids = (catalog.layers || []).map((l) => l.id);
+  // Layer share cards are edge-cached for 30 days (functions/lib/og-response.ts).
+  const paths = [...PAGES, ...FILES, ...ids.map((id) => `/view/${id}`), ...ids.map((id) => `/og/view/${id}.png`)];
   return [...new Set(paths)].map((p) => origin + p);
 }
 

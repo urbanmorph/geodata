@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { renderOgSvg } from '../functions/lib/og-template';
+import { renderOgSvg, renderOgHeroSvg, textWidth, TITLE_MAX_W } from '../functions/lib/og-template';
 
 describe('renderOgSvg — shape', () => {
   it('emits a 1200×630 SVG with the bg gradient and India path', () => {
@@ -101,5 +101,68 @@ describe('renderOgSvg — fallbacks', () => {
   it('uses "bharatlas" when title is empty', () => {
     const svg = renderOgSvg({ title: '' });
     expect(svg).toContain('>bharatlas<');
+  });
+});
+
+// Real widths of DM Sans SemiBold (functions/lib/og-widths.json), so a long
+// layer name wraps instead of running off the card (it read "Ahmedabad (AMC) Wa").
+describe('renderOgSvg — title fitting', () => {
+  const titleLines = (svg: string) =>
+    [...svg.matchAll(/<text class="title"[^>]*font-size="(\d+)"[^>]*>([^<]*)<\/text>/g)].map((m) => ({ size: Number(m[1]), text: m[2] }));
+
+  it('keeps a short title on one line at full size', () => {
+    const lines = titleLines(renderOgSvg({ title: 'States (2024)' }));
+    expect(lines).toEqual([{ size: 62, text: 'States (2024)' }]);
+  });
+
+  it('wraps a long layer name onto two lines, whole, without clipping', () => {
+    const lines = titleLines(renderOgSvg({ title: 'Ahmedabad (AMC) Wards (2023)' }));
+    expect(lines.length).toBe(2);
+    expect(lines.map((l) => l.text).join(' ')).toBe('Ahmedabad (AMC) Wards (2023)');
+    for (const l of lines) expect(textWidth(l.text, l.size)).toBeLessThanOrEqual(TITLE_MAX_W);
+  });
+
+  it('shrinks and then clips only a title too long for two lines', () => {
+    const t = 'Pradhan Mantri Gram Sadak Yojana rural road network habitations and core network (2025)';
+    const lines = titleLines(renderOgSvg({ title: t }));
+    expect(lines.length).toBe(2);
+    expect(lines[0].size).toBeLessThan(62);
+    expect(lines[1].text.endsWith('…')).toBe(true);
+    for (const l of lines) expect(textWidth(l.text, l.size)).toBeLessThanOrEqual(TITLE_MAX_W);
+  });
+
+  it('moves the subtitle below a two-line title', () => {
+    const one = renderOgSvg({ title: 'States', subtitle: 'sub' });
+    const two = renderOgSvg({ title: 'Ahmedabad (AMC) Wards (2023)', subtitle: 'sub' });
+    const y = (s: string) => Number(s.match(/<text class="subtitle"[^>]*y="(\d+)"/)![1]);
+    expect(y(two)).toBeGreaterThan(y(one));
+  });
+});
+
+describe('renderOgSvg — wordmark', () => {
+  it('sets "bharatlas" in the heavy (800) weight the site uses', () => {
+    expect(renderOgSvg({ title: 'X' })).toMatch(/font-weight="800"[^>]*>bharatlas<\/text>/);
+  });
+});
+
+// The site-wide share images (og-default/-preview/-about) come from the same
+// template as the layer cards (scripts/gen-og-static.mjs), not a separate copy.
+describe('renderOgHeroSvg', () => {
+  const svg = renderOgHeroSvg({ tagline: 'Every boundary in India,\none search away', sub: 'Free and open data. No sign-up.' });
+  it('draws the big heavy wordmark, the tagline and the sub line', () => {
+    expect(svg).toMatch(/font-weight="800"[^>]*>bharatlas<\/text>/);
+    expect(svg).toContain('Every boundary in India,');
+    expect(svg).toContain('Free and open data. No sign-up.');
+  });
+  it('keeps every tagline line inside the right column', () => {
+    const lines = [...svg.matchAll(/<text class="tagline"[^>]*font-size="(\d+)"[^>]*>([^<]*)</g)];
+    expect(lines.length).toBeGreaterThan(0);
+    for (const m of lines) expect(textWidth(m[2], Number(m[1]))).toBeLessThanOrEqual(TITLE_MAX_W);
+  });
+  it('the committed share images say the current tagline', () => {
+    const fs = require('node:fs') as typeof import('node:fs');
+    const home = fs.readFileSync(require('node:path').resolve(__dirname, '../public/og-default.svg'), 'utf8');
+    expect(home).toContain('one search away');
+    expect(home).not.toContain('view · verify · publish');
   });
 });
