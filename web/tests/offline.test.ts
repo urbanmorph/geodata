@@ -7,6 +7,8 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve } from 'node:path';
 import { layerLoadErrorText } from '../src/layer-errors';
+// @ts-expect-error: plain .mjs
+import { wordmarkHtml, PALETTE } from '../../shared/brand.mjs';
 
 const pub = (f: string) => readFileSync(resolve(__dirname, '..', 'public', f), 'utf8');
 const OFFLINE = pub('offline/index.html');
@@ -22,6 +24,12 @@ describe('offline page', () => {
     expect(OFFLINE).toContain('viewport-fit=cover');
     expect(OFFLINE).toContain('prefers-color-scheme: dark');
     expect(pub('sitemap.xml')).not.toContain('offline');
+  });
+  it('wears the current brand: the shared wordmark, a saffron action with navy text, 44px targets', () => {
+    // Self-contained (it shows with no network), so the markup is a copy: this keeps it from drifting.
+    expect(OFFLINE).toContain(wordmarkHtml({ size: 28 }));
+    expect(OFFLINE).toMatch(new RegExp(`\\.go\\{[^}]*background:${PALETTE.saffron}[^}]*color:${PALETTE.navy}`));
+    expect(OFFLINE).toMatch(/\.links a\{[^}]*min-height:44px/);
   });
 });
 

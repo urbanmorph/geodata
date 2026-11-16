@@ -6,12 +6,13 @@
 // workerd has no system fonts so text renders as nothing without this.
 
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
+import { OG_FONT_FILES } from './og-template';
 // @ts-expect-error — Pages' bundler resolves this; Node test env never
 // reaches this line because og-render itself is mocked in unit tests.
 import wasmModule from '@resvg/resvg-wasm/index_bg.wasm';
 
 let initPromise: Promise<void> | null = null;
-let fontPromise: Promise<Uint8Array> | null = null;
+let fontPromise: Promise<Uint8Array[]> | null = null;
 
 async function ensureInit(): Promise<void> {
   if (initPromise) return initPromise;
@@ -24,26 +25,28 @@ async function ensureInit(): Promise<void> {
   return initPromise;
 }
 
-async function ensureFont(origin: string): Promise<Uint8Array> {
+async function ensureFont(origin: string): Promise<Uint8Array[]> {
   if (fontPromise) return fontPromise;
-  fontPromise = (async () => {
-    const r = await fetch(`${origin}/og-font.ttf`);
-    if (!r.ok) {
-      fontPromise = null;
-      throw new Error(`failed to load OG font: ${r.status}`);
-    }
-    return new Uint8Array(await r.arrayBuffer());
-  })();
+  fontPromise = Promise.all(
+    OG_FONT_FILES.map(async (f) => {
+      const r = await fetch(`${origin}/${f}`);
+      if (!r.ok) throw new Error(`failed to load OG font ${f}: ${r.status}`);
+      return new Uint8Array(await r.arrayBuffer());
+    }),
+  ).catch((e) => {
+    fontPromise = null;
+    throw e;
+  });
   return fontPromise;
 }
 
 export async function renderOgPng(svg: string, origin: string): Promise<Uint8Array> {
   await ensureInit();
-  const font = await ensureFont(origin);
+  const fonts = await ensureFont(origin);
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'original' },
     font: {
-      fontBuffers: [font],
+      fontBuffers: fonts,
       defaultFontFamily: 'DM Sans',
       sansSerifFamily: 'DM Sans',
       loadSystemFonts: false,

@@ -15,7 +15,7 @@
     { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
   "screenshots": [
-    { "src": "/screenshot-narrow.webp", "sizes": "824x1830", "type": "image/webp", "form_factor": "narrow", "label": "Find India's open map layers and view them" },
-    { "src": "/screenshot-wide.webp", "sizes": "1280x800", "type": "image/webp", "form_factor": "wide", "label": "Browse India's open geo layers: boundaries, wards, water and more" }
+    { "src": "/screenshot-narrow.webp", "sizes": "824x1830", "type": "image/webp", "form_factor": "narrow", "label": "Find your ward, or any boundary in India, in one search" },
+    { "src": "/screenshot-wide.webp", "sizes": "1280x800", "type": "image/webp", "form_factor": "wide", "label": "Search India's open maps: wards, districts, villages, forests and water" }
   ]
 }

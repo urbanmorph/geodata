@@ -5,7 +5,7 @@
 // page load that fails; everything else goes to the network untouched, so nothing can
 // go stale. VERSION is the offline page's content hash (tests/offline.test.ts), so
 // changing that page ships a new worker.
-const VERSION = 'e0e059cb8eae';
+const VERSION = '81a7678cd227';
 const CACHE = `offline-${VERSION}`;
 const OFFLINE = '/offline/';
 

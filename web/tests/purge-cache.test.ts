@@ -22,6 +22,11 @@ describe('purgeUrls', () => {
     expect(urls).toContain('https://bharatlas.com/view/c_abc');
   });
 
+  it("covers every layer's share card (edge-cached for 30 days) and the site share images", () => {
+    expect(urls).toContain('https://bharatlas.com/og/view/lgd_states.png');
+    expect(urls).toContain('https://bharatlas.com/og/view/wards_ahmedabad.png');
+    expect(urls).toContain('https://bharatlas.com/og-default.png');
+  });
   it('has no duplicates', () => {
     expect(new Set(urls).size).toBe(urls.length);
   });
