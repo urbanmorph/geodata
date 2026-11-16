@@ -431,6 +431,31 @@ describe('SEO — OG image dimensions on prerendered pages', () => {
   }
 });
 
+// Link previews (LinkedIn, WhatsApp, X) cache an image by its URL, so a new
+// image needs a new URL: ?v= is the first 10 hex of the PNG's SHA-256.
+describe('SEO — share image URLs change when the image does', () => {
+  it('the ?v= on each share image is its content hash', async () => {
+    const { createHash } = await import('node:crypto');
+    for (const [page, img] of [['index.html', 'og-default'], ['about.html', 'og-about'], ['preview.html', 'og-preview']]) {
+      const html = readFileSync(resolve(__dirname, '..', page), 'utf8');
+      const v = html.match(/property="og:image" content="[^"]+\?v=([0-9a-f]+)"/)![1];
+      const hash = createHash('sha256').update(readFileSync(resolve(__dirname, '..', 'public', `${img}.png`))).digest('hex');
+      expect(v, page).toBe(hash.slice(0, 10));
+    }
+  });
+});
+
+describe('SEO — home title says what the site does now', () => {
+  it('title and description carry the current message, not the old one', () => {
+    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const title = html.match(/<title>([^<]*)<\/title>/)![1].replace(/&#39;/g, "'");
+    expect(title).toBe("India's open atlas: every boundary, one search away · bharatlas");
+    expect(html).not.toMatch(/view, verify, contribute|no signup, no tracking/);
+    const main = readFileSync(resolve(__dirname, '..', 'src', 'main.ts'), 'utf8');
+    expect(main).toContain(`const HOME_TITLE = "${title}";`);
+  });
+});
+
 describe('SEO — per-page OG images differentiated', () => {
   function og(page: string): string {
     const html = readFileSync(resolve(__dirname, '..', page), 'utf8');
@@ -439,15 +464,15 @@ describe('SEO — per-page OG images differentiated', () => {
   }
 
   it('home uses og-default.png', () => {
-    expect(og('index.html')).toMatch(/\/og-default\.png$/);
+    expect(og('index.html')).toMatch(/\/og-default\.png\?v=[0-9a-f]{10}$/);
   });
 
   it('/about uses og-about.png', () => {
-    expect(og('about.html')).toMatch(/\/og-about\.png$/);
+    expect(og('about.html')).toMatch(/\/og-about\.png\?v=[0-9a-f]{10}$/);
   });
 
   it('/preview uses og-preview.png', () => {
-    expect(og('preview.html')).toMatch(/\/og-preview\.png$/);
+    expect(og('preview.html')).toMatch(/\/og-preview\.png\?v=[0-9a-f]{10}$/);
   });
 
   it('every page also sets twitter:image (mirror of og:image)', () => {
