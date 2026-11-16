@@ -74,7 +74,7 @@ async function showMap(layerId: string) {
 // Mirrors the prerendered <title> in web/index.html. If that changes,
 // update here too — kept as a constant so tab-title restoration on map
 // close doesn't depend on a meta tag or a server roundtrip.
-const HOME_TITLE = "India's open atlas · view, verify, contribute · bharatlas";
+const HOME_TITLE = "India's open atlas: every boundary, one search away · bharatlas";
 
 async function hideMap() {
   // Re-apply the saved category filter BEFORE revealing the catalog, so closing

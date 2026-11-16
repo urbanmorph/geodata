@@ -2,7 +2,8 @@
 // Zero JS needed to read or navigate the catalog.
 import { readFile, writeFile, copyFile } from 'node:fs/promises';
 import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
@@ -78,9 +79,20 @@ function padDatasetDescription(desc, name, source) {
   return (trimmed + suffix).trim();
 }
 
+// Link previews (LinkedIn, WhatsApp, X) cache a share image by URL for weeks,
+// so the URL carries the image's content hash: a new image is a new URL.
+const ogImageCache = new Map();
+function ogImage(name) {
+  if (!ogImageCache.has(name)) {
+    const hash = createHash('sha256').update(readFileSync(resolve(WEB, 'public', `${name}.png`))).digest('hex');
+    ogImageCache.set(name, `${ORIGIN}/${name}.png?v=${hash.slice(0, 10)}`);
+  }
+  return ogImageCache.get(name);
+}
+
 function seoHead(o) {
   const title = `${o.title} · bharatlas`;
-  const image = o.image || ORIGIN + '/og-default.png';
+  const image = o.image || ogImage('og-default');
   const type = o.type || 'website';
   const ld = o.structuredData
     ? `<script type="application/ld+json">${JSON.stringify(o.structuredData).replace(/</g, '\\u003c')}</script>`
@@ -529,9 +541,9 @@ const attrLinks = Object.entries(catalog.attribution || {})
 
 // SEO head for the home page (+ JSON-LD Dataset for each curated layer)
 const homeSeo = seoHead({
-  title: "India's open atlas · view, verify, contribute",
+  title: "India's open atlas: every boundary, one search away",
   description:
-    "India's open atlas: view, slice and download open boundary layers, or drop your own geo file and share it. Open licences, no signup, no tracking.",
+    "Find your ward, district or village, or any of India's open map layers: forests, water, public money. View on a map, ask, or download. Free, no sign-up.",
   url: ORIGIN + '/',
   structuredData: {
     '@context': 'https://schema.org',
@@ -964,7 +976,7 @@ await renderPage('about', {
   description:
     "Show your data on a map of India: districts, forests, rivers, wards. Or browse, slice and download India's open map layers. No signup, no API key.",
   url: ORIGIN + '/about',
-  image: ORIGIN + '/og-about.png',
+  image: ogImage('og-about'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
@@ -1016,7 +1028,7 @@ await renderPage(
     description:
       "Drop a GeoJSON, KML, KMZ or Parquet file to see it on a map and validate it in your browser. Optionally publish to bharatlas under an open licence.",
     url: ORIGIN + '/preview',
-    image: ORIGIN + '/og-preview.png',
+    image: ogImage('og-preview'),
     structuredData: {
       '@context': 'https://schema.org',
       '@graph': [
@@ -1048,7 +1060,7 @@ await renderPage('privacy', {
   description:
     "Bharatlas runs without accounts, ad-tech or tracking cookies (only cookieless, aggregate traffic counts). This page explains what we store (very little) and what we don't.",
   url: ORIGIN + '/privacy',
-  image: ORIGIN + '/og-default.png',
+  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
@@ -1075,7 +1087,7 @@ await renderPage('terms', {
   description:
     "Terms for using bharatlas: open-licence content only, no warranty of accuracy, contributor attests right to share. Short and plain-English.",
   url: ORIGIN + '/terms',
-  image: ORIGIN + '/og-default.png',
+  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
@@ -1156,7 +1168,7 @@ await renderPage('docs', {
   description:
     "Public JSON API for India's open geo layers. List, query and filter layers, locate a point across every admin and zone layer, find features nearby, download in open formats. No auth, no API key.",
   url: ORIGIN + '/docs',
-  image: ORIGIN + '/og-default.png',
+  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
@@ -1249,7 +1261,7 @@ await renderPage('mcp', {
   description:
     "Ask questions about India's geo data in natural language. Connect Claude, GPT, or any LLM to 77 geo layers via the bharatlas MCP server.",
   url: ORIGIN + '/mcp',
-  image: ORIGIN + '/og-default.png',
+  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
