@@ -1,2 +1,3 @@
 .mcpregistry_*
 test.js
+*.test.js
