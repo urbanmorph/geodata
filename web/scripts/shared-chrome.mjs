@@ -220,6 +220,27 @@ export const TOKENS = `
     counter-increment: sheet-section; content: "§" counter(sheet-section) / "";
     display: block; margin-bottom: 4px; font: 600 var(--fs-sm) var(--font-mono); letter-spacing: 0; color: var(--brand-green);
   }
+  /* Reading pages as a ledger: each <section>'s heading in a 200px left column,
+     its text beside it at the reading measure; .wide spans both. Phones stack. */
+  main.sheet > section {
+    display: grid; grid-template-columns: 200px minmax(0, 720px); gap: var(--sp-3) 40px; align-items: start;
+    padding: var(--sp-6) 0; border-top: 1px solid var(--line);
+  }
+  main.sheet > section > * { margin-top: 0; margin-bottom: 0; }
+  main.sheet > section > h2 { grid-column: 1; font-size: var(--fs-xl); }
+  main.sheet > section > :not(h2) { grid-column: 2; }
+  main.sheet > section > .wide { grid-column: 1 / -1; max-width: none; }
+  /* A list whose items start with a label (span.k) set beside their text. */
+  .prose .pairs { list-style: none; margin: 0; padding: 0; }
+  .prose .pairs > li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px var(--sp-4); padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .prose .pairs > li:last-child { border-bottom: 0; }
+  .prose .pairs > li::before { display: none; }
+  .pairs .k { font-weight: 800; color: var(--fg); }
+  @media (max-width: 760px) {
+    main.sheet > section { grid-template-columns: 1fr; }
+    main.sheet > section > :not(h2) { grid-column: 1; }
+    .prose .pairs > li { grid-template-columns: 1fr; }
+  }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
     border-top: 1.5px solid var(--edge);
