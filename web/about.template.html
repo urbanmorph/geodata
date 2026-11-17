@@ -15,10 +15,41 @@
     <style>
       <!-- TOKENS -->
       li strong { font-weight: 600; color: var(--fg); }
-      .faq { margin: var(--sp-3) 0 var(--sp-5); }
-      .faq dt { font-weight: 600; color: var(--fg); margin-top: var(--sp-4); }
-      .faq dt:first-child { margin-top: 0; }
-      .faq dd { margin: var(--sp-1) 0 0; color: var(--muted); }
+      /* Three tools side by side, bharatlas tinted; who uses it as a grid of four. */
+      .prose .compare, .prose .cards { list-style: none; padding: 0; display: grid; }
+      .prose .compare { grid-template-columns: 1fr 1fr 1.7fr; border: 1.5px solid var(--edge); }
+      .prose .compare > li { padding: var(--sp-4) var(--sp-5); border-right: 1px solid var(--line); color: var(--muted); }
+      .prose .compare > li:last-child { border-right: 0; background: var(--land); }
+      .prose .cards { grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
+      .prose .cards > li { padding: var(--sp-4) var(--sp-5); border: 1.5px solid var(--edge); color: var(--muted); }
+      .prose :is(.compare, .cards) > li::before { display: none; }
+      :is(.compare, .cards) strong { display: block; margin-bottom: 6px; font-weight: 800; }
+      /* What you can do: a verb label beside each item, two columns. */
+      .prose .pairs--verbs { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
+      .prose .pairs--verbs > li { grid-template-columns: 112px minmax(0, 1fr); border-bottom: 0; border-top: 1px solid var(--line); }
+      .pairs--verbs .k { font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); padding-top: 2px; }
+      /* FAQ: question beside answer, every answer open. */
+      .faq.wide { display: grid; grid-template-columns: 200px minmax(0, 720px); column-gap: 40px; }
+      .faq dt { grid-column: 1; padding: var(--sp-4) 0 0; border-top: 1px solid var(--line); font-weight: 800; color: var(--fg); }
+      .faq dd { grid-column: 2; margin: 0; padding: var(--sp-4) 0; border-top: 1px solid var(--line); color: var(--muted); }
+      .faq dd > p:first-child { margin-top: 0; }
+      /* Caveats and use of data: the bold lead on its own line. */
+      .leads > li > strong:first-child { display: block; }
+      .built-by { display: flex; align-items: center; gap: var(--sp-4); }
+      .built-by img { border-radius: 50%; flex-shrink: 0; }
+      .built-by__text p { margin: 0 0 4px; }
+      .built-by__text p:last-child { margin-bottom: 0; }
+      @media (max-width: 760px) {
+        .prose :is(.compare, .cards, .pairs--verbs), .faq.wide { grid-template-columns: 1fr; }
+        .prose .pairs--verbs > li { grid-template-columns: 1fr; }
+        .prose .compare > li { border-right: 0; border-bottom: 1px solid var(--line); }
+        .prose .compare > li:last-child { border-bottom: 0; }
+        .faq dt, .faq dd { grid-column: 1; }
+        .faq dd { border-top: 0; padding-top: var(--sp-1); }
+      }
+      @media (max-width: 480px) {
+        .built-by { flex-direction: column; align-items: flex-start; }
+      }
     </style>
   </head>
   <body class="page">
@@ -34,22 +65,25 @@
       <a href="/" class="btn btn--fill">Browse the catalog</a>
     </p>
 
+    <section>
     <h2>Is this for you?</h2>
     <p>Three different tools, three different jobs:</p>
-    <ul>
-      <li><strong>Google Maps</strong> is for finding a coffee shop, getting directions, seeing what's around you.</li>
-      <li><strong>OpenStreetMap</strong> is for adding a road, a building or a shop to the world's map. That's where Google and bharatlas both source the base map.</li>
-      <li><strong>bharatlas</strong> is for taking data you already have, a list of districts you cover, the forests in your project area, the rivers in your watershed, the wards your NGO works in, and showing it on a map of India. Drop a GeoJSON, KML or Parquet file, see it rendered, share the link or download in another format. Don't have the data yet? Gather it from the field with a shared form anyone can fill on their phone.</li>
+    <ul class="compare wide">
+      <li><strong>Google Maps</strong> For finding a coffee shop, getting directions, seeing what's around you.</li>
+      <li><strong>OpenStreetMap</strong> For adding a road, a building or a shop to the world's map. That's where Google and bharatlas both source the base map.</li>
+      <li><strong>bharatlas</strong> For taking data you already have, a list of districts you cover, the forests in your project area, the rivers in your watershed, the wards your NGO works in, and showing it on a map of India. Drop a GeoJSON, KML or Parquet file, see it rendered, share the link or download in another format. Don't have the data yet? Gather it from the field with a shared form anyone can fill on their phone.</li>
     </ul>
-    <p>Concretely, this gets used by:</p>
-    <ul>
-      <li><strong>Journalists + researchers:</strong> pull a state's districts, villages or constituencies in ten seconds; download as GeoJSON or Parquet.</li>
-      <li><strong>Civic technologists:</strong> share city-scale layers (wards, bike lanes, polling booths) with attribution baked in.</li>
-      <li><strong>App developers:</strong> <a href="/docs">REST API</a>, direct PMTiles URLs, no rate limits, no API key.</li>
-      <li><strong>AI agents:</strong> <a href="/mcp">MCP server</a> (<code>npx bharatlas-mcp@latest</code>) connects Claude, GPT, or any LLM to all layers.</li>
+    <p class="wide">Concretely, this gets used by:</p>
+    <ul class="cards wide">
+      <li><strong>Journalists + researchers</strong> Pull a state's districts, villages or constituencies in ten seconds; download as GeoJSON or Parquet.</li>
+      <li><strong>Civic technologists</strong> Share city-scale layers (wards, bike lanes, polling booths) with attribution baked in.</li>
+      <li><strong>App developers</strong> <a href="/docs">REST API</a>, direct PMTiles URLs, no rate limits, no API key.</li>
+      <li><strong>AI agents</strong> The <a href="/mcp">MCP server</a> (<code>npx bharatlas-mcp@latest</code>) connects Claude, GPT, or any LLM to all layers.</li>
     </ul>
-    <p>If you came looking for places to visit, you want Google. If you want to fix the base map itself, you want OSM.</p>
+    <p class="wide">If you came looking for places to visit, you want Google. If you want to fix the base map itself, you want OSM.</p>
+    </section>
 
+    <section>
     <h2>Why bharatlas exists</h2>
     <p>
       Maps of India live everywhere online, but you can't tell what they show, who
@@ -63,7 +97,9 @@
       others find it. Have a map worth sharing? Drag and drop it onto the page. Every
       layer carries its source, licence and freshness on the same card.
     </p>
+    </section>
 
+    <section>
     <h2>Show, and gather</h2>
     <p>
       bharatlas began as a place to <em>show</em> data you already have. <strong>collect</strong> is
@@ -73,28 +109,34 @@
       mapping footpaths, ward assets or water points become one clean layer. See
       <a href="https://collect.bharatlas.com">collect.bharatlas.com</a>.
     </p>
+    </section>
 
+    <section>
     <h2>What you can do today</h2>
-    <ul>
-      <li>View <strong>India's national boundary</strong>, every admin level from <strong>state</strong> to <strong>village</strong>, plus city wards across Indian cities, constituencies, wildlife sanctuaries, forests, rivers, reservoirs, dams, hospitals, highways, airports, flood zones, seismic zones, eco-sensitive areas, and pincode polygons.</li>
-      <li>Compare what each authoritative source (LGD vs SOI vs Bhuvan vs geoBoundaries) says about the same admin level by clicking the alternate-source links on any card.</li>
-      <li>Download any layer whole as <strong>Parquet</strong>, <strong>PMTiles</strong>, <strong>GeoJSON</strong>, <strong>KML</strong> or <strong>Shapefile</strong> direct from the card. Or filter by what the columns actually contain (state, zone, area) and export just the slice.</li>
-      <li><a href="/preview">Drop a file</a> to see it on a map and validate it. Optionally publish under an open licence. No signup; you get an admin token to keep forever.</li>
-      <li><strong>Collect points in the field</strong> with <a href="https://collect.bharatlas.com">collect</a>: design a small form, share the link, and anyone who has it adds points on their phone, no accounts. Review what comes in, then download it or publish to the catalog.</li>
-      <li>Embed any map in a blog post or report (iframe snippet + PNG export, one click each).</li>
-      <li><strong>Ask questions</strong> instead of downloading maps. Connect your AI assistant to the <a href="/mcp">bharatlas MCP server</a> and ask: "How many villages in my district?", "Which hospitals are near me?", "What flood zone is this area in?"</li>
-      <li>Query any layer programmatically via the <a href="/docs">REST API</a>: filter, group, locate a point, find nearby features.</li>
+    <ul class="pairs pairs--verbs wide">
+      <li><span class="k">View</span> <span><strong>India's national boundary</strong>, every admin level from <strong>state</strong> to <strong>village</strong>, plus city wards across Indian cities, constituencies, wildlife sanctuaries, forests, rivers, reservoirs, dams, hospitals, highways, airports, flood zones, seismic zones, eco-sensitive areas, and pincode polygons.</span></li>
+      <li><span class="k">Compare</span> <span>What each authoritative source (LGD vs SOI vs Bhuvan vs geoBoundaries) says about the same admin level, by clicking the alternate-source links on any card.</span></li>
+      <li><span class="k">Download</span> <span>Any layer whole as <strong>Parquet</strong>, <strong>PMTiles</strong>, <strong>GeoJSON</strong>, <strong>KML</strong> or <strong>Shapefile</strong> direct from the card. Or filter by what the columns actually contain (state, zone, area) and export just the slice.</span></li>
+      <li><span class="k">Drop a file</span> <span><a href="/preview">See it on a map</a> and validate it. Optionally publish under an open licence. No signup; you get an admin token to keep forever.</span></li>
+      <li><span class="k">Collect</span> <span>Points in the field with <a href="https://collect.bharatlas.com">collect</a>: design a small form, share the link, and anyone who has it adds points on their phone, no accounts. Review what comes in, then download it or publish to the catalog.</span></li>
+      <li><span class="k">Embed</span> <span>Any map in a blog post or report (iframe snippet + PNG export, one click each).</span></li>
+      <li><span class="k">Ask</span> <span>Questions instead of downloading maps. Connect your AI assistant to the <a href="/mcp">bharatlas MCP server</a> and ask: "How many villages in my district?", "Which hospitals are near me?", "What flood zone is this area in?"</span></li>
+      <li><span class="k">Query</span> <span>Any layer programmatically via the <a href="/docs">REST API</a>: filter, group, locate a point, find nearby features.</span></li>
     </ul>
+    </section>
 
+    <section>
     <h2>Open source</h2>
     <p>
       Code: <a href="https://github.com/urbanmorph/geodata">github.com/urbanmorph/geodata</a> · MIT.<br />
       Data: each layer carries its own open licence; see the per-card line on the
       <a href="/">catalog</a>.
     </p>
+    </section>
 
+    <section>
     <h2 id="faq">Frequently asked</h2>
-    <dl class="faq">
+    <dl class="faq wide">
       <dt>Do I need to sign up?</dt>
       <dd>No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a <code>.txt</code> backup) that you keep forever to edit or delete that submission.</dd>
 
@@ -124,18 +166,23 @@
       <dt>Can AI assistants read and recommend bharatlas?</dt>
       <dd>Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every <code>/c/&lt;id&gt;</code> view page are server-rendered as plain HTML with JSON-LD <code>Dataset</code> structured data, easy for LLMs to ingest.</dd>
     </dl>
+    </section>
 
+    <section>
     <h2 id="use-of-data">Use of data</h2>
-    <ul>
+    <ul class="leads">
       <li><strong>Curated layers reflect the upstream source at fetch time.</strong> See the freshness pill on each card. Upstream sources change; the catalog can lag.</li>
       <li><strong>Community submissions are reviewed by a curator before they appear.</strong> Licence, format and basic geometry validity are checked automatically, and a curator approves each submission before it goes live; accuracy and authorship are not independently verified. Verify via the source link on each card before relying on community data.</li>
       <li><strong>Boundaries and place names render exactly as the upstream source publishes them.</strong> bharatlas does not edit, correct or editorialize. Where you disagree with a depiction (including for J&amp;K, the Line of Actual Control or any disputed territory), raise it with the source; each catalog card lists alternative sources so you can compare. See <a href="/terms#liability">Limitation of liability</a> for the warranty disclaimer, damages cap and full terms.</li>
     </ul>
 
+    </section>
+
+    <section>
     <h2 id="caveats">Data caveats</h2>
-    <ul>
+    <ul class="leads">
       <li><strong>Cross-source name spellings drift.</strong> "Odisha" (LGD) vs "Orissa" (Bhuvan); "Durgukondal" vs "Durgkondal". Always join on LGD codes, never on names.</li>
-      <li><strong>Bhuvan under-counts blocks in several states</strong> vs LGD: Gujarat 181 vs 251, Karnataka 173 vs 234, Telangana 443 vs 588, Assam 185 vs 232. Bhuvan predates recent re-divisions. Prefer LGD as the modern authority.</li>
+      <li><strong>Bhuvan under-counts blocks in several states vs LGD.</strong> Gujarat 181 vs 251, Karnataka 173 vs 234, Telangana 443 vs 588, Assam 185 vs 232. Bhuvan predates recent re-divisions. Prefer LGD as the modern authority.</li>
       <li><strong>SOI village-point coverage is uneven.</strong> Dense in southern + western states (Maharashtra 54k, Rajasthan 52k); sparse in UP (7.5k, ~7% of actual villages), Bihar (7.7k), Jharkhand (7.1k). Visible as the east-central blank on /view/soi_village_points.</li>
       <li><strong>2011 Census codes vs current LGD codes.</strong> Both are present in LGD layers. They diverge after every reorganisation. LGD is current; Census 2011 is stable but stale.</li>
       <li><strong>Polygon precision varies.</strong> LGD polygons are simplified (MaxSimpTol field present). For precise area work prefer SOI; for joins-and-display LGD is sufficient.</li>
@@ -143,6 +190,9 @@
       <li><strong>Panchayats + villages are too large for single-file download.</strong> Use the in-viewer state filter to slice by state, or download the parquet directly for programmatic work.</li>
     </ul>
 
+    </section>
+
+    <section>
     <h2 class="unnumbered">Built by</h2>
     <div class="built-by">
       <a href="https://urbanmorph.com" rel="noopener" aria-label="Urban Morph">
@@ -153,16 +203,7 @@
         <p style="color:var(--muted)">Source on <a href="https://github.com/urbanmorph/geodata" target="_blank" rel="noopener">GitHub</a>. Drop a ⭐ if you find it useful.</p>
       </div>
     </div>
-    <style>
-      .built-by { display: flex; align-items: center; gap: var(--sp-4); margin: var(--sp-4) 0 var(--sp-6); }
-      .built-by img { border-radius: 50%; flex-shrink: 0; }
-      .built-by__text p { margin: 0 0 4px; }
-      .built-by__text p:last-child { margin-bottom: 0; }
-      @media (max-width: 480px) {
-        .built-by { flex-direction: column; align-items: flex-start; }
-      }
-    </style>
-
+    </section>
     </main>
     <!-- FOOTER -->
     <div class="attr-block" style="margin-top:var(--sp-5);color:var(--muted);font-size:var(--fs-xs);line-height:1.6">
