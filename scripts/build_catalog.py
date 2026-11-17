@@ -118,6 +118,7 @@ ATTR = {
     'APSAC':         {'name': 'Andhra Pradesh Space Applications Centre', 'url': 'https://apsac.ap.gov.in/'},
     'Bhugoal':       {'name': 'i-Bhugoal (Government of Bihar)', 'url': 'https://gis.bih.nic.in/'},
     'GSDL':          {'name': 'Geospatial Delhi Limited', 'url': 'https://gsdl.org.in/'},
+    'NCSCM':         {'name': 'National Centre for Sustainable Coastal Management (MoEFCC)', 'url': 'https://czmp.ncscm.res.in/'},
     'TNGIS':         {'name': 'TNGIS (Government of Tamil Nadu)', 'url': 'https://tngis.tn.gov.in/'},
     'TGRAC':         {'name': 'Telangana Remote Sensing Applications Centre', 'url': 'https://tgrac.telangana.gov.in/'},
     'NCOG':          {'name': 'National Centre of Geo-informatics (BISAG-N)', 'url': 'https://ncog.gov.in/'},
