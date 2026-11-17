@@ -10,10 +10,15 @@ import { resolve } from 'node:path';
 const read = (f: string) => readFileSync(resolve(__dirname, '..', f), 'utf8');
 const fixture = JSON.parse(read('tests/fixtures/community.json')) as { id: string; name: string }[];
 
-describe('test builds include community layers (fixture)', () => {
-  it('npm test prerenders with the fixture', () => {
-    expect(JSON.parse(read('package.json')).scripts.test).toMatch(/^COMMUNITY_FROM=fixture node scripts\/prerender\.mjs/);
+describe('npm test uses the fixture', () => {
+  it('for both the prerender and the test run', () => {
+    expect(JSON.parse(read('package.json')).scripts.test).toBe("COMMUNITY_FROM=fixture sh -c 'node scripts/prerender.mjs && vitest run'");
   });
+});
+
+// The output checks run only on a fixture build: `npm run build` (CI's deploy
+// step) prerenders from D1 and runs the suite again over that output.
+describe.runIf(process.env.COMMUNITY_FROM === 'fixture')('test builds include community layers (fixture)', () => {
   it('every fixture submission is a card on /layers and an entry in the search index', () => {
     const layers = read('layers.html');
     const index = JSON.parse(read('public/layer-index.json')) as { h: string }[];

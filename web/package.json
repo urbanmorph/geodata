@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "node scripts/prerender.mjs && vitest run && vite build",
     "preview": "vite preview",
-    "test": "COMMUNITY_FROM=fixture node scripts/prerender.mjs && vitest run",
+    "test": "COMMUNITY_FROM=fixture sh -c 'node scripts/prerender.mjs && vitest run'",
     "test:watch": "vitest"
   },
   "dependencies": {
