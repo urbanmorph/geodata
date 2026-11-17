@@ -98,6 +98,16 @@ class TestCarryForward:
         carry_forward_from_prev(layer, {prev['id']: prev})
         assert layer['tags'] == ['groundwater', 'aquifer', 'water table']
 
+    def test_preserves_choropleth(self):
+        """The value-layer colouring block (written by choropleth_breaks.py)
+        survives a rebuild."""
+        from build_catalog import carry_forward_from_prev
+        block = {'column': 'total', 'label': 'Wells', 'unit': 'wells', 'breaks': [1, 2]}
+        prev = make_prev_layer(choropleth=block)
+        layer = {'id': 'lgd_states', 'parquet': {'url': 'x', 'bytes': None}, 'pmtiles': None, 'geojson': None, 'kml': None, 'shapefile': None, 'fetched_at': None}
+        carry_forward_from_prev(layer, {prev['id']: prev})
+        assert layer['choropleth'] == block
+
     def test_does_not_clobber_existing_tags(self):
         from build_catalog import carry_forward_from_prev
         prev = make_prev_layer(tags=['old'])

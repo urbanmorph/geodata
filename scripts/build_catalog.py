@@ -555,6 +555,8 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
         layer['fetched_at'] = prev['fetched_at']
     if not layer.get('tags') and prev.get('tags'):
         layer['tags'] = prev['tags']
+    if not layer.get('choropleth') and prev.get('choropleth'):
+        layer['choropleth'] = prev['choropleth']
 
 
 def carry_forward_unbuilt(layers: list[dict], prev_layers: dict[str, dict]) -> list[dict]:

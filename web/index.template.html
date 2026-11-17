@@ -300,6 +300,23 @@
         animation: ls-spin .8s linear infinite; }
       @keyframes ls-spin { to { transform: rotate(360deg); } }
 
+      /* Value-layer legend (shared/choropleth.mjs): a survey-sheet card at the
+         map's bottom right, left of the filter panel when that is open. The
+         swatches are the map's own fills; no data is the land hatched navy. */
+      .map-legend { position: absolute; right: 12px; bottom: 12px; z-index: 5; max-width: 230px;
+        padding: 8px 10px; font-size: var(--fs-sm); line-height: 1.35; color: var(--fg);
+        background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm); }
+      #map:has(.filter-panel) .map-legend { right: calc(min(360px, 90vw) + 12px); }
+      .map-legend summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 6px; min-height: 24px;
+        cursor: pointer; list-style: none; font-weight: 750; }
+      .map-legend summary::-webkit-details-marker { display: none; }
+      .map-legend__unit { font: var(--fs-xs) var(--font-mono); color: var(--muted); font-weight: 400; }
+      .map-legend ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; font-variant-numeric: tabular-nums; }
+      .map-legend li { display: flex; align-items: center; gap: 8px; }
+      .map-legend__sw { flex: none; width: 18px; height: 12px; border: 1px solid var(--edge); border-radius: 2px; }
+      .map-legend__sw--none { background: #f5f3ef repeating-linear-gradient(135deg, rgba(11, 27, 63, .6) 0 1px, transparent 1px 4px); }
+      .map-legend__note { margin: 6px 0 0; font-size: var(--fs-xs); color: var(--muted); }
+
       /* Action group. display:contents on desktop is a passthrough — the
          buttons flow in the header exactly as before. On mobile (max-width:640px)
          it becomes the fixed bottom toolbar. */
@@ -586,6 +603,11 @@
           overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
         }
         #map-overlay button.close { flex: 0 0 auto; font-size: var(--fs-sm); }
+
+        /* Legend: tighter on a phone; its title is the 44px collapse toggle. */
+        .map-legend { right: 8px; bottom: 8px; max-width: min(200px, calc(100% - 16px)); padding: 0 10px 8px; font-size: var(--fs-xs); }
+        .map-legend summary { min-height: 44px; align-items: center; align-content: center; }
+        .map-legend:not([open]) { padding-bottom: 0; }
 
         /* Leave room at the bottom for the toolbar so the map (and its
            attribution) isn't covered; the fixed toolbar fills the gap. */
