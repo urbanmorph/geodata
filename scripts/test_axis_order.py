@@ -40,6 +40,28 @@ def test_whole_layer_geojson_of_an_epsg4326_tagged_parquet_is_lon_lat(tmp_path):
     assert coords == list(PATNA)
 
 
+def test_whole_layer_geojson_is_lon_lat_even_on_a_bare_connection(tmp_path):
+    # Five bakes pass a plain `duckdb.connect(); LOAD spatial` connection; the
+    # guard must live in write_geojson_whole itself.
+    import duckdb
+    con = duckdb.connect()
+    con.execute('LOAD spatial')
+    out = tmp_path / 'out.geojson'
+    write_geojson_whole(con, _tagged_parquet(tmp_path), out, gdal_ok=True)
+    coords = json.loads(out.read_text())['features'][0]['geometry']['coordinates']
+    assert coords == list(PATNA)
+
+
+def test_every_shell_download_fails_on_http_errors():
+    # fetch.sh's `curl -sL` saved a 404 page under the real name, and the
+    # "skip if it exists" rule then kept it forever.
+    for p in HERE.glob('*.sh'):
+        for line in p.read_text(encoding='utf-8').splitlines():
+            m = re.search(r'\bcurl\s+(-\S+)', line)
+            if m and not line.lstrip().startswith('#'):
+                assert 'f' in m.group(1), f'{p.name}: {line.strip()}'
+
+
 def test_every_script_that_writes_through_gdal_keeps_xy_order():
     # Any script with its own GDAL COPY must set geometry_always_xy (or use
     # bake_extracts.make_con, which does), or a CRS-tagged input flips again.

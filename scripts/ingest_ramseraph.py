@@ -30,20 +30,32 @@ Idempotent: skips each R2 upload whose stored md5 matches the local file
 (sizes alone miss a lat,lon swap); manifest and catalog merges are id-keyed.
 """
 from __future__ import annotations
+
 import json
 import os
 import sys
-import urllib.request
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
+
 # Re-exported: other scripts import these names from here (use pipeline directly in new code).
 from pipeline import (  # noqa: E402,F401
-    BUCKET, CONTENT_TYPES, DBF_MAX_BYTES, OGR_ENV, R2_PUBLIC, WHOLE_LAYER_MAX_MB, file_md5,
-    r2_client, r2_upload, rebake_flatten_bbox, row_group_size_for, slug, write_split_shapefiles,
+    BUCKET,
+    CONTENT_TYPES,
+    DBF_MAX_BYTES,
+    OGR_ENV,
+    R2_PUBLIC,
+    WHOLE_LAYER_MAX_MB,
+    file_md5,
+    r2_client,
+    r2_upload,
+    rebake_flatten_bbox,
+    row_group_size_for,
+    slug,
+    write_split_shapefiles,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -641,20 +653,7 @@ DATASETS: list[Dataset] = [
 ]
 
 
-def http_download(url: str, dest: Path) -> int:
-    """Stream a URL to disk. Returns bytes written."""
-    if dest.exists() and dest.stat().st_size > 0:
-        return dest.stat().st_size
-    print(f'  fetching {url}')
-    with urllib.request.urlopen(url) as r, dest.open('wb') as f:
-        n = 0
-        while True:
-            chunk = r.read(1 << 20)
-            if not chunk:
-                break
-            f.write(chunk)
-            n += len(chunk)
-    return n
+http_download = pipeline.download  # old name, kept for callers and tests
 
 
 def bake_whole_layer(d: Dataset, src_parquet: Path, bake_dir: Path | None = None,
@@ -747,8 +746,7 @@ def merge_layer_into_catalog(
     if not merged.get('fetched_at'):
         merged['fetched_at'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
-    catalog['layers'] = [l for l in catalog['layers'] if l.get('id') != d.id]
-    catalog['layers'].append(merged)
+    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], merged)
     catalog['level_meta'][d.level] = level_meta
     # The home prerender (web/scripts/prerender.mjs:311) iterates
     # catalog.level_order to render external level rows; a missing entry
@@ -779,17 +777,14 @@ def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, fea
         if not f.exists():
             continue
         c = json.loads(f.read_text())
-        merge_layer_into_catalog(c, d, parquet_bytes, pmtiles_bytes, features, bakes_info)
-        f.write_text(json.dumps(c, indent=2) + '\n')
+        pipeline.write_json(f, merge_layer_into_catalog(c, d, parquet_bytes, pmtiles_bytes, features, bakes_info))
 
 
 def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int) -> None:
     """Append (or replace) an entry in scripts/external-ingested.json so
     future build_catalog.py runs pick it up without manual editing."""
     f = ROOT / 'scripts' / 'external-ingested.json'
-    items = json.loads(f.read_text())
-    items = [it for it in items if it.get('id') != d.id]
-    items.append({
+    items = pipeline.upsert_by_id(json.loads(f.read_text()), {
         'id': d.id,
         'name': d.name,
         'level': d.level,
@@ -808,7 +803,7 @@ def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, f
         'source_org': d.source_org,
         'notes': d.notes,
     })
-    f.write_text(json.dumps(items, indent=2) + '\n')
+    pipeline.write_json(f, items)
 
 
 def ingest(d: Dataset, upload: bool = True) -> None:

@@ -24,17 +24,15 @@ from __future__ import annotations
 
 import copy
 import json
-import shutil
 import subprocess
 import sys
-import urllib.request
 from pathlib import Path
 
 import duckdb
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from ingest_ramseraph import R2_PUBLIC, r2_client, r2_upload  # noqa: E402
+from pipeline import R2_PUBLIC, download, r2_client, r2_upload  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -63,15 +61,6 @@ def patched_layer(layer: dict, r2_public: str, key: str, nbytes: int) -> dict:
     out = copy.deepcopy(layer)
     out['pmtiles'] = {**out.get('pmtiles', {}), 'url': f'{r2_public}/{key}', 'bytes': nbytes}
     return out
-
-
-def download(url: str, dest: Path) -> None:
-    # R2's public endpoint rejects Python's default User-Agent (403).
-    if dest.exists() and dest.stat().st_size > 0:
-        return
-    req = urllib.request.Request(url, headers={'User-Agent': 'curl/8'})
-    with urllib.request.urlopen(req, timeout=300) as r, dest.open('wb') as f:
-        shutil.copyfileobj(r, f)
 
 
 def bake(layer: dict) -> Path:

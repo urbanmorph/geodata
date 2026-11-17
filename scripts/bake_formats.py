@@ -7,14 +7,16 @@ from __future__ import annotations
 
 import json
 import subprocess
-import tempfile
-import zipfile
 import sys
+import tempfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import atomic_output  # noqa: E402,F401  (re-exported for the bakes)
+from pipeline import (  # noqa: E402  (atomic_output is re-exported)
+    atomic_output,
+    write_stable_zip,
+)
 
 DBF_NAME_MAX = 10
 SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
@@ -99,9 +101,7 @@ def shapefile_key(names: dict[str, str], intro: list[str] = SHP_INTRO) -> list[s
 def zip_with_key(src_dir: Path, out: Path, key_lines: list[str]) -> None:
     """Zip every file in `src_dir` plus a columns.txt holding `key_lines`."""
     (src_dir / 'columns.txt').write_text('\n'.join(key_lines) + '\n')
-    with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for p in sorted(src_dir.iterdir()):
-            zf.write(p, arcname=p.name)
+    write_stable_zip(sorted(src_dir.iterdir()), out)
 
 
 def shapefile_zip_from_geojson(geojson: Path, out: Path, names: dict[str, str],

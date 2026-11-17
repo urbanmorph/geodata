@@ -136,3 +136,11 @@ def test_build_bakes_every_format_ready_for_locate_and_downloads(tmp_path):
     before = {k: p.read_bytes() for k, p in out.items()}
     again = ie.build(d, tmp_path / 'baked')
     assert {k: p.read_bytes() for k, p in again.items()} == before
+
+
+def test_manifest_is_written_with_a_trailing_newline(tmp_path, monkeypatch):
+    m = tmp_path / 'external-ingested.json'
+    m.write_text('[]\n')
+    monkeypatch.setattr(ie, 'MANIFEST', m)
+    ie.save_manifest([{'id': 'a'}])
+    assert m.read_text().endswith(']\n')

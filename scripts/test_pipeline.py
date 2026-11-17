@@ -4,9 +4,15 @@ Run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest scripts/test_pipeline.py
 """
 from __future__ import annotations
 
+import contextlib
+import http.server
+import os
 import subprocess
 import sys
+import threading
 from pathlib import Path
+
+import pytest
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -38,3 +44,295 @@ def test_old_import_names_still_work():
     assert bake_extracts.make_con is pipeline.make_con
     assert bake_mgnrega_districts.with_retries is pipeline.with_retries
     assert bake_mgnrega_districts.log is pipeline.log
+
+
+# ── downloads (review item 3) ────────────────────────────────────────────────
+
+@contextlib.contextmanager
+def _server(responses: list):
+    """Serve `responses` in order: (status, body) per request; records each request's UA."""
+    seen = []
+
+    class H(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):  # noqa: N802
+            seen.append(self.headers.get('User-Agent'))
+            status, body = responses.pop(0) if responses else (500, b'')
+            self.send_response(status)
+            self.send_header('Content-Length', str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *a):
+            pass
+
+    srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), H)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    try:
+        yield f'http://127.0.0.1:{srv.server_address[1]}/f', seen
+    finally:
+        srv.shutdown()
+
+
+def test_download_writes_atomically_and_skips_on_rerun(tmp_path):
+    dest = tmp_path / 'x.parquet'
+    with _server([(200, b'PAR1data')]) as (url, seen):
+        assert pipeline.download(url, dest) == 8
+        assert pipeline.download(url, dest) == 8  # cached: no second request
+    assert dest.read_bytes() == b'PAR1data' and len(seen) == 1
+    assert 'Python-urllib' not in seen[0]  # r2.dev refuses urllib's default UA
+    assert list(tmp_path.iterdir()) == [dest]  # no .part left behind
+
+
+def test_download_retries_then_succeeds(tmp_path):
+    dest = tmp_path / 'x.bin'
+    with _server([(503, b'busy'), (200, b'ok')]) as (url, seen):
+        pipeline.download(url, dest, wait=lambda n: None)
+    assert dest.read_bytes() == b'ok' and len(seen) == 2
+
+
+def test_failed_download_leaves_no_file_that_counts_as_done(tmp_path):
+    # A killed or failed download left a truncated file, skipped forever after.
+    dest = tmp_path / 'x.bin'
+    with _server([(404, b'<html>not found</html>')] * 3) as (url, _):
+        with pytest.raises(OSError):
+            pipeline.download(url, dest, tries=3, wait=lambda n: None)
+    assert list(tmp_path.iterdir()) == []
+
+
+def test_ingest_ramseraph_downloads_through_the_shared_helper():
+    import ingest_ramseraph as ir
+    import rebake_locate_tiles as rt
+    assert ir.http_download is pipeline.download
+    assert rt.download is pipeline.download
+
+
+# ── byte-stable zips (review item 5) ─────────────────────────────────────────
+
+def _zip_twice(tmp_path, make):
+    outs = []
+    for i, stamp in enumerate((1_000_000_000, 1_700_000_000)):
+        d = tmp_path / f'src{i}'
+        d.mkdir()
+        for name, body in (('x.shp', b'shp'), ('x.dbf', b'dbf')):
+            (d / name).write_bytes(body)
+            os.utime(d / name, (stamp, stamp))
+        out = tmp_path / f'out{i}.shp.zip'
+        make(d, out)
+        outs.append(out.read_bytes())
+    return outs
+
+
+def test_stable_zip_bytes_do_not_depend_on_file_times(tmp_path):
+    a, b = _zip_twice(tmp_path, lambda d, out: pipeline.write_stable_zip(sorted(d.iterdir()), out))
+    assert a == b
+
+
+def test_bake_formats_zip_with_key_is_byte_stable(tmp_path):
+    import bake_formats
+    a, b = _zip_twice(tmp_path, lambda d, out: bake_formats.zip_with_key(d, out, ['k']))
+    assert a == b
+
+
+def test_whole_layer_shapefile_zip_is_byte_stable(tmp_path, monkeypatch):
+    import bake_whole_layer as bwl
+
+    def fake_ogr(cmd, *a, **k):  # ogr2ogr stand-in: write a fixed shapefile set
+        shp = Path(cmd[cmd.index('ESRI Shapefile') + 3])
+        for ext in ('shp', 'dbf'):
+            p = shp.with_suffix(f'.{ext}')
+            p.write_bytes(ext.encode())
+            os.utime(p, (fake_ogr.stamp, fake_ogr.stamp))
+        fake_ogr.stamp += 10_000_000
+    fake_ogr.stamp = 1_000_000_000
+    monkeypatch.setattr(bwl.subprocess, 'run', fake_ogr)
+    a, b = _zip_twice(tmp_path, lambda d, out: bwl.write_shapefile_zip(d / 'x.geojson', 'x', out))
+    assert a == b
+
+
+# ── freshness (review item 8) ────────────────────────────────────────────────
+
+def test_is_fresh_needs_a_non_empty_output_newer_than_every_source(tmp_path):
+    src, out = tmp_path / 'src.parquet', tmp_path / 'out.geojson'
+    src.write_bytes(b'x')
+    os.utime(src, (2000, 2000))
+    assert not pipeline.is_fresh(out, src)  # missing
+    out.write_bytes(b'')
+    assert not pipeline.is_fresh(out, src)  # empty
+    out.write_bytes(b'{}')
+    os.utime(out, (1000, 1000))
+    assert not pipeline.is_fresh(out, src)  # older than its source: rebake
+    os.utime(out, (3000, 3000))
+    assert pipeline.is_fresh(out, src)
+
+
+def _tiny_parquet(path: Path) -> Path:
+    con = pipeline.make_con()
+    con.execute("COPY (SELECT 'Ward 1' AS wardname, 29 AS state_lgd, ST_Point(77.6, 12.9) AS geometry) "
+                f"TO '{path}' (FORMAT PARQUET)")
+    return path
+
+
+def test_whole_layer_rebakes_an_output_older_than_its_source(tmp_path, monkeypatch):
+    # "Skip if size > 0" kept stale (or partial) downloads after a source refresh.
+    import bake_whole_layer as bwl
+    monkeypatch.setattr(bwl, 'OUT', tmp_path / 'baked')
+    pq = _tiny_parquet(tmp_path / 'w.parquet')
+    paths = bwl.out_paths('p', 'w')
+    paths['geojson'].parent.mkdir(parents=True)
+    paths['geojson'].write_text('stale')
+    os.utime(paths['geojson'], (1000, 1000))
+    written, skipped, errors = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', True, False)
+    assert errors == [] and written == 2  # geojson + kml rebuilt
+    assert 'Ward 1' in paths['geojson'].read_text()
+    written, skipped, _ = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', True, False)
+    assert written == 0 and skipped == 3  # second run: nothing to do
+
+
+def test_whole_layer_failure_leaves_no_partial_output(tmp_path, monkeypatch):
+    import bake_whole_layer as bwl
+    monkeypatch.setattr(bwl, 'OUT', tmp_path / 'baked')
+
+    def half_then_die(con, parquet, out, gdal_ok):
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text('{"type":"FeatureCollection","features":[')
+        raise RuntimeError('killed')
+    monkeypatch.setattr(bwl, 'write_geojson_whole', half_then_die)
+    pq = _tiny_parquet(tmp_path / 'w.parquet')
+    _, _, errors = bwl.bake_one(None, 'w', pq, 'p', 'w', True, False)
+    assert errors and not bwl.out_paths('p', 'w')['geojson'].exists()
+
+
+def test_per_state_extract_skip_needs_a_fresh_output(tmp_path):
+    import bake_extracts
+    src, out = tmp_path / 'src.parquet', tmp_path / 'out.parquet'
+    src.write_bytes(b'x')
+    out.write_bytes(b'y')
+    os.utime(out, (1000, 1000))
+    assert not bake_extracts.should_skip(out, src)
+    os.utime(out, (src.stat().st_mtime + 10,) * 2)
+    assert bake_extracts.should_skip(out, src)
+
+
+# ── R2 uploads (review items 1, 11) ──────────────────────────────────────────
+
+class FakeS3:
+    class exceptions:  # noqa: N801
+        ClientError = KeyError
+
+    def __init__(self, head=None):
+        self.head, self.puts = head, []
+
+    def head_object(self, Bucket, Key):  # noqa: N803
+        if self.head is None:
+            raise KeyError(Key)
+        return self.head
+
+    def upload_file(self, path, bucket, key, ExtraArgs, Config):  # noqa: N803
+        self.puts.append((key, ExtraArgs))
+
+
+def test_r2_upload_skips_on_md5_not_size(tmp_path):
+    f = tmp_path / 'a.geojson'
+    f.write_bytes(b'{"x":[85.1,25.6]}')
+    same_size = FakeS3({'ContentLength': f.stat().st_size, 'Metadata': {'md5': 'x' * 32}, 'ETag': '"y"'})
+    pipeline.r2_upload(same_size, f, 'k/a.geojson')
+    assert len(same_size.puts) == 1
+    match = FakeS3({'Metadata': {'md5': pipeline.file_md5(f)}})
+    pipeline.r2_upload(match, f, 'k/a.geojson')
+    assert match.puts == []
+
+
+def test_r2_upload_trusts_a_single_part_etag_when_no_md5_metadata(tmp_path):
+    # Objects put by upload_baked.py / wrangler carry no md5 metadata; a
+    # single-part ETag is the MD5, so an unchanged file is still skipped.
+    f = tmp_path / 'a.kml'
+    f.write_bytes(b'<kml/>')
+    s3 = FakeS3({'Metadata': {}, 'ETag': f'"{pipeline.file_md5(f)}"'})
+    pipeline.r2_upload(s3, f, 'k/a.kml')
+    assert s3.puts == []
+    multipart = FakeS3({'Metadata': {}, 'ETag': f'"{pipeline.file_md5(f)}-3"'})
+    pipeline.r2_upload(multipart, f, 'k/a.kml')
+    assert len(multipart.puts) == 1
+
+
+def test_r2_upload_serves_downloads_as_attachments_and_tiles_inline(tmp_path):
+    s3 = FakeS3()
+    for name in ('a.parquet', 'a.geojson', 'a.kml', 'a.shp.zip', 'a.pmtiles'):
+        (tmp_path / name).write_bytes(b'x')
+        pipeline.r2_upload(s3, tmp_path / name, f'k/{name}')
+    disp = {k: e['ContentDisposition'] for k, e in s3.puts}
+    assert disp['k/a.pmtiles'] == 'inline'  # MapLibre range-reads it
+    for name in ('a.parquet', 'a.geojson', 'a.kml', 'a.shp.zip'):
+        assert disp[f'k/{name}'] == f'attachment; filename="{name}"'
+    assert {k: e['ContentType'] for k, e in s3.puts}['k/a.shp.zip'] == 'application/zip'
+
+
+def test_upload_baked_goes_through_the_md5_upload(tmp_path, monkeypatch):
+    # It skipped on a matching size, which misses a lat,lon swap (Patna).
+    import upload_baked as ub
+    files = []
+    for name in ('a.geojson', 'b.parquet'):
+        (tmp_path / name).write_bytes(b'x')
+        files.append((tmp_path / name, f'k/{name}', 1))
+    monkeypatch.setattr(ub, 'collect_local_files', lambda: files)
+    monkeypatch.setattr(ub, 'r2_client', lambda: 'S3')
+    calls = []
+    monkeypatch.setattr(ub, 'r2_upload', lambda s3, path, key: calls.append((s3, path.name, key)))
+    for k in ('R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'CLOUDFLARE_ACCOUNT_ID'):
+        monkeypatch.setenv(k, 'x')
+    assert ub.main([]) == 0
+    assert calls == [('S3', 'a.geojson', 'k/a.geojson'), ('S3', 'b.parquet', 'k/b.parquet')]
+
+
+def test_upload_r2_sh_maps_files_to_keys_and_hands_them_to_the_md5_uploader(tmp_path):
+    # upload_r2.sh compared sizes too; it now only lists (local, key) pairs.
+    (tmp_path / 'sources' / 'india-geodata').mkdir(parents=True)
+    (tmp_path / 'sources' / 'india-geodata' / 'LGD_Districts.parquet').write_bytes(b'x')
+    (tmp_path / 'data' / 'extracts' / 'districts' / '29').mkdir(parents=True)
+    (tmp_path / 'data' / 'extracts' / 'districts' / '29' / 'districts_ka.kml').write_bytes(b'x')
+    r = subprocess.run(['bash', str(HERE / 'upload_r2.sh'), '--list'], capture_output=True, text=True,
+                       env={**os.environ, 'GEODATA_ROOT': str(tmp_path)})
+    assert r.returncode == 0, r.stderr
+    pairs = [line.split('\t') for line in r.stdout.splitlines()]
+    root = str(tmp_path)
+    assert [f'{root}/sources/india-geodata/LGD_Districts.parquet', 'admin/districts/LGD_Districts.parquet'] in pairs
+    assert [f'{root}/data/extracts/districts/29/districts_ka.kml', 'extracts/districts/29/districts_ka.kml'] in pairs
+    text = (HERE / 'upload_r2.sh').read_text()
+    assert 'upload_baked.py' in text and 'remote_size' not in text
+    assert not (HERE / 'upload_r2_multipart.py').exists()  # r2_upload does multipart itself
+
+
+# ── catalog patching (review items 6, 7) ─────────────────────────────────────
+
+def test_upsert_by_id_replaces_in_place_and_appends_new():
+    rows = [{'id': 'a', 'v': 1}, {'id': 'b', 'v': 1}, {'id': 'c', 'v': 1}]
+    assert pipeline.upsert_by_id(rows, {'id': 'b', 'v': 2}) == [
+        {'id': 'a', 'v': 1}, {'id': 'b', 'v': 2}, {'id': 'c', 'v': 1}]
+    assert [r['id'] for r in pipeline.upsert_by_id(rows, {'id': 'd'})] == ['a', 'b', 'c', 'd']
+
+
+def test_upsert_layer_keeps_position_and_first_fetched_at():
+    catalog = {'layers': [{'id': 'x', 'fetched_at': '2026-01-01T00:00:00+00:00'}, {'id': 'y'}],
+               'level_meta': {}, 'level_order': ['x', 'y'], 'categories': {'a': 'A', 'other': 'Other'}}
+    entry = {'id': 'x', 'rows': 5, 'fetched_at': '2026-11-17T00:00:00+00:00'}
+    pipeline.upsert_layer(catalog, entry, level_meta={'label': 'X'},
+                          attribution=('S', {'name': 's'}), category=('economy', 'Economy'))
+    assert catalog['layers'][0] == {'id': 'x', 'rows': 5, 'fetched_at': '2026-01-01T00:00:00+00:00'}
+    assert catalog['level_order'] == ['x', 'y'] and catalog['level_meta']['x'] == {'label': 'X'}
+    assert catalog['attribution']['S'] == {'name': 's'}
+    assert list(catalog['categories']) == ['a', 'economy', 'other']  # 'other' stays last
+
+
+def test_upsert_layer_stamps_a_new_layer_once():
+    catalog = {'layers': []}
+    pipeline.upsert_layer(catalog, {'id': 'n'}, level_meta={})
+    stamp = catalog['layers'][0]['fetched_at']
+    assert stamp
+    pipeline.upsert_layer(catalog, {'id': 'n', 'fetched_at': 'later'}, level_meta={})
+    assert catalog['layers'][0]['fetched_at'] == stamp and catalog['level_order'] == ['n']
+
+
+def test_write_json_ends_with_a_newline(tmp_path):
+    p = tmp_path / 'm.json'
+    pipeline.write_json(p, [{'id': 'a', 'name': 'ā'}])
+    assert p.read_text().endswith(']\n') and '\\u0101' in p.read_text()

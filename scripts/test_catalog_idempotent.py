@@ -297,3 +297,23 @@ class TestMergeIdempotent:
         assert c['level_order'] == snapshot['level_order'], 'level_order changed'
         assert len(c['layers']) == 2
         assert {l['id'] for l in c['layers']} == {'layer_a', 'layer_b'}
+
+
+def test_re_ingest_keeps_the_layer_where_it_stands():
+    # Remove-then-append moved a re-ingested layer to the end of the list.
+    from ingest_ramseraph import merge_layer_into_catalog
+    c = {'layers': [{'id': 'first'}], 'level_order': ['first']}
+    merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+    c['layers'].append({'id': 'last'})
+    merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+    assert [l['id'] for l in c['layers']] == ['first', 'test_layer', 'last']
+
+
+def test_append_manifest_replaces_in_place(tmp_path, monkeypatch):
+    import ingest_ramseraph as ir
+    (tmp_path / 'scripts').mkdir()
+    m = tmp_path / 'scripts' / 'external-ingested.json'
+    m.write_text(json.dumps([{'id': 'test_layer'}, {'id': 'other'}]))
+    monkeypatch.setattr(ir, 'ROOT', tmp_path)
+    ir.append_manifest(_ds(), 1, 2, 3)
+    assert [r['id'] for r in json.loads(m.read_text())] == ['test_layer', 'other']

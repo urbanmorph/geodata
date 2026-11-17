@@ -16,8 +16,9 @@ Where:
 We skip the states layer (one feature per "state" — full parquet is ~7 MB
 and not worth per-state baking).
 
-Idempotency: if the output file already exists with non-zero size, we skip
-it. This matches the rule used in scripts/upload_r2.sh.
+Idempotency: an output that exists, is non-empty and is newer than its
+source is skipped. Writers go through atomic_output, so a killed run never
+leaves a partial file that a later run would skip.
 
 GeoJSON path: we try duckdb-spatial's GDAL GeoJSON writer first; if that's
 unavailable in this Python build we fall back to building the
@@ -31,7 +32,6 @@ Polygon/MultiPolygon/Point/LineString/MultiLineString/GeometryCollection.
 from __future__ import annotations
 
 import json
-import os
 import sys
 import time
 from pathlib import Path
@@ -39,7 +39,11 @@ from pathlib import Path
 import duckdb
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import make_con  # noqa: E402,F401  (re-exported)
+from pipeline import (  # noqa: E402  (make_con is re-exported)
+    atomic_output,
+    is_fresh,
+    make_con,
+)
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
@@ -309,13 +313,9 @@ def write_kml_from_geojson(geojson_path: Path, layer_name: str, out: Path) -> No
 # Main
 # ---------------------------------------------------------------------------
 
-def should_skip(out: Path) -> bool:
-    """Idempotency rule (matches scripts/upload_r2.sh): skip if the file
-    exists at non-zero size."""
-    try:
-        return out.stat().st_size > 0
-    except FileNotFoundError:
-        return False
+def should_skip(out: Path, *sources: Path) -> bool:
+    """Skip an output that is complete and newer than every source."""
+    return is_fresh(out, *sources)
 
 
 def main() -> int:
@@ -361,12 +361,13 @@ def main() -> int:
 
             # parquet
             out = paths["parquet"]
-            if should_skip(out):
+            if should_skip(out, src):
                 skipped += 1
                 print(f"skip  level={level} state={abbr} fmt=parquet size={out.stat().st_size}")
             else:
                 try:
-                    write_parquet(con, src, col, code, out)
+                    with atomic_output(out) as part:
+                        write_parquet(con, src, col, code, part)
                     sz = out.stat().st_size
                     written += 1
                     print(f"level={level} state={abbr} fmt=parquet size={sz}")
@@ -378,15 +379,16 @@ def main() -> int:
             # geojson
             out = paths["geojson"]
             geojson_path = out  # used by KML below
-            if should_skip(out):
+            if should_skip(out, src):
                 skipped += 1
                 print(f"skip  level={level} state={abbr} fmt=geojson size={out.stat().st_size}")
             else:
                 try:
-                    if gdal_ok:
-                        write_geojson_gdal(con, src, col, code, out)
-                    else:
-                        write_geojson_manual(con, src, col, code, out)
+                    with atomic_output(out) as part:
+                        if gdal_ok:
+                            write_geojson_gdal(con, src, col, code, part)
+                        else:
+                            write_geojson_manual(con, src, col, code, part)
                     sz = out.stat().st_size
                     written += 1
                     print(f"level={level} state={abbr} fmt=geojson size={sz}")
@@ -397,7 +399,7 @@ def main() -> int:
 
             # kml — depends on geojson being present
             out = paths["kml"]
-            if should_skip(out):
+            if should_skip(out, geojson_path):
                 skipped += 1
                 print(f"skip  level={level} state={abbr} fmt=kml size={out.stat().st_size}")
             else:
@@ -407,7 +409,8 @@ def main() -> int:
                     errors.append(msg)
                 else:
                     try:
-                        write_kml_from_geojson(geojson_path, f"{level}_{abbr}", out)
+                        with atomic_output(out) as part:
+                            write_kml_from_geojson(geojson_path, f"{level}_{abbr}", part)
                         sz = out.stat().st_size
                         written += 1
                         print(f"level={level} state={abbr} fmt=kml size={sz}")

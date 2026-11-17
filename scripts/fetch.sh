@@ -74,6 +74,7 @@ PATHS=(
   # "admin/panchayats/bhuvan_panchayats.parquet"   # 629 MB — 2nd source for panchayats; LGD is authoritative
 )
 
+failed=0
 for p in "${PATHS[@]}"; do
   name=$(basename "$p")
   if [ -f "$name" ] && [ -s "$name" ]; then
@@ -81,6 +82,15 @@ for p in "${PATHS[@]}"; do
     continue
   fi
   echo "fetch $name"
-  curl -sL --max-time 1200 -o "$name.tmp" "$BASE/$p" && mv "$name.tmp" "$name"
+  # -f: an HTTP error must fail, not be saved under the real name and then
+  # skipped by every later run.
+  if ! curl -fsSL --retry 3 --max-time 1200 -o "$name.tmp" "$BASE/$p"; then
+    rm -f "$name.tmp"
+    echo "  FAILED $name" >&2
+    failed=$((failed + 1))
+    continue
+  fi
+  mv "$name.tmp" "$name"
   ls -lh "$name" | awk '{print "  size:", $5}'
 done
+[ "$failed" -eq 0 ] || { echo "$failed download(s) failed" >&2; exit 1; }

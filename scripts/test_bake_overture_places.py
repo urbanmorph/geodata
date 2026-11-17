@@ -264,3 +264,11 @@ def test_description_matches_the_published_columns():
     d = b.description_for('2026-09-23.1')
     assert 'phone' not in d.lower() and 'email' not in d.lower()  # stripped columns
     assert 'basic_category' in d
+
+
+def test_fetched_at_changes_with_the_release_only():
+    # Re-running upload for the release already in the catalog must not
+    # restamp the card's "Updated" date.
+    same = patched()
+    assert b.fetched_at_for(same, '2026-09-23.1', 'NOW') == '2026-10-07T12:00:00+00:00'
+    assert b.fetched_at_for(OLD_LAYER, '2026-09-23.1', 'NOW') == 'NOW'

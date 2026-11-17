@@ -15,8 +15,10 @@ import os
 import re
 import subprocess
 import time
+from collections.abc import Callable, Iterable, Iterator
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Callable, Iterator
+from typing import Any
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -52,20 +54,54 @@ def log(*msg: Any) -> None:
     print(*msg, flush=True)
 
 
-def with_retries(fn: Callable[[], Any], tries: int = 6, wait: Callable[[int], None] | None = None) -> Any:
+def with_retries(fn: Callable[[], Any], tries: int = 6, wait: Callable[[int], None] | None = None,
+                 give_up: Callable[[Exception], bool] = lambda e: False) -> Any:
     """Retry network errors, including a response cut off mid-transfer
-    (http.client.IncompleteRead is not an OSError). Messages never hold the
-    URL, so an API key in a query string stays out of the log."""
+    (http.client.IncompleteRead is not an OSError). `give_up(e)` stops early
+    on an error that won't heal (a 404). Messages never hold the URL, so an
+    API key in a query string stays out of the log."""
     wait = wait or (lambda n: time.sleep(5 * n))
     for attempt in range(1, tries + 1):
         try:
             return fn()
         except (OSError, http.client.HTTPException, json.JSONDecodeError) as e:
-            if attempt == tries:
+            if attempt == tries or give_up(e):
                 raise
             log(f'  retry {attempt}: {type(e).__name__}')
             wait(attempt)
     raise AssertionError('unreachable')
+
+
+# A plain, generic client name: r2.dev and some portals refuse urllib's default.
+USER_AGENT = 'Mozilla/5.0 (compatible; bharatlas-pipeline/1.0; +https://bharatlas.com)'
+
+
+def _client_error(e: Exception) -> bool:
+    import urllib.error
+    return isinstance(e, urllib.error.HTTPError) and 400 <= e.code < 500 and e.code not in (408, 429)
+
+
+def download(url: str, dest: Path, *, tries: int = 4, timeout: float = 300,
+             wait: Callable[[int], None] | None = None) -> int:
+    """Stream `url` to `dest` unless it is already there; returns its size.
+    The body goes to a .part file renamed into place only when complete, so
+    a killed or failed run never leaves a truncated file that counts as done.
+    Retries network errors and 5xx/429 with backoff; a 4xx fails at once."""
+    import shutil
+    import urllib.request
+    if dest.exists():
+        return dest.stat().st_size
+    dest.parent.mkdir(parents=True, exist_ok=True)
+
+    def once() -> None:
+        log(f'  fetching {url}')
+        req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
+        with atomic_output(dest) as part, urllib.request.urlopen(req, timeout=timeout) as r, \
+                part.open('wb') as f:
+            shutil.copyfileobj(r, f, 1 << 20)
+
+    with_retries(once, tries, wait, give_up=_client_error)
+    return dest.stat().st_size
 
 
 # ── files ────────────────────────────────────────────────────────────────────
@@ -91,6 +127,35 @@ def file_md5(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b''):
             h.update(chunk)
     return h.hexdigest()
+
+
+def is_fresh(out: Path, *sources: Path) -> bool:
+    """True when `out` exists, is non-empty and is at least as new as every
+    source: a rebake skips it. A partial file can't pass (writers go through
+    atomic_output) and a refreshed source makes it stale."""
+    try:
+        st = out.stat()
+    except FileNotFoundError:
+        return False
+    return st.st_size > 0 and all(st.st_mtime >= s.stat().st_mtime for s in sources)
+
+
+def write_stable_zip(files: Iterable[Path], out: Path) -> None:
+    """Zip `files` (flat, in the given order) with a fixed timestamp, so the
+    same input gives the same bytes and md5 (no needless re-upload)."""
+    import zipfile
+    with atomic_output(out) as part, zipfile.ZipFile(part, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for f in files:
+            info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.external_attr = 0o644 << 16
+            zf.writestr(info, f.read_bytes())
+
+
+def write_json(path: Path, data: Any) -> None:
+    """The house JSON style for catalog.json and the manifest: 2-space
+    indent, ASCII escapes, trailing newline (no diff churn)."""
+    path.write_text(json.dumps(data, indent=2, ensure_ascii=True) + '\n')
 
 
 def slug(value: str) -> str:
@@ -134,7 +199,10 @@ def r2_upload(s3, local: Path, key: str) -> None:
     md5 = file_md5(local)
     try:
         head = s3.head_object(Bucket=BUCKET, Key=key)
-        if head.get('Metadata', {}).get('md5') == md5:
+        # Objects put by older uploaders carry no md5 metadata; a single-part
+        # ETag is the body's MD5 (a multipart one has a "-N" suffix and isn't).
+        remote = head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"')
+        if remote == md5:
             log(f'  R2 skip (md5 match): s3://{BUCKET}/{key}')
             return
     except s3.exceptions.ClientError:
@@ -143,13 +211,65 @@ def r2_upload(s3, local: Path, key: str) -> None:
     transfer = TransferConfig(multipart_threshold=64 * 1024 * 1024, multipart_chunksize=64 * 1024 * 1024)
     extra = {
         'ContentType': ct,
-        # Parquet downloads should trigger save; pmtiles should be inline so the viewer can fetch.
-        'ContentDisposition': f'attachment; filename="{local.name}"' if ext == '.parquet' else 'inline',
+        # Downloads save as files (cross-origin links to r2.dev ignore the
+        # HTML download attribute); pmtiles stays inline for MapLibre's range reads.
+        'ContentDisposition': 'inline' if ext == '.pmtiles' else f'attachment; filename="{local.name}"',
         'CacheControl': 'public, max-age=604800, immutable',
         'Metadata': {'md5': md5},
     }
     log(f'  uploading → s3://{BUCKET}/{key}  ({local.stat().st_size:,} bytes)')
     s3.upload_file(str(local), BUCKET, key, ExtraArgs=extra, Config=transfer)
+
+
+# ── catalog.json + external-ingested.json patching ───────────────────────────
+
+def now_iso() -> str:
+    return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+
+
+def upsert_by_id(rows: list[dict], row: dict) -> list[dict]:
+    """Replace the row with row['id'] where it stands, or append it. Keeping
+    the position means a re-run moves nothing (no diff)."""
+    out = [row if r.get('id') == row['id'] else r for r in rows]
+    return out if any(r.get('id') == row['id'] for r in rows) else [*out, row]
+
+
+def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None = None,
+                 attribution: tuple[str, dict] | None = None,
+                 category: tuple[str, str] | None = None) -> dict:
+    """Patch one layer into a catalog dict in place (never rebuild the catalog).
+
+    Idempotent: the layer keeps its place and its first `fetched_at` (the
+    card's "Updated" date), so a second run with the same inputs changes
+    nothing. Also sets level_meta[level], appends the level to level_order
+    (the home page iterates it), and adds the attribution and the category
+    (before 'other', which stays last) when given."""
+    prev = next((l for l in catalog.setdefault('layers', []) if l.get('id') == entry['id']), {})
+    entry = {**entry, 'fetched_at': prev.get('fetched_at') or entry.get('fetched_at') or now_iso()}
+    catalog['layers'] = upsert_by_id(catalog['layers'], entry)
+    level = level or entry.get('level') or entry['id']
+    catalog.setdefault('level_meta', {})[level] = level_meta
+    order = catalog.setdefault('level_order', [])
+    if level not in order:
+        order.append(level)
+    if attribution:
+        catalog.setdefault('attribution', {})[attribution[0]] = dict(attribution[1])
+    if category:
+        cats = catalog.setdefault('categories', {})
+        if category[0] not in cats:
+            other = cats.pop('other', None)
+            cats[category[0]] = category[1]
+            if other is not None:
+                cats['other'] = other
+    return catalog
+
+
+def register_layer(catalog_path: Path, manifest_path: Path, entry: dict, manifest_row: dict,
+                   level_meta: dict, **kw) -> None:
+    """upsert_layer into catalog.json and upsert_by_id into the manifest, on disk."""
+    catalog = json.loads(catalog_path.read_text())
+    write_json(catalog_path, upsert_layer(catalog, entry, level_meta, **kw))
+    write_json(manifest_path, upsert_by_id(json.loads(manifest_path.read_text()), manifest_row))
 
 
 # ── parquet: flat bbox + Hilbert order ───────────────────────────────────────
@@ -331,13 +451,7 @@ def bake_whole_layer(d, src_parquet: Path, bake_dir: Path, basename: str | None 
             # Most GIS tools refuse a .dbf of 2 GB or more: ship no shapefile rather than a broken one.
             log(f'  shapefile skipped: .dbf over {DBF_MAX_BYTES:,} bytes ({", ".join(too_big)}); set shp_split_by')
         else:
-            import zipfile
-            with zipfile.ZipFile(shp_zip, 'w', zipfile.ZIP_DEFLATED) as zf:
-                for f in sorted(shp_dir.iterdir()):
-                    # Fixed timestamp: same input, same bytes, same md5 (no re-upload).
-                    info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
-                    info.compress_type = zipfile.ZIP_DEFLATED
-                    zf.writestr(info, f.read_bytes())
+            write_stable_zip(sorted(shp_dir.iterdir()), shp_zip)
             outputs['shapefile'] = shp_zip
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired, duckdb.Error) as e:
         log(f'  shapefile bake skipped: {e}')

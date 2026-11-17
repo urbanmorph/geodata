@@ -34,6 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
+
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 
@@ -178,6 +179,13 @@ def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
     new['fetched_at'] = fetched_at
     new['notes'] = notes_for(release)
     return new
+
+
+def fetched_at_for(layer: dict, release: str, now: str) -> str:
+    """Keep the layer's date when it already serves this release (a re-run);
+    a new release is new data, so it gets `now`."""
+    on_release = (layer.get('parquet') or {}).get('url', '').endswith(r2_keys(release)['parquet'])
+    return layer.get('fetched_at') if on_release and layer.get('fetched_at') else now
 
 
 def notes_for(release: str) -> str:
@@ -395,10 +403,10 @@ def upload(release: str, out: Path) -> None:
     for fmt, key in r2_keys(release).items():
         r2_upload(s3, out / f'{LAYER_ID}.{FORMATS[fmt]}', key)
 
-    fetched_at = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     catalog = json.loads(CATALOG.read_text())
     catalog['layers'] = [
-        patched_layer(l, release, summary['sizes'], summary['rows'], fetched_at, R2_PUBLIC)
+        patched_layer(l, release, summary['sizes'], summary['rows'], fetched_at_for(l, release, now), R2_PUBLIC)
         if l['id'] == LAYER_ID else l for l in catalog['layers']]
     catalog['level_meta'][LAYER_ID] = patched_level_meta(catalog['level_meta'][LAYER_ID], release)
     CATALOG.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
