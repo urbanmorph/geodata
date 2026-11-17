@@ -1,21 +1,28 @@
-// Stable design tokens + nav + footer. Colours and the logo come from
+// Stable design tokens + nav + footer, in the "survey sheet" look (Direction A):
+// grid paper behind the page, 1.5px navy edges, 4px corners, a navy offset shadow
+// on actions, system monospace for map-sheet labels. Colours and the logo come from
 // shared/brand.mjs (saffron / India green / chakra navy). Type scale
-// (--fs-*) 12/13/15/16/18/22/24/32/44/56: every font size on every page uses it
+// (--fs-*) 12/13/15/16/18/22/24/32/44/72: every font size on every page uses it
 // (tests/type-scale.test.ts). Radii 4/6/8/12. Pure module so vitest can test
 // renderNav() etc.
-import { themeDecls, wordmarkHtml, WORDMARK_CSS } from '../../shared/brand.mjs';
+import { themeDecls, wordmarkHtml, WORDMARK_CSS, PALETTE } from '../../shared/brand.mjs';
 import { footerHtml } from '../../shared/footer.mjs';
 
 export const TOKENS = `
   :root {
     --fs-xs: 12px; --fs-sm: 13px; --fs-base: 15px; --fs-md: 16px; --fs-lg: 18px;
-    --fs-xl: 22px; --fs-2xl: 24px; --fs-3xl: 32px; --fs-4xl: 44px; --fs-display: 56px;
+    --fs-xl: 22px; --fs-2xl: 24px; --fs-3xl: 32px; --fs-4xl: 44px; --fs-display: 72px;
     --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
     --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
     --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
-    --bg: #ffffff; --bg-elevated: #fafafa; --bg-card: #f5f5f5;
-    --muted: #525965; --muted-strong: #374151;
-    --subtle: #9ca3af; --line: #e5e7eb; --line-bright: #d1d5db;
+    /* Paper behind the page, white panels on it; --bg-card is the hover / selected tint. */
+    --bg: #F3F6F1; --bg-elevated: #ffffff; --bg-card: #E9EFEA;
+    --muted: #4B5563; --muted-strong: #374151;
+    --subtle: #9ca3af; --line: #D5DED7; --line-bright: #B8C4BC;
+    /* Survey sheet: land fill, the navy edge and its offset shadow, the grid. */
+    --land: #E6F2EA; --edge: ${PALETTE.navy}; --grid: rgba(18, 128, 74, .07);
+    --shadow: 4px 4px 0 var(--edge); --shadow-sm: 3px 3px 0 var(--edge);
+    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
     ${themeDecls('light')}
     --ok: #16a34a; --warn: #d97706; --err: #dc2626;
   }
@@ -24,15 +31,20 @@ export const TOKENS = `
       --bg: #0a0a0a; --bg-elevated: #15151a; --bg-card: #1a1a1f;
       --muted: #9ca3af; --muted-strong: #d4d4d8;
       --subtle: #525252; --line: #262626; --line-bright: #404040;
+      --land: #13261C; --edge: #C8D0E3; --grid: rgba(63, 203, 126, .06);
       ${themeDecls('dark')}
       --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
     }
   }
   *, *::before, *::after { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--fg); }
-  body {
-    font: var(--fs-base)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;
+  html, body { margin: 0; padding: 0; color: var(--fg); }
+  /* Grid paper on the root, so it fills the window, not just body's column. */
+  html {
+    background: var(--bg);
+    background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 48px 48px;
   }
+  body { font: var(--fs-base)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   a:focus-visible, button:focus-visible, [role=button]:focus-visible,
@@ -59,10 +71,10 @@ export const TOKENS = `
     gap: var(--sp-4); flex-wrap: wrap;
     margin-inline: calc(50% - 50vw); margin-bottom: var(--sp-6);
     padding: 12px max(16px, calc(50vw - var(--page-max) / 2 + 24px));
-    background: var(--bg); border-bottom: 1px solid var(--line);
+    background: var(--bg-elevated); border-bottom: 1.5px solid var(--edge);
   }
   ${WORDMARK_CSS}
-  .site-brand { font-size: var(--fs-md); }
+  .site-brand { font-size: var(--fs-xl); }
   .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
   .site-nav { display: flex; gap: var(--sp-5); flex-wrap: wrap; align-items: center; }
   .site-nav a {
@@ -75,10 +87,11 @@ export const TOKENS = `
   .site-nav a:hover { color: var(--fg); }
   .site-nav a[data-active] { color: var(--fg); font-weight: 650; }
   .site-nav a.nav-cta {
-    min-height: 40px; padding: 0 14px; color: var(--fg); font-weight: 650;
-    border: 1.5px solid var(--line-bright); border-radius: 10px;
+    min-height: 44px; padding: 0 16px; color: var(--fg); font-weight: 650;
+    border: 1.5px solid var(--edge); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
   }
-  .site-nav a.nav-cta:hover, .site-nav a.nav-cta[data-active] { border-color: var(--accent-fill); text-decoration: none; }
+  .site-nav a.nav-cta:hover, .site-nav a.nav-cta[data-active] { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
+  .site-nav a[data-active]:not(.nav-cta) { box-shadow: inset 0 -3px 0 var(--accent-fill); }
   /* mobile hamburger (CSS-only, checkbox toggle) */
   .nav-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
   .nav-burger {
@@ -133,18 +146,21 @@ export const TOKENS = `
   }
   .install-guide button:hover { background: var(--accent-fill-hover); }
   /* Content pages: one type scale for every page (the home page's too). */
-  .page-title { margin: 24px 0 14px; max-width: 760px; font-size: var(--fs-4xl); line-height: 1.06; font-weight: 760; letter-spacing: -.035em; text-wrap: balance; }
+  .page-title { margin: 24px 0 14px; max-width: 760px; font-size: var(--fs-4xl); line-height: 1.04; font-weight: 850; letter-spacing: -.03em; text-wrap: balance; }
+  /* A map-sheet label: monospace, green, above a title or beside a count. */
+  .sheet-note { margin: 0 0 12px; font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); }
   .page-lead { margin: 0 0 28px; max-width: 660px; font-size: var(--fs-lg); line-height: 1.55; color: var(--muted); }
-  .section-title, .prose h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
+  .section-title, .prose h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 850; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
   .prose { max-width: 720px; }
   .prose ul { list-style: none; margin: 0 0 16px; padding: 0; }
   .prose li { position: relative; padding: 4px 0 4px 20px; }
   .prose li::before { content: ""; position: absolute; left: 4px; top: .9em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fill); }
-  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border-radius: 12px; font-size: var(--fs-md); font-weight: 700; text-decoration: none !important; }
-  .btn--fill { background: var(--accent-fill); color: var(--on-accent-fill) !important; }
+  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); font-size: var(--fs-md); font-weight: 750; text-decoration: none !important; }
+  .btn--fill { background: var(--accent-fill); color: var(--on-accent-fill) !important; box-shadow: var(--shadow); }
   .btn--fill:hover { background: var(--accent-fill-hover); }
-  .btn--line { border: 1.5px solid var(--line-bright); color: var(--fg) !important; }
-  .btn--line:hover { border-color: var(--accent-fill); }
+  .btn--fill:active { box-shadow: none; transform: translate(4px, 4px); }
+  .btn--line { background: var(--bg-elevated); color: var(--fg) !important; }
+  .btn--line:hover { background: var(--land); }
   @media (max-width: 640px) {
     .page-title { font-size: var(--fs-3xl); }
     .page-lead { font-size: var(--fs-md); }
@@ -152,8 +168,8 @@ export const TOKENS = `
   }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
-    border-top: 1px solid var(--line);
-    color: var(--muted); font-size: var(--fs-xs); line-height: 1.7;
+    border-top: 1.5px solid var(--edge);
+    color: var(--muted); font: var(--fs-xs)/1.7 var(--font-mono);
   }
   .site-footer p { margin: 0 0 var(--sp-2); }
   .site-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }

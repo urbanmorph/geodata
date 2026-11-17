@@ -129,6 +129,10 @@ window.addEventListener('hashchange', handleHash);
 handleHash();
 if (viewProbe.view) { warmCatalog(); showMap(viewProbe.layerId); }
 
+// The hero's India map: its theme switch is a small chunk of its own.
+const indiaMap = document.querySelector<HTMLElement>('[data-india-map]');
+if (indiaMap) void import('./india-map').then((m) => m.initIndiaMap(indiaMap));
+
 // Hover/touchstart prefetch: warm the map chunk as soon as the user signals
 // intent. Dynamic import() dedupes — fires once across all event sources.
 const prefetch = () => {

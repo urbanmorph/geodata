@@ -4,7 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { THEME_DESC } from '../scripts/themes.mjs';
+import { THEME_DESC, THEME_GLYPH } from '../scripts/themes.mjs';
 
 const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../catalog.json'), 'utf8')) as { categories: Record<string, string> };
 
@@ -15,3 +15,17 @@ describe('theme descriptions', () => {
     }
   });
 });
+
+// The legend's map symbols (Direction A, survey sheet): every theme has one,
+// a closed shape in the 28-unit box, and no two themes share a symbol.
+describe('theme symbols', () => {
+  const ids = [...Object.keys(catalog.categories), 'all', 'community'];
+  it('cover every theme', () => {
+    for (const id of ids) expect(THEME_GLYPH[id], id).toMatchObject({ d: expect.stringMatching(/^M/), fill: expect.any(String) });
+  });
+  it('are all different', () => {
+    const ds = ids.map((id) => THEME_GLYPH[id].d);
+    expect(new Set(ds).size).toBe(ds.length);
+  });
+});
+
