@@ -51,7 +51,9 @@ describe('lean home page', () => {
     const index = JSON.parse(read('public/layer-index.json')) as { t: string; h: string }[];
     const rows = [...layers.matchAll(/data-search-primary="/g)].length;
     expect(index.length).toBe(rows);
-    for (const e of index) expect(e.h).toMatch(/^\/view\/[a-z0-9_]+$|^\/layers#/);
+    // Curated rows open their map or their /layers anchor; community layers
+    // (production builds only, from D1) open their /c/<id> page.
+    for (const e of index) expect(e.h).toMatch(/^\/view\/[a-z0-9_]+$|^\/layers#[a-z0-9_]+$|^\/c\/[A-Za-z0-9_-]+$/);
   });
   it('is back under 85 KB gzipped', async () => {
     const { gzipSync } = await import('node:zlib');
