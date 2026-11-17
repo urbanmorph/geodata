@@ -27,6 +27,9 @@ import { openLocate, closeLocate } from './locate';
 import { aboutLayerHtml, type AboutMeta } from './about-layer';
 import { fetchWardIndex, type WardIndexFile } from './ward-index';
 import { buildFeatureFilter, parseAtParam } from './locate-actions';
+import {
+  fillColorExpr, noDataFilter, hatchPixels, legendHtml, combineFilters, type ChoroplethSpec,
+} from '../../shared/choropleth.mjs';
 
 type Layer = {
   id: string;
@@ -38,6 +41,8 @@ type Layer = {
   pmtiles?: { url: string; bytes: number } | null;
   geojson?: { url: string; bytes: number } | null;
   notes?: string;
+  // Value layers: colour polygons by one column (see shared/choropleth.mjs).
+  choropleth?: ChoroplethSpec;
 };
 
 // ---------------------------------------------------------------------------
@@ -47,7 +52,7 @@ type Layer = {
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
 const BASE_PADDING = { top: 60, bottom: 20, left: 20, right: 20 };
 const MAX_POPUP_PROPS = 10;
-const DATA_LAYERS = ['fill', 'line-halo', 'line', 'point'] as const;
+const DATA_LAYERS = ['fill', 'fill-nodata', 'line-halo', 'line', 'point'] as const;
 const INTERACTIVE_LAYERS = ['fill', 'point'] as const;
 const POINT_GEOM_FILTER: maplibregl.FilterSpecification = ['==', ['geometry-type'], 'Point'];
 
@@ -56,6 +61,9 @@ const POINT_GEOM_FILTER: maplibregl.FilterSpecification = ['==', ['geometry-type
 // ---------------------------------------------------------------------------
 
 let map: MlMap | null = null;
+// A data layer's own filter, kept under any user filter (points only; the
+// no-data hatch of a value layer).
+let baseFilters: Partial<Record<(typeof DATA_LAYERS)[number], maplibregl.FilterSpecification>> = {};
 let filterAbort: AbortController | null = null;
 let activeBasemap: BasemapId = 'minimal';
 let layerBounds: [number, number, number, number] = INDIA_BOUNDS;
@@ -284,19 +292,36 @@ function setBasemap(id: BasemapId): void {
 // Data layer rendering
 // ---------------------------------------------------------------------------
 
-function addDataLayers(sourceId: string, sourceLayer?: string) {
+const fadeInByZoom = (low: number, high: number): maplibregl.ExpressionSpecification =>
+  ['interpolate', ['linear'], ['zoom'], 5, low, 9, high];
+
+function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: ChoroplethSpec) {
   if (!map) return;
   const common = sourceLayer ? { 'source-layer': sourceLayer } : {};
+  baseFilters = { point: POINT_GEOM_FILTER };
   map.addLayer({
     id: 'fill', type: 'fill', source: sourceId, ...common,
-    paint: { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY },
+    // A value layer is graded by its column, opaque so the shades read true.
+    paint: choropleth
+      ? { 'fill-color': fillColorExpr(choropleth) as maplibregl.ExpressionSpecification, 'fill-opacity': 1 }
+      : { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY },
   });
+  if (choropleth) {
+    baseFilters['fill-nodata'] = noDataFilter(choropleth) as maplibregl.FilterSpecification;
+    if (!map.hasImage('nodata-hatch')) map.addImage('nodata-hatch', hatchPixels());
+    map.addLayer({
+      id: 'fill-nodata', type: 'fill', source: sourceId, ...common,
+      filter: baseFilters['fill-nodata'],
+      paint: { 'fill-pattern': 'nodata-hatch' },
+    });
+  }
   map.addLayer({
     id: 'line-halo', type: 'line', source: sourceId, ...common,
     paint: {
       'line-color': '#ffffff',
       'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 10, 3.5],
-      'line-opacity': 0.75,
+      // On a value layer the shades carry the map; edges fade in as you zoom.
+      'line-opacity': choropleth ? fadeInByZoom(0.1, 0.75) : 0.75,
     },
   });
   map.addLayer({
@@ -304,7 +329,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string) {
     paint: {
       'line-color': DATA_LINE,
       'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.4, 10, 1.2],
-      'line-opacity': 0.85,
+      'line-opacity': choropleth ? fadeInByZoom(0.3, 0.85) : 0.85,
     },
   });
   map.addLayer({
@@ -471,7 +496,7 @@ async function attachData(layer: Layer) {
     });
     layerBounds = snapToIndiaIfLarge([header.minLon, header.minLat, header.maxLon, header.maxLat]);
     flyTo(layerBounds, { padding: arrivalPadding(), duration: 0 });
-    addDataLayers('layer', sourceLayer);
+    addDataLayers('layer', sourceLayer, layer.choropleth);
   } else if (layer.geojson?.url) {
     // No pmtiles header to read bounds from. Fetch the geojson once, derive its
     // extent, and fit the view to it — same outcome as the pmtiles path above.
@@ -493,7 +518,7 @@ async function attachData(layer: Layer) {
     }
     currentSourceLayer = undefined;
     map.addSource('layer', { type: 'geojson', data: data as never, attribution: layer.source });
-    addDataLayers('layer');
+    addDataLayers('layer', undefined, layer.choropleth);
   } else {
     throw new Error('no renderable source for ' + layer.id);
   }
@@ -592,19 +617,26 @@ async function loadFilterColumns(
 // Filter application
 // ---------------------------------------------------------------------------
 
+// The user's filter on every data layer, on top of each layer's own filter.
+function setDataFilters(user: maplibregl.FilterSpecification | null): void {
+  if (!map) return;
+  for (const id of DATA_LAYERS) {
+    if (map.getLayer(id)) map.setFilter(id, combineFilters(baseFilters[id], user) as maplibregl.FilterSpecification | null);
+  }
+}
+
+// Value layers get a legend (column, unit, class ranges, no data) on the map.
+function addLegend(container: HTMLElement, spec: ChoroplethSpec | undefined, unitNoun?: string): void {
+  if (!spec) return;
+  container.insertAdjacentHTML('beforeend', legendHtml(spec, unitNoun));
+}
+
 function applyActiveFilters(
   filters: ActiveFilter[],
   mapFilter: MaplibreFilter,
 ): void {
   if (!map) return;
-  for (const id of DATA_LAYERS) {
-    if (!map.getLayer(id)) continue;
-    if (id === 'point') {
-      map.setFilter(id, mapFilter ? (['all', POINT_GEOM_FILTER, mapFilter] as unknown as maplibregl.FilterSpecification) : POINT_GEOM_FILTER);
-    } else {
-      map.setFilter(id, (mapFilter as maplibregl.FilterSpecification | null) ?? null);
-    }
-  }
+  setDataFilters(mapFilter as maplibregl.FilterSpecification | null);
   const padding = panelAwarePadding();
 
   if (filters.length) {
@@ -619,10 +651,7 @@ function applyActiveFilters(
       // PMTiles property on this layer. Don't strand the user on a blank map:
       // drop the map filter (the DuckDB count/export still reflect the filter).
       if (!features.length) {
-        for (const id of DATA_LAYERS) {
-          if (!m.getLayer(id)) continue;
-          m.setFilter(id, id === 'point' ? POINT_GEOM_FILTER : null);
-        }
+        setDataFilters(null);
         return;
       }
       const bounds = new maplibregl.LngLatBounds();
@@ -962,7 +991,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   resetOverlays();
   const cat = (await getCatalog()) as {
     layers?: Layer[];
-    level_meta?: Record<string, { label?: string; seo_title?: string; locate_label?: string; locate_mode?: string }>;
+    level_meta?: Record<string, { label?: string; seo_title?: string; unit?: string; locate_label?: string; locate_mode?: string }>;
   };
   const layer = cat.layers?.find((l) => l.id === layerId);
   if (!layer) {
@@ -1022,6 +1051,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   map.on('load', async () => {
     try {
       await attachData(layer);
+      addLegend(container, layer.choropleth, levelMeta?.unit);
       await addLgdOverlay(cat.layers ?? [], layer.id);
       if (!map) return; // closeLayer may have run during the awaits
       map.once('idle', () => {

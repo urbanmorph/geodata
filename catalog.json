@@ -5491,7 +5491,18 @@
         "IndiaSAT",
         "CoRE Stack",
         "block"
-      ]
+      ],
+      "choropleth": {
+        "column": "cropping_intensity_index",
+        "label": "Cropping intensity, 2023-24",
+        "unit": "crops a year",
+        "breaks": [
+          1.6,
+          1.9,
+          2,
+          2.2
+        ]
+      }
     },
     {
       "id": "mi6_wells_districts",
@@ -5544,7 +5555,18 @@
         "solar pumps",
         "district",
         "Jal Shakti"
-      ]
+      ],
+      "choropleth": {
+        "column": "total",
+        "label": "Wells counted, 2017-18",
+        "unit": "wells",
+        "breaks": [
+          3400,
+          14000,
+          31000,
+          59000
+        ]
+      }
     },
     {
       "id": "sbm_wards",
@@ -6676,7 +6698,18 @@
         "district",
         "economy",
         "finance"
-      ]
+      ],
+      "choropleth": {
+        "column": "Total_Exp",
+        "label": "MGNREGA spending, 2025-26",
+        "unit": "Rs lakh",
+        "breaks": [
+          3000,
+          6600,
+          11000,
+          21000
+        ]
+      }
     },
     {
       "id": "cityfinance_ulbs",
@@ -6730,7 +6763,18 @@
         "nagar panchayat",
         "NMAM",
         "MoHUA"
-      ]
+      ],
+      "choropleth": {
+        "column": "total_expenditure",
+        "label": "Total expenditure, latest year",
+        "unit": "Rs",
+        "breaks": [
+          38000000,
+          65000000,
+          110000000,
+          240000000
+        ]
+      }
     },
     {
       "id": "state_finance",
@@ -6786,7 +6830,18 @@
         "state",
         "economy",
         "finance"
-      ]
+      ],
+      "choropleth": {
+        "column": "nsdp_per_capita_current_2021_22_rs",
+        "label": "Per capita income (NSDP), 2021-22",
+        "unit": "Rs per person",
+        "breaks": [
+          120000,
+          140000,
+          210000,
+          260000
+        ]
+      }
     },
     {
       "id": "wards_kalyan_dombivli",
