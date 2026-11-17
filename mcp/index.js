@@ -326,7 +326,7 @@ async function handleTool(name, args) {
 }
 
 const server = new Server(
-  { name: "bharatlas-mcp", version: "1.4.0" },
+  { name: "bharatlas-mcp", version: "1.6.0" },
   { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS },
 );
 

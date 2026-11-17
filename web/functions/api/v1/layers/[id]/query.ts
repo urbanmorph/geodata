@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { loadCatalog } from '../../../../lib/catalog-loader';
+import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, QueryInputError } from '../../../../lib/parquet-query';
 import { parseQueryParams } from '../../../../lib/query-params';
@@ -27,7 +28,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid });
     const timing = Date.now() - start;
 
-    return new Response(safeStringify({ data: result, layer_id: id, timing_ms: timing }), {
+    return new Response(safeStringify({ data: result, layer_id: id, ...ncFields(layer), timing_ms: timing }), {
       headers: {
         'content-type': 'application/json',
         'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',

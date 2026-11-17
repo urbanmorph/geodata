@@ -19,7 +19,7 @@ export const INSTRUCTIONS_CORE = `Workflow patterns:
 - **Community layers**: list_submissions returns user-contributed datasets. These work with query_layer and get_layer_schema exactly like curated layers.
 - **Downloads**: get_layer_detail returns direct URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most).
 - **Large layers**: overture_places_india has 4.4M places. Always narrow it: where on basic_category (e.g. "hospital", "restaurant") or name, group_by, or nearby for places around a point. Whole-table filters and group_by take several seconds; nearby is the fast path for "near me".
-- **Honor the terms**: every layer and community submission carries its own source and open licence. When you use, quote, or publish results from a layer, credit its source and respect that licence; get_layer_detail returns the attribution and licence, and each /view page's Dataset JSON-LD carries a creditText to reproduce.
+- **Honor the terms**: every layer and community submission carries its own source and open licence. When you use, quote, or publish results from a layer, credit its source and respect that licence; get_layer_detail returns the attribution and licence, and each /view page's Dataset JSON-LD carries a creditText to reproduce. A layer whose answer has "non_commercial": true is for non-commercial use only: say so whenever you use or recommend it, quote its "licence_notice", and never suggest it for a product, a client or paid work.
 
 Source preference (multiple layers often cover the same level):
 - **Admin boundaries** (state, district, subdistrict, block, village): prefer LGD (lgd_*) as the authoritative source. SOI, Bhuvan, and geoBoundaries are cross-reference alternates with slightly different counts/boundaries. Mention alternates if the user asks about discrepancies.
@@ -332,6 +332,7 @@ export function shapeReadResult(name, result) {
       data: result.data.map((l) => ({
         id: l.id, level: l.level, source: l.source, category: l.category,
         rows: l.rows, licence: l.licence, notes: l.notes,
+        ...(l.non_commercial ? { non_commercial: true, licence_notice: l.licence_notice } : {}),
       })),
     };
   }

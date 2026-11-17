@@ -1,3 +1,4 @@
+import { layerIsNonCommercial, NC_NOTICE } from '../../../shared/licences.mjs';
 export interface CatalogLayer {
   id: string;
   level: string;
@@ -9,6 +10,8 @@ export interface CatalogLayer {
   kml?: { url: string; bytes: number | null } | null;
   shapefile?: { url: string; bytes: number | null } | null;
   licence?: string;
+  /** Set for terms that forbid commercial use but aren't a licence id (e.g. "no commercial purposes"). */
+  non_commercial?: boolean;
   attribution?: { primary?: { name: string; url: string }; publisher?: { name: string; url: string } | null };
   category: string;
   provenance: string;
@@ -58,6 +61,8 @@ export interface ApiLayer {
   downloads: Record<string, { url: string; bytes: number | null }>;
   level_meta?: { label: string; unit: string; description: string };
   filter_stats?: unknown;
+  non_commercial?: true;
+  licence_notice?: string;
 }
 
 export function filterLayers(layers: CatalogLayer[], filter: LayerFilter): CatalogLayer[] {
@@ -88,6 +93,11 @@ export function paginateResults<T>(items: T[], opts: PaginationOpts): PaginatedR
 
 const FORMATS = ['parquet', 'pmtiles', 'geojson', 'kml', 'shapefile'] as const;
 
+/** Spread into every answer about a layer or its rows: a non-commercial layer says so, in a field and in words. */
+export function ncFields(layer: Pick<CatalogLayer, 'licence' | 'non_commercial'>): { non_commercial?: true; licence_notice?: string } {
+  return layerIsNonCommercial(layer) ? { non_commercial: true, licence_notice: NC_NOTICE } : {};
+}
+
 export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = false): ApiLayer {
   const downloads: Record<string, { url: string; bytes: number | null }> = {};
   for (const fmt of FORMATS) {
@@ -106,6 +116,7 @@ export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = f
     notes: layer.notes,
     downloads,
     level_meta: catalog.level_meta?.[layer.id],
+    ...ncFields(layer),
   };
   if (detail && catalog.filter_stats?.[layer.id]) {
     result.filter_stats = catalog.filter_stats[layer.id];

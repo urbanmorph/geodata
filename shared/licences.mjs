@@ -1,6 +1,7 @@
 // Licence id -> terms URL, for every surface (prerender JSON-LD, /view and /c
 // pages, the map's About panel, the submit allow-list). Exact ids only: a
 // substring match once sent "CC-BY-NC-4.0" to plain CC BY 4.0.
+import { escapeHtml } from './format.mjs';
 
 export const LICENCE_URLS = Object.freeze({
   'CC0-1.0': 'https://creativecommons.org/publicdomain/zero/1.0/',
@@ -26,4 +27,23 @@ export function licenceUrl(id) {
 /** Non-commercial licences must carry a visible "Non-commercial only" label. */
 export function isNonCommercial(id) {
   return /(^|-)NC(-|$)/.test(String(id ?? ''));
+}
+
+export const NC_LABEL = 'Non-commercial only';
+/** What a program (API, MCP) is told about a non-commercial layer, in plain words. */
+export const NC_NOTICE =
+  "Non-commercial use only: this layer's licence does not allow commercial use. " +
+  'Check its licence before using it in a product, for a client or in paid work.';
+
+/** NC by its licence id, or by the catalog flag for terms that are not a licence id ("no commercial purposes"). */
+export function layerIsNonCommercial(layer) {
+  return layer?.non_commercial === true || isNonCommercial(layer?.licence);
+}
+
+/** The licence badge (linked when the id is known), then "Non-commercial only" when NC. One builder for every page. */
+export function licenceBadgeHtml(licence, nonCommercial = isNonCommercial(licence)) {
+  const href = licenceUrl(licence);
+  const link = href ? ` href="${escapeHtml(href)}" target="_blank" rel="noopener"` : '';
+  return `<a class="badge lic-badge${nonCommercial ? ' lic-badge--nc' : ''}"${link}>${escapeHtml(licence)}</a>` +
+    (nonCommercial ? ` <span class="badge lic-badge lic-badge--nc">${NC_LABEL}</span>` : '');
 }

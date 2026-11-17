@@ -5,6 +5,7 @@ import {
   toApiLayer,
   toApiCategory,
   toApiLevel,
+  ncFields,
   type CatalogData,
 } from '../functions/lib/catalog-api';
 
@@ -191,5 +192,23 @@ describe('toApiLevel', () => {
     expect(levels[0].id).toBe('state');
     expect(levels[0].order).toBe(1);
     expect(levels[1].id).toBe('seismic_zone');
+  });
+});
+
+describe('non-commercial layers in the API', () => {
+  const nc = { ...SAMPLE_CATALOG.layers[0], id: 'kgis_police', licence: 'KGIS terms', non_commercial: true };
+  it('say so in every layer answer, in a field and in words', () => {
+    const api = toApiLayer(nc, SAMPLE_CATALOG) as Record<string, unknown>;
+    expect(api.non_commercial).toBe(true);
+    expect(api.licence_notice).toMatch(/^Non-commercial use only/);
+  });
+  it('open layers carry neither field', () => {
+    const api = toApiLayer(SAMPLE_CATALOG.layers[0], SAMPLE_CATALOG) as Record<string, unknown>;
+    expect(api).not.toHaveProperty('non_commercial');
+    expect(api).not.toHaveProperty('licence_notice');
+  });
+  it('row answers (query, schema, records) carry the notice too', () => {
+    expect(ncFields(nc)).toEqual({ non_commercial: true, licence_notice: expect.stringMatching(/^Non-commercial/) });
+    expect(ncFields(SAMPLE_CATALOG.layers[0])).toEqual({});
   });
 });

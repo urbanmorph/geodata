@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { loadCatalog } from '../../../../lib/catalog-loader';
+import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
 import { json, safeStringify } from '../../../../lib/http';
@@ -23,7 +24,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   try {
     const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
     const schema = await getSchema(file);
-    return new Response(safeStringify({ data: schema }), {
+    return new Response(safeStringify({ data: schema, ...ncFields(layer) }), {
       headers: { 'content-type': 'application/json', 'cache-control': CACHE },
     });
   } catch (e) {

@@ -6,24 +6,17 @@
 import { availableDownloads, fmtBytes } from './format-hints';
 import { escapeHtml as esc, fmtDate } from '../../shared/format.mjs';
 import { buildWardTable, type WardIndex } from '../functions/lib/view-dataset';
-import { licenceUrl, isNonCommercial } from '../../shared/licences.mjs';
+import { licenceBadgeHtml, layerIsNonCommercial } from '../../shared/licences.mjs';
 
 type Fmt = { url: string; bytes: number } | null | undefined;
 export type AboutLayer = {
-  id: string; source?: string; licence?: string; rows?: number | null; fetched_at?: string;
+  id: string; source?: string; licence?: string; non_commercial?: boolean; rows?: number | null; fetched_at?: string;
   description?: string; notes?: string;
   parquet?: Fmt; pmtiles?: Fmt; geojson?: Fmt; kml?: Fmt; shapefile?: Fmt;
 };
 export type AboutMeta = { label?: string; seo_title?: string; unit?: string; description?: string } | undefined;
 
 
-function licenceBadge(licence: string): string {
-  const nc = isNonCommercial(licence);
-  const href = licenceUrl(licence);
-  const link = href ? ` href="${esc(href)}" target="_blank" rel="noopener"` : '';
-  return `<a class="badge lic-badge${nc ? ' lic-badge--nc' : ''}"${link}>${esc(licence)}</a>` +
-    (nc ? ` <span class="badge lic-badge lic-badge--nc">Non-commercial only</span>` : '');
-}
 
 export function aboutLayerHtml({ layer, meta, wardIndex }: { layer: AboutLayer; meta: AboutMeta; wardIndex?: WardIndex | null }): string {
   const title = meta?.seo_title || meta?.label || layer.id.replace(/_/g, ' ');
@@ -36,7 +29,7 @@ export function aboutLayerHtml({ layer, meta, wardIndex }: { layer: AboutLayer; 
   const downloads = availableDownloads(layer);
   return `<h2 class="about-panel__title" id="about-title">${esc(title)}</h2>` +
     `<p class="about-panel__facts">${facts}</p>` +
-    (layer.licence ? `<p class="about-panel__lic">${licenceBadge(layer.licence)}</p>` : '') +
+    (layer.licence ? `<p class="about-panel__lic">${licenceBadgeHtml(layer.licence, layerIsNonCommercial(layer))}</p>` : '') +
     (desc ? `<p class="about-panel__desc">${esc(desc)}</p>` : '') +
     (downloads.length
       ? `<h3 class="about-panel__h">Download</h3><ul class="about-panel__dl">` +

@@ -1,6 +1,6 @@
 import { WARD_PLACES, mugiluUrl, yellideUrl } from './ward-places';
 import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
-import { licenceUrl } from '../../../shared/licences.mjs';
+import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial } from '../../../shared/licences.mjs';
 // Pure builder for the /view/<id> page's per-layer meta + Dataset JSON-LD.
 // Extracted from functions/view/[id].ts so the description-length rule
 // (Google Dataset Search requires ≥50 chars) is unit-testable.
@@ -16,6 +16,7 @@ export type CatalogLayer = {
   description?: string;
   provenance?: string;
   licence?: string;
+  non_commercial?: boolean;
   notes?: string;
   parquet?: { url: string; bytes: number } | null;
   pmtiles?: { url: string; bytes: number } | null;
@@ -437,7 +438,7 @@ export function buildViewContent(
   return `<article class="view-seo">
   <p class="view-seo__crumb"><a href="/">bharatlas</a> / <a href="/layers">all layers</a> / ${esc(title)}</p>
   <h1>${esc(title)}</h1>
-  <p>${count ? `<strong>${count}</strong> ${esc(unit)}` : ''} ${layer.source ? `· Source: ${esc(layer.source)}` : ''} ${layer.licence ? `· Licence: ${esc(layer.licence)}` : ''}</p>
+  <p>${count ? `<strong>${count}</strong> ${esc(unit)}` : ''} ${layer.source ? `· Source: ${esc(layer.source)}` : ''} ${layer.licence ? `· Licence: ${licenceBadgeHtml(layer.licence, layerIsNonCommercial(layer))}` : ''}</p>
   ${desc ? `<p>${esc(desc)}</p>` : ''}
   ${downloads.length ? `<p>Download: ${downloads.join(' · ')}</p>` : ''}
   ${wardTable}
