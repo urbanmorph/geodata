@@ -39,9 +39,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from pipeline import (  # noqa: E402
     bake_whole_layer,
+    geojson_to_parquet,
     r2_client,
     r2_upload,
-    rebake_flatten_bbox,
     upsert_by_id,
     write_json,
 )
@@ -739,8 +739,7 @@ def outputs(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
 
 def tippecanoe_args(gj: Path, out: Path, layer_name: str) -> list[str]:
     """z0-z12 like every locate-able layer (rebake_locate_tiles), tileset named after the layer."""
-    *args, src = tippecanoe_cmd(gj, out, layer_name)
-    return [*args, '-n', layer_name, src]
+    return tippecanoe_cmd(gj, out, layer_name)  # tippecanoe_cmd already names the tileset (-n)
 
 
 def to_geojson(src: Path, out: Path) -> None:
@@ -755,13 +754,7 @@ def to_geojson(src: Path, out: Path) -> None:
 
 def to_parquet(gj: Path, out: Path) -> int:
     """GeoJSON -> Parquet with flat bbox columns in Hilbert order. Returns feature count."""
-    raw = out.with_name(f'{out.stem}.raw.parquet')
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
-    con.execute(f"COPY (SELECT * FROM ST_Read('{gj}')) TO '{raw}' (FORMAT 'parquet', COMPRESSION 'zstd')")
-    n, _ = rebake_flatten_bbox(raw, out, con)
-    raw.unlink()
-    return n
+    return geojson_to_parquet(gj, out)
 
 
 def to_pmtiles(gj: Path, out: Path, layer_name: str) -> None:

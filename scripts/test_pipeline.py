@@ -213,6 +213,45 @@ def test_per_state_extract_skip_needs_a_fresh_output(tmp_path):
     assert bake_extracts.should_skip(out, src)
 
 
+# ── GeoJSON -> parquet / pmtiles converters (review items 13, 22) ────────────
+
+def _tiny_geojson(path: Path) -> Path:
+    path.write_text('{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"A"},'
+                    '"geometry":{"type":"Point","coordinates":[77.6,12.9]}}]}')
+    return path
+
+
+def test_geojson_to_parquet_adds_the_nearby_bbox_columns(tmp_path):
+    out = tmp_path / 'o.parquet'
+    assert pipeline.geojson_to_parquet(_tiny_geojson(tmp_path / 'i.geojson'), out, geometry_name='geometry') == 1
+    cols = [c[0] for c in pipeline.make_con().execute(f"DESCRIBE SELECT * FROM '{out}'").fetchall()]
+    assert {'xmin', 'ymin', 'xmax', 'ymax', 'geometry', 'name'} <= set(cols)
+    assert not list(tmp_path.glob('*.raw.parquet'))
+
+
+def test_judiciary_parquet_gets_bbox_columns_for_nearby(tmp_path):
+    # bake_judiciary wrote plain ST_Read parquet: no bbox columns, no Hilbert order.
+    import bake_judiciary as bj
+    out = tmp_path / 'hc.parquet'
+    bj.geojson_to_parquet(pipeline.make_con(), _tiny_geojson(tmp_path / 'hc.geojson'), out)
+    cols = [c[0] for c in pipeline.make_con().execute(f"DESCRIBE SELECT * FROM '{out}'").fetchall()]
+    assert {'xmin', 'ymin', 'xmax', 'ymax'} <= set(cols)
+
+
+def test_judiciary_and_community_tiles_use_the_shared_tippecanoe_args(tmp_path, monkeypatch):
+    import bake_community as bc
+    import bake_formats
+    import bake_judiciary as bj
+    seen = []
+    monkeypatch.setattr(bj.subprocess, 'run', lambda cmd, *a, **k: seen.append(cmd))
+    monkeypatch.setattr(bc, '_run', lambda cmd: seen.append(cmd))
+    gj, out = tmp_path / 'high_courts.geojson', tmp_path / 'o.pmtiles'
+    bj.geojson_to_pmtiles(gj, out)
+    bc.geojson_to_pmtiles(gj, out, 'c_x')
+    assert seen == [bake_formats.pmtiles_args(gj, out, 'high_courts', ()),
+                    bake_formats.pmtiles_args(gj, out, 'c_x', ())]
+
+
 # ── R2 uploads (review items 1, 11) ──────────────────────────────────────────
 
 class FakeS3:

@@ -18,7 +18,7 @@ nclt.gov.in — verified May 2026.
 from __future__ import annotations
 
 import json
-import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -31,8 +31,9 @@ OUT = ROOT / "data" / "baked" / "judiciary"
 
 sys.path.insert(0, str(HERE))
 from bake_extracts import write_kml_from_geojson  # noqa: E402
-from bake_whole_layer import write_shapefile_zip, have_ogr2ogr  # noqa: E402
-
+from bake_formats import pmtiles_args  # noqa: E402
+from bake_whole_layer import have_ogr2ogr, write_shapefile_zip  # noqa: E402
+from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
 
 # ── 25 High Courts ──────────────────────────────────────────────────────
 
@@ -145,28 +146,16 @@ def dissolve_layer(
 
 
 def geojson_to_parquet(con: duckdb.DuckDBPyConnection, gj: Path, out: Path) -> None:
-    """Convert a GeoJSON FeatureCollection to spatial Parquet via DuckDB."""
+    """GeoJSON -> parquet with the flat bbox columns and Hilbert order that
+    /api/v1/nearby needs (every curated layer has them)."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    con.execute(
-        f"COPY (SELECT * FROM ST_Read('{gj.as_posix()}')) "
-        f"TO '{out.as_posix()}' (FORMAT PARQUET, COMPRESSION ZSTD)"
-    )
+    pipeline_geojson_to_parquet(gj, out, con=con)
 
 
 def geojson_to_pmtiles(gj: Path, out: Path) -> None:
-    """Convert GeoJSON to PMTiles via tippecanoe (if available)."""
-    import subprocess
+    """Convert GeoJSON to PMTiles via tippecanoe; layer name = filename stem."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run([
-        'tippecanoe',
-        '-o', str(out),
-        '-zg',             # auto max zoom
-        '--drop-densest-as-needed',
-        '--extend-zooms-if-still-dropping',
-        '-l', gj.stem,    # layer name = filename stem
-        '--force',         # overwrite
-        str(gj),
-    ], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    subprocess.run(pmtiles_args(gj, out, gj.stem, ()), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
 
 def main() -> int:

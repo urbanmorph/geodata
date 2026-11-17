@@ -370,6 +370,24 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
     return n, non_geom
 
 
+def geojson_to_parquet(gj: Path, out: Path, geometry_name: str | None = None, con=None) -> int:
+    """GeoJSON -> parquet with flat bbox columns in Hilbert order (what
+    /api/v1/nearby needs). ST_Read names the geometry `geom`; pass
+    `geometry_name` to rename it. Returns the feature count."""
+    if con is None:
+        import duckdb
+        con = duckdb.connect()
+        con.execute('INSTALL spatial; LOAD spatial;')
+    geom = f'* EXCLUDE (geom), geom AS "{geometry_name}"' if geometry_name else '*'
+    raw = out.with_name(f'{out.stem}.raw.parquet')
+    try:
+        con.execute(f"COPY (SELECT {geom} FROM ST_Read('{gj}')) TO '{raw}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        n, _ = rebake_flatten_bbox(raw, out, con)
+    finally:
+        raw.unlink(missing_ok=True)
+    return n
+
+
 # ── whole-layer downloads: geojson + kml + shapefile ─────────────────────────
 
 def write_split_shapefiles(src_parquet: Path, out_dir: Path, basename: str, column: str) -> None:

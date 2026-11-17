@@ -53,12 +53,14 @@ def features_sql(parquet: str, props_sql: str) -> str:
 
 
 def pmtiles_args(src: Path, out: Path, layer: str, fields: Iterable[str],
-                 parallel: bool = False) -> list[str]:
+                 parallel: bool = False, max_zoom: int | None = None) -> list[str]:
     """tippecanoe args keeping only `fields` (popup fields): every extra tile
-    attribute makes tippecanoe drop more features at low zoom. `parallel`
-    reads line-delimited GeoJSON with -P."""
+    attribute makes tippecanoe drop more features at low zoom; no fields keeps
+    them all. `parallel` reads line-delimited GeoJSON with -P. `max_zoom`
+    fixes z0..max_zoom (locate tests points at the max zoom) instead of -zg."""
     # -n: tippecanoe otherwise names the tileset after the input file path.
-    args = ['tippecanoe', '-o', str(out), '-l', layer, '-n', layer, '-zg']
+    zoom = ['-Z0', f'-z{max_zoom}'] if max_zoom is not None else ['-zg']
+    args = ['tippecanoe', '-o', str(out), '-l', layer, '-n', layer, *zoom]
     if parallel:
         args.append('-P')
     args += ['--drop-densest-as-needed', '--extend-zooms-if-still-dropping']

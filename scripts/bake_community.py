@@ -88,13 +88,17 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 
-# Reuse the canonical bbox/Hilbert rebake + R2 helpers verbatim. This is the
-# same module rebake_layer.py builds on; importing it is side-effect free
-# (the ingest entry point is guarded by __main__).
-from ingest_ramseraph import (  # noqa: E402
-    BUCKET, R2_PUBLIC, rebake_flatten_bbox, row_group_size_for,
-    r2_client, r2_upload,
+# Reuse the canonical bbox/Hilbert rebake + R2 helpers (scripts/pipeline.py,
+# side-effect free on import).
+from bake_formats import pmtiles_args  # noqa: E402
+from pipeline import (  # noqa: E402
+    BUCKET,
+    R2_PUBLIC,
+    r2_client,
+    r2_upload,
+    row_group_size_for,
 )
+from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 COMMUNITY_PREFIX = 'community'
@@ -300,20 +304,9 @@ def normalize_to_geojson(raw: Path, fmt: str, out_geojson: Path) -> None:
 
 
 def geojson_to_parquet(gj: Path, out_parquet: Path) -> int:
-    """GeoJSON -> nearby-optimised parquet. ST_Read's geometry column is named
-    `geom`; rebake_flatten_bbox keys on a column named `geometry`, so alias it
-    before handing off the bbox-flatten + Hilbert-sort pass."""
-    import duckdb
-    tmp = out_parquet.with_suffix('.raw.parquet')
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
-    con.execute(
-        f"COPY (SELECT * EXCLUDE (geom), geom AS geometry FROM ST_Read('{gj}')) "
-        f"TO '{tmp}' (FORMAT PARQUET, COMPRESSION ZSTD)"
-    )
-    features, _cols = rebake_flatten_bbox(tmp, out_parquet)
-    tmp.unlink(missing_ok=True)
-    return features
+    """GeoJSON -> nearby-optimised parquet (flat bbox, Hilbert order), with
+    ST_Read's `geom` column renamed `geometry`."""
+    return pipeline_geojson_to_parquet(gj, out_parquet, geometry_name='geometry')
 
 
 def geojson_to_kml(gj: Path, out_kml: Path) -> None:
@@ -323,9 +316,7 @@ def geojson_to_kml(gj: Path, out_kml: Path) -> None:
 
 def geojson_to_pmtiles(gj: Path, out_pmtiles: Path, layer_name: str) -> None:
     out_pmtiles.unlink(missing_ok=True)
-    _run(['tippecanoe', '-o', str(out_pmtiles), '-l', layer_name, '-zg',
-          '--drop-densest-as-needed', '--extend-zooms-if-still-dropping',
-          '--force', '--no-progress-indicator', str(gj)])
+    _run(pmtiles_args(gj, out_pmtiles, layer_name, ()))
 
 
 # ===========================================================================

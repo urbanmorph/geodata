@@ -17,8 +17,10 @@ Run:
     python3 scripts/rebake_locate_tiles.py --no-upload   # build + check only
     python3 scripts/rebake_locate_tiles.py               # build, upload, patch catalog
 
-Idempotent: downloads are cached in WORK, uploads skip on a matching md5,
-and the catalog patch is keyed by layer id.
+Idempotent: downloads are cached in WORK, the GeoJSON and tiles are rebuilt
+only when older than what they are made from, uploads skip on a matching md5,
+and catalog.json is patched (by layer id) after each layer, so a killed run
+keeps every layer it finished.
 """
 from __future__ import annotations
 
@@ -28,11 +30,19 @@ import subprocess
 import sys
 from pathlib import Path
 
-import duckdb
-
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from pipeline import R2_PUBLIC, download, r2_client, r2_upload  # noqa: E402
+from bake_formats import pmtiles_args  # noqa: E402
+from pipeline import (  # noqa: E402
+    R2_PUBLIC,
+    atomic_output,
+    download,
+    is_fresh,
+    make_con,
+    r2_client,
+    r2_upload,
+    write_json,
+)
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -45,9 +55,7 @@ LAYERS = ['bharatviz_pincodes', 'bda_jurisdiction', 'wards_hyderabad', 'wards_de
 
 
 def tippecanoe_cmd(geojson: Path, out: Path, layer: str) -> list[str]:
-    return ['tippecanoe', '-o', str(out), '-l', layer, '-Z0', f'-z{MAX_ZOOM}',
-            '--drop-densest-as-needed', '--extend-zooms-if-still-dropping',
-            '--force', '--quiet', str(geojson)]
+    return pmtiles_args(geojson, out, layer, (), max_zoom=MAX_ZOOM)
 
 
 def versioned_key(pmtiles_url: str) -> str:
@@ -69,38 +77,38 @@ def bake(layer: dict) -> Path:
     pq = WORK / f'{lid}.parquet'
     download(layer['parquet']['url'], pq)
     gj = WORK / f'{lid}.geojson'
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
-    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
-    cols = con.execute(f"DESCRIBE SELECT * FROM '{pq}'").fetchall()
-    geom = next(c for c, t, *_ in cols if 'GEOMETRY' in t or c in ('geometry', 'geom', 'wkb_geometry'))
-    # The bbox columns serve /nearby, not map popups; leave them out of tiles.
-    drop = [c for c, *_ in cols if c in ('bbox', 'xmin', 'ymin', 'xmax', 'ymax')]
-    exclude = f"EXCLUDE ({', '.join(drop)})" if drop else ''
-    con.execute(f"COPY (SELECT * {exclude} FROM '{pq}' WHERE {geom} IS NOT NULL) "
-                f"TO '{gj}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')")
+    if not is_fresh(gj, pq):
+        con = make_con()  # keeps lon,lat for EPSG:4326-tagged geometry
+        cols = con.execute(f"DESCRIBE SELECT * FROM '{pq}'").fetchall()
+        geom = next(c for c, t, *_ in cols if 'GEOMETRY' in t or c in ('geometry', 'geom', 'wkb_geometry'))
+        # The bbox columns serve /nearby, not map popups; leave them out of tiles.
+        drop = [c for c, *_ in cols if c in ('bbox', 'xmin', 'ymin', 'xmax', 'ymax')]
+        exclude = f"EXCLUDE ({', '.join(drop)})" if drop else ''
+        with atomic_output(gj) as part:
+            con.execute(f"COPY (SELECT * {exclude} FROM '{pq}' WHERE {geom} IS NOT NULL) "
+                        f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')")
     out = WORK / Path(versioned_key(layer['pmtiles']['url'])).name
-    subprocess.run(tippecanoe_cmd(gj, out, lid), check=True, capture_output=True, timeout=1800)
+    if not is_fresh(out, gj):
+        with atomic_output(out) as part:
+            subprocess.run(tippecanoe_cmd(gj, part, lid), check=True, capture_output=True, timeout=1800)
     return out
 
 
 def main(argv: list[str]) -> int:
     upload = '--no-upload' not in argv
-    catalog = json.loads(CATALOG.read_text())
-    by_id = {l['id']: l for l in catalog['layers']}
     s3 = r2_client() if upload else None
     for lid in LAYERS:
-        layer = by_id[lid]
+        catalog = json.loads(CATALOG.read_text())
+        layer = next(l for l in catalog['layers'] if l['id'] == lid)
         out = bake(layer)
         key = versioned_key(layer['pmtiles']['url'])
-        print(f'{lid}: {out} ({out.stat().st_size:,} bytes) -> {key}')
+        print(f'{lid}: {out} ({out.stat().st_size:,} bytes) -> {key}', flush=True)
         if upload:
             r2_upload(s3, out, key)
-            by_id[lid] = patched_layer(layer, R2_PUBLIC, key, out.stat().st_size)
-    if upload:
-        catalog['layers'] = [by_id[l['id']] for l in catalog['layers']]
-        CATALOG.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
-        print('catalog.json patched')
+            new = patched_layer(layer, R2_PUBLIC, key, out.stat().st_size)
+            catalog['layers'] = [new if l['id'] == lid else l for l in catalog['layers']]
+            write_json(CATALOG, catalog)  # after each layer: a kill keeps the finished ones
+            print(f'  catalog.json patched for {lid}', flush=True)
     return 0
 
 
