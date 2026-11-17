@@ -3,7 +3,8 @@
 // is never blocked on D1.
 
 import type { Env } from '../_middleware';
-import { classifyKey, R2_PUBLIC_BASE as R2_BASE } from '../../lib/r2-keys';
+import { classifyDownload, R2_PUBLIC_BASE as R2_BASE } from '../../lib/r2-keys';
+import { loadCatalog } from '../../lib/catalog-loader';
 import { incrementDownload } from '../../lib/counters';
 
 type Params = { path: string[] };
@@ -12,11 +13,14 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];
   const key = segs.join('/');
   if (!key) return new Response('missing key', { status: 400 });
-  const cls = classifyKey(key);
-  if (cls) {
-    ctx.waitUntil(
-      incrementDownload(ctx.env.DB, cls.layer_id, cls.state_code, cls.format).catch(() => {}),
-    );
-  }
+  // Classify after answering: the redirect never waits on the catalog or D1.
+  ctx.waitUntil(
+    loadCatalog(new URL(ctx.request.url).origin)
+      .then((catalog) => {
+        const cls = classifyDownload(key, catalog);
+        return cls ? incrementDownload(ctx.env.DB, cls.layer_id, cls.state_code, cls.format) : undefined;
+      })
+      .catch(() => {}),
+  );
   return Response.redirect(`${R2_BASE}/${key}`, 302);
 };

@@ -20,3 +20,18 @@ export async function incrementDownload(
     .bind(layer_id, state_code, format, new Date().toISOString())
     .run();
 }
+
+/** {layer: {format: n}, _total}, adding up every row for a layer and format
+ *  (per-state extracts and the R2 backfill rows are separate rows). */
+export function shapeDownloadCounts(
+  rows: { layer_id: string; format: string; count: number }[],
+): Record<string, Record<string, number> | number> {
+  const counts: Record<string, Record<string, number>> = {};
+  let total = 0;
+  for (const r of rows) {
+    const layer = (counts[r.layer_id] ??= {});
+    layer[r.format] = (layer[r.format] ?? 0) + r.count;
+    total += r.count;
+  }
+  return { ...counts, _total: total };
+}

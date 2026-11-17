@@ -6,6 +6,7 @@
 // Plus a _total key with the grand total.
 
 import type { Env } from '../../_middleware';
+import { shapeDownloadCounts } from '../../lib/counters';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   try {
@@ -13,15 +14,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       'SELECT layer_id, format, count FROM download_counts',
     ).all<{ layer_id: string; format: string; count: number }>();
 
-    const counts: Record<string, Record<string, number>> = {};
-    let total = 0;
-    for (const r of rows.results ?? []) {
-      if (!counts[r.layer_id]) counts[r.layer_id] = {};
-      counts[r.layer_id][r.format] = r.count;
-      total += r.count;
-    }
-
-    return new Response(JSON.stringify({ ...counts, _total: total }), {
+    return new Response(JSON.stringify(shapeDownloadCounts(rows.results ?? [])), {
       headers: {
         'content-type': 'application/json',
         'access-control-allow-origin': '*',

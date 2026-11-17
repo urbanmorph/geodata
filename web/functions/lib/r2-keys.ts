@@ -71,3 +71,41 @@ export function classifyKey(key: string): Classified | null {
 
   return null;
 }
+
+// ---------------------------------------------------------------------------
+// classifyDownload: the counter's answer. The catalog lists every download file
+// with its layer and format, so a requested key is looked up there (classifyKey's
+// key shapes recognised 40 of 522 files). Per-state extracts and community uploads
+// aren't listed in the catalog, so their key shapes still apply. Anything else
+// (scanner probes like .php, unknown files) is not a download and isn't counted.
+
+type CatalogLike = { layers: Array<Record<string, unknown> & { id: string }> };
+const DOWNLOAD_FORMATS = ['parquet', 'geojson', 'kml', 'shapefile', 'pmtiles'] as const;
+const EXTRA_FORMATS: Record<string, string> = { parquet: 'parquet', geojson: 'geojson', kml: 'kml', zip: 'shapefile', csv: 'csv' };
+const byCatalog = new WeakMap<object, Map<string, Classified>>();
+
+function catalogIndex(catalog: CatalogLike): Map<string, Classified> {
+  let idx = byCatalog.get(catalog);
+  if (idx) return idx;
+  idx = new Map();
+  for (const l of catalog.layers) {
+    for (const format of DOWNLOAD_FORMATS) {
+      const url = (l[format] as { url?: string } | null | undefined)?.url;
+      const m = url?.match(/^https?:\/\/[^/]+\/(.+)$/);
+      if (m) idx.set(m[1], { layer_id: l.id, state_code: '', format });
+    }
+  }
+  byCatalog.set(catalog, idx);
+  return idx;
+}
+
+export function classifyDownload(key: string, catalog: CatalogLike): Classified | null {
+  if (!key) return null;
+  const listed = catalogIndex(catalog).get(key);
+  if (listed) return listed;
+  const m = key.match(/^(?:extracts\/[a-z]+\/\d+|community\/[A-Za-z0-9_-]+)\/[^/]+?\.(?:shp\.)?([a-z0-9]+)$/);
+  const format = m ? EXTRA_FORMATS[m[1]] : undefined;
+  if (!format) return null;
+  const cls = classifyKey(key.replace(/\.shp\.zip$/, '.zip'));
+  return cls ? { ...cls, format } : null;
+}
