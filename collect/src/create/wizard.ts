@@ -222,7 +222,7 @@ export function startCreate(host: WizardHost): void {
         <div id="seed-summary" aria-live="polite"></div>` : ''}
       <details class="more">
         <summary>More options</summary>
-        <label for="category">Category <span class="hint">(where it sits in the catalog when published)</span></label>
+        <label for="category">Theme <span class="hint">(where it sits among bharatlas layers when published)</span></label>
         <select id="category">${CATEGORIES.map(([id, l]) => `<option value="${id}"${id === s.category ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <label for="ref-search">Reference layer <span class="hint">(optional, a bharatlas layer shown for context)</span></label>
         <input id="ref-search" placeholder="Tap to browse all layers, or type to filter…" autocomplete="off" />

@@ -197,7 +197,7 @@ export const TOKENS = `
   .badge--stable { background: color-mix(in srgb, var(--brand-green) 18%, var(--bg-elevated)); }
   .badge--soon { color: var(--muted); }
   @media (max-width: 640px) {
-    body.page { padding: 0 14px 60px; }
+    body.page { padding: 0 16px 60px; } /* = the header's 16px, so content lines up with the logo */
     .page pre { font-size: var(--fs-xs); }
     .page th, .page td { padding: 8px 10px; }
   }

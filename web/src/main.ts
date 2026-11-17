@@ -1,7 +1,7 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose, catalogVisibleOnLoad } from './embed-snippet';
-import { filterCards, type CardLike } from './catalog-filter';
+import { filterCards, matchLine, type CardLike } from './catalog-filter';
 import { blurFocusWithin } from './focus-utils';
 import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
@@ -175,7 +175,8 @@ async function showWardAnswer(raw: string): Promise<void> {
 // the search is focused or hovered, so the home page carries no list.
 // One entry per /layers row (prerender's layerIndex): primary and body haystacks,
 // then what the popover shows: title, sub-line, link.
-type IndexEntry = { p: string; b: string; t: string; s: string; h: string };
+/** One /layers row: haystacks, title, sub line, link, and how many layers it holds (n; absent = 1). */
+type IndexEntry = { p: string; b: string; t: string; s: string; h: string; n?: number };
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
 const searchMeta = document.getElementById('search-meta');
 if (searchInput) {
@@ -191,7 +192,7 @@ if (searchInput) {
         return r.json() as Promise<IndexEntry[]>;
       })
       .then((rows) => {
-        cards = rows.map((r) => ({ primary: r.p, body: r.b }));
+        cards = rows.map((r) => ({ primary: r.p, body: r.b, layers: r.n }));
         hits = rows.map((r) => ({ title: r.t, sub: r.s, href: r.h }));
       })
       .catch((e: unknown) => {
@@ -232,12 +233,12 @@ if (searchInput) {
       return;
     }
     if (asked !== query) return; // a newer keystroke is running
-    const { matches, totalMatches } = filterCards(cards, query);
-    if (resultsBox) resultsBox.innerHTML = hitsHtml(rankHits(hits, matches, query, 6), totalMatches, searchInput.value.trim());
+    const { matches, totalMatches, totalLayers } = filterCards(cards, query);
+    if (resultsBox) resultsBox.innerHTML = hitsHtml(rankHits(hits, matches, query, 6), { rows: totalMatches, layers: totalLayers }, searchInput.value.trim());
     activeHit = -1;
     searchInput.removeAttribute('aria-activedescendant');
     setPop(true);
-    if (searchMeta) searchMeta.textContent = `${totalMatches} match${totalMatches === 1 ? '' : 'es'} for "${searchInput.value.trim()}"`;
+    if (searchMeta) searchMeta.textContent = matchLine(totalLayers, searchInput.value.trim());
   };
 
   searchInput.addEventListener('input', () => {

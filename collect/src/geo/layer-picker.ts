@@ -41,7 +41,7 @@ export function mountLayerPicker(search: HTMLInputElement, results: HTMLElement,
   const ensure = async (): Promise<void> => {
     if (loaded) { render(search.value); return; }
     results.innerHTML = '<p class="hint">Loading layers…</p>';
-    try { all = await listLayers(); loaded = true; } catch { results.innerHTML = "<p class=\"hint\">Couldn't reach the catalogue, try again.</p>"; return; }
+    try { all = await listLayers(); loaded = true; } catch { results.innerHTML = "<p class=\"hint\">Couldn't load the layer list, try again.</p>"; return; }
     render(search.value);
   };
 

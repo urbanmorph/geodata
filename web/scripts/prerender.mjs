@@ -464,7 +464,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   });
 
   const sub = [primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · ');
-  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}` });
+  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
     `data-level="${esc(level)}"`,
@@ -1021,7 +1021,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'Can AI assistants read and recommend bharatlas?',
-    a: 'Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every /c/<id> view page are server-rendered as plain HTML with JSON-LD Dataset structured data, easy for LLMs to ingest.',
+    a: 'Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. Every layer page and every /c/<id> view page are server-rendered as plain HTML with JSON-LD Dataset structured data, easy for LLMs to ingest.',
   },
 ];
 

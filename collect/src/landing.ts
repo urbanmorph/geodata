@@ -70,7 +70,7 @@ function home(focusSync = false) {
     <div class="topbar"><span class="collect-name">collect</span>${wordmarkHtml({ href: 'https://bharatlas.com', className: 'brand', size: 18 })}</div>
     <div class="pad">
       <h1>Make a map, collect together</h1>
-      <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Download the data, or publish it to the bharatlas catalog when it's ready.</p>
+      <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Download the data, or publish it to bharatlas when it's ready.</p>
       <p id="masthead-stat" class="masthead-stat"></p>
       <span id="install-slot"></span>
       <button class="primary" id="start">＋ Make a new map</button>

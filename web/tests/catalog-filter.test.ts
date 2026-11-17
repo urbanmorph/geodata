@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterCards, type CardLike } from '../src/catalog-filter';
+import { filterCards, matchLine, type CardLike } from '../src/catalog-filter';
 
 // Fixture mirrors real prerender shape: each card carries a high-signal
 // "primary" haystack (title + level + aliases) and a low-signal "body"
@@ -86,5 +86,28 @@ describe('filterCards: numbers fall back', () => {
   it('keeps numbers that do match (years in titles)', () => {
     expect(filterCards(cards, 'districts 2024').matches).toEqual([false, true]);
     expect(filterCards(cards, 'districts 2011').matches).toEqual([false, true]);
+  });
+});
+
+// One row can hold several layers (a level's primary source plus alternates).
+// The site counts layers, never rows (owner, 2026-11-17).
+describe('filterCards: counts layers, not rows', () => {
+  const cards: CardLike[] = [
+    { primary: 'districts lgd', body: '', layers: 4 },
+    { primary: 'district hospitals', body: '' },
+    { primary: 'states', body: '', layers: 3 },
+  ];
+  it('adds up the layers in matching rows; a row without a count is one layer', () => {
+    const r = filterCards(cards, 'district');
+    expect(r.totalMatches).toBe(2);
+    expect(r.totalLayers).toBe(5);
+    expect(filterCards(cards, '').totalLayers).toBe(8);
+  });
+});
+
+describe('matchLine', () => {
+  it('says how many layers match, in one shared wording', () => {
+    expect(matchLine(9, 'district')).toBe('9 layers match "district"');
+    expect(matchLine(1, 'pincode')).toBe('1 layer matches "pincode"');
   });
 });

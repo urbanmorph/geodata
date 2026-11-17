@@ -1,7 +1,7 @@
 // /layers: every layer, one section per theme (Option B). The box filters rows
 // across every theme with the same matcher as the home search (catalog-filter);
 // "show all N" opens a long section; ?q= pre-fills the box.
-import { filterCards, type CardLike } from './catalog-filter';
+import { filterCards, matchLine, type CardLike } from './catalog-filter';
 import { refreshLiveCounts } from './live-counts';
 import { focusOnSlash } from './search-pop';
 
@@ -15,7 +15,11 @@ const meta = document.getElementById('search-meta');
 if (input && grid) {
   const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
   const cardEls = Array.from(grid.querySelectorAll<HTMLElement>('.row, .comm-card'));
-  const cards: CardLike[] = cardEls.map((el) => ({ primary: el.dataset.searchPrimary || '', body: el.dataset.searchBody || '' }));
+  const cards: CardLike[] = cardEls.map((el) => ({
+    primary: el.dataset.searchPrimary || '',
+    body: el.dataset.searchBody || '',
+    layers: Number(el.dataset.layers) || 1,
+  }));
   const sectionOf = cardEls.map((el) => el.closest<HTMLElement>('.category-section'));
 
   const apply = (): void => {
@@ -23,7 +27,7 @@ if (input && grid) {
     // q-precheck.js opened every section before paint for a ?q= arrival; from
     // here the filter owns that state, so clearing it collapses them again.
     document.documentElement.classList.remove('has-query');
-    const { matches, totalMatches } = filterCards(cards, query);
+    const { matches, totalMatches, totalLayers } = filterCards(cards, query);
     const perSection = new Map<HTMLElement, number>();
     cardEls.forEach((el, i) => {
       el.classList.toggle('hidden', !matches[i]);
@@ -36,7 +40,7 @@ if (input && grid) {
       sec.classList.toggle('hidden', (perSection.get(sec) ?? 0) === 0);
     }
     if (empty) empty.hidden = totalMatches > 0;
-    if (meta) meta.textContent = query ? `${totalMatches} match${totalMatches === 1 ? '' : 'es'} for "${query}"` : '';
+    if (meta) meta.textContent = query ? matchLine(totalLayers, query) : '';
   };
 
   input.addEventListener('input', apply);

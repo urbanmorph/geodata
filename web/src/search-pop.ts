@@ -30,7 +30,7 @@ const ICON =
   '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>';
 
 /** Options for the listbox, and a link to the full filtered list when there are more. */
-export function hitsHtml(hits: Hit[], total: number, query: string): string {
+export function hitsHtml(hits: Hit[], total: { rows: number; layers: number }, query: string): string {
   if (!hits.length) return `<p class="search-pop__head">No layer matches "${esc(query)}"</p>`;
   const items = hits
     .map((h, i) =>
@@ -38,7 +38,7 @@ export function hitsHtml(hits: Hit[], total: number, query: string): string {
       `<span class="search-hit__ico">${ICON}</span><span class="search-hit__text"><span class="search-hit__title">${esc(h.title)}</span>` +
       `<span class="search-hit__sub">${esc(h.sub)}</span></span></a>`)
     .join('');
-  const more = total > hits.length ? `<a class="search-pop__all" href="${esc(allLayersUrl(query))}">See all ${total} matching layers</a>` : '';
+  const more = total.rows > hits.length ? `<a class="search-pop__all" href="${esc(allLayersUrl(query))}">See all ${total.layers} matching layers</a>` : '';
   return `<p class="search-pop__head">Layers</p>${items}${more}`;
 }
 

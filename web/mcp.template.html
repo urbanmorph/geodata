@@ -126,7 +126,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <li><strong>locate</strong> -- point-in-polygon across all admin layers + zones at once</li>
         <li><strong>nearby</strong> -- find features within a radius (works for points, polygons, and lines)</li>
         <li><strong>get_layer_detail</strong> -- download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile)</li>
-        <li><strong>list_categories</strong> -- browse by category with layer counts</li>
+        <li><strong>list_categories</strong> -- browse by category (theme) with layer counts</li>
         <li><strong>list_submissions</strong> -- community-contributed layers under open licenses</li>
       </ul>
 
@@ -137,7 +137,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <li><strong>collect link</strong> &rarr; the above; field capture itself is a tap in the browser on a phone</li>
         <li><strong>admin link</strong> &rarr; <code>edit_map</code>, <code>moderate_record</code>, <code>import_points</code>, and <code>publish</code></li>
       </ul>
-      <p><code>publish</code> submits your approved points to the bharatlas catalog for review; a maintainer approves the submission before it goes live, after which it is queryable via <code>list_submissions</code> / <code>query_layer</code> above: gather &rarr; moderate &rarr; publish &rarr; review &rarr; query, all in one server. The link is the credential, so the server can only touch maps you hold a link to. No config change is needed for authoring; creating a map <em>programmatically</em> (instead of online) is optional and needs a request-only <code>COLLECT_API_KEY</code>:</p>
+      <p><code>publish</code> submits your approved points to bharatlas for review; a maintainer approves the submission before it goes live, after which it is queryable via <code>list_submissions</code> / <code>query_layer</code> above: gather &rarr; moderate &rarr; publish &rarr; review &rarr; query, all in one server. The link is the credential, so the server can only touch maps you hold a link to. No config change is needed for authoring; creating a map <em>programmatically</em> (instead of online) is optional and needs a request-only <code>COLLECT_API_KEY</code>:</p>
       <div class="note install-box">
         <pre><code>// same "bharatlas" server as Install above; add an env key only to create headlessly
 "bharatlas": {
