@@ -18,7 +18,9 @@ describe('one page width', () => {
     });
   }
   it('reading text keeps its 720px measure', () => {
-    expect(chrome).toMatch(/\.prose \{ max-width: 720px; \}/);
+    // The sheet itself spans the column (like /docs); only its text is held to 720px.
+    expect(chrome).not.toMatch(/\.prose \{ max-width/);
+    expect(chrome).toMatch(/\.prose :is\(p, ul, ol, dl\) \{ max-width: 720px; \}/);
     expect(chrome).toMatch(/\.page main :is\(p, ul, ol\) \{ max-width: 720px; \}/);
   });
 });
