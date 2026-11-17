@@ -74,9 +74,17 @@ describe('renderNav', () => {
 
   it('follows the mockup: Layers, Collect, API & MCP, About, then an "Add a map" button', () => {
     const html = renderNav('layers');
-    expect(NAV_LINKS.map((l: { label: string }) => l.label)).toEqual(['Layers', 'Collect', 'API &amp; MCP', 'About']);
+    expect(NAV_LINKS.map((l: { label: string }) => l.label)).toEqual(['Home', 'Layers', 'Collect', 'API &amp; MCP', 'About']);
     expect(html).toMatch(/<a class="nav-cta" href="\/preview"[^>]*>Add a map<\/a>/);
     expect(html).toMatch(/href="\/layers"[^>]*\bdata-active\b[^>]*>Layers</);
+  });
+
+  // Layers is /layers since the list moved off the home page, so Home is its own
+  // link (not only the logo), active on the home page and nowhere else.
+  it('has a Home link, distinct from Layers, active only on the home page', () => {
+    expect(renderNav('home')).toMatch(/<a href="\/"[^>]*\bdata-active\b[^>]*>Home<\/a>/);
+    expect(renderNav('home')).not.toMatch(/href="\/layers"[^>]*\bdata-active\b/);
+    expect(renderNav('layers')).not.toMatch(/<a href="\/"[^>]*\bdata-active\b/);
   });
 
   it('marks API & MCP active on both the docs and the MCP page', () => {

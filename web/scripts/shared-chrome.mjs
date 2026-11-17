@@ -77,6 +77,8 @@ export const TOKENS = `
   .site-brand { font-size: var(--fs-xl); }
   .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
   .site-nav { display: flex; gap: var(--sp-5); flex-wrap: wrap; align-items: center; }
+  /* Tablets: the tagline gives way so Home … Add a map stay on one line. */
+  @media (max-width: 900px) { .site-brand .tagline { display: none; } .site-nav { gap: var(--sp-3); } }
   .site-nav a {
     color: var(--muted); text-decoration: none; font-size: var(--fs-base); font-weight: 500;
     padding: 6px 2px;
@@ -230,6 +232,7 @@ export const TOKENS = `
 // The mockup's nav. `keys` are the page keys a link is active on; labels are
 // HTML (escaped). Adding a map (/preview) is the outlined button after them.
 export const NAV_LINKS = [
+  { keys: ['home'], href: '/', label: 'Home' },
   { keys: ['layers'], href: '/layers', label: 'Layers' },
   { keys: ['collect'], href: 'https://collect.bharatlas.com', label: 'Collect' },
   { keys: ['docs', 'mcp'], href: '/docs', label: 'API &amp; MCP' },

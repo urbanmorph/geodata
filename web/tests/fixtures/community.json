@@ -1,0 +1,14 @@
+[
+  {
+    "id": "nL7zNStsW3", "name": "Sample baked community layer", "description": "Fixture: a submission a maintainer baked into the catalog (c_nL7zNStsW3).",
+    "category": "environment", "attribution": "Sample source", "is_original": 0, "format": "geojson", "bytes": 120000,
+    "feature_count": 412, "r2_key": "community/nL7zNStsW3.geojson", "created_at": "2026-10-01T10:00:00Z", "collection_id": null,
+    "up_count": 3, "down_count": 0
+  },
+  {
+    "id": "fixtureUnb1", "name": "Sample unbaked community layer", "description": "Fixture: an accepted submission not yet baked, served from its raw upload.",
+    "category": "city-wards", "attribution": "Sample ward office", "is_original": 1, "format": "kml", "bytes": 48000,
+    "feature_count": 27, "r2_key": "community/fixtureUnb1.kml", "created_at": "2026-11-01T10:00:00Z", "collection_id": null,
+    "up_count": 0, "down_count": 0
+  }
+]
