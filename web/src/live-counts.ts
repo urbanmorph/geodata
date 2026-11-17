@@ -21,7 +21,9 @@ export function refreshLiveCounts(): void {
         const layerCounts = counts[layerId] as Record<string, number> | undefined;
         if (!layerCounts) continue;
         for (const link of section.querySelectorAll<HTMLAnchorElement>('a[download]')) {
-          const fmt = link.textContent?.trim() || '';
+          // Link text is the format, except Shapefile's link text shp (counted as shapefile).
+          const text = link.textContent?.trim() || '';
+          const fmt = text === 'shp' ? 'shapefile' : text;
           const n = layerCounts[fmt];
           if (!n) continue;
           const badge = link.nextElementSibling?.nextElementSibling;
