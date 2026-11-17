@@ -198,6 +198,14 @@ export const TOKENS = `
     .page pre { font-size: var(--fs-xs); }
     .page th, .page td { padding: 8px 10px; }
   }
+  /* Shared by the home page and /layers: the search box text, its status line,
+     and the theme symbols (THEME_GLYPH) in the legend and the theme index. */
+  .catalog-search { flex: 1; min-width: 0; padding: 6px 0; font: var(--fs-md) ui-sans-serif, system-ui, sans-serif; color: var(--fg); background: transparent; border: none; outline: none; }
+  .catalog-search::placeholder { color: var(--muted); }
+  .catalog-search:focus-visible { outline: none !important; }
+  .search-meta { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
+  .legend-glyph path { stroke: var(--edge); stroke-width: 1.6; stroke-linejoin: round; }
+  .legend-glyph .ink { fill: var(--fg); }
   /* Reading pages: the text on a white sheet, sections numbered in the margin's voice. */
   main.sheet {
     margin: var(--sp-2) 0 0; padding: clamp(20px, 4vw, 56px); counter-reset: sheet-section;
@@ -222,7 +230,7 @@ export const TOKENS = `
 // The mockup's nav. `keys` are the page keys a link is active on; labels are
 // HTML (escaped). Adding a map (/preview) is the outlined button after them.
 export const NAV_LINKS = [
-  { keys: ['catalog'], href: '/', label: 'Layers' },
+  { keys: ['layers'], href: '/layers', label: 'Layers' },
   { keys: ['collect'], href: 'https://collect.bharatlas.com', label: 'Collect' },
   { keys: ['docs', 'mcp'], href: '/docs', label: 'API &amp; MCP' },
   { keys: ['about'], href: '/about', label: 'About' },

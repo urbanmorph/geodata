@@ -73,10 +73,10 @@ describe('renderNav', () => {
   });
 
   it('follows the mockup: Layers, Collect, API & MCP, About, then an "Add a map" button', () => {
-    const html = renderNav('catalog');
+    const html = renderNav('layers');
     expect(NAV_LINKS.map((l: { label: string }) => l.label)).toEqual(['Layers', 'Collect', 'API &amp; MCP', 'About']);
     expect(html).toMatch(/<a class="nav-cta" href="\/preview"[^>]*>Add a map<\/a>/);
-    expect(html).toMatch(/href="\/"[^>]*\bdata-active\b[^>]*>Layers</);
+    expect(html).toMatch(/href="\/layers"[^>]*\bdata-active\b[^>]*>Layers</);
   });
 
   it('marks API & MCP active on both the docs and the MCP page', () => {

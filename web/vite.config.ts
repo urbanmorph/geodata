@@ -18,6 +18,7 @@ function prerenderPlugin(): Plugin {
       run(); // initial build
       const watched = [
         resolve(server.config.root, 'index.template.html'),
+        resolve(server.config.root, 'layers.template.html'),
         resolve(server.config.root, 'about.template.html'),
         resolve(server.config.root, 'preview.template.html'),
         resolve(server.config.root, 'scripts', 'prerender.mjs'),
@@ -66,6 +67,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'index.html'),
+        layers: resolve(__dirname, 'layers.html'),
         about: resolve(__dirname, 'about.html'),
         preview: resolve(__dirname, 'preview.html'),
         privacy: resolve(__dirname, 'privacy.html'),

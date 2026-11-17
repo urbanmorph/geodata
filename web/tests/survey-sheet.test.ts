@@ -41,7 +41,7 @@ describe('home page', () => {
     expect(readFileSync(resolve(__dirname, '../src/main.ts'), 'utf8')).toContain("import('./india-map')");
   });
   it('draws a map symbol on every theme in the legend', () => {
-    const cards = [...html.matchAll(/<button class="catalog-chip theme-card[\s\S]*?<\/button>/g)].map((m) => m[0]);
+    const cards = [...html.matchAll(/<a class="theme-card"[\s\S]*?<\/a>/g)].map((m) => m[0]);
     expect(cards.length).toBeGreaterThan(5);
     for (const c of cards) expect(c).toMatch(/<svg class="legend-glyph"/);
   });

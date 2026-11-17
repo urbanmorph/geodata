@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <!-- SEO_HEAD -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" sizes="any" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <!-- ?q=… opens every section before first paint (no layout shift). -->
+    <script src="/q-precheck.js"></script>
+    <style>
+      <!-- TOKENS -->
+      :root { --page-max: 1120px; }
+
+      /* All layers: a theme index beside one section per theme. */
+      .layers-head { margin: 24px 0 20px; }
+      .layers-search {
+        display: flex; align-items: center; gap: 10px; max-width: 640px; min-height: 52px; margin: 0 0 8px; padding: 0 14px;
+        background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm); box-shadow: var(--shadow);
+      }
+      .layers-search:focus-within { box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
+      .search-meta { margin: 8px 0 0; }
+      .layers-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: 28px; }
+      .theme-index { position: sticky; top: 16px; display: flex; flex-direction: column; border: 1.5px solid var(--edge); background: var(--bg-elevated); }
+      .theme-index a {
+        display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px;
+        color: var(--fg); font-weight: 650; text-decoration: none; border-bottom: 1px solid var(--line);
+      }
+      .theme-index a:last-child { border-bottom: 0; }
+      .theme-index a:hover { background: var(--land); }
+      .theme-index__n { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); }
+      @media (max-width: 900px) {
+        /* Phones and tablets: the index becomes a row of chips that scrolls sideways. */
+        .layers-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+        .theme-index { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; border: 0; background: none; gap: 8px; }
+        .theme-index a { flex: none; border: 1.5px solid var(--edge); background: var(--bg-elevated); border-radius: var(--radius-sm); }
+        .theme-index a:last-child { border-bottom: 1.5px solid var(--edge); }
+      }
+
+      .catalog-empty { color: var(--muted); font-size: var(--fs-base); text-align: center; padding: 32px 0; }
+
+      .catalog { margin-top: 8px; }
+      .category-section { padding: 24px 0 28px; border-top: 1.5px solid var(--edge); scroll-margin-top: 16px; }
+      .category-section:first-of-type { border-top: none; padding-top: 4px; }
+      .category-section.hidden { display: none; }
+      .category-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
+      .category-section__title { margin: 0; font-size: var(--fs-2xl); font-weight: 850; letter-spacing: -.02em; color: var(--fg); }
+      .category-section__count { color: var(--muted); font: 600 var(--fs-sm) var(--font-mono); }
+      .category-section__body { display: flex; flex-direction: column; gap: 0; }
+      .category-cta {
+        display: inline-block; margin-top: 14px;
+        padding: 6px 14px;
+        color: var(--muted); font-size: var(--fs-xs);
+        text-decoration: none;
+        border: 1px dashed var(--line); border-radius: 999px;
+        transition: all 140ms ease;
+      }
+      .category-cta:hover { color: var(--accent); border-color: var(--accent); border-style: solid; }
+
+      .comm-card { background: var(--bg-elevated); border: 1.5px solid var(--edge); border-left-width: 4px; border-left-color: var(--accent-fill); padding: 14px 16px; border-radius: var(--radius-sm); margin: 10px 0; }
+      .comm-card.hidden { display: none; }
+      .comm-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+      .comm-card__title { font-weight: 600; font-size: var(--fs-base); }
+      .comm-card__title a { color: inherit; text-decoration: none; }
+      .comm-card__title a:hover { color: var(--accent); }
+      .comm-card__score { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: var(--fs-sm); }
+      .comm-card__score .useful { color: var(--accent-strong); }
+      .comm-card__desc { color: var(--muted); font-size: var(--fs-sm); margin: 6px 0 8px; }
+      .comm-card__meta { color: var(--muted); font-size: var(--fs-xs); }
+      .comm-card__actions { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+      .comm-card__actions .btn { font-size: var(--fs-sm); padding: 6px 12px; }
+      .comm-card__dl .size { color: var(--muted); margin-left: 6px; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
+
+      /* row--collapsed: hidden by default; section's .expanded class reveals.
+         Search/filter then hides non-matches with .row.hidden — bumped to
+         .category-section .row.hidden so it matches the expanded rule's
+         (0,3,0) specificity, and placed after it so source-order also
+         tips ties its way. Without this, collapsed rows below the cap
+         stay visible when search expands their section. */
+      .row__updated { color: var(--muted); font-size: var(--fs-sm); margin: 4px 0 0; }
+      .row__updated time { font-variant-numeric: tabular-nums; }
+      .row--collapsed { display: none; }
+      .category-section.expanded .row--collapsed { display: block; }
+      .category-section .row.hidden { display: none; }
+      /* Pre-paint the expanded state when the URL has ?q=… so main.ts's
+         apply() doesn't have to mutate every section after first paint
+         (was the CLS source attributed to .category-section.expanded).
+         /q-precheck.js sets html.has-query before paint. */
+      html.has-query .row--collapsed { display: block; }
+
+      .row {
+        padding: 4px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .row:last-child { border-bottom: none; }
+
+      /* === Compact list layout (Option B) =========================== */
+      .row--compact .row__details { width: 100%; min-width: 0; }
+      /* row__head is the outer grid: details (title/source/count + expand) on
+         the left, actions on the right. row__actions used to live inside
+         <summary> but that violated HTML semantics (interactive descendants
+         of an interactive element). Moving actions out of <summary> fixes
+         the a11y issue without changing the visual layout. */
+      .row--compact .row__head {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        gap: 14px;
+      }
+      .row--compact .row__summary {
+        display: grid;
+        /* Title flexes (1fr) — downloads moved into row__expand so we no
+           longer compete for horizontal space in the action column. Source
+           is fixed-width to keep it aligned across rows; count is wide
+           enough for the longest unit text ("community-development blocks").
+           Actions (now just the View map button) sits in the row__head
+           grid as a sibling. */
+        grid-template-columns: minmax(0, 1fr) 80px 240px;
+        align-items: baseline;
+        gap: 14px;
+        padding: 10px 4px;
+        font-size: var(--fs-sm);
+        cursor: pointer;
+        list-style: none;
+      }
+      .row--compact .row__summary::-webkit-details-marker { display: none; }
+      .row--compact .row__summary::marker { content: ""; }
+      .row--compact .row__summary:hover { background: var(--bg-card); }
+      .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+      .row--compact .row__summary > .row__source { font-size: var(--fs-xs); color: var(--muted); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      /* display: block so text-overflow ellipsis applies to the combined
+         num + unit text flow (spans inside default to inline; inline elems
+         ignore overflow:hidden + text-overflow:ellipsis). */
+      .row--compact .row__summary > .row__count { display: block; color: var(--muted); font-size: var(--fs-xs); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .row--compact .row__summary > .row__count .row__num { font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; margin-right: 6px; }
+      .row--compact .row__summary > .row__count .row__unit { color: var(--muted); }
+      .row--compact .row__head > .row__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; padding: 10px 4px; }
+      /* Download links live inside row__expand (under "Download:") instead
+         of the action column — frees horizontal space for the title. */
+      .row--compact .row__expand .row__downloads { font-size: var(--fs-sm); margin: 0 0 8px; color: var(--muted); }
+      .row--compact .row__expand .row__downloads .dl-inline { display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+      .row--compact .row__expand .row__downloads .dl-inline a { font-weight: 500; }
+      .row--compact .row__expand {
+        padding: 10px 4px 14px;
+        border-top: 1px dashed var(--line);
+        margin-top: 4px;
+      }
+      .row--compact .row__expand .row__desc { font-size: var(--fs-sm); margin: 0 0 8px; }
+      .row--compact .row__lic-line { font-size: var(--fs-xs); color: var(--muted); margin: 0 0 6px; }
+      .row--compact .row__lic-line code { font: var(--fs-xs) ui-monospace, SFMono-Regular, monospace; background: var(--bg-card); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+      .row--compact .btn-primary { padding: 0 14px; font-size: var(--fs-sm); }
+
+      /* Tablet: drop source column, count keeps room. Downloads are already
+         in row__expand so nothing to hide in the action area. */
+      @media (max-width: 900px) {
+        .row--compact .row__summary {
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 10px;
+        }
+        .row--compact .row__summary > .row__source { display: none; }
+      }
+
+      /* Mobile: title + count + View map. Tighter type and padding. */
+      @media (max-width: 640px) {
+        .row--compact .row__summary {
+          grid-template-columns: minmax(0, 1fr) auto;
+          gap: 6px 10px;
+          font-size: var(--fs-xs);
+          padding: 8px 4px;
+        }
+        .row--compact .row__summary > .row__count { font-size: var(--fs-xs); }
+        .row--compact .row__head { gap: 8px; }
+      }
+
+      /* Very narrow: count drops to its own row so View map keeps room */
+      @media (max-width: 420px) {
+        .row--compact .row__summary {
+          grid-template-columns: minmax(0, 1fr);
+        }
+        .row--compact .row__summary > .row__count {
+          grid-column: 1;
+          padding-top: 2px;
+        }
+      }
+
+      /* "show all N" toggle at the bottom of a dense category */
+      .show-more {
+        display: block;
+        width: 100%;
+        margin: 10px 0 0;
+        padding: 8px 12px;
+        background: transparent;
+        border: 1px dashed var(--line);
+        border-radius: 6px;
+        color: var(--muted);
+        font: inherit;
+        font-size: var(--fs-xs);
+        cursor: pointer;
+        transition: all 120ms ease;
+      }
+      .show-more:hover { color: var(--accent); border-color: var(--accent); }
+      .category-section.expanded .show-more { display: none; }
+      .row__head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-bottom: 6px;
+      }
+      .row__title {
+        font-size: var(--fs-md);
+        font-weight: 600;
+        letter-spacing: -.005em;
+        color: var(--fg);
+      }
+      .row__desc { color: var(--muted); font-size: var(--fs-sm); margin: 0 0 6px; max-width: 640px; line-height: 1.5; }
+      .row__source { color: var(--muted); font-size: var(--fs-xs); margin: 0 0 10px; }
+      .row__source a { color: var(--fg); }
+      .row__source .dot { color: var(--line); }
+      /* Alternative sources for the same level. Signals plurality without
+         claiming any single source as canonical. Lighter than the primary
+         attribution; lifts on hover so they read as clickable. */
+      .row__alts { color: var(--muted); }
+      .row__alts a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
+      .row__alts a:hover { color: var(--accent); }
+      .row__freshness { font-variant-numeric: tabular-nums; cursor: help; }
+      .row__freshness.stale { color: #d97706; }
+      .badge--community { margin-left: 4px; background: color-mix(in srgb, var(--accent-fill) 22%, var(--bg-elevated)); }
+      .row__actions {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        flex-wrap: wrap;
+      }
+      .btn-primary {
+        display: inline-flex; align-items: center; min-height: 44px;
+        padding: 0 14px;
+        /* Outlined: a column of solid buttons outweighs the layers they open.
+           Saffron (the primary action colour) on hover. */
+        background: var(--bg-elevated);
+        color: var(--fg);
+        border: 1.5px solid var(--edge);
+        border-radius: var(--radius-sm);
+        font-weight: 650;
+        font-size: var(--fs-sm);
+        text-decoration: none;
+        transition: background 140ms ease;
+        white-space: nowrap;
+      }
+      .btn-primary:hover { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
+      .btn-primary.disabled { background: transparent; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
+
+      .dl-inline { display: inline-flex; gap: 16px; align-items: center; font-size: var(--fs-sm); color: var(--muted); }
+      .dl-inline a { color: var(--fg); display: inline-flex; align-items: center; min-height: 44px; padding: 10px 4px; }
+      .dl-inline .size { color: var(--muted); font-variant-numeric: tabular-nums; font-size: var(--fs-xs); margin-left: 2px; }
+      .dl-inline .dot { color: var(--line); }
+      .dl-inline .count {
+        font-variant-numeric: tabular-nums;
+        font-size: var(--fs-xs);
+        padding: 1px 5px;
+        margin-left: 4px;
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--accent) 14%, transparent);
+        color: var(--accent);
+        cursor: help;
+      }
+      .row__viewer-hint {
+        margin: 8px 0 0;
+        padding-left: 4px;
+        font-size: var(--fs-xs);
+        color: var(--muted);
+        line-height: 1.5;
+      }
+      .row__viewer-hint strong { color: var(--fg); font-weight: 500; }
+      .row__source a, .row__downloads a { text-decoration: none; }
+
+      details.alt { margin-top: 10px; font-size: var(--fs-xs); }
+      details.alt > summary {
+        list-style: none;
+        cursor: pointer;
+        color: var(--muted);
+        user-select: none;
+        padding: 2px 0;
+      }
+      details.alt > summary::-webkit-details-marker { display: none; }
+      details.alt > summary::before { content: "⤳ "; opacity: .6; }
+      details.alt[open] > summary::before { content: "⤴ "; }
+      .alt__list { margin-top: 8px; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; font-size: var(--fs-xs); }
+      .alt__row { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+      .alt__row .src { font-weight: 500; color: var(--fg); min-width: 80px; }
+      .alt__row .meta { color: var(--muted); }
+      .alt__row .links { color: var(--muted); }
+      .alt__row .links a { color: var(--fg); }
+      .alt__row .links .dot { color: var(--line); margin: 0 4px; }
+      .alt__row--primary { padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
+      .alt__row .tag { font-size: var(--fs-xs); padding: 1px 6px; background: var(--accent-fill); color: var(--on-accent-fill); border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
+
+    </style>
+  </head>
+  <body class="page">
+    <!-- NAV -->
+    <main id="main">
+      <div class="layers-head">
+        <p class="sheet-note"><!-- LAYER_TOTAL --> layers · <!-- THEME_TOTAL --> themes</p>
+        <h1 class="page-title">All layers</h1>
+        <label class="layers-search">
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" id="catalog-search" class="catalog-search" aria-label="Filter layers" placeholder="Filter by name, place or source" autocomplete="off" />
+        </label>
+        <p class="search-meta" id="search-meta" aria-live="polite"></p>
+      </div>
+      <div class="layers-body">
+        <nav class="theme-index" aria-label="Themes">
+          <!-- THEME_INDEX -->
+        </nav>
+        <div>
+          <p class="catalog-empty" id="catalog-empty" hidden>No matches. <a href="/preview">Add the first one</a></p>
+          <div class="catalog" id="catalog-grid">
+            <!-- CATEGORY_SECTIONS -->
+          </div>
+        </div>
+      </div>
+    </main>
+    <!-- FOOTER -->
+    <script type="module" src="/src/layers.ts"></script>
+  </body>
+</html>

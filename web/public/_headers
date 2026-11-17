@@ -24,6 +24,10 @@
 /catalog.json
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
   CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
+# The home search's index (prerender): same freshness as catalog.json.
+/layer-index.json
+  Cache-Control: public, max-age=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 
 # Sitemap + LLM discovery file — both static, both safe to cache an hour
 # at the edge with stale-while-revalidate so submissions / docs changes
@@ -69,6 +73,9 @@
   Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
   CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 /index.html
+  Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
+  CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
+/layers
   Cache-Control: public, max-age=60, s-maxage=300, stale-while-revalidate=86400
   CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
 /about
