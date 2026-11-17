@@ -386,7 +386,6 @@ def load_finance(raw: Path) -> dict[str, dict]:
 
 
 def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
-
     ulbs, states = load_master(raw)
     by_id = {u['_id']: u for u in ulbs}
     finance = load_finance(raw)
@@ -475,7 +474,6 @@ def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
 
 
 def bake(out_dir: Path, raw: Path = RAW) -> dict:
-
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     from ingest_ramseraph import rebake_flatten_bbox
