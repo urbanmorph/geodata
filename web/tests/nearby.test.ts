@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { queryBbox, haversineKm } from '../functions/lib/nearby';
+import { queryBbox, haversineKm, fullScanRefusal } from '../functions/lib/nearby';
 import { wkbCentroid, geoJSONCentroid, extractCentroid } from '../functions/lib/wkb-centroid';
 
 describe('queryBbox', () => {
@@ -170,5 +170,21 @@ describe('extractCentroid (multi-format dispatch)', () => {
   it('returns null for unknown input', () => {
     expect(extractCentroid(null)).toBeNull();
     expect(extractCentroid(42)).toBeNull();
+  });
+});
+
+describe('fullScanRefusal', () => {
+  // Measured on 17 Nov: detailed polygon layers without bbox columns ran out of the Worker's memory from
+  // about 20 MB (lgd_districts 22 MB, soi_districts 29 MB, lgd_blocks 69 MB all 503); smaller ones worked.
+  it('lets a small layer without bbox columns be scanned', () => {
+    expect(fullScanRefusal('wards_bengaluru_gba', 1_000_000)).toBeNull();
+  });
+
+  it('refuses a large one at once, saying what to use instead', () => {
+    const msg = fullScanRefusal('lgd_districts', 22_200_000);
+    expect(msg).toMatch(/lgd_districts/);
+    expect(msg).toMatch(/22 MB/);
+    expect(msg).toMatch(/\/locate/);
+    expect(msg).toMatch(/download/i);
   });
 });

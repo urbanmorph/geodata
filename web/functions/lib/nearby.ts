@@ -11,8 +11,11 @@
 //   parquet-scan   no bbox cols. We read the full file once, parse WKB to a
 //                  centroid per row, then haversine-filter. Guarded by
 //                  MAX_FULLSCAN_BYTES so we never try this on a layer that
-//                  wouldn't fit Workers' CPU budget — those layers throw and
-//                  the caller hears about it instead of timing out.
+//                  wouldn't fit the Worker's memory: those layers get a 400
+//                  saying what to use instead, not a 503 seconds later.
+//                  Measured 17 Nov 2026: detailed polygon layers ran out of
+//                  memory from about 20 MB (lgd_districts 22 MB, soi_districts
+//                  29 MB, lgd_blocks 69 MB); the old 200 MB cap let them try.
 //
 // The PMTiles-based path that lived here through PR #83 is gone: pmtiles drop
 // features at lower zooms (designed for display), which gave wrong results on
@@ -47,7 +50,15 @@ export interface NearbyResult {
 
 const KM_PER_DEG_LAT = 111.32;
 const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
-const MAX_FULLSCAN_BYTES = 200 * 1024 * 1024;
+const MAX_FULLSCAN_BYTES = 20 * 1000 * 1000;
+
+/** Why a layer without bbox columns can't be scanned for nearby, or null if it can. */
+export function fullScanRefusal(layerId: string, bytes: number): string | null {
+  if (bytes <= MAX_FULLSCAN_BYTES) return null;
+  return `nearby isn't available for ${layerId} yet: its file is ${Math.round(bytes / 1e6)} MB without per-feature ` +
+    `bounding boxes, too large to scan here. For what contains a point use /locate (or /layers/${layerId}/locate); ` +
+    `for distances, download the layer (/layers/${layerId}) and query it locally.`;
+}
 
 
 export function queryBbox(lat: number, lng: number, radiusKm: number) {
@@ -214,13 +225,8 @@ export async function nearby(
     total = r.total;
     rowsScanned = r.rowsScanned;
   } else {
-    const bytes = layer.parquet.bytes ?? 0;
-    if (bytes > MAX_FULLSCAN_BYTES) {
-      throw new QueryInputError(
-        `Layer ${layerId} parquet is ${Math.round(bytes / 1e6)} MB without spatial bbox columns; ` +
-        `full-scan nearby is unavailable until the layer is rebaked with xmin/ymin/xmax/ymax.`,
-      );
-    }
+    const refusal = fullScanRefusal(layerId, layer.parquet.bytes ?? 0);
+    if (refusal) throw new QueryInputError(refusal);
     const rows = await parquetQuery({
       compressors,
       file,
