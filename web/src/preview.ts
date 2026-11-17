@@ -12,6 +12,7 @@
 //   ?category=…   → preselects the category dropdown
 
 import maplibregl from 'maplibre-gl';
+import { DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT } from './map-paint';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { validate, INDIA_BBOX, type FC, type Report } from './validate';
 import { fileToFC, type Format } from './parse-geo';
@@ -101,21 +102,21 @@ function renderOnMap(fc: FC, bbox: Report['bbox']) {
     id: 'c-fill',
     type: 'fill',
     source: 'v',
-    paint: { 'fill-color': '#0a58ca', 'fill-opacity': 0.22 },
+    paint: { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY },
     filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
   });
   map.addLayer({
     id: 'c-line',
     type: 'line',
     source: 'v',
-    paint: { 'line-color': '#0a58ca', 'line-width': 0.8 },
+    paint: { 'line-color': DATA_LINE, 'line-width': 0.8 },
     filter: ['in', ['geometry-type'], ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']]],
   });
   map.addLayer({
     id: 'c-pt',
     type: 'circle',
     source: 'v',
-    paint: { 'circle-radius': 3, 'circle-color': '#0a58ca' },
+    paint: { 'circle-radius': 3, 'circle-color': DATA_POINT },
     filter: ['in', ['geometry-type'], ['literal', ['Point', 'MultiPoint']]],
   });
   if (bbox) {

@@ -525,20 +525,20 @@
         display: none; flex-direction: column;
       }
       #map-overlay.open { display: flex; }
-      #map-overlay header.map-bar { padding: 12px 16px; border-bottom: 1px solid var(--line); margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-      #map-overlay .map-title { font-weight: 500; flex: 1; }
+      #map-overlay header.map-bar { padding: 10px 16px; background: var(--bg-elevated); border-bottom: 1.5px solid var(--edge); margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+      #map-overlay .map-title { flex: 1; font-size: var(--fs-md); font-weight: 800; letter-spacing: -.01em; }
       /* The brand stays on the map screen: the logo, linking home. */
-      .map-brand { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -6px 0 -6px -8px; border-radius: 10px; }
+      .map-brand { display: inline-flex; flex: none; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; margin: -6px 0 -6px -8px; border-radius: var(--radius-sm); }
       .map-brand:hover { background: var(--bg-card); }
       #map-overlay button.close,
       #map-overlay button.filter-toggle {
-        background: transparent; border: 1px solid var(--line); padding: 4px 12px;
-        border-radius: 6px; cursor: pointer; color: var(--fg); font: inherit;
+        min-height: 44px; padding: 0 12px; cursor: pointer; font: inherit; font-weight: 650;
+        color: var(--fg); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
       }
       #map-overlay button.filter-toggle { display: none; }
       #map-overlay button.filter-toggle.shown { display: inline-block; }
-      #map-overlay button.filter-toggle:hover { border-color: var(--accent); color: var(--accent); }
-      #map-overlay button.filter-toggle[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
+      #map-overlay button.filter-toggle:hover { background: var(--land); }
+      #map-overlay button.filter-toggle[aria-expanded="true"] { background: var(--accent-fill); color: var(--on-accent-fill); box-shadow: var(--shadow-sm); }
 
       /* Toolbar buttons carry an icon + a label. The desktop top bar shows the
          label only (icon hidden) and reads exactly as before; the mobile bottom
@@ -553,25 +553,25 @@
       #map-overlay .locate-sheet.open {
         display: block; position: absolute; left: 16px; bottom: 16px; z-index: 16;
         width: min(340px, calc(100% - 32px));
-        background: var(--bg); border: 1px solid var(--line); border-radius: 12px;
-        box-shadow: 0 12px 36px rgba(0,0,0,0.18); padding: 16px 18px;
+        background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+        box-shadow: var(--shadow); padding: 16px 18px;
       }
-      .ls-kicker { font-size: var(--fs-xs); color: var(--muted);
+      .ls-kicker { font: 600 var(--fs-xs) var(--font-mono); color: var(--brand-green);
         display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
       .ls-kicker svg { width: 14px; height: 14px; color: var(--accent); flex: 0 0 auto; }
-      .ls-name { font-size: var(--fs-2xl); font-weight: 760; letter-spacing: -.03em; margin: 0 0 4px; line-height: 1.15; }
+      .ls-name { font-size: var(--fs-2xl); font-weight: 850; letter-spacing: -.03em; margin: 0 0 4px; line-height: 1.15; }
       .ls-sub { color: var(--muted); margin: 0; font-size: var(--fs-sm); }
       .ls-dist { color: var(--accent); font-weight: 600; }
       .ls-actions { display: flex; gap: 8px; margin-top: 14px; }
       .ls-actions button { flex: 1; min-height: 44px; cursor: pointer; touch-action: manipulation;
-        font: 600 13px/1 ui-sans-serif, system-ui, sans-serif; border-radius: 6px;
-        border: 1px solid var(--line); background: var(--bg); color: var(--fg); }
+        font: 700 var(--fs-base)/1 ui-sans-serif, system-ui, sans-serif; border-radius: var(--radius-sm);
+        border: 1.5px solid var(--edge); background: var(--bg-elevated); color: var(--fg); }
       /* :hover only on real pointers — on iOS the first tap would land as hover,
          not a click (same trap that broke the catalog pills). */
       @media (hover: hover) {
-        .ls-actions button:hover { border-color: var(--accent); color: var(--accent); }
+        .ls-actions button:hover { background: var(--land); }
       }
-      .ls-actions button.primary { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
+      .ls-actions button.primary { background: var(--accent-fill); color: var(--on-accent-fill); box-shadow: var(--shadow-sm); }
       .ls-close { position: absolute; top: 8px; right: 12px; background: none; border: none;
         color: var(--muted); font-size: var(--fs-xl); line-height: 1; cursor: pointer; }
       .ls-msg { color: var(--muted); font-size: var(--fs-base); }
@@ -594,8 +594,8 @@
       .map-popover {
         position: absolute; top: calc(100% + 6px); right: 0;
         min-width: 240px; max-width: 320px;
-        background: var(--bg); border: 1px solid var(--line); border-radius: 8px;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+        background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-sm);
         padding: 6px;
         z-index: 20;
         display: none;
@@ -638,34 +638,32 @@
       .about-panel {
         position: absolute; top: 0; left: 0; bottom: 0; z-index: 6;
         width: min(360px, 90vw); overflow-y: auto; padding: 18px 20px 24px;
-        background: var(--bg); border-right: 1px solid var(--line);
-        box-shadow: 8px 0 24px rgba(0,0,0,0.06);
+        background: var(--bg-elevated); border-right: 1.5px solid var(--edge);
       }
       .about-panel[hidden] { display: none; }
       .about-panel__close {
-        position: absolute; top: 10px; right: 10px; width: 36px; height: 36px;
-        border: 0; border-radius: 8px; background: transparent; color: var(--muted); font-size: var(--fs-xl); cursor: pointer;
+        position: absolute; top: 8px; right: 8px; width: 44px; height: 44px;
+        border: 0; border-radius: var(--radius-sm); background: transparent; color: var(--muted); font-size: var(--fs-xl); cursor: pointer;
       }
       .about-panel__close:hover { background: var(--bg-card); color: var(--fg); }
-      .about-panel__title { margin: 0 36px 8px 0; font-size: var(--fs-xl); line-height: 1.25; letter-spacing: -.02em; }
-      .about-panel__facts { margin: 0 0 10px; font-size: var(--fs-base); color: var(--muted); }
+      .about-panel__title { margin: 0 44px 8px 0; font-size: var(--fs-xl); font-weight: 850; line-height: 1.2; letter-spacing: -.02em; }
+      .about-panel__facts { margin: 0 0 10px; font: var(--fs-sm) var(--font-mono); color: var(--muted); }
       .about-panel__facts strong { color: var(--fg); font-variant-numeric: tabular-nums; }
       .about-panel__lic { margin: 0 0 12px; }
       .lic-badge {
-        display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-xs); font-weight: 650;
-        background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); text-decoration: none;
+        background: color-mix(in srgb, var(--brand-green) 18%, var(--bg-elevated)); text-decoration: none;
       }
       a.lic-badge:hover { text-decoration: underline; }
-      .lic-badge--nc { background: color-mix(in srgb, var(--err) 14%, var(--bg)); }
+      .lic-badge--nc { background: color-mix(in srgb, var(--err) 16%, var(--bg-elevated)); }
       .about-panel__desc { margin: 0 0 14px; font-size: var(--fs-base); line-height: 1.55; }
-      .about-panel__h { margin: 18px 0 8px; font-size: var(--fs-base); font-weight: 700; color: var(--fg); }
+      .about-panel__h { margin: 20px 0 8px; font-size: var(--fs-md); font-weight: 850; color: var(--fg); }
       .about-panel__dl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
       .about-panel__dl a {
         display: flex; justify-content: space-between; min-height: 44px; align-items: center; padding: 0 12px;
-        border: 1px solid var(--line-bright); border-radius: 10px; color: var(--fg); font-weight: 600; text-decoration: none;
+        border: 1.5px solid var(--edge); border-radius: var(--radius-sm); color: var(--fg); font-weight: 700; text-decoration: none;
       }
-      .about-panel__dl a:hover { border-color: var(--accent-fill); }
-      .about-panel__size { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+      .about-panel__dl a:hover { background: var(--land); }
+      .about-panel__size { color: var(--muted); font: 500 var(--fs-xs) var(--font-mono); }
       .about-panel .ward-index { width: 100%; margin-top: 16px; border-collapse: collapse; font-size: var(--fs-sm); }
       .about-panel .ward-index caption { text-align: left; font-size: var(--fs-xs); color: var(--muted); padding-bottom: 6px; }
       .about-panel .ward-index th, .about-panel .ward-index td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }

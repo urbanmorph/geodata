@@ -14,26 +14,30 @@
     <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
       <!-- TOKENS -->
-      :root { --card-bg: var(--bg-card); }
       :root { --page-max: 1100px; }
-      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; }
+
+      /* Buttons use the shared .btn classes; one field style for the whole page. */
+      .field input:not([type=radio]):not([type=checkbox]), .field textarea, .field select, #paste-back-form input, .subs-sync input {
+        width: 100%; min-height: 44px; padding: 8px 12px; font: inherit; font-size: var(--fs-md);
+        color: var(--fg); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+      }
+      .field input:not([type=radio]):not([type=checkbox]):focus, .field textarea:focus, .field select:focus, #paste-back-form input:focus {
+        outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-fill) 40%, transparent);
+      }
 
 
       /* === Initial drop state =============================================== */
       /* Intro, drop zone and past submissions share one left-aligned column. */
       #drop {
         display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 760px; margin: 0;
-        border: 2px dashed var(--line-bright); border-radius: 18px; padding: 56px 24px;
-        text-align: center; cursor: pointer; transition: border-color .15s, background .15s;
-        background: var(--bg);
+        border: 2px dashed var(--edge); border-radius: var(--radius-sm); padding: 56px 24px;
+        text-align: center; cursor: pointer; transition: background .15s;
+        background: var(--bg-elevated);
       }
-      #drop:hover, #drop.dragover {
-        border-color: var(--accent-fill);
-        background: color-mix(in srgb, var(--accent-fill) 8%, var(--bg));
-      }
-      .drop__icon { display: grid; place-items: center; width: 52px; height: 52px; margin-bottom: 8px; border-radius: 50%; background: var(--accent-fill); color: var(--on-accent-fill); }
+      #drop:hover, #drop.dragover { background: var(--land); }
+      .drop__icon { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 8px; border-radius: 50%; background: var(--accent-fill); color: var(--on-accent-fill); border: 2px solid var(--edge); }
       #drop strong { font-size: var(--fs-lg); font-weight: 700; display: block; }
-      #drop .hint { color: var(--muted); font-size: var(--fs-base); }
+      #drop .hint { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
       #drop input[type=file] { display: none; }
 
       /* === Workspace (after a file is loaded) ============================== */
@@ -45,13 +49,13 @@
       #map {
         position: sticky; top: 16px;
         height: calc(100vh - 80px); min-height: 420px;
-        border: 1px solid var(--line); border-radius: 8px; overflow: hidden;
-        background: var(--card-bg);
+        border: 1.5px solid var(--edge); border-radius: var(--radius-sm); overflow: hidden;
+        background: var(--bg-elevated);
       }
       .ws-side {
-        background: var(--card-bg);
-        border: 1px solid var(--line);
-        border-radius: 8px;
+        background: var(--bg-elevated);
+        border: 1.5px solid var(--edge);
+        border-radius: var(--radius-sm);
         padding: 16px 18px;
       }
       .ws-side h2 {
@@ -68,12 +72,7 @@
       #publish-cta { display: none; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
       #publish-cta.show { display: block; }
       #publish-cta .cta-line { font-size: var(--fs-sm); font-weight: 500; margin: 0 0 8px; }
-      #publish-cta button.primary {
-        background: var(--accent-fill); color: var(--on-accent-fill); border: 0; width: 100%;
-        padding: 10px 14px; border-radius: 6px;
-        font: inherit; font-weight: 500; font-size: var(--fs-base); cursor: pointer;
-      }
-      #publish-cta button.primary:hover { opacity: 0.92; }
+      #publish-cta button.primary { width: 100%; }
       #publish-cta .cta-hint { font-size: var(--fs-xs); color: var(--muted); margin: 8px 0 0; text-align: center; }
 
       .view-only { display: block; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
@@ -110,16 +109,6 @@
       .field label { display: block; font-weight: 500; font-size: var(--fs-xs); margin-bottom: 4px; }
       .field label .req { color: var(--err); margin-left: 2px; }
       .field .hint { color: var(--muted); font-size: var(--fs-xs); margin-top: 3px; line-height: 1.4; }
-      .field input:not([type=radio]):not([type=checkbox]),
-      .field textarea, .field select {
-        width: 100%; padding: 7px 9px; font: inherit; font-size: var(--fs-sm);
-        background: var(--bg); color: var(--fg);
-        border: 1px solid var(--line); border-radius: 6px;
-      }
-      .field input:not([type=radio]):not([type=checkbox]):focus,
-      .field textarea:focus, .field select:focus {
-        outline: none; border-color: var(--accent);
-      }
       .field textarea { resize: vertical; min-height: 50px; }
       .legal {
         font-size: var(--fs-xs); color: var(--muted); line-height: 1.5;
@@ -131,16 +120,8 @@
       .radio-group input[type=radio] { margin: 0; flex-shrink: 0; }
       #captcha { margin: 12px 0; min-height: 65px; }
 
-      button.primary {
-        background: var(--accent-fill); color: var(--on-accent-fill); border: 0;
-        width: 100%; padding: 10px 14px; border-radius: 6px;
-        font: inherit; font-weight: 500; font-size: var(--fs-base); cursor: pointer;
-      }
+      button.primary { width: 100%; }
       button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-      button.secondary {
-        background: transparent; color: var(--fg); border: 1px solid var(--line);
-        padding: 7px 12px; border-radius: 6px; font: inherit; font-size: var(--fs-xs); cursor: pointer;
-      }
       #submit-status { margin-top: 10px; color: var(--muted); font-size: var(--fs-xs); min-height: 16px; }
       #submit-status.err { color: var(--err); }
 
@@ -150,14 +131,14 @@
       #success h2 { font-size: var(--fs-lg); margin: 0 0 4px; color: var(--ok); }
       #success .ok-line { color: var(--muted); font-size: var(--fs-base); margin-bottom: 24px; }
       #success .warn {
-        background: color-mix(in srgb, var(--warn) 12%, var(--card-bg));
+        background: color-mix(in srgb, var(--warn) 12%, var(--bg-card));
         border-left: 3px solid var(--warn);
         padding: 14px 16px; border-radius: 6px; margin: 16px 0;
       }
       #success .warn strong { color: var(--warn); }
       #success .token {
-        font: var(--fs-sm) ui-monospace, SFMono-Regular, Menlo, monospace;
-        background: var(--bg); border: 1px solid var(--line); border-radius: 6px;
+        font: var(--fs-sm) var(--font-mono);
+        background: var(--bg); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
         padding: 10px 12px; word-break: break-all; margin: 10px 0;
       }
       #success .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 24px; }
@@ -165,11 +146,6 @@
         color: var(--fg); font-size: var(--fs-sm); font-weight: 500;
         margin: -16px 0 24px; line-height: 1.5;
       }
-      #success a.cta {
-        display: inline-block; background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none;
-        padding: 10px 20px; border-radius: 6px; font-weight: 500; font-size: var(--fs-base);
-      }
-      #success a.cta:hover { opacity: 0.92; }
 
       /* === Map loader overlay (verify gap: validate → render) ============== */
       .map-loader {
@@ -197,8 +173,8 @@
       /* === Your submissions (v4.8) ========================================== */
       #my-subs {
         display: block; max-width: 760px; margin: 18px 0 0;
-        background: var(--bg); border: 1px solid var(--line);
-        border-radius: 14px; padding: 16px 18px;
+        background: var(--bg-elevated); border: 1.5px solid var(--edge);
+        border-radius: var(--radius-sm); padding: 16px 18px;
       }
       #my-subs[hidden] { display: none; }
       /* When the user has dropped a file (workspace.show), the verify flow
@@ -223,10 +199,10 @@
         font-weight: 500;
       }
       .my-subs-pill {
-        font: var(--fs-xs)/1 ui-monospace, SFMono-Regular, Menlo, monospace;
-        letter-spacing: .08em; color: var(--muted-strong, var(--muted));
-        background: var(--bg); border: 1px solid var(--line);
-        padding: 3px 6px; border-radius: 999px;
+        font: var(--fs-xs)/1 var(--font-mono);
+        letter-spacing: .04em; color: var(--muted-strong, var(--muted));
+        background: var(--bg); border: 1.5px solid var(--edge);
+        padding: 3px 6px; border-radius: var(--radius-sm);
       }
       .my-subs-when {
         font-size: var(--fs-xs); color: var(--muted);
@@ -244,29 +220,15 @@
         display: flex; gap: 6px; margin-top: 8px;
       }
       #paste-back-form[hidden] { display: none; }
-      #paste-back-form input {
-        flex: 1; padding: 7px 9px; font: inherit; font-size: var(--fs-sm);
-        background: var(--bg); color: var(--fg);
-        border: 1px solid var(--line); border-radius: 6px;
-      }
-      #paste-back-form input:focus { outline: none; border-color: var(--accent); }
-      #paste-back-form button {
-        background: var(--accent-fill); color: var(--on-accent-fill); border: 0;
-        padding: 7px 14px; border-radius: 6px;
-        font: inherit; font-size: var(--fs-sm); cursor: pointer;
-      }
+      #paste-back-form input { flex: 1; width: auto; }
       .paste-back-status { font-size: var(--fs-xs); color: var(--muted); margin-top: 6px; min-height: 16px; }
       /* Sync "Your submissions" across devices (src/submission-sync-ui.ts). */
       .subs-sync { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
       .subs-sync h3 { font-size: var(--fs-md); margin: 0 0 4px; }
       .subs-sync .hint { color: var(--muted); font-size: var(--fs-sm); margin: 4px 0 8px; display: block; }
       .subs-sync h3 .hint { display: inline; margin: 0; }
-      .subs-sync button { display: block; width: 100%; min-height: 44px; margin-top: 8px; padding: 0 12px; border-radius: 12px; font: inherit; font-size: var(--fs-md); font-weight: 650;
-        border: 1px solid var(--line); background: var(--bg-card); color: var(--fg); cursor: pointer; }
-      .subs-sync button:hover { border-color: var(--accent); }
-      .subs-sync #subs-sync-on { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
-      .subs-sync input { width: 100%; box-sizing: border-box; padding: 7px 9px; font: var(--fs-xs) ui-monospace, monospace;
-        border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--fg); }
+      .subs-sync .btn { display: flex; width: 100%; margin-top: 10px; }
+      .subs-sync input { font: var(--fs-sm) var(--font-mono); }
       .subs-sync-note { color: var(--err); font-size: var(--fs-xs); min-height: 16px; margin: 6px 0 0; }
       .my-subs-empty { color: var(--muted); font-size: var(--fs-sm); margin: 4px 0; }
       .paste-back-status.err { color: var(--err); }
@@ -274,20 +236,17 @@
         #my-subs { margin-left: 0; margin-right: 0; }
       }
 
+      .helper code { font-size: inherit; }
       .helper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed var(--line); font-size: var(--fs-xs); color: var(--muted); line-height: 1.6; }
-      .helper code { font: var(--fs-xs) ui-monospace, SFMono-Regular, monospace; background: var(--card-bg); padding: 1px 4px; border-radius: 3px; }
 
       @media (max-width: 720px) {
-        body { padding: 16px 12px 60px; }
         #drop { padding: 36px 16px; }
         #workspace { grid-template-columns: 1fr; }
         #map { position: relative; top: auto; height: 50vh; min-height: 280px; }
-        .field input, .field select, .field textarea { min-height: 44px; padding: 10px 12px; font-size: var(--fs-md); }
-        button.primary, button.secondary { min-height: 44px; padding: 12px 16px; }
       }
     </style>
   </head>
-  <body>
+  <body class="page">
     <!-- NAV -->
 
     <main id="main">
@@ -307,7 +266,7 @@
       <button type="button" id="paste-back-toggle" aria-expanded="false" aria-controls="paste-back-form">+ Add an existing submission by admin URL</button>
       <form id="paste-back-form" hidden>
         <input type="text" id="paste-back-url" placeholder="https://bharatlas.com/c/Xa9Kp7n?key=adm_…" autocomplete="off" />
-        <button type="submit">Add</button>
+        <button type="submit" class="btn btn--fill">Add</button>
       </form>
       <div id="paste-back-status" class="paste-back-status" role="status" aria-live="polite"></div>
       <div id="subs-sync" class="subs-sync"></div>
@@ -322,7 +281,7 @@
         <!-- Publish CTA — view-by-default; clicking expands the form. -->
         <div id="publish-cta">
           <p class="cta-line">Want to share this with others?</p>
-          <button type="button" class="primary" id="publish-open">Publish to catalog</button>
+          <button type="button" class="btn btn--fill primary" id="publish-open">Publish to catalog</button>
           <p class="cta-hint">Or leave it. Nothing has been uploaded.</p>
         </div>
 
@@ -408,7 +367,7 @@
 
           <div id="captcha" data-sitekey="<!-- TURNSTILE_SITEKEY -->"></div>
 
-          <button type="submit" class="primary" id="submit-btn" disabled>Publish</button>
+          <button type="submit" class="btn btn--fill primary" id="submit-btn" disabled>Publish</button>
           <div id="submit-status"></div>
         </form>
 
@@ -425,13 +384,13 @@
         <strong>Admin token (shown once). Save it.</strong>
         <div class="token" id="success-token"></div>
         <div class="actions">
-          <button type="button" class="secondary" id="copy-token">Copy token</button>
-          <button type="button" class="secondary" id="download-token">Download as .txt</button>
+          <button type="button" class="btn btn--line" id="copy-token">Copy token</button>
+          <button type="button" class="btn btn--line" id="download-token">Download as .txt</button>
         </div>
         <div class="hint">Lose this and you can't edit or delete your submission.</div>
       </div>
 
-      <a href="/" class="cta" id="goto-submission">Back to the catalog</a>
+      <a href="/" class="btn btn--fill" id="goto-submission">Back to the catalog</a>
     </section>
 
     <div class="helper">

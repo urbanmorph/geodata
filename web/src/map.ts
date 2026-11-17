@@ -9,6 +9,7 @@ import { popupValueHtml } from './popup-value';
 import { availableDownloads, fmtBytes } from './format-hints';
 import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
 import { LIBERTY } from '../../shared/liberty';
+import { DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED } from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
@@ -288,7 +289,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string) {
   const common = sourceLayer ? { 'source-layer': sourceLayer } : {};
   map.addLayer({
     id: 'fill', type: 'fill', source: sourceId, ...common,
-    paint: { 'fill-color': '#0a58ca', 'fill-opacity': 0.22 },
+    paint: { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY },
   });
   map.addLayer({
     id: 'line-halo', type: 'line', source: sourceId, ...common,
@@ -301,7 +302,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string) {
   map.addLayer({
     id: 'line', type: 'line', source: sourceId, ...common,
     paint: {
-      'line-color': '#0a58ca',
+      'line-color': DATA_LINE,
       'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.4, 10, 1.2],
       'line-opacity': 0.85,
     },
@@ -311,7 +312,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string) {
     filter: POINT_GEOM_FILTER,
     paint: {
       'circle-radius': ['interpolate', ['linear'], ['zoom'], 4, 3, 10, 5, 14, 7],
-      'circle-color': '#0a58ca',
+      'circle-color': DATA_POINT,
       'circle-opacity': 0.75,
       'circle-stroke-width': ['interpolate', ['linear'], ['zoom'], 4, 0.5, 10, 1],
       'circle-stroke-color': '#fff',
@@ -328,7 +329,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string) {
 // ---------------------------------------------------------------------------
 
 const HL_LAYERS = ['locate-hl-fill', 'locate-hl-line', 'locate-hl-circle'];
-const HL_ACCENT = '#f59e0b'; // amber — stands out against the blue data layers
+const HL_ACCENT = DATA_SELECTED;
 
 function clearLocateHighlight(): void {
   if (!map) return;

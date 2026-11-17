@@ -14,65 +14,28 @@
     <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
       <!-- TOKENS -->
-      :root { --row-hover: var(--bg-card); }
-      :root { --page-max: 880px; }
-      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
-      /* Reading width: prose stops near 75 characters; tables, code and cards keep the page width. */
-      main :is(p, ul, ol) { max-width: 720px; }
-      h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); }
-      h3 { font-size: var(--fs-md); margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
       p, li { font-size: var(--fs-base); color: var(--muted); overflow-wrap: anywhere; }
-      code { font: var(--fs-sm) ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
-      pre { background: var(--row-hover); padding: var(--sp-3); border-radius: 8px; overflow-x: auto; font-size: var(--fs-sm); line-height: 1.5; }
-      pre code { background: none; padding: 0; }
-      table { width: 100%; border-collapse: collapse; font-size: var(--fs-base); margin: var(--sp-2) 0; }
-      th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); }
-      th { font-weight: 600; color: var(--fg); font-size: var(--fs-sm); }
-      td { color: var(--muted); }
-      td code { font-size: var(--fs-xs); }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      .method { display: inline-block; font-weight: 700; font-size: var(--fs-xs); padding: 2px 8px; border-radius: 4px; background: #22c55e22; color: #22c55e; margin-right: 6px; }
-      .endpoint { font-family: ui-monospace, SFMono-Regular, monospace; font-size: var(--fs-base); }
-      .try-it { font-size: var(--fs-sm); color: var(--accent); margin-left: 8px; }
-      .badge { display: inline-block; font-size: var(--fs-xs); padding: 2px 8px; border-radius: 10px; font-weight: 500; }
-      .badge--stable { background: #22c55e22; color: #22c55e; }
-      .badge--beta { background: #f59e0b22; color: #f59e0b; }
-      .badge--soon { background: var(--bg-card); color: var(--muted-strong); border: 1px solid var(--line-bright); font-size: var(--fs-xs); vertical-align: middle; }
+      .method { margin-right: 6px; }
+      .endpoint { font: var(--fs-base) var(--font-mono); }
+      .try-it { font-size: var(--fs-sm); margin-left: 8px; }
       .lead { font-size: var(--fs-lg); color: var(--muted-strong); margin: 0 0 var(--sp-3); }
       .hero-meta { margin: 0 0 var(--sp-4); }
       .cta-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-4) 0 var(--sp-6); }
-      .cta { display: inline-flex; align-items: center; min-height: 44px; padding: 0 18px; border-radius: var(--radius-lg); font-weight: 600; font-size: var(--fs-base); }
-      .cta--primary { background: var(--accent-fill); color: var(--on-accent-fill); }
-      .cta--primary:hover { background: var(--accent-fill-hover); text-decoration: none; }
-      .cta--plain { border: 1px solid var(--line-bright); color: var(--fg); }
-      .cta--plain:hover { border-color: var(--accent); text-decoration: none; }
-      .toc { display: flex; flex-wrap: wrap; gap: var(--sp-1) var(--sp-4); font-size: var(--fs-base); padding: var(--sp-3) 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); margin: var(--sp-6) 0 0; }
-      .toc a { color: var(--muted); display: inline-flex; align-items: center; min-height: 44px; }
-      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--sp-3); margin: var(--sp-3) 0; }
-      .card { border: 1px solid var(--line); border-radius: var(--radius-lg); padding: var(--sp-4); }
+      /* "On this page": a sheet index, ruled above and below. */
+      .toc { display: flex; flex-wrap: wrap; gap: 0 var(--sp-4); margin: var(--sp-6) 0 0; padding: var(--sp-2) 0; border-top: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); font: var(--fs-sm) var(--font-mono); }
+      .toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--fg); }
+      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin: var(--sp-3) 0; border-top: 1.5px solid var(--edge); border-left: 1.5px solid var(--edge); }
+      .card { padding: var(--sp-4); background: var(--bg-elevated); border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); }
       .card h3 { margin: 0 0 var(--sp-1); font-size: var(--fs-md); }
       .card p { margin: 0 0 var(--sp-2); font-size: var(--fs-base); }
       .card p:last-child { margin-bottom: 0; }
       .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0; padding: 0; list-style: none; }
-      .stats li { background: var(--bg-card); border-radius: var(--radius-lg); padding: var(--sp-3); font-size: var(--fs-sm); }
+      .stats li { padding: var(--sp-3); font-size: var(--fs-sm); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); }
       .stats b { display: block; font-size: var(--fs-xl); color: var(--fg); }
-      .note { background: var(--bg-card); border-radius: var(--radius-lg); padding: var(--sp-3) var(--sp-4); }
-      .note p { margin: 0; }
-      .table-wrap { overflow-x: auto; }
-      @media (max-width: 640px) {
-        body { padding: 24px 14px 60px; }
-        h1 { font-size: var(--fs-xl); }
-        h2 { font-size: var(--fs-xl); margin-top: 36px; }
-        pre { font-size: var(--fs-xs); }
-        table { font-size: var(--fs-xs); }
-        th, td { padding: 6px 8px; }
-        .endpoint { font-size: var(--fs-xs); }
-        td code { font-size: var(--fs-xs); word-break: break-all; }
-      }
+      @media (max-width: 640px) { .endpoint { font-size: var(--fs-xs); } td code { word-break: break-all; } }
     </style>
   </head>
-  <body>
+  <body class="page">
     <!-- NAV -->
 
     <main id="main">
@@ -91,8 +54,8 @@ assembly      Shivajinagar               AC_ID         29162
 ward          Shantala Nagar             LGD_WardCode  1302853
 seismic zone  Zone II</code></pre>
       <div class="cta-row">
-        <a class="cta cta--primary" href="#start">Make your first call</a>
-        <a class="cta cta--plain" href="/api/v1/openapi.json">OpenAPI description</a>
+        <a class="btn btn--fill" href="#start">Make your first call</a>
+        <a class="btn btn--line" href="/api/v1/openapi.json">OpenAPI description</a>
       </div>
 
       <nav class="toc" aria-label="On this page">
@@ -224,7 +187,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 
       <h2 id="sponsor">Sponsor a layer</h2>
       <p>Need a layer that isn’t here: ward boundaries for your city, a scheme’s sites, a hazard map? Fund it, and we clean it, give it codes, keep it current and publish it openly for everyone, with your credit on the layer.</p>
-      <div class="cta-row"><a class="cta cta--plain" href="/terms#contact">Propose a layer</a></div>
+      <div class="cta-row"><a class="btn btn--line" href="/terms#contact">Propose a layer</a></div>
 
       <h2 id="built-with">Built with bharatlas</h2>
       <div class="cards">
@@ -248,7 +211,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 
       <h2>Layers</h2>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers</span></h3>
       <p>List all curated layers with pagination and filters.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
@@ -261,15 +224,15 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
       </table>
       <pre><code>curl https://bharatlas.com/api/v1/layers?category=city-wards&amp;limit=5</code></pre>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id</span></h3>
       <p>Single layer detail with download URLs, licence and attribution.</p>
       <pre><code>curl https://bharatlas.com/api/v1/layers/lgd_states</code></pre>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/schema</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/schema</span></h3>
       <p>Column names, types, and sample values. Reads parquet metadata from R2 at runtime. Use this to discover what columns a layer has before querying. Nested columns (structs, lists, maps, such as Overture's <code>names</code> or <code>addresses</code>) are listed with type <code>nested</code>: you can <code>select</code> them, but not filter or group on them.</p>
       <pre><code>curl https://bharatlas.com/api/v1/layers/airports/schema</code></pre>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/query</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/query</span></h3>
       <p>Query layer data with filters and grouping. Reads the parquet from R2 at runtime, no pre-computation needed. Works for curated and community layers.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
@@ -298,7 +261,7 @@ curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=dist_lgd=525&am
 
       <h2>Spatial</h2>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/locate</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/locate</span></h3>
       <p>Given a lat/lng, returns all polygon layers that contain that point: state, district, ward, pincode, forest, eco-zone, seismic zone, and more, each with its codes. The "where am I?" endpoint.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
@@ -330,7 +293,7 @@ curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=dist_lgd=525&am
   "timing_ms": 450
 }</code></pre>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/nearby</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/nearby</span></h3>
       <p>Find features from any layer near a point, nearest first. Works for points, polygons, and lines: features are ranked by Haversine distance to their bounding-box centres.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
@@ -351,17 +314,17 @@ curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_w
 
       <h2>Categories and Levels</h2>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/categories</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/categories</span></h3>
       <p>List all categories with layer counts.</p>
       <pre><code>curl https://bharatlas.com/api/v1/categories</code></pre>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/levels</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/levels</span></h3>
       <p>List admin hierarchy levels in order (country, state, district, subdistrict, block, village, ...).</p>
       <pre><code>curl https://bharatlas.com/api/v1/levels</code></pre>
 
       <h2>Counts and Stats</h2>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/layers/:id/counts</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/counts</span></h3>
       <p>Feature counts with optional column grouping. Without <code>group_by</code>, returns the total and lists all groupable columns. With <code>group_by</code>, returns value-level counts for that column.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
@@ -376,13 +339,13 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
 
       <h2>Downloads</h2>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/downloads/counts</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/downloads/counts</span></h3>
       <p>Download counts per layer and format, plus a grand total.</p>
       <pre><code>curl https://bharatlas.com/api/v1/downloads/counts</code></pre>
 
       <h2>Community Submissions</h2>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/submissions</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/submissions</span></h3>
       <p>List accepted community submissions.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
@@ -393,7 +356,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
         <tr><td><code>offset</code></td><td>int</td><td>Skip N results</td></tr>
       </table>
 
-      <h3><span class="method">GET</span> <span class="endpoint">/api/v1/submissions/:id</span></h3>
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/submissions/:id</span></h3>
       <p>Single submission detail.</p>
 
       <h2>Response Format</h2>
@@ -423,14 +386,14 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
       <p>Auth is a bearer token in the URL fragment of each share link (kept out of server logs); the field-definition contract is the public meta-schema at <code>https://collect.bharatlas.com/schema/v1.json</code>. Creating a map programmatically needs an API key (the anti-abuse gate) via the <code>X-API-Key</code> header, since there is no browser Turnstile.</p>
       <table>
         <tr><th>Method</th><th>Endpoint</th><th>What</th></tr>
-        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections</td><td>create a map (X-API-Key, or Turnstile in the browser); returns admin / collect / view links</td></tr>
-        <tr><td><span class="method">GET</span></td><td class="endpoint">/collections/:id</td><td>map metadata + counts</td></tr>
-        <tr><td><span class="method">PATCH</span></td><td class="endpoint">/collections/:id</td><td>edit settings (admin)</td></tr>
-        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/records</td><td>add one point (contributor)</td></tr>
-        <tr><td><span class="method">GET</span></td><td class="endpoint">/collections/:id/records</td><td>records as GeoJSON, scoped by token</td></tr>
-        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/import</td><td>bulk import with a source + rights attestation (admin)</td></tr>
-        <tr><td><span class="method">POST</span></td><td class="endpoint">/records/:id/moderate</td><td>approve / reject one point (admin)</td></tr>
-        <tr><td><span class="method">POST</span></td><td class="endpoint">/collections/:id/publish</td><td>submit approved points to the catalog for review (admin)</td></tr>
+        <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/collections</td><td>create a map (X-API-Key, or Turnstile in the browser); returns admin / collect / view links</td></tr>
+        <tr><td><span class="badge badge--stable method">GET</span></td><td class="endpoint">/collections/:id</td><td>map metadata + counts</td></tr>
+        <tr><td><span class="badge badge--stable method">PATCH</span></td><td class="endpoint">/collections/:id</td><td>edit settings (admin)</td></tr>
+        <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/collections/:id/records</td><td>add one point (contributor)</td></tr>
+        <tr><td><span class="badge badge--stable method">GET</span></td><td class="endpoint">/collections/:id/records</td><td>records as GeoJSON, scoped by token</td></tr>
+        <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/collections/:id/import</td><td>bulk import with a source + rights attestation (admin)</td></tr>
+        <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/records/:id/moderate</td><td>approve / reject one point (admin)</td></tr>
+        <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/collections/:id/publish</td><td>submit approved points to the catalog for review (admin)</td></tr>
       </table>
       <pre><code># 1. Create a map (needs an API key; body follows the meta-schema)
 curl -X POST https://collect.bharatlas.com/api/collect/v1/collections \
