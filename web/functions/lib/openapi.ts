@@ -213,6 +213,19 @@ export const OPENAPI = {
         },
       },
     },
+    '/usage': {
+      get: {
+        operationId: 'getUsage',
+        tags: ['Catalogue'],
+        summary: 'How much each layer is used: downloads, and API calls that name it (split api / mcp)',
+        description: 'Crawlers and the MCP smoke test are not counted. With ?layer=, one layer: { layer_id, downloads, api, mcp }; without it, { layers: { <id>: { downloads, api, mcp } }, total }.',
+        parameters: [q('layer', 'Layer id: one layer only.', { type: 'string' })],
+        responses: {
+          '200': ok('Usage counts', { type: 'object' }),
+          ...errors('400', '500'),
+        },
+      },
+    },
     '/categories': {
       get: {
         operationId: 'listCategories',

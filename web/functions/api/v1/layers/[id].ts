@@ -1,6 +1,7 @@
 import type { Env } from '../../_middleware';
 import { loadCatalog } from '../../../lib/catalog-loader';
 import { toApiLayer } from '../../../lib/catalog-api';
+import { countApiUse } from '../../../lib/usage';
 
 const CACHE = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400';
 
@@ -17,6 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   if (!layer) {
     return new Response(JSON.stringify({ error: 'Layer not found', status: 404 }), { status: 404 });
   }
+  countApiUse(ctx, id);
 
   return new Response(JSON.stringify({ data: toApiLayer(layer, catalog, true) }), {
     headers: { 'content-type': 'application/json', 'cache-control': CACHE },

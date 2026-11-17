@@ -1,6 +1,7 @@
 import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
 import { loadCatalog } from '../../lib/catalog-loader';
+import { countApiUse } from '../../lib/usage';
 import { nearby } from '../../lib/nearby';
 import { QueryInputError } from '../../lib/parquet-query';
 import { json, safeStringify } from '../../lib/http';
@@ -28,6 +29,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   try {
     const result = await nearby(lat, lng, radiusKm, layerId, catalog, ctx.env.R2, limit);
+    countApiUse(ctx, layerId);
     return new Response(safeStringify(result), {
       headers: {
         'content-type': 'application/json',

@@ -12,6 +12,9 @@ import { join } from "node:path";
 import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams } from "./read-tools.js";
 import { withClientIds, importSummary } from "./import-records.js";
 
+/** One version for the server and its user agent; bump with every release (version.test.js). */
+const VERSION = "1.6.0";
+
 const API = process.env.BHARATLAS_API || "https://bharatlas.com/api/v1";
 
 // collect (write side): authoring over the collect REST API. The read tools
@@ -162,8 +165,12 @@ const TOOLS = [
 // One HTTP helper for the read API and collect. fetch follows redirects and
 // times out; a reply that is not JSON becomes a rejected promise (the old
 // https.get helper threw inside the 'end' callback and crashed the server).
+// The API counts MCP use per layer by this header (web/functions/lib/usage.ts); the
+// smoke test sends "bharatlas-mcp-test" so its calls are not counted.
+const USER_AGENT = process.env.BHARATLAS_MCP_UA || `bharatlas-mcp/${VERSION}`;
+
 async function request(method, url, { headers = {}, body } = {}) {
-  const init = { method, headers: { ...headers }, signal: AbortSignal.timeout(30_000) };
+  const init = { method, headers: { "user-agent": USER_AGENT, ...headers }, signal: AbortSignal.timeout(30_000) };
   if (body !== undefined) {
     init.body = JSON.stringify(body);
     init.headers["content-type"] = "application/json";
@@ -326,7 +333,7 @@ async function handleTool(name, args) {
 }
 
 const server = new Server(
-  { name: "bharatlas-mcp", version: "1.6.0" },
+  { name: "bharatlas-mcp", version: VERSION },
   { capabilities: { tools: {} }, instructions: SERVER_INSTRUCTIONS },
 );
 

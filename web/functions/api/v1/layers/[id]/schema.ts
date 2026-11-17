@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { loadCatalog } from '../../../../lib/catalog-loader';
+import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
@@ -17,6 +18,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const catalog = await loadCatalog(url.origin);
   const layer = catalog.layers.find((l) => l.id === id);
   if (!layer) return json(404, { error: 'Layer not found', status: 404 });
+  countApiUse(ctx, id);
 
   const r2Key = r2KeyFromLayer(layer);
   if (!r2Key) return json(404, { error: 'No parquet file for this layer', status: 404 });

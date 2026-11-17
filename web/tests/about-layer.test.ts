@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { aboutLayerHtml } from '../src/about-layer';
 
 const layer = {
@@ -34,8 +36,8 @@ describe('aboutLayerHtml', () => {
     expect(nc).toContain('Non-commercial only');
   });
 
-  it('lists every download with its size', () => {
-    expect(html).toMatch(/href="https:\/\/r2\/x.geojson"[^>]*>[\s\S]*GeoJSON[\s\S]*221 KB/);
+  it('lists every download with its size, through the download counter', () => {
+    expect(html).toMatch(/href="\/api\/dl\/x.geojson"[^>]*>[\s\S]*GeoJSON[\s\S]*221 KB/);
     expect(html).toMatch(/Parquet[\s\S]*77 KB/);
   });
 
@@ -49,5 +51,19 @@ describe('aboutLayerHtml', () => {
   it('escapes data', () => {
     const bad = aboutLayerHtml({ layer: { ...layer, source: '<script>' }, meta });
     expect(bad).not.toContain('<script>');
+  });
+});
+
+describe('aboutLayerHtml: usage and downloads up front', () => {
+  const html = aboutLayerHtml({ layer, meta });
+  it('has a usage line slot under the facts, filled live from /api/v1/usage', () => {
+    expect(html).toMatch(/<p class="about-panel__facts">[\s\S]*?<\/p><p class="about-panel__usage" data-usage hidden><\/p>/);
+    const map = readFileSync(resolve(__dirname, '../src/map.ts'), 'utf8');
+    expect(map).toContain('/api/v1/usage?layer=');
+    expect(map).toMatch(/usageLine\(/);
+  });
+  it('marks Parquet as the recommended download', () => {
+    expect(html).toMatch(/Parquet <em class="about-panel__rec">recommended<\/em>/);
+    expect(html.match(/about-panel__rec/g)).toHaveLength(1);
   });
 });

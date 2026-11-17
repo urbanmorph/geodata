@@ -1,5 +1,7 @@
 // Per-format download metadata for the map-view download menu.
 // Pure: no DOM, no DuckDB. Consumed by map.ts to build the popover.
+// Data files link through the /api/dl counter (shared/downloads.mjs), as on /layers.
+import { dlProxyUrl } from '../../shared/downloads.mjs';
 
 export type DownloadFormat = 'parquet' | 'pmtiles' | 'geojson' | 'kml' | 'shapefile';
 
@@ -30,19 +32,19 @@ const HINTS: Record<DownloadFormat, { label: string; hint: string }> = {
 export function availableDownloads(layer: LayerLike): DownloadEntry[] {
   const out: DownloadEntry[] = [];
   if (layer.parquet?.url) {
-    out.push({ fmt: 'parquet', ...HINTS.parquet, url: layer.parquet.url, bytes: layer.parquet.bytes });
+    out.push({ fmt: 'parquet', ...HINTS.parquet, url: dlProxyUrl(layer.parquet.url, 'parquet'), bytes: layer.parquet.bytes });
   }
   if (layer.pmtiles?.url) {
-    out.push({ fmt: 'pmtiles', ...HINTS.pmtiles, url: layer.pmtiles.url, bytes: layer.pmtiles.bytes });
+    out.push({ fmt: 'pmtiles', ...HINTS.pmtiles, url: dlProxyUrl(layer.pmtiles.url, 'pmtiles'), bytes: layer.pmtiles.bytes });
   }
   if (layer.geojson?.url) {
-    out.push({ fmt: 'geojson', ...HINTS.geojson, url: layer.geojson.url, bytes: layer.geojson.bytes });
+    out.push({ fmt: 'geojson', ...HINTS.geojson, url: dlProxyUrl(layer.geojson.url, 'geojson'), bytes: layer.geojson.bytes });
   }
   if (layer.kml?.url) {
-    out.push({ fmt: 'kml', ...HINTS.kml, url: layer.kml.url, bytes: layer.kml.bytes });
+    out.push({ fmt: 'kml', ...HINTS.kml, url: dlProxyUrl(layer.kml.url, 'kml'), bytes: layer.kml.bytes });
   }
   if (layer.shapefile?.url) {
-    out.push({ fmt: 'shapefile', ...HINTS.shapefile, url: layer.shapefile.url, bytes: layer.shapefile.bytes });
+    out.push({ fmt: 'shapefile', ...HINTS.shapefile, url: dlProxyUrl(layer.shapefile.url, 'shapefile'), bytes: layer.shapefile.bytes });
   }
   return out;
 }

@@ -57,6 +57,8 @@ async function call(proc, toolName, args = {}) {
 async function run() {
   const proc = spawn("node", [resolve(__dirname, "index.js")], {
     stdio: ["pipe", "pipe", "pipe"],
+    // Not real use: the API's usage counter skips this user agent.
+    env: { ...process.env, BHARATLAS_MCP_UA: "bharatlas-mcp-test" },
   });
   proc.stderr.on("data", () => {});
 
