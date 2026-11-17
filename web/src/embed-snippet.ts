@@ -20,7 +20,7 @@ export function isViewPath(pathname: string): { view: true; layerId: string } | 
 // tab title also has to flip back from the per-layer "lgd states · bharatlas"
 // (injected by the /view/<id> edge function via HTMLRewriter) to the home
 // title. Returns the new title to apply, or null if no change is needed.
-/** The catalog shows on load only on the home page; /view and /embed open the map over it. */
+/** The home page shows on load; /view and /embed open the map over it instead. */
 export function catalogVisibleOnLoad(pathname: string): boolean {
   return !isViewPath(pathname).view && !isEmbedPath(pathname).embed;
 }
@@ -49,16 +49,6 @@ export function nextStateOnClose(
     url: urlAfterCloseMap(pathname, hash, search),
     title: titleAfterCloseMap(pathname, hash, homeTitle),
   };
-}
-
-// Restore the saved category filter ONLY when the user returns from a /view/
-// via the back/forward button — never on a fresh load or refresh. That makes
-// it true breadcrumb behaviour, and keeps the first paint shift-free (no
-// post-paint apply()/section-expand → no CLS) for direct + search arrivals,
-// which are the common case. `navType` is PerformanceNavigationTiming.type
-// ('navigate' | 'reload' | 'back_forward' | 'prerender' | undefined).
-export function shouldRestoreCategory(navType: string | undefined, saved: string | null): boolean {
-  return navType === 'back_forward' && !!saved && saved !== 'all';
 }
 
 // What the URL should become after the user closes the map overlay. Three

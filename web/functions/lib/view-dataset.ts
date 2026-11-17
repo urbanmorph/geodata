@@ -361,7 +361,7 @@ export function buildViewDataset(
       '@type': 'BreadcrumbList',
       itemListElement: [
         { '@type': 'ListItem', position: 1, name: 'Home', item: `${origin}/` },
-        { '@type': 'ListItem', position: 2, name: 'Catalog', item: `${origin}/` },
+        { '@type': 'ListItem', position: 2, name: 'All layers', item: `${origin}/layers` },
         { '@type': 'ListItem', position: 3, name: title, item: canonical },
       ],
     },
@@ -435,7 +435,7 @@ export function buildViewContent(
   // via tokens) — NOT inline hex, which fails contrast in dark mode and gives
   // no-JS readers low-contrast text. Links are underlined there too.
   return `<article class="view-seo">
-  <p class="view-seo__crumb"><a href="/">bharatlas</a> / <a href="/">catalog</a> / ${esc(title)}</p>
+  <p class="view-seo__crumb"><a href="/">bharatlas</a> / <a href="/layers">all layers</a> / ${esc(title)}</p>
   <h1>${esc(title)}</h1>
   <p>${count ? `<strong>${count}</strong> ${esc(unit)}` : ''} ${layer.source ? `· Source: ${esc(layer.source)}` : ''} ${layer.licence ? `· Licence: ${esc(layer.licence)}` : ''}</p>
   ${desc ? `<p>${esc(desc)}</p>` : ''}

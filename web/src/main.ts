@@ -1,13 +1,13 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
-import { isEmbedPath, isViewPath, nextStateOnClose, shouldRestoreCategory, catalogVisibleOnLoad } from './embed-snippet';
-import { filterCards, cardVisibility, type CardLike } from './catalog-filter';
+import { isEmbedPath, isViewPath, nextStateOnClose, catalogVisibleOnLoad } from './embed-snippet';
+import { filterCards, type CardLike } from './catalog-filter';
 import { blurFocusWithin } from './focus-utils';
-import { fmtCount } from './format-hints';
+import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
 import { findMyWard } from './find-my-ward';
 import { fetchWardIndex } from './ward-index';
-import { rankHits, hitsHtml, moveActive, type Hit } from './search-pop';
+import { rankHits, hitsHtml, moveActive, allLayersUrl, focusOnSlash, type Hit } from './search-pop';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
 // injects is NOT removed on hydrate — doing so shrank the body and was the
@@ -20,11 +20,6 @@ import { rankHits, hitsHtml, moveActive, type Hit } from './search-pop';
 const overlay = document.getElementById('map-overlay')!;
 const mapTitle = document.getElementById('map-title')!;
 const mapCloseBtn = document.getElementById('map-close') as HTMLButtonElement;
-
-// Re-applies the saved category filter. Assigned by the catalog block below
-// (where the chips + apply() live). hideMap() calls it so closing the map
-// returns you to your filtered catalog (breadcrumb) instead of "all".
-let restoreSavedCategory: (() => void) | null = null;
 
 // Dynamic imports are cached by the loader, so we don't need our own cache.
 const loadMap = () => import('./map');
@@ -77,12 +72,6 @@ async function showMap(layerId: string) {
 const HOME_TITLE = "India's open atlas: every boundary, one search away · bharatlas";
 
 async function hideMap() {
-  // Re-apply the saved category filter BEFORE revealing the catalog, so closing
-  // the map returns to the user's filtered view (breadcrumb), not "all", and
-  // with no flash of the unfiltered grid. A close is a user gesture, so any
-  // resulting shift is excluded from CLS — which is why we restore here rather
-  // than on the /view/<id> load (that would shift content Chrome still counts).
-  restoreSavedCategory?.();
   // Move focus out of the overlay BEFORE hiding it from assistive tech — closing
   // via #map-close leaves focus on a descendant, and aria-hidden on its ancestor
   // is blocked by the browser (see focus-utils).
@@ -181,170 +170,94 @@ async function showWardAnswer(raw: string): Promise<void> {
   wardBox.hidden = !html;
 }
 
-// Catalog search + category filter (home page only).
-// Operates on category sections + pre-rendered cards via data-* attributes.
-// Pill click → show only that category section. Search → two-tier matcher
-// (see catalog-filter.ts). Pill counts update live to filtered/total.
+// Home search: the results popover over /layer-index.json, one entry per
+// /layers row (prerender builds it from those rows). Fetched the first time
+// the search is focused or hovered, so the home page carries no list.
+// One entry per /layers row (prerender's layerIndex): primary and body haystacks,
+// then what the popover shows: title, sub-line, link.
+type IndexEntry = { p: string; b: string; t: string; s: string; h: string };
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
-const grid = document.getElementById('catalog-grid');
-const emptyMsg = document.getElementById('catalog-empty');
 const searchMeta = document.getElementById('search-meta');
-if (searchInput && grid) {
-  const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
-  const chips = Array.from(document.querySelectorAll<HTMLButtonElement>('.catalog-chip'));
-  // One-time collection: every card across every section, paired with its
-  // CardLike record for the pure filter and its DOM node for visibility
-  // toggling. Order is preserved so the matches[] mask lines up.
-  const cardEls = Array.from(grid.querySelectorAll<HTMLElement>('.row, .comm-card'));
-  const cardLikes: CardLike[] = cardEls.map((el) => ({
-    category: el.dataset.category || el.closest<HTMLElement>('.category-section')?.dataset.category || '',
-    primary: el.dataset.searchPrimary || '',
-    body: el.dataset.searchBody || '',
-    provenance: el.dataset.provenance || '',
-    layers: Number(el.dataset.layers) || 1,
-  }));
-  const cardSections = cardEls.map((el) => el.closest<HTMLElement>('.category-section'));
-  // What the results popover shows for each card (prerender's data-title/-sub/-href).
-  const cardHits: Hit[] = cardEls.map((el) => ({ title: el.dataset.title || '', sub: el.dataset.sub || '', href: el.dataset.href || '#layers' }));
+if (searchInput) {
   const pop = document.getElementById('search-pop');
   const resultsBox = document.getElementById('search-results');
+  let cards: CardLike[] = [];
+  let hits: Hit[] = [];
+  let loading: Promise<void> | null = null;
+  const loadIndex = (): Promise<void> =>
+    (loading ??= fetch('/layer-index.json')
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json() as Promise<IndexEntry[]>;
+      })
+      .then((rows) => {
+        cards = rows.map((r) => ({ primary: r.p, body: r.b }));
+        hits = rows.map((r) => ({ title: r.t, sub: r.s, href: r.h }));
+      })
+      .catch((e: unknown) => {
+        loading = null; // retry on the next keystroke
+        throw e;
+      }));
+  const warm = () => void loadIndex().catch(() => {});
+  searchInput.addEventListener('focus', warm, { once: true });
+  searchInput.closest('.search-wrap')?.addEventListener('pointerenter', warm, { once: true });
+
   let activeHit = -1;
+  let query = '';
   const setPop = (open: boolean) => {
     if (!pop) return;
     pop.hidden = !open;
     searchInput.setAttribute('aria-expanded', String(open));
     if (!open) searchInput.removeAttribute('aria-activedescendant');
   };
-  const renderPop = (matches: boolean[]) => {
-    if (!resultsBox) return;
-    if (!query) { setPop(false); return; }
-    const hits = rankHits(cardHits, matches, query, 6);
-    resultsBox.innerHTML = hitsHtml(hits, matches.filter(Boolean).length, searchInput.value.trim());
+  // innerHTML, not textContent: the idle line carries the #dl-total slot and its
+  // emphasised count span, which a plain-text snapshot would flatten.
+  const idleMeta = searchMeta?.innerHTML ?? '';
+
+  const run = async (): Promise<void> => {
+    query = searchInput.value.trim().toLowerCase();
+    document.body.classList.toggle('searching', !!query);
+    if (!query) {
+      setPop(false);
+      if (searchMeta) searchMeta.innerHTML = idleMeta;
+      return;
+    }
+    const asked = query;
+    try {
+      await loadIndex();
+    } catch {
+      if (asked !== query) return; // cleared or retyped meanwhile
+      if (resultsBox) resultsBox.innerHTML = `<p class="search-pop__head">Couldn't load the layer list. <a href="${allLayersUrl(searchInput.value.trim())}">Search all layers</a></p>`;
+      setPop(true);
+      return;
+    }
+    if (asked !== query) return; // a newer keystroke is running
+    const { matches, totalMatches } = filterCards(cards, query);
+    if (resultsBox) resultsBox.innerHTML = hitsHtml(rankHits(hits, matches, query, 6), totalMatches, searchInput.value.trim());
     activeHit = -1;
     searchInput.removeAttribute('aria-activedescendant');
     setPop(true);
-  };
-  let activeCat = 'all';
-  let query = '';
-  // innerHTML, not textContent: the idle line carries the #dl-total slot and its
-  // emphasised count span, which a plain-text snapshot would flatten — so a
-  // search-and-clear would strip the styling and the formatted total.
-  const idleMeta = searchMeta?.innerHTML ?? '';
-
-  const apply = () => {
-    const result = filterCards(cardLikes, query);
-    // When the user picks a category pill (or types a query), auto-expand
-    // every section so the row--collapsed cap doesn't hide matches.
-    const forceExpand = !!query || activeCat !== 'all';
-
-    // Per-card visibility: search query intent overrides category-pill scope
-    // (see cardVisibility doc-comment in catalog-filter.ts). When the user
-    // is typing in the search box, every match across every category renders
-    // — regardless of which pill is active — so cross-category results
-    // ("over" → Overture in Infrastructure with Environment selected) don't
-    // silently get hidden behind "No matches".
-    const visible = cardVisibility(result.matches, cardLikes, activeCat, query);
-    const visiblePerSection = new Map<HTMLElement, number>();
-    let totalVisible = 0;
-    let layersVisible = 0;
-    for (let i = 0; i < cardEls.length; i++) {
-      const el = cardEls[i];
-      el.classList.toggle('hidden', !visible[i]);
-      if (visible[i]) {
-        totalVisible++;
-        layersVisible += cardLikes[i].layers ?? 1;
-        const sec = cardSections[i];
-        if (sec) visiblePerSection.set(sec, (visiblePerSection.get(sec) || 0) + 1);
-      }
-    }
-    for (const section of sections) {
-      section.classList.toggle('expanded', forceExpand);
-      const cat = section.dataset.category || '';
-      const sectionVisible = visiblePerSection.get(section) || 0;
-      // Hide a section only when (a) the user has scoped to a different pill
-      // AND isn't searching, OR (b) it has no visible cards. While searching,
-      // sections appear for every category that has matches.
-      // 'community' is a provenance pill, not a content category — every
-      // section that has at least one visible community card should show.
-      // Existing rule covers that via sectionVisible === 0 below; we just
-      // need to skip the category-mismatch hide.
-      const catFiltered = !query && activeCat !== 'all' && activeCat !== 'community' && cat !== activeCat;
-      section.classList.toggle('hidden', catFiltered || sectionVisible === 0);
-    }
-
-    // Pill counts: filtered/total when a query is active, bare total when idle.
-    // 'all' chip aggregates across categories; per-cat chips read their own.
-    const filtering = !!query;
-    // 'community' chip's filtered count comes from provenance, not category;
-    // filterCards groups countsByCategory under content categories so it
-    // doesn't know about the community pill.
-    const communityFiltered = result.matches.reduce(
-      (n, m, i) => n + (m && cardLikes[i].provenance === 'community' ? 1 : 0), 0,
-    );
-    for (const chip of chips) {
-      const cat = chip.dataset.cat || '';
-      const total = Number(chip.dataset.total || '0');
-      const filtered = cat === 'all'
-        ? result.totalMatches
-        : cat === 'community'
-          ? communityFiltered
-          : (result.countsByCategory.get(cat) || 0);
-      const span = chip.querySelector<HTMLElement>('.count');
-      if (span) span.textContent = filtering ? `${filtered}/${total}` : String(total);
-      // data-count drives the [data-count="0"] dim style + click guard.
-      chip.dataset.count = String(filtering ? filtered : total);
-    }
-
-    if (emptyMsg) emptyMsg.hidden = totalVisible > 0;
-    // While searching, the results lead: themes and popular step aside.
-    document.body.classList.toggle('searching', !!query);
-    renderPop(result.matches);
-    if (searchMeta) {
-      if (!query && activeCat === 'all') {
-        searchMeta.innerHTML = idleMeta;
-      } else if (query) {
-        const q = searchInput.value.trim();
-        searchMeta.textContent = `${totalVisible} match${totalVisible === 1 ? '' : 'es'} for "${q}"`;
-      } else {
-        const chip = chips.find((c) => c.dataset.cat === activeCat);
-        const label = (chip?.firstChild?.textContent || activeCat).trim().toLowerCase();
-        searchMeta.textContent = `${layersVisible} ${label} layer${layersVisible === 1 ? '' : 's'}`;
-      }
-    }
+    if (searchMeta) searchMeta.textContent = `${totalMatches} match${totalMatches === 1 ? '' : 'es'} for "${searchInput.value.trim()}"`;
   };
 
   searchInput.addEventListener('input', () => {
-    query = searchInput.value.trim().toLowerCase();
-    apply();
+    void run();
     void showWardAnswer(searchInput.value);
   });
 
-  // ?q=… support — required for the WebSite SearchAction in JSON-LD to be
-  // honored by Google's sitelinks search box. Pre-fills the input and
-  // applies the filter on first paint.
+  // ?q=… support: required for the WebSite SearchAction in JSON-LD (Google's
+  // sitelinks search box). Pre-fills the box and opens the results.
   const qParam = new URLSearchParams(location.search).get('q');
   if (qParam) {
     searchInput.value = qParam;
-    query = qParam.trim().toLowerCase();
-    apply();
+    void run();
     void showWardAnswer(qParam);
     searchInput.focus();
   }
-  const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  for (const chip of chips) {
-    chip.addEventListener('click', () => {
-      if (chip.dataset.count === '0') return;
-      chips.forEach((c) => c.classList.toggle('active', c === chip));
-      activeCat = chip.dataset.cat || 'all';
-      try { sessionStorage.setItem('cat', activeCat); } catch {}
-      apply();
-      // A theme card filters the list below it: take the reader there.
-      document.getElementById('layers')?.scrollIntoView({ behavior: reducedMotion() ? 'auto' : 'smooth', block: 'start' });
-    });
-  }
 
-  // Results popover: arrow keys move, Enter opens, Esc closes; a click
-  // outside closes it; "/" focuses search from anywhere on the page.
+  // Results popover: arrow keys move, Enter opens (or, with nothing picked,
+  // shows every match on /layers), Esc closes; a click outside closes it;
+  // "/" focuses search from anywhere on the page.
   searchInput.addEventListener('keydown', (e) => {
     const opts = Array.from(resultsBox?.querySelectorAll<HTMLAnchorElement>('.search-hit') ?? []);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
@@ -355,9 +268,10 @@ if (searchInput && grid) {
       opts.forEach((o, i) => o.setAttribute('aria-selected', String(i === activeHit)));
       searchInput.setAttribute('aria-activedescendant', opts[activeHit].id);
       opts[activeHit].scrollIntoView({ block: 'nearest' });
-    } else if (e.key === 'Enter' && activeHit >= 0 && opts[activeHit]) {
+    } else if (e.key === 'Enter') {
       e.preventDefault();
-      location.assign(opts[activeHit].href);
+      if (activeHit >= 0 && opts[activeHit]) location.assign(opts[activeHit].href);
+      else if (query) location.assign(allLayersUrl(searchInput.value.trim()));
     } else if (e.key === 'Escape') {
       setPop(false);
     }
@@ -366,15 +280,7 @@ if (searchInput && grid) {
   document.addEventListener('click', (e) => {
     if (!(e.target as Element).closest?.('.search-wrap')) setPop(false);
   });
-  pop?.addEventListener('click', (e) => {
-    if ((e.target as Element).closest('.search-pop__all')) setPop(false);
-  });
-  document.addEventListener('keydown', (e) => {
-    const t = e.target as HTMLElement;
-    if (e.key !== '/' || e.metaKey || e.ctrlKey || t.closest('input, textarea, select, [contenteditable]')) return;
-    e.preventDefault();
-    searchInput.focus();
-  });
+  focusOnSlash(searchInput);
   // Quick searches ("Try: ...") run in place; without JS they are ?q= links.
   for (const a of document.querySelectorAll<HTMLAnchorElement>('.quick-search a[data-q]')) {
     a.addEventListener('click', (e) => {
@@ -382,39 +288,6 @@ if (searchInput && grid) {
       searchInput.value = a.dataset.q || '';
       searchInput.dispatchEvent(new Event('input'));
       searchInput.focus();
-    });
-  }
-
-  // Breadcrumb restore. Re-applies the saved category pill + filter. Used in
-  // two CLS-safe spots: (a) here on a back/forward navigation (browser back to
-  // the catalog — bfcache usually handles this, this is the fallback), and
-  // (b) from hideMap() when the map overlay is closed (a user gesture). It is
-  // deliberately NOT called on a fresh load or refresh, which keeps the first
-  // paint shift-free for direct + search arrivals (the common case).
-  restoreSavedCategory = () => {
-    const saved = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
-    if (!saved || saved === 'all') return;
-    const match = chips.find((c) => c.dataset.cat === saved);
-    if (!match) return;
-    chips.forEach((c) => c.classList.toggle('active', c === match));
-    activeCat = saved;
-    apply();
-  };
-  const navType = (performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined)?.type;
-  const savedCat = (() => { try { return sessionStorage.getItem('cat'); } catch { return null; } })();
-  if (shouldRestoreCategory(navType, savedCat)) restoreSavedCategory();
-
-  // "show all N <category>" toggle inside dense category sections.
-  // Toggles `.expanded` on the parent <section>; CSS in index.template.html
-  // reveals/hides .row--collapsed children. The button hides itself when
-  // expanded. Also fires automatically when a category pill picks this
-  // section (so filtered views show everything).
-  for (const btn of document.querySelectorAll<HTMLButtonElement>('[data-show-more]')) {
-    btn.addEventListener('click', () => {
-      const section = btn.closest('.category-section');
-      if (!section) return;
-      section.classList.add('expanded');
-      btn.setAttribute('aria-expanded', 'true');
     });
   }
 }
@@ -468,78 +341,4 @@ if (searchInput && grid) {
   });
 }
 
-// Live download counts and useful votes: fetched from D1 so badges are
-// always current (no catalog.json drift); baked values remain if a fetch
-// fails. Only where the catalog shows: on load on the home page, and on
-// /view once the map is closed (hideMap). Embeds never show it.
-let liveCountsRequested = false;
-function refreshLiveCounts(): void {
-  if (liveCountsRequested) return;
-  liveCountsRequested = true;
-  fetch('/api/dl/counts')
-    .then((r) => (r.ok ? (r.json() as Promise<Record<string, Record<string, number> | number>>) : null))
-    .then((counts) => {
-      if (!counts) return;
-
-      // Patch per-format badges: <span class="count" title="N downloads">N</span>
-      // Each download link lives inside a card with data-id="<layer_id>" and
-      // the link text is the format name (parquet, geojson, kml, shp).
-      // fmtCount lives in format-hints.ts (pure + unit-tested).
-      for (const section of document.querySelectorAll<HTMLElement>('[data-id]')) {
-        const layerId = section.dataset.id || '';
-        const layerCounts = counts[layerId] as Record<string, number> | undefined;
-        if (!layerCounts) continue;
-        for (const link of section.querySelectorAll<HTMLAnchorElement>('a[download]')) {
-          const fmt = link.textContent?.trim() || '';
-          const n = layerCounts[fmt];
-          if (!n) continue;
-          const badge = link.nextElementSibling?.nextElementSibling;
-          if (badge?.classList.contains('count')) {
-            badge.setAttribute('title', `${n.toLocaleString('en-IN')} downloads`);
-            badge.textContent = fmtCount(n);
-          } else {
-            // No badge yet (was 0 at bake time) — inject one.
-            const span = document.createElement('span');
-            span.className = 'count';
-            span.title = `${n.toLocaleString('en-IN')} downloads`;
-            span.textContent = fmtCount(n);
-            // Insert after the size span (link → size-span → count-span)
-            const sizeSpan = link.nextElementSibling;
-            if (sizeSpan) sizeSpan.insertAdjacentElement('afterend', span);
-          }
-        }
-      }
-
-      // Refill the search-meta running total from the live count. The baked value
-      // is a build-time snapshot; #dl-total is its own slot so we replace just the
-      // " · <count> downloads" tail without touching the static prefix. The count
-      // is built from a number, so innerHTML here is safe (no user input).
-      const total = typeof counts._total === 'number' ? counts._total : 0;
-      const slot = document.getElementById('dl-total');
-      if (slot && total > 0) {
-        slot.innerHTML = ` · <span class="search-meta__count">${fmtCount(total)}</span> downloads`;
-      }
-    })
-    .catch(() => {});
-
-  // Useful votes on community cards: patches each .comm-card's 👍 N span so
-  // newly cast votes show without waiting for the next prerender. Missing
-  // entries mean 0 votes; leave the baked default alone.
-  fetch('/api/c/useful-counts')
-    .then((r) => (r.ok ? (r.json() as Promise<Record<string, number>>) : null))
-    .then((counts) => {
-      if (!counts) return;
-      for (const card of document.querySelectorAll<HTMLElement>('.comm-card[data-id]')) {
-        const id = card.dataset.id || '';
-        const n = counts[id];
-        if (n == null) continue;
-        card.dataset.useful = String(n);
-        const span = card.querySelector<HTMLElement>('.useful');
-        if (span) span.textContent = `👍 ${n}`;
-        const score = card.querySelector<HTMLElement>('.comm-card__score');
-        if (score) score.title = `${n} found this useful`;
-      }
-    })
-    .catch(() => {});
-}
 if (catalogVisibleOnLoad(location.pathname)) refreshLiveCounts();

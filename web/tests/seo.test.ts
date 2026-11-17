@@ -80,7 +80,7 @@ describe('SEO — home JSON-LD enrichments', () => {
     // emit exactly one Dataset.
     const graph = loadGraph();
     const datasets = graph.filter((n) => n['@type'] === 'Dataset');
-    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
     // The compact-layout sections carry `row--compact` as an extra class.
     // Match anything starting with "row row--curated" until the class
     // attribute's closing quote.
@@ -159,19 +159,20 @@ describe('CLS regression guards (Web Vitals)', () => {
     expect(js).toMatch(/has-query/);
   });
 
-  it("index.html loads q-precheck.js synchronously in <head> before any main script", () => {
+  it("layers.html loads q-precheck.js synchronously in <head> before any main script", () => {
     // index.html in web/ root is the prerender output (dev path `/src/main.ts`).
     // After `vite build`, dist/index.html has the hashed `/assets/main-XXX.js`.
     // Either way, q-precheck.js must be in <head> and precede every other script.
-    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
     const head = html.match(/<head[^>]*>([\s\S]*?)<\/head>/)?.[1] ?? '';
     expect(head, 'q-precheck.js must be inside <head>').toContain('q-precheck.js');
 
-    const precheckIdx = html.indexOf('q-precheck.js');
-    // First "real" script tag (excludes <script type="application/ld+json">
-    // and <script type="application/json"> data blobs).
-    const firstScript = html.search(/<script(?![^>]+type="application\/)[^>]*src=/);
-    expect(precheckIdx, 'q-precheck must precede every other script tag').toBeLessThan(firstScript);
+    // The precheck tag must be the first script that loads code: every other
+    // <script src> comes after it (ld+json / json data blobs don't count).
+    const precheckIdx = html.search(/<script[^>]*src="\/q-precheck\.js"/);
+    const otherScript = html.search(/<script(?![^>]+type="application\/)(?![^>]*q-precheck)[^>]*src=/);
+    expect(precheckIdx, 'q-precheck.js is loaded').toBeGreaterThan(-1);
+    expect(precheckIdx, 'q-precheck must precede every other script tag').toBeLessThan(otherScript);
 
     const tag = html.match(/<script[^>]*\/q-precheck\.js[^>]*>/);
     expect(tag).not.toBeNull();
@@ -179,7 +180,7 @@ describe('CLS regression guards (Web Vitals)', () => {
   });
 
   it('CSS preempts the expand on html.has-query (no JS mutation needed)', () => {
-    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
     expect(html).toMatch(/html\.has-query[^{]*\.row--collapsed\s*{[^}]*display:\s*block/);
   });
 });
@@ -192,7 +193,7 @@ describe('Community cards have parity with curated rows (View + Download)', () =
   //             + the curated multi-format /api/dl strip.
   // Both link to the same .btn-primary "View map" pill as curated rows.
   it('every comm-card has a "View map" link (baked → /view/c_<id>, else /preview)', () => {
-    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
     const cards = html.match(/<article class="comm-card[^>]+>[\s\S]*?<\/article>/g) || [];
     if (cards.length === 0) return; // no community submissions yet — vacuous pass
     for (const card of cards) {
@@ -213,7 +214,7 @@ describe('Community cards have parity with curated rows (View + Download)', () =
   });
 
   it('every comm-card has inline downloads (baked → /api/dl multi-format, else single /api/r2)', () => {
-    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
     const cards = html.match(/<article class="comm-card[^>]+>[\s\S]*?<\/article>/g) || [];
     if (cards.length === 0) return;
     for (const card of cards) {
@@ -240,7 +241,7 @@ describe('SEO/AEO — curated cards expose data vintage on the home grid', () =>
   // "new-layers-need-fetched-at". Threshold reflects the honest state
   // and ratchets up as ingest scripts get the backfill.
   it('at least 25% of visible rows have a date string in the description', () => {
-    const html = readFileSync(resolve(__dirname, '..', 'index.html'), 'utf8');
+    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
     const sections = html.match(/<section class="row row--curated[^>]+>[\s\S]*?<\/section>/g) || [];
     expect(sections.length).toBeGreaterThan(0);
     let withDate = 0;
@@ -357,7 +358,8 @@ describe('SEO — BreadcrumbList on every prerendered page', () => {
   // Breadcrumbs reinforce site structure for Google (sitelinks breadcrumb
   // trail in SERPs) and give LLM crawlers a navigable hierarchy.
   const PAGES = [
-    { file: 'index.html', last: 'Catalog' },
+    { file: 'index.html', last: 'All layers' },
+    { file: 'layers.html', last: 'All layers' },
     { file: 'about.html', last: 'About' },
     { file: 'preview.html', last: 'Preview' },
     { file: 'docs.html', last: 'API v1' },

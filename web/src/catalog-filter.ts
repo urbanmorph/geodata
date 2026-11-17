@@ -19,68 +19,21 @@
 // "villages" doesn't quietly fall through to body matches on Districts
 // while Villages itself surfaces via primary.
 //
-// Active-category filtering is the caller's concern — this fn returns
-// matches regardless of pill, so the caller can also derive per-chip
-// counts (which the pill UI needs to show "filtered/total").
+// One matcher for both searches: the home popover (over /layer-index.json) and
+// the /layers filter (over its rows). Both count matching rows, so "See all N"
+// on the home page lands on N matches on /layers.
 
 export type CardLike = {
-  category: string;
   primary: string;
   body: string;
-  /** 'curated' | 'community'. The community pill filters on this instead
-   *  of category because community submissions inherit a content category
-   *  (environment, infrastructure, etc.) for the section they render in. */
-  provenance?: string;
-  /** Layers this card stands for (a level's primary source + alternates).
-   *  Counts add these up, because the site counts layers. Default 1. */
-  layers?: number;
 };
 
 export type FilterResult = {
   matches: boolean[];
-  countsByCategory: Map<string, number>;
+  /** Matching cards (rows), the number both pages show. */
   totalMatches: number;
 };
 
-/**
- * Decide per-card visibility on the home grid.
- *
- * Rules:
- *   - When the user is searching (query non-empty), the active pill is
- *     ignored — search intent overrides scoping so cross-category matches
- *     don't get silently hidden (e.g. typing "over" with Environment
- *     selected must still surface Overture in Infrastructure).
- *   - When activeCat === 'community', filter by provenance instead of
- *     content category; community submissions inherit a content category
- *     for sectioning, so the pill would otherwise match nothing.
- *   - Otherwise, scope by content category as before.
- *
- * Second arg accepts either a string[] (legacy: category per card) or a
- * CardLike[] (richer: category + provenance). The provenance lookup needs
- * the richer shape; string[] is kept for callers that don't need it.
- */
-export function cardVisibility(
-  matches: boolean[],
-  cards: string[] | CardLike[],
-  activeCat: string,
-  query: string,
-): boolean[] {
-  const searching = query.trim().length > 0;
-  const asLike = (i: number): { category: string; provenance: string } => {
-    const c = cards[i];
-    return typeof c === 'string' ? { category: c, provenance: '' } : { category: c.category, provenance: c.provenance || '' };
-  };
-  return matches.map((m, i) => {
-    if (!m) return false;
-    if (searching) return true;
-    if (activeCat === 'all') return true;
-    const { category, provenance } = asLike(i);
-    if (activeCat === 'community') return provenance === 'community';
-    return category === activeCat;
-  });
-}
-
-// Every token in the same tier: primary if any card matches there, else body.
 function matchTokens(cards: CardLike[], tokens: string[]): boolean[] {
   if (!tokens.length) return cards.map(() => true);
   const matchAll = (hay: string) => tokens.every((t) => hay.includes(t));
@@ -97,13 +50,5 @@ export function filterCards(cards: CardLike[], query: string): FilterResult {
   const words = tokens.filter((t) => !/^\d+$/.test(t));
   if (!matches.some(Boolean) && words.length && words.length < tokens.length) matches = matchTokens(cards, words);
 
-  const counts = new Map<string, number>();
-  let total = 0;
-  cards.forEach((c, i) => {
-    if (!matches[i]) return;
-    const n = c.layers ?? 1;
-    counts.set(c.category, (counts.get(c.category) || 0) + n);
-    total += n;
-  });
-  return { matches, countsByCategory: counts, totalMatches: total };
+  return { matches, totalMatches: matches.filter(Boolean).length };
 }

@@ -39,8 +39,8 @@ describe('3, 5, 6, 8. labels are sentence case (no all-caps)', () => {
 
 describe('3, 5, 6. touch targets', () => {
   it('View map buttons and download links are tall enough', () => {
-    expect(read('index.template.html')).toMatch(/\.btn-primary \{[^}]*min-height: 44px/);
-    expect(read('index.template.html')).toMatch(/\.dl-inline a \{[^}]*min-height: 32px/);
+    expect(read('layers.template.html')).toMatch(/\.btn-primary \{[^}]*min-height: 44px/);
+    expect(read('layers.template.html')).toMatch(/\.dl-inline a \{[^}]*min-height: 44px/);
   });
   it('docs section links and the contribute paste toggle are 44 px', () => {
     expect(read('docs.template.html')).toMatch(/min-height: 44px/);

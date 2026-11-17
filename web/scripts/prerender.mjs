@@ -28,6 +28,9 @@ if (!existsSync(catalogPath)) {
   process.exit(1);
 }
 const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
+// The home search's index (/layer-index.json): one entry per /layers row,
+// pushed by renderRow / renderCommunityCard from the same values the row shows.
+const layerIndex = [];
 // Live download counts (falls back to the catalog snapshot if unreachable).
 const liveCounts = await fetchLiveCounts();
 const dlCounts = bakedCounts(catalog, liveCounts);
@@ -460,6 +463,8 @@ function renderRow(level, layersForLevel, opts = {}) {
     tags: primary.tags,
   });
 
+  const sub = [primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · ');
+  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}` });
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
     `data-level="${esc(level)}"`,
@@ -467,7 +472,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     `data-layers="${layersForLevel.length}"`,
     // What the search dropdown shows for this card (src/search-pop.ts).
     `data-title="${esc(meta.label)}"`,
-    `data-sub="${esc([primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · '))}"`,
+    `data-sub="${esc(sub)}"`,
     `data-href="${viewable ? `/view/${esc(primary.id)}` : `#${esc(level)}`}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
@@ -552,7 +557,7 @@ const homeSeo = seoHead({
         '@type': 'BreadcrumbList',
         itemListElement: [
           { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'Catalog', item: ORIGIN + '/' },
+          { '@type': 'ListItem', position: 2, name: 'All layers', item: ORIGIN + '/layers' },
         ],
       },
       {
@@ -597,7 +602,7 @@ const homeSeo = seoHead({
             '@type': 'Dataset',
             name: `${meta.label ?? l.id} (${l.source})`,
             description: padDatasetDescription(meta.description ?? l.notes ?? '', meta.label ?? l.id, l.source),
-            url: ORIGIN + '/#' + lvl,
+            url: ORIGIN + '/layers#' + lvl,
             license: licenceUrl(l.licence),
             isAccessibleForFree: true,
             keywords,
@@ -719,6 +724,7 @@ function renderCommunityCard(s, opts = {}) {
   const bodyHaystack = expandAliases(
     [s.description || '', s.attribution || '', cat, s.format || ''].join(' '),
   ).toLowerCase();
+  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: s.name, s: `community · ${s.format}`, h: `/c/${s.id}` });
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
     `data-useful="${useful}"`,
@@ -773,31 +779,24 @@ for (const cat of Object.keys(communityByCategory)) {
 const totalLayers = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
 const activeCats = Object.entries(catalog.categories || {})
   .filter(([id]) => categoryCounts[id]);
-// data-total stays as the raw category size; data-count is what the
-// client mutates as the user filters. The count span displays either
-// "N" (idle) or "filtered/N" (when a search/filter is active).
-// Theme cards (the mockup's "Browse by theme"). They are the category filter:
-// same .catalog-chip class and data-* contract main.ts drives, so search and
-// filtering are unchanged; the count span is what the filter rewrites.
+// Theme cards ("Browse by theme"): each links to its section on /layers.
 // Each card leads with its theme's map symbol (THEME_GLYPH), like a map legend.
 const legendGlyph = (id) => {
   const g = THEME_GLYPH[id] ?? THEME_GLYPH.other;
   const paint = g.fill === 'ink' ? 'class="ink"' : `fill="${g.fill}"`;
   return `<svg class="legend-glyph" viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><path d="${g.d}" ${paint}/></svg>`;
 };
-const themeCard = (id, name, n, active = false) =>
-  `<button class="catalog-chip theme-card${active ? ' active' : ''}" data-cat="${esc(id)}" data-count="${n}" data-total="${n}">` +
+// Theme cards link into /layers: each theme is a section there (Option B).
+const themeHref = (id) => (id === 'community' ? '/layers?q=community' : `/layers#${id}`);
+const themeCard = (id, name, n) =>
+  `<a class="theme-card" href="${themeHref(id)}">` +
   legendGlyph(id) +
   `<span class="theme-card__name">${esc(name)}</span><span class="theme-card__n"><span class="count">${n}</span> layers</span>` +
   (THEME_DESC[id] ? `<span class="theme-card__desc">${esc(THEME_DESC[id])}</span>` : '') +
-  `</button>`;
-const chips = [
-  themeCard('all', 'All layers', totalLayers, true),
-  ...activeCats.map(([id, name]) => themeCard(id, name, categoryCounts[id])),
-];
-// Community pill: appears only when there's at least one community submission.
-// It filters on provenance, not category — cardVisibility special-cases the
-// activeCat='community' lookup so cards from any content category surface.
+  `</a>`;
+// No "All layers" card: the "See all N layers" button under the grid does that.
+const chips = activeCats.map(([id, name]) => themeCard(id, name, categoryCounts[id]));
+// A Community card when there are community layers: /layers filtered to them.
 if (community.length > 0) {
   chips.push(themeCard('community', 'Community', community.length));
 }
@@ -834,7 +833,7 @@ const popularHtml = popularIds.length
         const count = l.rows != null ? `${fmtInt(l.rows)} ${meta.unit || 'features'}` : '';
         return `<a class="popular-item" href="/view/${esc(id)}"><span class="popular-item__name">${esc(meta.label)}</span><span class="popular-item__count">${esc(count)}</span></a>`;
       })
-      .join('')}<a class="popular-item popular-item--all" href="#layers"><span class="popular-item__name">All ${totalLayers} layers</span><span aria-hidden="true">→</span></a></div></section>`
+      .join('')}<a class="popular-item popular-item--all" href="/layers"><span class="popular-item__name">All ${totalLayers} layers</span><span aria-hidden="true">→</span></a></div></section>`
   : '';
 
 // Quick searches under the search box: real queries people make (ward
@@ -881,9 +880,9 @@ function renderCategorySection(cat) {
     ? `<button type="button" class="show-more" data-show-more aria-expanded="false">Show all ${total} ${esc(catLabel.toLowerCase())} layers</button>`
     : '';
 
-  return `<section class="category-section" data-category="${esc(cat)}" ${overflows ? 'data-overflow' : ''}>
+  return `<section class="category-section" id="${esc(cat)}" data-category="${esc(cat)}" ${overflows ? 'data-overflow' : ''}>
       <header class="category-section__head">
-        <h3 class="category-section__title">${esc(catLabel)}</h3>
+        <h2 class="category-section__title">${esc(catLabel)}</h2>
         <span class="category-section__count">${total} layer${total === 1 ? '' : 's'}</span>
       </header>
       <div class="category-section__body">
@@ -904,22 +903,32 @@ const sortedCats = [...allCategories].sort((a, b) => {
   const bi = CATEGORY_ORDER.indexOf(b);
   return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
 });
-const categorySections = sortedCats.map(renderCategorySection).filter(Boolean).join('\n');
+const sectionHtml = new Map(sortedCats.map((cat) => [cat, renderCategorySection(cat)]).filter(([, html]) => html));
+const categorySections = [...sectionHtml.values()].join('\n');
+
+// /layers: every theme with layers is a section, with an index beside them (Option B).
+const sectionCats = [...sectionHtml.keys()];
+const themeIndexHtml = sectionCats
+  .map((cat) => {
+    const n = categoryCounts[cat] ?? 0;
+    const label = (catalog.categories || {})[cat] || cat;
+    return `<a href="#${esc(cat)}">${legendGlyph(cat)}<span>${esc(label)}</span><span class="theme-index__n">${n}</span></a>`;
+  })
+  .join('');
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const out = tmpl
-  .replace('<!-- CATEGORY_SECTIONS -->', categorySections)
   .replace('<!-- CATEGORY_CHIPS -->', chipsHtml)
   .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
   .replace('<!-- SEO_HEAD -->', homeSeo)
   .replace('<!-- TOKENS -->', TOKENS)
-  .replace('<!-- NAV -->', renderNav('catalog'))
+  .replace('<!-- NAV -->', renderNav('home'))
   .replace('<!-- FOOTER -->', FOOTER)
   .replace('<!-- POPULAR -->', popularHtml)
   .replace('<!-- MAP_BRAND -->', `<a class="map-brand" href="/" aria-label="bharatlas home">${brandMarkSvg(26)}</a>`)
   .replace('<!-- QUICK_SEARCH -->', quickSearchHtml)
   .replace('<!-- INDIA_MAP -->', indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog }))
-  .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
+  .replaceAll('<!-- LAYER_TOTAL -->', String(totalLayers))
   .replace('<!-- UPDATED -->', updatedHtml)
   .replace('<!-- DOWNLOAD_TOTAL -->', (() => {
     const total = totalDownloads(dlCounts);
@@ -927,6 +936,35 @@ const out = tmpl
   })());
 
 await writeFile(resolve(WEB, 'index.html'), out);
+
+const layersSeo = seoHead({
+  title: 'All layers',
+  description: `All ${totalLayers} of India's open map layers by theme: boundaries, city wards, water, environment and more. View any of them on a map or download it.`,
+  url: ORIGIN + '/layers',
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+      { '@type': 'ListItem', position: 2, name: 'All layers', item: ORIGIN + '/layers' },
+    ],
+  },
+});
+const layersTmpl = await readFile(resolve(WEB, 'layers.template.html'), 'utf8');
+await writeFile(
+  resolve(WEB, 'layers.html'),
+  layersTmpl
+    .replace('<!-- SEO_HEAD -->', layersSeo)
+    .replace('<!-- TOKENS -->', TOKENS)
+    .replace('<!-- NAV -->', renderNav('layers'))
+    .replace('<!-- FOOTER -->', FOOTER)
+    .replace('<!-- THEME_INDEX -->', themeIndexHtml)
+    .replace('<!-- CATEGORY_SECTIONS -->', categorySections)
+    .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
+    .replace('<!-- THEME_TOTAL -->', String(sectionCats.length)),
+);
+await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));
+console.log(`prerendered /layers — ${sectionCats.length} themes, ${layerIndex.length} rows in the search index`);
 console.log(`prerendered home — ${sortedCats.length} categories, ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated levels, ${community.length} community`);
 
 // Helper: prerender a page that just needs an SEO head.
@@ -1305,6 +1343,7 @@ await renderPage('mcp', {
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
+  { loc: ORIGIN + '/layers', changefreq: 'weekly', priority: '0.9' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },

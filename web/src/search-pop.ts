@@ -5,6 +5,19 @@ import { escapeHtml as esc } from './util';
 
 export type Hit = { title: string; sub: string; href: string };
 
+/** Every match for a query, on the All layers page. */
+export const allLayersUrl = (q: string): string => `/layers?q=${encodeURIComponent(q)}`;
+
+/** "/" focuses the search box from anywhere on the page (not while typing). */
+export function focusOnSlash(input: HTMLInputElement): void {
+  document.addEventListener('keydown', (e) => {
+    const t = e.target as HTMLElement;
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || t.closest('input, textarea, select, [contenteditable]')) return;
+    e.preventDefault();
+    input.focus();
+  });
+}
+
 /** Matching cards, titles that contain the query first, then catalogue order. */
 export function rankHits(cards: Hit[], matches: boolean[], query: string, n: number): Hit[] {
   const q = query.trim().toLowerCase();
@@ -25,7 +38,7 @@ export function hitsHtml(hits: Hit[], total: number, query: string): string {
       `<span class="search-hit__ico">${ICON}</span><span class="search-hit__text"><span class="search-hit__title">${esc(h.title)}</span>` +
       `<span class="search-hit__sub">${esc(h.sub)}</span></span></a>`)
     .join('');
-  const more = total > hits.length ? `<a class="search-pop__all" href="#layers">See all ${total} matching layers</a>` : '';
+  const more = total > hits.length ? `<a class="search-pop__all" href="${esc(allLayersUrl(query))}">See all ${total} matching layers</a>` : '';
   return `<p class="search-pop__head">Layers</p>${items}${more}`;
 }
 

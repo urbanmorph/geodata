@@ -68,10 +68,6 @@
       }
       .search-bar:focus-within { box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
       .search-bar__icon { flex: none; color: var(--fg); }
-      .catalog-search { flex: 1; min-width: 0; font: var(--fs-md) ui-sans-serif, system-ui, sans-serif; padding: 6px 0; border: none; outline: none; background: transparent; color: var(--fg); }
-      .catalog-search::placeholder { color: var(--muted); }
-      /* The bar draws the focus ring (.search-bar:focus-within); a second ring inside it is noise. */
-      .catalog-search:focus-visible { outline: none !important; }
       .search-bar__key { font: 600 12px ui-sans-serif, system-ui, sans-serif; color: var(--muted); border: 1px solid var(--line-bright); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px; }
       .search-bar__attach {
         display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
@@ -125,7 +121,7 @@
       .quick-search__label { color: var(--muted); }
       .quick-search a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--fg); font-weight: 600; text-decoration: none; }
       .quick-search a:hover { background: var(--land); }
-      .search-meta { color: var(--muted); font: var(--fs-sm) var(--font-mono); margin: 16px 0 0; min-height: 18px; }
+      .search-meta { margin: 16px 0 0; min-height: 18px; }
       .search-meta a { color: var(--accent); }
       /* The running totals read as facts, not links: ink, not the link colour. */
       .search-meta__count, .search-meta__layers { color: var(--fg); font-weight: 600; }
@@ -137,19 +133,16 @@
       .home-section .section-title { margin: 0 0 18px; }
       /* Theme cards read as a map legend: symbol, name, count; ruled cells. */
       .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border-top: 1.5px solid var(--edge); border-left: 1.5px solid var(--edge); }
-      .catalog-chip.theme-card {
+      .theme-card {
         display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; text-align: left;
-        min-height: 72px; padding: 14px 16px; font: inherit; color: var(--fg); background: var(--bg-elevated);
-        border: 0; border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); border-radius: 0; cursor: pointer; touch-action: manipulation;
+        min-height: 72px; padding: 14px 16px; color: var(--fg); background: var(--bg-elevated); text-decoration: none;
+        border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge);
       }
-      @media (hover: hover) { .catalog-chip.theme-card:hover { background: var(--land); } }
-      .catalog-chip.theme-card.active { background: color-mix(in srgb, var(--accent-fill) 18%, var(--bg-elevated)); box-shadow: inset 0 -4px 0 var(--accent-fill); }
+      @media (hover: hover) { .theme-card:hover { background: var(--land); text-decoration: none; } }
       .legend-glyph { grid-row: 1 / span 2; }
-      .legend-glyph path { stroke: var(--edge); stroke-width: 1.6; stroke-linejoin: round; }
-      .legend-glyph .ink { fill: var(--fg); }
-      .catalog-chip[data-count="0"] { opacity: .4; cursor: not-allowed; }
       .theme-card__name { font-size: var(--fs-md); font-weight: 700; }
       .theme-card__n { font: 600 var(--fs-sm) var(--font-mono); color: var(--muted); white-space: nowrap; }
+      .see-all { margin: 20px 0 0; }
       .theme-card__desc { grid-column: 2 / -1; font-size: var(--fs-sm); line-height: 1.45; color: var(--muted); }
       .popular-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
       .popular-item { display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none !important; }
@@ -174,40 +167,6 @@
       .ask-ai__code code { background: none; padding: 0; color: inherit; font: inherit; }
       .ask-ai__code { flex: 1 1 320px; margin: 0; padding: 16px; border-radius: 12px; background: #13265A; color: #E6EAF4; font: var(--fs-sm)/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
 
-      .catalog-empty { color: var(--muted); font-size: var(--fs-base); text-align: center; padding: 32px 0; }
-
-      .catalog { margin-top: 8px; }
-      .category-section { padding: 24px 0 28px; border-top: 1px solid var(--line); }
-      .category-section:first-of-type { border-top: none; padding-top: 4px; }
-      .category-section.hidden { display: none; }
-      .category-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
-      .category-section__title { font-size: var(--fs-lg); font-weight: 700; letter-spacing: -.01em; color: var(--fg); margin: 0; }
-      .category-section__count { color: var(--muted); font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
-      .category-section__body { display: flex; flex-direction: column; gap: 0; }
-      .category-cta {
-        display: inline-block; margin-top: 14px;
-        padding: 6px 14px;
-        color: var(--muted); font-size: var(--fs-xs);
-        text-decoration: none;
-        border: 1px dashed var(--line); border-radius: 999px;
-        transition: all 140ms ease;
-      }
-      .category-cta:hover { color: var(--accent); border-color: var(--accent); border-style: solid; }
-
-      .comm-card { background: var(--card-bg); border-left: 3px solid #d97706; padding: 14px 16px; border-radius: 6px; margin: 10px 0; }
-      .comm-card.hidden { display: none; }
-      .comm-card__head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
-      .comm-card__title { font-weight: 600; font-size: var(--fs-base); }
-      .comm-card__title a { color: inherit; text-decoration: none; }
-      .comm-card__title a:hover { color: var(--accent); }
-      .comm-card__score { font-variant-numeric: tabular-nums; font-weight: 600; color: var(--muted); font-size: var(--fs-sm); }
-      .comm-card__score .useful { color: var(--accent-strong); }
-      .comm-card__desc { color: var(--muted); font-size: var(--fs-sm); margin: 6px 0 8px; }
-      .comm-card__meta { color: var(--muted); font-size: var(--fs-xs); }
-      .comm-card__actions { display: flex; gap: 16px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
-      .comm-card__actions .btn { font-size: var(--fs-sm); padding: 6px 12px; }
-      .comm-card__dl .size { color: var(--muted); margin-left: 6px; font-size: var(--fs-xs); font-variant-numeric: tabular-nums; }
-
       /* Drag-anywhere overlay */
       body.is-dragging::after {
         content: 'Drop to verify and share →';
@@ -220,244 +179,6 @@
         pointer-events: none;
         z-index: 9999;
       }
-
-      /* row--collapsed: hidden by default; section's .expanded class reveals.
-         Search/filter then hides non-matches with .row.hidden — bumped to
-         .category-section .row.hidden so it matches the expanded rule's
-         (0,3,0) specificity, and placed after it so source-order also
-         tips ties its way. Without this, collapsed rows below the cap
-         stay visible when search expands their section. */
-      .row__updated { color: var(--muted); font-size: var(--fs-sm); margin: 4px 0 0; }
-      .row__updated time { font-variant-numeric: tabular-nums; }
-      .row--collapsed { display: none; }
-      .category-section.expanded .row--collapsed { display: block; }
-      .category-section .row.hidden { display: none; }
-      /* Pre-paint the expanded state when the URL has ?q=… so main.ts's
-         apply() doesn't have to mutate every section after first paint
-         (was the CLS source attributed to .category-section.expanded).
-         /q-precheck.js sets html.has-query before paint. */
-      html.has-query .row--collapsed { display: block; }
-
-      .row {
-        padding: 4px 0;
-        border-bottom: 1px solid var(--line);
-      }
-      .row:last-child { border-bottom: none; }
-
-      /* === Compact list layout (Option B) =========================== */
-      .row--compact .row__details { width: 100%; min-width: 0; }
-      /* row__head is the outer grid: details (title/source/count + expand) on
-         the left, actions on the right. row__actions used to live inside
-         <summary> but that violated HTML semantics (interactive descendants
-         of an interactive element). Moving actions out of <summary> fixes
-         the a11y issue without changing the visual layout. */
-      .row--compact .row__head {
-        display: grid;
-        grid-template-columns: 1fr auto;
-        align-items: center;
-        gap: 14px;
-      }
-      .row--compact .row__summary {
-        display: grid;
-        /* Title flexes (1fr) — downloads moved into row__expand so we no
-           longer compete for horizontal space in the action column. Source
-           is fixed-width to keep it aligned across rows; count is wide
-           enough for the longest unit text ("community-development blocks").
-           Actions (now just the View map button) sits in the row__head
-           grid as a sibling. */
-        grid-template-columns: minmax(0, 1fr) 80px 240px;
-        align-items: baseline;
-        gap: 14px;
-        padding: 10px 4px;
-        font-size: var(--fs-sm);
-        cursor: pointer;
-        list-style: none;
-      }
-      .row--compact .row__summary::-webkit-details-marker { display: none; }
-      .row--compact .row__summary::marker { content: ""; }
-      .row--compact .row__summary:hover { background: var(--row-hover); }
-      .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-      .row--compact .row__summary > .row__source { font-size: var(--fs-xs); color: var(--muted); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      /* display: block so text-overflow ellipsis applies to the combined
-         num + unit text flow (spans inside default to inline; inline elems
-         ignore overflow:hidden + text-overflow:ellipsis). */
-      .row--compact .row__summary > .row__count { display: block; color: var(--muted); font-size: var(--fs-xs); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
-      .row--compact .row__summary > .row__count .row__num { font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; margin-right: 6px; }
-      .row--compact .row__summary > .row__count .row__unit { color: var(--muted); }
-      .row--compact .row__head > .row__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; padding: 10px 4px; }
-      /* Download links live inside row__expand (under "Download:") instead
-         of the action column — frees horizontal space for the title. */
-      .row--compact .row__expand .row__downloads { font-size: var(--fs-sm); margin: 0 0 8px; color: var(--muted); }
-      .row--compact .row__expand .row__downloads .dl-inline { display: inline-flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
-      .row--compact .row__expand .row__downloads .dl-inline a { font-weight: 500; }
-      .row--compact .row__expand {
-        padding: 10px 4px 14px;
-        border-top: 1px dashed var(--line);
-        margin-top: 4px;
-      }
-      .row--compact .row__expand .row__desc { font-size: var(--fs-sm); margin: 0 0 8px; }
-      .row--compact .row__lic-line { font-size: var(--fs-xs); color: var(--muted); margin: 0 0 6px; }
-      .row--compact .row__lic-line code { font: var(--fs-xs) ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
-      .row--compact .btn-primary { padding: 0 14px; font-size: var(--fs-sm); }
-
-      /* Tablet: drop source column, count keeps room. Downloads are already
-         in row__expand so nothing to hide in the action area. */
-      @media (max-width: 900px) {
-        .row--compact .row__summary {
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 10px;
-        }
-        .row--compact .row__summary > .row__source { display: none; }
-      }
-
-      /* Mobile: title + count + View map. Tighter type and padding. */
-      @media (max-width: 640px) {
-        .row--compact .row__summary {
-          grid-template-columns: minmax(0, 1fr) auto;
-          gap: 6px 10px;
-          font-size: var(--fs-xs);
-          padding: 8px 4px;
-        }
-        .row--compact .row__summary > .row__count { font-size: var(--fs-xs); }
-        .row--compact .row__head { gap: 8px; }
-      }
-
-      /* Very narrow: count drops to its own row so View map keeps room */
-      @media (max-width: 420px) {
-        .row--compact .row__summary {
-          grid-template-columns: minmax(0, 1fr);
-        }
-        .row--compact .row__summary > .row__count {
-          grid-column: 1;
-          padding-top: 2px;
-        }
-      }
-
-      /* "show all N" toggle at the bottom of a dense category */
-      .show-more {
-        display: block;
-        width: 100%;
-        margin: 10px 0 0;
-        padding: 8px 12px;
-        background: transparent;
-        border: 1px dashed var(--line);
-        border-radius: 6px;
-        color: var(--muted);
-        font: inherit;
-        font-size: var(--fs-xs);
-        cursor: pointer;
-        transition: all 120ms ease;
-      }
-      .show-more:hover { color: var(--accent); border-color: var(--accent); }
-      .category-section.expanded .show-more { display: none; }
-      .row__head {
-        display: flex;
-        align-items: baseline;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-bottom: 6px;
-      }
-      .row__title {
-        font-size: var(--fs-md);
-        font-weight: 600;
-        letter-spacing: -.005em;
-        color: var(--fg);
-      }
-      .row__desc { color: var(--muted); font-size: var(--fs-sm); margin: 0 0 6px; max-width: 640px; line-height: 1.5; }
-      .row__source { color: var(--muted); font-size: var(--fs-xs); margin: 0 0 10px; }
-      .row__source a { color: var(--fg); }
-      .row__source .dot { color: var(--line); }
-      /* Alternative sources for the same level. Signals plurality without
-         claiming any single source as canonical. Lighter than the primary
-         attribution; lifts on hover so they read as clickable. */
-      .row__alts { color: var(--muted); }
-      .row__alts a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }
-      .row__alts a:hover { color: var(--accent); }
-      .row__freshness { font-variant-numeric: tabular-nums; cursor: help; }
-      .row__freshness.stale { color: #d97706; }
-      .badge {
-        display: inline-block;
-        font-size: var(--fs-xs);
-        font-weight: 500;
-        padding: 1px 6px;
-        border-radius: 999px;
-        margin-left: 4px;
-        vertical-align: middle;
-        line-height: 1.4;
-      }
-      .badge--community { background: color-mix(in srgb, #d97706 22%, transparent); color: #d97706; }
-      @media (prefers-color-scheme: dark) {
-        .badge--community { color: #f59e0b; }
-      }
-      .row__actions {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-        flex-wrap: wrap;
-      }
-      .btn-primary {
-        display: inline-flex; align-items: center; min-height: 44px;
-        padding: 0 14px;
-        /* Outlined: a column of solid buttons outweighs the layers they open.
-           Saffron (the primary action colour) on hover. */
-        background: var(--bg);
-        color: var(--fg);
-        border: 1.5px solid var(--line-bright);
-        border-radius: 10px;
-        font-weight: 650;
-        font-size: var(--fs-sm);
-        text-decoration: none;
-        transition: background 140ms ease;
-        white-space: nowrap;
-      }
-      .btn-primary:hover { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
-      .btn-primary.disabled { background: transparent; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
-
-      .dl-inline { display: inline-flex; gap: 16px; align-items: center; font-size: var(--fs-sm); color: var(--muted); }
-      .dl-inline a { display: inline-flex; align-items: center; min-height: 32px; }
-      .dl-inline a { color: var(--fg); display: inline-flex; align-items: center; min-height: 44px; padding: 10px 4px; }
-      .dl-inline .size { color: var(--muted); font-variant-numeric: tabular-nums; font-size: var(--fs-xs); margin-left: 2px; }
-      .dl-inline .dot { color: var(--line); }
-      .dl-inline .count {
-        font-variant-numeric: tabular-nums;
-        font-size: var(--fs-xs);
-        padding: 1px 5px;
-        margin-left: 4px;
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--accent) 14%, transparent);
-        color: var(--accent);
-        cursor: help;
-      }
-      .row__viewer-hint {
-        margin: 8px 0 0;
-        padding-left: 4px;
-        font-size: var(--fs-xs);
-        color: var(--muted);
-        line-height: 1.5;
-      }
-      .row__viewer-hint strong { color: var(--fg); font-weight: 500; }
-      .row__source a, .row__downloads a { text-decoration: none; }
-
-      details.alt { margin-top: 10px; font-size: var(--fs-xs); }
-      details.alt > summary {
-        list-style: none;
-        cursor: pointer;
-        color: var(--muted);
-        user-select: none;
-        padding: 2px 0;
-      }
-      details.alt > summary::-webkit-details-marker { display: none; }
-      details.alt > summary::before { content: "⤳ "; opacity: .6; }
-      details.alt[open] > summary::before { content: "⤴ "; }
-      .alt__list { margin-top: 8px; padding-left: 16px; display: flex; flex-direction: column; gap: 5px; font-size: var(--fs-xs); }
-      .alt__row { display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
-      .alt__row .src { font-weight: 500; color: var(--fg); min-width: 80px; }
-      .alt__row .meta { color: var(--muted); }
-      .alt__row .links { color: var(--muted); }
-      .alt__row .links a { color: var(--fg); }
-      .alt__row .links .dot { color: var(--line); margin: 0 4px; }
-      .alt__row--primary { padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
-      .alt__row .tag { font-size: var(--fs-xs); padding: 1px 6px; background: var(--accent-fill); color: var(--on-accent-fill); border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
 
       footer { margin-top: 56px; color: var(--muted); font-size: var(--fs-xs); line-height: 1.7; }
       footer p { margin: 6px 0; }
@@ -484,7 +205,7 @@
         .search-bar__key { display: none; }
         .ask-ai { padding: 20px; }
         .theme-grid { grid-template-columns: minmax(0, 1fr); }
-        .catalog-chip.theme-card { min-height: 56px; padding: 8px 14px; }
+        .theme-card { min-height: 56px; padding: 8px 14px; }
         .theme-card__desc { display: none; }
       }
 
@@ -1010,9 +731,6 @@
       .geo-popup__photos { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
       .geo-popup__photos img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; display: block; }
     </style>
-    <!-- Pre-paint URL-driven filter state to avoid post-hydration CLS.
-         Must be synchronous + before first paint; see /q-precheck.js. -->
-    <script src="/q-precheck.js"></script>
   </head>
   <body>
     <!-- NAV -->
@@ -1048,20 +766,13 @@
 
     <section class="home-section home-browse" id="themes" aria-labelledby="themes-title">
       <h2 class="section-title" id="themes-title">Browse by theme</h2>
-      <div class="theme-grid" role="toolbar" aria-label="Filter layers by theme">
+      <nav class="theme-grid" aria-label="Browse by theme">
         <!-- CATEGORY_CHIPS -->
-      </div>
+      </nav>
+      <p class="see-all"><a class="btn btn--line" href="/layers">See all <!-- LAYER_TOTAL --> layers</a></p>
     </section>
 
     <!-- POPULAR -->
-
-    <section class="home-section" id="layers" aria-labelledby="layers-title">
-      <h2 class="section-title" id="layers-title">All layers</h2>
-      <p class="catalog-empty" id="catalog-empty" hidden>No matches. <a href="/preview">Contribute the first →</a></p>
-      <div class="catalog" id="catalog-grid">
-        <!-- CATEGORY_SECTIONS -->
-      </div>
-    </section>
 
     <section class="ask-ai" aria-labelledby="ask-ai-title">
       <div class="ask-ai__text">
