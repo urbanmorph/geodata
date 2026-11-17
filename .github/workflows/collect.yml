@@ -45,6 +45,12 @@ on:
       - 'web/tests/helpers/manifest-checks.ts'
   workflow_dispatch:
 
+# One run at a time per branch: two merges close together otherwise deploy in
+# parallel and the older build can finish last (web/tests/deploy-order.test.ts).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
