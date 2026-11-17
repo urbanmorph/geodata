@@ -6,6 +6,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { classifyDownload } from '../functions/lib/r2-keys';
+import { shapeDownloadCounts } from '../functions/lib/counters';
 
 const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../catalog.json'), 'utf8'));
 const FORMATS = ['parquet', 'geojson', 'kml', 'shapefile'] as const;
@@ -40,5 +41,16 @@ describe('classifyDownload', () => {
   it('the download route classifies after the redirect, from the catalog', () => {
     const route = readFileSync(resolve(__dirname, '../functions/api/dl/[[path]].ts'), 'utf8');
     expect(route).toMatch(/waitUntil\([\s\S]*loadCatalog[\s\S]*classifyDownload/);
+  });
+});
+
+describe('/api/dl/counts adds up every row for a layer and format', () => {
+  it('per-state rows and the 29-day backfill rows sum instead of overwriting each other', () => {
+    const out = shapeDownloadCounts([
+      { layer_id: 'lgd_districts', format: 'parquet', count: 5 },
+      { layer_id: 'lgd_districts', format: 'parquet', count: 3 },
+      { layer_id: 'wris_dams', format: 'geojson', count: 7 },
+    ]);
+    expect(out).toEqual({ lgd_districts: { parquet: 8 }, wris_dams: { geojson: 7 }, _total: 15 });
   });
 });
