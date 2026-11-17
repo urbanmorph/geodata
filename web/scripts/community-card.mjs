@@ -21,14 +21,9 @@ export function channelOf(s) {
 }
 export const CHANNEL_LABEL = { collect: 'via collect', form: 'via the contribution form' };
 
-// Route an R2 public url through the same-origin /api/dl counter, except
-// pmtiles, which the viewer range-reads directly. Mirrors prerender's dlUrl().
-export function dlProxyUrl(r2Url, fmt) {
-  if (!r2Url) return r2Url;
-  if (fmt === 'pmtiles') return r2Url;
-  const m = r2Url.match(/^https?:\/\/[^/]+\/(.+)$/);
-  return m ? `/api/dl/${m[1]}` : r2Url;
-}
+// The counted download link lives in shared/downloads.mjs (the map page uses it too).
+import { dlProxyUrl } from '../../shared/downloads.mjs';
+export { dlProxyUrl };
 
 // Curated download order: data-first (parquet), then tiles, then the
 // human-portable formats. Mirrors the curated card's strip.

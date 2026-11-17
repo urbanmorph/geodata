@@ -22,3 +22,11 @@ test("the instructions tell the model to pass the notice on", () => {
   assert.match(INSTRUCTIONS_CORE, /non_commercial/);
   assert.match(INSTRUCTIONS_CORE, /non-commercial use only/i);
 });
+
+test("the server identifies itself to the API, so MCP use is counted apart", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./index.js", import.meta.url), "utf8");
+  assert.match(src, /process\.env\.BHARATLAS_MCP_UA \|\| `bharatlas-mcp\/\$\{VERSION\}`/);
+  assert.match(src, /"user-agent": USER_AGENT/);
+  assert.match(readFileSync(new URL("./test.js", import.meta.url), "utf8"), /BHARATLAS_MCP_UA: "bharatlas-mcp-test"/);
+});

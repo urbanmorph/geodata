@@ -29,11 +29,13 @@ export function aboutLayerHtml({ layer, meta, wardIndex }: { layer: AboutLayer; 
   const downloads = availableDownloads(layer);
   return `<h2 class="about-panel__title" id="about-title">${esc(title)}</h2>` +
     `<p class="about-panel__facts">${facts}</p>` +
+    // Filled live by map.ts from /api/v1/usage: downloads and API/MCP queries.
+    `<p class="about-panel__usage" data-usage hidden></p>` +
     (layer.licence ? `<p class="about-panel__lic">${licenceBadgeHtml(layer.licence, layerIsNonCommercial(layer))}</p>` : '') +
     (desc ? `<p class="about-panel__desc">${esc(desc)}</p>` : '') +
     (downloads.length
       ? `<h3 class="about-panel__h">Download</h3><ul class="about-panel__dl">` +
-        downloads.map((d) => `<li><a href="${esc(d.url)}" download><span>${esc(d.label)}</span><span class="about-panel__size">${esc(fmtBytes(d.bytes))}</span></a></li>`).join('') +
+        downloads.map((d) => `<li><a href="${esc(d.url)}" download><span>${esc(d.label)}${d.fmt === 'parquet' ? ' <em class="about-panel__rec">recommended</em>' : ''}</span><span class="about-panel__size">${esc(fmtBytes(d.bytes))}</span></a></li>`).join('') +
         `</ul>`
       : '') +
     buildWardTable(wardIndex).html;

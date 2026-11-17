@@ -25,6 +25,7 @@ import { resolveLocateConfig } from './locate-config';
 // locate is tiny and folds into this already-lazy map chunk.
 import { openLocate, closeLocate } from './locate';
 import { aboutLayerHtml, type AboutMeta } from './about-layer';
+import { usageLine, type Usage } from '../functions/lib/usage';
 import { fetchWardIndex, type WardIndexFile } from './ward-index';
 import { buildFeatureFilter, parseAtParam } from './locate-actions';
 import {
@@ -955,12 +956,24 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, container: HTMLElem
   panel.className = 'about-panel';
   panel.hidden = true;
   panel.setAttribute('aria-labelledby', 'about-title');
+  // How much the layer is used (downloads, API and MCP queries): fetched once,
+  // kept, and put back each time the panel re-renders (the ward list arrives later).
+  let usage = '';
+  const fillUsage = () => {
+    const el = panel.querySelector<HTMLElement>('[data-usage]');
+    if (el && usage) { el.textContent = usage; el.hidden = false; }
+  };
   const render = (wardIndex: WardIndexFile | null = null) => {
     panel.innerHTML = `<button type="button" class="about-panel__close" aria-label="Close">×</button>` +
       aboutLayerHtml({ layer, meta: levelMeta, wardIndex });
     panel.querySelector('.about-panel__close')?.addEventListener('click', () => dispatchOverlay({ type: 'close' }));
+    fillUsage();
   };
   render();
+  fetch(`/api/v1/usage?layer=${encodeURIComponent(layer.id)}`)
+    .then((r) => (r.ok ? (r.json() as Promise<Usage>) : null))
+    .then((u) => { if (u) { usage = usageLine(u); fillUsage(); } })
+    .catch(() => {});
   container.appendChild(panel);
   let wardsAsked = false;
   surfaceHandles.about = {

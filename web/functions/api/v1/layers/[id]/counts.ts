@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { loadCatalog } from '../../../../lib/catalog-loader';
+import { countApiUse } from '../../../../lib/usage';
 import { json } from '../../../../lib/http';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
@@ -14,6 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const catalog = await loadCatalog(url.origin);
   const layer = catalog.layers.find((l) => l.id === id);
   if (!layer) return json(404, { error: 'Layer not found', status: 404 });
+  countApiUse(ctx, id);
 
   const groupBy = url.searchParams.get('group_by');
   const filterCol = url.searchParams.get('filter_col');

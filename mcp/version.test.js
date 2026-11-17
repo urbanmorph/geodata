@@ -15,7 +15,7 @@ test("package, lockfile, server.json, Server(), plugin, plugin pin, skill and /.
     "package-lock.json packages['']": json("./package-lock.json").packages[""].version,
     "server.json": json("./server.json").version,
     "server.json package": json("./server.json").packages[0].version,
-    "index.js Server()": read("./index.js").match(/name: "bharatlas-mcp", version: "([^"]+)"/)[1],
+    "index.js VERSION": read("./index.js").match(/^const VERSION = "([^"]+)";$/m)[1],
     "plugin.json": json("../plugins/claude-code/.claude-plugin/plugin.json").version,
     ".mcp.json pin": read("../plugins/claude-code/.mcp.json").match(/bharatlas-mcp@([0-9.]+)/)[1],
     "SKILL.md": read("../plugins/claude-code/skills/bharatlas/SKILL.md").match(/^version: (.+)$/m)[1],

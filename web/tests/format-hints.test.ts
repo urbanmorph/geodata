@@ -39,12 +39,12 @@ describe('format-hints — availableDownloads', () => {
     expect(out.map((d) => d.fmt)).toEqual(['parquet', 'pmtiles']);
   });
 
-  it('preserves bytes (including null) and url verbatim', () => {
+  it('preserves bytes (including null); data files link through the download counter, tiles stay direct', () => {
     const out = availableDownloads({
       parquet: { url: 'https://r2/x.parquet', bytes: null },
       pmtiles: { url: 'https://r2/x.pmtiles', bytes: 12345 },
     });
-    expect(out[0]).toMatchObject({ url: 'https://r2/x.parquet', bytes: null });
+    expect(out[0]).toMatchObject({ url: '/api/dl/x.parquet', bytes: null });
     expect(out[1]).toMatchObject({ url: 'https://r2/x.pmtiles', bytes: 12345 });
   });
 
