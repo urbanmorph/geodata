@@ -646,11 +646,13 @@ for (const lvl of LEVEL_ORDER) {
 // (e.g. the literal string "true" produced by a botched workflow YAML
 // expression) gets caught here rather than handed to wrangler as a bogus
 // --flag that silently errors.
+// 'fixture' (npm test) reads tests/fixtures/community.json instead of D1, so test
+// builds carry community cards as production does (tests/community-fixture).
 const RAW_COMMUNITY_FROM = process.env.COMMUNITY_FROM || 'local';
-const COMMUNITY_FROM = ['local', 'remote'].includes(RAW_COMMUNITY_FROM) ? RAW_COMMUNITY_FROM : null;
+const COMMUNITY_FROM = ['local', 'remote', 'fixture'].includes(RAW_COMMUNITY_FROM) ? RAW_COMMUNITY_FROM : null;
 if (!COMMUNITY_FROM) {
   console.warn(
-    `[prerender] COMMUNITY_FROM=${JSON.stringify(RAW_COMMUNITY_FROM)} is not 'local' or 'remote'. ` +
+    `[prerender] COMMUNITY_FROM=${JSON.stringify(RAW_COMMUNITY_FROM)} is not 'local', 'remote' or 'fixture'. ` +
     `Falling back to 'local'. Community submissions will NOT appear in this build.`,
   );
 }
@@ -662,7 +664,18 @@ const WRANGLER_BIN = (() => {
   catch { return null; }
 })();
 const wranglerPrefix = WRANGLER_BIN || 'npx --yes wrangler';
+// The same row shape the D1 query returns, plus the derived score.
+const withScores = (rows) =>
+  rows.map((r) => ({
+    ...r,
+    up_count: Number(r.up_count) || 0,
+    down_count: Number(r.down_count) || 0,
+    score: (Number(r.up_count) || 0) - (Number(r.down_count) || 0),
+  }));
 function fetchCommunitySubmissions() {
+  if (COMMUNITY_SCOPE === 'fixture') {
+    return withScores(JSON.parse(readFileSync(resolve(WEB, 'tests', 'fixtures', 'community.json'), 'utf8')));
+  }
   try {
     const out = execSync(
       `${wranglerPrefix} d1 execute geodata-submissions --${COMMUNITY_SCOPE} --json --command "${
@@ -676,12 +689,7 @@ function fetchCommunitySubmissions() {
       { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] },
     );
     const data = JSON.parse(out);
-    const rows = (data?.[0]?.results || []).map((r) => ({
-      ...r,
-      up_count: Number(r.up_count) || 0,
-      down_count: Number(r.down_count) || 0,
-      score: (Number(r.up_count) || 0) - (Number(r.down_count) || 0),
-    }));
+    const rows = withScores(data?.[0]?.results || []);
     if (COMMUNITY_SCOPE === 'remote' && rows.length === 0) {
       console.warn(
         '[prerender] community fetch (remote) returned 0 rows. ' +
