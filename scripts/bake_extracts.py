@@ -38,6 +38,9 @@ from pathlib import Path
 
 import duckdb
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import make_con  # noqa: E402,F401  (re-exported)
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 SRC = ROOT / "sources" / "india-geodata"
@@ -101,15 +104,6 @@ FORMATS = ("parquet", "geojson", "kml")
 # ---------------------------------------------------------------------------
 # DuckDB connection
 # ---------------------------------------------------------------------------
-
-def make_con() -> duckdb.DuckDBPyConnection:
-    con = duckdb.connect()
-    con.execute("INSTALL spatial; LOAD spatial")
-    # GDAL writes EPSG:4326-tagged geometry as lat,lon unless told otherwise,
-    # which put every city ward layer's downloads in the wrong place.
-    con.execute("SET geometry_always_xy = true")
-    return con
-
 
 def gdal_geojson_available(con: duckdb.DuckDBPyConnection) -> bool:
     """Return True if duckdb-spatial can write GeoJSON via the GDAL driver."""

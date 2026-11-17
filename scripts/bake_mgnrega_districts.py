@@ -30,12 +30,10 @@ from __future__ import annotations
 
 import argparse
 import gzip
-import http.client
 import json
 import os
 import re
 import sys
-import time
 import unicodedata
 import urllib.parse
 import urllib.request
@@ -45,6 +43,7 @@ from typing import Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import log, with_retries  # noqa: E402,F401  (re-exported for bake_state_finance)
 
 RESOURCE = 'ee03643a-ee4c-48c2-ac30-9f2ff26ab722'
 API = f'https://api.data.gov.in/resource/{RESOURCE}'
@@ -73,10 +72,6 @@ TREND_FIELDS = ['fin_year', 'month', 'state_name', 'district_code', 'district_na
 Fetcher = Callable[[int, int, dict], dict]
 
 
-def log(msg: str) -> None:
-    print(msg, flush=True)
-
-
 # ── pull ─────────────────────────────────────────────────────────────────────
 
 def api_key() -> str:
@@ -103,21 +98,6 @@ def api_fetch(fields: list[str] | None = None, tries: int = 6) -> Fetcher:
                 return json.load(r)
         return with_retries(once, tries)
     return fetch
-
-
-def with_retries(fn: Callable[[], dict], tries: int = 6, wait: Callable[[int], None] | None = None) -> dict:
-    """Retry network errors, including a response cut off mid-transfer
-    (http.client.IncompleteRead is not an OSError). Messages never hold the key."""
-    wait = wait or (lambda n: time.sleep(5 * n))
-    for attempt in range(1, tries + 1):
-        try:
-            return fn()
-        except (OSError, http.client.HTTPException, json.JSONDecodeError) as e:
-            if attempt == tries:
-                raise
-            log(f'  retry {attempt}: {type(e).__name__}')
-            wait(attempt)
-    raise AssertionError('unreachable')
 
 
 def pull_pages(cache: Path, filters: dict, fetch: Fetcher, limit: int = LIMIT, refresh: bool = False) -> list[dict]:

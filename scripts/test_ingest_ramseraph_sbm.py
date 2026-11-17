@@ -19,6 +19,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import ingest_ramseraph as ir  # noqa: E402
+import pipeline  # noqa: E402
 from test_catalog_idempotent import _ds  # noqa: E402
 
 
@@ -36,7 +37,7 @@ def _ward_parquet(tmp_path: Path) -> Path:
 
 def test_bake_all_formats_ignores_the_size_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(ir, 'WORK', tmp_path)
-    monkeypatch.setattr(ir, 'WHOLE_LAYER_MAX_MB', 0)  # every file is "too big"
+    monkeypatch.setattr(pipeline, 'WHOLE_LAYER_MAX_MB', 0)  # every file is "too big"
     src = _ward_parquet(tmp_path)
     assert ir.bake_whole_layer(_ds(), src) == {}  # default: capped
     out = ir.bake_whole_layer(_ds({'bake_all_formats': True, 'id': 'all'}), src)
@@ -171,7 +172,7 @@ def test_shapefile_split_by_state_keeps_every_feature(tmp_path, monkeypatch):
 
 def test_a_dbf_over_the_limit_drops_the_shapefile(tmp_path, monkeypatch):
     monkeypatch.setattr(ir, 'WORK', tmp_path)
-    monkeypatch.setattr(ir, 'DBF_MAX_BYTES', 10)  # every .dbf is "too big"
+    monkeypatch.setattr(pipeline, 'DBF_MAX_BYTES', 10)  # every .dbf is "too big"
     out = ir.bake_whole_layer(_ds(), _two_state_parquet(tmp_path))
     assert 'shapefile' not in out and {'geojson', 'kml'} <= set(out)
 
@@ -276,6 +277,6 @@ def test_ogr2ogr_reads_geojson_features_of_any_size(tmp_path, monkeypatch):
         if cmd and cmd[0] == 'ogr2ogr':
             seen.append((kw.get('env') or {}).get('OGR_GEOJSON_MAX_OBJ_SIZE'))
         return real_run(cmd, *a, **kw)
-    monkeypatch.setattr(ir.subprocess, 'run', spy)
+    monkeypatch.setattr(pipeline.subprocess, 'run', spy)
     ir.bake_whole_layer(_ds(), _ward_parquet(tmp_path))
     assert seen and all(v == '0' for v in seen)

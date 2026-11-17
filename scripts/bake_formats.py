@@ -5,33 +5,20 @@ bake_mi6_wells.py) so tile settings and the shapefile key stay consistent.
 """
 from __future__ import annotations
 
-import contextlib
 import json
-import os
 import subprocess
 import tempfile
 import zipfile
+import sys
 from pathlib import Path
-from typing import Iterable, Iterator
+from typing import Iterable
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import atomic_output  # noqa: E402,F401  (re-exported for the bakes)
 
 DBF_NAME_MAX = 10
 SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
              'Full names (as in the Parquet / GeoJSON / API):', '']
-
-
-@contextlib.contextmanager
-def atomic_output(final: Path) -> Iterator[Path]:
-    """Yield a temporary path; move it to `final` only if the block succeeds,
-    so an interrupted bake never leaves a truncated file under the real name
-    (bakes skip outputs that exist). The real extension stays last
-    (`x.part.pmtiles`): tippecanoe and GDAL pick the format from it."""
-    part = final.with_name(f'{final.stem}.part{final.suffix}')
-    part.unlink(missing_ok=True)
-    try:
-        yield part
-        os.replace(part, final)
-    finally:
-        part.unlink(missing_ok=True)
 
 
 def layer_url(catalog: dict, layer_id: str, fmt: str) -> str:
