@@ -61,9 +61,10 @@ export const TOKENS = `
   }
   .skip-link:focus { left: var(--sp-2); }
   main :is(p, li, dd) a { text-decoration: underline; text-underline-offset: 2px; }
-  /* Page column: each page sets --page-max (its body max-width). The header is
+  /* Page column: one width for every page, so the logo, nav and footer stay put
+     between pages (reading text keeps a 720px measure inside it). The header is
      a full-width bar whose content lines up with that column. */
-  :root { --page-max: 880px; }
+  :root { --page-max: 1120px; }
   html { overflow-x: clip; }
   body { padding-top: 0 !important; }
   .site-header {
@@ -184,7 +185,7 @@ export const TOKENS = `
   .page table { width: 100%; border-collapse: collapse; margin: var(--sp-2) 0; font-size: var(--fs-base); background: var(--bg-elevated); border: 1.5px solid var(--edge); }
   .page th, .page td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
   .page th { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); border-bottom: 1.5px solid var(--edge); }
-  .page td { color: var(--muted); }
+  .page td { color: var(--muted); overflow-wrap: anywhere; } /* long paths wrap, so tables fit a phone */
   .page td code { font-size: var(--fs-xs); }
   .table-wrap { overflow-x: auto; }
   .note { padding: var(--sp-3) var(--sp-4); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); }
