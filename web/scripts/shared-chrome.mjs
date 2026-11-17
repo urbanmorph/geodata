@@ -60,7 +60,7 @@ export const TOKENS = `
     border-radius: var(--radius-md); z-index: 1000;
   }
   .skip-link:focus { left: var(--sp-2); }
-  main :is(p, li) a { text-decoration: underline; text-underline-offset: 2px; }
+  main :is(p, li, dd) a { text-decoration: underline; text-underline-offset: 2px; }
   /* Page column: each page sets --page-max (its body max-width). The header is
      a full-width bar whose content lines up with that column. */
   :root { --page-max: 880px; }
@@ -150,12 +150,12 @@ export const TOKENS = `
   /* A map-sheet label: monospace, green, above a title or beside a count. */
   .sheet-note { margin: 0 0 12px; font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); }
   .page-lead { margin: 0 0 28px; max-width: 660px; font-size: var(--fs-lg); line-height: 1.55; color: var(--muted); }
-  .section-title, .prose h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 850; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
+  .section-title, .prose h2, :where(.page main) h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 850; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
   .prose { max-width: 720px; }
   .prose ul { list-style: none; margin: 0 0 16px; padding: 0; }
   .prose li { position: relative; padding: 4px 0 4px 20px; }
   .prose li::before { content: ""; position: absolute; left: 4px; top: .9em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fill); }
-  .btn { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); font-size: var(--fs-md); font-weight: 750; text-decoration: none !important; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); font: inherit; font-size: var(--fs-md); font-weight: 750; text-decoration: none !important; cursor: pointer; }
   .btn--fill { background: var(--accent-fill); color: var(--on-accent-fill) !important; box-shadow: var(--shadow); }
   .btn--fill:hover { background: var(--accent-fill-hover); }
   .btn--fill:active { box-shadow: none; transform: translate(4px, 4px); }
@@ -164,7 +164,50 @@ export const TOKENS = `
   @media (max-width: 640px) {
     .page-title { font-size: var(--fs-3xl); }
     .page-lead { font-size: var(--fs-md); }
-    .section-title, .prose h2 { margin-top: 36px; font-size: var(--fs-xl); }
+    .section-title, .prose h2, :where(.page main) h2 { margin-top: 36px; font-size: var(--fs-xl); }
+  }
+  /* Content pages: <body class="page">. One column and the survey-sheet details,
+     so pages keep only what is theirs (tests/page-system.test.ts). */
+  body.page { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
+  .page main :is(p, ul, ol) { max-width: 720px; }
+  /* :where() keeps these defaults below any page's own heading rules. */
+  :where(.page main) h3 { margin: var(--sp-4) 0 var(--sp-1); font-size: var(--fs-md); font-weight: 750; }
+  .page code { font: var(--fs-sm) var(--font-mono); background: var(--bg-card); padding: 1px 5px; border-radius: var(--radius-sm); color: var(--fg); }
+  .page pre {
+    margin: var(--sp-3) 0; padding: 16px 18px; overflow-x: auto; font: var(--fs-sm)/1.65 var(--font-mono);
+    color: ${PALETTE.white}; background: ${PALETTE.navy}; border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+    box-shadow: 6px 6px 0 var(--brand-green);
+  }
+  .page pre code { font: inherit; color: inherit; background: none; padding: 0; }
+  .page table { width: 100%; border-collapse: collapse; margin: var(--sp-2) 0; font-size: var(--fs-base); background: var(--bg-elevated); border: 1.5px solid var(--edge); }
+  .page th, .page td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+  .page th { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); border-bottom: 1.5px solid var(--edge); }
+  .page td { color: var(--muted); }
+  .page td code { font-size: var(--fs-xs); }
+  .table-wrap { overflow-x: auto; }
+  .note { padding: var(--sp-3) var(--sp-4); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); }
+  .note p { margin: 0; }
+  .badge {
+    display: inline-block; vertical-align: middle; padding: 2px 8px; font: 600 var(--fs-xs) var(--font-mono); letter-spacing: 0;
+    color: var(--fg); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+  }
+  .badge--stable { background: color-mix(in srgb, var(--brand-green) 18%, var(--bg-elevated)); }
+  .badge--soon { color: var(--muted); }
+  @media (max-width: 640px) {
+    body.page { padding: 0 14px 60px; }
+    .page pre { font-size: var(--fs-xs); }
+    .page th, .page td { padding: 8px 10px; }
+  }
+  /* Reading pages: the text on a white sheet, sections numbered in the margin's voice. */
+  main.sheet {
+    margin: var(--sp-2) 0 0; padding: clamp(20px, 4vw, 56px); counter-reset: sheet-section;
+    background: var(--bg-elevated); border: 1.5px solid var(--edge);
+  }
+  main.sheet > .page-title:first-child { margin-top: 0; }
+  /* The number is decoration: "/ ''" keeps it out of the heading's accessible name. */
+  main.sheet h2:not(.unnumbered)::before {
+    counter-increment: sheet-section; content: "§" counter(sheet-section) / "";
+    display: block; margin-bottom: 4px; font: 600 var(--fs-sm) var(--font-mono); letter-spacing: 0; color: var(--brand-green);
   }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);

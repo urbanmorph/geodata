@@ -21,8 +21,8 @@ function licenceBadge(licence: string): string {
   const nc = isNonCommercial(licence);
   const href = licenceUrl(licence);
   const link = href ? ` href="${esc(href)}" target="_blank" rel="noopener"` : '';
-  return `<a class="lic-badge${nc ? ' lic-badge--nc' : ''}"${link}>${esc(licence)}</a>` +
-    (nc ? ` <span class="lic-badge lic-badge--nc">Non-commercial only</span>` : '');
+  return `<a class="badge lic-badge${nc ? ' lic-badge--nc' : ''}"${link}>${esc(licence)}</a>` +
+    (nc ? ` <span class="badge lic-badge lic-badge--nc">Non-commercial only</span>` : '');
 }
 
 export function aboutLayerHtml({ layer, meta, wardIndex }: { layer: AboutLayer; meta: AboutMeta; wardIndex?: WardIndex | null }): string {

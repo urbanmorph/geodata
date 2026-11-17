@@ -131,25 +131,20 @@ export function renderViewPage(opts: RenderOpts): string {
       /* Edge-rendered with the site's shared tokens, header and page classes
          (scripts/shared-chrome.mjs); only this page's own pieces are below. */
       ${TOKENS}
-      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 64px; line-height: 1.55; }
-      .tag { display: inline-block; margin: 8px 0 0; padding: 4px 10px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 650;
-        background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); }
+      .tag { margin: 8px 0 0; }
       .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px var(--sp-5); margin: 0 0 var(--sp-6); font-size: var(--fs-base); }
-      .kv dt { color: var(--muted); }
+      .kv dt { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
       .kv dd { margin: 0; overflow-wrap: anywhere; }
-      .kv code { font: var(--fs-sm) ui-monospace, SFMono-Regular, Menlo, monospace; }
       .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: var(--sp-6) 0; }
-      .vote-useful { display: inline-flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 16px; border: 1.5px solid var(--line-bright); border-radius: 12px; background: var(--bg); font: inherit; cursor: pointer; color: var(--muted); }
-      .vote-useful:hover { color: var(--fg); border-color: var(--accent-fill); }
-      .vote-useful[aria-pressed=true] { color: var(--fg); border-color: var(--accent-fill); }
+      .vote-useful[aria-pressed=true] { background: color-mix(in srgb, var(--accent-fill) 22%, var(--bg-elevated)); }
       .vote-useful .vote-count { font-weight: 650; font-variant-numeric: tabular-nums; }
-      @media (max-width: 640px) { body { padding: 0 16px 48px; } .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 8px; } }
+      @media (max-width: 640px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 8px; } }
     </style>
   </head>
-  <body data-submission-id="${esc(s.id)}">
+  <body class="page" data-submission-id="${esc(s.id)}">
     ${header}
-    <main id="main" class="prose">
-    <p class="tag">Community layer</p>
+    <main id="main" class="prose sheet">
+    <p class="tag badge badge--stable">Community layer</p>
     <h1 class="page-title">${esc(s.name)}</h1>
     <p class="page-lead">${esc(description)}</p>
 
@@ -176,7 +171,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <div class="actions">
       <a class="btn btn--fill" href="${esc(verifyUrl)}">View on map</a>
       <a class="btn btn--line" href="${esc(r2Path)}" download="${esc(filename)}">Download .${esc(s.format)}</a>
-      <button class="vote-useful" id="vote-useful" type="button" aria-pressed="false">
+      <button class="btn btn--line vote-useful" id="vote-useful" type="button" aria-pressed="false">
         <span aria-hidden="true">👍</span>
         <span class="vote-count" id="vote-count">${ratingsCount}</span>
         <span class="vote-label">useful</span>

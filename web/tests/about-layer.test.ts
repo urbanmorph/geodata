@@ -25,12 +25,12 @@ describe('aboutLayerHtml', () => {
   });
 
   it('shows the licence as a badge linked to its terms', () => {
-    expect(html).toMatch(/<a class="lic-badge" href="https:\/\/creativecommons.org\/publicdomain\/zero\/1.0\/"[^>]*>CC0-1.0<\/a>/);
+    expect(html).toMatch(/<a class="badge lic-badge" href="https:\/\/creativecommons.org\/publicdomain\/zero\/1.0\/"[^>]*>CC0-1.0<\/a>/);
   });
 
   it('flags non-commercial licences', () => {
     const nc = aboutLayerHtml({ layer: { ...layer, licence: 'CC-BY-NC-4.0' }, meta });
-    expect(nc).toContain('lic-badge lic-badge--nc');
+    expect(nc).toContain('badge lic-badge lic-badge--nc');
     expect(nc).toContain('Non-commercial only');
   });
 

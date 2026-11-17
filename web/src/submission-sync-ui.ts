@@ -37,9 +37,9 @@ export function renderSubmissionSync(box: HTMLElement, sync: Sync, opts: { passk
     box.innerHTML =
       `<h3>Keep these links on all your devices <span class="hint">(optional)</span></h3>` +
       `<p class="hint">${NOTICE}</p>` +
-      `<button type="button" id="subs-sync-on">Turn on sync</button>` +
+      `<button type="button" class="btn btn--fill" id="subs-sync-on">Turn on sync</button>` +
       (opts.passkeys
-        ? `<button type="button" id="subs-pk-unlock">Unlock with your passkey</button>` +
+        ? `<button type="button" class="btn btn--line" id="subs-pk-unlock">Unlock with your passkey</button>` +
           `<p class="hint">Already synced on another device, or in collect? Use the passkey you added there.</p>`
         : '') +
       noteHtml;
@@ -57,9 +57,9 @@ export function renderSubmissionSync(box: HTMLElement, sync: Sync, opts: { passk
       (opts.passkeys
         ? st.passkey
           ? `<p class="hint">Passkey added. On a new device, choose <strong>Unlock with your passkey</strong> instead of opening the link.</p>`
-          : `<button type="button" id="subs-pk-add">Add a passkey</button><p class="hint">Unlock on a new device with Face ID or fingerprint, no link needed.</p>`
+          : `<button type="button" class="btn btn--line" id="subs-pk-add">Add a passkey</button><p class="hint">Unlock on a new device with Face ID or fingerprint, no link needed.</p>`
         : '') +
-      `<button type="button" id="subs-sync-off">Turn off sync and delete the synced copy</button>` +
+      `<button type="button" class="btn btn--line" id="subs-sync-off">Turn off sync and delete the synced copy</button>` +
       noteHtml;
     const link = box.querySelector<HTMLInputElement>('#subs-sync-link')!;
     link.value = sync.link(location.origin) ?? '';

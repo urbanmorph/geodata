@@ -5,6 +5,8 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { renderViewPage } from '../functions/lib/render-view';
+// @ts-expect-error: plain .mjs
+import { TOKENS } from '../scripts/shared-chrome.mjs';
 
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 const home = read('index.html');
@@ -47,8 +49,11 @@ describe('3, 5, 6. touch targets', () => {
 });
 
 describe('4. the MCP title badge stays badge-sized', () => {
-  it('sizes .badge--stable inside the page title', () => {
-    expect(read('mcp.template.html')).toMatch(/\.page-title \.badge--stable \{[^}]*font-size: var\(--fs-sm\)/);
+  // The shared .badge (shared-chrome TOKENS) sets its own small mono size, so
+  // it stays badge-sized inside the 44px title with no page rule.
+  it('uses the shared badge in the page title', () => {
+    expect(read('mcp.template.html')).toMatch(/class="page-title">[^<]*<span class="badge badge--stable">/);
+    expect(TOKENS).toMatch(/\.badge \{[^}]*font: 600 var\(--fs-xs\)/);
   });
 });
 
@@ -86,7 +91,9 @@ describe('10. buttons say what they do, without arrows', () => {
 describe('reading width on docs and MCP', () => {
   for (const f of ['docs.template.html', 'mcp.template.html']) {
     it(`${f}: paragraphs and lists stop at 720px; tables and code keep the page width`, () => {
-      expect(read(f)).toMatch(/main :is\(p, ul, ol\) \{ max-width: 720px; \}/);
+      // body.page brings the 720px reading width (shared-chrome TOKENS).
+      expect(read(f)).toMatch(/<body class="page"/);
+      expect(TOKENS).toMatch(/\.page main :is\(p, ul, ol\) \{ max-width: 720px; \}/);
     });
   }
 });

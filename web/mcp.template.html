@@ -14,46 +14,25 @@
     <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
     <style>
       <!-- TOKENS -->
-      :root { --row-hover: var(--bg-card); }
-      :root { --page-max: 880px; }
-      body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
-      .page-title .badge--stable { display: inline-block; vertical-align: middle; margin-left: 8px; padding: 3px 10px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 650; letter-spacing: 0; background: color-mix(in srgb, var(--brand-green) 14%, var(--bg)); color: var(--fg); }
-      /* Reading width: prose stops near 75 characters; tables, code and cards keep the page width. */
-      main :is(p, ul, ol) { max-width: 720px; }
-      h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 720; letter-spacing: -.02em; color: var(--fg); }
-      h3 { font-size: var(--fs-md); margin: var(--sp-4) 0 var(--sp-1); font-weight: 600; }
       p, li { font-size: var(--fs-base); color: var(--muted); }
       ul { padding-left: 20px; }
-      code { font: var(--fs-sm) ui-monospace, SFMono-Regular, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
-      pre { background: var(--row-hover); padding: var(--sp-3); border-radius: 8px; overflow-x: auto; font-size: var(--fs-sm); line-height: 1.5; }
-      pre code { background: none; padding: 0; }
-      a { color: var(--accent); text-decoration: none; }
-      a:hover { text-decoration: underline; }
-      .question { font-size: var(--fs-base); font-weight: 500; color: var(--fg); margin: 12px 0 4px; }
+      .question { font-size: var(--fs-base); font-weight: 600; color: var(--fg); margin: 12px 0 4px; }
       .answer { font-size: var(--fs-base); color: var(--muted); margin: 0 0 12px; padding-left: 16px; border-left: 2px solid var(--line); }
-      .install-box { background: var(--row-hover); border-radius: 8px; padding: 16px 20px; margin: 16px 0; }
+      .install-box { margin: var(--sp-4) 0; }
       .install-box h3 { margin-top: 0; }
-      .badge { display: inline-block; font-size: var(--fs-xs); padding: 2px 8px; border-radius: 10px; font-weight: 500; background: #F28C2822; color: var(--accent); }
-      @media (max-width: 640px) {
-        body { padding: 24px 14px 60px; }
-        h2 { font-size: var(--fs-xl); margin-top: 36px; }
-        pre { font-size: var(--fs-xs); }
-        .install-box { padding: 12px 14px; }
-        .install-box pre { font-size: var(--fs-xs); }
-      }
     </style>
   </head>
-  <body>
+  <body class="page">
     <!-- NAV -->
 
-    <main id="main">
-      <h1 class="page-title">MCP Server <span class="badge--stable">v1</span></h1>
+    <main id="main" class="sheet">
+      <h1 class="page-title">MCP Server <span class="badge badge--stable">v1</span></h1>
       <p>Ask questions about India's geo data in natural language. The bharatlas MCP server connects LLMs (Claude, GPT, Gemini, Cursor, etc.) to curated geo layers plus community submissions.</p>
 
       <h2>Install</h2>
       <p>Works with any LLM client that supports MCP: Claude, GPT, Gemini, Llama, Mistral, or local models via Cursor, Continue, Cline, Windsurf, etc.</p>
 
-      <div class="install-box">
+      <div class="note install-box">
         <h3>Connect by URL (nothing to install)</h3>
         <p>The eight query tools run at <code>https://bharatlas.com/mcp</code> (Streamable HTTP, no key). Add it as a custom connector in Claude.ai or ChatGPT, or from a terminal:</p>
         <pre><code># Claude Code
@@ -67,7 +46,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 }</code></pre>
       </div>
 
-      <div class="install-box">
+      <div class="note install-box">
         <h3>Install the package (adds map authoring)</h3>
         <p>The npm package has the same query tools plus the <a href="#collect">collect</a> authoring tools, which keep your share links on your own machine. Add this to your MCP client's config:</p>
         <pre><code>{
@@ -80,7 +59,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 }</code></pre>
       </div>
 
-      <div class="install-box">
+      <div class="note install-box">
         <h3>Config file locations by client</h3>
         <pre><code># Claude Code
 .mcp.json (project root) or ~/.claude.json
@@ -159,7 +138,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <li><strong>admin link</strong> &rarr; <code>edit_map</code>, <code>moderate_record</code>, <code>import_points</code>, and <code>publish</code></li>
       </ul>
       <p><code>publish</code> submits your approved points to the bharatlas catalog for review; a maintainer approves the submission before it goes live, after which it is queryable via <code>list_submissions</code> / <code>query_layer</code> above: gather &rarr; moderate &rarr; publish &rarr; review &rarr; query, all in one server. The link is the credential, so the server can only touch maps you hold a link to. No config change is needed for authoring; creating a map <em>programmatically</em> (instead of online) is optional and needs a request-only <code>COLLECT_API_KEY</code>:</p>
-      <div class="install-box">
+      <div class="note install-box">
         <pre><code>// same "bharatlas" server as Install above; add an env key only to create headlessly
 "bharatlas": {
   "command": "npx",
