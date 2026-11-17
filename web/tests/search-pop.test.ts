@@ -17,7 +17,8 @@ describe('rankHits', () => {
 
 describe('hitsHtml', () => {
   it('renders options with ids, escaped, and a link to all matches when there are more', () => {
-    const html = hitsHtml(hits.slice(0, 2), 7, 'ward <b>');
+    // 5 matching rows holding 7 layers: the link counts layers.
+    const html = hitsHtml(hits.slice(0, 2), { rows: 5, layers: 7 }, 'ward <b>');
     expect(html.match(/role="option"/g)).toHaveLength(2);
     expect(html).toContain('id="search-hit-0"');
     expect(html).toContain('href="/view/lgd_districts"');
@@ -25,8 +26,12 @@ describe('hitsHtml', () => {
     expect(html).not.toContain('<b>');
   });
 
+  it('no link when every matching row is shown, however many layers they hold', () => {
+    expect(hitsHtml(hits.slice(0, 2), { rows: 2, layers: 6 }, 'x')).not.toContain('See all');
+  });
+
   it('says so when nothing matches', () => {
-    expect(hitsHtml([], 0, 'zzz')).toContain('No layer matches');
+    expect(hitsHtml([], { rows: 0, layers: 0 }, 'zzz')).toContain('No layer matches');
   });
 });
 

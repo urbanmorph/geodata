@@ -1210,7 +1210,7 @@ async function manageSheet(): Promise<void> {
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
-      <button class="primary" id="publish" style="flex:1">Submit → catalog</button>
+      <button class="primary" id="publish" style="flex:1">Submit to bharatlas</button>
     </div>
   </div>`;
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
@@ -1244,7 +1244,7 @@ function renderReviewTab(body: HTMLElement): void {
   body.innerHTML = `
     <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
     ${c.pending ? `<div class="notice">
-      <div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to the catalog until you approve.</div>
+      <div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to bharatlas until you approve.</div>
       <button type="button" class="primary" id="approve-all">✓ Approve all ${c.pending}</button>
     </div>` : ''}
     <div class="row" id="pfilter" style="margin:8px 0 4px">
@@ -1834,8 +1834,8 @@ function confirmPublish(): void {
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
-    <strong>Submit to the public catalog?</strong>
-    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to the open <strong>bharatlas catalog</strong>. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com — it won't be public until then. Do this once the map is ready to share widely.</p>
+    <strong>Submit to bharatlas?</strong>
+    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com — it won't be public until then. Do this once the map is ready to share widely.</p>
     ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}
   </div><div class="foot row">
     <button id="pub-cancel">← Back</button>
@@ -1855,7 +1855,7 @@ async function runPublish(btn: HTMLButtonElement): Promise<void> {
     const panel = document.getElementById('panel')!;
     panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
       <strong>Submitted for review ✓</strong>
-      <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live in the bharatlas catalog.')}</p>
+      <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live on bharatlas.')}</p>
       </div><div class="foot"><button id="back">← Back to manage</button></div></div>`;
     (document.getElementById('back') as HTMLButtonElement).onclick = () => void manageSheet();
   } catch (e) {

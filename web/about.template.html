@@ -62,7 +62,7 @@
       map layers. No signup, no API key, no SQL.
     </p>
     <p style="margin:0 0 var(--sp-6)">
-      <a href="/" class="btn btn--fill">Browse the catalog</a>
+      <a href="/layers" class="btn btn--fill">Browse all layers</a>
     </p>
 
     <section>
@@ -105,7 +105,7 @@
       bharatlas began as a place to <em>show</em> data you already have. <strong>collect</strong> is
       the other half: a place to <em>gather</em> data you don't. Share one link and people add points
       from the field on their phones, no accounts, no app to install. You review what comes in and
-      publish it to the catalog with attribution, or just download it. It's how a hundred people
+      publish it to bharatlas with attribution, or just download it. It's how a hundred people
       mapping footpaths, ward assets or water points become one clean layer. See
       <a href="https://collect.bharatlas.com">collect.bharatlas.com</a>.
     </p>
@@ -118,7 +118,7 @@
       <li><span class="k">Compare</span> <span>What each authoritative source (LGD vs SOI vs Bhuvan vs geoBoundaries) says about the same admin level, by clicking the alternate-source links on any card.</span></li>
       <li><span class="k">Download</span> <span>Any layer whole as <strong>Parquet</strong>, <strong>PMTiles</strong>, <strong>GeoJSON</strong>, <strong>KML</strong> or <strong>Shapefile</strong> direct from the card. Or filter by what the columns actually contain (state, zone, area) and export just the slice.</span></li>
       <li><span class="k">Drop a file</span> <span><a href="/preview">See it on a map</a> and validate it. Optionally publish under an open licence. No signup; you get an admin token to keep forever.</span></li>
-      <li><span class="k">Collect</span> <span>Points in the field with <a href="https://collect.bharatlas.com">collect</a>: design a small form, share the link, and anyone who has it adds points on their phone, no accounts. Review what comes in, then download it or publish to the catalog.</span></li>
+      <li><span class="k">Collect</span> <span>Points in the field with <a href="https://collect.bharatlas.com">collect</a>: design a small form, share the link, and anyone who has it adds points on their phone, no accounts. Review what comes in, then download it or publish to bharatlas.</span></li>
       <li><span class="k">Embed</span> <span>Any map in a blog post or report (iframe snippet + PNG export, one click each).</span></li>
       <li><span class="k">Ask</span> <span>Questions instead of downloading maps. Connect your AI assistant to the <a href="/mcp">bharatlas MCP server</a> and ask: "How many villages in my district?", "Which hospitals are near me?", "What flood zone is this area in?"</span></li>
       <li><span class="k">Query</span> <span>Any layer programmatically via the <a href="/docs">REST API</a>: filter, group, locate a point, find nearby features.</span></li>
@@ -129,8 +129,8 @@
     <h2>Open source</h2>
     <p>
       Code: <a href="https://github.com/urbanmorph/geodata">github.com/urbanmorph/geodata</a> · MIT.<br />
-      Data: each layer carries its own open licence; see the per-card line on the
-      <a href="/">catalog</a>.
+      Data: each layer carries its own open licence; see the line on each layer's card on
+      <a href="/layers">All layers</a>.
     </p>
     </section>
 
@@ -141,7 +141,7 @@
       <dd>No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a <code>.txt</code> backup) that you keep forever to edit or delete that submission.</dd>
 
       <dt>What data sources does bharatlas use?</dt>
-      <dd>Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, OpenCity / Oorvani Foundation, PMGSY (Rural Roads), PM GatiShakti, Bharatmaps (NIC), bharatviz (pincode polygons), geoBoundaries and data.gov.in. Water, groundwater and agro-zone layers (CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, Wildlife Institute of India biogeographic zones) are republished via CoRE Stack (core-stack.org). Most admin levels carry several source variants you can compare on the same map; the catalog card shows "Per LGD · also: SOI, Bhuvan" with clickable alternates. Community submissions credit their own source on every card. Points of interest come from the Overture Maps Foundation, and district well counts from the Minor Irrigation Census (Ministry of Jal Shakti).</dd>
+      <dd>Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, OpenCity / Oorvani Foundation, PMGSY (Rural Roads), PM GatiShakti, Bharatmaps (NIC), bharatviz (pincode polygons), geoBoundaries and data.gov.in. Water, groundwater and agro-zone layers (CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, Wildlife Institute of India biogeographic zones) are republished via CoRE Stack (core-stack.org). Most admin levels carry several source variants you can compare on the same map; the layer's card shows "Per LGD · also: SOI, Bhuvan" with clickable alternates. Community submissions credit their own source on every card. Points of interest come from the Overture Maps Foundation, and district well counts from the Minor Irrigation Census (Ministry of Jal Shakti).</dd>
 
       <dt>What licences apply?</dt>
       <dd>Curated layers carry CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, ODbL-1.0, GODL-India, MIT, or CDLA-Permissive-2.0 / Apache-2.0 depending on the source (each card names its licence). Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.</dd>
@@ -164,16 +164,16 @@
       <dd>Each carries a source URL, attribution and an open licence on the card and the view page. Automated checks validate licence, attribution and basic geometry, then a curator reviews each submission before it appears; neither step verifies accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.</dd>
 
       <dt>Can AI assistants read and recommend bharatlas?</dt>
-      <dd>Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. The catalog and every <code>/c/&lt;id&gt;</code> view page are server-rendered as plain HTML with JSON-LD <code>Dataset</code> structured data, easy for LLMs to ingest.</dd>
+      <dd>Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. Every layer page and every <code>/c/&lt;id&gt;</code> view page are server-rendered as plain HTML with JSON-LD <code>Dataset</code> structured data, easy for LLMs to ingest.</dd>
     </dl>
     </section>
 
     <section>
     <h2 id="use-of-data">Use of data</h2>
     <ul class="leads">
-      <li><strong>Curated layers reflect the upstream source at fetch time.</strong> See the freshness pill on each card. Upstream sources change; the catalog can lag.</li>
+      <li><strong>Curated layers reflect the upstream source at fetch time.</strong> See the freshness pill on each card. Upstream sources change; bharatlas can lag.</li>
       <li><strong>Community submissions are reviewed by a curator before they appear.</strong> Licence, format and basic geometry validity are checked automatically, and a curator approves each submission before it goes live; accuracy and authorship are not independently verified. Verify via the source link on each card before relying on community data.</li>
-      <li><strong>Boundaries and place names render exactly as the upstream source publishes them.</strong> bharatlas does not edit, correct or editorialize. Where you disagree with a depiction (including for J&amp;K, the Line of Actual Control or any disputed territory), raise it with the source; each catalog card lists alternative sources so you can compare. See <a href="/terms#liability">Limitation of liability</a> for the warranty disclaimer, damages cap and full terms.</li>
+      <li><strong>Boundaries and place names render exactly as the upstream source publishes them.</strong> bharatlas does not edit, correct or editorialize. Where you disagree with a depiction (including for J&amp;K, the Line of Actual Control or any disputed territory), raise it with the source; each layer's card lists alternative sources so you can compare. See <a href="/terms#liability">Limitation of liability</a> for the warranty disclaimer, damages cap and full terms.</li>
     </ul>
 
     </section>

@@ -250,7 +250,7 @@
 
     <main id="main">
     <h1 class="page-title">View, verify, or publish a geo file</h1>
-    <p class="page-lead">Drop a file to render it on a map and check it. Optionally publish to the open catalog. Nothing is uploaded unless you click <strong>Publish</strong>.</p>
+    <p class="page-lead">Drop a file to render it on a map and check it. Optionally publish it to bharatlas as an open layer. Nothing is uploaded unless you click <strong>Publish</strong>.</p>
 
     <label id="drop" for="file">
       <span class="drop__icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></svg></span>
@@ -280,18 +280,18 @@
         <!-- Publish CTA — view-by-default; clicking expands the form. -->
         <div id="publish-cta">
           <p class="cta-line">Want to share this with others?</p>
-          <button type="button" class="btn btn--fill primary" id="publish-open">Publish to catalog</button>
+          <button type="button" class="btn btn--fill primary" id="publish-open">Publish to bharatlas</button>
           <p class="cta-hint">Or leave it. Nothing has been uploaded.</p>
         </div>
 
         <!-- View-only banner shown when the file came from /c/[id] (?url=…) -->
         <div id="view-only-banner" class="view-only" hidden>
-          <p>You're viewing a layer that's already in the catalog. <a id="vob-source" href="/">Back to catalog →</a></p>
+          <p>You're viewing a layer that's already on bharatlas. <a id="vob-source" href="/layers">Back to all layers →</a></p>
         </div>
 
         <form id="meta">
           <div class="form-head">
-            <h3>Publish to catalog</h3>
+            <h3>Publish to bharatlas</h3>
             <button type="button" class="cancel" id="publish-cancel" aria-label="Cancel publish">✕</button>
           </div>
 
@@ -306,7 +306,7 @@
           </div>
 
           <div class="field">
-            <label for="f-cat">Category <span class="req">*</span></label>
+            <label for="f-cat">Theme <span class="req">*</span></label>
             <select id="f-cat" name="category" required>
               <option value="">pick one</option>
               <option value="administrative">Administrative boundaries</option>
@@ -377,7 +377,7 @@
     <section id="success" aria-live="polite">
       <h2>✓ Submitted for review</h2>
       <p class="ok-line" id="success-url"></p>
-      <p class="ok-meta">A curator reviews it before it goes live. It appears in the catalog, and the link works, once it's approved.</p>
+      <p class="ok-meta">A curator reviews it before it goes live. It appears on bharatlas, and the link works, once it's approved.</p>
 
       <div class="warn">
         <strong>Admin token (shown once). Save it.</strong>
@@ -389,7 +389,7 @@
         <div class="hint">Lose this and you can't edit or delete your submission.</div>
       </div>
 
-      <a href="/" class="btn btn--fill" id="goto-submission">Back to the catalog</a>
+      <a href="/layers" class="btn btn--fill" id="goto-submission">Back to all layers</a>
     </section>
 
     <div class="helper">

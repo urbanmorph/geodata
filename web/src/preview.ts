@@ -604,7 +604,7 @@ function renderSuccess(payload: SuccessPayload): void {
     setTimeout(() => URL.revokeObjectURL(url), 1000);
   });
 
-  (document.getElementById('goto-submission') as HTMLAnchorElement).href = '/';
+  (document.getElementById('goto-submission') as HTMLAnchorElement).href = '/layers';
 
   successEl.classList.add('show');
   window.scrollTo({ top: 0, behavior: 'smooth' });

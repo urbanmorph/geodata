@@ -28,3 +28,8 @@ describe('one page width', () => {
 it('table cells wrap long paths, so tables fit a phone', () => {
   expect(chrome).toMatch(/\.page td \{[^}]*overflow-wrap: anywhere/);
 });
+
+it('on phones every page keeps 16px sides, the same as the header logo', () => {
+  expect(chrome).toMatch(/body\.page \{ padding: 0 16px 60px; \}/);
+  expect(readFileSync(resolve(web, 'index.template.html'), 'utf8')).toMatch(/@media \(max-width: 640px\) \{\s*body \{ padding: 0 16px 60px; \}/);
+});

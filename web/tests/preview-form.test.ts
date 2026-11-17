@@ -35,7 +35,7 @@ describe('preview.template.html — form gating', () => {
   it('hero sub copy makes "no upload by default" explicit', () => {
     // The previous wording — "fill in a few details" — primed users to
     // submit. Replace with copy that names the optional publish step.
-    expect(html).toContain('Optionally publish to the open catalog');
+    expect(html).toContain('Optionally publish it to bharatlas as an open layer');
     expect(html).not.toContain('fill in a few details');
   });
 });

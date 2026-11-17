@@ -228,7 +228,7 @@ async function handleSubmit(
   return reply(200, {
     id,
     status: 'pending',
-    message: 'Submitted for review. A curator approves it before it appears in the catalog; the link works once it is live.',
+    message: 'Submitted for review. A curator approves it before it appears on bharatlas; the link works once it is live.',
     share_url: `${origin}/c/${id}`,
     admin_url: `${origin}/c/${id}?key=${adminToken}`,
     admin_token: adminToken,

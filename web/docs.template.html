@@ -89,7 +89,7 @@ seismic zone  Zone II</code></pre>
         </div>
         <div class="card">
           <h3>collect API</h3>
-          <p>The write side: make a map form, gather points, publish them to the catalog. <a href="#collect">How it works</a>.</p>
+          <p>The write side: make a map form, gather points, publish them to bharatlas. <a href="#collect">How it works</a>.</p>
         </div>
         <div class="card">
           <h3>Command line <span class="badge badge--soon">coming</span></h3>
@@ -149,7 +149,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
       <table>
         <tr><td><code>GET /locate</code></td><td>Every boundary and zone at a point, including the city ward where we have one</td></tr>
         <tr><td><code>GET /nearby</code></td><td>Features from one layer within a radius, nearest first</td></tr>
-        <tr><td><code>GET /layers</code></td><td>The catalog: search by category, level, source</td></tr>
+        <tr><td><code>GET /layers</code></td><td>Every layer: search by category (theme), level, source</td></tr>
         <tr><td><code>GET /layers/:id</code></td><td>One layer: licence, attribution, download links</td></tr>
         <tr><td><code>GET /layers/:id/schema</code></td><td>Column names, types and sample values; read this before querying</td></tr>
         <tr><td><code>GET /layers/:id/query</code></td><td>Filter, select, group and total rows</td></tr>
@@ -312,7 +312,7 @@ curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_w
       <h2>Admin units by code</h2>
       <p>For a point, use <code>/locate</code>. To find a unit by its LGD code, or list the units under one, query the LGD layers, e.g. <code>/layers/lgd_districts/query?where=dist_lgd=525</code> (Bengaluru Urban) or <code>/layers/lgd_blocks/query?where=dist_lgd=525</code> (its blocks).</p>
 
-      <h2>Categories and Levels</h2>
+      <h2>Categories (themes) and levels</h2>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/categories</span></h3>
       <p>List all categories with layer counts.</p>
@@ -381,7 +381,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
       </table>
 
       <h2 id="collect">collect API (write) <span class="badge badge--stable">stable</span></h2>
-      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and publish approved points into this catalog. It runs as a separate service with its own origin and auth, so it has its own section here rather than sitting under <code>/api/v1</code> above.</p>
+      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and publish approved points to bharatlas as a layer. It runs as a separate service with its own origin and auth, so it has its own section here rather than sitting under <code>/api/v1</code> above.</p>
       <p>Base URL: <code>https://collect.bharatlas.com/api/collect/v1</code></p>
       <p>Auth is a bearer token in the URL fragment of each share link (kept out of server logs); the field-definition contract is the public meta-schema at <code>https://collect.bharatlas.com/schema/v1.json</code>. Creating a map programmatically needs an API key (the anti-abuse gate) via the <code>X-API-Key</code> header, since there is no browser Turnstile.</p>
       <table>
@@ -393,7 +393,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
         <tr><td><span class="badge badge--stable method">GET</span></td><td class="endpoint">/collections/:id/records</td><td>records as GeoJSON, scoped by token</td></tr>
         <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/collections/:id/import</td><td>bulk import with a source + rights attestation (admin)</td></tr>
         <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/records/:id/moderate</td><td>approve / reject one point (admin)</td></tr>
-        <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/collections/:id/publish</td><td>submit approved points to the catalog for review (admin)</td></tr>
+        <tr><td><span class="badge badge--stable method">POST</span></td><td class="endpoint">/collections/:id/publish</td><td>submit approved points to bharatlas for review (admin)</td></tr>
       </table>
       <pre><code># 1. Create a map (needs an API key; body follows the meta-schema)
 curl -X POST https://collect.bharatlas.com/api/collect/v1/collections \
@@ -405,8 +405,8 @@ curl -X POST https://collect.bharatlas.com/api/collect/v1/collections \
 curl https://collect.bharatlas.com/api/collect/v1/collections/ID/records \
   -H "authorization: Bearer adm_..."
 
-# 3. Submit approved points to the catalog for review (admin token)
-#    a maintainer approves the submission before it appears in the catalog
+# 3. Submit approved points to bharatlas for review (admin token)
+#    a maintainer approves the submission before it appears on bharatlas
 curl -X POST https://collect.bharatlas.com/api/collect/v1/collections/ID/publish \
   -H "authorization: Bearer adm_..."</code></pre>
       <p>Field contributors add points from the browser via the shared collect link (Turnstile-gated), so that step is a tap, not a curl. Or drive the whole flow from an LLM: the <a href="/mcp">bharatlas MCP</a> (<code>npx bharatlas-mcp@latest</code>) authors collect maps too. Register a share link with <code>register_map</code> and its token scope (view / collect / admin) sets what you can do.</p>

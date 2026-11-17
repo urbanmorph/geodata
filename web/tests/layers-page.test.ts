@@ -53,6 +53,9 @@ describe('lean home page', () => {
     expect(index.length).toBe(rows);
     // Curated rows open their map or their /layers anchor; community layers
     // (production builds only, from D1) open their /c/<id> page.
+    // Each entry says how many layers its row holds, as the row's data-layers does.
+    const rowLayers = [...layers.matchAll(/data-layers="(\d+)"/g)].map((m) => Number(m[1]));
+    expect(index.filter((e) => (e as { n?: number }).n).map((e) => (e as { n?: number }).n)).toEqual(rowLayers);
     for (const e of index) expect(e.h).toMatch(/^\/view\/[a-z0-9_]+$|^\/layers#[a-z0-9_]+$|^\/c\/[A-Za-z0-9_-]+$/);
   });
   it('is back under 85 KB gzipped', async () => {

@@ -26,13 +26,21 @@
 export type CardLike = {
   primary: string;
   body: string;
+  /** Layers this row holds (a level's primary source plus alternates); 1 if absent. */
+  layers?: number;
 };
 
 export type FilterResult = {
   matches: boolean[];
-  /** Matching cards (rows), the number both pages show. */
+  /** Matching rows. */
   totalMatches: number;
+  /** Layers in the matching rows: the number the site shows (it counts layers, not rows). */
+  totalLayers: number;
 };
+
+/** The one wording both searches use: "9 layers match "district"". */
+export const matchLine = (n: number, query: string): string =>
+  `${n} layer${n === 1 ? ' matches' : 's match'} "${query}"`;
 
 function matchTokens(cards: CardLike[], tokens: string[]): boolean[] {
   if (!tokens.length) return cards.map(() => true);
@@ -50,5 +58,9 @@ export function filterCards(cards: CardLike[], query: string): FilterResult {
   const words = tokens.filter((t) => !/^\d+$/.test(t));
   if (!matches.some(Boolean) && words.length && words.length < tokens.length) matches = matchTokens(cards, words);
 
-  return { matches, totalMatches: matches.filter(Boolean).length };
+  return {
+    matches,
+    totalMatches: matches.filter(Boolean).length,
+    totalLayers: cards.reduce((n, c, i) => n + (matches[i] ? (c.layers ?? 1) : 0), 0),
+  };
 }
