@@ -1110,6 +1110,11 @@
       "label": "Railway tracks (Indian Railways GIS)",
       "unit": "track segments",
       "description": "Railway track segments from the Indian Railways GIS portal, with section, zone, division, chainage and state."
+    },
+    "cadastrals_puducherry_coastal": {
+      "label": "Coastal land parcels, Puducherry (NCSCM)",
+      "unit": "land parcels",
+      "description": "Survey-number land parcels in 39 coastal villages of Puducherry, Karaikal and Yanam from the coastal zone management plan maps, with the area of each parcel (square metres) inside each coastal regulation zone: CRZ-IA, IB, II, IVB, no-development zone, 200 to 500 m from the high tide line, hazard line and mangrove buffer. Coastal villages only; Mahe is not covered."
     }
   },
   "level_order": [
@@ -1246,7 +1251,8 @@
     "wb_amrut_wards",
     "wb_amrut_ulbs",
     "ir_stations",
-    "ir_tracks"
+    "ir_tracks",
+    "cadastrals_puducherry_coastal"
   ],
   "layers": [
     {
@@ -7192,6 +7198,46 @@
         "bytes": 13881942
       },
       "fetched_at": "2026-11-15T14:42:16+00:00"
+    },
+    {
+      "id": "cadastrals_puducherry_coastal",
+      "level": "cadastrals_puducherry_coastal",
+      "source": "NCSCM",
+      "rows": 6715,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/puducherry/NCSCM_PC_Cadastrals.parquet",
+        "bytes": 1332718
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/puducherry/NCSCM_PC_Cadastrals.pmtiles",
+        "bytes": 1037381
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "National Centre for Sustainable Coastal Management (MoEFCC)",
+          "url": "https://czmp.ncscm.res.in/"
+        },
+        "publisher": null
+      },
+      "category": "boundaries",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from National Centre for Sustainable Coastal Management (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parcel boundaries only: the source carries no owner names, and bharatlas does not publish any. Not a legal record; the state land records are authoritative. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.geojson",
+        "bytes": 7604298
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.kml",
+        "bytes": 11319465
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.shp.zip",
+        "bytes": 1629179
+      },
+      "fetched_at": "2026-11-17T12:09:17+00:00"
     }
   ],
   "state_extracts": [],

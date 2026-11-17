@@ -2143,5 +2143,24 @@
     "source_url": "https://irgeoportal.gov.in/",
     "source_org": "Indian Railways GIS portal (CRIS)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Indian Railways GIS portal (CRIS). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+  },
+  {
+    "id": "cadastrals_puducherry_coastal",
+    "name": "Coastal land parcels, Puducherry (NCSCM)",
+    "level": "cadastrals_puducherry_coastal",
+    "category": "boundaries",
+    "source": "NCSCM",
+    "description": "Survey-number land parcels in 39 coastal villages of Puducherry, Karaikal and Yanam from the coastal zone management plan maps, with the area of each parcel (square metres) inside each coastal regulation zone: CRZ-IA, IB, II, IVB, no-development zone, 200 to 500 m from the high tide line, hazard line and mangrove buffer. Coastal villages only; Mahe is not covered.",
+    "unit": "land parcels",
+    "features": 6715,
+    "license": "CC0-1.0",
+    "r2_prefix": "boundaries/cadastrals-puducherry-coastal",
+    "parquet_file": "NCSCM_PC_Cadastrals.parquet",
+    "parquet_bytes": 1332718,
+    "pmtiles_file": "NCSCM_PC_Cadastrals.pmtiles",
+    "pmtiles_bytes": 1037381,
+    "source_url": "https://czmp.ncscm.res.in/",
+    "source_org": "National Centre for Sustainable Coastal Management (MoEFCC)",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from National Centre for Sustainable Coastal Management (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parcel boundaries only: the source carries no owner names, and bharatlas does not publish any. Not a legal record; the state land records are authoritative. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   }
 ]
