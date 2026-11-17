@@ -281,6 +281,63 @@ def test_r2_upload_skips_on_md5_not_size(tmp_path):
     assert match.puts == []
 
 
+class FakeMultipartS3:
+    """Multipart stand-in; `fail_parts` lose their connection every time."""
+    class exceptions:  # noqa: N801
+        ClientError = KeyError
+
+    def __init__(self, fail_parts=()):
+        self.objects, self.pending, self.sent, self.completed = {}, {}, [], 0
+        self.fail_parts = set(fail_parts)
+
+    def head_object(self, Bucket, Key):  # noqa: N803
+        return self.objects[Key]
+
+    def create_multipart_upload(self, Bucket, Key, **extra):  # noqa: N803
+        uid = f'u{len(self.pending) + 1}'
+        self.pending[uid] = {'extra': extra, 'parts': {}}
+        return {'UploadId': uid}
+
+    def upload_part(self, Bucket, Key, PartNumber, UploadId, Body):  # noqa: N803
+        if PartNumber in self.fail_parts:
+            raise ConnectionResetError('connection dropped')
+        self.sent.append(PartNumber)
+        self.pending[UploadId]['parts'][PartNumber] = Body
+        return {'ETag': f'"e{PartNumber}"'}
+
+    def list_parts(self, Bucket, Key, UploadId, MaxParts):  # noqa: N803
+        if UploadId not in self.pending:
+            raise KeyError('NoSuchUpload')
+        return {'Parts': [{'PartNumber': n, 'ETag': f'"e{n}"'} for n in sorted(self.pending[UploadId]['parts'])]}
+
+    def complete_multipart_upload(self, Bucket, Key, UploadId, MultipartUpload):  # noqa: N803
+        up = self.pending.pop(UploadId)
+        assert [p['PartNumber'] for p in MultipartUpload['Parts']] == sorted(up['parts'])
+        self.completed += 1
+        self.objects[Key] = {'Metadata': up['extra']['Metadata'], 'extra': up['extra'],
+                             'body': b''.join(up['parts'][n] for n in sorted(up['parts']))}
+
+
+def test_resumable_upload_continues_after_a_dropped_run_and_then_skips(tmp_path):
+    f = tmp_path / 'big.geojson'
+    f.write_bytes(bytes(range(256)) * 10)          # 2,560 bytes -> 3 parts of 1,000
+    state = tmp_path / 'state'
+    s3 = FakeMultipartS3(fail_parts={2})
+    with pytest.raises(ConnectionResetError):
+        pipeline.r2_upload_resumable(s3, f, 'k/big.geojson', state, part_size=1000, tries=2, wait=lambda n: None)
+    assert s3.sent == [1] and 'k/big.geojson' not in s3.objects
+    s3.fail_parts.clear()
+    s3.sent.clear()
+    pipeline.r2_upload_resumable(s3, f, 'k/big.geojson', state, part_size=1000, wait=lambda n: None)
+    assert s3.sent == [2, 3]                         # resumed: part 1 not sent again
+    obj = s3.objects['k/big.geojson']
+    assert obj['body'] == f.read_bytes() and obj['Metadata'] == {'md5': pipeline.file_md5(f)}
+    assert obj['extra']['ContentDisposition'] == 'attachment; filename="big.geojson"'
+    assert not list(state.glob('*.json'))            # state removed once complete
+    pipeline.r2_upload_resumable(s3, f, 'k/big.geojson', state, part_size=1000)
+    assert s3.completed == 1                         # unchanged file: skipped by md5
+
+
 def test_r2_upload_trusts_a_single_part_etag_when_no_md5_metadata(tmp_path):
     # Objects put by upload_baked.py / wrangler carry no md5 metadata; a
     # single-part ETag is the MD5, so an unchanged file is still skipped.
