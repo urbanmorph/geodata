@@ -5,33 +5,22 @@ bake_mi6_wells.py) so tile settings and the shapefile key stay consistent.
 """
 from __future__ import annotations
 
-import contextlib
 import json
-import os
 import subprocess
+import sys
 import tempfile
-import zipfile
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable, Iterator
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import (  # noqa: E402  (atomic_output is re-exported)
+    atomic_output,
+    write_stable_zip,
+)
 
 DBF_NAME_MAX = 10
 SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
              'Full names (as in the Parquet / GeoJSON / API):', '']
-
-
-@contextlib.contextmanager
-def atomic_output(final: Path) -> Iterator[Path]:
-    """Yield a temporary path; move it to `final` only if the block succeeds,
-    so an interrupted bake never leaves a truncated file under the real name
-    (bakes skip outputs that exist). The real extension stays last
-    (`x.part.pmtiles`): tippecanoe and GDAL pick the format from it."""
-    part = final.with_name(f'{final.stem}.part{final.suffix}')
-    part.unlink(missing_ok=True)
-    try:
-        yield part
-        os.replace(part, final)
-    finally:
-        part.unlink(missing_ok=True)
 
 
 def layer_url(catalog: dict, layer_id: str, fmt: str) -> str:
@@ -64,12 +53,14 @@ def features_sql(parquet: str, props_sql: str) -> str:
 
 
 def pmtiles_args(src: Path, out: Path, layer: str, fields: Iterable[str],
-                 parallel: bool = False) -> list[str]:
+                 parallel: bool = False, max_zoom: int | None = None) -> list[str]:
     """tippecanoe args keeping only `fields` (popup fields): every extra tile
-    attribute makes tippecanoe drop more features at low zoom. `parallel`
-    reads line-delimited GeoJSON with -P."""
+    attribute makes tippecanoe drop more features at low zoom; no fields keeps
+    them all. `parallel` reads line-delimited GeoJSON with -P. `max_zoom`
+    fixes z0..max_zoom (locate tests points at the max zoom) instead of -zg."""
     # -n: tippecanoe otherwise names the tileset after the input file path.
-    args = ['tippecanoe', '-o', str(out), '-l', layer, '-n', layer, '-zg']
+    zoom = ['-Z0', f'-z{max_zoom}'] if max_zoom is not None else ['-zg']
+    args = ['tippecanoe', '-o', str(out), '-l', layer, '-n', layer, *zoom]
     if parallel:
         args.append('-P')
     args += ['--drop-densest-as-needed', '--extend-zooms-if-still-dropping']
@@ -112,9 +103,7 @@ def shapefile_key(names: dict[str, str], intro: list[str] = SHP_INTRO) -> list[s
 def zip_with_key(src_dir: Path, out: Path, key_lines: list[str]) -> None:
     """Zip every file in `src_dir` plus a columns.txt holding `key_lines`."""
     (src_dir / 'columns.txt').write_text('\n'.join(key_lines) + '\n')
-    with zipfile.ZipFile(out, 'w', zipfile.ZIP_DEFLATED) as zf:
-        for p in sorted(src_dir.iterdir()):
-            zf.write(p, arcname=p.name)
+    write_stable_zip(sorted(src_dir.iterdir()), out)
 
 
 def shapefile_zip_from_geojson(geojson: Path, out: Path, names: dict[str, str],

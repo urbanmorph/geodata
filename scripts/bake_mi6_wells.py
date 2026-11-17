@@ -23,13 +23,13 @@ import json
 import re
 import sys
 import tempfile
-from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
+from pipeline import make_con  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
@@ -155,9 +155,7 @@ def manifest_entry(rows: int, sizes: dict[str, int]) -> dict:
 # ── side-effecting steps ─────────────────────────────────────────────────
 
 def write_joined_parquet(wells: Path, districts: Path, out: Path) -> tuple[int, int]:
-    import duckdb
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = make_con()
     wells_cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{wells}')").fetchall()]
     cols = output_columns(wells_cols)
     check_columns(cols)
@@ -166,7 +164,6 @@ def write_joined_parquet(wells: Path, districts: Path, out: Path) -> tuple[int, 
 
 
 def bake(wells: Path, out_dir: Path) -> dict:
-    import duckdb
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     from ingest_ramseraph import rebake_flatten_bbox
@@ -181,8 +178,7 @@ def bake(wells: Path, out_dir: Path) -> dict:
         parquet = out_dir / f'{BASENAME}.parquet'
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
 
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))
@@ -198,24 +194,12 @@ def bake(wells: Path, out_dir: Path) -> dict:
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
              summary_path: Path = SUMMARY, r2_public: str | None = None) -> None:
     """Patch catalog.json + external-ingested.json in place (never rebuild the
-    catalog). Idempotent: re-running replaces this layer's entries."""
-    if r2_public is None:
-        from ingest_ramseraph import R2_PUBLIC as r2_public
-
+    catalog). Idempotent: the layer keeps its place and first fetched_at."""
+    import pipeline
     summary = json.loads(summary_path.read_text())
-    fetched_at = datetime.now(timezone.utc).isoformat()
-    catalog = json.loads(catalog_path.read_text())
-    catalog['layers'] = [l for l in catalog['layers'] if l['id'] != LAYER_ID]
-    catalog['layers'].append(catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public))
-    catalog['level_meta'][LAYER_ID] = level_meta()
-    if LAYER_ID not in catalog['level_order']:
-        catalog['level_order'].append(LAYER_ID)
-    catalog['attribution'][SOURCE] = dict(ATTRIBUTION)
-    catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
-
-    manifest = [e for e in json.loads(manifest_path.read_text()) if e['id'] != LAYER_ID]
-    manifest.append(manifest_entry(summary['rows'], summary['sizes']))
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
+    entry = catalog_entry(summary['rows'], summary['sizes'], pipeline.now_iso(), r2_public or pipeline.R2_PUBLIC)
+    pipeline.register_layer(catalog_path, manifest_path, entry, manifest_entry(summary['rows'], summary['sizes']),
+                            level_meta(), attribution=(SOURCE, ATTRIBUTION))
 
 
 def main() -> None:

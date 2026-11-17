@@ -19,6 +19,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import ingest_ramseraph as ir  # noqa: E402
+import pipeline  # noqa: E402
 from test_catalog_idempotent import _ds  # noqa: E402
 
 
@@ -36,7 +37,7 @@ def _ward_parquet(tmp_path: Path) -> Path:
 
 def test_bake_all_formats_ignores_the_size_cap(tmp_path, monkeypatch):
     monkeypatch.setattr(ir, 'WORK', tmp_path)
-    monkeypatch.setattr(ir, 'WHOLE_LAYER_MAX_MB', 0)  # every file is "too big"
+    monkeypatch.setattr(pipeline, 'WHOLE_LAYER_MAX_MB', 0)  # every file is "too big"
     src = _ward_parquet(tmp_path)
     assert ir.bake_whole_layer(_ds(), src) == {}  # default: capped
     out = ir.bake_whole_layer(_ds({'bake_all_formats': True, 'id': 'all'}), src)
@@ -171,7 +172,7 @@ def test_shapefile_split_by_state_keeps_every_feature(tmp_path, monkeypatch):
 
 def test_a_dbf_over_the_limit_drops_the_shapefile(tmp_path, monkeypatch):
     monkeypatch.setattr(ir, 'WORK', tmp_path)
-    monkeypatch.setattr(ir, 'DBF_MAX_BYTES', 10)  # every .dbf is "too big"
+    monkeypatch.setattr(pipeline, 'DBF_MAX_BYTES', 10)  # every .dbf is "too big"
     out = ir.bake_whole_layer(_ds(), _two_state_parquet(tmp_path))
     assert 'shapefile' not in out and {'geojson', 'kml'} <= set(out)
 
@@ -276,6 +277,34 @@ def test_ogr2ogr_reads_geojson_features_of_any_size(tmp_path, monkeypatch):
         if cmd and cmd[0] == 'ogr2ogr':
             seen.append((kw.get('env') or {}).get('OGR_GEOJSON_MAX_OBJ_SIZE'))
         return real_run(cmd, *a, **kw)
-    monkeypatch.setattr(ir.subprocess, 'run', spy)
+    monkeypatch.setattr(pipeline.subprocess, 'run', spy)
     ir.bake_whole_layer(_ds(), _ward_parquet(tmp_path))
     assert seen and all(v == '0' for v in seen)
+
+
+def test_a_rerun_does_not_rebake_unchanged_layers(tmp_path, monkeypatch):
+    # Every run re-flattened and rebaked every layer; only uploads were skipped.
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    src = _ward_parquet(tmp_path)
+    monkeypatch.setattr(ir, 'http_download', lambda url, dest: dest.exists() or dest.write_bytes(src.read_bytes()))
+    ds = _ds({'pmtiles_url': '', 'bake_all_formats': True})
+    ir.ingest(ds, upload=False)
+    work = []
+    monkeypatch.setattr(ir, 'rebake_flatten_bbox', lambda *a, **k: work.append('flatten'))
+    monkeypatch.setattr(pipeline.subprocess, 'run', lambda cmd, *a, **k: work.append(cmd[0]))
+    monkeypatch.setattr(pipeline, 'make_con', lambda: work.append('duckdb'))
+    ir.ingest(ds, upload=False)
+    assert work == []
+
+
+def test_one_failing_layer_does_not_stop_the_rest(monkeypatch, capsys):
+    done = []
+
+    def ingest(d, upload=True):
+        if d.id == 'boom':
+            raise RuntimeError('source 503')
+        done.append(d.id)
+    monkeypatch.setattr(ir, 'ingest', ingest)
+    monkeypatch.setattr(ir, 'DATASETS', [_ds({'id': 'boom'}), _ds({'id': 'ok'})])
+    assert ir.main(['x', '--no-upload']) == 1
+    assert done == ['ok'] and 'boom' in capsys.readouterr().out

@@ -25,6 +25,9 @@ import urllib.request
 from datetime import date
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import log, make_con, with_retries  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / 'data' / 'osm-areas'
 OVERPASS = 'https://overpass-api.de/api/interpreter'
@@ -32,10 +35,6 @@ USER_AGENT = 'bharatlas-ward-areas/1.0 (+https://bharatlas.com)'
 KINDS = ('suburb', 'neighbourhood', 'quarter')
 PAUSE = 5          # seconds between cities: Overpass is a shared, free service
 TRIES = 4
-
-
-def log(*a) -> None:
-    print(*a, flush=True)
 
 
 def overpass_query(bbox: tuple[float, float, float, float]) -> str:
@@ -78,15 +77,8 @@ def fetch_one(layer_id: str, bbox: tuple[float, float, float, float], refresh: b
     dest = CACHE / f'{layer_id}.json'
     if dest.exists() and not refresh:
         return 'cached'
-    for i in range(TRIES):
-        try:
-            answer = ask(overpass_query(bbox))
-            break
-        except Exception as e:  # network errors, 429 and 504 from a busy Overpass: wait and try again
-            if i == TRIES - 1:
-                raise
-            log(f'  {layer_id}: {e}; trying again in {30 * (i + 1)} s')
-            time.sleep(30 * (i + 1))
+    # Network errors, 429 and 504 from a busy Overpass: wait (30 s, 60 s, ...) and try again.
+    answer = with_retries(lambda: ask(overpass_query(bbox)), TRIES, wait=lambda n: time.sleep(30 * n))
     CACHE.mkdir(parents=True, exist_ok=True)
     tmp = dest.with_suffix('.part')
     tmp.write_text(json.dumps({'bbox': list(bbox), 'fetched': date.today().isoformat(),
@@ -103,15 +95,13 @@ def bbox_of(con, parquet: Path) -> tuple[float, float, float, float]:
 
 
 def main() -> int:
-    import duckdb
     import build_ward_index as w
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     refresh = '--refresh' in sys.argv
     catalog = json.loads(w.CATALOG.read_text())
     number_only = {k for k, (_, name, _) in w.OVERRIDES.items() if name is None}
     layers = [l for l in catalog.get('layers', []) if l['id'] in number_only and (not args or l['id'] in args)]
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = make_con()
     log(f'osm-areas: {len(layers)} number-only ward layer(s)')
     for n, layer in enumerate(layers, 1):
         pq = w.find_parquet(layer)
@@ -126,5 +116,4 @@ def main() -> int:
 
 
 if __name__ == '__main__':
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
     raise SystemExit(main())

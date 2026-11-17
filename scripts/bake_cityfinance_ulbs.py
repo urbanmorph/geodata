@@ -33,14 +33,14 @@ import time
 import urllib.parse
 import urllib.request
 from collections import Counter, defaultdict
-from datetime import datetime, timezone
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
+from pipeline import is_client_error, log, make_con, with_retries  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
@@ -105,10 +105,6 @@ TILE_FIELDS = ('ulbnm', 'cf_ulb_name', 'cf_ulb_type', 'fy', 'total_income', 'tot
 
 SOURCE = 'CityFinance'
 ATTRIBUTION = ATTR[SOURCE]
-
-
-def log(msg: str) -> None:
-    print(msg, flush=True)
 
 
 # ── pure helpers ─────────────────────────────────────────────────────────
@@ -292,10 +288,14 @@ def bs_is_url(ulb_id: str) -> str:
     return API + 'dashboard/city/bs-is?' + urllib.parse.urlencode(q)
 
 
-def http_get(url: str) -> bytes:
+def http_get(url: str, wait: Callable[[int], None] | None = None) -> bytes:
+    """GET with retries (backoff) on network errors and cut-off answers."""
     req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, 'Accept': 'application/json'})
-    with urllib.request.urlopen(req, timeout=120) as r:
-        return r.read()
+
+    def once() -> bytes:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return r.read()
+    return with_retries(once, 4, wait, give_up=is_client_error)
 
 
 def fetch_cached(url: str, dest: Path, getter: Callable[[str], bytes] = http_get) -> bool:
@@ -386,14 +386,11 @@ def load_finance(raw: Path) -> dict[str, dict]:
 
 
 def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
-    import duckdb
-
     ulbs, states = load_master(raw)
     by_id = {u['_id']: u for u in ulbs}
     finance = load_finance(raw)
 
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = make_con()
     src = f"read_parquet('{sbm}', file_row_number = true)"
     sbm_rows = [dict(zip(SBM_COLS, r)) for r in con.execute(
         f"SELECT {', '.join(SBM_COLS)} FROM {src} ORDER BY file_row_number").fetchall()]
@@ -477,7 +474,6 @@ def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
 
 
 def bake(out_dir: Path, raw: Path = RAW) -> dict:
-    import duckdb
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     from ingest_ramseraph import rebake_flatten_bbox
@@ -491,8 +487,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
         parquet = out_dir / f'{BASENAME}.parquet'
         rows, prop_cols = rebake_flatten_bbox(joined, parquet)
 
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))
@@ -579,24 +574,12 @@ def upload(out_dir: Path) -> None:
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
              summary_path: Path = SUMMARY, r2_public: str | None = None) -> None:
     """Patch catalog.json + external-ingested.json in place (never rebuild the
-    catalog). Idempotent: re-running replaces this layer's entries."""
-    if r2_public is None:
-        from ingest_ramseraph import R2_PUBLIC as r2_public
-
+    catalog). Idempotent: the layer keeps its place and first fetched_at."""
+    import pipeline
     summary = json.loads(summary_path.read_text())
-    fetched_at = datetime.now(timezone.utc).isoformat()
-    catalog = json.loads(catalog_path.read_text())
-    catalog['layers'] = [l for l in catalog['layers'] if l['id'] != LAYER_ID]
-    catalog['layers'].append(catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public))
-    catalog['level_meta'][LAYER_ID] = level_meta()
-    if LAYER_ID not in catalog['level_order']:
-        catalog['level_order'].append(LAYER_ID)
-    catalog['attribution'][SOURCE] = dict(ATTRIBUTION)
-    catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
-
-    manifest = [e for e in json.loads(manifest_path.read_text()) if e['id'] != LAYER_ID]
-    manifest.append(manifest_entry(summary['rows'], summary['sizes']))
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
+    entry = catalog_entry(summary['rows'], summary['sizes'], pipeline.now_iso(), r2_public or pipeline.R2_PUBLIC)
+    pipeline.register_layer(catalog_path, manifest_path, entry, manifest_entry(summary['rows'], summary['sizes']),
+                            level_meta(), attribution=(SOURCE, ATTRIBUTION))
 
 
 def main() -> None:

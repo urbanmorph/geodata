@@ -180,6 +180,13 @@ def patched_layer(layer: dict, release: str, sizes: dict[str, int], rows: int,
     return new
 
 
+def fetched_at_for(layer: dict, release: str, now: str) -> str:
+    """Keep the layer's date when it already serves this release (a re-run);
+    a new release is new data, so it gets `now`."""
+    on_release = (layer.get('parquet') or {}).get('url', '').endswith(r2_keys(release)['parquet'])
+    return layer.get('fetched_at') if on_release and layer.get('fetched_at') else now
+
+
 def notes_for(release: str) -> str:
     return (f'Overture Maps Foundation places, release {release}, clipped to India (inside an LGD district '
             'polygon). Overture columns are kept as published except contact details (below), and `name` is a copy of names.primary '
@@ -268,12 +275,20 @@ def fetch(release: str, src: Path, parts: int = 8) -> list[Path]:
 
 def download_ranged(url: str, dest: Path, parts: int = 8) -> Path:
     """GET `url` as `parts` parallel byte ranges into `dest` (atomic, size-checked)."""
+    from pipeline import with_retries
     head = urllib.request.Request(url, method='HEAD', headers={'User-Agent': 'Mozilla/5.0'})
-    size = int(urllib.request.urlopen(head, timeout=60).headers['Content-Length'])
+    size = with_retries(lambda: int(urllib.request.urlopen(head, timeout=60).headers['Content-Length']), 4)
 
     def get(rng: tuple[int, int]) -> bytes:
         req = urllib.request.Request(url, headers={'Range': f'bytes={rng[0]}-{rng[1]}', 'User-Agent': 'Mozilla/5.0'})
-        return urllib.request.urlopen(req, timeout=600).read()
+
+        def once() -> bytes:
+            with urllib.request.urlopen(req, timeout=600) as r:
+                body = r.read()
+            if len(body) != rng[1] - rng[0] + 1:  # a short range is a cut-off answer: retry it
+                raise OSError(f'range {rng}: got {len(body)} bytes')
+            return body
+        return with_retries(once, 4)
 
     with bake_formats.atomic_output(dest) as part:
         with ThreadPoolExecutor(parts) as pool, part.open('wb') as out:
@@ -395,10 +410,10 @@ def upload(release: str, out: Path) -> None:
     for fmt, key in r2_keys(release).items():
         r2_upload(s3, out / f'{LAYER_ID}.{FORMATS[fmt]}', key)
 
-    fetched_at = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(timezone.utc).isoformat()
     catalog = json.loads(CATALOG.read_text())
     catalog['layers'] = [
-        patched_layer(l, release, summary['sizes'], summary['rows'], fetched_at, R2_PUBLIC)
+        patched_layer(l, release, summary['sizes'], summary['rows'], fetched_at_for(l, release, now), R2_PUBLIC)
         if l['id'] == LAYER_ID else l for l in catalog['layers']]
     catalog['level_meta'][LAYER_ID] = patched_level_meta(catalog['level_meta'][LAYER_ID], release)
     CATALOG.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')

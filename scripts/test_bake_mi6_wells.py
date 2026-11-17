@@ -152,3 +152,15 @@ def test_register_patches_catalog_and_manifest_idempotently(tmp_path):
     assert c['level_meta']['mi6_wells_districts'] == b.level_meta()
     assert c['attribution']['MIWing'] == b.ATTRIBUTION
     assert [e['id'] for e in m] == ['mi6_wells_districts']
+
+
+def test_register_twice_changes_nothing(tmp_path):
+    import json
+    cat, man, summ = tmp_path / 'catalog.json', tmp_path / 'm.json', tmp_path / 's.json'
+    cat.write_text(json.dumps({'layers': [], 'level_meta': {}, 'level_order': [], 'attribution': {}}))
+    man.write_text('[]')
+    summ.write_text(json.dumps({'rows': 785, 'wells': 1, 'sizes': SIZES}))
+    b.register(cat, man, summ, R2)
+    before = cat.read_text(), man.read_text()
+    b.register(cat, man, summ, R2)  # a new timestamp here rewrote catalog.json
+    assert (cat.read_text(), man.read_text()) == before

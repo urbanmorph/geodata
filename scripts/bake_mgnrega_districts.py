@@ -30,21 +30,23 @@ from __future__ import annotations
 
 import argparse
 import gzip
-import http.client
 import json
 import os
 import re
 import sys
-import time
 import unicodedata
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from pathlib import Path
-from datetime import datetime, timezone
-from typing import Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import (  # noqa: E402,F401  (re-exported for bake_state_finance)
+    log,
+    make_con,
+    with_retries,
+)
 
 RESOURCE = 'ee03643a-ee4c-48c2-ac30-9f2ff26ab722'
 API = f'https://api.data.gov.in/resource/{RESOURCE}'
@@ -73,10 +75,6 @@ TREND_FIELDS = ['fin_year', 'month', 'state_name', 'district_code', 'district_na
 Fetcher = Callable[[int, int, dict], dict]
 
 
-def log(msg: str) -> None:
-    print(msg, flush=True)
-
-
 # ── pull ─────────────────────────────────────────────────────────────────────
 
 def api_key() -> str:
@@ -103,21 +101,6 @@ def api_fetch(fields: list[str] | None = None, tries: int = 6) -> Fetcher:
                 return json.load(r)
         return with_retries(once, tries)
     return fetch
-
-
-def with_retries(fn: Callable[[], dict], tries: int = 6, wait: Callable[[int], None] | None = None) -> dict:
-    """Retry network errors, including a response cut off mid-transfer
-    (http.client.IncompleteRead is not an OSError). Messages never hold the key."""
-    wait = wait or (lambda n: time.sleep(5 * n))
-    for attempt in range(1, tries + 1):
-        try:
-            return fn()
-        except (OSError, http.client.HTTPException, json.JSONDecodeError) as e:
-            if attempt == tries:
-                raise
-            log(f'  retry {attempt}: {type(e).__name__}')
-            wait(attempt)
-    raise AssertionError('unreachable')
 
 
 def pull_pages(cache: Path, filters: dict, fetch: Fetcher, limit: int = LIMIT, refresh: bool = False) -> list[dict]:
@@ -333,28 +316,14 @@ def manifest_entry(rows: int, sizes: dict, unmatched: list[str]) -> dict:
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
              summary_path: Path = SUMMARY, r2_public: str | None = None) -> None:
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent."""
-    if r2_public is None:
-        from ingest_ramseraph import R2_PUBLIC as r2_public
+    import pipeline
     summ = json.loads(summary_path.read_text())
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((l for l in catalog['layers'] if l['id'] == LAYER_ID), {})
-    fetched_at = prev.get('fetched_at') or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    catalog['layers'] = [l for l in catalog['layers'] if l['id'] != LAYER_ID]
-    catalog['layers'].append(catalog_entry(summ['rows'], summ['sizes'], fetched_at, r2_public, summ['unmatched']))
-    catalog['level_meta'][LAYER_ID] = level_meta()
-    if LAYER_ID not in catalog['level_order']:
-        catalog['level_order'].append(LAYER_ID)
-    catalog.setdefault('attribution', {})[SOURCE] = dict(ATTRIBUTION)
-    cats = catalog.setdefault('categories', {})
-    if CATEGORY[0] not in cats:  # insert before 'other', which stays last
-        other = cats.pop('other', None)
-        cats[CATEGORY[0]] = CATEGORY[1]
-        if other is not None:
-            cats['other'] = other
-    catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
-    manifest = [e for e in json.loads(manifest_path.read_text()) if e['id'] != LAYER_ID]
-    manifest.append(manifest_entry(summ['rows'], summ['sizes'], summ['unmatched']))
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
+    entry = catalog_entry(summ['rows'], summ['sizes'], pipeline.now_iso(), r2_public or pipeline.R2_PUBLIC,
+                          summ['unmatched'])
+    pipeline.register_layer(catalog_path, manifest_path, entry,
+                            manifest_entry(summ['rows'], summ['sizes'], summ['unmatched']),
+                            level_meta(), attribution=(SOURCE, ATTRIBUTION), category=CATEGORY)
+
 
 
 # ── bake ─────────────────────────────────────────────────────────────────────
@@ -365,7 +334,7 @@ def load_pages(cache: Path) -> list[dict]:
 
 def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
-    import duckdb
+
     import bake_formats
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
@@ -376,8 +345,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     with tempfile.TemporaryDirectory(prefix='mgnrega_') as tmp:
         tmp = Path(tmp)
         districts = bake_formats.fetch_layer_file(CATALOG, 'lgd_districts', 'parquet', tmp / 'lgd_districts.parquet')
-        con = duckdb.connect()
-        con.execute('INSTALL spatial; LOAD spatial;')
+        con = make_con()
         lgd = [dict(zip(('dist_lgd', 'dtname', 'stname'), r)) for r in
                con.execute(f"SELECT dist_lgd, dtname, stname FROM '{districts}'").fetchall()]
         rows, unmatched = district_rows(full, trend, lgd)
@@ -394,8 +362,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         n, filled = con.execute(f"SELECT count(*), count(fin_year) FROM '{joined}'").fetchone()
         parquet = out_dir / f'{BASENAME}.parquet'
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))

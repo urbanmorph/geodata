@@ -34,14 +34,14 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from bake_mgnrega_districts import api_key, log, norm, num, with_retries  # noqa: E402
+from bake_mgnrega_districts import api_key, norm, num  # noqa: E402
+from pipeline import log, make_con, with_retries  # noqa: E402
 
 RAW = ROOT / 'data' / 'raw' / 'state-finance'
 LAYER_ID = 'state_finance'
@@ -301,30 +301,20 @@ def manifest_entry(rows: int, sizes: dict, unmatched: list[str]) -> dict:
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
              summary_path: Path = SUMMARY, r2_public: str | None = None) -> None:
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent."""
-    if r2_public is None:
-        from ingest_ramseraph import R2_PUBLIC as r2_public
+    import pipeline
     summ = json.loads(summary_path.read_text())
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((l for l in catalog['layers'] if l['id'] == LAYER_ID), {})
-    fetched_at = prev.get('fetched_at') or datetime.now(timezone.utc).replace(microsecond=0).isoformat()
-    catalog['layers'] = [l for l in catalog['layers'] if l['id'] != LAYER_ID]
-    catalog['layers'].append(catalog_entry(summ['rows'], summ['sizes'], fetched_at, r2_public, summ['unmatched']))
-    catalog['level_meta'][LAYER_ID] = level_meta()
-    if LAYER_ID not in catalog['level_order']:
-        catalog['level_order'].append(LAYER_ID)
-    catalog.setdefault('attribution', {})[SOURCE] = dict(ATTRIBUTION)
-    catalog.setdefault('categories', {}).setdefault(CATEGORY[0], CATEGORY[1])
-    catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
-    manifest = [e for e in json.loads(manifest_path.read_text()) if e['id'] != LAYER_ID]
-    manifest.append(manifest_entry(summ['rows'], summ['sizes'], summ['unmatched']))
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
+    entry = catalog_entry(summ['rows'], summ['sizes'], pipeline.now_iso(), r2_public or pipeline.R2_PUBLIC,
+                          summ['unmatched'])
+    pipeline.register_layer(catalog_path, manifest_path, entry,
+                            manifest_entry(summ['rows'], summ['sizes'], summ['unmatched']),
+                            level_meta(), attribution=(SOURCE, ATTRIBUTION), category=CATEGORY)
 
 
 # ── bake ─────────────────────────────────────────────────────────────────────
 
 def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
-    import duckdb
+
     import bake_formats
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
@@ -333,8 +323,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     raw = {rid: d['records'] for rid, d in pull_resources(RAW, [r['id'] for r in RESOURCES], None).items()}
     out_dir.mkdir(parents=True, exist_ok=True)
     states = bake_formats.fetch_layer_file(CATALOG, 'lgd_states', 'parquet', RAW / 'lgd_states.parquet')
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = make_con()
     lgd = [dict(zip(('State_LGD', 'STNAME'), r)) for r in
            con.execute(f"SELECT State_LGD, STNAME FROM '{states}'").fetchall()]
     rows, unmatched, totals = state_rows(RESOURCES, raw, lgd)
@@ -350,8 +339,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         n = con.execute(f"SELECT count(*) FROM '{joined}'").fetchone()[0]
         parquet = out_dir / f'{BASENAME}.parquet'
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))

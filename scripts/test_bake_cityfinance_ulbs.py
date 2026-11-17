@@ -203,6 +203,24 @@ def test_fetch_cached_skips_answers_already_on_disk(tmp_path):
     assert calls == []
 
 
+def test_http_get_retries_a_dropped_connection(monkeypatch):
+    # http_get had no retry: one reset connection ended a multi-hour pull.
+    import io
+    import urllib.error
+
+    import pipeline
+    answers = [urllib.error.URLError('reset'), io.BytesIO(b'{"ok": 1}')]
+
+    def urlopen(req, timeout):
+        a = answers.pop(0)
+        if isinstance(a, Exception):
+            raise a
+        return a
+    monkeypatch.setattr(b.urllib.request, 'urlopen', urlopen)
+    assert b.http_get('http://x', wait=lambda n: None) == b'{"ok": 1}'
+    assert b.log is pipeline.log
+
+
 def test_fetch_cached_writes_atomically(tmp_path):
     dest = tmp_path / 'sub' / 'a.json'
     assert b.fetch_cached('http://x', dest, getter=lambda u: b'{"ok": 1}') is True
@@ -294,3 +312,21 @@ def test_the_layer_lives_under_economy_and_finance():
     e = b.catalog_entry(10, {f: 1 for f in b.EXT}, '2026-11-15T00:00:00+00:00', 'https://r2.example')
     assert e['category'] == 'economy' and b.R2_PREFIX == 'economy/cityfinance-ulbs'
     assert '2 km' in e['notes'] and e['licence'] == 'GODL-India'
+
+
+def test_register_keeps_the_first_fetched_at_and_the_layer_s_place(tmp_path):
+    # register() stamped a new fetched_at and moved the layer to the end on
+    # every run, so a re-run with the same inputs rewrote catalog.json.
+    cat, man, summ = tmp_path / 'catalog.json', tmp_path / 'm.json', tmp_path / 's.json'
+    cat.write_text(json.dumps({'layers': [{'id': 'a'}], 'level_meta': {}, 'level_order': ['a'],
+                               'attribution': {}}))
+    man.write_text('[]')
+    summ.write_text(json.dumps({'rows': 5, 'sizes': {f: 1 for f in b.EXT}}))
+    b.register(cat, man, summ, 'https://r2.example')
+    c = json.loads(cat.read_text())
+    c['layers'] = [c['layers'][1], c['layers'][0]]  # the layer now stands first
+    c['layers'][0]['fetched_at'] = '2026-01-01T00:00:00+00:00'
+    cat.write_text(json.dumps(c, indent=2, ensure_ascii=True) + '\n')
+    before = cat.read_text(), man.read_text()
+    b.register(cat, man, summ, 'https://r2.example')
+    assert (cat.read_text(), man.read_text()) == before

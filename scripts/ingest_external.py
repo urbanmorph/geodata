@@ -24,6 +24,7 @@ Run:
     python3 scripts/ingest_external.py chennai    # one by id substring
 """
 from __future__ import annotations
+
 import json
 import os
 import shutil
@@ -36,7 +37,14 @@ import duckdb
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from ingest_ramseraph import bake_whole_layer, r2_client, r2_upload, rebake_flatten_bbox  # noqa: E402
+from pipeline import (  # noqa: E402
+    bake_whole_layer,
+    geojson_to_parquet,
+    r2_client,
+    r2_upload,
+    upsert_by_id,
+    write_json,
+)
 from rebake_locate_tiles import tippecanoe_cmd  # noqa: E402
 
 HOME = Path.home()
@@ -731,8 +739,7 @@ def outputs(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
 
 def tippecanoe_args(gj: Path, out: Path, layer_name: str) -> list[str]:
     """z0-z12 like every locate-able layer (rebake_locate_tiles), tileset named after the layer."""
-    *args, src = tippecanoe_cmd(gj, out, layer_name)
-    return [*args, '-n', layer_name, src]
+    return tippecanoe_cmd(gj, out, layer_name)  # tippecanoe_cmd already names the tileset (-n)
 
 
 def to_geojson(src: Path, out: Path) -> None:
@@ -747,13 +754,7 @@ def to_geojson(src: Path, out: Path) -> None:
 
 def to_parquet(gj: Path, out: Path) -> int:
     """GeoJSON -> Parquet with flat bbox columns in Hilbert order. Returns feature count."""
-    raw = out.with_name(f'{out.stem}.raw.parquet')
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
-    con.execute(f"COPY (SELECT * FROM ST_Read('{gj}')) TO '{raw}' (FORMAT 'parquet', COMPRESSION 'zstd')")
-    n, _ = rebake_flatten_bbox(raw, out, con)
-    raw.unlink()
-    return n
+    return geojson_to_parquet(gj, out)
 
 
 def to_pmtiles(gj: Path, out: Path, layer_name: str) -> None:
@@ -822,9 +823,13 @@ def manifest_row(ds: Dataset, files: dict[str, Path]) -> dict:
 
 def merge_manifest(old: list[dict], new: list[dict]) -> list[dict]:
     """Replace rows by id where they stand and append new ids; every other row stays."""
-    fresh = {r['id']: r for r in new}
-    merged = [fresh.pop(r['id'], r) for r in old]
-    return merged + list(fresh.values())
+    for row in new:
+        old = upsert_by_id(old, row)
+    return old
+
+
+def save_manifest(rows: list[dict]) -> None:
+    write_json(MANIFEST, merge_manifest(json.loads(MANIFEST.read_text()), rows))
 
 
 def main(argv: list[str]) -> int:
@@ -855,7 +860,7 @@ def main(argv: list[str]) -> int:
         rows.append(manifest_row(ds, files))
 
     if s3:
-        MANIFEST.write_text(json.dumps(merge_manifest(json.loads(MANIFEST.read_text()), rows), indent=2))
+        save_manifest(rows)
         print(f'\nmerged {len(rows)}/{len(todo)} row(s) into {MANIFEST.relative_to(ROOT)}', flush=True)
         print('Next: patch catalog.json for these layers (patch in place; do not rebuild).', flush=True)
     else:

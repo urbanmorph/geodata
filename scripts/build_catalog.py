@@ -18,7 +18,7 @@ DATA = ROOT / 'data' / 'boundaries'
 BAKED = ROOT / 'data' / 'baked'
 
 # Public base URL of the R2 bucket
-R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
+from pipeline import R2_PUBLIC as R2  # noqa: E402
 
 # Level metadata. `path` is the R2 key prefix (also the upstream release path).
 # `category` is the catalog facet (matches the home-page filter chips).
@@ -579,18 +579,6 @@ def _load_prev_catalog() -> dict:
         return {}
     try:
         return json.loads(prev_path.read_text())
-    except Exception:
-        return {}
-
-
-def _load_prev_layers() -> dict[str, dict]:
-    """Load layers from the existing catalog.json as a {id: layer} dict."""
-    prev_path = ROOT / 'catalog.json'
-    if not prev_path.exists():
-        return {}
-    try:
-        prev = json.loads(prev_path.read_text())
-        return {l['id']: l for l in prev.get('layers', [])}
     except Exception:
         return {}
 

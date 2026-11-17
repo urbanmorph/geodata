@@ -32,6 +32,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pipeline  # noqa: E402
 OUT = ROOT / 'web' / 'public' / 'ward-index'
 CATALOG = ROOT / 'catalog.json'
 OSM_CACHE = ROOT / 'data' / 'osm-areas'      # scripts/fetch_osm_areas.py writes it
@@ -118,20 +120,7 @@ NUMBER_PATTERNS = [
 NAME_PATTERNS = ['sourcewardname', 'ward_name', 'wardname', 'ward_title', 'locality']
 
 
-def find_parquet(layer: dict) -> Path | None:
-    pq = layer.get('parquet')
-    if not pq or not pq.get('url'):
-        return None
-    filename = pq['url'].rsplit('/', 1)[-1]
-    candidate = SRC / filename
-    if candidate.exists():
-        return candidate
-    r2_base = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/'
-    if pq['url'].startswith(r2_base):
-        baked = ROOT / 'data' / 'baked' / pq['url'][len(r2_base):]
-        if baked.exists():
-            return baked
-    return None
+find_parquet = pipeline.find_parquet  # tests patch this module attribute
 
 
 def resolve_columns(layer_id: str, cols: list[str]) -> tuple[str | None, str | None, str | None]:

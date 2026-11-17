@@ -46,6 +46,24 @@ def test_a_cached_answer_is_used_and_no_request_is_made(tmp_path, monkeypatch):
     assert f.fetch_one('wards_x', (1, 2, 3, 4)) == 'cached'
 
 
+def test_a_busy_overpass_is_retried_through_the_shared_helper(tmp_path, monkeypatch):
+    import urllib.error
+
+    import pipeline
+    monkeypatch.setattr(f, 'CACHE', tmp_path)
+    answers = [urllib.error.URLError('504'), {'elements': []}]
+
+    def ask(q):
+        a = answers.pop(0)
+        if isinstance(a, Exception):
+            raise a
+        return a
+    monkeypatch.setattr(f, 'ask', ask)
+    waits = []
+    monkeypatch.setattr(f.time, 'sleep', waits.append)
+    assert f.fetch_one('wards_y', (1, 2, 3, 4)) == '0 named places'
+    assert waits == [30] and f.log is pipeline.log
+
 @pytest.fixture
 def two_wards(tmp_path):
     """Ward 1 is the square (0,0)-(1,1), ward 2 the square (1,0)-(2,1)."""

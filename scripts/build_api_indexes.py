@@ -21,31 +21,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pipeline  # noqa: E402
 OUT = ROOT / 'web' / 'public' / 'api-data' / 'layers'
 
 MAX_DISTINCT_FOR_GROUPING = 200
 MAX_VALUES_PER_COLUMN = 500
 
 
-def find_parquet(layer: dict) -> Path | None:
-    """Locate the parquet file for a catalog layer on disk."""
-    pq = layer.get('parquet')
-    if not pq or not pq.get('url'):
-        return None
-    url: str = pq['url']
-    # Try the sources/india-geodata/ directory (fetch.sh + ingest_external.py output)
-    filename = url.rsplit('/', 1)[-1]
-    candidate = SRC / filename
-    if candidate.exists():
-        return candidate
-    # Try data/baked path
-    r2_base = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/'
-    if url.startswith(r2_base):
-        rel = url[len(r2_base):]
-        baked = ROOT / 'data' / 'baked' / rel
-        if baked.exists():
-            return baked
-    return None
+find_parquet = pipeline.find_parquet  # tests patch this module attribute
 
 
 def compute_layer_stats(con, parquet_path: Path, layer_id: str) -> dict | None:

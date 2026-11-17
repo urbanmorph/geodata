@@ -25,6 +25,9 @@ import os, subprocess, sys, time
 from pathlib import Path
 import duckdb
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bake_formats import pmtiles_args  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
 WORK = Path('/tmp/bake')
@@ -66,17 +69,7 @@ def bake(parquet_name: str, layer: str, pmtiles_name: str, con: duckdb.DuckDBPyC
 
     if pmt_out.exists(): pmt_out.unlink()
     t0 = time.time()
-    subprocess.run(
-        ['tippecanoe',
-         '-o', str(pmt_out), '-l', layer,
-         '-zg',
-         '--drop-densest-as-needed',
-         '--extend-zooms-if-still-dropping',
-         '--force',
-         '--no-progress-indicator',
-         str(gj)],
-        check=True, capture_output=True,
-    )
+    subprocess.run(pmtiles_args(gj, pmt_out, layer, ()), check=True, capture_output=True)
     pmt_mb = pmt_out.stat().st_size / 1024 / 1024
     print(f'    pmtiles: {pmt_mb:.1f} MB  ({time.time()-t0:.1f}s)')
 

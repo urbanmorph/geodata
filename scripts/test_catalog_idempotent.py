@@ -297,3 +297,35 @@ class TestMergeIdempotent:
         assert c['level_order'] == snapshot['level_order'], 'level_order changed'
         assert len(c['layers']) == 2
         assert {l['id'] for l in c['layers']} == {'layer_a', 'layer_b'}
+
+
+def test_re_ingest_keeps_the_layer_where_it_stands():
+    # Remove-then-append moved a re-ingested layer to the end of the list.
+    from ingest_ramseraph import merge_layer_into_catalog
+    c = {'layers': [{'id': 'first'}], 'level_order': ['first']}
+    merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+    c['layers'].append({'id': 'last'})
+    merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+    assert [l['id'] for l in c['layers']] == ['first', 'test_layer', 'last']
+
+
+def test_patch_catalog_writes_only_the_tracked_root_catalog(tmp_path, monkeypatch):
+    # web/public/catalog.json is a gitignored copy the web build overwrites.
+    import ingest_ramseraph as ir
+    (tmp_path / 'web' / 'public').mkdir(parents=True)
+    (tmp_path / 'catalog.json').write_text('{}')
+    (tmp_path / 'web' / 'public' / 'catalog.json').write_text('{}')
+    monkeypatch.setattr(ir, 'ROOT', tmp_path)
+    ir.patch_catalog(_ds(), 1, 2, 3)
+    assert json.loads((tmp_path / 'catalog.json').read_text())['layers'][0]['id'] == 'test_layer'
+    assert (tmp_path / 'web' / 'public' / 'catalog.json').read_text() == '{}'
+
+
+def test_append_manifest_replaces_in_place(tmp_path, monkeypatch):
+    import ingest_ramseraph as ir
+    (tmp_path / 'scripts').mkdir()
+    m = tmp_path / 'scripts' / 'external-ingested.json'
+    m.write_text(json.dumps([{'id': 'test_layer'}, {'id': 'other'}]))
+    monkeypatch.setattr(ir, 'ROOT', tmp_path)
+    ir.append_manifest(_ds(), 1, 2, 3)
+    assert [r['id'] for r in json.loads(m.read_text())] == ['test_layer', 'other']

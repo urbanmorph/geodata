@@ -14,7 +14,9 @@ since the whole-layer geojson/kml would be unwieldy (lgd_villages parquet
 is 475 MB; its geojson would be ~1.4 GB, KML ~5 GB). Override via env
 var to force-bake the giants if you really want to.
 
-Idempotent: skips any output that already exists at non-zero size.
+Idempotent: skips any output that exists, is non-empty and is newer than
+its source (a refreshed source rebakes). Every writer goes through
+atomic_output, so a killed run leaves no partial file to skip later.
 Reuses bake_extracts.py's writers (GDAL GeoJSON, pure-Python KML).
 Shapefile uses ogr2ogr (GDAL/OGR command line); the output directory
 is zipped into <basename>.shp.zip to ship a single file per layer.
@@ -36,7 +38,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import zipfile
 from pathlib import Path
 
 import duckdb
@@ -50,11 +51,11 @@ sys.path.insert(0, str(HERE))
 # the LAYERS list at import time; its main entrypoint is gated below.
 import build_catalog as bc  # noqa: E402
 from bake_extracts import (  # noqa: E402
-    make_con,
     gdal_geojson_available,
-    write_geojson_manual,
+    make_con,
     write_kml_from_geojson,
 )
+from pipeline import atomic_output, is_fresh, write_stable_zip  # noqa: E402
 
 OUT = ROOT / "data" / "baked"
 SRC = ROOT / "sources" / "india-geodata"
@@ -86,8 +87,9 @@ def file_size(p: Path) -> int:
         return 0
 
 
-def should_skip(out: Path) -> bool:
-    return file_size(out) > 0
+def should_skip(out: Path, *sources: Path) -> bool:
+    """Skip an output that is complete and newer than every source."""
+    return is_fresh(out, *sources)
 
 
 def have_ogr2ogr() -> bool:
@@ -135,6 +137,9 @@ def write_geojson_whole(
     out.parent.mkdir(parents=True, exist_ok=True)
     geom_col = _detect_geom_col(con, parquet)
     if gdal_ok:
+        # Callers pass bare connections too; without this, EPSG:4326-tagged
+        # geometry is written lat,lon.
+        con.execute("SET geometry_always_xy = true")
         con.execute(
             f"COPY (SELECT * EXCLUDE \"{geom_col}\", \"{geom_col}\" FROM '{parquet.as_posix()}') "
             f"TO '{out.as_posix()}' "
@@ -181,10 +186,8 @@ def build_india_polygon_geojson(parquet_src: Path, out: Path) -> None:
     naturally includes Aksai Chin + Arunachal Pradesh) with no topology
     games. Output: one Feature with a single MultiPolygon geometry.
     """
-    import duckdb
     out.parent.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect()
-    con.execute("INSTALL spatial; LOAD spatial")
+    con = make_con()
     row = con.execute(
         f"SELECT ST_AsGeoJSON(ST_Union_Agg(geometry)) AS gj, COUNT(*) AS n "
         f"FROM '{parquet_src.as_posix()}'"
@@ -232,9 +235,7 @@ def write_shapefile_zip(geojson_path: Path, basename: str, out: Path) -> None:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.PIPE,
         )
-        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as zf:
-            for f in sorted(tmp_dir.iterdir()):
-                zf.write(f, arcname=f.name)
+        write_stable_zip(sorted(tmp_dir.iterdir()), out)
 
 
 # ---------------------------------------------------------------------------
@@ -261,7 +262,7 @@ def curated_layers() -> list[tuple[str, str, str, int]]:
     # Supplement from catalog.json: externally-ingested layers (city wards
     # etc.) are appended dynamically in build_catalog and appear in
     # catalog.json but not in the hardcoded bc.LAYERS tuple at import time.
-    catalog_path = ROOT / "web" / "public" / "catalog.json"
+    catalog_path = ROOT / "catalog.json"  # the tracked source of truth
     r2_base = bc.R2 + "/"
     if catalog_path.exists():
         try:
@@ -314,12 +315,13 @@ def bake_one(
     errors: list[str] = []
 
     # geojson
-    if should_skip(paths["geojson"]):
+    if should_skip(paths["geojson"], parquet_path):
         print(f"skip  {label} fmt=geojson size={file_size(paths['geojson'])}")
         skipped += 1
     else:
         try:
-            write_geojson_whole(con, parquet_path, paths["geojson"], gdal_ok)
+            with atomic_output(paths["geojson"]) as part:
+                write_geojson_whole(con, parquet_path, part, gdal_ok)
             written += 1
             print(f"wrote {label} fmt=geojson size={file_size(paths['geojson'])}")
         except Exception as e:
@@ -328,12 +330,13 @@ def bake_one(
             return written, skipped, errors
 
     # kml (depends on geojson)
-    if should_skip(paths["kml"]):
+    if should_skip(paths["kml"], paths["geojson"]):
         print(f"skip  {label} fmt=kml size={file_size(paths['kml'])}")
         skipped += 1
     else:
         try:
-            write_kml_from_geojson(paths["geojson"], basename, paths["kml"])
+            with atomic_output(paths["kml"]) as part:
+                write_kml_from_geojson(paths["geojson"], basename, part)
             written += 1
             print(f"wrote {label} fmt=kml size={file_size(paths['kml'])}")
         except Exception as e:
@@ -341,7 +344,7 @@ def bake_one(
             print(f"FAIL  {label} fmt=kml err={e}")
 
     # shapefile (depends on geojson + ogr2ogr)
-    if should_skip(paths["shapefile"]):
+    if should_skip(paths["shapefile"], paths["geojson"]):
         print(f"skip  {label} fmt=shp.zip size={file_size(paths['shapefile'])}")
         skipped += 1
     elif not ogr2ogr_ok:
@@ -401,9 +404,10 @@ def main() -> int:
     # India-correct shape instead of a pile of borders.
     if REFERENCE_INDIA_BOUNDARY_SRC.exists():
         paths = out_paths(REFERENCE_INDIA_BOUNDARY_R2_PREFIX, REFERENCE_INDIA_BOUNDARY_BASENAME)
-        if not should_skip(paths["geojson"]):
+        if not should_skip(paths["geojson"], REFERENCE_INDIA_BOUNDARY_SRC):
             try:
-                build_india_polygon_geojson(REFERENCE_INDIA_BOUNDARY_SRC, paths["geojson"])
+                with atomic_output(paths["geojson"]) as part:
+                    build_india_polygon_geojson(REFERENCE_INDIA_BOUNDARY_SRC, part)
                 print(f"wrote india_boundary fmt=geojson (polygon stitched) size={file_size(paths['geojson'])}")
                 total_w += 1
             except Exception as e:
@@ -413,15 +417,16 @@ def main() -> int:
             print(f"skip  india_boundary fmt=geojson size={file_size(paths['geojson'])}")
             total_s += 1
 
-        if not should_skip(paths["kml"]):
+        if not should_skip(paths["kml"], paths["geojson"]):
             try:
-                write_kml_from_geojson(paths["geojson"], "India boundary", paths["kml"])
+                with atomic_output(paths["kml"]) as part:
+                    write_kml_from_geojson(paths["geojson"], "India boundary", part)
                 total_w += 1
                 print(f"wrote india_boundary fmt=kml size={file_size(paths['kml'])}")
             except Exception as e:
                 errors.append(f"india_boundary kml: {e}")
 
-        if not should_skip(paths["shapefile"]) and ogr2ogr_ok:
+        if not should_skip(paths["shapefile"], paths["geojson"]) and ogr2ogr_ok:
             try:
                 write_shapefile_zip(paths["geojson"], REFERENCE_INDIA_BOUNDARY_BASENAME, paths["shapefile"])
                 total_w += 1
