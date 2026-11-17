@@ -35,6 +35,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
+from pipeline import make_con  # noqa: E402
+
 R2_PREFIX = 'agriculture/corestack-lulc-blocks'
 BASENAME = 'CoREStack_LULC_Blocks_2023_24'
 LAYER_ID = 'corestack_lulc_blocks'
@@ -169,14 +171,12 @@ def _column_types() -> dict[str, str]:
 
 def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    import duckdb
-    from ingest_ramseraph import rebake_flatten_bbox
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
+    from ingest_ramseraph import rebake_flatten_bbox
 
     results = {int(k): v for k, v in json.loads(results_path.read_text()).items()}
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     blocks = con.execute(f"""
         SELECT OBJECTID, block_lgd, block_name, dist_lgd, district, state_lgd, state,
                ST_Area_Spheroid(ST_FlipCoordinates(geometry)) / 1e4 AS area_ha

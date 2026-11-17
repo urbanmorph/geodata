@@ -761,8 +761,9 @@ def merge_layer_into_catalog(
 
 
 def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int, bakes: dict[str, Path] | None = None) -> None:
-    """Patch catalog.json (root + web/public + web/dist) with the new layer
-    so the live site picks it up before the next build_catalog.py run.
+    """Patch the git-tracked root catalog.json with the new layer (never
+    rebuild it). web/public/catalog.json is a gitignored copy the web build
+    overwrites, so it is not touched here.
 
     Idempotent on re-ingest: preserves any existing layer fields we don't
     explicitly set here (whole-layer bakes geojson/kml/shapefile from
@@ -774,12 +775,9 @@ def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, fea
         fmt: {'name': p.name, 'bytes': p.stat().st_size}
         for fmt, p in (bakes or {}).items()
     }
-    for p in ['catalog.json', 'web/public/catalog.json', 'web/dist/catalog.json']:
-        f = ROOT / p
-        if not f.exists():
-            continue
-        c = json.loads(f.read_text())
-        pipeline.write_json(f, merge_layer_into_catalog(c, d, parquet_bytes, pmtiles_bytes, features, bakes_info))
+    f = ROOT / 'catalog.json'
+    c = json.loads(f.read_text())
+    pipeline.write_json(f, merge_layer_into_catalog(c, d, parquet_bytes, pmtiles_bytes, features, bakes_info))
 
 
 def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int) -> None:

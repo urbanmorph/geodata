@@ -34,6 +34,7 @@ from bake_extracts import write_kml_from_geojson  # noqa: E402
 from bake_formats import pmtiles_args  # noqa: E402
 from bake_whole_layer import have_ogr2ogr, write_shapefile_zip  # noqa: E402
 from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
+from pipeline import make_con  # noqa: E402
 
 # ── 25 High Courts ──────────────────────────────────────────────────────
 
@@ -163,8 +164,7 @@ def main() -> int:
         print(f"ERROR: {SRC} not found — download via scripts/fetch.sh")
         return 1
 
-    con = duckdb.connect()
-    con.execute("INSTALL spatial; LOAD spatial")
+    con = make_con()
     ogr2ogr_ok = have_ogr2ogr()
     import shutil
     tippecanoe_ok = shutil.which('tippecanoe') is not None

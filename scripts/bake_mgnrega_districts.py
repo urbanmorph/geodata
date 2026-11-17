@@ -44,6 +44,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pipeline import (  # noqa: E402,F401  (re-exported for bake_state_finance)
     log,
+    make_con,
     with_retries,
 )
 
@@ -334,8 +335,6 @@ def load_pages(cache: Path) -> list[dict]:
 def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
 
-    import duckdb
-
     import bake_formats
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
@@ -346,8 +345,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     with tempfile.TemporaryDirectory(prefix='mgnrega_') as tmp:
         tmp = Path(tmp)
         districts = bake_formats.fetch_layer_file(CATALOG, 'lgd_districts', 'parquet', tmp / 'lgd_districts.parquet')
-        con = duckdb.connect()
-        con.execute('INSTALL spatial; LOAD spatial;')
+        con = make_con()
         lgd = [dict(zip(('dist_lgd', 'dtname', 'stname'), r)) for r in
                con.execute(f"SELECT dist_lgd, dtname, stname FROM '{districts}'").fetchall()]
         rows, unmatched = district_rows(full, trend, lgd)
@@ -364,8 +362,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         n, filled = con.execute(f"SELECT count(*), count(fin_year) FROM '{joined}'").fetchone()
         parquet = out_dir / f'{BASENAME}.parquet'
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))

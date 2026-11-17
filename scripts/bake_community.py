@@ -94,6 +94,7 @@ from bake_formats import pmtiles_args  # noqa: E402
 from pipeline import (  # noqa: E402
     BUCKET,
     R2_PUBLIC,
+    make_con,
     r2_client,
     r2_upload,
     row_group_size_for,
@@ -285,10 +286,7 @@ def normalize_to_geojson(raw: Path, fmt: str, out_geojson: Path) -> None:
     to be present)."""
     out_geojson.unlink(missing_ok=True)
     if fmt == 'parquet':
-        import duckdb
-        con = duckdb.connect()
-        con.execute('INSTALL spatial; LOAD spatial;')
-        con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+        con = make_con()
         cols = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{raw}')").fetchall()
         geom = next((c[0] for c in cols if c[0] in ('geometry', 'geom', 'wkb_geometry')), 'geometry')
         gtype = next((c[1] for c in cols if c[0] == geom), 'BLOB')

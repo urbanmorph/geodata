@@ -203,6 +203,24 @@ def test_fetch_cached_skips_answers_already_on_disk(tmp_path):
     assert calls == []
 
 
+def test_http_get_retries_a_dropped_connection(monkeypatch):
+    # http_get had no retry: one reset connection ended a multi-hour pull.
+    import io
+    import urllib.error
+
+    import pipeline
+    answers = [urllib.error.URLError('reset'), io.BytesIO(b'{"ok": 1}')]
+
+    def urlopen(req, timeout):
+        a = answers.pop(0)
+        if isinstance(a, Exception):
+            raise a
+        return a
+    monkeypatch.setattr(b.urllib.request, 'urlopen', urlopen)
+    assert b.http_get('http://x', wait=lambda n: None) == b'{"ok": 1}'
+    assert b.log is pipeline.log
+
+
 def test_fetch_cached_writes_atomically(tmp_path):
     dest = tmp_path / 'sub' / 'a.json'
     assert b.fetch_cached('http://x', dest, getter=lambda u: b'{"ok": 1}') is True

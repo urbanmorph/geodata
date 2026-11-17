@@ -40,7 +40,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from bake_mgnrega_districts import api_key, log, norm, num, with_retries  # noqa: E402
+from bake_mgnrega_districts import api_key, norm, num  # noqa: E402
+from pipeline import log, make_con, with_retries  # noqa: E402
 
 RAW = ROOT / 'data' / 'raw' / 'state-finance'
 LAYER_ID = 'state_finance'
@@ -314,8 +315,6 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
 
-    import duckdb
-
     import bake_formats
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
@@ -324,8 +323,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     raw = {rid: d['records'] for rid, d in pull_resources(RAW, [r['id'] for r in RESOURCES], None).items()}
     out_dir.mkdir(parents=True, exist_ok=True)
     states = bake_formats.fetch_layer_file(CATALOG, 'lgd_states', 'parquet', RAW / 'lgd_states.parquet')
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = make_con()
     lgd = [dict(zip(('State_LGD', 'STNAME'), r)) for r in
            con.execute(f"SELECT State_LGD, STNAME FROM '{states}'").fetchall()]
     rows, unmatched, totals = state_rows(RESOURCES, raw, lgd)
@@ -341,8 +339,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         n = con.execute(f"SELECT count(*) FROM '{joined}'").fetchone()[0]
         parquet = out_dir / f'{BASENAME}.parquet'
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))

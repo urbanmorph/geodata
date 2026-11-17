@@ -29,6 +29,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
+from pipeline import make_con  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
@@ -154,9 +155,7 @@ def manifest_entry(rows: int, sizes: dict[str, int]) -> dict:
 # ── side-effecting steps ─────────────────────────────────────────────────
 
 def write_joined_parquet(wells: Path, districts: Path, out: Path) -> tuple[int, int]:
-    import duckdb
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = make_con()
     wells_cols = [c[0] for c in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{wells}')").fetchall()]
     cols = output_columns(wells_cols)
     check_columns(cols)
@@ -165,7 +164,6 @@ def write_joined_parquet(wells: Path, districts: Path, out: Path) -> tuple[int, 
 
 
 def bake(wells: Path, out_dir: Path) -> dict:
-    import duckdb
 
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
@@ -181,8 +179,7 @@ def bake(wells: Path, out_dir: Path) -> dict:
         parquet = out_dir / f'{BASENAME}.parquet'
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
 
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
+    con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))

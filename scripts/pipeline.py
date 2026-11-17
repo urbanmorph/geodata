@@ -76,7 +76,7 @@ def with_retries(fn: Callable[[], Any], tries: int = 6, wait: Callable[[int], No
 USER_AGENT = 'Mozilla/5.0 (compatible; bharatlas-pipeline/1.0; +https://bharatlas.com)'
 
 
-def _client_error(e: Exception) -> bool:
+def is_client_error(e: Exception) -> bool:
     import urllib.error
     return isinstance(e, urllib.error.HTTPError) and 400 <= e.code < 500 and e.code not in (408, 429)
 
@@ -100,7 +100,7 @@ def download(url: str, dest: Path, *, tries: int = 4, timeout: float = 300,
                 part.open('wb') as f:
             shutil.copyfileobj(r, f, 1 << 20)
 
-    with_retries(once, tries, wait, give_up=_client_error)
+    with_retries(once, tries, wait, give_up=is_client_error)
     return dest.stat().st_size
 
 

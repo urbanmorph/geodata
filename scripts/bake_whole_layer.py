@@ -186,10 +186,8 @@ def build_india_polygon_geojson(parquet_src: Path, out: Path) -> None:
     naturally includes Aksai Chin + Arunachal Pradesh) with no topology
     games. Output: one Feature with a single MultiPolygon geometry.
     """
-    import duckdb
     out.parent.mkdir(parents=True, exist_ok=True)
-    con = duckdb.connect()
-    con.execute("INSTALL spatial; LOAD spatial")
+    con = make_con()
     row = con.execute(
         f"SELECT ST_AsGeoJSON(ST_Union_Agg(geometry)) AS gj, COUNT(*) AS n "
         f"FROM '{parquet_src.as_posix()}'"
@@ -264,7 +262,7 @@ def curated_layers() -> list[tuple[str, str, str, int]]:
     # Supplement from catalog.json: externally-ingested layers (city wards
     # etc.) are appended dynamically in build_catalog and appear in
     # catalog.json but not in the hardcoded bc.LAYERS tuple at import time.
-    catalog_path = ROOT / "web" / "public" / "catalog.json"
+    catalog_path = ROOT / "catalog.json"  # the tracked source of truth
     r2_base = bc.R2 + "/"
     if catalog_path.exists():
         try:

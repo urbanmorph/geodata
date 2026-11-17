@@ -276,12 +276,20 @@ def fetch(release: str, src: Path, parts: int = 8) -> list[Path]:
 
 def download_ranged(url: str, dest: Path, parts: int = 8) -> Path:
     """GET `url` as `parts` parallel byte ranges into `dest` (atomic, size-checked)."""
+    from pipeline import with_retries
     head = urllib.request.Request(url, method='HEAD', headers={'User-Agent': 'Mozilla/5.0'})
-    size = int(urllib.request.urlopen(head, timeout=60).headers['Content-Length'])
+    size = with_retries(lambda: int(urllib.request.urlopen(head, timeout=60).headers['Content-Length']), 4)
 
     def get(rng: tuple[int, int]) -> bytes:
         req = urllib.request.Request(url, headers={'Range': f'bytes={rng[0]}-{rng[1]}', 'User-Agent': 'Mozilla/5.0'})
-        return urllib.request.urlopen(req, timeout=600).read()
+
+        def once() -> bytes:
+            with urllib.request.urlopen(req, timeout=600) as r:
+                body = r.read()
+            if len(body) != rng[1] - rng[0] + 1:  # a short range is a cut-off answer: retry it
+                raise OSError(f'range {rng}: got {len(body)} bytes')
+            return body
+        return with_retries(once, 4)
 
     with bake_formats.atomic_output(dest) as part:
         with ThreadPoolExecutor(parts) as pool, part.open('wb') as out:
