@@ -8,10 +8,12 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
-import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate } from '../../shared/format.mjs';
+import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceUrl } from '../../shared/licences.mjs';
 import { brandMarkSvg } from '../../shared/brand.mjs';
-import { THEME_DESC } from './themes.mjs';
+import { THEME_DESC, THEME_GLYPH } from './themes.mjs';
+import { indiaMapHtml } from './india-map.mjs';
+import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
 import { docsStats } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
@@ -32,8 +34,6 @@ const dlCounts = bakedCounts(catalog, liveCounts);
 console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
 await copyFile(catalogPath, resolve(WEB, 'public', 'catalog.json'));
 
-// Row counts in Indian grouping (5,84,615).
-const fmtRows = (n) => (n == null ? '—' : n.toLocaleString('en-IN'));
 
 // Human-readable "X ago" — coarse buckets, no library needed.
 function relativeTime(iso) {
@@ -376,7 +376,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     ? `<span class="dl-inline">${downloads
         .map(
           (d, i) =>
-            `${i > 0 ? '<span class="dot">·</span>' : ''}<a href="${esc(d.url)}" download>${esc(d.fmt)}</a><span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${d.count.toLocaleString('en-IN')} downloads">${fmtCount(d.count)}</span>` : ''}`
+            `${i > 0 ? '<span class="dot">·</span>' : ''}<a href="${esc(d.url)}" download>${esc(d.fmt)}</a><span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}`
         )
         .join('')}</span>`
     : '';
@@ -396,7 +396,7 @@ function renderRow(level, layersForLevel, opts = {}) {
                 .join('<span class="dot">·</span>');
               return `<div class="alt__row${isPrimary ? ' alt__row--primary' : ''}">
                 <span class="src">${esc(o.source)}${isPrimary ? ' <span class="tag">primary</span>' : ''}</span>
-                <span class="meta">${fmtRows(o.rows)} rows · ${esc(o.notes || '')}</span>
+                <span class="meta">${fmtInt(o.rows)} rows · ${esc(o.notes || '')}</span>
                 <span class="links">${links || '<span class="muted">—</span>'}</span>
               </div>`;
             })
@@ -467,7 +467,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     `data-layers="${layersForLevel.length}"`,
     // What the search dropdown shows for this card (src/search-pop.ts).
     `data-title="${esc(meta.label)}"`,
-    `data-sub="${esc([primary.rows != null ? `${fmtRows(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · '))}"`,
+    `data-sub="${esc([primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · '))}"`,
     `data-href="${viewable ? `/view/${esc(primary.id)}` : `#${esc(level)}`}"`,
     `data-provenance="${esc(primary.provenance || 'curated')}"`,
     `data-source="${esc(primary.source)}"`,
@@ -481,7 +481,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   // fixed-width except actions; the title column is capped so source/count
   // line up vertically across rows.
   const countDisplay = primary.rows != null
-    ? `<span class="row__num">${fmtRows(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
+    ? `<span class="row__num">${fmtInt(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
     : '<span class="row__num">—</span>';
   // row__actions lives OUTSIDE <summary> so the interactive <a> links inside
   // don't violate HTML semantics (interactive descendants of an interactive
@@ -748,7 +748,7 @@ function renderCommunityCard(s, opts = {}) {
       </div>
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
-    <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? s.feature_count.toLocaleString('en-IN') + ' features · ' : ''}${credit} · <span class="comm-card__via">${esc(CHANNEL_LABEL[channelOf(s)])}</span></div>
+    <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? fmtInt(s.feature_count) + ' features · ' : ''}${credit} · <span class="comm-card__via">${esc(CHANNEL_LABEL[channelOf(s)])}</span></div>
     ${renderCommunityActions(s, baked, { esc, fmtBytes })}
   </article>`;
 }
@@ -779,8 +779,15 @@ const activeCats = Object.entries(catalog.categories || {})
 // Theme cards (the mockup's "Browse by theme"). They are the category filter:
 // same .catalog-chip class and data-* contract main.ts drives, so search and
 // filtering are unchanged; the count span is what the filter rewrites.
+// Each card leads with its theme's map symbol (THEME_GLYPH), like a map legend.
+const legendGlyph = (id) => {
+  const g = THEME_GLYPH[id] ?? THEME_GLYPH.other;
+  const paint = g.fill === 'ink' ? 'class="ink"' : `fill="${g.fill}"`;
+  return `<svg class="legend-glyph" viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><path d="${g.d}" ${paint}/></svg>`;
+};
 const themeCard = (id, name, n, active = false) =>
   `<button class="catalog-chip theme-card${active ? ' active' : ''}" data-cat="${esc(id)}" data-count="${n}" data-total="${n}">` +
+  legendGlyph(id) +
   `<span class="theme-card__name">${esc(name)}</span><span class="theme-card__n"><span class="count">${n}</span> layers</span>` +
   (THEME_DESC[id] ? `<span class="theme-card__desc">${esc(THEME_DESC[id])}</span>` : '') +
   `</button>`;
@@ -824,7 +831,7 @@ const popularHtml = popularIds.length
       .map((id) => {
         const l = curatedById.get(id);
         const meta = LEVEL_META[l.level];
-        const count = l.rows != null ? `${fmtRows(l.rows)} ${meta.unit || 'features'}` : '';
+        const count = l.rows != null ? `${fmtInt(l.rows)} ${meta.unit || 'features'}` : '';
         return `<a class="popular-item" href="/view/${esc(id)}"><span class="popular-item__name">${esc(meta.label)}</span><span class="popular-item__count">${esc(count)}</span></a>`;
       })
       .join('')}<a class="popular-item popular-item--all" href="#layers"><span class="popular-item__name">All ${totalLayers} layers</span><span aria-hidden="true">→</span></a></div></section>`
@@ -911,6 +918,7 @@ const out = tmpl
   .replace('<!-- POPULAR -->', popularHtml)
   .replace('<!-- MAP_BRAND -->', `<a class="map-brand" href="/" aria-label="bharatlas home">${brandMarkSvg(26)}</a>`)
   .replace('<!-- QUICK_SEARCH -->', quickSearchHtml)
+  .replace('<!-- INDIA_MAP -->', indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog }))
   .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
   .replace('<!-- UPDATED -->', updatedHtml)
   .replace('<!-- DOWNLOAD_TOTAL -->', (() => {
@@ -1200,7 +1208,7 @@ await renderPage('docs', {
 }, {
   DOCS_FAQ_HTML: docsFaqHtml,
   DOCS_LAYERS: String(docs.layers),
-  DOCS_DOWNLOADS: docs.downloads > 0 ? `${docs.downloads.toLocaleString('en-IN')} downloads so far.` : '',
+  DOCS_DOWNLOADS: docs.downloads > 0 ? `${fmtInt(docs.downloads)} downloads so far.` : '',
   DOCS_LICENCES: docs.licences
     .map(([lic, n]) => `<li><b>${n}</b>${esc(lic)}</li>`)
     .join(''),

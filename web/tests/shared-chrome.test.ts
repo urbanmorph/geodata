@@ -6,7 +6,7 @@ describe('TOKENS', () => {
   it('defines the published type scale', () => {
     expect(TOKENS).toContain('--fs-xs: 12px');
     expect(TOKENS).toContain('--fs-base: 15px');
-    expect(TOKENS).toContain('--fs-display: 56px');
+    expect(TOKENS).toContain('--fs-display: 72px');
   });
 
   it('takes its colours from the brand module (navy links, saffron buttons)', () => {

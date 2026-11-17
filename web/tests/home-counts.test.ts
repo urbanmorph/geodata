@@ -85,9 +85,12 @@ describe('home page weight', () => {
     expect(html).not.toContain('id="catalog-data"');
   });
 
-  it('stays under 85 KB gzipped', async () => {
+  // 85 KB until the hero's India map (Nov 2026): its outline and ward markers
+  // ship inline (~3 KB gzipped) so the map paints with the page; the other map
+  // themes load only when picked (map-themes.json).
+  it('stays under 88 KB gzipped', async () => {
     const { gzipSync } = await import('node:zlib');
-    expect(gzipSync(html).length).toBeLessThan(85 * 1024);
+    expect(gzipSync(html).length).toBeLessThan(88 * 1024);
   });
 });
 

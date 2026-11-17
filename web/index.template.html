@@ -18,39 +18,57 @@
     <style>
       <!-- TOKENS -->
       :root { --card-bg: var(--bg-card); --row-hover: var(--bg-card); }
-      :root { --page-max: 880px; }
+      :root { --page-max: 1120px; }
       body { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 64px; }
 
-      /* Hero band (the mockup): full width, faint contour lines, centred. */
+      /* Hero band: full width; text and search on the left, the India map on the right. */
       .home-hero {
-        /* No overflow clipping: the results popover hangs below the band. The
-           contour SVG clips itself (preserveAspectRatio slice). */
+        /* No overflow clipping: the results popover hangs below the band. */
         position: relative; z-index: 2;
-        margin: -24px calc(50% - 50vw) 0; padding: 64px 24px 48px;
-        background: var(--bg); border-bottom: 1px solid var(--line);
+        display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 40px; align-items: center;
+        /* Same left edge as the header and the sections below (page column + 24px). */
+        margin: -24px calc(50% - 50vw) 0; padding: 64px max(24px, calc(50vw - var(--page-max) / 2 + 24px)) 48px;
+        border-bottom: 1.5px solid var(--edge);
       }
-      .home-hero__lines { position: absolute; inset: 0; width: 100%; height: 100%; color: var(--fg); opacity: .06; pointer-events: none; }
-      .home-hero__inner { position: relative; max-width: 780px; margin: 0 auto; text-align: center; }
-      .open-pill {
-        display: inline-flex; align-items: center; gap: 8px; margin: 0 0 20px; padding: 6px 12px; border-radius: 999px;
-        font-size: var(--fs-sm); font-weight: 650; color: var(--fg);
-        background: color-mix(in srgb, var(--brand-green) 14%, var(--bg));
-      }
-      .open-pill svg { color: var(--brand-green); }
-      .hero__title { font-size: var(--fs-display); line-height: 1.04; font-weight: 760; letter-spacing: -.035em; margin: 0 auto 18px; max-width: 720px; text-wrap: balance; }
-      .hero__sub { color: var(--muted); margin: 0 auto; max-width: 640px; font-size: var(--fs-lg); line-height: 1.5; }
+      .home-hero__inner { min-width: 0; }
+      .hero__title { font-size: var(--fs-display); line-height: .98; font-weight: 850; letter-spacing: -.035em; margin: 0 0 20px; text-wrap: balance; }
+      .hero__sub { color: var(--muted); margin: 0; max-width: 560px; font-size: var(--fs-lg); line-height: 1.55; }
 
-      .search-wrap { position: relative; margin: 28px auto 0; text-align: left; }
-      .search-row { display: flex; gap: 10px; }
-      .search-bar {
-        flex: 1; min-width: 0; height: 64px;
-        display: flex; align-items: center; gap: 12px; padding: 0 12px 0 18px;
-        background: var(--bg); border: 2px solid var(--fg); border-radius: 16px;
-        box-shadow: 0 6px 24px color-mix(in srgb, var(--fg) 8%, transparent);
+      /* The India map (scripts/india-map.mjs, src/india-map.ts). */
+      .india-map { margin: 0; display: flex; flex-direction: column; gap: 12px; }
+      .india-map__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+      .india-map__chip {
+        min-height: 44px; padding: 0 11px; font: inherit; font-size: var(--fs-base); font-weight: 700;
+        color: var(--fg); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); cursor: pointer;
       }
-      .search-bar:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
+      .india-map__chip[aria-pressed="true"] { color: var(--bg-elevated); background: var(--edge); }
+      .india-map__frame { background: var(--bg-elevated); border: 1.5px solid var(--edge); padding: 16px 20px 12px; }
+      .india-map svg { display: block; width: 100%; height: auto; }
+      .india-map__land { fill: var(--land); }
+      .india-map__edge { fill: none; stroke: var(--edge); stroke-width: 2; stroke-linejoin: round; }
+      .india-map #india-dots circle { fill: var(--brand-green); }
+      .india-map__villages { fill: url(#india-dots); opacity: .7; }
+      .india-map__wards { fill: var(--accent-fill); stroke: var(--edge); stroke-width: 1.4; stroke-linejoin: round; }
+      .india-map__line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .india-map__line--rail { stroke: var(--fg); stroke-width: 1.1; }
+      .india-map__line--rivers { stroke: #2F7FC1; stroke-width: 1.8; }
+      .india-map__dense--schools { fill: var(--fg); }
+      .india-map__dense--forests { fill: var(--brand-green); }
+      .india-map__shade--0 { opacity: .4; } .india-map__shade--1 { opacity: .6; }
+      .india-map__shade--2 { opacity: .8; } .india-map__shade--3 { opacity: 1; }
+      .india-map__caption { margin: 8px 0 0; min-height: 2.6em; font: var(--fs-xs)/1.5 var(--font-mono); color: var(--muted); }
+
+      .search-wrap { position: relative; margin: 28px 0 0; text-align: left; }
+      .search-row { display: flex; flex-wrap: wrap; gap: 12px; }
+      .search-bar {
+        flex: 1 1 340px; min-width: 0; height: 64px;
+        display: flex; align-items: center; gap: 12px; padding: 0 12px 0 18px;
+        background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm);
+        box-shadow: var(--shadow);
+      }
+      .search-bar:focus-within { box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
       .search-bar__icon { flex: none; color: var(--fg); }
-      .catalog-search { flex: 1; min-width: 0; font: var(--fs-lg) ui-sans-serif, system-ui, sans-serif; padding: 6px 0; border: none; outline: none; background: transparent; color: var(--fg); }
+      .catalog-search { flex: 1; min-width: 0; font: var(--fs-md) ui-sans-serif, system-ui, sans-serif; padding: 6px 0; border: none; outline: none; background: transparent; color: var(--fg); }
       .catalog-search::placeholder { color: var(--muted); }
       /* The bar draws the focus ring (.search-bar:focus-within); a second ring inside it is noise. */
       .catalog-search:focus-visible { outline: none !important; }
@@ -63,16 +81,17 @@
       .find-ward {
         flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
         height: 64px; padding: 0 22px; font: inherit; font-size: var(--fs-md); font-weight: 700;
-        color: var(--on-accent-fill); background: var(--accent-fill); border: 0; border-radius: 16px; cursor: pointer;
+        color: var(--on-accent-fill); background: var(--accent-fill); border: 2px solid var(--edge); border-radius: var(--radius-sm);
+        box-shadow: var(--shadow); cursor: pointer;
       }
       .find-ward:hover { background: var(--accent-fill-hover); }
-      .find-ward__status { font-size: var(--fs-base); color: var(--fg); margin: 12px auto 0; }
+      .find-ward__status { font-size: var(--fs-base); color: var(--fg); margin: 12px 0 0; }
 
       /* Search results: a popover under the bar (answer first, then layers). */
       .search-pop {
         position: absolute; left: 0; right: 0; top: calc(100% + 8px); z-index: 20; text-align: left;
-        background: var(--bg); border: 2px solid var(--fg); border-radius: 16px; overflow: hidden;
-        box-shadow: 0 18px 48px color-mix(in srgb, var(--fg) 16%, transparent);
+        background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm); overflow: hidden;
+        box-shadow: 6px 6px 0 var(--edge);
       }
       .search-pop[hidden] { display: none; }
       .search-pop__keys { display: flex; gap: 6px; align-items: center; margin: 0; padding: 10px 16px; border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--muted); }
@@ -102,11 +121,11 @@
         border-radius: 10px; background: var(--accent-fill); color: var(--on-accent-fill) !important; font-weight: 700; text-decoration: none !important;
       }
 
-      .quick-search { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; margin: 18px auto 0; font-size: var(--fs-base); }
+      .quick-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 0; font-size: var(--fs-base); }
       .quick-search__label { color: var(--muted); }
-      .quick-search a { padding: 8px 14px; border-radius: 999px; background: var(--bg-card); color: var(--fg); font-weight: 550; text-decoration: none; }
-      .quick-search a:hover { background: color-mix(in srgb, var(--accent-fill) 22%, var(--bg-card)); }
-      .search-meta { text-align: center; color: var(--muted); font-size: var(--fs-base); margin: 16px 0 0; min-height: 18px; font-variant-numeric: tabular-nums; }
+      .quick-search a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--fg); font-weight: 600; text-decoration: none; }
+      .quick-search a:hover { background: var(--land); }
+      .search-meta { color: var(--muted); font: var(--fs-sm) var(--font-mono); margin: 16px 0 0; min-height: 18px; }
       .search-meta a { color: var(--accent); }
       /* The running totals read as facts, not links: ink, not the link colour. */
       .search-meta__count, .search-meta__layers { color: var(--fg); font-weight: 600; }
@@ -116,18 +135,22 @@
       .home-section { padding: 48px 0 0; }
       .searching .home-browse { display: none; }
       .home-section .section-title { margin: 0 0 18px; }
-      .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+      /* Theme cards read as a map legend: symbol, name, count; ruled cells. */
+      .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border-top: 1.5px solid var(--edge); border-left: 1.5px solid var(--edge); }
       .catalog-chip.theme-card {
-        display: grid; grid-template-columns: 1fr auto; gap: 6px 10px; align-content: start; text-align: left;
-        padding: 16px 18px; font: inherit; color: var(--fg); background: var(--bg);
-        border: 1px solid var(--line); border-radius: 14px; cursor: pointer; touch-action: manipulation;
+        display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; text-align: left;
+        min-height: 72px; padding: 14px 16px; font: inherit; color: var(--fg); background: var(--bg-elevated);
+        border: 0; border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); border-radius: 0; cursor: pointer; touch-action: manipulation;
       }
-      @media (hover: hover) { .catalog-chip.theme-card:hover { border-color: var(--accent-fill); } }
-      .catalog-chip.theme-card.active { border-color: var(--fg); box-shadow: inset 0 0 0 1px var(--fg); }
+      @media (hover: hover) { .catalog-chip.theme-card:hover { background: var(--land); } }
+      .catalog-chip.theme-card.active { background: color-mix(in srgb, var(--accent-fill) 18%, var(--bg-elevated)); box-shadow: inset 0 -4px 0 var(--accent-fill); }
+      .legend-glyph { grid-row: 1 / span 2; }
+      .legend-glyph path { stroke: var(--edge); stroke-width: 1.6; stroke-linejoin: round; }
+      .legend-glyph .ink { fill: var(--fg); }
       .catalog-chip[data-count="0"] { opacity: .4; cursor: not-allowed; }
       .theme-card__name { font-size: var(--fs-md); font-weight: 700; }
-      .theme-card__n { font-size: var(--fs-sm); color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .theme-card__desc { grid-column: 1 / -1; font-size: var(--fs-sm); line-height: 1.45; color: var(--muted); }
+      .theme-card__n { font: 600 var(--fs-sm) var(--font-mono); color: var(--muted); white-space: nowrap; }
+      .theme-card__desc { grid-column: 2 / -1; font-size: var(--fs-sm); line-height: 1.45; color: var(--muted); }
       .popular-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
       .popular-item { display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none !important; }
       .popular-item:hover { background: var(--bg-card); }
@@ -441,25 +464,27 @@
       footer a { color: var(--muted); text-decoration: underline; }
       code { font: var(--fs-xs) ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
 
+      @media (max-width: 900px) {
+        /* The map goes under the search: the search is the page's job. */
+        .home-hero { grid-template-columns: minmax(0, 1fr); gap: 32px; }
+      }
+
       @media (max-width: 640px) {
         body { padding: 0 12px 60px; }
         h1 { font-size: var(--fs-lg); }
         .card { padding: 20px; border-radius: 12px; }
 
-        .home-hero { margin-top: -16px; padding: 36px 16px 32px; }
-        .hero__title { font-size: var(--fs-3xl); }
+        .home-hero { margin-top: -16px; padding: 28px 16px 32px; }
+        .hero__title { font-size: var(--fs-4xl); }
         .hero__sub { font-size: var(--fs-md); }
-        .open-pill { margin-bottom: 14px; }
         /* Phone: Find my ward first and full width (the thumb's main job), search below. */
         .search-row { flex-direction: column; }
         .find-ward { order: -1; height: 56px; }
-        .search-bar { height: 56px; padding: 0 10px 0 14px; border-radius: 14px; }
+        .search-bar { height: 56px; padding: 0 10px 0 14px; }
         .search-bar__key { display: none; }
-        .catalog-search { font-size: var(--fs-md); }
         .ask-ai { padding: 20px; }
-        .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-        .catalog-chip.theme-card { grid-template-columns: minmax(0, 1fr); padding: 12px; min-width: 0; }
-        .theme-card__name { font-size: var(--fs-base); }
+        .theme-grid { grid-template-columns: minmax(0, 1fr); }
+        .catalog-chip.theme-card { min-height: 56px; padding: 8px 14px; }
         .theme-card__desc { display: none; }
       }
 
@@ -995,9 +1020,8 @@
     <!-- NAV -->
     <main id="main">
     <section class="home-hero">
-      <svg class="home-hero__lines" aria-hidden="true" viewBox="0 0 1440 520" preserveAspectRatio="xMidYMid slice"><g fill="none" stroke="currentColor" stroke-width="1.2"><path d="M-20 420 C 200 360, 380 470, 600 400 S 1000 300, 1460 380"/><path d="M-20 450 C 220 390, 400 500, 620 430 S 1020 330, 1460 410"/><path d="M-20 480 C 240 420, 420 530, 640 460 S 1040 360, 1460 440"/><path d="M-20 120 C 260 60, 520 170, 760 100 S 1180 20, 1460 90"/><path d="M-20 90 C 240 30, 500 140, 740 70 S 1160 -10, 1460 60"/></g></svg>
       <div class="home-hero__inner">
-        <p class="open-pill"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>Free and open data. No sign-up.</p>
+        <p class="sheet-note">Free and open data. No sign-up.</p>
         <h1 class="hero__title">Every boundary in India, one search away</h1>
         <p class="hero__sub">Wards, districts, villages, forests, water and public money. View it on a map, ask it a question, or download it for your own tools.</p>
         <div class="search-wrap">
@@ -1021,6 +1045,7 @@
         <!-- QUICK_SEARCH -->
         <p class="search-meta" id="search-meta"><span class="search-meta__layers"><!-- LAYER_TOTAL --> layers</span><span id="dl-total"><!-- DOWNLOAD_TOTAL --></span> · <span class="search-meta__updated">updated <!-- UPDATED --></span></p>
       </div>
+      <!-- INDIA_MAP -->
     </section>
 
     <section class="home-section home-browse" id="themes" aria-labelledby="themes-title">

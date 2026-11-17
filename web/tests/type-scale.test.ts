@@ -7,7 +7,7 @@ import { resolve } from 'node:path';
 // @ts-expect-error: plain .mjs
 import { TOKENS } from '../scripts/shared-chrome.mjs';
 
-const SCALE = { xs: 12, sm: 13, base: 15, md: 16, lg: 18, xl: 22, '2xl': 24, '3xl': 32, '4xl': 44, display: 56 };
+const SCALE = { xs: 12, sm: 13, base: 15, md: 16, lg: 18, xl: 22, '2xl': 24, '3xl': 32, '4xl': 44, display: 72 };
 const read = (p: string) => readFileSync(resolve(__dirname, '..', p), 'utf8');
 
 describe('type scale', () => {
