@@ -59,7 +59,9 @@ from pipeline import (  # noqa: E402,F401
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-WORK = Path('/tmp/ramseraph')  # created by ingest(), not at import
+# Downloads and bakes are cached here (set RAMSERAPH_WORK for a durable disk);
+# created by ingest(), not at import.
+WORK = Path(os.environ.get('RAMSERAPH_WORK', '/tmp/ramseraph'))
 
 
 @dataclass
@@ -819,8 +821,13 @@ def ingest(d: Dataset, upload: bool = True) -> None:
 
     http_download(d.parquet_url, raw_parquet)
 
-    features, cols = rebake_flatten_bbox(raw_parquet, flat_parquet)
-    print(f'  features: {features:,}; columns post-flatten: {cols}')
+    if pipeline.is_fresh(flat_parquet, raw_parquet):
+        features = pipeline.parquet_rows(flat_parquet)
+        print(f'  flat parquet up to date; features: {features:,}')
+    else:
+        with pipeline.atomic_output(flat_parquet) as part:
+            features, cols = rebake_flatten_bbox(raw_parquet, part)
+        print(f'  features: {features:,}; columns post-flatten: {cols}')
 
     pq_bytes = flat_parquet.stat().st_size
     files = {flat_parquet: Path(d.parquet_url).name}
@@ -855,6 +862,7 @@ def ingest(d: Dataset, upload: bool = True) -> None:
 
 
 def main(argv: list[str]) -> int:
+    sys.stdout.reconfigure(line_buffering=True)  # progress lines show as they happen
     upload = '--no-upload' not in argv
     argv = [a for a in argv if a != '--no-upload']
     for key in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
@@ -870,9 +878,16 @@ def main(argv: list[str]) -> int:
             print(f'No dataset matched "{needle}". Available: {[d.id for d in DATASETS]}')
             return 2
 
+    failed = []
     for d in targets:
-        ingest(d, upload=upload)
-    return 0
+        try:
+            ingest(d, upload=upload)
+        except Exception as e:  # noqa: BLE001  (one bad source must not stop the rest)
+            failed.append(d.id)
+            print(f'  FAIL {d.id}: {type(e).__name__}: {e}')
+    if failed:
+        print(f'\n{len(failed)} of {len(targets)} layer(s) failed: {", ".join(failed)}')
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':

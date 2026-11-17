@@ -158,6 +158,11 @@ def write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=True) + '\n')
 
 
+def parquet_rows(path: Path) -> int:
+    import duckdb
+    return duckdb.connect().execute('SELECT count(*) FROM read_parquet(?)', [str(path)]).fetchone()[0]
+
+
 def slug(value: str) -> str:
     return re.sub(r'[^a-z0-9]+', '_', str(value).lower()).strip('_') or 'unknown'
 
@@ -407,32 +412,41 @@ def bake_whole_layer(d, src_parquet: Path, bake_dir: Path, basename: str | None 
 
     outputs: dict[str, Path] = {}
 
+    # Each output is rebuilt only when missing or older than what it is made
+    # from, and written under a temporary name, so a re-run does no work and a
+    # killed run leaves nothing half-written to skip.
     geojson_path = bake_dir / f'{basename}.geojson'
-    try:
-        con = make_con()
-        con.execute(
-            f"COPY (SELECT * FROM read_parquet('{src_parquet}')) "
-            f"TO '{geojson_path}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')"
-        )
-        outputs['geojson'] = geojson_path
-    except Exception as e:
-        log(f'  geojson bake failed: {e}')
-        return {}  # without geojson we can't bake kml or shapefile downstream
+    if not is_fresh(geojson_path, src_parquet):
+        try:
+            with atomic_output(geojson_path) as part:
+                make_con().execute(
+                    f"COPY (SELECT * FROM read_parquet('{src_parquet}')) "
+                    f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')"
+                )
+        except Exception as e:  # noqa: BLE001  (logged; the parquet still ships)
+            log(f'  geojson bake failed: {e}')
+            return {}  # without geojson we can't bake kml or shapefile downstream
+    outputs['geojson'] = geojson_path
 
     kml_path = bake_dir / f'{basename}.kml'
     try:
-        subprocess.run(
-            ['ogr2ogr', '-f', 'KML',
-             *(['-dsco', f'NameField={kml_name_field}'] if kml_name_field else []),
-             str(kml_path), str(geojson_path)],
-            check=True, capture_output=True, timeout=600, env=OGR_ENV,
-        )
+        if not is_fresh(kml_path, geojson_path):
+            with atomic_output(kml_path) as part:
+                subprocess.run(
+                    ['ogr2ogr', '-f', 'KML',
+                     *(['-dsco', f'NameField={kml_name_field}'] if kml_name_field else []),
+                     str(part), str(geojson_path)],
+                    check=True, capture_output=True, timeout=600, env=OGR_ENV,
+                )
         outputs['kml'] = kml_path
     except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
         log(f'  kml bake skipped: {e}')
 
     shp_dir = bake_dir / f'{basename}_shp'
     shp_zip = bake_dir / f'{basename}.shp.zip'
+    if is_fresh(shp_zip, geojson_path):
+        outputs['shapefile'] = shp_zip
+        return outputs
     try:
         shp_dir.mkdir(exist_ok=True)
         # Clear any prior shapefile pieces (idempotent re-run)

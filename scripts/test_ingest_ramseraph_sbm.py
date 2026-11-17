@@ -280,3 +280,31 @@ def test_ogr2ogr_reads_geojson_features_of_any_size(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline.subprocess, 'run', spy)
     ir.bake_whole_layer(_ds(), _ward_parquet(tmp_path))
     assert seen and all(v == '0' for v in seen)
+
+
+def test_a_rerun_does_not_rebake_unchanged_layers(tmp_path, monkeypatch):
+    # Every run re-flattened and rebaked every layer; only uploads were skipped.
+    monkeypatch.setattr(ir, 'WORK', tmp_path)
+    src = _ward_parquet(tmp_path)
+    monkeypatch.setattr(ir, 'http_download', lambda url, dest: dest.exists() or dest.write_bytes(src.read_bytes()))
+    ds = _ds({'pmtiles_url': '', 'bake_all_formats': True})
+    ir.ingest(ds, upload=False)
+    work = []
+    monkeypatch.setattr(ir, 'rebake_flatten_bbox', lambda *a, **k: work.append('flatten'))
+    monkeypatch.setattr(pipeline.subprocess, 'run', lambda cmd, *a, **k: work.append(cmd[0]))
+    monkeypatch.setattr(pipeline, 'make_con', lambda: work.append('duckdb'))
+    ir.ingest(ds, upload=False)
+    assert work == []
+
+
+def test_one_failing_layer_does_not_stop_the_rest(monkeypatch, capsys):
+    done = []
+
+    def ingest(d, upload=True):
+        if d.id == 'boom':
+            raise RuntimeError('source 503')
+        done.append(d.id)
+    monkeypatch.setattr(ir, 'ingest', ingest)
+    monkeypatch.setattr(ir, 'DATASETS', [_ds({'id': 'boom'}), _ds({'id': 'ok'})])
+    assert ir.main(['x', '--no-upload']) == 1
+    assert done == ['ok'] and 'boom' in capsys.readouterr().out
