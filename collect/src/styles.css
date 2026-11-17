@@ -18,8 +18,8 @@
   --fs-xs: 12px; --fs-sm: 13px; --fs-base: 15px; --fs-md: 16px; --fs-lg: 18px;
   --fs-xl: 22px; --fs-2xl: 24px; --fs-3xl: 32px; --fs-4xl: 44px; --fs-display: 72px;
   color-scheme: light dark;
-  --bg: #ffffff;
-  --surface: #f5f5f5;        /* = apex --bg-card; raised sections */
+  --bg: #F3F6F1;             /* = bharatlas --bg: survey-sheet paper */
+  --surface: #E9EFEA;        /* = bharatlas --bg-card; raised sections */
   --card: #ffffff;
   --fg: #0B1B3F;             /* brand ink (chakra navy) */
   --muted: #525965;          /* apex */
@@ -35,12 +35,16 @@
   --amber: #b45309;
   --ok: #15803d;            /* success text, AA on --bg */
   --sheet: #ffffff;
-  --radius: 12px;
+  --radius: 4px;
   --radius-pill: 999px;
   --ctl-h: 46px;
-  --shadow-sheet: 0 -10px 34px rgba(15, 17, 21, .12);
-  --shadow-card: 0 1px 2px rgba(15, 17, 21, .05);
-  --shadow-pop: 0 6px 22px rgba(15, 17, 21, .16);
+  /* Survey sheet (Direction A): the same values as bharatlas.com's TOKENS in
+     web/scripts/shared-chrome.mjs (tests/survey-sheet.test.ts keeps them equal). */
+  --edge: #0B1B3F; --land: #E6F2EA; --grid: rgba(18, 128, 74, .07);
+  --shadow: 4px 4px 0 var(--edge); --shadow-sm: 3px 3px 0 var(--edge);
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --shadow-sheet: 0 -1.5px 0 var(--edge); /* bottom sheets: a navy top edge over the map */
+  --shadow-pop: var(--shadow-sm);
   --ring: 0 0 0 3px rgba(26, 42, 108, .40);
   --sheet-h: 0px;            /* live height of the bottom sheet; JS keeps it current
                                 so the map's crosshair + floating controls sit above it */
@@ -65,9 +69,7 @@
     --amber: #fbbf24;
     --ok: #4ade80;
     --sheet: #15151a;        /* = apex --bg-elevated */
-    --shadow-sheet: 0 -10px 34px rgba(0, 0, 0, .6);
-    --shadow-card: 0 1px 2px rgba(0, 0, 0, .35);
-    --shadow-pop: 0 6px 22px rgba(0, 0, 0, .5);
+    --edge: #C8D0E3; --land: #13261C; --grid: rgba(63, 203, 126, .06);
     --ring: 0 0 0 3px rgba(245, 160, 74, .45);
   }
 }
@@ -75,7 +77,10 @@
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
+  /* grid paper behind every page; the map screens cover it */
   background: var(--bg);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 48px 48px;
   color: var(--fg);
   font: 400 var(--fs-md)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -88,7 +93,7 @@ strong { font-weight: 650; letter-spacing: -.01em; }
 .topbar {
   display: flex; align-items: center; gap: 10px;
   padding: max(10px, env(safe-area-inset-top)) 16px 10px;
-  border-bottom: 1px solid var(--line); background: var(--bg);
+  border-bottom: 1.5px solid var(--edge); background: var(--card);
   font-weight: 650; letter-spacing: -.01em;
 }
 .topbar a { color: var(--fg); text-decoration: none; font-size: var(--fs-xl); line-height: 1; }
@@ -102,7 +107,7 @@ strong { font-weight: 650; letter-spacing: -.01em; }
 /* ── action buttons: one shape, one height ─────────────────────────────── */
 button, .btn {
   min-height: var(--ctl-h); padding: 0 16px; border-radius: var(--radius);
-  border: 1px solid var(--line-strong); background: var(--card); color: var(--fg);
+  border: 1.5px solid var(--edge); background: var(--card); color: var(--fg);
   font-size: var(--fs-base); font-weight: 500; line-height: 1; cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 7px;
   text-decoration: none; box-sizing: border-box; white-space: nowrap;
@@ -117,10 +122,12 @@ button:disabled, .btn:disabled { opacity: .5; cursor: default; transform: none; 
 /* Primary = solid saffron with navy text (AA in both themes). Mobile has no
    hover, so the brand CTA colour shows permanently. Darkens on desktop hover. */
 button.primary, .btn.primary {
-  background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent-solid); width: 100%;
+  background: var(--accent-solid); color: var(--on-accent-solid); width: 100%;
+  font-weight: 750; box-shadow: var(--shadow-sm);
 }
-button.primary:hover, .btn.primary:hover { background: var(--accent-solid-hover); border-color: var(--accent-solid-hover); }
-button.ghost { background: transparent; border-color: var(--line); }
+button.primary:hover, .btn.primary:hover { background: var(--accent-solid-hover); }
+button.primary:active, .btn.primary:active { box-shadow: none; transform: translate(3px, 3px); }
+button.ghost { background: transparent; }
 button.accent { border-color: var(--accent); color: var(--accent); background: var(--accent-fill); }
 button.danger { border-color: var(--line-strong); color: var(--danger); background: var(--card); }
 
@@ -133,7 +140,7 @@ label { display: block; font-size: var(--fs-sm); font-weight: 500; color: var(--
 input, textarea, select {
   font-family: inherit;
   width: 100%; min-height: var(--ctl-h); padding: 11px 13px; font-size: var(--fs-md); color: var(--fg);
-  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--bg);
+  border: 1.5px solid var(--edge); border-radius: var(--radius); background: var(--card);
   transition: border-color .15s ease, box-shadow .15s ease;
 }
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
@@ -144,7 +151,7 @@ textarea { min-height: 92px; line-height: 1.5; }
 /* ── toggles / filters: pill ───────────────────────────────────────────── */
 .chip {
   display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px;
-  border: 1px solid var(--line-strong); border-radius: var(--radius-pill);
+  border: 1.5px solid var(--edge); border-radius: var(--radius-pill);
   background: var(--card); font-size: var(--fs-base); font-weight: 600; color: var(--fg); cursor: pointer;
   transition: background .15s ease, border-color .15s ease, color .15s ease;
 }
@@ -153,13 +160,13 @@ textarea { min-height: 92px; line-height: 1.5; }
 /* ── segmented switcher (Point / Line / Area) ──────────────────────────── */
 .seg {
   display: inline-flex; margin: 6px 0 2px; padding: 3px; gap: 3px;
-  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface);
+  border: 1.5px solid var(--edge); border-radius: var(--radius); background: var(--surface);
 }
 .seg button {
   min-height: 34px; border: 0; border-radius: 9px; background: transparent;
   font-size: var(--fs-base); font-weight: 600; padding: 0 16px; color: var(--muted);
 }
-.seg button.on { background: var(--accent-solid); color: var(--on-accent-solid); box-shadow: var(--shadow-card); }
+.seg button.on { background: var(--accent-solid); color: var(--on-accent-solid); }
 
 /* Landing and form pages scroll as a normal page; the map screens keep the
    fixed full-screen #app. (An inner scroll box inside a fixed-height #app was
@@ -167,7 +174,8 @@ textarea { min-height: 92px; line-height: 1.5; }
    create form's Create button was out of reach.) */
 #app:has(> .pad) { height: auto; min-height: 100dvh; }
 #app:has(> .pad) > .topbar { position: sticky; top: 0; z-index: 2; }
-.pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); width: 100%; max-width: var(--content-max); margin-inline: auto; }
+.pad { padding: 20px 16px calc(20px + env(safe-area-inset-bottom)); width: 100%; max-width: var(--content-max); margin-inline: auto; 
+}
 .pad h1 { font-size: var(--fs-2xl); font-weight: 700; letter-spacing: -.025em; line-height: 1.15; margin: 6px 0 8px; }
 .hint { color: var(--muted); font-size: var(--fs-sm); line-height: 1.5; font-variant-numeric: tabular-nums; }
 /* Reserve one line so the async "N points collected" stat fills this space
@@ -183,7 +191,7 @@ button.install-app:hover { border-color: var(--accent); }
 button.install-app[hidden] { display: none; }
 dialog.install-guide {
   max-width: min(360px, calc(100vw - 32px)); padding: 20px;
-  color: var(--fg); background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius);
+  color: var(--fg); background: var(--sheet); border: 1.5px solid var(--edge); border-radius: var(--radius);
   box-shadow: var(--shadow-pop);
 }
 dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
@@ -196,7 +204,7 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 .warn { color: var(--danger); font-size: var(--fs-sm); line-height: 1.5; }
 /* attention box — pending points need approval to be visible/exported */
 .notice {
-  background: var(--surface); border: 1px solid var(--line-strong);
+  background: var(--surface); border: 1.5px solid var(--edge);
   border-left: 3px solid var(--amber); border-radius: var(--radius);
   padding: 11px 13px; margin: 8px 0; font-size: var(--fs-sm); line-height: 1.45; color: var(--fg);
 }
@@ -219,7 +227,7 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 
 .link-box {
   display: flex; gap: 8px; align-items: center; margin: 8px 0;
-  padding: 6px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card);
+  padding: 6px; border: 1.5px solid var(--edge); border-radius: var(--radius); background: var(--card);
 }
 .link-box code {
   flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -250,8 +258,8 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 
 /* ── share a link to another device (Copy / Share / QR) ────────────────── */
 .share-item {
-  border: 1px solid var(--line); border-radius: var(--radius); background: var(--card);
-  padding: 11px 12px; margin: 9px 0; box-shadow: var(--shadow-card);
+  border: 1.5px solid var(--edge); border-radius: var(--radius); background: var(--card);
+  padding: 11px 12px; margin: 9px 0;
 }
 .share-item__label { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: var(--fs-sm); font-weight: 600; color: var(--fg); }
 .share-item code {
@@ -263,14 +271,14 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 /* the QR itself is always dark-on-white so it scans in any theme */
 .qr {
   width: 172px; max-width: 60vw; aspect-ratio: 1; margin: 10px auto 0; padding: 10px;
-  background: #fff; border-radius: var(--radius); box-shadow: var(--shadow-card);
+  background: #fff; border-radius: var(--radius);
   display: flex; align-items: center; justify-content: center;
 }
 .qr svg { display: block; width: 100%; height: 100%; }
 .qr-slot[hidden] { display: none; }
 
 /* collapsible link rows (Share tab): tap the header to reveal the copy options */
-.linkrow { border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); margin: 8px 0; overflow: hidden; }
+.linkrow { border: 1.5px solid var(--edge); border-radius: var(--radius); background: var(--card); margin: 8px 0; overflow: hidden; }
 .linkrow__head {
   width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 10px;
   min-height: 48px; padding: 0 14px; background: transparent; border: 0; text-align: left; border-radius: 0;
@@ -288,13 +296,13 @@ dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
 /* ── tabs (admin Manage: Review / Share / Data) ────────────────────────── */
 .tabs {
   display: flex; gap: 4px; margin: 10px 0 12px; padding: 3px;
-  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--surface);
+  border: 1.5px solid var(--edge); border-radius: var(--radius); background: var(--surface);
 }
 .tabs button {
   flex: 1; min-height: 36px; border: 0; border-radius: 9px; background: transparent;
   font-size: var(--fs-sm); font-weight: 600; padding: 0 6px; color: var(--muted);
 }
-.tabs button.on { background: var(--accent-solid); color: var(--on-accent-solid); box-shadow: var(--shadow-card); }
+.tabs button.on { background: var(--accent-solid); color: var(--on-accent-solid); }
 
 /* import column-mapping rows (field ← column) */
 .maplabel { font-size: var(--fs-sm); font-weight: 600; color: var(--fg); margin: 14px 0 6px; }
@@ -362,7 +370,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 .basemap-menu {
   position: absolute; left: 12px; top: 64px; z-index: 7;
   width: min(280px, 78vw); max-height: 60dvh; overflow: auto;
-  background: var(--sheet); border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--sheet); border: 1.5px solid var(--edge); border-radius: var(--radius);
   box-shadow: var(--shadow-pop); padding: 6px; display: flex; flex-direction: column; gap: 2px;
 }
 .basemap-menu[hidden] { display: none; }
@@ -380,7 +388,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 /* ── bottom sheet ──────────────────────────────────────────────────────── */
 .sheet {
   position: relative; background: var(--sheet); border-top: 1px solid var(--line);
-  box-shadow: var(--shadow-sheet); border-radius: 18px 18px 0 0;
+  box-shadow: var(--shadow-sheet); border-radius: var(--radius) var(--radius) 0 0;
   max-height: 64dvh; display: flex; flex-direction: column;
   max-width: var(--content-max); margin-inline: auto; /* centred with gutters on wide screens */
   animation: sheet-in .22s cubic-bezier(.2, .7, .3, 1);
@@ -397,7 +405,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
    handler instead of panning the page (iPad Safari cancels it otherwise). */
 .grab {
   position: relative; flex: 0 0 auto; width: 100%; height: 44px; min-height: 44px;
-  padding: 0; margin: 0; border: 0; background: transparent; cursor: grab; border-radius: 18px 18px 0 0;
+  padding: 0; margin: 0; border: 0; background: transparent; cursor: grab; border-radius: var(--radius) var(--radius) 0 0;
   touch-action: none;
 }
 .grab::before {
@@ -411,7 +419,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 /* compact placing controls — keeps the map the centre-piece while marking */
 .bar {
   position: relative; background: var(--sheet); border-top: 1px solid var(--line);
-  box-shadow: var(--shadow-sheet); border-radius: 18px 18px 0 0;
+  box-shadow: var(--shadow-sheet); border-radius: var(--radius) var(--radius) 0 0;
   padding: 18px 16px calc(14px + env(safe-area-inset-bottom));
   display: flex; flex-direction: column; gap: 10px;
   max-width: var(--content-max); margin-inline: auto; /* centred with gutters on wide screens */
@@ -430,8 +438,8 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 
 /* ── cards + badges ────────────────────────────────────────────────────── */
 .card {
-  border: 1px solid var(--line); border-radius: var(--radius); padding: 13px 14px; margin: 10px 0;
-  background: var(--card); box-shadow: var(--shadow-card);
+  border: 1.5px solid var(--edge); border-radius: var(--radius); padding: 13px 14px; margin: 10px 0;
+  background: var(--card);
 }
 .card .row button { flex: 1; min-height: 42px; font-size: var(--fs-base); padding: 0 8px; }
 
@@ -440,7 +448,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 .point-row {
   width: 100%; display: flex; align-items: center; gap: 10px; text-align: left;
   padding: 11px 12px; margin: 6px 0; min-height: 48px;
-  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+  background: var(--card); border: 1.5px solid var(--edge); border-radius: var(--radius); cursor: pointer;
 }
 .point-row:hover { border-color: var(--line-strong); }
 /* the row linked to the marker selected on the map */
@@ -466,8 +474,8 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 /* MapLibre ships a light-only popup and its CSS is injected AFTER this file, so
    these are scoped to .record-popup to outrank it (else: light text on white). */
 .record-popup .maplibregl-popup-content {
-  background: var(--sheet); color: var(--fg); border: 1px solid var(--line);
-  border-radius: 14px; box-shadow: var(--shadow-pop); padding: 12px 14px;
+  background: var(--sheet); color: var(--fg); border: 1.5px solid var(--edge);
+  border-radius: var(--radius); box-shadow: var(--shadow-pop); padding: 12px 14px;
 }
 .record-popup .maplibregl-popup-close-button { color: var(--muted); font-size: var(--fs-xl); padding: 0 6px; }
 .record-popup.maplibregl-popup-anchor-bottom .maplibregl-popup-tip { border-top-color: var(--sheet); }
@@ -492,7 +500,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 .pop-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .pop-btn {
   flex: 1 1 auto; min-width: 84px; min-height: 40px; padding: 0 10px;
-  border: 1px solid var(--line-strong); border-radius: var(--radius);
+  border: 1.5px solid var(--edge); border-radius: var(--radius);
   background: var(--card); color: var(--fg); font-size: var(--fs-sm); font-weight: 600; cursor: pointer;
 }
 .pop-btn--approve { background: var(--accent-solid); border-color: var(--accent-solid); color: var(--on-accent-solid); }
@@ -507,7 +515,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 /* role pill on "Your maps" (Owner / Collect / View) */
 .pill { display: inline-block; font-size: var(--fs-xs); font-weight: 600; padding: 1px 8px; border-radius: var(--radius-pill); vertical-align: middle; white-space: nowrap; }
 .pill--owner { background: var(--accent-fill); color: var(--accent); }
-.pill--collect, .pill--view { background: var(--surface); color: var(--muted); border: 1px solid var(--line); }
+.pill--collect, .pill--view { background: var(--surface); color: var(--muted); border: 1.5px solid var(--edge); }
 
 /* toast — direction, not decoration */
 .toast {
@@ -528,7 +536,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 @keyframes spin { to { transform: rotate(360deg); } }
 .map-loading {
   position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 4;
-  background: var(--sheet); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px;
+  background: var(--sheet); border: 1.5px solid var(--edge); border-radius: 999px; padding: 9px 16px;
   box-shadow: var(--shadow-pop); font-size: var(--fs-base); color: var(--muted); display: flex; align-items: center; gap: 8px;
 }
 
@@ -557,7 +565,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
 .choice {
   display: flex; flex-direction: column; align-items: flex-start; gap: 3px; text-align: left;
   min-height: 64px; padding: 12px 14px; white-space: normal; line-height: 1.35; margin: 0;
-  border: 1px solid var(--line-strong); border-radius: var(--radius); background: var(--card); color: var(--fg); cursor: pointer;
+  border: 1.5px solid var(--edge); border-radius: var(--radius); background: var(--card); color: var(--fg); cursor: pointer;
   font-size: var(--fs-base); font-weight: 400;
 }
 .choice .hint { font-size: var(--fs-sm); }
@@ -615,7 +623,7 @@ label.btn.primary { color: var(--on-accent-solid); }
 .viewer__bar button { background: rgba(255, 255, 255, .12); border-color: rgba(255, 255, 255, .25); color: #fff; min-width: 46px; }
 
 /* ── notes from the photo (review) ───────────────────────────────────────── */
-.ai-notes { margin-top: 16px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--line); }
+.ai-notes { margin-top: 16px; padding: 12px 14px; border-radius: var(--radius); background: var(--surface); border: 1.5px solid var(--edge); }
 .ai-notes p { margin: 6px 0; }
 .ai-notes label { margin-top: 8px; }
 .ai-notes textarea { min-height: 64px; }
@@ -634,3 +642,11 @@ label.btn.primary { color: var(--on-accent-solid); }
   content: ""; width: 18px; height: 18px; border-radius: 50%; background: #fff;
   border: 3px solid var(--accent-solid); box-shadow: var(--shadow-pop);
 }
+
+/* MapLibre's zoom buttons, edged like collect's own map buttons. MapLibre's
+   stylesheet loads after this one, so these rules sit under .maplibregl-map to win. */
+.maplibregl-map .maplibregl-ctrl-group:not(:empty) {
+  border: 1.5px solid var(--edge); border-radius: var(--radius); box-shadow: var(--shadow-sm); background: var(--card);
+}
+.maplibregl-map .maplibregl-ctrl-group button + button { border-top: 1px solid var(--line); }
+@media (prefers-color-scheme: dark) { .maplibregl-map .maplibregl-ctrl-icon { filter: invert(1); } } /* MapLibre's icons are dark */
