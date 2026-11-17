@@ -154,7 +154,7 @@ export const TOKENS = `
   .sheet-note { margin: 0 0 12px; font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); }
   .page-lead { margin: 0 0 28px; max-width: 660px; font-size: var(--fs-lg); line-height: 1.55; color: var(--muted); }
   .section-title, .prose h2, :where(.page main) h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 850; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
-  .prose { max-width: 720px; }
+  .prose :is(p, ul, ol, dl) { max-width: 720px; } /* the sheet spans the column; its text keeps a reading measure */
   .prose ul { list-style: none; margin: 0 0 16px; padding: 0; }
   .prose li { position: relative; padding: 4px 0 4px 20px; }
   .prose li::before { content: ""; position: absolute; left: 4px; top: .9em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fill); }
