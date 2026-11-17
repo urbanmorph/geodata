@@ -292,3 +292,11 @@ describe('buildViewContent', () => {
     expect(html).not.toContain('<strong>');
   });
 });
+
+describe('buildViewContent: non-commercial layers', () => {
+  it('shows the Non-commercial only badge beside the licence', () => {
+    const html = buildViewContent({ ...layer, licence: 'CC-BY-NC-SA-4.0' }, { label: 'Slums' }, ORIGIN);
+    expect(html).toContain('Non-commercial only');
+    expect(buildViewContent(layer, { label: 'Villages' }, ORIGIN)).not.toContain('Non-commercial');
+  });
+});

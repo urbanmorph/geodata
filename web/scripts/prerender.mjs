@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
-import { licenceUrl } from '../../shared/licences.mjs';
+import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { brandMarkSvg } from '../../shared/brand.mjs';
 import { THEME_DESC, THEME_GLYPH } from './themes.mjs';
 import { indiaMapHtml } from './india-map.mjs';
@@ -408,7 +408,7 @@ function renderRow(level, layersForLevel, opts = {}) {
       </details>`
     : '';
 
-  const lic = primary.licence ? `<span class="lic"><code>${esc(primary.licence)}</code></span>` : '';
+  const nc = layerIsNonCommercial(primary);
 
   // Viewer-hint message adapts to what's already on the card:
   // - If geojson/kml/shp are baked whole-layer, the hint is just about state slicing.
@@ -497,14 +497,14 @@ function renderRow(level, layersForLevel, opts = {}) {
       <div class="row__head">
         <details class="row__details">
           <summary class="row__summary">
-            <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}</span>
+            <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}${nc ? ` <span class="badge lic-badge lic-badge--nc">${NC_LABEL}</span>` : ''}</span>
             <span class="row__source" title="${esc(primary.attribution?.primary?.name || primary.source)}">${esc(primary.source)}</span>
             <span class="row__count">${countDisplay}</span>
           </summary>
           <div class="row__expand">
             <p class="row__desc">${esc(meta.description)}</p>
             ${sourceLine}
-            ${primary.licence ? `<p class="row__lic-line">Licence: <code>${esc(primary.licence)}</code></p>` : ''}
+            ${primary.licence ? `<p class="row__lic-line">Licence: ${licenceBadgeHtml(primary.licence, nc)}</p>` : ''}
             ${primary.fetched_at ? `<p class="row__updated">Updated: <time datetime="${esc(primary.fetched_at.slice(0, 10))}">${esc(primary.fetched_at.slice(0, 10))}</time></p>` : ''}
             ${dlInline ? `<p class="row__downloads">Download: ${dlInline}</p>` : ''}
             ${viewerHint}
@@ -1009,7 +1009,7 @@ const ABOUT_FAQ = [
   },
   {
     q: 'What licences apply?',
-    a: 'Curated layers carry CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, ODbL-1.0, GODL-India, MIT, or CDLA-Permissive-2.0 / Apache-2.0 depending on the source (each card names its licence). Publicly funded government geodata is republished with full credit to the publishing department; data under a non-commercial licence, privately owned data without an open licence, and personal data are left out, and publishers can ask for corrections or removal. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
+    a: 'Curated layers carry CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, ODbL-1.0, GODL-India, MIT, or CDLA-Permissive-2.0 / Apache-2.0 depending on the source (each card names its licence). Publicly funded government geodata is republished with full credit to the publishing department. Layers under a non-commercial licence are marked Non-commercial only on their card, map page and API answers. Privately owned data without an open licence, and personal data, are left out, and publishers can ask for corrections or removal. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
   },
   {
     q: 'Is my file uploaded when I drop it?',
