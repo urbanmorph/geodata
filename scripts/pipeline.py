@@ -226,6 +226,22 @@ def r2_upload(s3, local: Path, key: str) -> None:
     s3.upload_file(str(local), BUCKET, key, ExtraArgs=extra, Config=transfer)
 
 
+def find_parquet(layer: dict) -> Path | None:
+    """A catalog layer's parquet on disk: sources/india-geodata/<name> (fetch.sh),
+    else data/baked/<R2 key> (the bakes), else None."""
+    url = (layer.get('parquet') or {}).get('url')
+    if not url:
+        return None
+    candidate = ROOT / 'sources' / 'india-geodata' / url.rsplit('/', 1)[-1]
+    if candidate.exists():
+        return candidate
+    if url.startswith(R2_PUBLIC + '/'):
+        baked = ROOT / 'data' / 'baked' / url[len(R2_PUBLIC) + 1:]
+        if baked.exists():
+            return baked
+    return None
+
+
 # ── catalog.json + external-ingested.json patching ───────────────────────────
 
 def now_iso() -> str:

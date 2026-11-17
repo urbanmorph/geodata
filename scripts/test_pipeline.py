@@ -341,6 +341,32 @@ def test_upload_r2_sh_maps_files_to_keys_and_hands_them_to_the_md5_uploader(tmp_
     assert not (HERE / 'upload_r2_multipart.py').exists()  # r2_upload does multipart itself
 
 
+# ── one copy of the R2 constants and helpers (review items 16, 20) ───────────
+
+def test_find_parquet_looks_in_sources_then_data_baked(tmp_path, monkeypatch):
+    monkeypatch.setattr(pipeline, 'ROOT', tmp_path)
+    baked = tmp_path / 'data' / 'baked' / 'admin' / 'wards-x' / 'wards_x.parquet'
+    baked.parent.mkdir(parents=True)
+    baked.write_bytes(b'x')
+    layer = {'parquet': {'url': f'{pipeline.R2_PUBLIC}/admin/wards-x/wards_x.parquet'}}
+    assert pipeline.find_parquet(layer) == baked
+    src = tmp_path / 'sources' / 'india-geodata' / 'wards_x.parquet'
+    src.parent.mkdir(parents=True)
+    src.write_bytes(b'x')
+    assert pipeline.find_parquet(layer) == src
+    assert pipeline.find_parquet({'parquet': None}) is None
+
+
+def test_build_scripts_share_the_r2_constants_and_helpers():
+    import build_api_indexes
+    import build_catalog
+    import build_ward_index
+    assert build_catalog.R2 == pipeline.R2_PUBLIC
+    assert build_api_indexes.find_parquet is pipeline.find_parquet
+    assert build_ward_index.find_parquet is pipeline.find_parquet
+    assert not hasattr(build_catalog, '_load_prev_layers')  # no callers anywhere
+
+
 # ── catalog patching (review items 6, 7) ─────────────────────────────────────
 
 def test_upsert_by_id_replaces_in_place_and_appends_new():
