@@ -14,7 +14,7 @@ import {
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
 import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
-import { usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS } from '../../shared/large-load.mjs';
+import { usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, SERVER_SHAPE_EXPORT } from '../../shared/large-load.mjs';
 import { fmtBytes } from './format-hints';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
 import {
@@ -60,6 +60,13 @@ export function mountFilterPanel(
     : `<button class="filter-panel__btn filter-panel__btn--primary" data-fmt="parquet" disabled>
             <span class="fmt">Parquet</span><span class="muted">analytics · smallest</span>
           </button>`;
+  const shapeBtns = server && !SERVER_SHAPE_EXPORT ? '' : `
+          <button class="filter-panel__btn" data-fmt="geojson" disabled>
+            <span class="fmt">GeoJSON</span><span class="muted">QGIS, web</span>
+          </button>
+          <button class="filter-panel__btn" data-fmt="kml" disabled>
+            <span class="fmt">KML</span><span class="muted">Google Earth &amp; Maps</span>
+          </button>`;
   const hint = server
     ? `This layer is large, so filtering runs on the bharatlas server: the count and exports (up to ${FILTER_EXPORT_MAX_ROWS.toLocaleString('en-US')} rows) come from there.`
     : 'Filtering runs in your browser. It downloads only the parts of the file your filter needs.';
@@ -78,13 +85,7 @@ export function mountFilterPanel(
           <span class="filter-panel__muted">Pick a value above to enable export.</span>
         </div>
         <div class="filter-panel__actions">
-          ${firstBtn}
-          <button class="filter-panel__btn" data-fmt="geojson" disabled>
-            <span class="fmt">GeoJSON</span><span class="muted">QGIS, web</span>
-          </button>
-          <button class="filter-panel__btn" data-fmt="kml" disabled>
-            <span class="fmt">KML</span><span class="muted">Google Earth &amp; Maps</span>
-          </button>
+          ${firstBtn}${shapeBtns}
         </div>
         <div class="filter-panel__status" id="filter-status" aria-live="polite"></div>
       </div>

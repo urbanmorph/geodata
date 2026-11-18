@@ -104,7 +104,7 @@ describe('a layer over LARGE_FILTER_BYTES', () => {
     mount(2300 * MB);
     chip('sname', 'KA').click();
     await vi.advanceTimersByTimeAsync(400);
-    document.querySelector<HTMLButtonElement>('[data-fmt="geojson"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-fmt="csv"]')!.click();
     await vi.advanceTimersByTimeAsync(10);
     expect(dbSawParquet()).toBe(false);
     expect(vi.mocked(db.getDb)).not.toHaveBeenCalled();
@@ -115,7 +115,7 @@ describe('a layer over LARGE_FILTER_BYTES', () => {
     mount(2300 * MB);
     chip('sname', 'KA').click();
     await vi.advanceTimersByTimeAsync(400);
-    document.querySelector<HTMLButtonElement>('[data-fmt="geojson"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-fmt="csv"]')!.click();
     await vi.advanceTimersByTimeAsync(10);
     expect(clicked).toHaveLength(0);
     const msg = document.querySelector('#filter-status')!.textContent!;
@@ -126,23 +126,34 @@ describe('a layer over LARGE_FILTER_BYTES', () => {
 });
 
 describe('export size cap on a large layer', () => {
-  it('a Karnataka-size GeoJSON is refused with the estimate; its CSV, under the cap, exports', async () => {
-    fetchMock.mockImplementation(async () => plan(41_448, 1_440 * MB, 29 * MB));
+  it('a CSV estimated over the cap is refused with the estimate; under the cap it exports', async () => {
+    fetchMock.mockImplementation(async () => plan(41_448, 1_440 * MB, 140 * MB));
     mount(2300 * MB);
     chip('sname', 'KA').click();
     await vi.advanceTimersByTimeAsync(400);
-    document.querySelector<HTMLButtonElement>('[data-fmt="geojson"]')!.click();
+    document.querySelector<HTMLButtonElement>('[data-fmt="csv"]')!.click();
     await vi.advanceTimersByTimeAsync(10);
     expect(clicked).toHaveLength(0);
     const msg = document.querySelector('#filter-status')!.textContent!;
     expect(msg).toMatch(/41,448/);
-    expect(msg).toMatch(/1,440 MB/);
-    expect(msg).toMatch(/100 MB/);
+    expect(msg).toMatch(/140 MB/);
     expect(msg).toMatch(/per-state zip/);
+    fetchMock.mockImplementation(async () => plan(159, 6 * MB, 1 * MB));
+    chip('sname', 'KA').click(); chip('sname', 'KA').click();
+    await vi.advanceTimersByTimeAsync(400);
     document.querySelector<HTMLButtonElement>('[data-fmt="csv"]')!.click();
     await vi.advanceTimersByTimeAsync(10);
     expect(clicked).toHaveLength(1);
     expect(new URL(clicked[0]).searchParams.get('format')).toBe('csv');
+  });
+});
+
+describe('shape exports paused on large layers (production cut GeoJSON/KML streams off, 18 Nov 2026)', () => {
+  it('the large-layer panel offers CSV only', async () => {
+    mount(2300 * MB);
+    expect(document.querySelector('[data-fmt="csv"]')).not.toBeNull();
+    expect(document.querySelector('[data-fmt="geojson"]')).toBeNull();
+    expect(document.querySelector('[data-fmt="kml"]')).toBeNull();
   });
 });
 

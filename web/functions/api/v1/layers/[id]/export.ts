@@ -1,4 +1,5 @@
 import type { Env } from '../../../_middleware';
+import { SERVER_SHAPE_EXPORT } from '../../../../../../shared/large-load.mjs';
 import { loadCatalogVersioned } from '../../../../lib/catalog-loader';
 import { countApiUse } from '../../../../lib/usage';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
@@ -23,15 +24,24 @@ function downloadsHint(layer: { geojson?: { url?: string } | null }): string {
     : 'download the whole layer from its files';
 }
 
+/** While shape exports are paused (shared/large-load.mjs), why a GeoJSON/KML request is refused; null for CSV. */
+export function shapeExportRefusal(format: string): string | null {
+  if (SERVER_SHAPE_EXPORT || format === 'csv') return null;
+  return `${format === 'kml' ? 'KML' : 'GeoJSON'} export of filtered rows is paused while we fix it. Use format=csv `
+    + '(each row with its centre point), or download the whole layer or a per-state file from the layer page.';
+}
+
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const id = (ctx.params as { id: string }).id;
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) return json(400, { error: 'Invalid layer ID', status: 400 });
 
   const url = new URL(ctx.request.url);
-  const format = (url.searchParams.get('format') || 'geojson').toLowerCase() as ExportFormat;
+  const format = (url.searchParams.get('format') || (SERVER_SHAPE_EXPORT ? 'geojson' : 'csv')).toLowerCase() as ExportFormat;
   if (!EXPORT_FORMATS.includes(format)) {
     return json(400, { error: `format must be one of ${EXPORT_FORMATS.join(', ')}`, status: 400 });
   }
+  const paused = shapeExportRefusal(format);
+  if (paused) return json(400, { error: paused, status: 400 });
   const { catalog } = await loadCatalogVersioned(ctx);
   const layer = catalog.layers.find((l) => l.id === id);
   if (!layer) return json(404, { error: 'Layer not found', status: 404 });

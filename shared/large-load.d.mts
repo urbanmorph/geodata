@@ -12,3 +12,4 @@ export declare const LARGE_FILTER_BYTES: number;
 export declare const FILTER_EXPORT_MAX_ROWS: number;
 export declare const FILTER_EXPORT_MAX_BYTES: number;
 export declare function usesServerFilter(layer: { parquet?: { url?: string; bytes?: number | null } | null } | null | undefined): boolean;
+export const SERVER_SHAPE_EXPORT: boolean;
