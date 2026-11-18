@@ -103,6 +103,8 @@ The files are served from Cloudflare R2. `GET /api/v1/layers/<id>` returns the U
 claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 ```
 
+AI apps send their own name when they connect. We count calls by app (Claude, Cursor, …) and keep nothing else.
+
 The collect (authoring) tools need the npm package below, which keeps share links on your machine.
 
 **Any MCP client.** Add this to the client's config:
@@ -166,6 +168,8 @@ Registered collect links are stored in `~/.bharatlas-mcp.json` (override with `C
 ## API
 
 Base URL `https://bharatlas.com/api/v1`. No API key; rate-limited per IP. Full reference: [bharatlas.com/docs](https://bharatlas.com/docs).
+
+Please send a `User-Agent` that names your app (for example `my-app/1.0`). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are.
 
 ```bash
 # every catalog layer

@@ -65,7 +65,7 @@ Add to your MCP client config:
 
 ## How it works
 
-Thin wrapper over the [bharatlas REST API](https://bharatlas.com/docs). Each tool call becomes one or more API requests to Cloudflare Workers that read parquet files and PMTiles directly from R2 at runtime. No pre-computation, no API key, no auth.
+Thin wrapper over the [bharatlas REST API](https://bharatlas.com/docs). Each tool call becomes one or more API requests to Cloudflare Workers that read parquet files and PMTiles directly from R2 at runtime. No pre-computation, no API key, no auth. AI apps send their own name when they connect. We count calls by app (Claude, Cursor, …) and keep nothing else.
 
 The server sends instructions to the LLM at connection time that teach:
 - **Schema-first pattern**: check column names and sample values before querying (column names vary: `state` vs `State_LGD` vs `stname`)
