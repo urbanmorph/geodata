@@ -31,8 +31,9 @@ if (!existsSync(catalogPath)) {
   process.exit(1);
 }
 const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
-// The home search's index (/layer-index.json): one entry per /layers row,
-// pushed by renderRow / renderCommunityCard from the same values the row shows.
+// The search index (/layer-index.json): one entry per /layers row, in row
+// order, pushed by renderRow / renderCommunityCard from the same values the row
+// shows. The home search and the /layers filter both read it (by id, `i`).
 const layerIndex = [];
 // Live download counts (falls back to the catalog snapshot if unreachable).
 const liveCounts = await fetchLiveCounts();
@@ -427,20 +428,11 @@ function renderRow(level, layersForLevel, opts = {}) {
   });
 
   const sub = [primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · ');
-  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
+  layerIndex.push({ i: primary.id, p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
-    `data-level="${esc(level)}"`,
     `data-category="${esc(primary.category || 'boundaries')}"`,
     `data-layers="${layersForLevel.length}"`,
-    // What the search dropdown shows for this card (src/search-pop.ts).
-    `data-title="${esc(meta.label)}"`,
-    `data-sub="${esc(sub)}"`,
-    `data-href="${viewable ? `/view/${esc(primary.id)}` : `#${esc(level)}`}"`,
-    `data-provenance="${esc(primary.provenance || 'curated')}"`,
-    `data-source="${esc(primary.source)}"`,
-    `data-search-primary="${esc(primaryHaystack)}"`,
-    `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
 
   // Compact list layout — one-line entry per layer. Description, source,
@@ -651,18 +643,11 @@ function renderCommunityCard(s, opts = {}) {
   const bodyHaystack = expandAliases(
     [s.description || '', s.attribution || '', cat, s.format || ''].join(' '),
   ).toLowerCase();
-  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: s.name, s: `community · ${s.format}`, h: `/c/${s.id}` });
+  layerIndex.push({ i: s.id, p: primaryHaystack, b: bodyHaystack, t: s.name, s: `community · ${s.format}`, h: `/c/${s.id}` });
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
     `data-useful="${useful}"`,
-    `data-created="${esc(s.created_at)}"`,
     `data-category="${esc(cat)}"`,
-    `data-provenance="community"`,
-    `data-title="${esc(s.name)}"`,
-    `data-sub="${esc(`community · ${s.format}`)}"`,
-    `data-href="/c/${esc(s.id)}"`,
-    `data-search-primary="${esc(primaryHaystack)}"`,
-    `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
   // View map + Download. The action targets depend on whether the submission
@@ -732,7 +717,7 @@ const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('')
 
 // Render one section per non-empty category. Inside each: curated level rows
 // first (in LEVEL_ORDER), then community cards (newest first). Both are
-// searchable via data-search; the category pill picks one section to show.
+// searchable via /layer-index.json; the category pill picks one section to show.
 //
 // Density management: sections with > VISIBLE_LIMIT layers collapse the
 // overflow under a "show all N" toggle (data-overflow attr); main.ts wires

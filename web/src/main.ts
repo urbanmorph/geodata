@@ -1,7 +1,7 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose, catalogVisibleOnLoad } from './embed-snippet';
-import { filterCards, type CardLike } from './catalog-filter';
+import { filterCards, type CardLike, type LayerIndexEntry } from './catalog-filter';
 import { blurFocusWithin } from './focus-utils';
 import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
@@ -173,10 +173,6 @@ async function showWardAnswer(raw: string): Promise<void> {
 // Home search: the results popover over /layer-index.json, one entry per
 // /layers row (prerender builds it from those rows). Fetched the first time
 // the search is focused or hovered, so the home page carries no list.
-// One entry per /layers row (prerender's layerIndex): primary and body haystacks,
-// then what the popover shows: title, sub-line, link.
-/** One /layers row: haystacks, title, sub line, link, and how many layers it holds (n; absent = 1). */
-type IndexEntry = { p: string; b: string; t: string; s: string; h: string; n?: number };
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
 const searchMeta = document.getElementById('search-meta');
 if (searchInput) {
@@ -189,7 +185,7 @@ if (searchInput) {
     (loading ??= fetch('/layer-index.json')
       .then((r) => {
         if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<IndexEntry[]>;
+        return r.json() as Promise<LayerIndexEntry[]>;
       })
       .then((rows) => {
         cards = rows.map((r) => ({ primary: r.p, body: r.b, layers: r.n }));

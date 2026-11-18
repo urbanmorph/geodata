@@ -19,9 +19,14 @@
 // "villages" doesn't quietly fall through to body matches on Districts
 // while Villages itself surfaces via primary.
 //
-// One matcher for both searches: the home popover (over /layer-index.json) and
-// the /layers filter (over its rows). Both count matching rows, so "See all N"
-// on the home page lands on N matches on /layers.
+// One matcher for both searches, over the same /layer-index.json: the home
+// popover and the /layers filter. Both count matching rows, so "See all N" on
+// the home page lands on N matches on /layers.
+
+/** One /layers row in /layer-index.json (prerender's layerIndex): its id, the
+ *  primary and body haystacks, then what the popover shows (title, sub line,
+ *  link) and how many layers it holds (n; absent = 1). */
+export type LayerIndexEntry = { i: string; p: string; b: string; t: string; s: string; h: string; n?: number };
 
 export type CardLike = {
   primary: string;
