@@ -6,6 +6,7 @@ bake_mi6_wells.py) so tile settings and the shapefile key stay consistent.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tempfile
@@ -18,6 +19,9 @@ from pipeline import (  # noqa: E402  (atomic_output is re-exported)
     write_stable_zip,
 )
 
+HERE = Path(__file__).resolve().parent
+JUNK_TS = HERE.parent / 'web' / 'functions' / 'lib' / 'junk-columns.ts'
+BBOX = ('bbox', 'xmin', 'ymin', 'xmax', 'ymax')
 DBF_NAME_MAX = 10
 SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
              'Full names (as in the Parquet / GeoJSON / API):', '']
@@ -50,6 +54,34 @@ def features_sql(parquet: str, props_sql: str) -> str:
                ST_AsGeoJSON(geometry)::JSON AS geometry,
                {props_sql} AS properties
         FROM read_parquet('{parquet}')"""
+
+
+def gis_artefact_columns(ts: Path = JUNK_TS) -> set[str]:
+    """GIS_ARTEFACT_COLUMNS from junk-columns.ts (the set locate and nearby
+    leave out), read from the one source so the two never drift."""
+    text = ts.read_text()
+    body = text[text.index('GIS_ARTEFACT_COLUMNS'):]
+    body = body[body.index('[') + 1:body.index(']')]
+    return set(re.findall(r"'([^']+)'", body))
+
+
+def is_nested(sql_type: str) -> bool:
+    t = sql_type.upper()
+    return t.startswith(('STRUCT', 'MAP', 'UNION')) or t.endswith(']') or 'GEOMETRY' in t or t == 'BLOB'
+
+
+def plain_popup_fields(schema: list[tuple[str, str]], junk: set[str]) -> list[str]:
+    """The fields map tiles carry by default, in source order: every plain
+    column but GIS artefacts (`junk`, lower case), the bbox and nested or
+    geometry columns. The parquet and downloads keep every column."""
+    return [c for c, t in schema if c not in BBOX and c.lower() not in junk and not is_nested(t)]
+
+
+def geojson_popup_fields(geojson: Path) -> list[str]:
+    """plain_popup_fields of a GeoJSON's properties (read through DuckDB)."""
+    from pipeline import make_con
+    rows = make_con().execute(f"DESCRIBE SELECT * FROM ST_Read('{geojson}')").fetchall()
+    return plain_popup_fields([(r[0], r[1]) for r in rows], gis_artefact_columns())
 
 
 def pmtiles_args(src: Path, out: Path, layer: str, fields: Iterable[str],

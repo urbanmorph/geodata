@@ -54,7 +54,12 @@ import duckdb
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import audit_tiles as at  # noqa: E402
-from bake_formats import pmtiles_args  # noqa: E402
+from bake_formats import (  # noqa: E402
+    BBOX,
+    gis_artefact_columns,
+    pmtiles_args,
+    plain_popup_fields,
+)
 from bake_land_water import (  # noqa: E402
     Deadline,
     OutOfTime,
@@ -77,7 +82,6 @@ from pipeline import (  # noqa: E402
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = HERE / 'external-ingested.json'
-JUNK_TS = ROOT / 'web' / 'functions' / 'lib' / 'junk-columns.ts'
 WORK = Path(os.environ.get('TILES_WORK', '/tmp/ramseraph/tiles'))
 LOCK = Path('/tmp/bharatlas-upload.lock')
 LOCK_OWNER = 'rebake_tiles (feat/tile-rebakes)'
@@ -96,7 +100,6 @@ STEP_TIMEOUT_S = 4 * 3600
 COVER_AT_MAX = (0.98, 1.02)     # polygon area in a decoded tile / the parquet's
 COVER_BELOW_MAX = (0.9, 1.15)
 DUCKDB_MEMORY = os.environ.get('TILES_DUCKDB_MEMORY', '12GB')
-BBOX = ('bbox', 'xmin', 'ymin', 'xmax', 'ymax')
 NOTE = ('Map tiles rebaked by bharatlas with the popup fields only; every column is in the'
         ' parquet and the downloads.')
 NOTE_MARK = 'with the popup fields only'
@@ -119,20 +122,6 @@ def log(*msg: object) -> None:
 
 # ── fields ───────────────────────────────────────────────────────────────────
 
-def gis_artefact_columns(ts: Path = JUNK_TS) -> set[str]:
-    """GIS_ARTEFACT_COLUMNS from junk-columns.ts (the set locate and nearby
-    leave out), read from the one source so the two never drift."""
-    text = ts.read_text()
-    body = text[text.index('GIS_ARTEFACT_COLUMNS'):]
-    body = body[body.index('[') + 1:body.index(']')]
-    return set(re.findall(r"'([^']+)'", body))
-
-
-def is_nested(sql_type: str) -> bool:
-    t = sql_type.upper()
-    return t.startswith(('STRUCT', 'MAP', 'UNION')) or t.endswith(']') or 'GEOMETRY' in t or t == 'BLOB'
-
-
 def popup_fields(layer_id: str, schema: list[tuple[str, str]], junk: set[str],
                  live_fields: list[str] | None = None) -> list[str]:
     """The columns the tiles carry, in parquet order: POPUP_FIELDS when the
@@ -145,7 +134,7 @@ def popup_fields(layer_id: str, schema: list[tuple[str, str]], junk: set[str],
         if missing:
             raise ValueError(f'{layer_id}: popup fields {missing} are not in the source')
         return list(POPUP_FIELDS[layer_id])
-    fields = [c for c, t in schema if c not in BBOX and c.lower() not in junk and not is_nested(t)]
+    fields = plain_popup_fields(schema, junk)
     if live_fields is not None:
         fields = [c for c in fields if c in set(live_fields)]
         if live_fields and not fields:

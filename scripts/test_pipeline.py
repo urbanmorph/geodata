@@ -238,18 +238,32 @@ def test_judiciary_parquet_gets_bbox_columns_for_nearby(tmp_path):
     assert {'xmin', 'ymin', 'xmax', 'ymax'} <= set(cols)
 
 
-def test_judiciary_and_community_tiles_use_the_shared_tippecanoe_args(tmp_path, monkeypatch):
+def _popup_geojson(path: Path) -> Path:
+    """A feature with a name, a code, a GIS artefact and flat bbox columns."""
+    path.write_text('{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": '
+                    '{"name": "Patna HC", "code": 7, "Shape_Area": 1.5, "OBJECTID": 3, "xmin": 85.0, '
+                    '"ymax": 25.7}, "geometry": {"type": "Point", "coordinates": [85.1, 25.6]}}]}')
+    return path
+
+
+def test_popup_fields_of_a_geojson_leave_out_artefacts_and_bbox(tmp_path):
+    import bake_formats
+    assert bake_formats.geojson_popup_fields(_popup_geojson(tmp_path / 'p.geojson')) == ['name', 'code', 'OBJECTID']
+
+
+def test_judiciary_and_community_tiles_carry_popup_fields_only(tmp_path, monkeypatch):
     import bake_community as bc
     import bake_formats
     import bake_judiciary as bj
     seen = []
     monkeypatch.setattr(bj.subprocess, 'run', lambda cmd, *a, **k: seen.append(cmd))
     monkeypatch.setattr(bc, '_run', lambda cmd: seen.append(cmd))
-    gj, out = tmp_path / 'high_courts.geojson', tmp_path / 'o.pmtiles'
+    gj, out = _popup_geojson(tmp_path / 'high_courts.geojson'), tmp_path / 'o.pmtiles'
     bj.geojson_to_pmtiles(gj, out)
     bc.geojson_to_pmtiles(gj, out, 'c_x')
-    assert seen == [bake_formats.pmtiles_args(gj, out, 'high_courts', ()),
-                    bake_formats.pmtiles_args(gj, out, 'c_x', ())]
+    fields = ['name', 'code', 'OBJECTID']
+    assert seen == [bake_formats.pmtiles_args(gj, out, 'high_courts', fields),
+                    bake_formats.pmtiles_args(gj, out, 'c_x', fields)]
 
 
 # ── R2 uploads (review items 1, 11) ──────────────────────────────────────────
