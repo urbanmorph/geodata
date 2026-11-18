@@ -88,11 +88,12 @@ OVERRIDES: dict[str, tuple[str, str | None, str | None]] = {
     'wards_pune_2025':         ('AdminNo',        'Field',          'Ward office'),
 }
 
-# A few cities pack "Ward 91 Khairatabad" into one column. (column, label).
-PARSE_WARD_NAME: dict[str, tuple[str, str]] = {
-    'wards_hyderabad': ('Name', 'Area'),
+# A few cities pack number and name into one column. (column, label, pattern with
+# (number)(name) groups; the view reads the number with the same pattern, case-insensitive).
+PARSE_WARD_NAME: dict[str, tuple[str, str, str]] = {
+    'wards_hyderabad': ('ward', 'Area', r'^(\d+)\s*-\s*(.*)$'),          # GHMC: "127-RANGAREDDY NAGAR"
+    'wards_hyderabad_osm': ('Name', 'Area', r'^ward\s+(\d+)\s*(.*)$'),  # OpenStreetMap: "Ward 91 Khairatabad"
 }
-PARSE_RE = re.compile(r'^ward\s+(\d+)\s*(.*)$', re.I)
 
 # A resolved name is rejected (treated as absent) when it is really the ward
 # number again, an empty/placeholder, or the municipal-corporation string that
@@ -257,20 +258,27 @@ def build_one(con, layer: dict, level_meta: dict) -> dict | None:
     zones: dict[str, str] = {}
     if layer_id in PARSE_WARD_NAME:
         # Number and name packed into one column, e.g. "Ward 91 Khairatabad".
-        src_col, label = PARSE_WARD_NAME[layer_id]
+        src_col, label, pattern = PARSE_WARD_NAME[layer_id]
+        parse = re.compile(pattern, re.I)
         present = {c.lower(): c for c in cols}
         col = present.get(src_col.lower())
         if not col:
             print(f'  {layer_id}: parse column {src_col!r} absent — skipped')
             return None
-        number = {'numberCol': col, 'numberFrom': PARSE_RE.pattern}
-        for (val,) in con.execute(f'SELECT "{col}" FROM \'{pq}\'').fetchall():
-            m = PARSE_RE.match(clean(val))
+        number = {'numberCol': col, 'numberFrom': pattern}
+        zone_col = zone_column(layer_id, cols)
+        zone_sql = f'"{zone_col}"' if zone_col else 'NULL'
+        zone_sets: dict[str, set[str]] = {}
+        for val, zone in con.execute(f'SELECT "{col}", {zone_sql} FROM \'{pq}\'').fetchall():
+            m = parse.match(clean(val))
             if not m:
                 continue
             no, name = m.group(1), real_name(clean(m.group(2)))
             if no and (no not in by_no or (not by_no[no] and name)):
                 by_no[no] = name
+            if no and clean(zone):
+                zone_sets.setdefault(no, set()).add(clean(zone))
+        zones = {no: next(iter(z)) for no, z in zone_sets.items() if len(z) == 1}
     else:
         no_col, name_col, label = resolve_columns(layer_id, cols)
         if not no_col:

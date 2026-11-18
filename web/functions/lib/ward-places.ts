@@ -13,6 +13,7 @@ export const WARD_PLACES: Record<string, WardPlace> = {
   wards_bengaluru_gba: { city: 'Bengaluru', mugilu: 'bengaluru', state: 'karnataka', stateName: 'Karnataka' },
   wards_bengaluru_bbmp_2022: { city: 'Bengaluru', mugilu: 'bengaluru', state: 'karnataka', stateName: 'Karnataka' },
   wards_hyderabad: { city: 'Hyderabad', mugilu: 'hyderabad', state: 'telangana', stateName: 'Telangana' },
+  wards_hyderabad_osm: { city: 'Hyderabad', mugilu: 'hyderabad', state: 'telangana', stateName: 'Telangana' },
   wards_chennai: { city: 'Chennai', mugilu: 'chennai', state: 'tamil-nadu', stateName: 'Tamil Nadu' },
   wards_kolkata: { city: 'Kolkata', mugilu: 'kolkata', state: 'west-bengal', stateName: 'West Bengal' },
   wards_pune: { city: 'Pune', mugilu: 'pune', state: 'maharashtra', stateName: 'Maharashtra' },

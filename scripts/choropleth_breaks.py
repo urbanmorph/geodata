@@ -38,6 +38,11 @@ CHOROPLETH_LAYERS: dict[str, dict[str, str]] = {
     'corestack_lulc_blocks': {
         'column': 'cropping_intensity_index', 'label': 'Cropping intensity, 2023-24',
         'unit': 'crops a year'},
+    'property_tax_chennai_wards': {
+        'column': '2017-18 - Property Tax Collection (in crores) - Residential',
+        'label': 'Residential property tax collected, 2017-18', 'unit': 'INR crore'},
+    'cityfinance_ulb_balance_sheets': {
+        'column': 'total_assets', 'label': 'Total assets (latest year)', 'unit': 'INR'},
 }
 
 

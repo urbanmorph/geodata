@@ -100,7 +100,7 @@ describe('legendHtml', () => {
 // The catalog carries each value layer's choropleth, with breaks computed by
 // scripts/choropleth_breaks.py. A layer rebake that rewrites its catalog entry
 // drops the block; this catches that (re-run the script).
-const VALUE_LAYERS = ['mgnrega_districts', 'cityfinance_ulbs', 'state_finance', 'mi6_wells_districts', 'corestack_lulc_blocks'];
+const VALUE_LAYERS = ['mgnrega_districts', 'cityfinance_ulbs', 'state_finance', 'mi6_wells_districts', 'corestack_lulc_blocks', 'property_tax_chennai_wards', 'cityfinance_ulb_balance_sheets'];
 describe('catalog choropleths', () => {
   const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../catalog.json'), 'utf8')) as {
     layers: { id: string; choropleth?: { column: string; label: string; unit: string; breaks: number[] } }[];

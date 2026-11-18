@@ -144,3 +144,16 @@ def test_manifest_is_written_with_a_trailing_newline(tmp_path, monkeypatch):
     monkeypatch.setattr(ie, 'MANIFEST', m)
     ie.save_manifest([{'id': 'a'}])
     assert m.read_text().endswith(']\n')
+
+
+# ── Hyderabad: GHMC's own 150-ward map replaces the OpenStreetMap-derived 145 ──
+
+def test_hyderabad_is_the_ghmc_map_under_a_new_r2_prefix():
+    d = _by_id()['wards_hyderabad']
+    assert (d.source_url, d.license, d.attr_key, d.features, d.kml_name_field) == (
+        OPENCITY + 'hyderabad-wards-info', 'CC0-1.0', 'OpenCity', 155, 'ward')
+    assert Path(d.src) == ie.ROOT / 'data' / 'external-src' / 'ghmc_wards_2022.kml'
+    # The old keys under admin/wards-hyderabad are served immutable and stay with the historical layer.
+    assert d.r2_prefix == 'admin/wards-hyderabad-ghmc-2022'
+    assert '—' not in d.description + d.name + d.notes
+    assert 'wards_hyderabad_osm' not in _by_id()  # the historical layer keeps its published files

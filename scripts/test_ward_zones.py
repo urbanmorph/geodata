@@ -89,3 +89,23 @@ def test_number_only_layers_with_osm_areas_also_carry_zones(layer, tmp_path, mon
     monkeypatch.setitem(w.OVERRIDES, 'wards_test', ('wardnum', None, None))
     rows = w.build_one(con, {'id': 'wards_test'}, {})['rows']
     assert rows == [{'no': '1', 'name': '', 'areas': [], 'zone': 'A'}, {'no': '2', 'name': '', 'areas': [], 'zone': 'B'}]
+
+
+def test_hyderabad_reads_number_name_and_zone_from_the_ghmc_columns(layer, monkeypatch):
+    # GHMC's map packs "127-RANGAREDDY NAGAR" into `ward`; its zone is ZONE. Areas that are no ward
+    # (Osmania University, gram panchayats inside the outline) carry no number and get no row.
+    con, pq = layer
+    monkeypatch.setitem(w.PARSE_WARD_NAME, 'wards_test', w.PARSE_WARD_NAME['wards_hyderabad'])
+    con.execute(f"""COPY (SELECT * FROM (VALUES ('127-RANGAREDDY NAGAR', 'KUKATPALLY ZONE'),
+        ('9-RAMANTHAPUR', 'L.B.NAGAR ZONE'), ('OU', ''), ('BANDLA GUDA', '')) t(ward, ZONE)) TO '{pq}' (FORMAT parquet)""")
+    idx = w.build_one(con, {'id': 'wards_test'}, {})
+    assert idx['rows'] == [{'no': '9', 'name': 'RAMANTHAPUR', 'zone': 'L.B.NAGAR ZONE'},
+                           {'no': '127', 'name': 'RANGAREDDY NAGAR', 'zone': 'KUKATPALLY ZONE'}]
+    assert idx['numberCol'] == 'ward' and idx['numberFrom'] == r'^(\d+)\s*-\s*(.*)$'
+
+
+def test_the_historical_osm_hyderabad_map_keeps_its_ward_n_name_parse():
+    import re
+    col, label, pattern = w.PARSE_WARD_NAME['wards_hyderabad_osm']
+    assert (col, label) == ('Name', 'Area')
+    assert re.match(pattern, 'Ward 91 Khairatabad', re.I).groups() == ('91', 'Khairatabad')
