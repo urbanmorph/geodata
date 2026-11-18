@@ -14,9 +14,18 @@ export function fetchWardIndex(layerId: string): Promise<WardIndexFile | null> {
   if (!/^wards_/.test(layerId)) return Promise.resolve(null);
   let p = cache.get(layerId);
   if (!p) {
+    // No sidecar (a 404, or the site's HTML fallback) is kept as null; any other failure
+    // is forgotten so a later call retries.
     p = fetch(`/ward-index/${encodeURIComponent(layerId)}.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<WardIndexFile>) : null))
-      .catch(() => null);
+      .then((r) => {
+        if (r.ok) return (r.json() as Promise<WardIndexFile>).catch(() => null);
+        if (r.status === 404) return null;
+        throw new Error(String(r.status));
+      })
+      .catch(() => {
+        cache.delete(layerId);
+        return null;
+      });
     cache.set(layerId, p);
   }
   return p;

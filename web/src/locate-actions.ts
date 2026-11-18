@@ -5,11 +5,14 @@ import { escapeHtml } from '../../shared/format.mjs';
 // A MapLibre filter that matches exactly the located feature. The locate result
 // and the rendered vector tiles come from the *same* pmtiles, so asserting every
 // scalar property the result carries uniquely picks that one feature out of its
-// neighbours (extra tile-only props don't break an `all` match). Returns null
+// neighbours (extra tile-only props don't break an `all` match). Nearest mode
+// answers from the parquet, which can carry columns the tiles drop, so given the
+// tiles' property names (tileKeys) only those are matched on. Returns null
 // when there's nothing usable to match on (caller should skip highlighting
 // rather than match-all).
-export function buildFeatureFilter(props: Record<string, unknown>): unknown[] | null {
+export function buildFeatureFilter(props: Record<string, unknown>, tileKeys?: Set<string> | null): unknown[] | null {
   const conds = Object.entries(props)
+    .filter(([k]) => !tileKeys || tileKeys.has(k))
     .filter(([, v]) => typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean')
     .map(([k, v]) => ['==', ['get', k], v]);
   return conds.length ? ['all', ...conds] : null;

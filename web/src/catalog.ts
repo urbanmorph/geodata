@@ -69,7 +69,8 @@ let cache: Promise<Catalog> | null = null;
 export function getCatalog(): Promise<Catalog> {
   if (!cache) {
     cache = fetch('/catalog.json').then((r) => {
-      if (!r.ok) throw new Error(`catalog.json ${r.status}`);
+      // Shown to the reader ("failed to load layer: ..."), so plain words, no file name or status.
+      if (!r.ok) throw new Error("couldn't load the layer list");
       return r.json() as Promise<Catalog>;
     });
     cache.catch(() => { cache = null; }); // a failed fetch can be retried

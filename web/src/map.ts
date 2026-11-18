@@ -15,7 +15,7 @@ import { DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED } fr
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
-import { type ActiveFilter, type MaplibreFilter } from './filter-where';
+import { filterColumnsInTiles, type ActiveFilter, type MaplibreFilter } from './filter-where';
 import { featureCollectionBounds, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
 import { displayTitle } from './layer-display';
@@ -401,7 +401,7 @@ function clearLocateHighlight(): void {
 function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: number): void {
   if (!map) return;
   clearLocateHighlight();
-  const filter = buildFeatureFilter(props);
+  const filter = buildFeatureFilter(props, tilePropertyKeys());
   const common = currentSourceLayer ? { 'source-layer': currentSourceLayer } : {};
   if (filter) {
     map.addLayer({ id: 'locate-hl-fill', type: 'fill', source: 'layer', ...common, filter: filter as never,
@@ -664,47 +664,73 @@ function addLegend(container: HTMLElement, spec: ChoroplethSpec | undefined, uni
   container.insertAdjacentHTML('beforeend', legendHtml(spec, unitNoun));
 }
 
+// The property names the layer's tiles carry, from a sample of the loaded
+// features (a feature can omit a null property, so the sample is unioned).
+// Null until a tile has loaded.
+function tilePropertyKeys(): Set<string> | null {
+  if (!map?.getSource('layer')) return null;
+  const feats = map.querySourceFeatures('layer', currentSourceLayer ? { sourceLayer: currentSourceLayer } : {});
+  if (!feats.length) return null;
+  const keys = new Set<string>();
+  for (const f of feats.slice(0, 200)) for (const k of Object.keys(f.properties ?? {})) keys.add(k);
+  return keys;
+}
+
+// The fit waiting for the map to settle after the latest filter change: one at a
+// time, so typing doesn't stack a fit per keystroke.
+let pendingFit: (() => void) | null = null;
+
 function applyActiveFilters(
   filters: ActiveFilter[],
   mapFilter: MaplibreFilter,
 ): void {
   if (!map) return;
-  setDataFilters(mapFilter as maplibregl.FilterSpecification | null);
+  const m = map;
+  if (pendingFit) m.off('idle', pendingFit);
+  pendingFit = null;
   const padding = panelAwarePadding();
-
-  if (filters.length) {
-    const m = map;
-    const p = padding;
-    m.once('idle', () => {
-      const features = m.queryRenderedFeatures(undefined, {
-        layers: (['fill', 'point'] as string[]).filter((id) => m.getLayer(id)),
-      });
-      // Nothing rendered while a filter is active means the in-tile filter
-      // matched no features — usually the filtered column isn't carried as a
-      // PMTiles property on this layer. Don't strand the user on a blank map:
-      // drop the map filter (the DuckDB count/export still reflect the filter).
-      if (!features.length) {
-        setDataFilters(null);
-        return;
-      }
-      const bounds = new maplibregl.LngLatBounds();
-      for (const f of features) {
-        if (f.geometry.type === 'Point') {
-          bounds.extend(f.geometry.coordinates as [number, number]);
-        } else if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
-          const coords = f.geometry.type === 'Polygon'
-            ? f.geometry.coordinates[0]
-            : f.geometry.coordinates[0][0];
-          for (const c of coords) bounds.extend(c as [number, number]);
-        }
-      }
-      if (!bounds.isEmpty()) {
-        m.fitBounds(bounds, { padding: p, duration: 600 });
-      }
-    });
-  } else {
+  if (!filters.length) {
+    setDataFilters(null);
     flyTo(layerBounds, { padding, duration: 600 });
+    return;
   }
+  // A column the tiles don't carry can't be drawn: show the whole layer rather
+  // than a blank map (the DuckDB count and export still apply the filter).
+  if (!filterColumnsInTiles(filters, tilePropertyKeys())) {
+    setDataFilters(null);
+    return;
+  }
+  setDataFilters(mapFilter as maplibregl.FilterSpecification | null);
+
+  // Frame the matches once the map settles. None in view means they may be off
+  // screen: zoom out to the whole layer once and look again.
+  let widened = false;
+  const fit = () => {
+    const features = m.queryRenderedFeatures(undefined, {
+      layers: (['fill', 'point'] as string[]).filter((id) => m.getLayer(id)),
+    });
+    if (!features.length && !widened) {
+      widened = true;
+      m.once('idle', fit);
+      flyTo(layerBounds, { padding, duration: 600 });
+      return;
+    }
+    pendingFit = null;
+    const bounds = new maplibregl.LngLatBounds();
+    for (const f of features) {
+      if (f.geometry.type === 'Point') {
+        bounds.extend(f.geometry.coordinates as [number, number]);
+      } else if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
+        const coords = f.geometry.type === 'Polygon'
+          ? f.geometry.coordinates[0]
+          : f.geometry.coordinates[0][0];
+        for (const c of coords) bounds.extend(c as [number, number]);
+      }
+    }
+    if (!bounds.isEmpty()) m.fitBounds(bounds, { padding, duration: 600 });
+  };
+  pendingFit = fit;
+  m.once('idle', fit);
 }
 
 // ---------------------------------------------------------------------------
@@ -1145,6 +1171,7 @@ export function closeLayer() {
     map.remove();
     map = null;
   }
+  pendingFit = null;
   filterAbort?.abort();
   filterAbort = null;
   resetOverlays();
@@ -1156,4 +1183,23 @@ export function closeLayer() {
   if (locateSheet) { locateSheet.classList.remove('open'); locateSheet.innerHTML = ''; }
   document.querySelector('.filter-panel')?.remove();
   for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
+}
+
+/** Escape: close what is open on the map (a popover, sheet, the filter panel or the
+ *  large-load card) and say so; false when nothing was, so the map itself closes. */
+export function closeTopSurface(): boolean {
+  if (overlayState.active === 'filter') {
+    // The panel's own close also resets the filter (on desktop the surface's hide is a no-op).
+    const close = document.querySelector<HTMLButtonElement>('.filter-panel__close');
+    if (close) { close.click(); return true; }
+  }
+  if (overlayState.active) {
+    dispatchOverlay({ type: 'close' });
+    return true;
+  }
+  if (document.querySelector('.large-load')) {
+    clearLargeLoad(document);
+    return true;
+  }
+  return false;
 }

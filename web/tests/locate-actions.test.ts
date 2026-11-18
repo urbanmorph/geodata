@@ -19,6 +19,13 @@ describe('buildFeatureFilter', () => {
     expect(buildFeatureFilter({})).toBeNull();
     expect(buildFeatureFilter({ geom: [1, 2], meta: {} })).toBeNull();
   });
+
+  it('matches only on properties the tiles carry (nearest mode reads the parquet, which has more columns)', () => {
+    expect(buildFeatureFilter({ name: 'X', distance_m: 120, notes: 'n' }, new Set(['name']))).toEqual([
+      'all', ['==', ['get', 'name'], 'X'],
+    ]);
+    expect(buildFeatureFilter({ distance_m: 120 }, new Set(['name']))).toBeNull();
+  });
 });
 
 describe('shareUrl', () => {

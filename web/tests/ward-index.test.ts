@@ -20,6 +20,21 @@ describe('fetchWardIndex', () => {
     expect(await fetchWardIndex('wards_y')).toBeNull();
   });
 
+  it('a failed fetch is retried next time; a missing index (404) is not', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
+    expect(await fetchWardIndex('wards_z')).toBeNull();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, status: 503 }));
+    expect(await fetchWardIndex('wards_z')).toBeNull();
+    const ok = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ rows: [1] }) });
+    vi.stubGlobal('fetch', ok);
+    expect(await fetchWardIndex('wards_z')).toEqual({ rows: [1] });
+    const gone = vi.fn().mockResolvedValue({ ok: false, status: 404 });
+    vi.stubGlobal('fetch', gone);
+    await fetchWardIndex('wards_none');
+    await fetchWardIndex('wards_none');
+    expect(gone).toHaveBeenCalledTimes(1);
+  });
+
   it('only ward layers have an index', async () => {
     const f = vi.fn();
     vi.stubGlobal('fetch', f);

@@ -20,6 +20,7 @@ import {
   buildMaplibreFilter,
   buildWhereSQL,
   resolveStateCodes,
+  typeaheadSQL,
   type ActiveFilter,
   type MaplibreFilter,
 } from './filter-where';
@@ -350,12 +351,21 @@ function renderSearch(
   list.className = 'filter-typeahead__list';
   wrap.appendChild(list);
 
+  // Suggestions in flight belong to the text that asked: any change cancels them.
+  let timer: number | undefined;
+  let abortCtrl: AbortController | null = null;
+  const cancelSuggestions = () => {
+    window.clearTimeout(timer);
+    abortCtrl?.abort();
+  };
+
   const clearBtn = document.createElement('button');
   clearBtn.type = 'button';
   clearBtn.className = 'filter-typeahead__clear';
   clearBtn.textContent = '×';
   clearBtn.style.display = 'none';
   clearBtn.addEventListener('click', () => {
+    cancelSuggestions();
     input.value = '';
     clearBtn.style.display = 'none';
     list.innerHTML = '';
@@ -364,16 +374,15 @@ function renderSearch(
   wrap.appendChild(clearBtn);
 
   function pick(value: string) {
+    cancelSuggestions();
     input.value = value;
     clearBtn.style.display = '';
     list.innerHTML = '';
     onChange({ col: col.name, kind: 'search', q: value });
   }
 
-  let timer: number | undefined;
-  let abortCtrl: AbortController | null = null;
   input.addEventListener('input', () => {
-    window.clearTimeout(timer);
+    cancelSuggestions();
     const q = input.value.trim();
     clearBtn.style.display = q ? '' : 'none';
 
@@ -389,18 +398,11 @@ function renderSearch(
     // Typeahead: query DuckDB for matching values (debounced)
     if (!parquetUrl) return;
     timer = window.setTimeout(async () => {
-      abortCtrl?.abort();
-      abortCtrl = new AbortController();
+      // This request's own controller: a newer keystroke aborts it, so stale rows never land.
+      const ctrl = (abortCtrl = new AbortController());
       try {
-        const escaped = q.replace(/'/g, "''");
-        const { escIdent } = await import('./filter-where');
-        const rows = await query<{ v: string }>(
-          `SELECT DISTINCT ${escIdent(col.name)}::VARCHAR AS v
-           FROM '${parquetUrl}'
-           WHERE ${escIdent(col.name)}::VARCHAR ILIKE '%${escaped}%'
-           ORDER BY v LIMIT 8`,
-        );
-        if (abortCtrl.signal.aborted) return;
+        const rows = await query<{ v: string }>(typeaheadSQL(parquetUrl, col.name, q));
+        if (ctrl.signal.aborted) return;
         list.innerHTML = '';
         for (const r of rows) {
           const li = document.createElement('li');
