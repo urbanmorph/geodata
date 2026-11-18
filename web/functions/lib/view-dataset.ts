@@ -15,6 +15,7 @@ export type CatalogLayer = {
   name?: string;
   description?: string;
   provenance?: string;
+  category?: string;
   licence?: string;
   non_commercial?: boolean;
   notes?: string;
@@ -327,10 +328,8 @@ export function buildViewDataset(
     levelMeta?.description ??
     (layer.description || `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
   const description = baseDescription.slice(0, META_DESC_MAX);
-  // Same padding template as prerender's homeSeo Dataset block: lifts
-  // terse base descriptions over the ≥50 floor and seeds format/provenance
-  // keywords for SERP rich snippets. Keep in sync with prerender.mjs's
-  // padDatasetDescription suffix.
+  // Lifts terse base descriptions over Google Dataset Search's ≥50 floor and
+  // seeds format/provenance words for SERP rich snippets.
   const ldDescription =
     baseDescription.length >= LD_DESC_MIN
       ? baseDescription
@@ -343,6 +342,10 @@ export function buildViewDataset(
   // crawlers (PDGI "humans in the loop"): the credit to reproduce, that access
   // is unrestricted, and where the usage terms live.
   const creditText = `Source: ${layer.source}. Published via bharatlas (bharatlas.com).${layer.licence ? ` Licence: ${layer.licence}.` : ''}`;
+  // Google Dataset Search matches queries on keywords (the home page's
+  // per-level Dataset blocks carried them before they moved here).
+  const keywords = [...new Set([layer.level, levelMeta?.label, layer.source, layer.category, 'India']
+    .filter((k): k is string => typeof k === 'string' && k.length > 0))];
 
   return {
     title,
@@ -358,6 +361,7 @@ export function buildViewDataset(
       url: canonical,
       license: layer.licence ? licenceUrl(layer.licence) ?? layer.licence : undefined,
       isAccessibleForFree: true,
+      keywords,
       creditText,
       conditionsOfAccess: 'Free and open. No account or API key required.',
       usageInfo: `${origin}/terms`,
