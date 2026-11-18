@@ -132,3 +132,178 @@ def test_upload_commands_name_each_staged_file_once(tmp_path):
     assert cmds == [(f'npx wrangler r2 object put geodata-data/releases/{code}/cw_states.csv '
                      f'--file data/baked/releases/{code}/cw_states.csv --content-type "text/csv; charset=utf-8" '
                      f'--remote')]
+
+
+# ── layer releases: the dataset is a layer id ───────────────────────────────
+
+R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
+
+
+def write_parquet(path: Path, cols: dict) -> Path:
+    """A small parquet with these columns ({name: values}), written by DuckDB."""
+    import duckdb
+    path.parent.mkdir(parents=True, exist_ok=True)
+    types = {int: 'BIGINT', str: 'VARCHAR', bytes: 'BLOB'}
+    con = duckdb.connect()
+    con.execute('CREATE TABLE t (' + ', '.join(f'"{n}" {types[type(v[0])]}' for n, v in cols.items()) + ')')
+    con.executemany(f'INSERT INTO t VALUES ({", ".join("?" * len(cols))})', list(zip(*cols.values())))
+    con.execute(f"COPY t TO '{path}' (FORMAT parquet)")
+    return path
+
+
+def a_layer(**kw):
+    base = {'id': 'ngt_zones', 'level': 'ngt_zone', 'source': 'LGD', 'rows': 3, 'licence': 'CC0-1.0',
+            'fetched_at': '2026-05-25T00:00:00+00:00', 'notes': 'Five NGT zonal benches.',
+            'attribution': {'primary': {'name': 'Local Government Directory', 'url': 'https://lgdirectory.gov.in/'},
+                            'publisher': None},
+            'source_check': {'method': 'manual', 'fingerprint': None},
+            'parquet': {'url': f'{R2}/judiciary/ngt_zones.3cb9a176.parquet', 'bytes': 1},
+            'pmtiles': {'url': f'{R2}/judiciary/ngt_zones.pmtiles', 'bytes': 1},
+            'geojson': {'url': f'{R2}/judiciary/ngt_zones.geojson', 'bytes': 1},
+            'shapefile': {'url': f'{R2}/judiciary/ngt_zones.shp.zip', 'bytes': 1}}
+    base.update(kw)
+    return base
+
+
+CAT = {'level_meta': {}, 'levels': {}}
+
+
+def layer_sources(tmp_path, name='v1', ids=(1, 2, 3), extra_col=True):
+    d = tmp_path / 'src' / name
+    cols = {'zone_id': list(ids), 'name': [f'z{i}' for i in ids], 'geometry': [b'\x00'] * len(ids)}
+    if extra_col:
+        cols['bench'] = ['b'] * len(ids)
+    write_parquet(d / 'ngt_zones.parquet', cols)
+    (d / 'ngt_zones.geojson').write_text('{"type":"FeatureCollection","features":[]}')
+    (d / 'ngt_zones.shp.zip').write_bytes(b'PK' + name.encode())
+    return d
+
+
+def stage(tmp_path, r, src, name, day, lyr=None):
+    return rel.stage_layer(lyr or a_layer(), CAT, src, tmp_path / name, day, r['meta_root'], r['files_root'])
+
+
+def test_a_layers_release_files_are_its_parquet_and_downloads_named_by_id_never_its_tiles():
+    assert rel.layer_files(a_layer()) == {'ngt_zones.parquet': f'{R2}/judiciary/ngt_zones.3cb9a176.parquet',
+                                          'ngt_zones.geojson': f'{R2}/judiciary/ngt_zones.geojson',
+                                          'ngt_zones.shp.zip': f'{R2}/judiciary/ngt_zones.shp.zip'}
+
+
+def test_a_layer_release_names_its_source_licence_and_where_each_file_came_from(tmp_path):
+    r = roots(tmp_path)
+    code, made = rel.make_release(stage(tmp_path, r, layer_sources(tmp_path), 's1', '2026-11-20'), '2026-11-20', **r)
+    assert (code, made) == ('bharatlas-ngt_zones-2026.11', True)
+    m = json.loads((r['meta_root'] / code / 'manifest.json').read_text())
+    assert m['dataset'] == 'ngt_zones' and m['licence'] == 'CC0-1.0'
+    assert m['attribution']['sources'][0] == {'name': 'Local Government Directory',
+                                              'url': 'https://lgdirectory.gov.in/',
+                                              'fetched': '2026-05-25T00:00:00+00:00'}
+    assert [f['name'] for f in m['files']] == ['ngt_zones.geojson', 'ngt_zones.parquet', 'ngt_zones.shp.zip']
+    pq_file = next(f for f in m['files'] if f['name'] == 'ngt_zones.parquet')
+    assert pq_file['rows'] == 3 and pq_file['source_url'] == f'{R2}/judiciary/ngt_zones.3cb9a176.parquet'
+    assert pq_file['columns'][0] == {'name': 'zone_id', 'type': 'BIGINT'}
+    assert m['w3id_proposed'] == 'https://w3id.org/bharatlas/ngt_zones/2026.11'
+    assert m['layer'] == {'id': 'ngt_zones', 'view': 'https://bharatlas.com/view/ngt_zones'}
+    assert not any(f['name'].endswith('.pmtiles') for f in m['files'])
+
+
+def test_the_next_layer_release_diffs_rows_schema_and_ids_against_the_previous_one(tmp_path):
+    r = roots(tmp_path)
+    rel.make_release(stage(tmp_path, r, layer_sources(tmp_path, 'v1', ids=(1, 2, 3)), 's1', '2026-11-20'),
+                     '2026-11-20', **r)
+    v2 = layer_sources(tmp_path, 'v2', ids=(2, 3, 4, 5), extra_col=False)
+    code, made = rel.make_release(stage(tmp_path, r, v2, 's2', '2026-12-03'), '2026-12-03', **r)
+    assert made and code == 'bharatlas-ngt_zones-2026.12'
+    changes = (r['meta_root'] / code / 'CHANGES.md').read_text()
+    assert 'Changes since bharatlas-ngt_zones-2026.11' in changes
+    assert 'Rows: 3 to 4 (+1)' in changes
+    assert 'Columns removed: bench' in changes
+    assert 'By zone_id: 2 added (4, 5), 1 removed (1)' in changes
+
+
+def test_a_layer_without_a_stable_id_column_is_compared_by_row_count_only(tmp_path):
+    r = roots(tmp_path)
+    d1, d2 = tmp_path / 'a', tmp_path / 'b'
+    for d, names in ((d1, ['x', 'x']), (d2, ['x'])):
+        write_parquet(d / 'ngt_zones.parquet', {'name': names, 'geometry': [b'\x00'] * len(names)})
+        (d / 'ngt_zones.geojson').write_text('{}')
+        (d / 'ngt_zones.shp.zip').write_bytes(b'PK')
+    rel.make_release(stage(tmp_path, r, d1, 's1', '2026-11-20'), '2026-11-20', **r)
+    code, _ = rel.make_release(stage(tmp_path, r, d2, 's2', '2026-12-03'), '2026-12-03', **r)
+    changes = (r['meta_root'] / code / 'CHANGES.md').read_text()
+    assert 'Rows: 2 to 1 (-1)' in changes and 'no stable id column' in changes
+
+
+def test_a_second_layer_release_in_the_same_month_with_other_bytes_is_refused(tmp_path):
+    r = roots(tmp_path)
+    rel.make_release(stage(tmp_path, r, layer_sources(tmp_path, 'v1'), 's1', '2026-11-20'), '2026-11-20', **r)
+    other = stage(tmp_path, r, layer_sources(tmp_path, 'v2', ids=(9,)), 's2', '2026-11-28')
+    with pytest.raises(rel.ReleaseChanged):
+        rel.make_release(other, '2026-11-28', **r)
+
+
+def test_a_layer_with_files_missing_locally_is_refused(tmp_path):
+    d = tmp_path / 'src'
+    write_parquet(d / 'ngt_zones.parquet', {'zone_id': [1]})
+    with pytest.raises(FileNotFoundError, match='ngt_zones.geojson'):
+        stage(tmp_path, roots(tmp_path), d, 's', '2026-11-20')
+
+
+def test_a_community_layer_cannot_be_released_under_its_mixed_case_id():
+    with pytest.raises(ValueError):
+        rel.release_code('c_nL7zNStsW3', '2026-11-20')
+
+
+def test_a_layer_dry_run_prints_the_release_and_writes_nothing_under_the_releases(tmp_path, monkeypatch, capsys):
+    r = roots(tmp_path)
+    r['meta_root'].mkdir(parents=True)
+    (r['meta_root'] / 'index.json').write_text('{}')
+    src = layer_sources(tmp_path)
+    cat = {'layers': [a_layer()], 'level_meta': {}, 'levels': {}}
+    (tmp_path / 'catalog.json').write_text(json.dumps(cat))
+    monkeypatch.setattr(rel, 'CATALOG', tmp_path / 'catalog.json')
+    monkeypatch.setattr(rel, 'META_ROOT', r['meta_root'])
+    monkeypatch.setattr(rel, 'FILES_ROOT', r['files_root'])
+    monkeypatch.setattr(rel, 'ROOT', tmp_path)
+    monkeypatch.setattr(rel, 'fetch_layer', lambda layer, dest: src)
+    before = sorted(p.name for p in r['meta_root'].iterdir())
+    assert rel.main(['--layer', 'ngt_zones', '--dry-run', '--date', '2026-11-20']) == 0
+    out = capsys.readouterr().out
+    assert 'bharatlas-ngt_zones-2026.11: released' in out and '# bharatlas-ngt_zones-2026.11' in out
+    assert 'npx wrangler r2 object put geodata-data/releases/bharatlas-ngt_zones-2026.11/ngt_zones.parquet' in out
+    assert sorted(p.name for p in r['meta_root'].iterdir()) == before
+    assert not r['files_root'].exists()
+
+
+def test_fetch_layer_downloads_each_file_once_and_again_when_the_catalog_names_another_url(tmp_path, monkeypatch):
+    import pipeline
+    got = []
+
+    def fake_download(url, dest):
+        got.append(url)
+        if not dest.exists():
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_bytes(b'x')
+
+    monkeypatch.setattr(pipeline, 'download', fake_download)
+    lyr = a_layer(geojson=None, shapefile=None, parquet={'url': f'{R2}/j/ngt_zones.aaaaaaaa.parquet', 'bytes': 1})
+    rel.fetch_layer(lyr, tmp_path)
+    rel.fetch_layer(lyr, tmp_path)
+    assert (tmp_path / 'ngt_zones.parquet').read_bytes() == b'x' and len(got) == 2   # the 2nd finds it in place
+    (tmp_path / 'ngt_zones.parquet').write_bytes(b'old')
+    lyr['parquet']['url'] = f'{R2}/j/ngt_zones.bbbbbbbb.parquet'
+    rel.fetch_layer(lyr, tmp_path)
+    assert (tmp_path / 'ngt_zones.parquet').read_bytes() == b'x'                      # fetched again
+    assert (tmp_path / 'ngt_zones.parquet.url').read_text().endswith('bbbbbbbb.parquet')
+
+
+def test_a_geometry_column_is_typed_geometry_without_its_crs_text():
+    assert rel._type('GEOMETRY(\'{"type":"GeographicCRS","name":"WGS 84"}\')') == 'GEOMETRY'
+    assert rel._type('BIGINT') == 'BIGINT'
+
+
+def test_a_ward_number_is_a_stable_id_but_a_gdal_row_number_is_not(tmp_path):
+    a, b = tmp_path / 'a.parquet', tmp_path / 'b.parquet'
+    write_parquet(a, {'OGC_FID': [1, 2], 'ward_no': [10, 11]})
+    write_parquet(b, {'OGC_FID': [1, 2], 'ward_no': [11, 12]})
+    assert rel.stable_id_column(b, a) == 'ward_no'

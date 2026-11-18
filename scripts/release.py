@@ -22,8 +22,17 @@ files under an existing code are refused (exit 1). No Zenodo and no DOI (deferre
 bharatlas.com are the citation; the manifest names the w3id.org address the code will resolve through once it is
 registered. Nothing is uploaded: the R2 commands are printed for the owner.
 
+A layer's release (--layer <id>): the dataset code is the layer id, and the files are the layer's parquet and its
+downloads (GeoJSON, KML, Shapefile; never its map tiles), fetched from the URLs catalog.json names, renamed
+<id>.<ext>, pinned by SHA-256. The manifest names the layer's source, licence and the URL each file came from (so
+r2_prune.py treats those keys as pinned), and CHANGES.md diffs it against the layer's previous release: row count,
+columns added, removed or retyped, and the ids added and removed where the layer has a stable id column (unique and
+never empty in both versions). --dry-run cuts it into a temporary copy of the releases and prints the manifest,
+CHANGES.md and the R2 commands, writing nothing under web/public/releases/.
+
 Usage:
     python3 scripts/release.py data/release-staging/cw [--date 2026-11-15]
+    python3 scripts/release.py --layer lgd_states [--dry-run] [--date 2026-12-01]
     python3 scripts/release.py --index-only
 """
 from __future__ import annotations
@@ -32,13 +41,17 @@ import argparse
 import hashlib
 import json
 import re
+import shutil
 import sys
+import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 META_ROOT = ROOT / 'web' / 'public' / 'releases'
 FILES_ROOT = ROOT / 'data' / 'baked' / 'releases'
+STAGING_ROOT = ROOT / 'data' / 'release-staging'
+CATALOG = ROOT / 'catalog.json'
 SITE = 'https://bharatlas.com'
 W3ID = 'https://w3id.org/bharatlas/'           # proposed; not registered yet
 APP = 'bharatlas'
@@ -47,6 +60,13 @@ META_FILE = 'release-meta.json'
 CONTENT_TYPES = {'.csv': 'text/csv; charset=utf-8', '.json': 'application/json',
                  '.parquet': 'application/vnd.apache.parquet', '.md': 'text/markdown; charset=utf-8'}
 _CODE = re.compile(r'^bharatlas-([a-z0-9_]+)-(\d{4})\.(\d{2})$')
+# a layer's release files: catalog format -> file extension (map tiles are rebuilt from the parquet, never released)
+LAYER_FORMATS = {'parquet': 'parquet', 'geojson': 'geojson', 'kml': 'kml', 'shapefile': 'shp.zip'}
+# a source's own id: id, *_id, id_*, *_no, *number*, *code*, *lgd*; never a row number GDAL or a bake added
+_ID_NAME = re.compile(r'(?i)(^id$|_id$|^id_|_no$|^no$|number|code|lgd)')
+_ROW_NUMBER = re.compile(r'(?i)^(ogc_fid|fid|objectid|rowid|index|__index_level_0__)$')
+FILE_INFO = ('rows', 'licence', 'source_layer', 'source_url', 'columns')
+MAX_IDS_LISTED = 50
 
 
 class ReleaseChanged(Exception):
@@ -85,6 +105,12 @@ def _manifest(meta_root: Path, code: str) -> dict:
     return json.loads((meta_root / code / 'manifest.json').read_text(encoding='utf-8'))
 
 
+def previous_release(meta_root: Path, dataset: str, code: str) -> str | None:
+    """The dataset's newest release before `code`."""
+    earlier = [c for c in _codes(meta_root, dataset) if c < code]
+    return earlier[0] if earlier else None
+
+
 def _citation(meta: dict, code: str, digest: str) -> str:
     sources = '; '.join(s['name'] for s in meta['sources'])
     return (f'{sources}. {meta["title"]}, as released by bharatlas: {code} '
@@ -114,6 +140,8 @@ def _changes(code: str, meta: dict, files: list[dict], previous: str | None, pre
                 diffs.append(f'- {name}: {a.get("rows")} rows to {b.get("rows")}' if a.get('rows') != b.get('rows')
                              else f'- {name}: changed, same row count ({b.get("rows")})')
         lines += diffs or ['- no file changed']
+    if meta.get('changes'):
+        lines += [''] + meta['changes']
     lines += ['', f'Release SHA-256 (of SHA256SUMS): `{digest}`', '',
               f'Pin: `{code}+sha256:{digest}`', '']
     return '\n'.join(lines)
@@ -143,15 +171,13 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
                 (files_dir / n).write_bytes(blobs[n])
         return code, False
 
-    earlier = [c for c in _codes(meta_root, meta['dataset']) if c < code]
-    previous = earlier[0] if earlier else None
+    previous = previous_release(meta_root, meta['dataset'], code)
     dataset, version = meta['dataset'], code.rsplit('-', 1)[1]
     files = []
     for n in names:
         info = meta.get('files', {}).get(n, {})
-        files.append({'name': n, 'sha256': _sha(blobs[n]), 'bytes': len(blobs[n]), 'rows': info.get('rows'),
-                      'licence': info.get('licence'), 'source_layer': info.get('source_layer'),
-                      'url': f'{SITE}/releases/{code}/{n}'})
+        files.append({'name': n, 'sha256': _sha(blobs[n]), 'bytes': len(blobs[n]),
+                      **{k: info.get(k) for k in FILE_INFO}, 'url': f'{SITE}/releases/{code}/{n}'})
         files[-1] = {k: v for k, v in files[-1].items() if v is not None or k == 'rows'}
     manifest = {
         'code': code,
@@ -171,8 +197,9 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
         'w3id_proposed': f'{W3ID}{dataset}/{version}',
         'previous': previous,
     }
-    if meta.get('method'):
-        manifest['method'] = meta['method']
+    for k in ('method', 'layer'):
+        if meta.get(k):
+            manifest[k] = meta[k]
     prev_manifest = _manifest(meta_root, previous) if previous else None
 
     files_dir.mkdir(parents=True, exist_ok=True)
@@ -182,6 +209,170 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
     _write_if_changed(meta_dir / 'CHANGES.md', _changes(code, meta, files, previous, prev_manifest, digest, day))
     _write_if_changed(meta_dir / 'manifest.json', json.dumps(manifest, indent=1, ensure_ascii=False) + '\n')
     return code, True
+
+
+# ── a layer's release ───────────────────────────────────────────────────────
+
+def layer_files(layer: dict) -> dict[str, str]:
+    """{release file name: the URL its bytes come from}: the parquet and the downloads, named by the layer id."""
+    return {f'{layer["id"]}.{ext}': layer[fmt]['url'] for fmt, ext in LAYER_FORMATS.items()
+            if (layer.get(fmt) or {}).get('url')}
+
+
+def _sql(query: str, *params):
+    import duckdb
+    return duckdb.connect().execute(query, list(params)).fetchall()
+
+
+def _q(column: str) -> str:
+    return '"' + column.replace('"', '""') + '"'
+
+
+def _type(duckdb_type: str) -> str:
+    """A column type as the manifest records it: a geometry's CRS (pages of PROJJSON) left out."""
+    return 'GEOMETRY' if duckdb_type.startswith('GEOMETRY') else duckdb_type
+
+
+def parquet_info(path: Path) -> dict:
+    """Row count and columns (name, DuckDB type) of a parquet file."""
+    cols = _sql('DESCRIBE SELECT * FROM read_parquet(?)', str(path))
+    return {'rows': _sql('SELECT count(*) FROM read_parquet(?)', str(path))[0][0],
+            'columns': [{'name': c[0], 'type': _type(c[1])} for c in cols]}
+
+
+def _is_id(path: Path, column: str) -> bool:
+    """Whether the column's values are unique and never empty."""
+    n, distinct, filled = _sql(f'SELECT count(*), count(DISTINCT {_q(column)}), count({_q(column)}) '
+                               'FROM read_parquet(?)', str(path))[0]
+    return n == distinct == filled
+
+
+def stable_id_column(cur: Path, prev: Path) -> str | None:
+    """The first id-like column (id, *_id, *code*, *lgd*) unique and never empty in both versions."""
+    prev_cols = {c['name'] for c in parquet_info(prev)['columns']}
+    for c in parquet_info(cur)['columns']:
+        if c['name'] in prev_cols and _ID_NAME.search(c['name']) and not _ROW_NUMBER.match(c['name']) \
+                and c['type'] not in ('BLOB', 'GEOMETRY') \
+                and _is_id(cur, c['name']) and _is_id(prev, c['name']):
+            return c['name']
+    return None
+
+
+def _only_in(a: Path, b: Path, column: str) -> list:
+    """Values of the column in a's parquet and not in b's, sorted."""
+    c = _q(column)
+    return [r[0] for r in _sql(f'SELECT {c} FROM read_parquet(?) EXCEPT SELECT {c} FROM read_parquet(?) '
+                               'ORDER BY 1', str(a), str(b))]
+
+
+def _listed(ids: list) -> str:
+    shown = ', '.join(str(i) for i in ids[:MAX_IDS_LISTED])
+    return shown + (f' and {len(ids) - MAX_IDS_LISTED:,} more' if len(ids) > MAX_IDS_LISTED else '')
+
+
+def layer_diff(cur: Path, prev_file: dict, prev: Path | None) -> list[str]:
+    """CHANGES.md lines for the layer's parquet against its previous release (that release's manifest entry, and
+    its parquet if at hand)."""
+    now = parquet_info(cur)
+    a, b = prev_file.get('rows'), now['rows']
+    lines = ['Layer data (the parquet):', '']
+    if a is not None:
+        lines.append(f'- Rows: {a:,} to {b:,} ({b - a:+,})')
+    before = {c['name']: c['type'] for c in prev_file.get('columns') or []}
+    after = {c['name']: c['type'] for c in now['columns']}
+    if before:
+        added, removed = [c for c in after if c not in before], [c for c in before if c not in after]
+        retyped = [f'{c} ({before[c]} to {after[c]})' for c in after if c in before and before[c] != after[c]]
+        for label, cols in (('added', added), ('removed', removed), ('retyped', retyped)):
+            if cols:
+                lines.append(f'- Columns {label}: {", ".join(cols)}')
+        if not (added or removed or retyped):
+            lines.append('- Columns: unchanged')
+    col = stable_id_column(cur, prev) if prev and prev.exists() else None
+    if col:
+        add, gone = _only_in(cur, prev, col), _only_in(prev, cur, col)
+        lines.append(f'- By {col}: {len(add):,} added' + (f' ({_listed(add)})' if add else '') +
+                     f', {len(gone):,} removed' + (f' ({_listed(gone)})' if gone else ''))
+    elif prev and prev.exists():
+        lines.append('- Features: no stable id column, so compared by row count only')
+    else:
+        lines.append('- Features: the previous parquet is not at hand, so compared by row count only')
+    return lines
+
+
+def _title(layer: dict, catalog: dict) -> str:
+    label = ((catalog.get('level_meta') or {}).get(layer['id']) or {}).get('label') \
+        or ((catalog.get('levels') or {}).get(layer.get('level')) or {}).get('plural', '').capitalize()
+    return f'{label}, {layer["source"]}' if label else layer['id']
+
+
+def _sources(layer: dict) -> list[dict]:
+    att = layer.get('attribution') or {}
+    out = []
+    for role in ('primary', 'publisher'):
+        s = att.get(role)
+        if s and s.get('name') and s['name'] not in [o['name'] for o in out]:
+            out.append({'name': s['name'], 'url': s.get('url')})
+    if out:
+        out[0]['fetched'] = layer.get('fetched_at')
+        fp = (layer.get('source_check') or {}).get('fingerprint')
+        if fp:
+            out[0]['version'] = fp
+    return out or [{'name': layer['source'], 'fetched': layer.get('fetched_at')}]
+
+
+def stage_layer(layer: dict, catalog: dict, src: Path, out: Path, day: str, meta_root: Path = META_ROOT,
+                files_root: Path = FILES_ROOT, fetch=None) -> Path:
+    """Write the staging folder of a layer's release (its files and release-meta.json) from the files in `src`
+    (named as layer_files names them). `fetch(url, dest)` gets the previous release's parquet when it is not in
+    `files_root`; without it the diff is by row count and schema only."""
+    files = layer_files(layer)
+    missing = [n for n in files if not (src / n).is_file()]
+    if missing:
+        raise FileNotFoundError(f'{layer["id"]}: not in {src}: {", ".join(missing)}')
+    out.mkdir(parents=True, exist_ok=True)
+    for p in out.iterdir():
+        if p.is_file() and p.name not in files and p.name != META_FILE:
+            p.unlink()
+    info = {}
+    for name, url in files.items():
+        shutil.copyfile(src / name, out / name)
+        info[name] = {'licence': layer.get('licence'), 'source_url': url}
+    pq_name = f'{layer["id"]}.parquet'
+    if pq_name in files:
+        info[pq_name].update(parquet_info(out / pq_name))
+
+    changes = []
+    prev = previous_release(meta_root, layer['id'], release_code(layer['id'], day))
+    prev_file = next((f for f in _manifest(meta_root, prev)['files'] if f['name'] == pq_name), None) if prev else None
+    if prev_file and pq_name in files:
+        prev_pq = files_root / prev / pq_name
+        if not prev_pq.exists() and fetch:
+            fetch(prev_file['url'], prev_pq)
+        changes = layer_diff(out / pq_name, prev_file, prev_pq)
+
+    meta = {'dataset': layer['id'], 'title': _title(layer, catalog), 'description': layer.get('notes'),
+            'licence': layer.get('licence'), 'sources': _sources(layer), 'files': info,
+            'layer': {'id': layer['id'], 'view': f'{SITE}/view/{layer["id"]}'}, 'changes': changes}
+    (out / META_FILE).write_text(json.dumps(meta, indent=1, ensure_ascii=False) + '\n', encoding='utf-8')
+    return out
+
+
+def fetch_layer(layer: dict, src: Path) -> Path:
+    """Download the layer's release files into `src`, once: a file is fetched again only when the catalog now
+    names another URL for it (recorded beside it) or its size differs from the catalog's."""
+    from pipeline import download
+    for name, url in layer_files(layer).items():
+        dest, mark = src / name, src / f'{name}.url'
+        fmt = next(f for f, ext in LAYER_FORMATS.items() if name.endswith('.' + ext))
+        want = layer[fmt].get('bytes')
+        stale = dest.exists() and (not mark.exists() or mark.read_text() != url
+                                   or (want and dest.stat().st_size != want))
+        if stale:
+            dest.unlink()
+        download(url, dest)
+        mark.write_text(url)
+    return src
 
 
 def write_index(meta_root: Path = META_ROOT) -> bool:
@@ -212,29 +403,70 @@ def upload_commands(code: str, files_root: Path = FILES_ROOT) -> list[str]:
     return out
 
 
+def _cut(src: Path, day: str, meta_root: Path = META_ROOT, files_root: Path = FILES_ROOT) -> str | None:
+    """Cut one staging folder and print what happened; the code, or None when the release is refused."""
+    try:
+        code, made = make_release(src, day, meta_root, files_root)
+    except ReleaseChanged as e:
+        print(f'release refused: {e}', file=sys.stderr, flush=True)
+        return None
+    print(f'{code}: {"released" if made else "already released, unchanged"}  {_manifest(meta_root, code)["pin"]}',
+          flush=True)
+    if made:
+        print('  upload to R2 (owner):', flush=True)
+        for c in upload_commands(code, files_root):
+            print(f'    {c}', flush=True)
+    return code
+
+
+def _layer(catalog: dict, layer_id: str) -> dict:
+    layer = next((lyr for lyr in catalog['layers'] if lyr['id'] == layer_id), None)
+    if not layer:
+        raise SystemExit(f'no layer {layer_id!r} in catalog.json')
+    return layer
+
+
+def release_layer(layer: dict, catalog: dict, day: str, dry_run: bool = False) -> str | None:
+    """Fetch, stage and cut a layer's release. A dry run cuts it into a temporary copy of the releases."""
+    from pipeline import download
+    code = release_code(layer['id'], day)
+    src = fetch_layer(layer, STAGING_ROOT / layer['id'] / 'src')
+    if not dry_run:
+        return _cut(stage_layer(layer, catalog, src, STAGING_ROOT / layer['id'] / code, day, fetch=download), day)
+    with tempfile.TemporaryDirectory() as tmp:
+        meta_root, files_root = Path(tmp) / 'releases', Path(tmp) / 'files'
+        shutil.copytree(META_ROOT, meta_root)
+        stage = stage_layer(layer, catalog, src, Path(tmp) / 'stage', day, meta_root, FILES_ROOT, fetch=download)
+        print(f'[dry run] {code}: nothing is written under {META_ROOT.relative_to(ROOT)}', flush=True)
+        if _cut(stage, day, meta_root, files_root):
+            m = _manifest(meta_root, code)
+            print(json.dumps({k: m[k] for k in ('code', 'title', 'licence', 'pin', 'previous', 'w3id_proposed')},
+                             indent=1, ensure_ascii=False), flush=True)
+            for f in m['files']:
+                print(f'  {f["name"]}: {f["bytes"]:,} bytes, sha256 {f["sha256"]}, from {f.get("source_url")}',
+                      flush=True)
+            print((meta_root / code / 'CHANGES.md').read_text(encoding='utf-8'), flush=True)
+            return code
+    return None
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('staging', nargs='*', help='staging folders, each with a release-meta.json')
+    ap.add_argument('--layer', nargs='+', metavar='ID', default=[], help='cut these layers\' releases')
+    ap.add_argument('--dry-run', action='store_true', help='with --layer: cut into a temporary copy, write nothing')
     ap.add_argument('--date', default=datetime.now(timezone.utc).date().isoformat())
     ap.add_argument('--index-only', action='store_true')
     args = ap.parse_args(argv)
-    status = 0
+    ok = True
     if not args.index_only:
-        for src in args.staging:
-            try:
-                code, made = make_release(Path(src), args.date)
-            except ReleaseChanged as e:
-                print(f'release refused: {e}', file=sys.stderr, flush=True)
-                status = 1
-                continue
-            m = _manifest(META_ROOT, code)
-            print(f'{code}: {"released" if made else "already released, unchanged"}  {m["pin"]}', flush=True)
-            if made:
-                print('  upload to R2 (owner):', flush=True)
-                for c in upload_commands(code):
-                    print(f'    {c}', flush=True)
+        ok = all([_cut(Path(src), args.date) for src in args.staging])
+        catalog = json.loads(CATALOG.read_text()) if args.layer else {}
+        ok = all([release_layer(_layer(catalog, lid), catalog, args.date, args.dry_run) for lid in args.layer]) and ok
+    if args.dry_run:
+        return 0 if ok else 1
     print(f'index: {"written" if write_index() else "unchanged"}', flush=True)
-    return status
+    return 0 if ok else 1
 
 
 if __name__ == '__main__':
