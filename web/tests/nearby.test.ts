@@ -175,7 +175,7 @@ describe('extractCentroid (multi-format dispatch)', () => {
 
 describe('fullScanRefusal', () => {
   // Measured on 17 Nov: detailed polygon layers without bbox columns ran out of the Worker's memory from
-  // about 20 MB (lgd_districts 22 MB, soi_districts 29 MB, lgd_blocks 69 MB all 503); smaller ones worked.
+  // about 20 MB (lgd_districts 22 MB, soi_districts 29 MB, lgd_blocks 69 MB all 503).
   it('lets a small layer without bbox columns be scanned', () => {
     expect(fullScanRefusal('wards_bengaluru_gba', 1_000_000)).toBeNull();
   });
@@ -186,5 +186,15 @@ describe('fullScanRefusal', () => {
     expect(msg).toMatch(/22 MB/);
     expect(msg).toMatch(/\/locate/);
     expect(msg).toMatch(/download/i);
+  });
+
+  // Measured live on 18 Nov: Worker CPU (Cloudflare 1102, a 503 after 5-9 s), not just memory, fails below
+  // 20 MB: datagov_pincodes 19.8 MB and soi_states 10.8 MB fail every call; every bbox-less layer up to
+  // ngt_zones (8.1 MB) answered. 47 of these 503s reached the ops dashboard in a day.
+  it('refuses the sizes measured to exhaust Worker CPU, and keeps those that answered', () => {
+    expect(fullScanRefusal('datagov_pincodes', 19_819_662)).toMatch(/datagov_pincodes/);
+    expect(fullScanRefusal('soi_states', 10_780_243)).toMatch(/soi_states/);
+    expect(fullScanRefusal('ngt_zones', 8_065_165)).toBeNull();
+    expect(fullScanRefusal('lgd_states', 7_365_957)).toBeNull();
   });
 });

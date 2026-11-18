@@ -16,6 +16,10 @@
 //                  Measured 17 Nov 2026: detailed polygon layers ran out of
 //                  memory from about 20 MB (lgd_districts 22 MB, soi_districts
 //                  29 MB, lgd_blocks 69 MB); the old 200 MB cap let them try.
+//                  Measured 18 Nov: CPU runs out first (Cloudflare 1102) from
+//                  about 10 MB (soi_states 10.8 MB, datagov_pincodes 19.8 MB);
+//                  every bbox-less layer up to 8.1 MB answered. The real fix
+//                  is bbox columns (scripts/rebake_layer.py); this is the net.
 //
 // The PMTiles-based path that lived here through PR #83 is gone: pmtiles drop
 // features at lower zooms (designed for display), which gave wrong results on
@@ -50,7 +54,7 @@ export interface NearbyResult {
 
 const KM_PER_DEG_LAT = 111.32;
 const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
-const MAX_FULLSCAN_BYTES = 20 * 1000 * 1000;
+const MAX_FULLSCAN_BYTES = 10 * 1000 * 1000;
 
 /** Why a layer without bbox columns can't be scanned for nearby, or null if it can. */
 export function fullScanRefusal(layerId: string, bytes: number): string | null {
