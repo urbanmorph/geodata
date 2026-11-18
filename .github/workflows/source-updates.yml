@@ -1,0 +1,94 @@
+name: source-updates
+
+# Weekly: which layers' upstream sources have changed since bharatlas ingested
+# them? scripts/check_updates.py asks each source for metadata only (no data
+# files) and compares it with the fingerprint in catalog.json. The result goes
+# to ONE issue titled "Source updates" (label source-updates): open while any
+# layer has changed, closed when none has. Its body ends with a JSON summary
+# (<!-- update-summary {...} -->) that the ops dashboard reads.
+#
+# Commits nothing. After re-ingesting a layer, record its new version locally:
+#   python3 scripts/check_updates.py --accept <layer id>
+
+on:
+  schedule:
+    - cron: '41 3 * * 1'   # Mondays 03:41 UTC (09:11 IST)
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # Last run's results: a run killed part way resumes, and a re-run inside
+      # the same day asks no source twice (the checker re-asks after 20 h).
+      - name: restore the previous status
+        uses: actions/cache/restore@v4
+        with:
+          path: data/update-status.json
+          key: update-status-${{ github.run_id }}
+          restore-keys: update-status-
+
+      - name: check upstream sources
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        # The checker stops starting requests after 20 min, inside the job's 30.
+        run: >-
+          python3 -u scripts/check_updates.py --max-minutes 20
+          --issue-body data/update-issue.md --summary data/update-summary.json
+
+      - name: save the status for the next run
+        if: always() && hashFiles('data/update-status.json') != ''
+        uses: actions/cache/save@v4
+        with:
+          path: data/update-status.json
+          key: update-status-${{ github.run_id }}
+
+      - name: upload the status
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-status
+          path: |
+            data/update-status.json
+            data/update-summary.json
+            data/update-issue.md
+          if-no-files-found: ignore
+
+      - name: create, update or close the "Source updates" issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          title='Source updates'
+          label='source-updates'
+          changed=$(jq '.counts.changed // 0' data/update-summary.json)
+          gh label create "$label" --color FBCA04 --description 'Weekly upstream source check' --force
+          num=$(gh issue list --label "$label" --state all --limit 1 --json number --jq '.[0].number // empty')
+          if [ -z "$num" ]; then
+            url=$(gh issue create --title "$title" --label "$label" --body-file data/update-issue.md)
+            num=${url##*/}
+          else
+            gh issue edit "$num" --title "$title" --body-file data/update-issue.md
+          fi
+          state=$(gh issue view "$num" --json state --jq .state)
+          if [ "$changed" -gt 0 ] && [ "$state" = CLOSED ]; then
+            gh issue reopen "$num"
+          elif [ "$changed" -eq 0 ] && [ "$state" = OPEN ]; then
+            gh issue close "$num" --reason completed --comment 'No source has changed since it was ingested.'
+          fi
+          echo "issue #$num: $changed changed"

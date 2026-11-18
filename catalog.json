@@ -1373,7 +1373,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:35.410177+00:00",
-      "notes": "Authoritative state and Union Territory boundaries from India's Local Government Directory (LGD). 36 polygons with the full LGD code chain, enabling joins with district, subdistrict, block and village layers."
+      "notes": "Authoritative state and Union Territory boundaries from India's Local Government Directory (LGD). 36 polygons with the full LGD code chain, enabling joins with district, subdistrict, block and village layers.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/LGD_States.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:14Z size=7365957",
+        "checked_at": "2026-11-18T13:23:31Z",
+        "changed_at": "2026-03-08T04:56:14Z"
+      }
     },
     {
       "id": "soi_states",
@@ -1416,7 +1423,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:42.332872+00:00",
-      "notes": "Survey of India derivative."
+      "notes": "Survey of India derivative.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/SOI_States.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:15Z size=10780243",
+        "checked_at": "2026-11-18T13:23:31Z",
+        "changed_at": "2026-03-08T04:56:15Z"
+      }
     },
     {
       "id": "bhuvan_states",
@@ -1459,7 +1473,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:44.032499+00:00",
-      "notes": "NRSC/ISRO Bhuvan. Own codes, not LGD."
+      "notes": "NRSC/ISRO Bhuvan. Own codes, not LGD.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/bhuvan_states.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:15Z size=2242493",
+        "checked_at": "2026-11-18T13:23:31Z",
+        "changed_at": "2026-03-08T04:56:15Z"
+      }
     },
     {
       "id": "lgd_districts",
@@ -1502,7 +1523,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:56:49.392838+00:00",
-      "notes": "Every district in India from the Local Government Directory (LGD). 785 polygons; joins to state boundaries via the state_lgd code, with the full LGD chain for joining to subdistricts, blocks and villages."
+      "notes": "Every district in India from the Local Government Directory (LGD). 785 polygons; joins to state boundaries via the state_lgd code, with the full LGD chain for joining to subdistricts, blocks and villages.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/LGD_Districts.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:26Z size=22178335",
+        "checked_at": "2026-11-18T13:23:32Z",
+        "changed_at": "2026-03-08T04:56:26Z"
+      }
     },
     {
       "id": "soi_districts",
@@ -1545,7 +1573,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:02.013181+00:00",
-      "notes": "SoI derivative. Partial LGD codes."
+      "notes": "SoI derivative. Partial LGD codes.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/SOI_Districts.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:26Z size=28691382",
+        "checked_at": "2026-11-18T13:23:32Z",
+        "changed_at": "2026-03-08T04:56:26Z"
+      }
     },
     {
       "id": "bhuvan_districts",
@@ -1588,7 +1623,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:11.522025+00:00",
-      "notes": "Bhuvan. Under-counts vs LGD in some states."
+      "notes": "Bhuvan. Under-counts vs LGD in some states.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/bhuvan_districts.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:30Z size=37180992",
+        "checked_at": "2026-11-18T13:23:32Z",
+        "changed_at": "2026-03-08T04:56:30Z"
+      }
     },
     {
       "id": "lgd_subdistricts",
@@ -1631,7 +1673,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:28.791492+00:00",
-      "notes": "All subdistricts (tehsil / taluk / mandal) in India from the Local Government Directory (LGD). 6,471 polygons with the full LGD code chain for joining to districts, states, and finer admin levels (blocks, villages)."
+      "notes": "All subdistricts (tehsil / taluk / mandal) in India from the Local Government Directory (LGD). 6,471 polygons with the full LGD code chain for joining to districts, states, and finer admin levels (blocks, villages).",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/LGD_Subdistricts.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:42Z size=65955060",
+        "checked_at": "2026-11-18T13:23:33Z",
+        "changed_at": "2026-03-08T04:56:42Z"
+      }
     },
     {
       "id": "soi_subdistricts",
@@ -1674,7 +1723,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:57:43.888281+00:00",
-      "notes": "SoI tehsils. Partial codes."
+      "notes": "SoI tehsils. Partial codes.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/SOI_Subdistricts.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:56:40Z size=56835970",
+        "checked_at": "2026-11-18T13:23:33Z",
+        "changed_at": "2026-03-08T04:56:40Z"
+      }
     },
     {
       "id": "lgd_blocks",
@@ -1716,7 +1772,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:58:07.316028+00:00",
-      "notes": "Community-development blocks across India from the Local Government Directory (LGD). 7,146 polygons with the full LGD code chain joining to subdistricts, districts and states. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+      "notes": "Community-development blocks across India from the Local Government Directory (LGD). 7,146 polygons with the full LGD code chain joining to subdistricts, districts and states. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/LGD_Blocks.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:57:31Z size=69148863",
+        "checked_at": "2026-11-18T13:23:34Z",
+        "changed_at": "2026-03-08T04:57:31Z"
+      }
     },
     {
       "id": "bhuvan_blocks",
@@ -1756,7 +1819,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:58:47.442152+00:00",
-      "notes": "Bhuvan. Predates recent re-divisions in several states."
+      "notes": "Bhuvan. Predates recent re-divisions in several states.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/bhuvan_blocks.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:57:51Z size=97298502",
+        "checked_at": "2026-11-18T13:23:34Z",
+        "changed_at": "2026-03-08T04:57:51Z"
+      }
     },
     {
       "id": "pmgsy_blocks",
@@ -1790,7 +1860,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:07:38.268872+00:00",
-      "notes": "PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage)."
+      "notes": "PMGSY rural roads blocks. Block + district + state names joined from PMGSY_Masterdata (99% coverage).",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/PMGSY_Blocks.parquet",
+        "fingerprint": "updated_at=2026-03-08T04:57:52Z size=126995132",
+        "checked_at": "2026-11-18T13:23:34Z",
+        "changed_at": "2026-03-08T04:57:52Z"
+      }
     },
     {
       "id": "lgd_panchayats",
@@ -1823,7 +1900,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:12:19.703241+00:00",
-      "notes": "Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+      "notes": "Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/panchayats/LGD_panchayats.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:34:42Z size=368147580",
+        "checked_at": "2026-11-18T13:23:36Z",
+        "changed_at": "2026-03-08T05:34:42Z"
+      }
     },
     {
       "id": "lgd_villages",
@@ -1856,7 +1940,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-04-26T13:08:10.529947+00:00",
-      "notes": "Authoritative. 584k polygons. Use vector tiles to render. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+      "notes": "Authoritative. 584k polygons. Use vector tiles to render. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/LGD_Villages.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:40:35Z size=474332457",
+        "checked_at": "2026-11-18T13:23:36Z",
+        "changed_at": "2026-03-08T05:40:35Z"
+      }
     },
     {
       "id": "soi_village_points",
@@ -1898,7 +1989,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-04-26T13:01:32.132923+00:00",
-      "notes": "SoI village centroids (point geometry). 5.76 lakh point features. Coverage is dense in southern + western states and sparse in UP, Bihar, Jharkhand and several NE states (SoI source limitation, not a rendering issue). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+      "notes": "SoI village centroids (point geometry). 5.76 lakh point features. Coverage is dense in southern + western states and sparse in UP, Bihar, Jharkhand and several NE states (SoI source limitation, not a rendering issue). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/SOI_VILLAGE_POINT.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:37:00Z size=26718248",
+        "checked_at": "2026-11-18T13:23:36Z",
+        "changed_at": "2026-03-08T05:37:00Z"
+      }
     },
     {
       "id": "lgd_parliament",
@@ -1941,7 +2039,14 @@
       "category": "people",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:31:10.501660+00:00",
-      "notes": "Lok Sabha constituencies \u2014 543 polygons covering the entire country. Latest delimitation."
+      "notes": "Lok Sabha constituencies \u2014 543 polygons covering the entire country. Latest delimitation.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Parliament_Constituencies.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:00:59Z size=21059109",
+        "checked_at": "2026-11-18T13:23:38Z",
+        "changed_at": "2026-03-08T05:00:59Z"
+      }
     },
     {
       "id": "lgd_assembly",
@@ -1984,7 +2089,14 @@
       "category": "people",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:31:17.416707+00:00",
-      "notes": "State legislative assembly constituencies. Polygons keyed by ST_CODE."
+      "notes": "State legislative assembly constituencies. Polygons keyed by ST_CODE.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Assembly_Constituencies.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:06:21Z size=39602105",
+        "checked_at": "2026-11-18T13:23:38Z",
+        "changed_at": "2026-03-08T05:06:21Z"
+      }
     },
     {
       "id": "datagov_pincodes",
@@ -2027,7 +2139,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:38:04+00:00",
-      "notes": "India Post delivery post office pincode boundaries from data.gov.in (May 2025). 19,312 polygons covering delivery PO service areas. Compare with bharatviz's 63,864 finer polygons. Neither is officially surveyed; both are Voronoi approximations from post office point locations."
+      "notes": "India Post delivery post office pincode boundaries from data.gov.in (May 2025). 19,312 polygons covering delivery PO service areas. Compare with bharatviz's 63,864 finer polygons. Neither is officially surveyed; both are Voronoi approximations from post office point locations.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:12:20Z size=19819662",
+        "checked_at": "2026-11-18T13:23:39Z",
+        "changed_at": "2026-03-08T05:12:20Z"
+      }
     },
     {
       "id": "bharatviz_pincodes",
@@ -2058,7 +2177,15 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-23T17:18:45.854281+00:00",
-      "notes": "India Post pincode boundary polygons (simplified). 63,864 polygons. \u00a9 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz."
+      "notes": "India Post pincode boundary polygons (simplified). 63,864 polygons. \u00a9 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://bharatviz.org/",
+        "reason": "bharatviz.org/India_pincodes_simplified.geojson now answers with a web page, not the file",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "gs_wildlife",
@@ -2098,7 +2225,14 @@
       "category": "environment",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:31:25.155789+00:00",
-      "notes": "Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal."
+      "notes": "Wildlife sanctuaries + national parks. Source via PM GatiShakti GIS portal.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:27:02Z size=21065283",
+        "checked_at": "2026-11-18T13:23:40Z",
+        "changed_at": "2026-03-08T05:27:02Z"
+      }
     },
     {
       "id": "bm_eco_zones",
@@ -2141,7 +2275,14 @@
       "category": "environment",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:31:28.506039+00:00",
-      "notes": "Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps."
+      "notes": "Eco-sensitive zone boundaries from MoEFCC Parivesh. Sourced via Bharatmaps.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:25:53Z size=2220376",
+        "checked_at": "2026-11-18T13:23:40Z",
+        "changed_at": "2026-03-08T05:25:53Z"
+      }
     },
     {
       "id": "soi_forests",
@@ -2180,7 +2321,14 @@
       "category": "environment",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:03:54.695520+00:00",
-      "notes": "Forest boundary polygons from Survey of India topographic maps. Includes reserved + protected + unclassed forests. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+      "notes": "Forest boundary polygons from Survey of India topographic maps. Includes reserved + protected + unclassed forests. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/SOI_Forests.parquet",
+        "fingerprint": "updated_at=2026-03-08T05:27:13Z size=87007173",
+        "checked_at": "2026-11-18T13:23:40Z",
+        "changed_at": "2026-03-08T05:27:13Z"
+      }
     },
     {
       "id": "bp_ramsar",
@@ -2223,7 +2371,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:04:20.351555+00:00",
-      "notes": "India's Ramsar Convention wetland sites of international importance, sourced via Bharatmaps Parivesh."
+      "notes": "India's Ramsar Convention wetland sites of international importance, sourced via Bharatmaps Parivesh.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/wetlands/Bharatmaps_Parivesh_Ramsar_Wetlands.parquet",
+        "fingerprint": "updated_at=2026-03-15T22:55:40Z size=2320886",
+        "checked_at": "2026-11-18T13:23:40Z",
+        "changed_at": "2026-03-15T22:55:40Z"
+      }
     },
     {
       "id": "bp_wetlands",
@@ -2256,7 +2411,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:06:28.606557+00:00",
-      "notes": "All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+      "notes": "All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-15T22:58:32Z size=412598012",
+        "checked_at": "2026-11-18T13:23:40Z",
+        "changed_at": "2026-03-15T22:58:32Z"
+      }
     },
     {
       "id": "wris_basin",
@@ -2299,7 +2461,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:08:20.595360+00:00",
-      "notes": "India's major river basin polygons from the Central Water Commission Water Resources Information System (WRIS)."
+      "notes": "India's major river basin polygons from the Central Water Commission Water Resources Information System (WRIS).",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/hydro-boundaries/WRIS_Basin.parquet",
+        "fingerprint": "updated_at=2026-03-15T23:48:39Z size=4164883",
+        "checked_at": "2026-11-18T13:23:41Z",
+        "changed_at": "2026-03-15T23:48:39Z"
+      }
     },
     {
       "id": "wris_subbasin",
@@ -2342,7 +2511,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:08:29.132672+00:00",
-      "notes": "River sub-basin polygons (one tier under basins) from CWC WRIS."
+      "notes": "River sub-basin polygons (one tier under basins) from CWC WRIS.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/hydro-boundaries/WRIS_SubBasin.parquet",
+        "fingerprint": "updated_at=2026-03-15T23:48:52Z size=23314612",
+        "checked_at": "2026-11-18T13:23:41Z",
+        "changed_at": "2026-03-15T23:48:52Z"
+      }
     },
     {
       "id": "wris_rivers",
@@ -2376,7 +2552,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:09:37.777020+00:00",
-      "notes": "India's river network from CWC WRIS \u2014 line geometry for streams and rivers."
+      "notes": "India's river network from CWC WRIS \u2014 line geometry for streams and rivers.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/rivers/WRIS_Rivers.parquet",
+        "fingerprint": "updated_at=2026-03-15T23:55:27Z size=229199036",
+        "checked_at": "2026-11-18T13:23:42Z",
+        "changed_at": "2026-03-15T23:55:27Z"
+      }
     },
     {
       "id": "seismic_zones",
@@ -2416,7 +2599,15 @@
       "category": "environment",
       "provenance": "curated",
       "fetched_at": "2026-05-25T17:02:55+00:00",
-      "notes": "BIS IS 1893:2016 seismic risk zones II-V. 173 polygons covering all of India. Use for earthquake hazard mapping."
+      "notes": "BIS IS 1893:2016 seismic risk zones II-V. 173 polygons covering all of India. Use for earthquake hazard mapping.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.gov.in/",
+        "reason": "the recorded india-geodata release (environment/seismic) does not exist",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "bm_dams",
@@ -2459,7 +2650,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-25T16:56:38+00:00",
-      "notes": "Dam point locations across India from Bharatmaps."
+      "notes": "Dam point locations across India from Bharatmaps.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/irrigation/Bharatmaps_Dams.parquet",
+        "fingerprint": "updated_at=2026-03-15T23:06:56Z size=460523",
+        "checked_at": "2026-11-18T13:23:45Z",
+        "changed_at": "2026-03-15T23:06:56Z"
+      }
     },
     {
       "id": "wris_dams",
@@ -2502,7 +2700,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-25T16:56:40+00:00",
-      "notes": "Dam point locations from CWC WRIS. Compare with Bharatmaps dams for cross-source coverage."
+      "notes": "Dam point locations from CWC WRIS. Compare with Bharatmaps dams for cross-source coverage.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/irrigation/WRIS_Dams.parquet",
+        "fingerprint": "updated_at=2026-03-15T23:12:38Z size=472841",
+        "checked_at": "2026-11-18T13:23:45Z",
+        "changed_at": "2026-03-15T23:12:38Z"
+      }
     },
     {
       "id": "wris_reservoirs",
@@ -2545,7 +2750,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-25T16:56:47+00:00",
-      "notes": "Reservoir polygons from CWC WRIS. Complements the river basin and river network layers."
+      "notes": "Reservoir polygons from CWC WRIS. Complements the river basin and river network layers.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/waterbodies/WRIS_Reservoirs.parquet",
+        "fingerprint": "updated_at=2026-03-15T23:27:43Z size=52992673",
+        "checked_at": "2026-11-18T13:23:46Z",
+        "changed_at": "2026-03-15T23:27:43Z"
+      }
     },
     {
       "id": "gs_highways",
@@ -2584,7 +2796,14 @@
       "category": "transport",
       "provenance": "curated",
       "fetched_at": "2026-05-25T16:56:59+00:00",
-      "notes": "National highway centerlines from Ministry of Road Transport and Highways via PM GatiShakti. 10,317 line segments. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+      "notes": "National highway centerlines from Ministry of Road Transport and Highways via PM GatiShakti. 10,317 line segments. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/infra/national-highways/GatiShakti_MORTH_National_Highways.parquet",
+        "fingerprint": "updated_at=2026-03-15T13:44:50Z size=58742537",
+        "checked_at": "2026-11-18T13:23:47Z",
+        "changed_at": "2026-03-15T13:44:50Z"
+      }
     },
     {
       "id": "nic_health",
@@ -2617,7 +2836,14 @@
       "category": "health-edu",
       "provenance": "curated",
       "fetched_at": "2026-06-19T07:06:17+00:00",
-      "notes": "Primary Health Centres, Community Health Centres, sub-centres, and district hospitals from NIC HealthGIS. 147,957 point features across India."
+      "notes": "Primary Health Centres, Community Health Centres, sub-centres, and district hospitals from NIC HealthGIS. 147,957 point features across India.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.geojson",
+        "fingerprint": "updated_at=2026-03-16T01:10:24Z size=49502037",
+        "checked_at": "2026-11-18T13:25:07Z",
+        "changed_at": "2026-03-16T01:10:24Z"
+      }
     },
     {
       "id": "wards_bengaluru_gba",
@@ -2654,7 +2880,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025."
+      "notes": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/gba-wards-delimitation-2025",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "corporation_bengaluru",
@@ -2691,7 +2925,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-22T02:03:37+00:00",
-      "notes": "Five corporation-level polygons that make up the Greater Bengaluru Authority."
+      "notes": "Five corporation-level polygons that make up the Greater Bengaluru Authority.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_bengaluru_bbmp_2022",
@@ -2731,7 +2973,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and BBMP."
+      "notes": "Bruhat Bengaluru Mahanagara Palike \u2014 243 wards from the 2022 draft delimitation. Historical reference; superseded by the 2025 GBA 369-ward scheme. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and BBMP.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/bbmp-ward-information",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "bda_jurisdiction",
@@ -2771,7 +3021,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-22T02:03:41+00:00",
-      "notes": "Bengaluru Development Authority planning + acquisition jurisdiction boundary."
+      "notes": "Bengaluru Development Authority planning + acquisition jurisdiction boundary.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/bda-jurisdiction-and-boundary",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "bda_layouts",
@@ -2811,7 +3069,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-22T02:03:43+00:00",
-      "notes": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction."
+      "notes": "BDA-approved residential and commercial layout boundaries within the BDA jurisdiction.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/bda-layouts",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_chennai",
@@ -2848,7 +3114,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Greater Chennai Corporation."
+      "notes": "Greater Chennai Corporation \u2014 200 ward boundaries across the 15 zones. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Greater Chennai Corporation.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/gcc-ward-information",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_hyderabad",
@@ -2886,7 +3160,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-11-17",
-      "notes": "Each ward carries its number and name (ward, e.g. \"127-RANGAREDDY NAGAR\"), circle and zone. Five polygons are not wards and have no zone: Osmania University (OU), the Cantonment area, Peerzadiguda and Kalvancha gram panchayats, and Bandlaguda. This is the 150-ward map in force before the 2025 merger of 27 towns into GHMC; the new 300-ward delimitation is not published as a map file yet. The earlier OpenStreetMap-derived 145-ward map stays as Hyderabad Wards (OpenStreetMap, historical)."
+      "notes": "Each ward carries its number and name (ward, e.g. \"127-RANGAREDDY NAGAR\"), circle and zone. Five polygons are not wards and have no zone: Osmania University (OU), the Cantonment area, Peerzadiguda and Kalvancha gram panchayats, and Bandlaguda. This is the 150-ward map in force before the 2025 merger of 27 towns into GHMC; the new 300-ward delimitation is not published as a map file yet. The earlier OpenStreetMap-derived 145-ward map stays as Hyderabad Wards (OpenStreetMap, historical).",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/hyderabad-wards-info",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_hyderabad_osm",
@@ -2926,7 +3208,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Earlier OpenStreetMap-derived ward map (OpenStreetMap ids, versions and changesets in the columns), edited December 2017 to January 2018, taken from OpenCity's Hyderabad wards dataset before OpenCity replaced it with GHMC's map. 145 polygons cover 144 wards; wards 3, 4, 11, 13, 31 and 113 are missing. Superseded by Hyderabad (GHMC) Wards (wards_hyderabad)."
+      "notes": "Earlier OpenStreetMap-derived ward map (OpenStreetMap ids, versions and changesets in the columns), edited December 2017 to January 2018, taken from OpenCity's Hyderabad wards dataset before OpenCity replaced it with GHMC's map. 145 polygons cover 144 wards; wards 3, 4, 11, 13, 31 and 113 are missing. Superseded by Hyderabad (GHMC) Wards (wards_hyderabad).",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/hyderabad-wards-info",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_mumbai",
@@ -2966,7 +3256,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread)."
+      "notes": "Brihanmumbai Municipal Corporation \u2014 24 administrative wards (A\u2013T plus the city-island spread).",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/mumbai-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "electoral_wards_mumbai_2017",
@@ -3006,7 +3304,15 @@
       "category": "people",
       "provenance": "curated",
       "fetched_at": "2026-05-22T02:03:51+00:00",
-      "notes": "227 electoral ward divisions of Mumbai, 2017 delimitation. Use for election + civic-rep maps."
+      "notes": "227 electoral ward divisions of Mumbai, 2017 delimitation. Use for election + civic-rep maps.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/mumbai-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_kolkata",
@@ -3043,7 +3349,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs."
+      "notes": "Kolkata Municipal Corporation \u2014 141 ward boundaries across the 16 boroughs.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/kolkata-wards-information",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_pune",
@@ -3083,7 +3397,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Pune Municipal Corporation \u2014 58 administrative wards."
+      "notes": "Pune Municipal Corporation \u2014 58 administrative wards.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/pune-wards-info",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_ahmedabad",
@@ -3123,7 +3445,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones."
+      "notes": "Ahmedabad Municipal Corporation \u2014 48 wards across the 7 zones.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/amdavad-municipal-corporation-wards-map-2024",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_jaipur",
@@ -3163,7 +3493,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Jaipur Municipal Corporation \u2014 150 ward boundaries."
+      "notes": "Jaipur Municipal Corporation \u2014 150 ward boundaries.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/jaipur-municipal-corporation-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_gurugram",
@@ -3203,7 +3541,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Municipal Corporation of Gurugram \u2014 35 ward boundaries."
+      "notes": "Municipal Corporation of Gurugram \u2014 35 ward boundaries.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/gurugram-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_kochi",
@@ -3243,7 +3589,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Kochi Municipal Corporation ward boundaries \u2014 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal."
+      "notes": "Kochi Municipal Corporation ward boundaries \u2014 74 administrative wards covering the city. Sourced from Oorvani Foundation's OpenCity data portal.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/kochi-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_bhubaneshwar",
@@ -3280,7 +3634,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal. OpenCity lists it as CC BY-SA without a version; labelled CC-BY-SA-4.0."
+      "notes": "Bhubaneshwar Municipal Corporation ward boundaries \u2014 67 wards covering Odisha's capital city. Sourced from Oorvani Foundation's OpenCity data portal. OpenCity lists it as CC BY-SA without a version; labelled CC-BY-SA-4.0.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/bhubaneswar-administrative-boundaries",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_vizag",
@@ -3320,7 +3682,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards."
+      "notes": "Greater Visakhapatnam Municipal Corporation \u2014 98 wards.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/visakhapatnam-wards-map-2024",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_thane",
@@ -3360,7 +3730,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Thane Municipal Corporation \u2014 47 wards across the city."
+      "notes": "Thane Municipal Corporation \u2014 47 wards across the city.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/thane-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_delhi",
@@ -3400,7 +3778,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Municipal Corporation of Delhi, NDMC, and Delhi Cantonment Board wards. 290 ward boundaries."
+      "notes": "Municipal Corporation of Delhi, NDMC, and Delhi Cantonment Board wards. 290 ward boundaries.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Delhi",
+        "fingerprint": "commit=d6415b989e6501cf7447d71a59a6150f86f48c07",
+        "checked_at": "2026-11-18T13:23:48Z",
+        "changed_at": "2018-01-03T01:29:37Z"
+      }
     },
     {
       "id": "wards_indore",
@@ -3440,7 +3825,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Indore Municipal Corporation \u2014 85 ward boundaries. 2024 delimitation."
+      "notes": "Indore Municipal Corporation \u2014 85 ward boundaries. 2024 delimitation.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/indore-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_coimbatore",
@@ -3480,7 +3873,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Coimbatore City Municipal Corporation \u2014 100 ward boundaries. Census 2011 reorganization."
+      "notes": "Coimbatore City Municipal Corporation \u2014 100 ward boundaries. Census 2011 reorganization.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore",
+        "fingerprint": "commit=bf31a4828f53fab6a559778e59dc6618119141a9",
+        "checked_at": "2026-11-18T13:23:49Z",
+        "changed_at": "2017-03-30T05:20:02Z"
+      }
     },
     {
       "id": "wards_madurai",
@@ -3520,7 +3920,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Madurai City Municipal Corporation \u2014 100 ward boundaries. 2024 delimitation."
+      "notes": "Madurai City Municipal Corporation \u2014 100 ward boundaries. 2024 delimitation.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/madurai-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_navi_mumbai",
@@ -3560,7 +3968,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Navi Mumbai Municipal Corporation \u2014 111 ward boundaries. 2024 delimitation."
+      "notes": "Navi Mumbai Municipal Corporation \u2014 111 ward boundaries. 2024 delimitation.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/navi-mumbai-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_guwahati",
@@ -3600,7 +4016,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Guwahati Municipal Corporation \u2014 60 ward boundaries. 2022 delimitation."
+      "notes": "Guwahati Municipal Corporation \u2014 60 ward boundaries. 2022 delimitation.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/guwahati-wards-information",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_mysuru",
@@ -3640,7 +4064,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Mysuru City Corporation \u2014 65 ward boundaries. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Mysuru City Corporation."
+      "notes": "Mysuru City Corporation \u2014 65 ward boundaries. OpenCity states no licence for this dataset, so the layer keeps the ODbL-1.0 label used for OpenCity data and credits both OpenCity and Mysuru City Corporation.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/mysuru-city-corporation-wards-info",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_bhopal",
@@ -3680,7 +4112,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Bhopal Municipal Corporation \u2014 86 ward boundaries. 2024 delimitation."
+      "notes": "Bhopal Municipal Corporation \u2014 86 ward boundaries. 2024 delimitation.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/bhopal-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_chandigarh",
@@ -3720,7 +4160,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Municipal Corporation of Chandigarh \u2014 28 ward boundaries."
+      "notes": "Municipal Corporation of Chandigarh \u2014 28 ward boundaries.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chandigarh",
+        "fingerprint": "commit=7d3273837f02ece06c512b3c44a13fd2e28b5aff",
+        "checked_at": "2026-11-18T13:23:50Z",
+        "changed_at": "2018-01-05T10:51:13Z"
+      }
     },
     {
       "id": "wards_lucknow",
@@ -3760,7 +4207,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Lucknow Municipal Corporation \u2014 112 ward boundaries."
+      "notes": "Lucknow Municipal Corporation \u2014 112 ward boundaries.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow",
+        "fingerprint": "commit=d287c704e64d32ec251b1ed2a1d4111bed2de3bb",
+        "checked_at": "2026-11-18T13:23:51Z",
+        "changed_at": "2018-09-28T08:11:03Z"
+      }
     },
     {
       "id": "wards_kanpur",
@@ -3800,7 +4254,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Kanpur Municipal Corporation \u2014 58 ward boundaries."
+      "notes": "Kanpur Municipal Corporation \u2014 58 ward boundaries.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur",
+        "fingerprint": "commit=c0ed773621b6b594073b3f07642dc1bf8fd049f6",
+        "checked_at": "2026-11-18T13:23:52Z",
+        "changed_at": "2018-09-28T07:41:22Z"
+      }
     },
     {
       "id": "wards_patna",
@@ -3839,7 +4300,15 @@
       "provenance": "curated",
       "fetched_at": "2026-11-01T17:46:03+00:00",
       "notes": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward.",
-      "description": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward."
+      "description": "Patna Municipal Corporation, 75 wards. Cleaned by Jayesh Keswani (Nov 2026): the upstream file repeats each ward many times (628 polygons, 115 distinct shapes) under two naming schemes; this version keeps one \"Ward N\" polygon per ward.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://github.com/datta07/INDIAN-SHAPEFILES",
+        "reason": "a cleaned copy made by hand (Jayesh Keswani, Nov 2026) of the datta07 file",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_surat",
@@ -3879,7 +4348,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.110005+00:00",
-      "notes": "Surat Municipal Corporation \u2014 30 ward boundaries with named wards."
+      "notes": "Surat Municipal Corporation \u2014 30 ward boundaries with named wards.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES",
+        "fingerprint": "commit=062cab151de22b6c3edad1737e90f4538688f366",
+        "checked_at": "2026-11-18T13:23:53Z",
+        "changed_at": "2024-08-24T18:05:46Z"
+      }
     },
     {
       "id": "wards_vadodara",
@@ -3919,7 +4395,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.110706+00:00",
-      "notes": "Vadodara Municipal Corporation \u2014 12 administrative ward boundaries."
+      "notes": "Vadodara Municipal Corporation \u2014 12 administrative ward boundaries.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vadodara",
+        "fingerprint": "commit=f3b69b4c3c9569e3ea7d14b2739c598c2bae942f",
+        "checked_at": "2026-11-18T13:23:54Z",
+        "changed_at": "2020-01-13T13:26:59Z"
+      }
     },
     {
       "id": "wards_faridabad",
@@ -3959,7 +4442,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.111326+00:00",
-      "notes": "Municipal Corporation of Faridabad \u2014 40 ward boundaries."
+      "notes": "Municipal Corporation of Faridabad \u2014 40 ward boundaries.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Faridabad",
+        "fingerprint": "commit=f4e7fad9b98918633d2e2b86005bbb4862bd430c",
+        "checked_at": "2026-11-18T13:23:55Z",
+        "changed_at": "2018-03-15T05:16:36Z"
+      }
     },
     {
       "id": "wards_pcmc",
@@ -3999,7 +4489,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.112003+00:00",
-      "notes": "Pimpri-Chinchwad Municipal Corporation \u2014 66 electoral ward boundaries across 6 zones."
+      "notes": "Pimpri-Chinchwad Municipal Corporation \u2014 66 electoral ward boundaries across 6 zones.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/PCMC",
+        "fingerprint": "commit=e250bf52fadf34d30f1d8acbe42057849f3d31de",
+        "checked_at": "2026-11-18T13:23:56Z",
+        "changed_at": "2016-08-19T12:53:38Z"
+      }
     },
     {
       "id": "wards_vijayawada",
@@ -4039,7 +4536,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38.112629+00:00",
-      "notes": "Vijayawada Municipal Corporation \u2014 77 ward boundaries."
+      "notes": "Vijayawada Municipal Corporation \u2014 77 ward boundaries.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vijayawada",
+        "fingerprint": "commit=8c03089704a7207124537bdcee3c01d285991d96",
+        "checked_at": "2026-11-18T13:23:57Z",
+        "changed_at": "2018-04-12T07:29:30Z"
+      }
     },
     {
       "id": "india_boundary",
@@ -4074,7 +4578,15 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-24T13:16:39.947047+00:00",
-      "notes": "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source \u2014 includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim)."
+      "notes": "India's national boundary as a single MultiPolygon, derived by dissolving the 36 LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source \u2014 includes Aksai Chin via J&K/Ladakh and the full Arunachal Pradesh claim).",
+      "source_check": {
+        "method": "manual",
+        "url": "https://lgdirectory.gov.in/",
+        "reason": "derived by bharatlas from lgd_states; refresh it when lgd_states changes",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "india_flood_inventory",
@@ -4118,7 +4630,14 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:04:19.168604+00:00",
-      "notes": "1,006 historical flood event polygons across India, 1960s-2020. Compiled for hydrological modelling research; useful as a climate-adaptation reference layer."
+      "notes": "1,006 historical flood event polygons across India, 1960s-2020. Compiled for hydrological modelling research; useful as a climate-adaptation reference layer.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/flood-inventory/INDIA_FLOOD_INVENTORY_V3.geojson",
+        "fingerprint": "updated_at=2026-03-16T05:35:25Z size=29992356",
+        "checked_at": "2026-11-18T13:25:08Z",
+        "changed_at": "2026-03-16T05:35:25Z"
+      }
     },
     {
       "id": "gb_adm1",
@@ -4146,7 +4665,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:51:25.765499+00:00",
-      "notes": "name-only"
+      "notes": "name-only",
+      "source_check": {
+        "method": "http",
+        "url": "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM1/",
+        "fingerprint": "etag=\"6ca-6121e2cbbfa12\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1738",
+        "checked_at": "2026-11-18T13:23:56Z",
+        "changed_at": "2024-02-24T10:31:09Z"
+      }
     },
     {
       "id": "gb_adm2",
@@ -4174,7 +4700,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:49:05.585534+00:00",
-      "notes": "name-only"
+      "notes": "name-only",
+      "source_check": {
+        "method": "http",
+        "url": "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM2/",
+        "fingerprint": "etag=\"6e7-6121e2cbc86b1\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1767",
+        "checked_at": "2026-11-18T13:23:57Z",
+        "changed_at": "2024-02-24T10:31:09Z"
+      }
     },
     {
       "id": "gb_adm3",
@@ -4202,7 +4735,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:49:41.513654+00:00",
-      "notes": "name-only"
+      "notes": "name-only",
+      "source_check": {
+        "method": "http",
+        "url": "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM3/",
+        "fingerprint": "etag=\"6ec-6121e2cbd1351\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1772",
+        "checked_at": "2026-11-18T13:23:58Z",
+        "changed_at": "2024-02-24T10:31:09Z"
+      }
     },
     {
       "id": "gb_adm4",
@@ -4230,7 +4770,14 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:50:55.916651+00:00",
-      "notes": "mislabeled in upstream \u2014 block-equivalent, not village"
+      "notes": "mislabeled in upstream \u2014 block-equivalent, not village",
+      "source_check": {
+        "method": "http",
+        "url": "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM4/",
+        "fingerprint": "etag=\"6eb-6121e2cbdbb49\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1771",
+        "checked_at": "2026-11-18T13:23:59Z",
+        "changed_at": "2024-02-24T10:31:09Z"
+      }
     },
     {
       "id": "high_courts",
@@ -4268,7 +4815,15 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.shp.zip",
         "bytes": 10943510
       },
-      "fetched_at": "2026-05-25T14:16:06+00:00"
+      "fetched_at": "2026-05-25T14:16:06+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://lgdirectory.gov.in/",
+        "reason": "derived by bharatlas from lgd_states; refresh it when lgd_states changes",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "ngt_zones",
@@ -4306,7 +4861,15 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.shp.zip",
         "bytes": 7019150
       },
-      "fetched_at": "2026-05-25T14:16:09+00:00"
+      "fetched_at": "2026-05-25T14:16:09+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://lgdirectory.gov.in/",
+        "reason": "derived by bharatlas from lgd_states; refresh it when lgd_states changes",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "nclt_benches",
@@ -4344,7 +4907,15 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.shp.zip",
         "bytes": 9099873
       },
-      "fetched_at": "2026-05-25T14:16:08+00:00"
+      "fetched_at": "2026-05-25T14:16:08+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://lgdirectory.gov.in/",
+        "reason": "derived by bharatlas from lgd_states; refresh it when lgd_states changes",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "airports",
@@ -4370,7 +4941,15 @@
       "category": "transport",
       "provenance": "curated",
       "notes": "Airports across India. 151 point features with name, type, district, state. From data.gov.in.",
-      "fetched_at": "2026-05-25T17:54:40+00:00"
+      "fetched_at": "2026-05-25T17:54:40+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.gov.in/",
+        "reason": "no source file was recorded when it was ingested (a data.gov.in copy)",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wris_watersheds",
@@ -4401,7 +4980,14 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": "2026-05-28T14:40:22+00:00"
+      "fetched_at": "2026-05-28T14:40:22+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/WRIS_Watershed.parquet",
+        "fingerprint": "updated_at=2026-03-10T04:49:29Z size=127348700",
+        "checked_at": "2026-11-18T13:23:59Z",
+        "changed_at": "2026-03-10T04:49:29Z"
+      }
     },
     {
       "id": "wris_river_polygons",
@@ -4432,7 +5018,14 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": "2026-05-28T14:41:20+00:00"
+      "fetched_at": "2026-05-28T14:41:20+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/rivers/WRIS_River_Polygons.parquet",
+        "fingerprint": "updated_at=2026-03-10T05:34:25Z size=205905090",
+        "checked_at": "2026-11-18T13:24:00Z",
+        "changed_at": "2026-03-10T05:34:25Z"
+      }
     },
     {
       "id": "slusi_soil_health",
@@ -4462,7 +5055,14 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": "2026-05-28T14:43:08+00:00"
+      "fetched_at": "2026-05-28T14:43:08+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/soil-health/SLUSI_SHC.parquet",
+        "fingerprint": "updated_at=2026-03-10T01:56:17Z size=315213688",
+        "checked_at": "2026-11-18T13:24:01Z",
+        "changed_at": "2026-03-10T01:56:17Z"
+      }
     },
     {
       "id": "vedas_power_plants",
@@ -4502,7 +5102,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:31:33+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Power_Plants.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:32Z size=31826",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:32Z"
+      }
     },
     {
       "id": "vedas_oil_refineries",
@@ -4542,7 +5149,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:01+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Refineries.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:24Z size=4036",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:24Z"
+      }
     },
     {
       "id": "vedas_oil_wells",
@@ -4582,7 +5196,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:05+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Wells.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:28Z size=512000",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:28Z"
+      }
     },
     {
       "id": "vedas_wind_farms",
@@ -4622,7 +5243,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:08+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Wind_Farms.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:54Z size=6608",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:54Z"
+      }
     },
     {
       "id": "vedas_ethanol_plants",
@@ -4662,7 +5290,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:12+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Ethanol_Plants.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:20Z size=27964",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:20Z"
+      }
     },
     {
       "id": "vedas_solar_plants",
@@ -4702,7 +5337,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:16+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Power_Plants.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:51Z size=11966",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:51Z"
+      }
     },
     {
       "id": "vedas_solar_panel_areas",
@@ -4742,7 +5384,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:19+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panel_Areas.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:47Z size=54467",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:47Z"
+      }
     },
     {
       "id": "vedas_solar_panels_ai_2023",
@@ -4782,7 +5431,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:24+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (AI-derived)."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (AI-derived).",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panels_AI_2023.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:43Z size=2473733",
+        "checked_at": "2026-11-18T13:24:02Z",
+        "changed_at": "2026-03-10T02:47:43Z"
+      }
     },
     {
       "id": "vedas_transmission_lines",
@@ -4822,7 +5478,14 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-28T14:34:33+00:00",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (transmission lines). OSM-derived per release body \u2014 ODbL applies."
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from ISRO VEDAS energymap (transmission lines). OSM-derived per release body \u2014 ODbL applies.",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-lines/Vedas_Power_Transmission_Lines.parquet",
+        "fingerprint": "updated_at=2026-03-10T02:47:15Z size=8636807",
+        "checked_at": "2026-11-18T13:24:03Z",
+        "changed_at": "2026-03-10T02:47:15Z"
+      }
     },
     {
       "id": "pmgsy_habitations",
@@ -4861,7 +5524,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.shp.zip",
         "bytes": 51203631
       },
-      "fetched_at": "2026-05-28T14:38:37+00:00"
+      "fetched_at": "2026-05-28T14:38:37+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/habitations/PMGSY_Habitations.parquet",
+        "fingerprint": "updated_at=2026-03-11T07:34:36Z size=59826647",
+        "checked_at": "2026-11-18T13:24:05Z",
+        "changed_at": "2026-03-11T07:34:36Z"
+      }
     },
     {
       "id": "wris_lakes",
@@ -4901,7 +5571,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-lakes/WRIS_Lakes.shp.zip",
         "bytes": 92667306
       },
-      "fetched_at": "2026-05-28T14:39:25+00:00"
+      "fetched_at": "2026-05-28T14:39:25+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Lakes.parquet",
+        "fingerprint": "updated_at=2026-03-10T05:55:50Z size=96703672",
+        "checked_at": "2026-11-18T13:24:06Z",
+        "changed_at": "2026-03-10T05:55:50Z"
+      }
     },
     {
       "id": "ndem_floods_1998_2022",
@@ -4940,7 +5617,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.shp.zip",
         "bytes": 30007034
       },
-      "fetched_at": "2026-05-28T16:11:26+00:00"
+      "fetched_at": "2026-05-28T16:11:26+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/floods/NDEM_All_India_Flood_Innundation_1998_to_2022.parquet",
+        "fingerprint": "updated_at=2026-03-09T01:00:48Z size=28310056",
+        "checked_at": "2026-11-18T13:24:07Z",
+        "changed_at": "2026-03-09T01:00:48Z"
+      }
     },
     {
       "id": "gsi_landslide_inventory",
@@ -4980,7 +5664,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-landslide-inventory/GSI_Landslide_Inventory.shp.zip",
         "bytes": 5193207
       },
-      "fetched_at": "2026-05-28T16:13:15+00:00"
+      "fetched_at": "2026-05-28T16:13:15+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides/GSI_Landslide_Inventory.parquet",
+        "fingerprint": "updated_at=2026-03-09T01:52:04Z size=2930730",
+        "checked_at": "2026-11-18T13:24:08Z",
+        "changed_at": "2026-03-09T01:52:04Z"
+      }
     },
     {
       "id": "ndem_landslide_hazard",
@@ -5020,7 +5711,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-landslide-hazard/NDEM_Landslide_Hazard.shp.zip",
         "bytes": 15240523
       },
-      "fetched_at": "2026-05-28T16:14:36+00:00"
+      "fetched_at": "2026-05-28T16:14:36+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides/NDEM_Landslide_Hazard.parquet",
+        "fingerprint": "updated_at=2026-03-09T01:52:47Z size=13181228",
+        "checked_at": "2026-11-18T13:24:08Z",
+        "changed_at": "2026-03-09T01:52:47Z"
+      }
     },
     {
       "id": "ngdr_earthquakes",
@@ -5060,7 +5758,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ngdr-earthquakes/NGDR_Earthquakes.shp.zip",
         "bytes": 2936291
       },
-      "fetched_at": "2026-05-28T16:15:28+00:00"
+      "fetched_at": "2026-05-28T16:15:28+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/earthquakes/NGDR_Earthquakes.parquet",
+        "fingerprint": "updated_at=2026-03-09T01:00:04Z size=1737949",
+        "checked_at": "2026-11-18T13:24:08Z",
+        "changed_at": "2026-03-09T01:00:04Z"
+      }
     },
     {
       "id": "ndem_cyclone_tracks",
@@ -5100,7 +5805,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-cyclone-tracks/NDEM_Cyclones_ctl.shp.zip",
         "bytes": 186921
       },
-      "fetched_at": "2026-05-28T16:15:58+00:00"
+      "fetched_at": "2026-05-28T16:15:58+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/cyclones/NDEM_Cyclones_ctl.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:59:43Z size=105031",
+        "checked_at": "2026-11-18T13:24:09Z",
+        "changed_at": "2026-03-09T00:59:43Z"
+      }
     },
     {
       "id": "wris_waterbodies",
@@ -5130,7 +5842,14 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": "2026-06-01T01:45:45+00:00"
+      "fetched_at": "2026-06-01T01:45:45+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.parquet",
+        "fingerprint": "updated_at=2026-03-10T06:00:55Z size=413122538",
+        "checked_at": "2026-11-18T13:24:06Z",
+        "changed_at": "2026-03-10T06:00:55Z"
+      }
     },
     {
       "id": "slusi_micro_watersheds",
@@ -5160,7 +5879,14 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": "2026-06-01T02:01:45+00:00"
+      "fetched_at": "2026-06-01T02:01:45+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.parquet",
+        "fingerprint": "updated_at=2026-03-10T04:44:59Z size=496422675",
+        "checked_at": "2026-11-18T13:23:59Z",
+        "changed_at": "2026-03-10T04:44:59Z"
+      }
     },
     {
       "id": "pmgsy_roads",
@@ -5190,7 +5916,14 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "fetched_at": "2026-06-01T02:17:11+00:00"
+      "fetched_at": "2026-06-01T02:17:11+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.parquet",
+        "fingerprint": "updated_at=2026-03-10T04:00:19Z size=1239255074",
+        "checked_at": "2026-11-18T13:24:11Z",
+        "changed_at": "2026-03-10T04:00:19Z"
+      }
     },
     {
       "id": "overture_places_india",
@@ -5229,7 +5962,14 @@
         "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-09-23.1/theme=places/type=place/",
         "bytes": 503753457
       },
-      "fetched_at": "2026-10-07T15:01:22.297516+00:00"
+      "fetched_at": "2026-10-07T15:01:22.297516+00:00",
+      "source_check": {
+        "method": "http",
+        "url": "https://stac.overturemaps.org/catalog.json",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "c_nL7zNStsW3",
@@ -5262,7 +6002,15 @@
       "provenance": "community",
       "submission_id": "nL7zNStsW3",
       "is_original": false,
-      "fetched_at": "2026-05-25T11:30:45.719Z"
+      "fetched_at": "2026-05-25T11:30:45.719Z",
+      "source_check": {
+        "method": "manual",
+        "url": "https://goaprintingpress.gov.in/search-by-date/",
+        "reason": "a community submission: the contributor sends a new version through /submit",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "cgwb_aquifers",
@@ -5309,7 +6057,15 @@
         "principal aquifer",
         "yield",
         "CGWB"
-      ]
+      ],
+      "source_check": {
+        "method": "manual",
+        "url": "https://drive.google.com/file/d/10jFqXmhDtHtb1j3lLtQivMPSWi6bX_ve/view",
+        "reason": "a Google Drive file: Drive gives no metadata without an API key",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "cgwb_gw_extraction",
@@ -5358,7 +6114,15 @@
         "SOGE",
         "block assessment",
         "CGWB"
-      ]
+      ],
+      "source_check": {
+        "method": "manual",
+        "url": "https://drive.google.com/file/d/1DGdHOojdBqTO65YjPbcUW_cpotlTGFm9/view",
+        "reason": "a Google Drive file: Drive gives no metadata without an API key",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wris_canals",
@@ -5404,7 +6168,15 @@
         "water infrastructure",
         "CCA",
         "WRIS"
-      ]
+      ],
+      "source_check": {
+        "method": "manual",
+        "url": "https://drive.google.com/file/d/1c7A7_0EzkOzAAWL8evTdVSmQqzHwU-In/view",
+        "reason": "a Google Drive file: Drive gives no metadata without an API key",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "agro_ecological_zones",
@@ -5456,7 +6228,15 @@
         "land use planning",
         "NBSS",
         "ICAR"
-      ]
+      ],
+      "source_check": {
+        "method": "manual",
+        "url": "https://drive.google.com/drive/folders/1URv9Zmo9-X4Zd4Apf9GlzCqYw78_J9jd",
+        "reason": "a Google Drive file: Drive gives no metadata without an API key",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "agro_climatic_zones",
@@ -5508,7 +6288,15 @@
         "farming zone",
         "crop planning",
         "planning commission"
-      ]
+      ],
+      "source_check": {
+        "method": "manual",
+        "url": "https://drive.google.com/drive/folders/1_aCnajTQ02tXAZ6yhe38fn2loStczmcl",
+        "reason": "a Google Drive file: Drive gives no metadata without an API key",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "biogeographic_zones",
@@ -5560,7 +6348,15 @@
         "ecoregion",
         "conservation",
         "WII"
-      ]
+      ],
+      "source_check": {
+        "method": "manual",
+        "url": "https://drive.google.com/file/d/1JSh2h2wHnOpWH8tZj61MXomwwURvvSwC/view",
+        "reason": "a Google Drive file: Drive gives no metadata without an API key",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "corestack_lulc_blocks",
@@ -5627,6 +6423,14 @@
           2,
           2.2
         ]
+      },
+      "source_check": {
+        "method": "manual",
+        "url": "https://core-stack.org/",
+        "reason": "the source link is a portal page, not a file, release or dataset API",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
       }
     },
     {
@@ -5691,6 +6495,14 @@
           31000,
           59000
         ]
+      },
+      "source_check": {
+        "method": "manual",
+        "url": "https://mowr.nic.in/irrigationcensus/",
+        "reason": "summed by hand from the 6th Minor Irrigation Census files (a one-off census)",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
       }
     },
     {
@@ -5730,7 +6542,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.shp.zip",
         "bytes": 84695745
       },
-      "fetched_at": "2026-11-15T08:46:31+00:00"
+      "fetched_at": "2026-11-15T08:46:31+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/SBM_Wards.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:39:01Z size=85229108",
+        "checked_at": "2026-11-18T13:24:11Z",
+        "changed_at": "2026-03-09T00:39:01Z"
+      }
     },
     {
       "id": "sbm_ulbs",
@@ -5770,7 +6589,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-ulbs/SBM_ULBs.shp.zip",
         "bytes": 18893235
       },
-      "fetched_at": "2026-11-15T08:46:46+00:00"
+      "fetched_at": "2026-11-15T08:46:46+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/SBM_ULBs.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:38:12Z size=21677607",
+        "checked_at": "2026-11-18T13:24:11Z",
+        "changed_at": "2026-03-09T00:38:12Z"
+      }
     },
     {
       "id": "nhp_hospitals",
@@ -5810,7 +6636,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/healthcare/nhp-hospitals/NHP_Hospital_Directory_2025.shp.zip",
         "bytes": 1315986
       },
-      "fetched_at": "2026-11-15T09:42:58+00:00"
+      "fetched_at": "2026-11-15T09:42:58+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_facilities/releases/download/health/NHP_Hospital_Directory_2025.parquet",
+        "fingerprint": "updated_at=2026-03-09T14:04:57Z size=861329",
+        "checked_at": "2026-11-18T13:24:13Z",
+        "changed_at": "2026-03-09T14:04:57Z"
+      }
     },
     {
       "id": "nin_health_facilities",
@@ -5850,7 +6683,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/healthcare/nin-health-facilities/Datagov_NIN_Health_Facilties_2025.shp.zip",
         "bytes": 12195579
       },
-      "fetched_at": "2026-11-15T09:43:21+00:00"
+      "fetched_at": "2026-11-15T09:43:21+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_facilities/releases/download/health/Datagov_NIN_Health_Facilties_2025.parquet",
+        "fingerprint": "updated_at=2026-03-11T08:18:37Z size=12029536",
+        "checked_at": "2026-11-18T13:24:13Z",
+        "changed_at": "2026-03-11T08:18:37Z"
+      }
     },
     {
       "id": "udise_schools",
@@ -5890,7 +6730,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/education/udise-schools/NCOG_UDISE_Schools.shp.zip",
         "bytes": 110534474
       },
-      "fetched_at": "2026-11-15T09:52:25+00:00"
+      "fetched_at": "2026-11-15T09:52:25+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_facilities/releases/download/education/NCOG_UDISE_Schools.parquet",
+        "fingerprint": "updated_at=2026-03-09T13:57:33Z size=103932938",
+        "checked_at": "2026-11-18T13:24:14Z",
+        "changed_at": "2026-03-09T13:57:33Z"
+      }
     },
     {
       "id": "fsi_circles",
@@ -5929,7 +6776,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.shp.zip",
         "bytes": 96033824
       },
-      "fetched_at": "2026-11-15T11:36:15+00:00"
+      "fetched_at": "2026-11-15T11:36:15+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Circles.parquet",
+        "fingerprint": "updated_at=2026-03-08T23:13:38Z size=102244276",
+        "checked_at": "2026-11-18T13:24:15Z",
+        "changed_at": "2026-03-08T23:13:38Z"
+      }
     },
     {
       "id": "fsi_divisions",
@@ -5968,7 +6822,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.shp.zip",
         "bytes": 235097552
       },
-      "fetched_at": "2026-11-15T11:38:01+00:00"
+      "fetched_at": "2026-11-15T11:38:01+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Divisions.parquet",
+        "fingerprint": "updated_at=2026-03-08T23:15:49Z size=254987993",
+        "checked_at": "2026-11-18T13:24:15Z",
+        "changed_at": "2026-03-08T23:15:49Z"
+      }
     },
     {
       "id": "fsi_ranges",
@@ -6007,7 +6868,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.shp.zip",
         "bytes": 197344707
       },
-      "fetched_at": "2026-11-15T11:39:35+00:00"
+      "fetched_at": "2026-11-15T11:39:35+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Ranges.parquet",
+        "fingerprint": "updated_at=2026-03-08T23:17:35Z size=210193484",
+        "checked_at": "2026-11-18T13:24:15Z",
+        "changed_at": "2026-03-08T23:17:35Z"
+      }
     },
     {
       "id": "fsi_beats",
@@ -6046,7 +6914,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.shp.zip",
         "bytes": 448391224
       },
-      "fetched_at": "2026-11-15T11:44:48+00:00"
+      "fetched_at": "2026-11-15T11:44:48+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Beats.parquet",
+        "fingerprint": "updated_at=2026-03-08T23:12:42Z size=444481337",
+        "checked_at": "2026-11-18T13:24:15Z",
+        "changed_at": "2026-03-08T23:12:42Z"
+      }
     },
     {
       "id": "wildlife_corridors",
@@ -6086,7 +6961,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wildlife-corridors/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.shp.zip",
         "bytes": 9431578
       },
-      "fetched_at": "2026-11-15T11:44:57+00:00"
+      "fetched_at": "2026-11-15T11:44:57+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/Bharatmaps_Parivesh_Wildlife_Reserves_and_Corridors.parquet",
+        "fingerprint": "updated_at=2026-03-08T23:05:05Z size=9758695",
+        "checked_at": "2026-11-18T13:24:15Z",
+        "changed_at": "2026-03-08T23:05:05Z"
+      }
     },
     {
       "id": "crz2019_zones",
@@ -6126,7 +7008,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-zones/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.shp.zip",
         "bytes": 115121382
       },
-      "fetched_at": "2026-11-15T11:45:58+00:00"
+      "fetched_at": "2026-11-15T11:45:58+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/coastal/Bharatmaps_Parivesh_CRZ2019_Regulatory_Zones.parquet",
+        "fingerprint": "updated_at=2026-03-08T22:43:28Z size=126191167",
+        "checked_at": "2026-11-18T13:24:16Z",
+        "changed_at": "2026-03-08T22:43:28Z"
+      }
     },
     {
       "id": "crz2019_lines",
@@ -6166,7 +7055,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/crz2019-lines/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.shp.zip",
         "bytes": 190231142
       },
-      "fetched_at": "2026-11-15T11:47:36+00:00"
+      "fetched_at": "2026-11-15T11:47:36+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/coastal/Bharatmaps_Parivesh_CRZ2019_Regulatory_Lines.parquet",
+        "fingerprint": "updated_at=2026-03-08T22:42:08Z size=219218519",
+        "checked_at": "2026-11-18T13:24:16Z",
+        "changed_at": "2026-03-08T22:42:08Z"
+      }
     },
     {
       "id": "gw_quality_premonsoon",
@@ -6206,7 +7102,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-premonsoon/Bhuvan_Groundwater_Quality_Premonsoon.shp.zip",
         "bytes": 29515463
       },
-      "fetched_at": "2026-11-15T11:49:32+00:00"
+      "fetched_at": "2026-11-15T11:49:32+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Premonsoon.parquet",
+        "fingerprint": "updated_at=2026-03-09T19:28:44Z size=27638626",
+        "checked_at": "2026-11-18T13:24:16Z",
+        "changed_at": "2026-03-09T19:28:44Z"
+      }
     },
     {
       "id": "gw_quality_postmonsoon",
@@ -6246,7 +7149,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-postmonsoon/Bhuvan_Groundwater_Quality_Postmonsoon.shp.zip",
         "bytes": 28970932
       },
-      "fetched_at": "2026-11-15T11:51:17+00:00"
+      "fetched_at": "2026-11-15T11:51:17+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Postmonsoon.parquet",
+        "fingerprint": "updated_at=2026-03-09T19:28:24Z size=27492083",
+        "checked_at": "2026-11-18T13:24:16Z",
+        "changed_at": "2026-03-09T19:28:24Z"
+      }
     },
     {
       "id": "gsi_geology_2m",
@@ -6286,7 +7196,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geology-2m/NGDR_Geology_2M.shp.zip",
         "bytes": 32590490
       },
-      "fetched_at": "2026-11-15T11:51:38+00:00"
+      "fetched_at": "2026-11-15T11:51:38+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/geology/NGDR_Geology_2M.parquet",
+        "fingerprint": "updated_at=2026-03-09T14:40:43Z size=31876118",
+        "checked_at": "2026-11-18T13:24:17Z",
+        "changed_at": "2026-03-09T14:40:43Z"
+      }
     },
     {
       "id": "gsi_coal_blocks",
@@ -6326,7 +7243,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-coal-blocks/NGDR_Coal_Blocks.shp.zip",
         "bytes": 2569776
       },
-      "fetched_at": "2026-11-15T11:51:43+00:00"
+      "fetched_at": "2026-11-15T11:51:43+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Coal_Blocks.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:58:50Z size=2737703",
+        "checked_at": "2026-11-18T13:24:18Z",
+        "changed_at": "2026-03-10T00:58:50Z"
+      }
     },
     {
       "id": "gsi_critical_minerals",
@@ -6366,7 +7290,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-critical-minerals/NGDR_Critical_Minerals.shp.zip",
         "bytes": 57918
       },
-      "fetched_at": "2026-11-15T11:51:46+00:00"
+      "fetched_at": "2026-11-15T11:51:46+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Critical_Minerals.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:58:54Z size=52464",
+        "checked_at": "2026-11-18T13:24:18Z",
+        "changed_at": "2026-03-10T00:58:54Z"
+      }
     },
     {
       "id": "gsi_lineaments_250k",
@@ -6405,7 +7336,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.shp.zip",
         "bytes": 8044339
       },
-      "fetched_at": "2026-11-15T11:51:56+00:00"
+      "fetched_at": "2026-11-15T11:51:56+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/NGDR_Lineament_250k.parquet",
+        "fingerprint": "updated_at=2026-03-09T14:48:16Z size=8156834",
+        "checked_at": "2026-11-18T13:24:19Z",
+        "changed_at": "2026-03-09T14:48:16Z"
+      }
     },
     {
       "id": "police_stations_ap",
@@ -6445,7 +7383,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-ap/APSAC_Police_station_boundaries.shp.zip",
         "bytes": 9111818
       },
-      "fetched_at": "2026-11-15T11:52:05+00:00"
+      "fetched_at": "2026-11-15T11:52:05+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/APSAC_Police_station_boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:29:23Z size=7974367",
+        "checked_at": "2026-11-18T13:24:20Z",
+        "changed_at": "2026-03-09T00:29:23Z"
+      }
     },
     {
       "id": "police_stations_bihar",
@@ -6485,7 +7430,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-bihar/Bhugoal_BH_Police_Thana_Boundaries.shp.zip",
         "bytes": 4479856
       },
-      "fetched_at": "2026-11-15T11:52:10+00:00"
+      "fetched_at": "2026-11-15T11:52:10+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/Bhugoal_BH_Police_Thana_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:29:41Z size=4046275",
+        "checked_at": "2026-11-18T13:24:20Z",
+        "changed_at": "2026-03-09T00:29:41Z"
+      }
     },
     {
       "id": "police_stations_delhi",
@@ -6525,7 +7477,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-delhi/GSDL_DL_Police_Station_Boundaries.shp.zip",
         "bytes": 1244730
       },
-      "fetched_at": "2026-11-15T11:52:13+00:00"
+      "fetched_at": "2026-11-15T11:52:13+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/GSDL_DL_Police_Station_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:29:49Z size=1319782",
+        "checked_at": "2026-11-18T13:24:20Z",
+        "changed_at": "2026-03-09T00:29:49Z"
+      }
     },
     {
       "id": "police_stations_tn",
@@ -6565,7 +7524,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-tn/TNGIS_TN_Police_Station_Boundaries.shp.zip",
         "bytes": 11245649
       },
-      "fetched_at": "2026-11-15T11:52:23+00:00"
+      "fetched_at": "2026-11-15T11:52:23+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TNGIS_TN_Police_Station_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:31:02Z size=9636478",
+        "checked_at": "2026-11-18T13:24:20Z",
+        "changed_at": "2026-03-09T00:31:02Z"
+      }
     },
     {
       "id": "traffic_police_stations_tn",
@@ -6605,7 +7571,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/traffic-police-stations-tn/TNGIS_TN_Traffic_Police_Station_Boundaries.shp.zip",
         "bytes": 10999189
       },
-      "fetched_at": "2026-11-15T11:52:33+00:00"
+      "fetched_at": "2026-11-15T11:52:33+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TNGIS_TN_Traffic_Police_Station_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:31:15Z size=9402909",
+        "checked_at": "2026-11-18T13:24:20Z",
+        "changed_at": "2026-03-09T00:31:15Z"
+      }
     },
     {
       "id": "police_stations_telangana",
@@ -6645,7 +7618,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/police-stations-telangana/TRACGIS_TG_Police_Station_Boundaries.shp.zip",
         "bytes": 5746018
       },
-      "fetched_at": "2026-11-15T11:52:39+00:00"
+      "fetched_at": "2026-11-15T11:52:39+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/TRACGIS_TG_Police_Station_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:31:26Z size=5040751",
+        "checked_at": "2026-11-18T13:24:20Z",
+        "changed_at": "2026-03-09T00:31:26Z"
+      }
     },
     {
       "id": "marine_police_stations",
@@ -6685,7 +7665,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/people/marine-police-stations/NCOG_Marine_Police_Boundaries.shp.zip",
         "bytes": 910080
       },
-      "fetched_at": "2026-11-15T11:52:43+00:00"
+      "fetched_at": "2026-11-15T11:52:43+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/police/NCOG_Marine_Police_Boundaries.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:30:28Z size=956306",
+        "checked_at": "2026-11-18T13:24:20Z",
+        "changed_at": "2026-03-09T00:30:28Z"
+      }
     },
     {
       "id": "amrit_sarovar_ponds",
@@ -6724,7 +7711,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.shp.zip",
         "bytes": 5390704
       },
-      "fetched_at": "2026-11-15T11:52:57+00:00"
+      "fetched_at": "2026-11-15T11:52:57+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/Amrit_Sarovar_Water_Observatory_Ponds.parquet",
+        "fingerprint": "updated_at=2026-03-11T08:33:55Z size=5471934",
+        "checked_at": "2026-11-18T13:24:06Z",
+        "changed_at": "2026-03-11T08:33:55Z"
+      }
     },
     {
       "id": "jjm_facilities",
@@ -6764,7 +7758,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infrastructure/jjm-facilities/JJM_facilities.shp.zip",
         "bytes": 86230637
       },
-      "fetched_at": "2026-11-15T11:55:23+00:00"
+      "fetched_at": "2026-11-15T11:55:23+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_facilities/releases/download/jjm-facilities/JJM_facilities.parquet",
+        "fingerprint": "updated_at=2026-03-09T14:06:02Z size=91914691",
+        "checked_at": "2026-11-18T13:24:21Z",
+        "changed_at": "2026-03-09T14:06:02Z"
+      }
     },
     {
       "id": "mgnrega_districts",
@@ -6827,6 +7828,13 @@
           11000,
           21000
         ]
+      },
+      "source_check": {
+        "method": "ckan",
+        "url": "https://www.data.gov.in/backend/dmspublic/v1/resources?format=json&limit=200&filters%5Buuid%5D=ee03643a-ee4c-48c2-ac30-9f2ff26ab722",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
       }
     },
     {
@@ -6892,6 +7900,14 @@
           110000000,
           240000000
         ]
+      },
+      "source_check": {
+        "method": "manual",
+        "url": "https://cityfinance.in/",
+        "reason": "the source link is a portal page, not a file, release or dataset API",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
       }
     },
     {
@@ -6959,6 +7975,14 @@
           210000,
           260000
         ]
+      },
+      "source_check": {
+        "method": "manual",
+        "url": "https://www.data.gov.in/",
+        "reason": "eight data.gov.in tables of Rajya Sabha answers; an answered question does not change",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
       }
     },
     {
@@ -6997,7 +8021,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-11-15T14:39:39+00:00",
-      "notes": "Kalyan-Dombivli Municipal Corporation: 123 electoral ward boundaries, with LGD ward codes."
+      "notes": "Kalyan-Dombivli Municipal Corporation: 123 electoral ward boundaries, with LGD ward codes.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/kalyan-dombivli-wards-map",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "zones_bengaluru_gba",
@@ -7035,7 +8067,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-11-15T14:39:39+00:00",
-      "notes": "Each zone carries its corporation (Corporatio) and zone (Zone)."
+      "notes": "Each zone carries its corporation (Corporatio) and zone (Zone).",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/greater-bengaluru-authority-corporations-delimitation-2025",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "wards_pune_2025",
@@ -7073,7 +8113,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-11-15T14:39:39+00:00",
-      "notes": "Pune Municipal Corporation: 15 administrative wards (ward offices), 2025."
+      "notes": "Pune Municipal Corporation: 15 administrative wards (ward offices), 2025.",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/pune-wards-info",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "zones_pune",
@@ -7111,7 +8159,15 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-11-15T14:39:39+00:00",
-      "notes": "Pune Municipal Corporation: 5 zones (Deputy Municipal Commissioner zones)."
+      "notes": "Pune Municipal Corporation: 5 zones (Deputy Municipal Commissioner zones).",
+      "source_check": {
+        "method": "manual",
+        "url": "https://data.opencity.in/dataset/pune-wards-info",
+        "reason": "data.opencity.in answers scripts with a Cloudflare challenge",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "zones_chennai",
@@ -7149,7 +8205,14 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-11-15T14:39:39+00:00",
-      "notes": "Greater Chennai Corporation: 15 zones, plus St. Thomas Mount as a 16th area, from Transparent Chennai via DataMeet."
+      "notes": "Greater Chennai Corporation: 15 zones, plus St. Thomas Mount as a 16th area, from Transparent Chennai via DataMeet.",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chennai",
+        "fingerprint": "commit=9b4d1c2ece54cdeb6f5e8bad9ccad7844f783b17",
+        "checked_at": "2026-11-18T13:24:22Z",
+        "changed_at": "2023-11-16T09:04:46Z"
+      }
     },
     {
       "id": "wb_amrut_wards",
@@ -7189,7 +8252,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-wards/WB_AMRUT_Wards.shp.zip",
         "bytes": 5876880
       },
-      "fetched_at": "2026-11-15T14:41:41+00:00"
+      "fetched_at": "2026-11-15T14:41:41+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/WB_AMRUT_Wards.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:40:31Z size=5688382",
+        "checked_at": "2026-11-18T13:24:11Z",
+        "changed_at": "2026-03-09T00:40:31Z"
+      }
     },
     {
       "id": "wb_amrut_ulbs",
@@ -7229,7 +8299,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/wb-amrut-ulbs/WB_AMRUT_ULBs.shp.zip",
         "bytes": 1126185
       },
-      "fetched_at": "2026-11-15T14:41:45+00:00"
+      "fetched_at": "2026-11-15T14:41:45+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/WB_AMRUT_ULBs.parquet",
+        "fingerprint": "updated_at=2026-03-09T00:40:11Z size=1309061",
+        "checked_at": "2026-11-18T13:24:11Z",
+        "changed_at": "2026-03-09T00:40:11Z"
+      }
     },
     {
       "id": "ir_stations",
@@ -7282,7 +8359,15 @@
         "PM GatiShakti",
         "Wikidata",
         "transport"
-      ]
+      ],
+      "source_check": {
+        "method": "manual",
+        "url": "https://irgeoportal.gov.in/",
+        "reason": "merged by bharatlas (scripts/bake_ir_stations_merged.py) from two copies of the CRIS station layer (IR GIS portal, PM GatiShakti) and Wikidata; re-run that bake to refresh",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      }
     },
     {
       "id": "ir_tracks",
@@ -7322,7 +8407,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-tracks/IR_Tracks.shp.zip",
         "bytes": 13881942
       },
-      "fetched_at": "2026-11-15T14:42:16+00:00"
+      "fetched_at": "2026-11-15T14:42:16+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_transport/releases/download/railways/IR_Tracks.parquet",
+        "fingerprint": "updated_at=2026-03-10T04:15:41Z size=15308662",
+        "checked_at": "2026-11-18T13:24:24Z",
+        "changed_at": "2026-03-10T04:15:41Z"
+      }
     },
     {
       "id": "bhuvan_lineaments_50k",
@@ -7361,7 +8453,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.shp.zip",
         "bytes": 33556387
       },
-      "fetched_at": "2026-11-18T02:33:47+00:00"
+      "fetched_at": "2026-11-18T02:33:47+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/Bhuvan_Lineament_50k_0506.parquet",
+        "fingerprint": "updated_at=2026-03-09T14:45:52Z size=29335137",
+        "checked_at": "2026-11-18T13:24:19Z",
+        "changed_at": "2026-03-09T14:45:52Z"
+      }
     },
     {
       "id": "bhuvan_gw_prospect_structures",
@@ -7400,7 +8499,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.shp.zip",
         "bytes": 93387008
       },
-      "fetched_at": "2026-11-18T02:35:00+00:00"
+      "fetched_at": "2026-11-18T02:35:00+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Prospects_STRU.parquet",
+        "fingerprint": "updated_at=2026-03-09T19:28:03Z size=71943780",
+        "checked_at": "2026-11-18T13:24:16Z",
+        "changed_at": "2026-03-09T19:28:03Z"
+      }
     },
     {
       "id": "slusi_priority_micro_watersheds",
@@ -7439,7 +8545,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.shp.zip",
         "bytes": 353839557
       },
-      "fetched_at": "2026-11-18T02:36:54+00:00"
+      "fetched_at": "2026-11-18T02:36:54+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_Priority_MicroWatersheds.parquet",
+        "fingerprint": "updated_at=2026-03-10T04:48:03Z size=329042993",
+        "checked_at": "2026-11-18T13:23:59Z",
+        "changed_at": "2026-03-10T04:48:03Z"
+      }
     },
     {
       "id": "wbc1_water_bodies",
@@ -7493,7 +8606,14 @@
         "irrigation",
         "Jal Shakti",
         "minor irrigation"
-      ]
+      ],
+      "source_check": {
+        "method": "ckan",
+        "url": "https://www.data.gov.in/backend/dmspublic/v1/resources?format=json&limit=200&filters%5Bcatalog_uuid%5D=32f2ec95-ddca-4254-86c6-449d4471efe1",
+        "fingerprint": "resources=33 changed=1789279644",
+        "checked_at": "2026-11-18T13:24:21Z",
+        "changed_at": "2026-09-13T06:07:24Z"
+      }
     },
     {
       "id": "property_tax_chennai_wards",
@@ -7556,6 +8676,14 @@
           1.3,
           2
         ]
+      },
+      "source_check": {
+        "method": "manual",
+        "url": "https://smartcities.data.gov.in/catalog/property-tax-chennai",
+        "reason": "the Smart Cities portal puts each download behind a captcha",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
       }
     },
     {
@@ -7624,6 +8752,14 @@
           450000000,
           920000000
         ]
+      },
+      "source_check": {
+        "method": "manual",
+        "url": "https://cityfinance.in/",
+        "reason": "the source link is a portal page, not a file, release or dataset API",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
       }
     },
     {
@@ -7664,7 +8800,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.shp.zip",
         "bytes": 1629179
       },
-      "fetched_at": "2026-11-17T12:09:17+00:00"
+      "fetched_at": "2026-11-17T12:09:17+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/puducherry/NCSCM_PC_Cadastrals.parquet",
+        "fingerprint": "updated_at=2026-03-09T11:08:13Z size=1453973",
+        "checked_at": "2026-11-18T13:24:24Z",
+        "changed_at": "2026-03-09T11:08:13Z"
+      }
     },
     {
       "id": "cadastrals_andaman_coastal",
@@ -7704,7 +8847,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-andaman-coastal/NCSCM_AN_Cadastrals.shp.zip",
         "bytes": 6822058
       },
-      "fetched_at": "2026-11-18T02:11:03+00:00"
+      "fetched_at": "2026-11-18T02:11:03+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/andaman-and-nicobar/NCSCM_AN_Cadastrals.parquet",
+        "fingerprint": "updated_at=2026-03-09T03:30:45Z size=5732604",
+        "checked_at": "2026-11-18T13:24:25Z",
+        "changed_at": "2026-03-09T03:30:45Z"
+      }
     },
     {
       "id": "cadastrals_goa",
@@ -7744,7 +8894,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-goa/NBSS_Goa_Cadastrals.shp.zip",
         "bytes": 32228972
       },
-      "fetched_at": "2026-11-18T02:11:16+00:00"
+      "fetched_at": "2026-11-18T02:11:16+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/goa/NBSS_Goa_Cadastrals.parquet",
+        "fingerprint": "updated_at=2026-03-09T04:50:59Z size=30330136",
+        "checked_at": "2026-11-18T13:24:26Z",
+        "changed_at": "2026-03-09T04:50:59Z"
+      }
     },
     {
       "id": "cadastrals_delhi",
@@ -7784,7 +8941,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.shp.zip",
         "bytes": 49984874
       },
-      "fetched_at": "2026-11-18T02:11:46+00:00"
+      "fetched_at": "2026-11-18T02:11:46+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/delhi/GSDL_Cadastrals.parquet",
+        "fingerprint": "updated_at=2026-03-09T04:45:38Z size=43166122",
+        "checked_at": "2026-11-18T13:24:27Z",
+        "changed_at": "2026-03-09T04:45:38Z"
+      }
     },
     {
       "id": "fsi_recorded_forest_area",
@@ -7823,7 +8987,14 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.shp.zip",
         "bytes": 558183633
       },
-      "fetched_at": "2026-11-18T02:14:02+00:00"
+      "fetched_at": "2026-11-18T02:14:02+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/Bharatmaps_RFA.parquet",
+        "fingerprint": "updated_at=2026-03-08T23:09:09Z size=569219858",
+        "checked_at": "2026-11-18T13:24:15Z",
+        "changed_at": "2026-03-08T23:09:09Z"
+      }
     }
   ],
   "state_extracts": [],
