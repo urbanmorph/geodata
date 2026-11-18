@@ -67,8 +67,16 @@ export function usesServerFilter(layer) {
   return typeof bytes === 'number' && bytes > LARGE_FILTER_BYTES;
 }
 
-// GeoJSON/KML filtered exports for layers over LARGE_FILTER_BYTES are paused:
-// on 18 Nov 2026 production cut those streams off after the opening line
-// (decoding shapes ran past the Worker's CPU limit; local wrangler doesn't
-// enforce it). CSV works. Flip back once shapes decode per matching row only.
-export const SERVER_SHAPE_EXPORT = false;
+// Most uncompressed geometry one GeoJSON/KML filtered export may stream
+// through (the API's shape decoding; panel and API share it). Streaming a
+// 105 MB groundwater prospect page took 0.6 to 0.75 s of CPU (140 to 180 MB/s,
+// Node on an M-series Mac, 18 Nov 2026); a request has 30 s of CPU (Workers
+// Paid default; wrangler.toml sets no limits). 1 GB is about 7 s at that rate,
+// so a server CPU twice as slow still leaves half the budget for the rest.
+export const FILTER_EXPORT_MAX_SHAPE_BYTES = 1024 * 1024 * 1024;
+
+// GeoJSON/KML filtered exports from the API (kill switch). Paused 18 Nov 2026
+// when production cut the streams off after the opening line (decoding a
+// whole ~100 MB geometry page per read ran a 128 MB Worker out of memory);
+// back on once shapes were streamed and decoded per matching row only.
+export const SERVER_SHAPE_EXPORT = true;

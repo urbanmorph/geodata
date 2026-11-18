@@ -177,7 +177,7 @@ export const OPENAPI = {
         operationId: 'exportLayerRows',
         tags: ['Layers'],
         summary: 'The rows matching a filter, with their shapes, as GeoJSON, KML or CSV',
-        description: 'Streams every row matching `where` and/or `filter` (same forms as /query), with all columns. A filter is required: the whole layer is a download (see the layer’s files). At most 50,000 rows and an estimated 100 MB; above either the answer is 400 with the match count and the estimate, so narrow the filter or use the layer’s downloads. `estimate=1` returns the count and each format’s estimated size as JSON without exporting. CSV carries the bounding-box centre as `_lat`, `_lng` instead of the shape.',
+        description: 'Streams every row matching `where` and/or `filter` (same forms as /query), with all columns. A filter is required: the whole layer is a download (see the layer’s files). At most 50,000 rows and an estimated 100 MB; above either the answer is 400 with the match count and the estimate, so narrow the filter or use the layer’s downloads. GeoJSON and KML also refuse (400) matches spread over more than 1 GB of the layer’s shapes (`shape_bytes` against `max_shape_bytes` in the estimate); CSV has no such limit. `estimate=1` returns the count and each format’s estimated size as JSON without exporting. An export that fails after it starts ends the connection without completing the response, so a client sees a failed download, never a short file. CSV carries the bounding-box centre as `_lat`, `_lng` instead of the shape.',
         parameters: [
           LAYER_ID,
           q('format', 'geojson (default), kml or csv.', { type: 'string', enum: ['geojson', 'kml', 'csv'], default: 'geojson' }),

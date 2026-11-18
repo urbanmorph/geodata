@@ -325,20 +325,22 @@ export async function scanMatches(
   cols: string[],
   match: (row: Record<string, unknown>) => boolean,
   keep: number,
-): Promise<{ perGroup: Array<{ idxs: number[]; count: number; sample?: Record<string, string[]> }>; total: number }> {
+): Promise<{ perGroup: Array<{ idxs: number[]; count: number; last: number; sample?: Record<string, string[]> }>; total: number }> {
   const perGroup = await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: cols, rowStart: span.start, rowEnd: span.end,
     }) as Record<string, unknown>[];
     const idxs: number[] = [];
     let count = 0;
+    let last = -1;
     rows.forEach((row, i) => {
       if (!match(row)) return;
       count++;
-      if (idxs.length < keep) idxs.push(span.start + i);
+      last = span.start + i;
+      if (idxs.length < keep) idxs.push(last);
     });
     const sample = span.start === 0 ? Object.fromEntries(cols.map((c) => [c, distinctSample(rows, c)])) : undefined;
-    return { idxs, count, sample };
+    return { idxs, count, last, sample };
   });
   return { perGroup, total: perGroup.reduce((n, g) => n + g.count, 0) };
 }

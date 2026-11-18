@@ -189,7 +189,70 @@ describe('export memory stays bounded', () => {
     const csv = await collect((await exportRows(file, { filters: ka, format: 'csv' })).chunks);
     expect(csv.split('\n')[1]).not.toMatch(/POLYGON|coordinates/);
     const { readColumnsFor } = await import('../functions/lib/parquet-export');
-    expect(readColumnsFor('csv', ['a'], 'geometry', ['xmin'])).toEqual(['a', 'xmin']);
-    expect(readColumnsFor('geojson', ['a'], 'geometry', ['xmin'])).toEqual(['a', 'geometry', 'xmin']);
+    expect(readColumnsFor('csv', ['a'], ['xmin'])).toEqual(['a', 'xmin']);
+    expect(readColumnsFor('geojson', ['a'], ['xmin'])).toEqual(['a']); // shapes are read on their own
+  });
+});
+
+describe('shapes are decoded only for the matching rows (production: 128 MB Workers)', () => {
+  // Groundwater prospects, 18 Nov 2026: a 159-row GeoJSON export stopped after
+  // its first line. Reading 231 rows' geometry through hyparquet decoded the
+  // whole 105 MB page and turned all 17,128 of its shapes into GeoJSON (1.5 GB
+  // peak in Node). Now the geometry page is streamed and only matches decoded.
+  // Fixture: LINESTRINGs over many pages, row i has (i % 40) + 2 points (i, k).
+  const pagesBuf = readFileSync(new URL('./fixtures/wkb-pages-v1-required.parquet', import.meta.url));
+  const pages = (streamed: { bytes: number }) => ({
+    byteLength: pagesBuf.byteLength,
+    slice: async (start: number, end?: number) =>
+      pagesBuf.buffer.slice(pagesBuf.byteOffset + start, pagesBuf.byteOffset + (end ?? pagesBuf.byteLength)) as ArrayBuffer,
+    async* stream(start: number, end: number) {
+      for (let p = start; p < end; p += 256) {
+        const piece = new Uint8Array(pagesBuf.subarray(p, Math.min(end, p + 256)));
+        streamed.bytes += piece.length;
+        yield piece;
+      }
+    },
+  });
+  const ids = [{ col: 'id', kind: 'range' as const, min: 200, max: 201 }];
+
+  it('GeoJSON has the right shapes, read from a small part of the geometry column', async () => {
+    const streamed = { bytes: 0 };
+    const out = await exportRows(pages(streamed), { filters: ids, format: 'geojson' });
+    const fc = JSON.parse(await collect(out.chunks));
+    expect(fc.features).toHaveLength(2);
+    expect(fc.features[0].geometry.type).toBe('LineString');
+    expect(fc.features[0].geometry.coordinates).toHaveLength(2); // 200 % 40 + 2
+    expect(fc.features[1].geometry.coordinates[2]).toEqual([201, 2]);
+    expect(fc.features[1].properties).toEqual({ id: 201 });
+    expect(streamed.bytes).toBeGreaterThan(0);
+    expect(streamed.bytes).toBeLessThan(86_874 / 3); // the group's geometry chunk
+  });
+
+  it('KML has the same rows', async () => {
+    const kml = await collect((await exportRows(pages({ bytes: 0 }), { filters: ids, format: 'kml' })).chunks);
+    expect(kml.match(/<Placemark>/g)).toHaveLength(2);
+    expect(kml).toContain('201,2');
+  });
+
+  it('refuses up front when the shapes would take too much decoding, before any is read', async () => {
+    const streamed = { bytes: 0 };
+    const all = [{ col: 'id', kind: 'range' as const, min: 0, max: 599 }];
+    await expect(exportRows(pages(streamed), { filters: all, format: 'geojson', maxShapeBytes: 1000 }))
+      .rejects.toThrow(/Narrow the filter/);
+    expect(streamed.bytes).toBe(0);
+    // CSV writes no shape, so the shape budget does not apply
+    await expect(exportRows(pages(streamed), { filters: all, format: 'csv', maxShapeBytes: 1000 })).resolves.toBeTruthy();
+  });
+
+  it('shapeDecodeBytes counts each group\'s geometry up to its last match', async () => {
+    const { shapeDecodeBytes } = await import('../functions/lib/parquet-export');
+    const meta = {
+      row_groups: [100, 100].map((rows) => ({
+        num_rows: rows,
+        columns: [{ meta_data: { path_in_schema: ['geometry'], total_uncompressed_size: 1000 } }],
+      })),
+    } as never;
+    expect(shapeDecodeBytes(meta, [{ last: -1 }, { last: 149 }], 'geometry')).toBe(500);
+    expect(shapeDecodeBytes(meta, [{ last: 99 }, { last: -1 }], 'geometry')).toBe(1000);
   });
 });

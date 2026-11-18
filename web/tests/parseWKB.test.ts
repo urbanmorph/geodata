@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseWKB } from '../src/db';
+import { parseWKB } from '../functions/lib/wkb-geojson';
 
 // Helpers to build ISO WKB blobs byte-by-byte. Little-endian (typical for parquet output).
 function wkbBuilder() {
@@ -121,6 +121,36 @@ describe('parseWKB', () => {
     const geom = parseWKB(buf) as { type: 'Point'; coordinates: [number, number] };
     expect(geom.type).toBe('Point');
     expect(geom.coordinates).toEqual([77, 28]);
+  });
+
+  it('decodes MultiPoint and MultiLineString', () => {
+    const pt = (x: number, y: number) => Array.from(wkbBuilder().le().uint32(1).pt(x, y).build());
+    const ln = (x: number) => Array.from(wkbBuilder().le().uint32(2).uint32(2).pt(x, 0).pt(x, 1).build());
+    const mp = Uint8Array.from([...Array.from(wkbBuilder().le().uint32(4).uint32(2).build()), ...pt(1, 2), ...pt(3, 4)]);
+    expect(parseWKB(mp)).toEqual({ type: 'MultiPoint', coordinates: [[1, 2], [3, 4]] });
+    const ml = Uint8Array.from([...Array.from(wkbBuilder().le().uint32(5).uint32(2).build()), ...ln(0), ...ln(5)]);
+    expect(parseWKB(ml)).toEqual({ type: 'MultiLineString', coordinates: [[[0, 0], [0, 1]], [[5, 0], [5, 1]]] });
+  });
+
+  it('decodes big-endian WKB and EWKB with an SRID', () => {
+    const be = Buffer.alloc(21);
+    be.writeUInt8(0, 0); be.writeUInt32BE(1, 1); be.writeDoubleBE(77.5, 5); be.writeDoubleBE(12.5, 13);
+    expect(parseWKB(new Uint8Array(be))).toEqual({ type: 'Point', coordinates: [77.5, 12.5] });
+    const ewkb = wkbBuilder().le().uint32(0x20000001).uint32(4326).pt(77.5, 12.5).build();
+    expect(parseWKB(ewkb)).toEqual({ type: 'Point', coordinates: [77.5, 12.5] });
+  });
+
+  it('gives the same GeoJSON as hyparquet, which exports used before (polygon with a hole, multipolygon)', async () => {
+    const { wkbToGeojson } = await import('hyparquet/src/wkb.js');
+    const holed = wkbBuilder().le().uint32(3).uint32(2)
+      .uint32(4).pt(0, 0).pt(10, 0).pt(10, 10).pt(0, 0)
+      .uint32(4).pt(2, 2).pt(8, 2).pt(8, 8).pt(2, 2)
+      .build();
+    const multi = Uint8Array.from([...Array.from(wkbBuilder().le().uint32(6).uint32(2).build()), ...holed, ...holed]);
+    for (const buf of [holed, multi]) {
+      const ref = wkbToGeojson({ view: new DataView(buf.buffer, buf.byteOffset, buf.byteLength), offset: 0 });
+      expect(parseWKB(buf)).toEqual(ref);
+    }
   });
 
   it('throws on an unknown WKB type', () => {
