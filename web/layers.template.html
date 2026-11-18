@@ -302,6 +302,11 @@
       .alt__row .links .dot { color: var(--line); margin: 0 4px; }
       .alt__row--primary { padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
       .alt__row .tag { font-size: var(--fs-xs); padding: 1px 6px; background: var(--accent-fill); color: var(--on-accent-fill); border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
+      /* Site-wide use (scripts/usage-totals.mjs): downloads, and API queries once past the threshold. */
+      .usage-block { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; }
+      .usage-block__item { display: flex; align-items: baseline; gap: 6px; color: var(--muted); font-size: var(--fs-sm); }
+      .usage-block__item strong { color: var(--brand-green); font: 700 var(--fs-lg) var(--font-mono); }
+      .usage-block__item small { font-size: var(--fs-xs); }
 
     </style>
   </head>
@@ -311,6 +316,7 @@
       <div class="layers-head">
         <p class="sheet-note"><!-- LAYER_TOTAL --> layers · <!-- THEME_TOTAL --> themes</p>
         <h1 class="page-title">All layers</h1>
+        <!-- USAGE_BLOCK -->
         <label class="layers-search">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
           <input type="search" id="catalog-search" class="catalog-search" aria-label="Filter layers" placeholder="Filter by name, place or source" autocomplete="off" />
