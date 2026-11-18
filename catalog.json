@@ -1392,6 +1392,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:14Z size=7365957",
         "checked_at": "2026-11-18T13:23:31Z",
         "changed_at": "2026-03-08T04:56:14Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1442,6 +1451,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:15Z size=10780243",
         "checked_at": "2026-11-18T13:23:31Z",
         "changed_at": "2026-03-08T04:56:15Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1492,6 +1510,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:15Z size=2242493",
         "checked_at": "2026-11-18T13:23:31Z",
         "changed_at": "2026-03-08T04:56:15Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1542,6 +1569,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:26Z size=22178335",
         "checked_at": "2026-11-18T13:23:32Z",
         "changed_at": "2026-03-08T04:56:26Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1592,6 +1628,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:26Z size=28691382",
         "checked_at": "2026-11-18T13:23:32Z",
         "changed_at": "2026-03-08T04:56:26Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1642,6 +1687,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:30Z size=37180992",
         "checked_at": "2026-11-18T13:23:32Z",
         "changed_at": "2026-03-08T04:56:30Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1692,6 +1746,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:42Z size=65955060",
         "checked_at": "2026-11-18T13:23:33Z",
         "changed_at": "2026-03-08T04:56:42Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1742,6 +1805,15 @@
         "fingerprint": "updated_at=2026-03-08T04:56:40Z size=56835970",
         "checked_at": "2026-11-18T13:23:33Z",
         "changed_at": "2026-03-08T04:56:40Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1791,6 +1863,15 @@
         "fingerprint": "updated_at=2026-03-08T04:57:31Z size=69148863",
         "checked_at": "2026-11-18T13:23:34Z",
         "changed_at": "2026-03-08T04:57:31Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1838,6 +1919,15 @@
         "fingerprint": "updated_at=2026-03-08T04:57:51Z size=97298502",
         "checked_at": "2026-11-18T13:23:34Z",
         "changed_at": "2026-03-08T04:57:51Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1879,6 +1969,15 @@
         "fingerprint": "updated_at=2026-03-08T04:57:52Z size=126995132",
         "checked_at": "2026-11-18T13:23:34Z",
         "changed_at": "2026-03-08T04:57:52Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1919,6 +2018,15 @@
         "fingerprint": "updated_at=2026-03-08T05:34:42Z size=368147580",
         "checked_at": "2026-11-18T13:23:36Z",
         "changed_at": "2026-03-08T05:34:42Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -1959,6 +2067,15 @@
         "fingerprint": "updated_at=2026-03-08T05:40:35Z size=474332457",
         "checked_at": "2026-11-18T13:23:36Z",
         "changed_at": "2026-03-08T05:40:35Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2008,6 +2125,15 @@
         "fingerprint": "updated_at=2026-03-08T05:37:00Z size=26718248",
         "checked_at": "2026-11-18T13:23:36Z",
         "changed_at": "2026-03-08T05:37:00Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2058,6 +2184,15 @@
         "fingerprint": "updated_at=2026-03-08T05:00:59Z size=21059109",
         "checked_at": "2026-11-18T13:23:38Z",
         "changed_at": "2026-03-08T05:00:59Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2108,6 +2243,15 @@
         "fingerprint": "updated_at=2026-03-08T05:06:21Z size=39602105",
         "checked_at": "2026-11-18T13:23:38Z",
         "changed_at": "2026-03-08T05:06:21Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2158,6 +2302,15 @@
         "fingerprint": "updated_at=2026-03-08T05:12:20Z size=19819662",
         "checked_at": "2026-11-18T13:23:39Z",
         "changed_at": "2026-03-08T05:12:20Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-21"
       }
     },
     {
@@ -2197,6 +2350,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-23"
       }
     },
     {
@@ -2244,6 +2406,15 @@
         "fingerprint": "updated_at=2026-03-08T05:27:02Z size=21065283",
         "checked_at": "2026-11-18T13:23:40Z",
         "changed_at": "2026-03-08T05:27:02Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2294,6 +2465,15 @@
         "fingerprint": "updated_at=2026-03-08T05:25:53Z size=2220376",
         "checked_at": "2026-11-18T13:23:40Z",
         "changed_at": "2026-03-08T05:25:53Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2340,6 +2520,15 @@
         "fingerprint": "updated_at=2026-03-08T05:27:13Z size=87007173",
         "checked_at": "2026-11-18T13:23:40Z",
         "changed_at": "2026-03-08T05:27:13Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2390,6 +2579,15 @@
         "fingerprint": "updated_at=2026-03-15T22:55:40Z size=2320886",
         "checked_at": "2026-11-18T13:23:40Z",
         "changed_at": "2026-03-15T22:55:40Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2430,6 +2628,15 @@
         "fingerprint": "updated_at=2026-03-15T22:58:32Z size=412598012",
         "checked_at": "2026-11-18T13:23:40Z",
         "changed_at": "2026-03-15T22:58:32Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2480,6 +2687,15 @@
         "fingerprint": "updated_at=2026-03-15T23:48:39Z size=4164883",
         "checked_at": "2026-11-18T13:23:41Z",
         "changed_at": "2026-03-15T23:48:39Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2530,6 +2746,15 @@
         "fingerprint": "updated_at=2026-03-15T23:48:52Z size=23314612",
         "checked_at": "2026-11-18T13:23:41Z",
         "changed_at": "2026-03-15T23:48:52Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2571,6 +2796,15 @@
         "fingerprint": "updated_at=2026-03-15T23:55:27Z size=229199036",
         "checked_at": "2026-11-18T13:23:42Z",
         "changed_at": "2026-03-15T23:55:27Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2619,6 +2853,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2669,6 +2912,15 @@
         "fingerprint": "updated_at=2026-03-15T23:06:56Z size=460523",
         "checked_at": "2026-11-18T13:23:45Z",
         "changed_at": "2026-03-15T23:06:56Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2719,6 +2971,15 @@
         "fingerprint": "updated_at=2026-03-15T23:12:38Z size=472841",
         "checked_at": "2026-11-18T13:23:45Z",
         "changed_at": "2026-03-15T23:12:38Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2769,6 +3030,15 @@
         "fingerprint": "updated_at=2026-03-15T23:27:43Z size=52992673",
         "checked_at": "2026-11-18T13:23:46Z",
         "changed_at": "2026-03-15T23:27:43Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -2815,6 +3085,15 @@
         "fingerprint": "updated_at=2026-03-15T13:44:50Z size=58742537",
         "checked_at": "2026-11-18T13:23:47Z",
         "changed_at": "2026-03-15T13:44:50Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-25"
       }
     },
     {
@@ -2855,6 +3134,15 @@
         "fingerprint": "updated_at=2026-03-16T01:10:24Z size=49502037",
         "checked_at": "2026-11-18T13:25:07Z",
         "changed_at": "2026-03-16T01:10:24Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-07-19"
       }
     },
     {
@@ -2900,6 +3188,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -2945,6 +3242,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-22"
       }
     },
     {
@@ -2993,6 +3299,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -3041,6 +3356,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-22"
       }
     },
     {
@@ -3089,6 +3413,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-22"
       }
     },
     {
@@ -3134,6 +3467,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3180,6 +3522,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-17"
       }
     },
     {
@@ -3228,6 +3579,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -3276,6 +3636,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3324,6 +3693,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -3369,6 +3747,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3417,6 +3804,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3465,6 +3861,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3513,6 +3918,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3561,6 +3975,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3609,6 +4032,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3654,6 +4086,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3702,6 +4143,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3750,6 +4200,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3797,6 +4256,15 @@
         "fingerprint": "commit=d6415b989e6501cf7447d71a59a6150f86f48c07",
         "checked_at": "2026-11-18T13:23:48Z",
         "changed_at": "2018-01-03T01:29:37Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3845,6 +4313,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3892,6 +4369,15 @@
         "fingerprint": "commit=bf31a4828f53fab6a559778e59dc6618119141a9",
         "checked_at": "2026-11-18T13:23:49Z",
         "changed_at": "2017-03-30T05:20:02Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3940,6 +4426,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -3988,6 +4483,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4036,6 +4540,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4084,6 +4597,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4132,6 +4654,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4179,6 +4710,15 @@
         "fingerprint": "commit=7d3273837f02ece06c512b3c44a13fd2e28b5aff",
         "checked_at": "2026-11-18T13:23:50Z",
         "changed_at": "2018-01-05T10:51:13Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4226,6 +4766,15 @@
         "fingerprint": "commit=d287c704e64d32ec251b1ed2a1d4111bed2de3bb",
         "checked_at": "2026-11-18T13:23:51Z",
         "changed_at": "2018-09-28T08:11:03Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4273,6 +4822,15 @@
         "fingerprint": "commit=c0ed773621b6b594073b3f07642dc1bf8fd049f6",
         "checked_at": "2026-11-18T13:23:52Z",
         "changed_at": "2018-09-28T07:41:22Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4320,6 +4878,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-01"
       }
     },
     {
@@ -4367,6 +4934,15 @@
         "fingerprint": "commit=062cab151de22b6c3edad1737e90f4538688f366",
         "checked_at": "2026-11-18T13:23:53Z",
         "changed_at": "2024-08-24T18:05:46Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4414,6 +4990,15 @@
         "fingerprint": "commit=f3b69b4c3c9569e3ea7d14b2739c598c2bae942f",
         "checked_at": "2026-11-18T13:23:54Z",
         "changed_at": "2020-01-13T13:26:59Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4461,6 +5046,15 @@
         "fingerprint": "commit=f4e7fad9b98918633d2e2b86005bbb4862bd430c",
         "checked_at": "2026-11-18T13:23:55Z",
         "changed_at": "2018-03-15T05:16:36Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4508,6 +5102,15 @@
         "fingerprint": "commit=e250bf52fadf34d30f1d8acbe42057849f3d31de",
         "checked_at": "2026-11-18T13:23:56Z",
         "changed_at": "2016-08-19T12:53:38Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4555,6 +5158,15 @@
         "fingerprint": "commit=8c03089704a7207124537bdcee3c01d285991d96",
         "checked_at": "2026-11-18T13:23:57Z",
         "changed_at": "2018-04-12T07:29:30Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-06-26"
       }
     },
     {
@@ -4598,6 +5210,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4649,6 +5270,15 @@
         "fingerprint": "updated_at=2026-03-16T05:35:25Z size=29992356",
         "checked_at": "2026-11-18T13:25:08Z",
         "changed_at": "2026-03-16T05:35:25Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4684,6 +5314,15 @@
         "fingerprint": "etag=\"6ca-6121e2cbbfa12\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1738",
         "checked_at": "2026-11-18T13:23:56Z",
         "changed_at": "2024-02-24T10:31:09Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4719,6 +5358,15 @@
         "fingerprint": "etag=\"6e7-6121e2cbc86b1\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1767",
         "checked_at": "2026-11-18T13:23:57Z",
         "changed_at": "2024-02-24T10:31:09Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4754,6 +5402,15 @@
         "fingerprint": "etag=\"6ec-6121e2cbd1351\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1772",
         "checked_at": "2026-11-18T13:23:58Z",
         "changed_at": "2024-02-24T10:31:09Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4789,6 +5446,15 @@
         "fingerprint": "etag=\"6eb-6121e2cbdbb49\" last-modified=Sat, 24 Feb 2024 10:31:09 GMT length=1771",
         "checked_at": "2026-11-18T13:23:59Z",
         "changed_at": "2024-02-24T10:31:09Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4835,6 +5501,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4881,6 +5556,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4927,6 +5611,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -4961,6 +5654,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-25"
       }
     },
     {
@@ -4999,6 +5701,15 @@
         "fingerprint": "updated_at=2026-03-10T04:49:29Z size=127348700",
         "checked_at": "2026-11-18T13:23:59Z",
         "changed_at": "2026-03-10T04:49:29Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5037,6 +5748,15 @@
         "fingerprint": "updated_at=2026-03-10T05:34:25Z size=205905090",
         "checked_at": "2026-11-18T13:24:00Z",
         "changed_at": "2026-03-10T05:34:25Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5074,6 +5794,15 @@
         "fingerprint": "updated_at=2026-03-10T01:56:17Z size=315213688",
         "checked_at": "2026-11-18T13:24:01Z",
         "changed_at": "2026-03-10T01:56:17Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5121,6 +5850,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:32Z size=31826",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:32Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5168,6 +5906,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:24Z size=4036",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:24Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5215,6 +5962,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:28Z size=512000",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:28Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5262,6 +6018,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:54Z size=6608",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:54Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5309,6 +6074,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:20Z size=27964",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:20Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5356,6 +6130,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:51Z size=11966",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:51Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5403,6 +6186,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:47Z size=54467",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:47Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5450,6 +6242,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:43Z size=2473733",
         "checked_at": "2026-11-18T13:24:02Z",
         "changed_at": "2026-03-10T02:47:43Z"
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5497,6 +6298,15 @@
         "fingerprint": "updated_at=2026-03-10T02:47:15Z size=8636807",
         "checked_at": "2026-11-18T13:24:03Z",
         "changed_at": "2026-03-10T02:47:15Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-06-28"
       }
     },
     {
@@ -5543,6 +6353,15 @@
         "fingerprint": "updated_at=2026-03-11T07:34:36Z size=59826647",
         "checked_at": "2026-11-18T13:24:05Z",
         "changed_at": "2026-03-11T07:34:36Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5590,6 +6409,15 @@
         "fingerprint": "updated_at=2026-03-10T05:55:50Z size=96703672",
         "checked_at": "2026-11-18T13:24:06Z",
         "changed_at": "2026-03-10T05:55:50Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5636,6 +6464,15 @@
         "fingerprint": "updated_at=2026-03-09T01:00:48Z size=28310056",
         "checked_at": "2026-11-18T13:24:07Z",
         "changed_at": "2026-03-09T01:00:48Z"
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5683,6 +6520,15 @@
         "fingerprint": "updated_at=2026-03-09T01:52:04Z size=2930730",
         "checked_at": "2026-11-18T13:24:08Z",
         "changed_at": "2026-03-09T01:52:04Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5730,6 +6576,15 @@
         "fingerprint": "updated_at=2026-03-09T01:52:47Z size=13181228",
         "checked_at": "2026-11-18T13:24:08Z",
         "changed_at": "2026-03-09T01:52:47Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5777,6 +6632,15 @@
         "fingerprint": "updated_at=2026-03-09T01:00:04Z size=1737949",
         "checked_at": "2026-11-18T13:24:08Z",
         "changed_at": "2026-03-09T01:00:04Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5824,6 +6688,15 @@
         "fingerprint": "updated_at=2026-03-09T00:59:43Z size=105031",
         "checked_at": "2026-11-18T13:24:09Z",
         "changed_at": "2026-03-09T00:59:43Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5861,6 +6734,15 @@
         "fingerprint": "updated_at=2026-03-10T06:00:55Z size=413122538",
         "checked_at": "2026-11-18T13:24:06Z",
         "changed_at": "2026-03-10T06:00:55Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5898,6 +6780,15 @@
         "fingerprint": "updated_at=2026-03-10T04:44:59Z size=496422675",
         "checked_at": "2026-11-18T13:23:59Z",
         "changed_at": "2026-03-10T04:44:59Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -5935,6 +6826,15 @@
         "fingerprint": "updated_at=2026-03-10T04:00:19Z size=1239255074",
         "checked_at": "2026-11-18T13:24:11Z",
         "changed_at": "2026-03-10T04:00:19Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-07-01"
       }
     },
     {
@@ -5981,6 +6881,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-11-07"
       }
     },
     {
@@ -6022,6 +6931,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6077,6 +6995,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6134,6 +7061,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-07-08"
       }
     },
     {
@@ -6188,6 +7124,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6248,6 +7193,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6308,6 +7262,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6368,6 +7331,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6443,6 +7415,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6515,6 +7496,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6561,6 +7551,15 @@
         "fingerprint": "updated_at=2026-03-09T00:39:01Z size=85229108",
         "checked_at": "2026-11-18T13:24:11Z",
         "changed_at": "2026-03-09T00:39:01Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -6608,6 +7607,15 @@
         "fingerprint": "updated_at=2026-03-09T00:38:12Z size=21677607",
         "checked_at": "2026-11-18T13:24:11Z",
         "changed_at": "2026-03-09T00:38:12Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6655,6 +7663,15 @@
         "fingerprint": "updated_at=2026-03-09T14:04:57Z size=861329",
         "checked_at": "2026-11-18T13:24:13Z",
         "changed_at": "2026-03-09T14:04:57Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -6702,6 +7719,15 @@
         "fingerprint": "updated_at=2026-03-11T08:18:37Z size=12029536",
         "checked_at": "2026-11-18T13:24:13Z",
         "changed_at": "2026-03-11T08:18:37Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -6749,6 +7775,15 @@
         "fingerprint": "updated_at=2026-03-09T13:57:33Z size=103932938",
         "checked_at": "2026-11-18T13:24:14Z",
         "changed_at": "2026-03-09T13:57:33Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -6795,6 +7830,15 @@
         "fingerprint": "updated_at=2026-03-08T23:13:38Z size=102244276",
         "checked_at": "2026-11-18T13:24:15Z",
         "changed_at": "2026-03-08T23:13:38Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6841,6 +7885,15 @@
         "fingerprint": "updated_at=2026-03-08T23:15:49Z size=254987993",
         "checked_at": "2026-11-18T13:24:15Z",
         "changed_at": "2026-03-08T23:15:49Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6887,6 +7940,15 @@
         "fingerprint": "updated_at=2026-03-08T23:17:35Z size=210193484",
         "checked_at": "2026-11-18T13:24:15Z",
         "changed_at": "2026-03-08T23:17:35Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6933,6 +7995,15 @@
         "fingerprint": "updated_at=2026-03-08T23:12:42Z size=444481337",
         "checked_at": "2026-11-18T13:24:15Z",
         "changed_at": "2026-03-08T23:12:42Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -6980,6 +8051,15 @@
         "fingerprint": "updated_at=2026-03-08T23:05:05Z size=9758695",
         "checked_at": "2026-11-18T13:24:15Z",
         "changed_at": "2026-03-08T23:05:05Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -7027,6 +8107,15 @@
         "fingerprint": "updated_at=2026-03-08T22:43:28Z size=126191167",
         "checked_at": "2026-11-18T13:24:16Z",
         "changed_at": "2026-03-08T22:43:28Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -7074,6 +8163,15 @@
         "fingerprint": "updated_at=2026-03-08T22:42:08Z size=219218519",
         "checked_at": "2026-11-18T13:24:16Z",
         "changed_at": "2026-03-08T22:42:08Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -7121,6 +8219,15 @@
         "fingerprint": "updated_at=2026-03-09T19:28:44Z size=27638626",
         "checked_at": "2026-11-18T13:24:16Z",
         "changed_at": "2026-03-09T19:28:44Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7168,6 +8275,15 @@
         "fingerprint": "updated_at=2026-03-09T19:28:24Z size=27492083",
         "checked_at": "2026-11-18T13:24:16Z",
         "changed_at": "2026-03-09T19:28:24Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7215,6 +8331,15 @@
         "fingerprint": "updated_at=2026-03-09T14:40:43Z size=31876118",
         "checked_at": "2026-11-18T13:24:17Z",
         "changed_at": "2026-03-09T14:40:43Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -7262,6 +8387,15 @@
         "fingerprint": "updated_at=2026-03-10T00:58:50Z size=2737703",
         "checked_at": "2026-11-18T13:24:18Z",
         "changed_at": "2026-03-10T00:58:50Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -7309,6 +8443,15 @@
         "fingerprint": "updated_at=2026-03-10T00:58:54Z size=52464",
         "checked_at": "2026-11-18T13:24:18Z",
         "changed_at": "2026-03-10T00:58:54Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -7355,6 +8498,15 @@
         "fingerprint": "updated_at=2026-03-09T14:48:16Z size=8156834",
         "checked_at": "2026-11-18T13:24:19Z",
         "changed_at": "2026-03-09T14:48:16Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -7402,6 +8554,15 @@
         "fingerprint": "updated_at=2026-03-09T00:29:23Z size=7974367",
         "checked_at": "2026-11-18T13:24:20Z",
         "changed_at": "2026-03-09T00:29:23Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7449,6 +8610,15 @@
         "fingerprint": "updated_at=2026-03-09T00:29:41Z size=4046275",
         "checked_at": "2026-11-18T13:24:20Z",
         "changed_at": "2026-03-09T00:29:41Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7496,6 +8666,15 @@
         "fingerprint": "updated_at=2026-03-09T00:29:49Z size=1319782",
         "checked_at": "2026-11-18T13:24:20Z",
         "changed_at": "2026-03-09T00:29:49Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7543,6 +8722,15 @@
         "fingerprint": "updated_at=2026-03-09T00:31:02Z size=9636478",
         "checked_at": "2026-11-18T13:24:20Z",
         "changed_at": "2026-03-09T00:31:02Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7590,6 +8778,15 @@
         "fingerprint": "updated_at=2026-03-09T00:31:15Z size=9402909",
         "checked_at": "2026-11-18T13:24:20Z",
         "changed_at": "2026-03-09T00:31:15Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7637,6 +8834,15 @@
         "fingerprint": "updated_at=2026-03-09T00:31:26Z size=5040751",
         "checked_at": "2026-11-18T13:24:20Z",
         "changed_at": "2026-03-09T00:31:26Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7684,6 +8890,15 @@
         "fingerprint": "updated_at=2026-03-09T00:30:28Z size=956306",
         "checked_at": "2026-11-18T13:24:20Z",
         "changed_at": "2026-03-09T00:30:28Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7730,6 +8945,15 @@
         "fingerprint": "updated_at=2026-03-11T08:33:55Z size=5471934",
         "checked_at": "2026-11-18T13:24:06Z",
         "changed_at": "2026-03-11T08:33:55Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7777,6 +9001,15 @@
         "fingerprint": "updated_at=2026-03-09T14:06:02Z size=91914691",
         "checked_at": "2026-11-18T13:24:21Z",
         "changed_at": "2026-03-09T14:06:02Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7847,6 +9080,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7920,6 +9162,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -7995,6 +9246,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8041,6 +9301,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -8087,6 +9356,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -8133,6 +9411,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -8179,6 +9466,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -8224,6 +9520,15 @@
         "fingerprint": "commit=9b4d1c2ece54cdeb6f5e8bad9ccad7844f783b17",
         "checked_at": "2026-11-18T13:24:22Z",
         "changed_at": "2023-11-16T09:04:46Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -8271,6 +9576,15 @@
         "fingerprint": "updated_at=2026-03-09T00:40:31Z size=5688382",
         "checked_at": "2026-11-18T13:24:11Z",
         "changed_at": "2026-03-09T00:40:31Z"
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -8318,6 +9632,15 @@
         "fingerprint": "updated_at=2026-03-09T00:40:11Z size=1309061",
         "checked_at": "2026-11-18T13:24:11Z",
         "changed_at": "2026-03-09T00:40:11Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8379,6 +9702,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-17"
       }
     },
     {
@@ -8426,6 +9758,15 @@
         "fingerprint": "updated_at=2026-03-10T04:15:41Z size=15308662",
         "checked_at": "2026-11-18T13:24:24Z",
         "changed_at": "2026-03-10T04:15:41Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
+        "audited_at": null,
+        "next_due": "2026-12-15"
       }
     },
     {
@@ -8472,6 +9813,15 @@
         "fingerprint": "updated_at=2026-03-09T14:45:52Z size=29335137",
         "checked_at": "2026-11-18T13:24:19Z",
         "changed_at": "2026-03-09T14:45:52Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8518,6 +9868,15 @@
         "fingerprint": "updated_at=2026-03-09T19:28:03Z size=71943780",
         "checked_at": "2026-11-18T13:24:16Z",
         "changed_at": "2026-03-09T19:28:03Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8564,6 +9923,15 @@
         "fingerprint": "updated_at=2026-03-10T04:48:03Z size=329042993",
         "checked_at": "2026-11-18T13:23:59Z",
         "changed_at": "2026-03-10T04:48:03Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8625,6 +9993,15 @@
         "fingerprint": "resources=33 changed=1789279644",
         "checked_at": "2026-11-18T13:24:21Z",
         "changed_at": "2026-09-13T06:07:24Z"
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8696,6 +10073,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8772,6 +10158,15 @@
         "fingerprint": null,
         "checked_at": null,
         "changed_at": null
+      },
+      "refresh": {
+        "class": "regular",
+        "check": "weekly",
+        "rebuild": "monthly_if_changed",
+        "release": "on_rebuild",
+        "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": "2026-12-18"
       }
     },
     {
@@ -8819,6 +10214,15 @@
         "fingerprint": "updated_at=2026-03-09T11:08:13Z size=1453973",
         "checked_at": "2026-11-18T13:24:24Z",
         "changed_at": "2026-03-09T11:08:13Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8866,6 +10270,15 @@
         "fingerprint": "updated_at=2026-03-09T03:30:45Z size=5732604",
         "checked_at": "2026-11-18T13:24:25Z",
         "changed_at": "2026-03-09T03:30:45Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8913,6 +10326,15 @@
         "fingerprint": "updated_at=2026-03-09T04:50:59Z size=30330136",
         "checked_at": "2026-11-18T13:24:26Z",
         "changed_at": "2026-03-09T04:50:59Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -8960,6 +10382,15 @@
         "fingerprint": "updated_at=2026-03-09T04:45:38Z size=43166122",
         "checked_at": "2026-11-18T13:24:27Z",
         "changed_at": "2026-03-09T04:45:38Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -9006,6 +10437,15 @@
         "fingerprint": "updated_at=2026-03-08T23:09:09Z size=569219858",
         "checked_at": "2026-11-18T13:24:15Z",
         "changed_at": "2026-03-08T23:09:09Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -9043,6 +10483,15 @@
         "fingerprint": "updated_at=2026-03-09T18:20:41Z size=615562945",
         "checked_at": "2026-11-18T15:28:56Z",
         "changed_at": "2026-03-09T18:20:41Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     },
     {
@@ -9080,6 +10529,15 @@
         "fingerprint": "updated_at=2026-03-09T18:41:15Z size=1769689105",
         "checked_at": "2026-11-18T15:28:58Z",
         "changed_at": "2026-03-09T18:41:15Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     }
   ],

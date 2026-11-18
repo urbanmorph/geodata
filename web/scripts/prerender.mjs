@@ -43,7 +43,9 @@ const layerIndex = [];
 const liveCounts = await fetchLiveCounts();
 const dlCounts = bakedCounts(catalog, liveCounts);
 console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
-await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalog));
+// Each layer's dated releases (scripts/release.py) go into the served catalog as `versions`.
+const releaseIndex = JSON.parse(await readFile(resolve(WEB, 'public', 'releases', 'index.json'), 'utf8'));
+await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalog, releaseIndex));
 
 
 // Keep in sync with web/src/util.ts:escapeHtml
