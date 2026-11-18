@@ -9,6 +9,9 @@
 
 import type { Env } from '../_middleware';
 import { getSubmissionForView } from '../../lib/submissions';
+import { json } from '../../lib/http';
+
+const notFound = () => json(404, { error: 'not found', status: 404 });
 
 type Params = { path: string[] };
 
@@ -35,16 +38,16 @@ export function reconstructKey(segs: string[]): string | null {
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];
   const key = reconstructKey(segs);
-  if (key === null) return new Response('bad key', { status: 400 });
-  if (!key) return new Response('missing key', { status: 400 });
-  if (!ALLOWED_PREFIX.test(key)) return new Response('not found', { status: 404 });
+  if (key === null) return json(400, { error: 'bad key', status: 400 });
+  if (!key) return json(400, { error: 'missing key', status: 400 });
+  if (!ALLOWED_PREFIX.test(key)) return notFound();
   // Only accepted submissions: pending, rejected and withdrawn uploads stay
   // private even to someone holding the link (review 2026-11-18).
   const subId = key.split('/')[1] ?? '';
-  if (!(await getSubmissionForView(ctx.env.DB, subId))) return new Response('not found', { status: 404 });
+  if (!(await getSubmissionForView(ctx.env.DB, subId))) return notFound();
 
   const obj = await ctx.env.R2.get(key);
-  if (!obj) return new Response('not found', { status: 404 });
+  if (!obj) return notFound();
 
   const headers = new Headers();
   obj.writeHttpMetadata(headers);

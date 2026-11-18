@@ -15,6 +15,7 @@ import type { Env as MiddlewareEnv } from './_middleware';
 import { validateSubmission, gateSubmission, MAX_SUBMIT_BYTES } from '../lib/validate-server';
 import { verifyTurnstile } from '../lib/turnstile';
 import { checkRateLimit } from '../lib/ratelimit';
+import { json as j } from '../lib/http';
 import { findDuplicateByHash } from '../lib/submissions';
 import { persistSubmission } from '../lib/persist-submission';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
@@ -26,12 +27,6 @@ type Env = MiddlewareEnv & {
   TURNSTILE_SECRET: string;
   IP_SALT?: string;
 };
-
-const j = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  });
 
 const codeForReason = (reason: string): number => {
   if (/rate/i.test(reason)) return 429;
@@ -254,4 +249,4 @@ async function handleSubmit(
 }
 
 export const onRequest: PagesFunction<Env> = async () =>
-  new Response('method not allowed', { status: 405 });
+  j(405, { error: 'method not allowed', status: 405 });
