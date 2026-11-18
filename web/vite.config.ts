@@ -1,6 +1,8 @@
 import { defineConfig, type Plugin } from 'vite';
 import { execSync } from 'node:child_process';
 import { resolve } from 'node:path';
+// @ts-expect-error: plain .mjs
+import { renderNotFoundPage } from './scripts/not-found-page.mjs';
 
 // Re-run prerender.mjs whenever any template or catalog.json changes.
 // Vite's HMR then reloads the page automatically.
@@ -48,10 +50,23 @@ function buildIdPlugin(): Plugin {
   };
 }
 
+// dist/404.html: Pages serves it, with a 404, for any path no file or Function
+// answers (instead of the home page at 200), and the edge 404s fill it in
+// (functions/lib/not-found.ts). Self-contained, so it needs no Vite entry.
+function notFoundPagePlugin(): Plugin {
+  return {
+    name: 'geodata-404',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: '404.html', source: renderNotFoundPage() });
+    },
+  };
+}
+
 export default defineConfig({
   // VITE_* build keys (the ArcGIS key) live in one gitignored file: geodata/.env.local.
   envDir: resolve(__dirname, '..'),
-  plugins: [prerenderPlugin(), buildIdPlugin()],
+  plugins: [prerenderPlugin(), buildIdPlugin(), notFoundPagePlugin()],
   // Proxy paths that aren't served by Vite to a background `wrangler pages dev`
   // on 8788. /api/* are Pages Functions (D1, R2, Turnstile). /c/<id> is the
   // edge-rendered view page. Start wrangler with:

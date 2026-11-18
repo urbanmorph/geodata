@@ -10,7 +10,8 @@ import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../lib/catalog-loader';
 import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
-import { notFoundHtml } from '../lib/not-found';
+import { notFoundResponse, suggestLayers } from '../lib/not-found';
+import { escapeHtml as esc } from '../../../shared/format.mjs';
 import { retiredRedirect } from '../lib/retired-layers';
 
 type Params = { id: string };
@@ -20,19 +21,34 @@ type Catalog = {
   level_meta?: Record<string, LevelMeta>;
 };
 
-const NOT_FOUND_HTML = notFoundHtml('layer not found', "This layer id doesn't exist in the catalog.");
-
 // SEO URLs (canonical / OG / JSON-LD) must always be the primary apex, so www.*
 // and pages.dev variants consolidate there instead of self-referencing as
 // canonical and splitting the ranking signal. Mirrors render-view.ts's PUBLIC_ORIGIN.
 const CANONICAL_ORIGIN = 'https://bharatlas.com';
 
-const notFound = () =>
-  new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });
+const LAYER_NOT_FOUND = { title: 'Layer not found', message: "There's no layer with this id. It may have been renamed, or the link has a typo." };
+
+/** The 404 for an unknown layer id, with "Did you mean" links to the closest real ones. */
+function layerNotFound(ctx: AssetCtx, id: string, catalog: Catalog): Promise<Response> {
+  const layers = catalog.layers ?? [];
+  const items = suggestLayers(id, layers).map((sid) => {
+    const layer = layers.find((l) => l.id === sid)!;
+    const meta = resolveLevelMeta(layer, catalog.level_meta);
+    const title = meta?.label || layer.name || sid.replace(/_/g, ' ');
+    // Titles repeat across sources (LGD and SOI both have "Districts"): the source tells them apart.
+    return `<li><a href="/view/${esc(sid)}">View ${esc(title)}</a>, ${esc(layer.source)}<code>${esc(sid)}</code></li>`;
+  });
+  const extra = items.length ? `<h2>Did you mean</h2>\n      <ul class="nf-suggest">${items.join('')}</ul>\n` : '';
+  return notFoundResponse(ctx, {
+    title: LAYER_NOT_FOUND.title,
+    message: `There's no layer with the id "${id}". It may have been renamed, or the link has a typo.`,
+    extra,
+  });
+}
 
 export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return notFound();
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return notFoundResponse(ctx, LAYER_NOT_FOUND);
   const moved = retiredRedirect(new URL(ctx.request.url), id);
   if (moved) return moved;
 
@@ -41,7 +57,7 @@ export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = as
   if (!loaded) return new Response('upstream unavailable', { status: 503 });
   const catalog = loaded.catalog as unknown as Catalog;
   const layer = catalog.layers?.find((l) => l.id === id);
-  if (!layer) return notFound();
+  if (!layer) return layerNotFound(ctx, id, catalog);
 
   // The page depends only on the layer and the deploy: keyed by path, not query.
   const key = cacheKey(loaded.version, new URL(ctx.request.url), { query: false });

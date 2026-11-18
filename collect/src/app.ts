@@ -19,6 +19,7 @@ import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
 import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace } from './review';
 import { escapeHtml, downloadText } from './util';
+import { linkProblemHtml, isLinkProblem } from './link-problem';
 import { fieldsHtml, setPressed } from './form-fields';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
@@ -2050,11 +2051,13 @@ startAutoSync(); // if this device turned sync on, saved links follow it to the 
 sendWhenOnline(); // points kept on this phone go as soon as there's signal
 const initCtx = parseCtx();
 if (!initCtx?.token) {
-  app.innerHTML = `<div class="pad"><h1>Invalid link</h1><p class="hint">Open a collect link (with its token in the URL) to continue.</p></div>`;
+  app.innerHTML = linkProblemHtml();
 } else {
   ctx = initCtx;
   app.innerHTML = `<div class="pad center"><span class="spinner"></span><p class="hint">Loading…</p></div>`;
   (initCtx.mode === 'record' ? recordEditor() : boot()).catch((e) => {
-    app.innerHTML = `<div class="pad"><h1>Couldn't open this map</h1><p class="warn">${escapeHtml(loadErrorText(e))}</p></div>`;
+    app.innerHTML = isLinkProblem(e)
+      ? linkProblemHtml()
+      : `<div class="pad"><h1>Couldn't open this map</h1><p class="warn">${escapeHtml(loadErrorText(e))}</p></div>`;
   });
 }

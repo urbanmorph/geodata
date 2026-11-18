@@ -46,8 +46,13 @@ describe('isKnownRoute', () => {
       .filter((f) => f.endsWith('.template.html'))
       .map((f) => f.replace('.template.html', ''))
       .map((n) => (n === 'index' ? '' : n))
+      .filter((n) => n !== '404') // the 404 page (dist/404.html) is not a route of its own
       .sort();
     expect(templatePages).toEqual([...STATIC_PAGES].sort());
+  });
+
+  it('/404 is not a page: it answers 404 like any unknown path', () => {
+    expect(isKnownRoute('/404')).toBe(false);
   });
 });
 
@@ -60,6 +65,14 @@ describe('pages served straight from public/ (not prerendered)', () => {
     for (const name of PUBLIC_PAGES) {
       expect(existsSync(resolve(WEB, 'public', name, 'index.html')), name).toBe(true);
     }
+  });
+});
+
+describe('/embed/<id>', () => {
+  // Pages answers /index.html with a redirect to /, so a rewrite to it found no
+  // file; the SPA fallback hid that until dist/404.html turned misses into 404s.
+  it('rewrites to the home page by its served path, /', () => {
+    expect(readFileSync(resolve(WEB, 'public/_redirects'), 'utf8')).toMatch(/^\/embed\/\*\s+\/\s+200$/m);
   });
 });
 
