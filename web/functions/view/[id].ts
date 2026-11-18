@@ -1,13 +1,15 @@
 // GET /view/<id> — curated-layer canonical share URL.
 //
 // Cloudflare Pages serves index.html as the SPA. For social-card crawlers
-// to see a layer-specific OG image (not the generic og-default), we fetch
+// to see a layer-specific OG image (not the generic og-default), we read
 // index.html and rewrite its meta tags via HTMLRewriter. The browser-side
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
+// The finished page is kept in the edge cache, keyed by the deploy version.
 
 import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
-import { loadCatalog } from '../lib/catalog-loader';
+import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../lib/catalog-loader';
+import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundHtml } from '../lib/not-found';
 
 type Params = { id: string };
@@ -19,40 +21,42 @@ type Catalog = {
 
 const NOT_FOUND_HTML = notFoundHtml('layer not found', "This layer id doesn't exist in the catalog.");
 
-export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) => {
-  const id = (ctx.params.id as string) || '';
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });
-  }
-  // Same-origin fetches use the request host so this works on previews, dev
-  // (:8788) and the pages.dev fallback. SEO URLs (canonical / OG / JSON-LD)
-  // must always be the primary apex, so www.* and pages.dev variants
-  // consolidate there instead of self-referencing as canonical and splitting
-  // the ranking signal. Mirrors render-view.ts's PUBLIC_ORIGIN.
-  const origin = new URL(ctx.request.url).origin;
-  const CANONICAL_ORIGIN = 'https://bharatlas.com';
+// SEO URLs (canonical / OG / JSON-LD) must always be the primary apex, so www.*
+// and pages.dev variants consolidate there instead of self-referencing as
+// canonical and splitting the ranking signal. Mirrors render-view.ts's PUBLIC_ORIGIN.
+const CANONICAL_ORIGIN = 'https://bharatlas.com';
 
-  // Ward pages fetch their answer-table sidecar in parallel. It's absent for
-  // number-only cities (and any city whose parquet hasn't been processed) — a
-  // cached 404 we tolerate, leaving the page table-less.
-  const isWard = /^wards_/.test(id);
-  // The catalog is cached per isolate; a rejected fetch is a 503, not a crash.
-  const [loaded, indexResp, wardResp] = await Promise.all([
-    loadCatalog(origin).catch(() => null),
-    fetch(`${origin}/index.html`).catch(() => null),
-    isWard ? fetch(`${origin}/ward-index/${id}.json`).catch(() => null) : Promise.resolve(null),
+const notFound = () =>
+  new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });
+
+export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
+  const id = (ctx.params.id as string) || '';
+  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return notFound();
+
+  // The catalog is cached per isolate; a rejected load is a 503, not a crash.
+  const loaded = await loadCatalogVersioned(ctx).catch(() => null);
+  if (!loaded) return new Response('upstream unavailable', { status: 503 });
+  const catalog = loaded.catalog as unknown as Catalog;
+  const layer = catalog.layers?.find((l) => l.id === id);
+  if (!layer) return notFound();
+
+  // The page depends only on the layer and the deploy: keyed by path, not query.
+  const key = cacheKey(loaded.version, new URL(ctx.request.url), { query: false });
+  return cached(ctx, key, EDGE_TTL.page, () => renderPage(ctx, layer, catalog));
+};
+
+async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: Catalog): Promise<Response> {
+  // The home page from this deployment's own files (env.ASSETS: no trip through
+  // the zone). Ward pages also read their answer-table sidecar in parallel; it's
+  // absent for number-only cities, leaving the page table-less.
+  const [indexResp, wardResp] = await Promise.all([
+    fetchAsset(ctx, '/').catch(() => null),
+    /^wards_/.test(layer.id) ? fetchAsset(ctx, `/ward-index/${layer.id}.json`).catch(() => null) : Promise.resolve(null),
   ]);
-  if (!loaded || !indexResp?.ok) {
-    return new Response('upstream unavailable', { status: 503 });
-  }
+  if (!indexResp?.ok) return new Response('upstream unavailable', { status: 503 });
   let wardIndex: WardIndex | null = null;
   if (wardResp && wardResp.ok) {
     wardIndex = await wardResp.json<WardIndex>().catch(() => null);
-  }
-  const catalog = loaded as unknown as Catalog;
-  const layer = catalog.layers?.find((l) => l.id === id);
-  if (!layer) {
-    return new Response(NOT_FOUND_HTML, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML } });
   }
 
   const levelMeta = resolveLevelMeta(layer, catalog.level_meta);
@@ -115,4 +119,4 @@ export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) =>
         ...SECURITY_HEADERS_HTML,
       },
     }));
-};
+}

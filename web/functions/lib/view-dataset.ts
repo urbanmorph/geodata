@@ -201,7 +201,7 @@ export type WardIndex = {
 // vadodara") that a map page can't satisfy in the SERP. Renders ONLY the columns
 // the layer actually carries: a number-only layer gets a number list and no
 // ItemList JSON-LD — we never invent an area name. Data is what it is.
-export function buildWardTable(idx: WardIndex | null | undefined): {
+function wardTable(idx: WardIndex | null | undefined): {
   html: string;
   jsonLd: Record<string, unknown> | null;
 } {
@@ -271,7 +271,7 @@ const wardItem = (r: WardRow) => `<li>Ward ${esc(r.no)}${r.name && r.name !== r.
 // The zone-wise ward list ("zone wise ward list lucknow", "bhopal nagar nigam zone list"): the wards grouped under
 // the zone the layer's own zone column gives them (scripts/build_ward_index.py). Rendered only when the layer has
 // at least two zones; wards the source gives no zone are named as such, never placed in one.
-export function buildZoneList(idx: WardIndex | null | undefined): { html: string; zones: number } {
+function zoneList(idx: WardIndex | null | undefined): { html: string; zones: number } {
   const groups = new Map<string, WardRow[]>();
   for (const r of idx?.rows ?? []) {
     if (r.zone) groups.set(r.zone, [...(groups.get(r.zone) ?? []), r]);
@@ -292,6 +292,19 @@ export function buildZoneList(idx: WardIndex | null | undefined): { html: string
     `<p>${plural(zoned, 'ward')} in ${groups.size} zones, as the source groups them.${none}</p>${sections}</section>`;
   return { html, zones: groups.size };
 }
+
+// A ward page uses each table twice (the article, and the description or the
+// ItemList JSON-LD): build them once per ward index.
+function oncePerIndex<T>(build: (idx: WardIndex | null | undefined) => T): (idx: WardIndex | null | undefined) => T {
+  const memo = new WeakMap<WardIndex, T>();
+  return (idx) => {
+    if (!idx) return build(idx);
+    if (!memo.has(idx)) memo.set(idx, build(idx));
+    return memo.get(idx)!;
+  };
+}
+export const buildWardTable = oncePerIndex(wardTable);
+export const buildZoneList = oncePerIndex(zoneList);
 
 export function buildViewDataset(
   layer: CatalogLayer,

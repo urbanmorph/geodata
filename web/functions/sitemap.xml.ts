@@ -45,12 +45,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     // empty community is fine — static surfaces still ship
   }
 
-  // Curated layers come from catalog.json (fetched same-origin). v4.7 introduced
+  // Curated layers come from catalog.json (the deployment's own copy). v4.7 introduced
   // /view/<id> as the canonical share URL with layer-specific OG cards.
   let curated: Array<{ id: string; fetched_at?: string }> = [];
   try {
-    const origin = new URL(ctx.request.url).origin;
-    const cat = (await loadCatalog(origin)) as { layers?: Array<{ id: string; fetched_at?: string }> };
+    const cat = (await loadCatalog(ctx)) as { layers?: Array<{ id: string; fetched_at?: string }> };
     curated = (cat.layers || []).map((l) => ({ id: l.id, fetched_at: l.fetched_at }));
   } catch {
     // curated /view URLs are nice-to-have for sitemap; fall through quietly

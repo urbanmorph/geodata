@@ -1,5 +1,7 @@
 import type { Env } from '../../../_middleware';
-import { loadCatalog } from '../../../../lib/catalog-loader';
+import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../../../../lib/catalog-loader';
+import type { CatalogLayer } from '../../../../lib/catalog-api';
+import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 import { countApiUse } from '../../../../lib/usage';
 import { json } from '../../../../lib/http';
 
@@ -12,19 +14,24 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 
   const url = new URL(ctx.request.url);
-  const catalog = await loadCatalog(url.origin);
+  const { catalog, version } = await loadCatalogVersioned(ctx);
   const layer = catalog.layers.find((l) => l.id === id);
   if (!layer) return json(404, { error: 'Layer not found', status: 404 });
   countApiUse(ctx, id);
 
-  const groupBy = url.searchParams.get('group_by');
-  const filterCol = url.searchParams.get('filter_col');
-  const filterVal = url.searchParams.get('filter_val');
+  return cached(ctx, cacheKey(version, url), EDGE_TTL.catalog, () => answer(ctx, layer, url.searchParams));
+};
 
-  // Try to load pre-computed stats
+async function answer(ctx: AssetCtx, layer: CatalogLayer, params: URLSearchParams): Promise<Response> {
+  const id = layer.id;
+  const groupBy = params.get('group_by');
+  const filterCol = params.get('filter_col');
+  const filterVal = params.get('filter_val');
+
+  // Pre-computed stats, from this deployment's static files.
   let stats: LayerStats | null = null;
   try {
-    const r = await fetch(`${url.origin}/api-data/layers/${id}.json`);
+    const r = await fetchAsset(ctx, `/api-data/layers/${id}.json`);
     if (r.ok) stats = await r.json() as LayerStats;
   } catch { /* no stats available */ }
 
@@ -50,7 +57,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return json(400, { error: `Column "${groupBy}" not available for grouping. Available: ${available.join(', ')}`, status: 400 });
   }
 
-  let counts = col.values;
+  const counts = col.values;
 
   // Optional cross-filter: when filter_col + filter_val are provided,
   // we can't cross-filter from pre-computed single-column stats.
@@ -66,14 +73,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 
   return respond({ layer_id: id, total: stats.row_count, group_by: groupBy, counts });
-};
-
-function respond(data: unknown) {
-  return new Response(JSON.stringify({ data }), {
-    headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=86400, stale-while-revalidate=86400' },
-  });
 }
 
+const respond = (data: unknown) => json(200, { data }, { 'cache-control': CACHE });
 
 interface LayerStats {
   row_count: number;

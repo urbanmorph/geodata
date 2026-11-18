@@ -2,11 +2,12 @@
 // Cloudflare Pages Functions bundle the .wasm module statically at deploy
 // time — workerd disallows `WebAssembly.instantiate()` from fetched bytes
 // for security reasons, so we import the binary directly. Fonts are
-// fetched from same-origin static assets and cached per Worker isolate;
+// read from the deployment's static files (env.ASSETS) and cached per isolate;
 // workerd has no system fonts so text renders as nothing without this.
 
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 import { OG_FONT_FILES } from './og-template';
+import { fetchAsset, type AssetCtx } from './catalog-loader';
 // @ts-expect-error — Pages' bundler resolves this; Node test env never
 // reaches this line because og-render itself is mocked in unit tests.
 import wasmModule from '@resvg/resvg-wasm/index_bg.wasm';
@@ -25,11 +26,11 @@ async function ensureInit(): Promise<void> {
   return initPromise;
 }
 
-async function ensureFont(origin: string): Promise<Uint8Array[]> {
+async function ensureFont(ctx: AssetCtx): Promise<Uint8Array[]> {
   if (fontPromise) return fontPromise;
   fontPromise = Promise.all(
     OG_FONT_FILES.map(async (f) => {
-      const r = await fetch(`${origin}/${f}`);
+      const r = await fetchAsset(ctx, `/${f}`);
       if (!r.ok) throw new Error(`failed to load OG font ${f}: ${r.status}`);
       return new Uint8Array(await r.arrayBuffer());
     }),
@@ -40,9 +41,9 @@ async function ensureFont(origin: string): Promise<Uint8Array[]> {
   return fontPromise;
 }
 
-export async function renderOgPng(svg: string, origin: string): Promise<Uint8Array> {
+export async function renderOgPng(svg: string, ctx: AssetCtx): Promise<Uint8Array> {
   await ensureInit();
-  const fonts = await ensureFont(origin);
+  const fonts = await ensureFont(ctx);
   const resvg = new Resvg(svg, {
     fitTo: { mode: 'original' },
     font: {

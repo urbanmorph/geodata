@@ -16,7 +16,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   if (!key) return json(400, { error: 'missing key', status: 400 });
   // Classify after answering: the redirect never waits on the catalog or D1.
   ctx.waitUntil(
-    loadCatalog(new URL(ctx.request.url).origin)
+    loadCatalog(ctx)
       .then((catalog) => {
         const cls = classifyDownload(key, catalog);
         return cls ? incrementDownload(ctx.env.DB, cls.layer_id, cls.state_code, cls.format) : undefined;

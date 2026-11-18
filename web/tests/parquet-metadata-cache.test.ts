@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { cachedMetadata, clearMetadataCache } from '../functions/lib/parquet-r2';
+import { cachedMetadata, clearMetadataCache, clearHeadCache, asyncBufferFromR2 } from '../functions/lib/parquet-r2';
 
 // Parsing the Overture footer (217 row groups) cost ~4 s per request on the
 // live site; footers only change when a layer is rebaked (new key or etag).
@@ -52,5 +52,34 @@ describe('cachedMetadata', () => {
     const ok = counted('k');
     await cachedMetadata(ok);
     expect(ok.reads).toBeGreaterThan(0);
+  });
+});
+
+describe('asyncBufferFromR2: R2 head cached per isolate', () => {
+  const r2 = (heads: { n: number }, found = true) => ({
+    async head() { heads.n++; return found ? { size: 10, etag: 'e1' } : null; },
+    async get() { return null; },
+  });
+  beforeEach(() => clearHeadCache());
+  afterEach(() => vi.useRealTimers());
+
+  it('heads a key once for a few minutes, then again', async () => {
+    vi.useFakeTimers();
+    const heads = { n: 0 };
+    const a = await asyncBufferFromR2(r2(heads) as never, 'k.parquet');
+    await asyncBufferFromR2(r2(heads) as never, 'k.parquet');
+    expect(heads.n).toBe(1);
+    expect(a.byteLength).toBe(10);
+    expect(a.etag).toBe('e1');
+    vi.advanceTimersByTime(6 * 60_000);
+    await asyncBufferFromR2(r2(heads) as never, 'k.parquet');
+    expect(heads.n).toBe(2);
+  });
+
+  it('does not remember a missing key', async () => {
+    const heads = { n: 0 };
+    await expect(asyncBufferFromR2(r2(heads, false) as never, 'gone')).rejects.toThrow(/not found/);
+    await expect(asyncBufferFromR2(r2(heads, false) as never, 'gone')).rejects.toThrow(/not found/);
+    expect(heads.n).toBe(2);
   });
 });

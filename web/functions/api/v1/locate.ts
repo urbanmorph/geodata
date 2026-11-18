@@ -33,7 +33,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return json(400, { error: `ask at most ${MAX_LOCATE_LAYERS} layers at once`, status: 400 });
   }
 
-  const catalog = await loadCatalog(url.origin);
+  const catalog = await loadCatalog(ctx);
   const result = await locate(lat, lng, layerIds, zoom, catalog, ctx.env.R2);
 
   // A city ward layer chosen by bbox can miss the point (Jaipur's layer is

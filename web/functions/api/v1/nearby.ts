@@ -1,10 +1,11 @@
 import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
-import { loadCatalog } from '../../lib/catalog-loader';
+import { loadCatalogVersioned } from '../../lib/catalog-loader';
 import { countApiUse } from '../../lib/usage';
 import { nearby } from '../../lib/nearby';
 import { QueryInputError } from '../../lib/parquet-query';
 import { json, safeStringify } from '../../lib/http';
+import { cached, cacheKey, EDGE_TTL } from '../../lib/edge-cache';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -25,20 +26,25 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const radiusKm = clampNum(url.searchParams.get('radius_km'), 25, 1, 200);
   const limit = clampNum(url.searchParams.get('limit'), 20, 1, 100, true);
 
-  const catalog = await loadCatalog(url.origin);
-
-  try {
-    const result = await nearby(lat, lng, radiusKm, layerId, catalog, ctx.env.R2, limit);
-    countApiUse(ctx, layerId);
-    return new Response(safeStringify(result), {
-      headers: {
-        'content-type': 'application/json',
-        'cache-control': 'public, max-age=3600, stale-while-revalidate=86400',
-      },
-    });
-  } catch (e) {
-    const msg = (e as Error).message;
-    if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
-    return json(500, { error: `Nearby failed: ${msg}`, status: 500 });
+  const { catalog, version } = await loadCatalogVersioned(ctx);
+  if (!catalog.layers.some((l) => l.id === layerId)) {
+    return json(400, { error: `Layer ${layerId} not found`, status: 400 });
   }
+  countApiUse(ctx, layerId);
+
+  return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
+    try {
+      const result = await nearby(lat, lng, radiusKm, layerId, catalog, ctx.env.R2, limit);
+      return new Response(safeStringify(result), {
+        headers: {
+          'content-type': 'application/json',
+          'cache-control': 'public, max-age=3600, stale-while-revalidate=86400',
+        },
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
+      return json(500, { error: `Nearby failed: ${msg}`, status: 500 });
+    }
+  });
 };
