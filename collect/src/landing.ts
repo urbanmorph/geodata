@@ -28,12 +28,11 @@ mountInstallButton(installBtn, { appName: 'collect' });
 // so far, best-effort. Hidden until there's something to show.
 async function fillMasthead(): Promise<void> {
   try {
-    const s = await apiJson<{ points: number; contributors: number; states: number }>('/stats', '');
+    const s = await apiJson<{ points: number; states: number }>('/stats', '');
     const el = document.getElementById('masthead-stat');
     if (!el || !s.points) return;
     const n = (x: number): string => x.toLocaleString('en-IN');
     const parts = [`<strong>${n(s.points)}</strong> point${s.points === 1 ? '' : 's'} collected`];
-    if (s.contributors > 1) parts.push(`by ${n(s.contributors)} people`);
     if (s.states > 1) parts.push(`across ${n(s.states)} states`);
     el.innerHTML = parts.join(' · ');
   } catch { /* best-effort */ }

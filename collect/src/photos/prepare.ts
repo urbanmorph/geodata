@@ -44,23 +44,49 @@ function loadImage(file: Blob): Promise<HTMLImageElement> {
 const toJpeg = (c: HTMLCanvasElement, q: number): Promise<Blob> =>
   new Promise((resolve, reject) => c.toBlob((b) => (b ? resolve(b) : reject(new Error("Couldn't save the photo"))), 'image/jpeg', q));
 
+/** The photo decoded straight to w × h (upright), where the browser can: far
+ *  less memory than a 12 MP decode on a low-end phone. Null where it can't, or
+ *  when the copy comes back the wrong way round (camera rotation not applied). */
+async function scaledBitmap(file: Blob, w: number, h: number): Promise<ImageBitmap | null> {
+  if (typeof createImageBitmap !== 'function') return null;
+  try {
+    const bm = await createImageBitmap(file, { resizeWidth: w, resizeHeight: h, resizeQuality: 'high', imageOrientation: 'from-image' });
+    if (Math.abs(bm.width / bm.height - w / h) < 0.02) return bm;
+    bm.close();
+  } catch { /* an option it doesn't know: use the image */ }
+  return null;
+}
+
 export async function preparePhoto(file: File, opts: { dataSaver: boolean; source: 'camera' | 'gallery' }): Promise<PreparedPhoto> {
   // EXIF sits at the start of the file: no need to read a whole 5 MB photo for it.
   const place: PhotoPlace = file.type === 'image/jpeg' || /\.jpe?g$/i.test(file.name) ? readExif(new Uint8Array(await file.slice(0, 256 * 1024).arrayBuffer())) : {};
-  const img = await loadImage(file);
+  const img = await loadImage(file); // for its size (upright); drawn only where no bitmap
   const target = sizeFor(opts.dataSaver);
+  const size = (edge: number): [number, number] => fitWithin(img.naturalWidth, img.naturalHeight, edge);
+  const bitmap = await scaledBitmap(file, ...size(target.edge));
+  const source: CanvasImageSource = bitmap ?? img;
+  // One canvas for every try, emptied at the end (a canvas holds its pixels until then).
+  const canvas = document.createElement('canvas');
   let edge = target.edge;
   let blob: Blob | null = null;
-  // Lower the quality first, then the size, until it fits.
-  for (let round = 0; round < 4 && !blob; round++) {
-    const [w, h] = fitWithin(img.naturalWidth, img.naturalHeight, edge);
-    const canvas = Object.assign(document.createElement('canvas'), { width: w, height: h });
-    canvas.getContext('2d')!.drawImage(img, 0, 0, w, h);
-    for (const q of [0.82, 0.72, 0.62]) {
-      const b = await toJpeg(canvas, q);
-      if (b.size <= target.bytes || (round === 3 && q === 0.62)) { blob = b; break; }
+  try {
+    // Lower the quality first, then the size, until it fits.
+    for (let round = 0; round < 4 && !blob; round++) {
+      const [w, h] = size(edge);
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext('2d')!.drawImage(source, 0, 0, w, h);
+      for (const q of [0.82, 0.72, 0.62]) {
+        const b = await toJpeg(canvas, q);
+        if (b.size <= target.bytes || (round === 3 && q === 0.62)) { blob = b; break; }
+      }
+      edge = Math.round(edge * 0.8);
     }
-    edge = Math.round(edge * 0.8);
+  } finally {
+    bitmap?.close();
+    canvas.width = 0;
+    canvas.height = 0;
+    img.src = '';
   }
   const out = writeExif(new Uint8Array(await blob!.arrayBuffer()), place);
   const bytes = out.slice().buffer as ArrayBuffer;

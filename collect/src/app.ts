@@ -35,10 +35,11 @@ import { modeChoices } from './create/plan';
 import { isInIndia } from './geo/bounds';
 import { metresBetween, ringArea, lineLength, formatArea, formatLength, simplify } from './geo/measure';
 import { createTrace, averageFix, type Trace, type Fix } from './capture/trace';
+import { saveWalk, loadWalk, clearWalk } from './capture/walk-store';
 import { keepScreenOn, watchFixes } from './capture/gps';
 import { preparePhoto } from './photos/prepare';
 import { mountPhotoField, authedSrc, openViewer, type PhotoField, type PhotoFieldOptions, type PhotoItem } from './photos/widget';
-import { newClientId } from './outbox';
+import { newClientId, stuckReason } from './outbox';
 import { uploadPhoto } from './send-queue';
 import { aiNotesHtml, type Notes } from './review-ai';
 import { PALETTE } from '../../shared/brand.mjs';
@@ -154,7 +155,8 @@ async function renderOutbox(): Promise<void> {
   const queued = await queuedFor(ctx.id);
   const waiting = queued.filter((p) => !p.error).length;
   const refused = queued.filter((p) => p.error);
-  box.innerHTML = `${waiting ? `<p class="hint">⏳ ${waiting} waiting to send. They go when you're back online. <button type="button" class="ghost" id="sendnow">Send now</button></p>` : ''}
+  const why = stuckReason(queued) ?? "They go when you're back online.";
+  box.innerHTML = `${waiting ? `<p class="hint">⏳ ${waiting} waiting to send. ${escapeHtml(why)} <button type="button" class="ghost" id="sendnow">Send now</button></p>` : ''}
     ${refused.map((p) => `<p class="warn">Couldn't send "${escapeHtml(p.label)}": ${escapeHtml(p.error!)}. <button type="button" class="ghost" data-discard="${p.client_id}">Discard</button></p>`).join('')}`;
   const now = box.querySelector<HTMLButtonElement>('#sendnow');
   if (now) now.onclick = () => { now.disabled = true; void sendQueued(); };
@@ -696,9 +698,23 @@ function captureSheet(): void {
   verts = [];
   stopRecording();
   trace = null;
+  if (modeOf(meta.schema) === 'photos_ai') { redrawDraw(); return renderPhotoBar(); }
+  // A walk the phone cut short (the tab was killed in the background) comes back.
+  const kept = loadWalk(sessionStorage, ctx.id);
+  if (kept && modes.includes(kept.mode)) {
+    drawMode = kept.mode;
+    drawHow = kept.how;
+    verts = kept.verts;
+    if (kept.walking) trace = createTrace(kept.verts); // paused: Resume picks it up
+  }
   redrawDraw();
-  if (modeOf(meta.schema) === 'photos_ai') return renderPhotoBar();
   renderPlaceBar(modes);
+}
+
+/** Keeps a shape being marked with the GPS for this map (see walk-store.ts). */
+function keepWalk(): void {
+  if (drawMode === 'point' || drawHow === 'map') clearWalk(sessionStorage, ctx.id);
+  else saveWalk(sessionStorage, ctx.id, { mode: drawMode, how: drawHow, verts, walking: !!trace });
 }
 
 function renderPlaceBar(modes: GeomMode[]): void {
@@ -745,6 +761,7 @@ function renderPlaceBar(modes: GeomMode[]): void {
     ch?.classList.toggle('crosshair--draw', shape);
     ch?.classList.toggle('crosshair--off', shape && how !== 'map');
     syncVertexMarkers();
+    keepWalk(); // every change to the shape (each GPS reading too) is kept for a reload
   };
 
   // Corners as handles to drag (not while recording; a long walk is simplified first).
@@ -778,6 +795,11 @@ function renderPlaceBar(modes: GeomMode[]): void {
     verts = [];
     lastFix = null;
     redrawDraw();
+    watchWalk();
+  };
+
+  // The GPS feeding the walk (a new one, or one brought back after a reload).
+  const watchWalk = (): void => {
     const sleep = keepScreenOn();
     const stopWatch = watchFixes((f) => {
       lastFix = f;
@@ -829,7 +851,7 @@ function renderPlaceBar(modes: GeomMode[]): void {
     if (drawHow === 'map' || drawMode === 'point') verts.push(crosshairLngLat());
     else if (drawHow === 'walk') {
       if (!trace) startWalk();
-      else if (trace.paused()) trace.resume();
+      else if (trace.paused()) { trace.resume(); if (!stopGps) watchWalk(); }
       else trace.pause();
     } else if (!cornerTimer) addCorner();
     redrawDraw();
@@ -1505,12 +1527,16 @@ function renderDataTab(body: HTMLElement): void {
 
 const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
 
-// Every record of the map, page by page (the server returns at most 2000 a request).
-// Every record (the server pages at 2000), optionally one status only.
+// Every record of the map, optionally one status only, page by page (the server
+// returns at most 2000 a request), following its cursor so points that arrive
+// meanwhile never repeat or push another off the end.
 function allRecords<T>(status?: string): Promise<T[]> {
   const q = status ? `&status=${status}` : '';
-  return fetchAllPages(async (limit, offset) =>
-    (await apiJson<{ features: T[] }>(`/collections/${ctx.id}/records?limit=${limit}&offset=${offset}${q}`, ctx.token)).features || [], 2000);
+  return fetchAllPages(async (limit, after) => {
+    const r = await apiJson<{ features?: T[]; next?: string | null }>(
+      `/collections/${ctx.id}/records?limit=${limit}${after ? `&after=${encodeURIComponent(after)}` : ''}${q}`, ctx.token);
+    return { items: r.features || [], next: r.next ?? null };
+  }, 2000);
 }
 
 // Fetch every record and hand the author a file — no server round-trip.

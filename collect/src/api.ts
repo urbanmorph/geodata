@@ -59,26 +59,42 @@ export async function apiJson<T = unknown>(path: string, token: string, init?: R
   return readJson<T>(await api(path, token, init));
 }
 
+/** How long a load waits for the network before using the copy on the phone. */
+export const NETWORK_WAIT_MS = 3500;
+
 // For opening a map with no signal: keeps a copy of each successful load and
-// returns it only when the request can't be made at all (fetch throws). A real
-// answer from the server, such as a link that was turned off, is never masked.
+// returns it when the request can't be made at all (fetch throws), or when it
+// takes longer than NETWORK_WAIT_MS (a stalled connection; the request carries
+// on and refreshes the copy for next time). A real answer from the server in
+// time, such as a link that was turned off, is never masked.
 export async function jsonWithOfflineCopy<T>(
   key: string, request: () => Promise<Response>, store: Storage, maxChars = Infinity,
 ): Promise<{ data: T; offline: boolean }> {
-  let res: Response;
+  const saved = (): string | null => { try { return store.getItem(key); } catch { return null; } };
+  const keep = async (res: Response): Promise<T> => {
+    const data = await readJson<T>(res);
+    const copy = JSON.stringify(data);
+    try {
+      // Too big to keep: drop any older copy too, so offline never shows an outdated one as current.
+      if (copy.length > maxChars) store.removeItem(key);
+      else store.setItem(key, copy);
+    } catch { /* storage full: still works online */ }
+    return data;
+  };
+  const fresh = request().then(keep);
+  const have = saved();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const slow = have === null ? null : new Promise<'slow'>((r) => { timer = setTimeout(() => r('slow'), NETWORK_WAIT_MS); });
   try {
-    res = await request();
-  } catch {
-    const saved = store.getItem(key);
-    if (saved) return { data: JSON.parse(saved) as T, offline: true };
+    const first = await (slow ? Promise.race([fresh, slow]) : fresh);
+    if (first !== 'slow') return { data: first as T, offline: false };
+    fresh.catch(() => {}); // carries on in the background; a late refusal changes nothing
+    return { data: JSON.parse(have!) as T, offline: true };
+  } catch (e) {
+    if (e instanceof ApiError) throw e;
+    if (have !== null) return { data: JSON.parse(have) as T, offline: true };
     throw new Error("You're offline, and this map hasn't been opened on this device with a connection yet.");
+  } finally {
+    clearTimeout(timer);
   }
-  const data = await readJson<T>(res);
-  const copy = JSON.stringify(data);
-  try {
-    // Too big to keep: drop any older copy too, so offline never shows an outdated one as current.
-    if (copy.length > maxChars) store.removeItem(key);
-    else store.setItem(key, copy);
-  } catch { /* storage full: still works online */ }
-  return { data, offline: false };
 }

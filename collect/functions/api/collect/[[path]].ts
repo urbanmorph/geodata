@@ -3,7 +3,7 @@
 // Route → handler mapping mirrors the spec's API table.
 
 import type { Env } from '../../types';
-import { bad } from '../../lib/http';
+import { bad, json } from '../../lib/http';
 import * as h from '../../lib/handlers';
 import { uploadPhoto, getPhoto } from '../../lib/photos';
 import { reviewAi } from '../../lib/ai';
@@ -14,7 +14,16 @@ const CORS = {
   'access-control-allow-headers': 'authorization,content-type,x-client-id,x-photo-meta',
 };
 
-export const onRequest: PagesFunction<Env> = async (ctx) => h.explainRefusal(ctx.env, ctx.request, await route(ctx));
+export const onRequest: PagesFunction<Env> = async (ctx) => {
+  try {
+    return await h.explainRefusal(ctx.env, ctx.request, await route(ctx));
+  } catch (e) {
+    // Anything a handler didn't catch: a JSON answer the app can show, not
+    // the platform's bare error page (which the app can't read).
+    console.error('collect api', ctx.request.method, new URL(ctx.request.url).pathname, (e as Error)?.stack || e);
+    return json(500, { error: 'Something went wrong on our side. Please try again.' });
+  }
+};
 
 async function route(ctx: Parameters<PagesFunction<Env>>[0]): Promise<Response> {
   const method = ctx.request.method.toUpperCase();
@@ -34,7 +43,7 @@ async function route(ctx: Parameters<PagesFunction<Env>>[0]): Promise<Response> 
 
   // /v1/stats — public masthead counts
   if (p.length === 1 && p[0] === 'stats') {
-    return method === 'GET' ? h.getStats(env) : bad(405, 'method not allowed');
+    return method === 'GET' ? h.getStats(env, request, defer) : bad(405, 'method not allowed');
   }
 
   // /v1/collections

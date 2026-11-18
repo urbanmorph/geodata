@@ -9,13 +9,13 @@ import type { Env } from '../types';
 import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, linkFor, atLeast } from './auth';
-import { checkCreateRate, checkRecordRate, checkKeyDayRate, checkKeyringRate } from './ratelimit';
+import { checkCreateRate, checkRecordRate, recordRateKey, checkKeyDayRate, checkKeyringRate } from './ratelimit';
 import { deferLog, type CollectAttempt } from './collect-log';
-import { nanoid, sha256Hex, ipHashFor, verifyTurnstile, persistSubmission } from './reuse';
+import { nanoid, sha256Hex, collectIpHash, verifyTurnstile, persistSubmission } from './reuse';
 import * as db from './db';
 import { recordStatusFor } from './moderation';
 import { validateNewCollection, validateCollectionEdit, validateFormEdit, schemaFits } from '../../src/schema/validate-collection';
-import { validateRecordProperties, type Field } from '../../src/schema/validate-record';
+import { validateRecordProperties, CLIENT_ID, type Field } from '../../src/schema/validate-record';
 import { checkIndiaBounds } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
 import { composeAttribution } from '../../src/publish/attribution';
@@ -25,8 +25,6 @@ import { photoIdsIn, checkPhotos, setPhotos, deletePhotosOf, photoLinks, photoUr
 import { runAi, drainAi, publicNotes } from './ai';
 
 const BHARATLAS_ORIGIN = 'https://bharatlas.com';
-
-const salt = (env: Env) => env.IP_SALT || 'collect-v1';
 
 // Locate enrichment (Phase 4). Best-effort: ask bharatlas /api/v1/locate for the
 // admin context at a record's representative vertex. Any error (network, timeout,
@@ -93,7 +91,7 @@ async function verifyApiKey(env: Env, key: string): Promise<{ id: string; daily_
 }
 
 export async function createCollection(env: Env, req: Request, defer?: Defer): Promise<Response> {
-  const ipHash = await ipHashFor(req, salt(env));
+  const ipHash = await collectIpHash(req, env);
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
@@ -176,22 +174,34 @@ export async function getCollectionMeta(env: Env, req: Request, id: string): Pro
 }
 
 // ---- GET /stats ------------------------------------------------------------
-// Public aggregate counts for the home masthead (no PII: distinct ip_hash only).
-// Edge-cached so the home page load never waits on a fresh count.
+// Public aggregate counts for the home masthead. A Pages Function's response is
+// not edge-cached on its own, so the answer is kept in this data centre's cache
+// (caches.default) for five minutes: a visit doesn't count the whole table.
+// No count of people: records keep only a daily IP hash, which is not a person.
 
-export async function getStats(env: Env): Promise<Response> {
+const STATS_TTL_S = 300;
+
+export async function getStats(env: Env, req?: Request, defer?: Defer): Promise<Response> {
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const key = req ? new Request(new URL(req.url).origin + '/api/collect/v1/stats') : null;
+  const hit = cache && key ? await cache.match(key) : undefined;
+  if (hit) return hit;
   const row = (await env.DB.prepare(
     `SELECT
        (SELECT COUNT(*) FROM collections) AS maps,
        (SELECT COUNT(*) FROM records WHERE status = 'published') AS points,
-       (SELECT COUNT(DISTINCT ip_hash) FROM records) AS contributors,
        (SELECT COUNT(DISTINCT json_extract(admin_ctx, '$.state')) FROM records
           WHERE admin_ctx IS NOT NULL AND json_extract(admin_ctx, '$.state') IS NOT NULL) AS states`,
-  ).first()) as { maps: number; points: number; contributors: number; states: number } | null;
-  return new Response(
-    JSON.stringify({ maps: row?.maps ?? 0, points: row?.points ?? 0, contributors: row?.contributors ?? 0, states: row?.states ?? 0 }),
-    { status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': 'public, max-age=300' } },
+  ).first()) as { maps: number; points: number; states: number } | null;
+  const res = new Response(
+    JSON.stringify({ maps: row?.maps ?? 0, points: row?.points ?? 0, states: row?.states ?? 0 }),
+    { status: 200, headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*', 'cache-control': `public, max-age=${STATS_TTL_S}` } },
   );
+  if (cache && key) {
+    const kept = cache.put(key, res.clone()).catch(() => {});
+    if (defer) defer(kept); else await kept;
+  }
+  return res;
 }
 
 // ---- PATCH /collections/:id ------------------------------------------------
@@ -366,7 +376,10 @@ export async function listRecords(env: Env, req: Request, id: string, defer?: De
 
   const limit = Math.min(Math.max(parseInt(url.searchParams.get('limit') || '500', 10) || 500, 1), 2000);
   const offset = Math.max(parseInt(url.searchParams.get('offset') || '0', 10) || 0, 0);
-  const rows = await db.listRecords(env.DB, id, { status, limit, offset });
+  const afterParam = url.searchParams.get('after');
+  const after = afterParam === null ? undefined : parseCursor(afterParam);
+  if (after === null) return bad(400, 'after must be the next value from the previous page');
+  const rows = await db.listRecords(env.DB, id, { status, limit, offset, after });
   // Admin only: which link added each record (id + the admin's label for it).
   const isAdmin = atLeast(perm, 'admin');
   const labels = isAdmin ? await db.linkLabels(env.DB, id) : null;
@@ -376,8 +389,10 @@ export async function listRecords(env: Env, req: Request, id: string, defer?: De
   const hidden = isAdmin ? new Set<string>() : new Set(schema.fields.filter((f) => f.deleted).map((f) => f.key));
   const visible = (p: Record<string, unknown>) => (hidden.size ? Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k))) : p);
   const origin = url.origin;
-  // The owner looking at the map is a good moment to catch up on notes still to come.
-  if (isAdmin && usesAi(modeOf(schema)) && defer) defer(drainAi(env, id).catch(() => {}));
+  // The owner looking at the map is a good moment to catch up on notes still to
+  // come: once per look (the first page), not once per page.
+  const firstPage = !after && offset === 0;
+  if (firstPage && isAdmin && usesAi(modeOf(schema)) && defer) defer(drainAi(env, id).catch(() => {}));
 
   const features = rows.map((r) => {
     const props = JSON.parse(r.properties) as Record<string, unknown>;
@@ -400,13 +415,21 @@ export async function listRecords(env: Env, req: Request, id: string, defer?: De
     },
   };
   });
-  return json(200, { type: 'FeatureCollection', features });
+  // `next`: pass it back as `after` for the following page (null = that was the last).
+  const last = rows.length === limit ? rows[rows.length - 1] : null;
+  return json(200, { type: 'FeatureCollection', features, next: last ? `${last.created_at}~${last.id}` : null });
+}
+
+/** A page cursor (`created_at~id`), or null when it isn't one. */
+function parseCursor(v: string): db.RecordCursor | null {
+  const m = /^(\d{4}-[^~]{1,40})~([A-Za-z0-9_-]{1,64})$/.exec(v);
+  return m ? { created_at: m[1], id: m[2] } : null;
 }
 
 // ---- POST /collections/:id/records -----------------------------------------
 
 export async function addRecord(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
-  const ipHash = await ipHashFor(req, salt(env));
+  const ipHash = await collectIpHash(req, env);
   const via = await linkFor(env.DB, id, bearer(req));
   const perm = via?.permission ?? null;
   if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised: needs the edit or admin link');
@@ -429,8 +452,8 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   // A repeat of a queued point that already saved: before the rate limit, so a
   // retry never spends the contributor's hourly budget.
   const seen = clientKey && (await db.recordByClientKey(env.DB, id, clientKey));
-  if (seen) return resendRecord(env, seen);
-  if (!(await checkRecordRate(env.DB, ipHash))) {
+  if (seen) return resendRecord(env, c, seen);
+  if (!(await checkRecordRate(env.DB, recordRateKey(via!.id, ipHash)))) {
     deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'rateLimit', collection_id: id, ip_hash: ipHash });
     return bad(429, 'rate limit: 200 records per hour');
   }
@@ -488,7 +511,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   } catch (e) {
     // Two repeats raced past the lookup; the unique index kept one. Return it.
     const raced = clientKey && (await db.recordByClientKey(env.DB, id, clientKey));
-    if (raced) return resendRecord(env, raced);
+    if (raced) return resendRecord(env, c, raced);
     throw e;
   }
   // Claimed after the insert: if another point took a photo first, this one goes.
@@ -507,11 +530,6 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   deferLog(defer, env.DB, { event: 'contribute', outcome: 'ok', collection_id: id, ip_hash: ipHash });
   return json(200, { id: recId, status, edit_token: recToken });
 }
-
-// A queued point sent again (offline capture queue). Only the hash of its first
-// edit token is stored, so the phone gets a new one; the old one stops working.
-// Holding the client_id is the proof: it never leaves the phone that made the point.
-const CLIENT_ID = /^[A-Za-z0-9_-]{16,64}$/;
 
 // The phone's capture time, kept when plausible: an ISO time, not more than a
 // few minutes ahead (clock skew) and under a year old. Anything else is ignored
@@ -546,7 +564,14 @@ function derivedColumns(r: { ai: string | null; geometry: string }): Record<stri
 /** When a point was added: the phone's capture time, else when it was saved. */
 const addedAt = (r: { captured_at: string | null; created_at: string }): string => r.captured_at ?? r.created_at;
 
-async function resendRecord(env: Env, rec: { id: string; status: string }): Promise<Response> {
+// A queued point sent again (offline capture queue). Only the hash of its first
+// edit token is stored, so the phone gets a new one; the old one stops working.
+// Holding the client_id is the proof: it never leaves the phone that made the point.
+// The first save may have stopped between the insert and claiming its photos, so
+// they are claimed again (a no-op when they already are), or they'd be cleared
+// as abandoned two weeks later.
+async function resendRecord(env: Env, c: db.CollectionRow, rec: { id: string; status: string; properties: string }): Promise<Response> {
+  await setPhotos(env, rec.id, photoIdsIn((JSON.parse(c.schema_doc) as { fields: Field[] }).fields, JSON.parse(rec.properties)));
   const token = generateRecordToken();
   await db.setRecordTokenHash(env.DB, rec.id, await hashToken(token));
   return json(200, { id: rec.id, status: rec.status, edit_token: token });
@@ -595,9 +620,12 @@ export async function moderateAll(env: Env, req: Request, id: string): Promise<R
     // Approve only points whose answers are all filled in ("just photos" points
     // wait for theirs; the map may have been switched out of that mode since).
     const rows = await db.listRecords(env.DB, id, { status: from, limit: 100000, offset: 0 });
-    const ready = rows.filter((r) => validateRecordProperties(schema.fields, JSON.parse(r.properties)).ok);
-    for (const r of ready) await db.setRecordStatus(env.DB, r.id, 'published');
-    return json(200, { from, to, changed: ready.length, skipped: rows.length - ready.length });
+    const ready = rows.filter((r) => validateRecordProperties(schema.fields, JSON.parse(r.properties)).ok).map((r) => r.id);
+    // One transaction: every ready point is approved, or none is (one UPDATE per
+    // point used to run past D1's query limit and stop part-way).
+    const results = ready.length ? await env.DB.batch(db.setStatusOfIds(env.DB, id, ready, from, 'published')) : [];
+    const changed = results.reduce((n, r) => n + ((r.meta?.changes as number) ?? 0), 0);
+    return json(200, { from, to, changed, skipped: rows.length - ready.length });
   }
   const changed = await db.setAllRecordStatus(env.DB, id, from, to);
   return json(200, { from, to, changed, skipped: 0 }); // rejecting needs no answers
@@ -721,7 +749,7 @@ export async function deidentifyRecordHandler(env: Env, req: Request, recordId: 
 export async function importRecords(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const attemptId = `att_${nanoid(10)}`;
   const started = Date.now();
-  const ipHash = await ipHashFor(req, salt(env));
+  const ipHash = await collectIpHash(req, env);
   const log = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => deferLog(defer, env.DB, {
     ...row, event: 'import', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started, ip_hash: ipHash,
   });
@@ -1068,7 +1096,7 @@ export async function putKeyring(env: Env, req: Request, id: string): Promise<Re
   if (!KEYRING_ID.test(id)) return bad(400, 'bad keyring id');
   const key = keyringKey(req);
   if (!key) return bad(401, 'unauthorised');
-  if (!(await checkKeyringRate(env.DB, await ipHashFor(req, salt(env))))) return bad(429, 'rate limit: too many sync writes');
+  if (!(await checkKeyringRate(env.DB, await collectIpHash(req, env)))) return bad(429, 'rate limit: too many sync writes');
   const body = await readJson(req);
   const blob = body?.blob;
   if (typeof blob !== 'string' || !blob) return bad(400, 'blob required');

@@ -66,7 +66,7 @@ describe('a queued point sent twice', () => {
     const m = await newMap();
     await add(m, { client_id: CLIENT_ID });
     for (let i = 0; i < 5; i++) await add(m, { client_id: CLIENT_ID });
-    const row = (await env.DB.prepare('SELECT hour_count FROM rate_limits').first()) as { hour_count: number };
+    const row = (await env.DB.prepare("SELECT hour_count FROM rate_limits WHERE ip_hash LIKE 'rec:%'").first()) as { hour_count: number };
     expect(row.hour_count).toBe(1);
   });
 

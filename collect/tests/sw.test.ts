@@ -1,6 +1,6 @@
 // The offline worker (src/sw/sw.js), run for real in a sandbox: an in-memory
 // Cache Storage and a network the test switches on and off.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 
@@ -24,7 +24,8 @@ type Stores = Map<string, Map<string, Response>>;
 function makeWorker(version: string, assets: string[], stores: Stores = new Map()) {
   const keyOf = (r: Request | string) => new URL(typeof r === 'string' ? r : r.url, ORIGIN).href;
   // `deploy` is what the server has; it can run ahead of what the worker saved.
-  const state = { online: true, fetched: [] as string[], deploy: version };
+  // stalled: requests hang (a weak signal) until release() lets them through.
+  const state = { online: true, fetched: [] as string[], deploy: version, stalled: false, release: () => {} };
   const site: Record<string, () => Response> = {
     '/': () => html(`landing ${version}`),
     '/c/': () => html(`app shell ${state.deploy}`),
@@ -34,6 +35,7 @@ function makeWorker(version: string, assets: string[], stores: Stores = new Map(
   };
   async function net(req: Request): Promise<Response> {
     state.fetched.push(new URL(req.url).pathname);
+    if (state.stalled) await new Promise<void>((r) => (state.release = r));
     if (!state.online) throw new TypeError('Failed to fetch');
     const u = new URL(req.url);
     const path = u.origin === ORIGIN ? (u.pathname.startsWith('/c/') ? '/c/' : u.pathname) : req.url;
@@ -70,7 +72,9 @@ function makeWorker(version: string, assets: string[], stores: Stores = new Map(
     clients: { claim: async () => {} },
     registration: { navigationPreload: { enable: async () => {} } },
   };
-  runInNewContext(SOURCE, { self, caches, fetch: net, Request: WorkerRequest, Response, URL, Promise });
+  // Timers looked up at call time, so a test's fake timers apply.
+  const timers = { setTimeout: (f: () => void, ms: number) => setTimeout(f, ms), clearTimeout: (id: ReturnType<typeof setTimeout>) => clearTimeout(id) };
+  runInNewContext(SOURCE, { self, caches, fetch: net, Request: WorkerRequest, Response, URL, Promise, ...timers });
 
   async function lifecycle(type: 'install' | 'activate') {
     let done: Promise<unknown> = Promise.resolve();
@@ -181,5 +185,31 @@ describe('collect offline worker', () => {
     await next.lifecycle('install');
     expect(next.state.fetched).not.toContain(APP_JS);
     expect(await next.stores.get('collect-v2')!.get(`${ORIGIN}${APP_JS}`)!.text()).toBe('app();');
+  });
+
+  describe('on a weak signal', () => {
+    afterEach(() => { vi.useRealTimers(); });
+
+    it('a page that stalls opens from the saved copy after a few seconds, and the copy is refreshed behind it', async () => {
+      vi.useFakeTimers();
+      w.state.deploy = 'v2';
+      w.state.stalled = true;
+      const res = w.page('/c/abc123');
+      await vi.advanceTimersByTimeAsync(3600);
+      w.state.release(); // the slow answer arrives later
+      expect(await text(res)).toBe('app shell v1');
+      w.state.stalled = false;
+      w.state.online = false;
+      expect(await text(w.page('/c/abc123'))).toBe('app shell v2');
+    });
+
+    it('a page with no saved copy keeps waiting for the network', async () => {
+      vi.useFakeTimers();
+      w.state.stalled = true;
+      const res = w.request('/nowhere', { mode: 'navigate' });
+      await vi.advanceTimersByTimeAsync(5000);
+      w.state.release();
+      expect((await res)!.status).toBe(404);
+    });
   });
 });

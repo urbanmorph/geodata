@@ -34,6 +34,7 @@ export interface QueuedPoint {
   captured_at?: string;
   photos?: QueuedPhoto[];
   error?: string; // why the server refused it for good
+  captcha_fails?: number; // failed spam checks in a row (it still waits; see stuckReason)
 }
 
 export type SendResult =
@@ -98,27 +99,59 @@ export interface FlushResult {
   sent: { point: QueuedPoint; result: Extract<SendResult, { ok: true }> }[];
 }
 
+const isCaptcha = (r: { status: number; error: string }): boolean => r.status === 403 && /captcha/i.test(r.error);
+
+/** After this many failed spam checks in a row, the queue says why it's stuck. */
+export const CAPTCHA_FAILS_TO_SAY = 3;
+
+/** Why waiting points aren't going, in plain words, when it isn't just the signal. */
+export function stuckReason(points: QueuedPoint[]): string | null {
+  return points.some((p) => !p.error && (p.captcha_fails ?? 0) >= CAPTCHA_FAILS_TO_SAY)
+    ? "The server's spam check isn't passing on this phone. Turning off an ad or content blocker, or trying another network, usually helps."
+    : null;
+}
+
 // One flush at a time: a save, the app opening and signal returning can all ask
 // at once. Each call waits for the one before it and then reads the queue
 // afresh, so a point is sent once, and a point saved mid-flush isn't missed.
+// Across tabs (two tabs, or the app and a tab), a browser lock does the same,
+// where the browser has one; otherwise it's one flush at a time per tab.
 let last: Promise<unknown> = Promise.resolve();
+const OUTBOX_LOCK = 'collect-outbox';
 
-/** Sends queued points oldest first, stopping at the first one that must wait. */
+type LockManager = { request<T>(name: string, cb: () => Promise<T>): Promise<T> };
+const locks = (): LockManager | undefined => (globalThis as { navigator?: { locks?: LockManager } }).navigator?.locks;
+
+/** Sends queued points oldest first. No connection stops the run; a map that
+ *  answers 429 is skipped for the rest of it; a point the server fails on waits
+ *  while the others go; a failed spam check is counted on the point. */
 export function flush(store: OutboxStore, send: (p: QueuedPoint) => Promise<SendResult>): Promise<FlushResult> {
-  const run = last.catch(() => {}).then(async (): Promise<FlushResult> => {
+  const body = async (): Promise<FlushResult> => {
     const sent: FlushResult['sent'] = [];
+    const busyMaps = new Set<string>();
     const queue = (await store.all()).filter((p) => !p.error).sort((a, b) => a.created_at.localeCompare(b.created_at));
     for (const point of queue) {
+      if (busyMaps.has(point.collection_id)) continue;
       const result = await send(point);
       if (result.ok) {
         await store.delete(point.client_id);
         sent.push({ point, result });
       } else if (fate(result) === 'refused') {
         await store.put({ ...point, error: result.error });
-      } else break;
+      } else if (result.status === 429) {
+        busyMaps.add(point.collection_id);
+      } else if (isCaptcha(result)) {
+        // The check is per phone, not per point: the rest would fail the same way.
+        await store.put({ ...point, captcha_fails: (point.captcha_fails ?? 0) + 1 });
+        break;
+      } else if (result.status === 0) {
+        break; // no connection: nothing else would get through either
+      } // else a server error on this point: it waits, the next one goes
     }
     return { sent };
-  });
+  };
+  const lm = locks();
+  const run = last.catch(() => {}).then(() => (lm ? lm.request(OUTBOX_LOCK, body) : body()));
   last = run;
   return run;
 }
