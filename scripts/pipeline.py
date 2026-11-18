@@ -182,7 +182,8 @@ def make_con():
 
 # ── R2 ───────────────────────────────────────────────────────────────────────
 
-def r2_client():
+def r2_client(**config):
+    """`config` adds botocore Config options (timeouts, retries) for big uploads."""
     import boto3
     from botocore.config import Config
     return boto3.client(
@@ -190,40 +191,103 @@ def r2_client():
         endpoint_url=f'https://{os.environ["CLOUDFLARE_ACCOUNT_ID"]}.r2.cloudflarestorage.com',
         aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'],
         aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
-        config=Config(signature_version='s3v4'),
+        config=Config(signature_version='s3v4', **config),
     )
 
 
-def r2_upload(s3, local: Path, key: str) -> None:
-    from boto3.s3.transfer import TransferConfig
-    ext = ''.join(local.suffixes[-1:])
-    ct = CONTENT_TYPES.get(ext, 'application/octet-stream')
-    # Skip only when the remote holds the same bytes. Sizes can't tell (a
-    # lat,lon swap keeps the byte count) and a multipart ETag isn't an MD5,
-    # so each upload stores its MD5 in metadata and that is compared.
-    md5 = file_md5(local)
+def _remote_has(s3, key: str, md5: str) -> bool:
+    """Skip only when the remote holds the same bytes. Sizes can't tell (a
+    lat,lon swap keeps the byte count) and a multipart ETag isn't an MD5,
+    so each upload stores its MD5 in metadata and that is compared."""
     try:
         head = s3.head_object(Bucket=BUCKET, Key=key)
-        # Objects put by older uploaders carry no md5 metadata; a single-part
-        # ETag is the body's MD5 (a multipart one has a "-N" suffix and isn't).
-        remote = head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"')
-        if remote == md5:
-            log(f'  R2 skip (md5 match): s3://{BUCKET}/{key}')
-            return
     except s3.exceptions.ClientError:
-        pass
+        return False
+    # Objects put by older uploaders carry no md5 metadata; a single-part
+    # ETag is the body's MD5 (a multipart one has a "-N" suffix and isn't).
+    remote = head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"')
+    if remote == md5:
+        log(f'  R2 skip (md5 match): s3://{BUCKET}/{key}')
+        return True
+    return False
 
-    transfer = TransferConfig(multipart_threshold=64 * 1024 * 1024, multipart_chunksize=64 * 1024 * 1024)
-    extra = {
-        'ContentType': ct,
+
+def _put_args(local: Path, md5: str) -> dict:
+    ext = ''.join(local.suffixes[-1:])
+    return {
+        'ContentType': CONTENT_TYPES.get(ext, 'application/octet-stream'),
         # Downloads save as files (cross-origin links to r2.dev ignore the
         # HTML download attribute); pmtiles stays inline for MapLibre's range reads.
         'ContentDisposition': 'inline' if ext == '.pmtiles' else f'attachment; filename="{local.name}"',
         'CacheControl': 'public, max-age=604800, immutable',
         'Metadata': {'md5': md5},
     }
+
+
+def r2_upload(s3, local: Path, key: str) -> None:
+    from boto3.s3.transfer import TransferConfig
+    md5 = file_md5(local)
+    if _remote_has(s3, key, md5):
+        return
+    transfer = TransferConfig(multipart_threshold=64 * 1024 * 1024, multipart_chunksize=64 * 1024 * 1024)
     log(f'  uploading → s3://{BUCKET}/{key}  ({local.stat().st_size:,} bytes)')
-    s3.upload_file(str(local), BUCKET, key, ExtraArgs=extra, Config=transfer)
+    s3.upload_file(str(local), BUCKET, key, ExtraArgs=_put_args(local, md5), Config=transfer)
+
+
+def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: int = 64 * 1024 * 1024,
+                        tries: int = 8, wait: Callable[[int], None] | None = None) -> None:
+    """r2_upload for multi-GB files on a flaky link. The multipart upload id is
+    saved in state_dir, so a dropped or killed run resumes from the parts R2
+    already holds (list_parts) instead of starting over; each part retries with
+    backoff. Same md5 skip and object headers as r2_upload."""
+    from botocore.exceptions import BotoCoreError
+    wait = wait or (lambda n: time.sleep(min(10 * n, 120)))
+    md5 = file_md5(local)
+    if _remote_has(s3, key, md5):
+        return
+    size = local.stat().st_size
+    n_parts = max(1, -(-size // part_size))
+    assert n_parts <= 1000, 'list_parts reads one page of 1,000 parts'
+    state_path = state_dir / (key.replace('/', '__') + '.json')
+    state = json.loads(state_path.read_text()) if state_path.exists() else None
+    done: dict[int, str] = {}
+    if state and state['md5'] == md5 and state['part_size'] == part_size:
+        try:
+            # R2 leaves 'Parts' out until the first part lands.
+            parts = s3.list_parts(Bucket=BUCKET, Key=key, UploadId=state['upload_id'], MaxParts=1000).get('Parts', [])
+            done = {p['PartNumber']: p['ETag'] for p in parts}
+        except s3.exceptions.ClientError:  # expired or aborted upload: start over
+            state = None
+    else:
+        state = None
+    if state is None:
+        uid = s3.create_multipart_upload(Bucket=BUCKET, Key=key, **_put_args(local, md5))['UploadId']
+        state = {'upload_id': uid, 'md5': md5, 'part_size': part_size}
+        state_dir.mkdir(parents=True, exist_ok=True)
+        tmp = state_path.with_name(state_path.name + '.part')
+        tmp.write_text(json.dumps(state))
+        os.replace(tmp, state_path)
+    log(f'  uploading → s3://{BUCKET}/{key}  ({size:,} bytes, {n_parts} parts, {len(done)} already on R2)')
+    with local.open('rb') as f:
+        for n in range(1, n_parts + 1):
+            if n in done:
+                continue
+            f.seek((n - 1) * part_size)
+            body = f.read(part_size)
+            for attempt in range(1, tries + 1):
+                try:
+                    done[n] = s3.upload_part(Bucket=BUCKET, Key=key, PartNumber=n,
+                                             UploadId=state['upload_id'], Body=body)['ETag']
+                    break
+                except (OSError, BotoCoreError) as e:
+                    if attempt == tries:
+                        raise
+                    log(f'    part {n} retry {attempt}: {type(e).__name__}')
+                    wait(attempt)
+            log(f'    part {n}/{n_parts} done')
+    s3.complete_multipart_upload(Bucket=BUCKET, Key=key, UploadId=state['upload_id'], MultipartUpload={
+        'Parts': [{'PartNumber': n, 'ETag': done[n]} for n in sorted(done)]})
+    state_path.unlink()
 
 
 def find_parquet(layer: dict) -> Path | None:

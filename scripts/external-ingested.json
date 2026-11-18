@@ -2164,6 +2164,38 @@
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Indian Railways GIS portal (CRIS). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
   },
   {
+    "id": "wbc1_water_bodies",
+    "name": "Water Bodies (1st Census, 2017-18)",
+    "level": "wbc1_water_bodies",
+    "category": "water",
+    "source": "MIWing",
+    "description": "Ponds, tanks, lakes, reservoirs and check dams from the 1st Census of Water Bodies (reference year 2017-18): one point per water body with its type, ownership, use, storage, water spread, encroachment and repair or revival schemes.",
+    "unit": "water bodies",
+    "features": 1101912,
+    "license": "GODL-India",
+    "r2_prefix": "water/wbc1-water-bodies",
+    "parquet_file": "WBC1_Water_Bodies_2017_18.parquet",
+    "parquet_bytes": 44792752,
+    "pmtiles_file": "WBC1_Water_Bodies_2017_18.pmtiles",
+    "pmtiles_bytes": 94714188,
+    "source_url": "https://www.data.gov.in/catalog/first-census-water-bodies-data",
+    "source_org": "Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti",
+    "notes": "Incomplete: this layer holds 1,101,912 of the 2,424,540 water bodies the 1st Census of Water Bodies counted, because its source, the data.gov.in API of the 1st Water Bodies Census, holds fewer for some States. Partial States: Andhra Pradesh 21,052 of 190,777; Assam 72,119 of 172,492; Odisha 61,802 of 181,837; Uttar Pradesh 41,435 of 245,087; West Bengal 54,876 of 747,480. Tripura is missing (the census counted 36,239 there). The data is complete for the other 27 States/UTs. 82,338 records without usable coordinates are kept with no geometry (no point on the map). 1st Census of Water Bodies (reference year 2017-18), Department of Water Resources, River Development and Ganga Rejuvenation and the Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti, published per State/UT on data.gov.in under GODL-India and read through its API. Columns are as published (\"NA\" or \"NULL\" in a numeric column becomes empty); unique_id holds the census's own state/district/block/village codes, not LGD codes. The point is the enumerator's latitude_dec/longitude_dec as published (the manual asks for the north-west corner of the water body); many were keyed in by hand and some are stacked on one spot. Of 1,101,912 records: 1,019,233 fall inside India's bounding box, 341 outside it, 0 at (0,0), 25 have impossible values (beyond 180 degrees longitude or 90 latitude) and 82,313 have no numeric coordinates (32 of them give degrees/minutes/seconds text such as 17/41/29). A registry, not satellite mapping: compare with wris_waterbodies, do not treat them as the same features.",
+    "tags": [
+      "water bodies",
+      "ponds",
+      "tanks",
+      "lakes",
+      "reservoirs",
+      "check dams",
+      "census of water bodies",
+      "encroachment",
+      "irrigation",
+      "Jal Shakti",
+      "minor irrigation"
+    ]
+  },
+  {
     "id": "property_tax_chennai_wards",
     "name": "Chennai Property Tax by Ward (2013-18)",
     "level": "property_tax_chennai_wards",
