@@ -4,7 +4,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { openDialog, closeDialog } from '../src/overlay-dialog';
+import { openDialog, closeDialog } from '../../shared/modal';
 
 const page = () => {
   document.body.innerHTML = `

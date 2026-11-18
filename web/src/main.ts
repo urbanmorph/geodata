@@ -2,7 +2,7 @@
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose, catalogVisibleOnLoad } from './embed-snippet';
 import { filterCards, type CardLike, type LayerIndexEntry } from './catalog-filter';
-import { openDialog, closeDialog } from './overlay-dialog';
+import { openDialog, closeDialog } from '../../shared/modal';
 import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
 import { findMyWard } from './find-my-ward';
