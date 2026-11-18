@@ -784,9 +784,12 @@ def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, fea
     pipeline.write_json(f, merge_layer_into_catalog(c, d, parquet_bytes, pmtiles_bytes, features, bakes_info))
 
 
-def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int) -> None:
+def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int,
+                    pmtiles_file: str | None = None) -> None:
     """Append (or replace) an entry in scripts/external-ingested.json so
-    future build_catalog.py runs pick it up without manual editing."""
+    future build_catalog.py runs pick it up without manual editing.
+    `pmtiles_file`: the tiles' R2 name when it is not the upstream one
+    (a versioned key)."""
     f = ROOT / 'scripts' / 'external-ingested.json'
     items = pipeline.upsert_by_id(json.loads(f.read_text()), {
         'id': d.id,
@@ -801,7 +804,7 @@ def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, f
         'r2_prefix': d.r2_prefix,
         'parquet_file': Path(d.parquet_url).name,
         'parquet_bytes': parquet_bytes,
-        'pmtiles_file': Path(d.pmtiles_url).name if d.pmtiles_url else None,
+        'pmtiles_file': pmtiles_file or (Path(d.pmtiles_url).name if d.pmtiles_url else None),
         'pmtiles_bytes': pmtiles_bytes,
         'source_url': d.source_url,
         'source_org': d.source_org,

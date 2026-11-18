@@ -398,6 +398,9 @@ def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], polygon
         # Half the detail below its max zoom (invisible on a 512 px tile):
         # z5 geomorphology tiles fit without dropping, cover 0.70 -> 0.95.
         args.insert(args.index('-P'), '-D11')
+        # Marks every overview feature: the viewer leaves these unstroked, or
+        # the 1-degree cell seams of the dissolve draw a grid over the land.
+        args[-1:-1] = ['-y', OVERVIEW_MARKER, '--set-attribute', f'{OVERVIEW_MARKER}:1']
     elif polygons:
         args[args.index('--drop-densest-as-needed')] = '--coalesce-densest-as-needed'
     if minzoom:
@@ -424,6 +427,7 @@ OVERVIEW: dict[str, str] = {
 # four probes (z8 kept 3,223 of 33,539 near Pune), so the overview runs to z8.
 OVERVIEW_MAXZOOM = 8
 OVERVIEW_CELL_DEG = 1
+OVERVIEW_MARKER = '_ov'  # web/src reads the same name
 
 
 def overview_grid(maxzoom: int = OVERVIEW_MAXZOOM) -> float:
@@ -435,26 +439,38 @@ def overview_grid(maxzoom: int = OVERVIEW_MAXZOOM) -> float:
 def dissolve_overview(flat: Path, out: Path, field: str, con: duckdb.DuckDBPyConnection,
                       deadline: Deadline) -> Path:
     """Line-delimited GeoJSON of `field` + geometry, unioned per value per
-    cell. One cached file per 1-degree latitude band (a killed run redoes
-    one band), joined at the end. Reads the parquet; never writes it."""
+    cell. Every polygon is clipped to each cell it touches, so neighbouring
+    cells meet on the cell line and never overlap (GSI sheets overlap at
+    their edges: assigned whole to one cell, those strips drew twice, a
+    darker 1-degree grid at country zoom). One cached file per 1-degree
+    latitude band (a killed run redoes one band), joined at the end. Reads
+    the parquet; never writes it."""
     if out.exists():
         return out
     grid, cell = overview_grid(), OVERVIEW_CELL_DEG
-    centre = f'floor((ymin + ymax) / 2 / {cell})'
     real = 'xmin <= 180'  # rows with a real geometry (some are LINESTRING(nan nan, ...))
     bands = [b for (b,) in con.execute(
-        f"SELECT DISTINCT {centre}::INT b FROM read_parquet('{flat}') WHERE {real} ORDER BY b").fetchall()]
+        f"SELECT DISTINCT unnest(range(floor(ymin / {cell})::INT, floor(ymax / {cell})::INT + 1)) b "
+        f"FROM read_parquet('{flat}') WHERE {real} ORDER BY b").fetchall()]
     parts = []
     for i, band in enumerate(bands):
         deadline.check(f'overview band {band}')
         part_out = out.with_name(f'{out.stem}.band{band}.geojsonl')
-        cached(part_out, lambda part, band=band: con.execute(f"""
-            COPY (SELECT "{field}", geometry FROM (
-                    SELECT "{field}", unnest(ST_Dump(ST_SimplifyPreserveTopology(ST_CollectionExtract(ST_Union_Agg(
-                        ST_ReducePrecision(ST_MakeValid(geometry), {grid})), 3), {grid}))).geom AS geometry
-                    FROM read_parquet('{flat}') WHERE {real} AND {centre} = {band}
-                    GROUP BY "{field}", floor((xmin + xmax) / 2 / {cell}))
-                  WHERE NOT ST_IsEmpty(geometry))
+        south, north = band * cell, (band + 1) * cell
+        cached(part_out, lambda part, south=south, north=north: con.execute(f"""
+            COPY (WITH pieces AS (
+                    SELECT "{field}", cx, ST_ReducePrecision(ST_Intersection(ST_MakeValid(geometry),
+                               ST_MakeEnvelope(cx * {cell}, {south}, (cx + 1) * {cell}, {north})), {grid}) AS g
+                    FROM (SELECT "{field}", geometry,
+                                 unnest(range(floor(xmin / {cell})::INT, floor(xmax / {cell})::INT + 1)) AS cx
+                          FROM read_parquet('{flat}') WHERE {real} AND ymax >= {south} AND ymin <= {north})),
+                  cells AS (
+                    SELECT "{field}", ST_CollectionExtract(ST_Union_Agg(g), 3) AS g
+                    FROM pieces WHERE NOT ST_IsEmpty(g) GROUP BY "{field}", cx)
+                  SELECT "{field}", geometry FROM (
+                    SELECT "{field}", unnest(ST_Dump(ST_SimplifyPreserveTopology(g, {grid}))).geom AS geometry
+                    FROM cells)
+                  WHERE NOT ST_IsEmpty(geometry) AND ST_Area(geometry) > 0)
             TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"""))
         parts.append(part_out)
         print(f'    overview: band {band} done ({i + 1}/{len(bands)})', flush=True)
@@ -492,16 +508,18 @@ def bake_tiles(flat: Path, out: Path, layer: str, fields: list[str], polygons: b
     log = out.with_name(f'{out.stem}.tippecanoe.log')
     seq = out.with_name(f'{out.stem}.tiles.geojsonl')
     cols = ', '.join(f'"{f}"' for f in fields)
-    cached(seq, lambda part: con.execute(
-        f"COPY (SELECT {cols}, geometry FROM read_parquet('{flat}') WHERE xmin <= 180) "
-        f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"))
+
+    def features() -> Path:  # only for a tile step that still has to run
+        return cached(seq, lambda part: con.execute(
+            f"COPY (SELECT {cols}, geometry FROM read_parquet('{flat}') WHERE xmin <= 180) "
+            f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"))
     if overview is None:
-        cached(out, lambda part: tippecanoe(tippecanoe_args(seq, part, layer, fields, polygons), log))
+        cached(out, lambda part: tippecanoe(tippecanoe_args(features(), part, layer, fields, polygons), log))
         seq.unlink()
         return
     deadline.check('detail tiles')
     detail = cached(out.with_name(f'{out.stem}.detail.pmtiles'), lambda part: tippecanoe(
-        tippecanoe_args(seq, part, layer, fields, polygons, minzoom=OVERVIEW_MAXZOOM + 1), log))
+        tippecanoe_args(features(), part, layer, fields, polygons, minzoom=OVERVIEW_MAXZOOM + 1), log))
     ov_seq = dissolve_overview(flat, out.with_name(f'{out.stem}.overview.geojsonl'), overview, con, deadline)
     deadline.check('overview tiles')
     low = cached(out.with_name(f'{out.stem}.overview.pmtiles'), lambda part: tippecanoe(
@@ -512,7 +530,7 @@ def bake_tiles(flat: Path, out: Path, layer: str, fields: list[str], polygons: b
     # The slow steps (detail tiles, dissolve) stay cached for a re-tune of the
     # overview tiles; the GeoJSON of every feature (4-22 GB) goes.
     for p in (seq, low):
-        p.unlink()
+        p.unlink(missing_ok=True)
 
 
 # ── pipeline ───────────────────────────────────────────────────────────
@@ -568,22 +586,30 @@ def build(d: ir.Dataset, deadline: Deadline) -> dict:
     if not tiles_ok(rows, OVERVIEW_MAXZOOM + 1 if overview else zmax, polygons, overview is not None):
         raise RuntimeError(f'{d.id}: tiles lose features or leave holes; see {report}')
 
-    files = {flat: pq_name, pm: pm_name, **{p: p.name for p in bakes.values()}}
+    files = {flat: pq_name, pm: tiles_name(pm), **{p: p.name for p in bakes.values()}}
     return {'files': files, 'features': features, 'bakes': bakes}
+
+
+def tiles_name(pm: Path) -> str:
+    """The tiles' R2 name, <stem>.<md5[:8]>.pmtiles: R2 objects stay immutable
+    once a catalog points at them, so a rebuilt tileset gets a new key."""
+    return f'{pm.stem}.{ir.file_md5(pm)[:8]}.pmtiles'
 
 
 CATALOG = ir.ROOT / 'catalog.json'
 
 
 def patch_root_catalog(d: ir.Dataset, pq_bytes: int, pm_bytes: int, features: int,
-                       bakes: dict[str, Path], catalog: Path = CATALOG) -> None:
+                       bakes: dict[str, Path], pm_name: str, catalog: Path | None = None) -> None:
     """Patch the repo-root catalog.json only: web/public/catalog.json is a
     gitignored copy the prerender overwrites on every build."""
+    catalog = catalog or CATALOG
     c = json.loads(catalog.read_text())
     info = {fmt: {'name': p.name, 'bytes': p.stat().st_size} for fmt, p in bakes.items()}
     ir.merge_layer_into_catalog(c, d, pq_bytes, pm_bytes, features, info)
-    # The tiles are baked here (popup fields), not the compiler's file.
-    next(lyr for lyr in c['layers'] if lyr['id'] == d.id)['pmtiles'].pop('upstream_url', None)
+    # The tiles are baked here (popup fields), not the compiler's file, under a versioned name.
+    next(lyr for lyr in c['layers'] if lyr['id'] == d.id)['pmtiles'] = {
+        'url': f'{ir.R2_PUBLIC}/{d.r2_prefix}/{pm_name}', 'bytes': pm_bytes}
     catalog.write_text(json.dumps(c, indent=2) + '\n')
 
 
@@ -649,9 +675,10 @@ def register(d: ir.Dataset, built: dict) -> None:
     """The manifest row and the root catalog entry (both idempotent)."""
     files = {name: local for local, name in built['files'].items()}
     pq_bytes = files[Path(d.parquet_url).name].stat().st_size
-    pm_bytes = files[Path(d.pmtiles_url).name].stat().st_size
-    ir.append_manifest(d, pq_bytes, pm_bytes, built['features'])
-    patch_root_catalog(d, pq_bytes, pm_bytes, built['features'], built['bakes'])
+    pm_name = next(name for name in files if name.endswith('.pmtiles'))
+    pm_bytes = files[pm_name].stat().st_size
+    ir.append_manifest(d, pq_bytes, pm_bytes, built['features'], pm_name)
+    patch_root_catalog(d, pq_bytes, pm_bytes, built['features'], built['bakes'], pm_name)
     print(f'  {d.id}: in the manifest and the root catalog', flush=True)
 
 

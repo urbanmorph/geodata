@@ -258,13 +258,44 @@ def test_catalog_patch_touches_only_the_given_root_file_and_is_idempotent(tmp_pa
     gj = tmp_path / 'X.geojson'
     gj.write_text('{}')
     d = blw.DATASETS[0]
-    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, catalog=cat)
+    tiles = 'SLUSI_Priority_MicroWatersheds.0123abcd.pmtiles'
+    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, tiles, catalog=cat)
     first = cat.read_text()
-    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, catalog=cat)
+    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, tiles, catalog=cat)
     assert cat.read_text() == first
     layer = json.loads(first)['layers'][0]
     assert (layer['id'], layer['rows'], layer['geojson']['bytes']) == (d.id, 3, 2)
     assert layer['parquet']['url'].endswith(f'{d.r2_prefix}/SLUSI_Priority_MicroWatersheds.parquet')
+    assert layer['pmtiles'] == {'url': f'{ir.R2_PUBLIC}/{d.r2_prefix}/{tiles}', 'bytes': 20}
+
+
+def test_register_points_catalog_and_manifest_at_the_versioned_tiles(tmp_path, monkeypatch):
+    (tmp_path / 'scripts').mkdir()
+    (tmp_path / 'scripts' / 'external-ingested.json').write_text('[]')
+    cat = tmp_path / 'catalog.json'
+    cat.write_text(json.dumps({'layers': [], 'level_meta': {}, 'level_order': []}))
+    monkeypatch.setattr(ir, 'ROOT', tmp_path)
+    monkeypatch.setattr(blw, 'CATALOG', cat)
+    d = blw.DATASETS[0]
+    pq, pm = tmp_path / 'SLUSI_Priority_MicroWatersheds.parquet', tmp_path / 'SLUSI_Priority_MicroWatersheds.pmtiles'
+    pq.write_bytes(b'pq')
+    pm.write_bytes(b'tiles')
+    name = blw.tiles_name(pm)
+    blw.register(d, {'files': {pq: pq.name, pm: name}, 'features': 1, 'bakes': {}})
+    row = json.loads((tmp_path / 'scripts' / 'external-ingested.json').read_text())[0]
+    assert (row['pmtiles_file'], row['parquet_file']) == (name, pq.name)
+    assert json.loads(cat.read_text())['layers'][0]['pmtiles']['url'].endswith('/' + name)
+
+
+def test_tiles_go_to_a_new_key_per_content(tmp_path):
+    # R2 objects are immutable once a catalog points at them: a rebuilt
+    # tileset gets its own key, <stem>.<md5[:8]>.pmtiles.
+    pm = tmp_path / 'NGDR_Lithology_50k.pmtiles'
+    pm.write_bytes(b'tiles v1')
+    first = blw.tiles_name(pm)
+    assert first == f'NGDR_Lithology_50k.{ir.file_md5(pm)[:8]}.pmtiles'
+    pm.write_bytes(b'tiles v2')
+    assert blw.tiles_name(pm) != first
     assert blw.CATALOG == ir.ROOT / 'catalog.json'
 
 
@@ -371,12 +402,28 @@ def test_overview_writes_single_polygons(tmp_path):
     src = tmp_path / 'P.parquet'
     con = blw.make_con(tmp_path)
     con.execute(f"""COPY (SELECT 'pond' AS cls, g AS geometry, ST_XMin(g) xmin, ST_YMin(g) ymin, ST_XMax(g) xmax,
-                         ST_YMax(g) ymax FROM (SELECT ST_Buffer(ST_Point(77.0 + range / 10, 28.5), 0.01) g
+                         ST_YMax(g) ymax FROM (SELECT ST_Buffer(ST_Point(77.3 + range / 10, 28.5), 0.01) g
                                                FROM range(3)))
                     TO '{src}' (FORMAT PARQUET)""")
     out = blw.dissolve_overview(src, tmp_path / 'ov.geojsonl', 'cls', con, blw.Deadline(5))
     types = con.execute(f"SELECT list(ST_GeometryType(geom)::VARCHAR) FROM ST_Read('{out}')").fetchone()[0]
     assert types == ['POLYGON'] * 3
+
+
+def test_overview_cells_meet_without_overlap(tmp_path):
+    # GSI sheets overlap at their edges; assigned whole to the cell of their
+    # centre, the strips drew twice (a darker 1-degree grid at country zoom).
+    # Clipped to each cell they touch, neighbouring pieces meet on the line.
+    src = tmp_path / 'C.parquet'
+    con = blw.make_con(tmp_path)
+    rows = [('A', 76.5, 77.2), ('A', 76.9, 77.6)]  # centres in cells 76 and 77, overlapping 76.9-77.2
+    values = ', '.join(f"('{c}', ST_GeomFromText('POLYGON(({x0} 28.0, {x1} 28.0, {x1} 28.1, {x0} 28.1, {x0} 28.0))'))"
+                       for c, x0, x1 in rows)
+    con.execute(f"""COPY (SELECT cls, g AS geometry, ST_XMin(g) xmin, ST_YMin(g) ymin, ST_XMax(g) xmax,
+                         ST_YMax(g) ymax FROM (VALUES {values}) t(cls, g)) TO '{src}' (FORMAT PARQUET)""")
+    out = blw.dissolve_overview(src, tmp_path / 'ov.geojsonl', 'cls', con, blw.Deadline(5))
+    area, n = con.execute(f"SELECT sum(ST_Area(geom)), count(*) FROM ST_Read('{out}')").fetchone()
+    assert area == pytest.approx(1.1 * 0.1, rel=1e-3) and n == 2  # the union once, cut at 77.0
 
 
 def test_overview_snaps_to_one_tile_unit_at_its_max_zoom():
@@ -393,9 +440,13 @@ def test_overview_and_detail_tiles_split_the_zoom_range():
     # overflowed again; an overview drops the smallest polygons first.
     assert '--drop-smallest-as-needed' in ov and '--coalesce-densest-as-needed' not in ov
     assert '-D11' in ov  # half the detail below its max zoom: z5 geomorphology cover 0.70 -> 0.95
+    # every overview feature carries the marker the viewer leaves unstroked (1-degree cell seams)
+    assert ov[ov.index('--set-attribute') + 1] == f'{blw.OVERVIEW_MARKER}:1'
+    assert ov[ov.index('-y', ov.index('-y') + 1) + 1] == blw.OVERVIEW_MARKER
     det = blw.tippecanoe_args(Path('d.geojsonl'), Path('d.pmtiles'), 'lyr', ['cls', 'age'], polygons=True,
                               minzoom=m + 1)
     assert f'-Z{m + 1}' in det and '-zg' in det and '-Z0' not in det
+    assert '--set-attribute' not in det and blw.OVERVIEW_MARKER not in det
 
 
 def test_every_overview_class_is_a_popup_field():
@@ -414,11 +465,25 @@ def test_overview_and_detail_join_into_one_tileset(tmp_path):
     high = tmp_path / 'high.geojson'
     blw.decode_tile(out, z, *blw.tile_for(77.15, 28.05, z), high)
     assert low == 2  # dissolved A + B
+    low_props = [f['properties'] for f in json.loads((tmp_path / 'low.geojson').read_text())['features']]
+    assert all(p == {'cls': p['cls'], '_ov': 1} for p in low_props)
     props = [f['properties'] for f in json.loads(high.read_text())['features']]
     assert sorted(p['other'] for p in props) == ['x', 'y', 'z']  # every source polygon, popup fields
+    assert not any('_ov' in p for p in props)  # detail features are outlined as before
     left = sorted(p.name for p in tmp_path.glob('S.*'))
     # the slow steps stay cached for a re-tune of the overview tiles; the big GeoJSON goes
     assert left == ['S.detail.pmtiles', 'S.overview.geojsonl', 'S.parquet', 'S.pmtiles', 'S.tippecanoe.log']
+
+
+def test_a_retune_of_the_overview_tiles_reuses_the_slow_steps(tmp_path):
+    src = _squares(tmp_path)
+    out = tmp_path / 'S.pmtiles'
+    blw.bake_tiles(src, out, 'lyr', ['cls', 'other'], True, blw.make_con(tmp_path), overview='cls',
+                   deadline=blw.Deadline(5))
+    out.unlink()
+    # No connection: neither the GeoJSON of every feature nor the dissolve is redone.
+    blw.bake_tiles(src, out, 'lyr', ['cls', 'other'], True, None, overview='cls', deadline=blw.Deadline(5))
+    assert out.exists() and not list(tmp_path.glob('S.tiles*'))
 
 
 def test_probe_zooms_cover_both_sides_of_the_overview_seam():
