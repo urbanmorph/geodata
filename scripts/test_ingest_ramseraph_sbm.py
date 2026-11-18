@@ -243,9 +243,15 @@ WB_AND_RAILWAYS = {
     # id: (category, kml name field, ATTR source key)
     'wb_amrut_wards': ('city-wards', 'Ward_No', 'WBAMRUT'),
     'wb_amrut_ulbs': ('boundaries', 'Name', 'WBAMRUT'),
-    'ir_stations': ('transport', 'sttnname', 'IRGIS'),
     'ir_tracks': ('transport', 'tmssection', 'IRGIS'),
 }
+
+
+def test_ir_stations_is_not_a_ramseraph_ingest():
+    # bake_ir_stations_merged.py owns the ir_stations id since 2026-11-18 (the
+    # merged CRIS + GatiShakti + Wikidata set replaced the IRGIS-only layer); a
+    # ramSeraph re-ingest under that id would overwrite it.
+    assert 'ir_stations' not in {d.id for d in ir.DATASETS}
 
 
 def test_wb_wards_and_railways_are_defined_under_policy_b():

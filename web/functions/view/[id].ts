@@ -11,6 +11,7 @@ import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../lib/catalog-loader';
 import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundHtml } from '../lib/not-found';
+import { retiredRedirect } from '../lib/retired-layers';
 
 type Params = { id: string };
 
@@ -32,6 +33,8 @@ const notFound = () =>
 export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) return notFound();
+  const moved = retiredRedirect(new URL(ctx.request.url), id);
+  if (moved) return moved;
 
   // The catalog is cached per isolate; a rejected load is a 503, not a crash.
   const loaded = await loadCatalogVersioned(ctx).catch(() => null);

@@ -239,14 +239,42 @@ def test_register_patches_in_place_and_is_idempotent(tmp_path):
     cat = tmp_path / 'catalog.json'
     man = tmp_path / 'manifest.json'
     summ = tmp_path / 'summary.json'
-    cat.write_text(json.dumps({'layers': [{'id': 'ir_stations'}], 'level_meta': {}, 'level_order': [],
-                               'attribution': {}}))
-    man.write_text('[]')
+    # The merged set replaces the IRGIS-only ir_stations layer under the same id
+    # (owner, 2026-11-18), in place, so API/MCP clients and links keep working;
+    # the day-old ir_stations_merged id is retired (/view redirects it).
+    cat.write_text(json.dumps({
+        'layers': [{'id': 'lgd_states'}, {'id': 'ir_stations', 'source': 'IRGIS'}, {'id': 'ir_tracks'},
+                   {'id': 'ir_stations_merged'}],
+        'level_meta': {'ir_stations': {'label': 'old'}, 'ir_stations_merged': {'label': 'x'}},
+        'level_order': ['ir_stations', 'ir_stations_merged'],
+        'attribution': {}}))
+    man.write_text(json.dumps([{'id': 'ir_stations'}, {'id': 'ir_tracks'}, {'id': 'ir_stations_merged'}]))
     summ.write_text(json.dumps({'rows': 9, 'sizes': {f: 2 for f in b.EXT}}))
     for _ in range(2):
         b.register(cat, man, summ, r2_public='https://r2.example', fetched_at='2026-11-17')
     c = json.loads(cat.read_text())
-    assert [e['id'] for e in c['layers']] == ['ir_stations', b.LAYER_ID]
-    assert c['level_order'] == [b.LAYER_ID]
+    assert b.LAYER_ID == 'ir_stations'
+    assert [e['id'] for e in c['layers']] == ['lgd_states', 'ir_stations', 'ir_tracks']
+    assert c['layers'][1]['source'] != 'IRGIS'
     assert c['layers'][1]['fetched_at'] == '2026-11-17'
-    assert [m['id'] for m in json.loads(man.read_text())] == [b.LAYER_ID]
+    assert c['level_order'] == ['ir_stations']
+    assert set(c['level_meta']) == {'ir_stations'}
+    assert [m['id'] for m in json.loads(man.read_text())] == ['ir_stations', 'ir_tracks']
+
+
+def test_the_only_stations_layer_has_a_plain_title():
+    # It replaced the IRGIS-only layer, so "merged" no longer distinguishes it.
+    assert b.level_meta()['label'] == 'Railway stations'
+
+
+def test_register_keeps_rebaked_tiles(tmp_path):
+    # rebake_tiles.py gave ir_stations versioned tiles; re-registering must not
+    # put the unversioned key back (scripts/tile_keys.py).
+    cat, man, summ = tmp_path / 'c.json', tmp_path / 'm.json', tmp_path / 's.json'
+    rebaked = {'url': 'https://r2.example/x/IR_Stations_Merged.d8a75d7e.pmtiles', 'bytes': 6}
+    cat.write_text(json.dumps({'layers': [{'id': 'ir_stations', 'pmtiles': rebaked}], 'level_meta': {},
+                               'level_order': [], 'attribution': {}}))
+    man.write_text('[]')
+    summ.write_text(json.dumps({'rows': 9, 'sizes': {f: 2 for f in b.EXT}}))
+    b.register(cat, man, summ, r2_public='https://r2.example', fetched_at='2026-11-17')
+    assert json.loads(cat.read_text())['layers'][0]['pmtiles'] == rebaked
