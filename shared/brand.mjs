@@ -3,7 +3,7 @@
 // wordmark. Plain ESM so prerender (node), Pages Functions, the web app and
 // collect can all import it. Every surface that draws the brand reads from
 // here; web/tests/brand.test.ts keeps the copies that cannot import it
-// (submit.html, favicon.svg) in sync.
+// (favicon.svg) in sync.
 import { escapeHtml as esc } from './format.mjs';
 
 export const PALETTE = Object.freeze({

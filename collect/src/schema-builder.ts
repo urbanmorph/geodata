@@ -139,7 +139,7 @@ function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?:
         }).join('')}</div>
         ${missing.length ? `<p class="hint" style="margin:6px 0 2px">Also in the data:</p><div class="row">${missing.map((o) => `<button type="button" class="chip" data-addopt="${escapeHtml(o)}">+ ${escapeHtml(o)} <span class="hint">${c.uses[o] ?? 0}</span></button>`).join('')}</div>` : ''}
         <label>Add options <span class="hint">(one per line)</span></label>
-        <textarea class="ff-opts" placeholder="Another option"></textarea>
+        <textarea class="ff-opts" placeholder="Another option" aria-label="Add options, one per line"></textarea>
         <label class="chip" style="gap:6px;margin-top:6px"><input type="checkbox" class="ff-chips" style="width:auto;min-height:auto"${initial?.render === 'chips' ? ' checked' : ''} /> Show as chips</label>`;
       extraEl.querySelectorAll<HTMLButtonElement>('[data-rmopt]').forEach((b) => {
         b.onclick = () => { opts = opts.filter((o) => o !== b.dataset.rmopt); renderExtra(); };
@@ -149,23 +149,23 @@ function createFieldForm(host: HTMLElement, initial: BuilderField | null, data?:
       });
     } else if (needsOptions(t)) {
       extraEl.innerHTML = `<label>Options <span class="hint">(one per line)</span></label>
-        <textarea class="ff-opts" placeholder="Good&#10;Needs repair&#10;Unusable"></textarea>
+        <textarea class="ff-opts" placeholder="Good&#10;Needs repair&#10;Unusable" aria-label="Options, one per line"></textarea>
         <label class="chip" style="gap:6px;margin-top:6px"><input type="checkbox" class="ff-chips" style="width:auto;min-height:auto" /> Show as chips</label>`;
     } else if (t === 'number') {
       extraEl.innerHTML = `<div class="row" style="margin-top:6px">
-          <input class="ff-min" inputmode="decimal" placeholder="Min" style="flex:1" />
-          <input class="ff-max" inputmode="decimal" placeholder="Max" style="flex:1" />
+          <input class="ff-min" inputmode="decimal" placeholder="Min" aria-label="Smallest allowed" style="flex:1" />
+          <input class="ff-max" inputmode="decimal" placeholder="Max" aria-label="Largest allowed" style="flex:1" />
         </div>
         <label class="chip" style="gap:6px;margin-top:6px"><input type="checkbox" class="ff-int" style="width:auto;min-height:auto" /> Whole numbers only</label>`;
     } else if (t === 'photo') {
       const n = initial?.type === 'photo' ? initial.max_photos ?? 3 : 3;
       extraEl.innerHTML = `<label>How many photos</label>
-        <select class="ff-photos">${[1, 2, 3].map((k) => `<option value="${k}"${k === n ? ' selected' : ''}>${k === 1 ? '1 photo' : `Up to ${k}`}</option>`).join('')}</select>
+        <select class="ff-photos" aria-label="How many photos">${[1, 2, 3].map((k) => `<option value="${k}"${k === n ? ' selected' : ''}>${k === 1 ? '1 photo' : `Up to ${k}`}</option>`).join('')}</select>
         <p class="hint">Each photo keeps where and when it was taken. Ask people to keep faces and number plates out of the frame.</p>`;
       extraEl.querySelector<HTMLSelectElement>('.ff-photos')!.value = String(n);
     } else if (t === 'text' || t === 'paragraph') {
       extraEl.innerHTML = `<label>Max length <span class="hint">(optional)</span></label>
-        <input class="ff-maxlen" inputmode="numeric" placeholder="e.g. 200" />`;
+        <input class="ff-maxlen" inputmode="numeric" placeholder="e.g. 200" aria-label="Max length (optional)" />`;
     } else {
       extraEl.innerHTML = '';
     }

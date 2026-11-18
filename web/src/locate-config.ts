@@ -17,7 +17,7 @@ export type LocateLevelMeta =
 const WARD_RE = /^wards_/;
 
 // Built-in locate config keyed by the layer's `level` (mirrors the edge's
-// BUILTIN_LEVEL_META keys). These admin / zone layers partition space, so
+// shared/level-meta.mjs keys). These admin / zone layers partition space, so
 // "which one contains me" is meaningful, and all are point-in-polygon. `state`
 // is omitted on purpose — "which state am I in" is rarely a real question. Any
 // layer can still override via level_meta.locate_label.

@@ -1,7 +1,6 @@
 // The site footer, one definition for every surface: the prerendered pages
-// (via web/scripts/shared-chrome.mjs), the community layer pages (/c/<id>),
-// /submit (a standalone page; web/tests/shared-footer.test.ts keeps its copy
-// identical) and collect's home (absolute links). Add a link here once.
+// (via web/scripts/shared-chrome.mjs), the community layer pages (/c/<id>)
+// and collect's home (absolute links). Add a link here once.
 import { escapeHtml as esc } from './format.mjs';
 
 const SITE = 'https://bharatlas.com';

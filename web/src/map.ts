@@ -826,7 +826,7 @@ function wireBasemapButton(): void {
         (b) =>
           `<button class="map-popover__item map-popover__item--btn${
             b.id === activeBasemap ? ' is-active' : ''
-          }" data-basemap="${b.id}">
+          }" data-basemap="${b.id}" aria-pressed="${b.id === activeBasemap}">
             <span class="map-popover__fmt">${escapeHtml(b.name)}</span>
             <span class="map-popover__hint">${escapeHtml(b.hint)}</span>
           </button>`,
@@ -1012,6 +1012,7 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, container: HTMLElem
   if (!btn) return;
   const panel = document.createElement('aside');
   panel.className = 'about-panel';
+  panel.id = 'map-about-panel';
   panel.hidden = true;
   panel.setAttribute('aria-labelledby', 'about-title');
   // How much the layer is used (downloads, API and MCP queries): fetched once,
@@ -1116,15 +1117,13 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     // Prefer the friendly title from level_meta (e.g. "Greater Bengaluru Wards
     // (2025)") so the bar never shows a raw id like "wards_bengaluru_gba". Layers
     // without a level_meta entry (most standard admin levels resolve theirs only
-    // on the edge via BUILTIN_LEVEL_META) keep the level · source · rows line.
+    // on the edge via shared/level-meta.mjs) keep the level · source · rows line.
     const levelMeta = cat.level_meta?.[layerId];
-    const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
+    const rowsPart = layer.rows != null ? ` · ${layer.rows.toLocaleString('en-IN')} ${layer.level ? 'rows' : 'features'}` : '';
     const friendly = (levelMeta?.label || levelMeta?.seo_title || layer.name || '').trim();
     opts.titleEl.textContent = friendly
       ? displayTitle({ id: layerId, name: layer.name }, levelMeta)
-      : layer.level
-        ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
-        : `${layer.source} · ${rowsLabel} features`;
+      : `${layer.level ? `${layer.level} · ` : ''}${layer.source}${rowsPart}`;
 
     wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
     wireDownloadButton(layer);

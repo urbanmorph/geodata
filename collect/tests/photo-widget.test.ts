@@ -8,7 +8,7 @@ vi.mock('../src/photos/prepare', () => ({
   preparePhoto: async (_f: File, o: { source: string }) => ({ bytes: new ArrayBuffer(3), blob: new Blob(['x'], { type: 'image/jpeg' }), meta: { lat: 12.9, lng: 77.6, source: o.source } }),
   mayShowFace: async () => face,
 }));
-const { mountPhotoField } = await import('../src/photos/widget');
+const { mountPhotoField, openViewer } = await import('../src/photos/widget');
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const pick = async (host: HTMLElement, src: 'camera' | 'gallery') => {
@@ -61,5 +61,41 @@ describe('the Photo question', () => {
     const pf = mountPhotoField(host, { key: 'pic', label: 'Photo', type: 'photo' }, { dataSaver: false, canAdd: false, initial: [{ id: 'ph_aaaaaaaaaaaa', url: 'https://x/p' }] });
     expect(pf.items().map((i) => i.id)).toEqual(['ph_aaaaaaaaaaaa']);
     expect(host.querySelector('input[type=file]')).toBeNull();
+  });
+});
+
+describe('the photo viewer', () => {
+  const setup = () => {
+    document.body.innerHTML = '<div id="app"><form id="capform"><button type="button" class="photo-open" id="thumb">Photo 1</button></form></div><div class="toast"></div>';
+    const thumb = document.getElementById('thumb')!;
+    thumb.focus();
+    openViewer(['blob:a', 'blob:b'], 0);
+    return { thumb, viewer: document.querySelector<HTMLElement>('.viewer')! };
+  };
+  const esc = () => document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+  it('is a named modal dialog that keeps focus inside: everything else is inert', () => {
+    const { viewer } = setup();
+    expect(viewer.getAttribute('role')).toBe('dialog');
+    expect(viewer.getAttribute('aria-modal')).toBe('true');
+    expect(viewer.getAttribute('aria-label')).toBeTruthy();
+    expect(viewer.contains(document.activeElement)).toBe(true);
+    for (const el of document.body.children) if (el !== viewer) expect(el.hasAttribute('inert'), el.id || el.className).toBe(true);
+  });
+
+  it('Escape closes it, the page comes back and focus returns to the thumbnail', () => {
+    const { thumb } = setup();
+    esc();
+    expect(document.querySelector('.viewer')).toBeNull();
+    expect(document.querySelectorAll('[inert]')).toHaveLength(0);
+    expect(document.activeElement).toBe(thumb);
+  });
+
+  it('paging with the arrow keys keeps focus inside', () => {
+    const { viewer } = setup();
+    document.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    expect(viewer.querySelector('img')!.getAttribute('alt')).toBe('Photo 2 of 2');
+    expect(viewer.contains(document.activeElement)).toBe(true);
+    esc();
   });
 });

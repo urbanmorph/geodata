@@ -16,11 +16,7 @@ describe('type scale', () => {
     expect(defined).toEqual(SCALE);
   });
 
-  it('/submit (standalone) carries the same steps', () => {
-    for (const [k, v] of Object.entries(SCALE)) expect(read('submit.html')).toContain(`--fs-${k}: ${v}px`);
-  });
-
-  const files = ['src/map.ts', 'index.template.html', 'about.template.html', 'docs.template.html', 'mcp.template.html', 'preview.template.html', 'privacy.template.html', 'terms.template.html', 'submit.html', 'scripts/shared-chrome.mjs', 'functions/lib/render-view.ts'];
+  const files = ['src/map.ts', 'index.template.html', 'about.template.html', 'docs.template.html', 'mcp.template.html', 'preview.template.html', 'privacy.template.html', 'terms.template.html', 'scripts/shared-chrome.mjs', 'functions/lib/render-view.ts'];
   for (const f of files) {
     it(`${f}: every font size is a scale token`, () => {
       const css = read(f).replace(/--fs-[a-z0-9]+: \d+px;?/g, '');

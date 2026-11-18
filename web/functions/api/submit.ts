@@ -113,7 +113,7 @@ async function handleSubmit(
   if (!ALLOWED.has(ext)) {
     log(attemptRowReject('format', `unsupported extension .${ext}`, logMeta));
     return reply(415, {
-      error: `unsupported file extension .${ext} — accepts: ${[...ALLOWED].join(', ')}`,
+      error: `unsupported file extension .${ext}; accepts: ${[...ALLOWED].join(', ')}`,
     });
   }
 

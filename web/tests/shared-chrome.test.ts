@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
 import { TOKENS, FOOTER, NAV_LINKS, renderNav } from '../scripts/shared-chrome.mjs';
 
@@ -120,5 +122,15 @@ describe('FOOTER', () => {
 
   it('mentions the open-licences policy', () => {
     expect(FOOTER).toMatch(/Open licences only/i);
+  });
+});
+
+describe('a11y names', () => {
+  it('the phone menu checkbox carries its own name (a label holding only an icon gives it none)', () => {
+    expect(renderNav('home')).toMatch(/<input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Menu"/);
+  });
+
+  it('the home code sample can be scrolled from the keyboard', () => {
+    expect(readFileSync(resolve(__dirname, '../index.template.html'), 'utf8')).toMatch(/<pre class="ask-ai__code" tabindex="0"/);
   });
 });

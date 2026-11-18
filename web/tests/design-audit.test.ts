@@ -15,7 +15,7 @@ const submission = {
   category: 'culture', license: 'CC-BY-4.0', attribution: 'x', source_url: 'https://x', is_original: 1,
   data_year: 2026, format: 'kml', bytes: 10, feature_count: 1, geometry_types: 'Point', r2_key: 'community/x/x.kml',
 };
-const community = renderViewPage({ submission: submission as never, origin: 'https://bharatlas.com', ratingsCount: 0, alreadyRated: false });
+const community = renderViewPage({ submission: submission as never, ratingsCount: 0 });
 
 describe('1. the map screen keeps the brand', () => {
   it('has the logo in its toolbar, linking home', () => {

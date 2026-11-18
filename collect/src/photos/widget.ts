@@ -4,6 +4,7 @@
 // queue sends photos with it. Also the full-screen viewer, and private photos
 // (pending points) shown with the admin's or contributor's token.
 import { escapeHtml } from '../util';
+import { openDialog, closeDialog } from '../../../shared/modal';
 import { newClientId } from '../outbox';
 import { preparePhoto, mayShowFace, type PhotoMeta } from './prepare';
 import type { Field } from '../schema/validate-record';
@@ -129,11 +130,12 @@ export function authedSrc(url: string, token?: string): Promise<string> {
   return p.catch(() => '');
 }
 
-/** Photos full screen: swipe-free buttons (Previous / Next / Close) and the keyboard. */
+/** Photos full screen: swipe-free buttons (Previous / Next / Close) and the keyboard.
+ *  A modal: the page behind is inert while it is open (shared/modal.ts), so Tab
+ *  stays inside, and focus goes back to the thumbnail on close. */
 export function openViewer(urls: string[], start = 0): void {
   if (!urls.length) return;
   let i = Math.max(0, Math.min(start, urls.length - 1));
-  const back = document.activeElement as HTMLElement | null;
   const el = document.createElement('div');
   el.className = 'viewer';
   el.setAttribute('role', 'dialog');
@@ -147,7 +149,7 @@ export function openViewer(urls: string[], start = 0): void {
       </div>`;
     el.querySelector<HTMLButtonElement>('[data-v="close"]')!.focus();
   };
-  const close = (): void => { el.remove(); document.removeEventListener('keydown', key); back?.focus(); };
+  const close = (): void => { closeDialog(el); el.remove(); document.removeEventListener('keydown', key); };
   const key = (e: KeyboardEvent): void => {
     if (e.key === 'Escape') close();
     else if (e.key === 'ArrowLeft' && i > 0) { i--; draw(); }
@@ -161,5 +163,6 @@ export function openViewer(urls: string[], start = 0): void {
   });
   document.addEventListener('keydown', key);
   document.body.appendChild(el);
-  draw();
+  openDialog(el); // before draw(): it notes the thumbnail as the place focus returns to
+  draw(); // focuses Close
 }

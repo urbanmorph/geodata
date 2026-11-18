@@ -46,6 +46,7 @@ export function mountFilterPanel(
 ): void {
   const panel = document.createElement('aside');
   panel.className = 'filter-panel';
+  panel.id = 'map-filter-panel';
   panel.innerHTML = `
     <header class="filter-panel__head">
       <span class="filter-panel__title">Filter &amp; export</span>

@@ -12,7 +12,7 @@ const visibleText = (html: string) =>
     .replace(/<(style|script)\b[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<[^>]+>/g, ' ');
 
-const pages = [...readdirSync(web).filter((f) => f.endsWith('.template.html')), 'submit.html'];
+const pages = [...readdirSync(web).filter((f) => f.endsWith('.template.html'))];
 
 describe('no "catalog" in what visitors read', () => {
   for (const f of pages) {

@@ -243,6 +243,7 @@
         display: none; flex-direction: column;
       }
       #map-overlay.open { display: flex; }
+      #map-overlay:focus { outline: none; } /* focused on open so readers announce the layer; the controls keep their rings */
       #map-overlay header.map-bar { padding: 10px 16px; background: var(--bg-elevated); border-bottom: 1.5px solid var(--edge); margin: 0; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
       #map-overlay .map-title { flex: 1; font-size: var(--fs-md); font-weight: 800; letter-spacing: -.01em; }
       /* The brand stays on the map screen: the logo, linking home. */
@@ -804,7 +805,7 @@
         <p>Connect Claude, ChatGPT or any MCP client and ask in plain words, such as "Which ward is MG Road, Bengaluru in?" Every answer cites its source and licence.</p>
         <p class="ask-ai__links"><a class="ask-ai__primary" href="/mcp">Connect via MCP</a><a class="ask-ai__secondary" href="/docs">REST API docs</a></p>
       </div>
-      <pre class="ask-ai__code"><code>GET /api/v1/locate?lat=12.9757&amp;lng=77.6061
+      <pre class="ask-ai__code" tabindex="0" aria-label="Example API request"><code>GET /api/v1/locate?lat=12.9757&amp;lng=77.6061
 &rarr; Ward 25 Ashokanagar · Central corporation
   Bengaluru Urban · Karnataka · pincode 560001</code></pre>
     </section>
@@ -812,12 +813,12 @@
 
     <!-- FOOTER -->
 
-    <div id="map-overlay" aria-hidden="true">
+    <div id="map-overlay" role="dialog" aria-modal="true" aria-labelledby="map-title" tabindex="-1" aria-hidden="true">
       <header class="map-bar">
         <!-- MAP_BRAND -->
         <span class="map-title" id="map-title">map</span>
         <div class="map-actions">
-          <button class="filter-toggle tbtn" id="map-about" aria-label="About this layer" aria-expanded="false"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg></span><span class="tb-label">About</span></button>
+          <button class="filter-toggle tbtn" id="map-about" aria-label="About this layer" aria-expanded="false" aria-controls="map-about-panel"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1.1" fill="currentColor" stroke="none"/></svg></span><span class="tb-label">About</span></button>
           <div class="map-pop-wrap">
             <button class="filter-toggle tbtn" id="map-basemap" aria-label="Choose base map" aria-expanded="false" aria-controls="map-basemap-popover"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/></svg></span><span class="tb-label">Base map</span></button>
             <div class="map-popover" id="map-basemap-popover"></div>
@@ -826,8 +827,8 @@
             <button class="filter-toggle tbtn" id="map-download" aria-label="Download this layer" aria-expanded="false" aria-controls="map-download-popover"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 11l4 4 4-4"/><path d="M4 19h16"/></svg></span><span class="tb-label">Download</span></button>
             <div class="map-popover" id="map-download-popover"></div>
           </div>
-          <button class="filter-toggle tbtn" id="map-filter"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="tb-label">Filter</span></button>
-          <button class="filter-toggle tbtn locate-btn" id="map-locate"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg><span class="tb-pulse" aria-hidden="true"></span></span><span class="tb-label">Locate</span></button>
+          <button class="filter-toggle tbtn" id="map-filter" aria-expanded="false" aria-controls="map-filter-panel"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg></span><span class="tb-label">Filter</span></button>
+          <button class="filter-toggle tbtn locate-btn" id="map-locate" aria-expanded="false" aria-controls="locate-sheet"><span class="tb-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg><span class="tb-pulse" aria-hidden="true"></span></span><span class="tb-label">Locate</span></button>
         </div>
         <button class="close" id="map-close">← back</button>
       </header>

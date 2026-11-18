@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { isKnownRoute, STATIC_PAGES, PUBLIC_PAGES } from '../functions/lib/routes';
@@ -60,6 +60,24 @@ describe('pages served straight from public/ (not prerendered)', () => {
     for (const name of PUBLIC_PAGES) {
       expect(existsSync(resolve(WEB, 'public', name, 'index.html')), name).toBe(true);
     }
+  });
+});
+
+describe('retired pages', () => {
+  it('/submit redirects to /preview; no standalone submit.html (submissions go through /preview + /api/submit)', () => {
+    expect(existsSync(resolve(WEB, 'submit.html'))).toBe(false);
+    expect(readFileSync(resolve(WEB, 'public/_redirects'), 'utf8')).toMatch(/^\/submit\s+\/preview\s+301$/m);
+  });
+
+  it('endpoints nothing calls stay deleted (live tallies: /api/c/useful-counts, /api/c/:id/rate|summary)', () => {
+    for (const f of ['functions/api/community/scores.ts', 'functions/api/c/[id].ts']) {
+      expect(existsSync(resolve(WEB, f)), f).toBe(false);
+    }
+  });
+
+  it('the community page renderer takes no dead options', () => {
+    const src = readFileSync(resolve(WEB, 'functions/lib/render-view.ts'), 'utf8');
+    expect(src).not.toMatch(/alreadyRated|void opts\./);
   });
 });
 

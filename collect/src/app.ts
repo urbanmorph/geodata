@@ -19,6 +19,7 @@ import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
 import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace } from './review';
 import { escapeHtml, downloadText } from './util';
+import { fieldsHtml, setPressed } from './form-fields';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
 import type { Mapping } from './import/build';
@@ -244,7 +245,8 @@ function crosshairScreenOffset(): [number, number] {
   return [r.left + r.width / 2 - cr.left - cr.width / 2, r.top + r.height / 2 - cr.top - cr.height / 2];
 }
 
-// The on-map "Base map" switcher: a button + a small menu of the four basemaps.
+// The on-map "Base map" switcher: a button + a small list of the four basemaps
+// (plain buttons, the chosen one pressed; not an ARIA menu, which needs arrow keys).
 // Switching flips layer visibility (setBasemap), so overlays + markers survive.
 function installBasemapSwitcher(initial: BasemapId): void {
   const btn = document.getElementById('basemapbtn');
@@ -253,7 +255,7 @@ function installBasemapSwitcher(initial: BasemapId): void {
   let active = initial;
   const close = (): void => { menu.hidden = true; btn.setAttribute('aria-expanded', 'false'); };
   const render = (): void => {
-    menu.innerHTML = BASEMAPS.map((b) => `<button type="button" role="menuitemradio" aria-checked="${b.id === active}" class="basemap-opt${b.id === active ? ' on' : ''}" data-b="${b.id}"><strong>${escapeHtml(b.name)}</strong><span class="hint">${escapeHtml(b.hint)}</span></button>`).join('');
+    menu.innerHTML = BASEMAPS.map((b) => `<button type="button" aria-pressed="${b.id === active}" class="basemap-opt${b.id === active ? ' on' : ''}" data-b="${b.id}"><strong>${escapeHtml(b.name)}</strong><span class="hint">${escapeHtml(b.hint)}</span></button>`).join('');
     menu.querySelectorAll<HTMLButtonElement>('.basemap-opt').forEach((o) => {
       o.onclick = () => { active = o.dataset.b as BasemapId; setBasemap(map, active); setStoredBasemap(active); render(); close(); };
     });
@@ -295,8 +297,8 @@ async function boot(): Promise<void> {
       <div class="crosshair" aria-hidden="true" ${isView ? 'style="display:none"' : ''}></div>
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isView ? '' : '<button class="locate" id="locate" aria-label="Use my location">◎</button>'}
-      <button class="locate" id="basemapbtn" aria-label="Base map" title="Base map" aria-haspopup="true" aria-expanded="false" style="left:12px;top:12px;right:auto;bottom:auto">◱</button>
-      <div class="basemap-menu" id="basemapmenu" role="menu" aria-label="Base map" hidden></div>
+      <button class="locate" id="basemapbtn" aria-label="Base map" title="Base map" aria-expanded="false" aria-controls="basemapmenu" style="left:12px;top:12px;right:auto;bottom:auto">◱</button>
+      <div class="basemap-menu" id="basemapmenu" role="group" aria-label="Base map" hidden></div>
       ${meta.schema.reference_layer ? '<button class="locate" id="reftoggle" aria-label="Reference layer" title="Reference layer" aria-pressed="true" style="left:12px;top:66px;right:auto;bottom:auto">◪</button>' : ''}
       ${isAdmin ? `<button class="locate" id="manage" aria-label="Manage map${meta.counts.pending ? `, ${meta.counts.pending} pending review` : ''}" style="left:12px;right:auto;bottom:76px;width:auto;padding:0 14px">⚙${meta.counts.pending ? ` ${meta.counts.pending}` : ''}</button>` : ''}
     </div>
@@ -603,25 +605,6 @@ function fitToFeatures(feats: Feature[]): void {
   map.fitBounds(b, { padding: { top: 64, bottom: Math.round(sheetH) + 48, left: 40, right: 40 }, maxZoom: 16, duration: 0 });
 }
 
-function fieldInput(f: Field): string {
-  const req = f.required ? ' required' : '';
-  // Numbers are checked when a form is saved; escaped here too, as these go into attributes.
-  const ml = f.maxLength ? ` maxlength="${escapeHtml(f.maxLength)}"` : '';
-  switch (f.type) {
-    case 'paragraph': return `<textarea data-k="${f.key}"${req}${ml}></textarea>`;
-    case 'number': return `<input data-k="${f.key}" inputmode="${f.integer ? 'numeric' : 'decimal'}"${f.min != null ? ` min="${escapeHtml(f.min)}"` : ''}${f.max != null ? ` max="${escapeHtml(f.max)}"` : ''} step="${f.integer ? '1' : 'any'}"${req} />`;
-    case 'date': return `<input data-k="${f.key}" type="date"${req} />`;
-    case 'datetime': return `<input data-k="${f.key}" type="datetime-local"${req} />`;
-    case 'url': return `<input data-k="${f.key}" type="url"${req} placeholder="https://" />`;
-    case 'photo': return `<div data-k="${f.key}" data-photo></div>`; // mounted by mountPhotoFields
-    case 'select':
-      return `<select data-k="${f.key}"${req}><option value=""></option>${(f.options || []).map((o) => `<option>${escapeHtml(o)}</option>`).join('')}</select>`;
-    case 'multiselect':
-      return `<div class="row" data-k="${f.key}" data-multi>${(f.options || []).map((o) => `<button type="button" class="chip" data-v="${escapeHtml(o)}">${escapeHtml(o)}</button>`).join('')}</div>`;
-    default: return `<input data-k="${f.key}"${req}${ml} />`;
-  }
-}
-
 const NOUN: Record<GeomMode, string> = { point: 'point', line: 'line', polygon: 'area' };
 function nounFor(geometryType: string): string {
   if (geometryType === 'Polygon' || geometryType === 'MultiPolygon') return NOUN.polygon;
@@ -720,7 +703,7 @@ function keepWalk(): void {
 function renderPlaceBar(modes: GeomMode[]): void {
   const panel = document.getElementById('panel')!;
   const seg = modes.length > 1
-    ? `<div class="seg" id="modesw">${modes.map((m) => `<button type="button" data-m="${m}"${m === drawMode ? ' class="on"' : ''}>${cap(NOUN[m])}</button>`).join('')}</div>`
+    ? `<div class="seg" id="modesw" role="group" aria-label="What to add">${modes.map((m) => `<button type="button" data-m="${m}" aria-pressed="${m === drawMode}"${m === drawMode ? ' class="on"' : ''}>${cap(NOUN[m])}</button>`).join('')}</div>`
     : '';
   panel.innerHTML = `<div class="bar">
     ${seg}
@@ -746,8 +729,7 @@ function renderPlaceBar(modes: GeomMode[]): void {
     howsw.hidden = !shape;
     if (shape) howsw.querySelectorAll<HTMLButtonElement>('button').forEach((b) => {
       b.textContent = HOW_LABEL[drawMode as 'line' | 'polygon'][b.dataset.h as DrawHow];
-      b.classList.toggle('on', b.dataset.h === drawHow);
-      b.setAttribute('aria-pressed', String(b.dataset.h === drawHow));
+      setPressed(b, b.dataset.h === drawHow);
     });
     (document.getElementById('place') as HTMLButtonElement).textContent = trace ? `Finish, add ${NOUN[drawMode]} details` : `Add ${NOUN[drawMode]}`;
     document.getElementById('drawctl')!.style.display = shape ? 'flex' : 'none';
@@ -756,7 +738,7 @@ function renderPlaceBar(modes: GeomMode[]): void {
       : how === 'walk' ? (trace ? (trace.paused() ? 'Resume' : 'Pause') : verts.length ? 'Walk it again' : 'Start walking')
       : cornerTimer ? `Hold still… ${cornerLeft}` : drawMode === 'polygon' ? '+ Add this corner' : '+ Add this point';
     document.getElementById('vcount')!.textContent = shapeSummary();
-    document.querySelectorAll('#modesw button').forEach((b) => b.classList.toggle('on', (b as HTMLElement).dataset.m === drawMode));
+    document.querySelectorAll('#modesw button').forEach((b) => setPressed(b, (b as HTMLElement).dataset.m === drawMode));
     const ch = document.querySelector('.crosshair');
     ch?.classList.toggle('crosshair--draw', shape);
     ch?.classList.toggle('crosshair--off', shape && how !== 'map');
@@ -954,7 +936,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     <form class="body" id="capform">
       <strong>${cap(noun)} details</strong>
       <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
-      ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
+      ${fieldsHtml(fields)}
       <div id="photo-place" aria-live="polite"></div>
       ${aiNote}
       <label for="contributor">Your name <span class="hint">(optional, published with the data, remembered on this device)</span></label>
@@ -966,7 +948,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     </div>
   </div>`;
   (document.getElementById('contributor') as HTMLInputElement).value = loadContributorName();
-  panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => c.classList.toggle('on'); });
+  panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => setPressed(c, !c.classList.contains('on')); });
 
   // A point can move to where its photo was taken (and take the photo's time).
   let place = geometry;
@@ -1067,20 +1049,20 @@ async function editSettings(): Promise<void> {
     ${GRAB}
     <form class="body" id="editform">
       <strong>Edit map settings</strong>
-      <label>Name</label><input id="e-name" maxlength="120" value="${escapeHtml(meta.name)}" required />
-      <label>What's it for?</label><textarea id="e-purpose" maxlength="2000">${escapeHtml(meta.purpose)}</textarea>
-      <label>Description <span class="hint">(optional)</span></label><input id="e-desc" maxlength="2000" value="${escapeHtml(meta.description || '')}" />
-      <label>Category</label><select id="e-category">${CATEGORIES.map(([id, l]) => `<option value="${id}"${sel(id, s.category || 'other')}>${l}</option>`).join('')}</select>
+      <label for="e-name">Name</label><input id="e-name" maxlength="120" value="${escapeHtml(meta.name)}" required />
+      <label for="e-purpose">What's it for?</label><textarea id="e-purpose" maxlength="2000">${escapeHtml(meta.purpose)}</textarea>
+      <label for="e-desc">Description <span class="hint">(optional)</span></label><input id="e-desc" maxlength="2000" value="${escapeHtml(meta.description || '')}" />
+      <label for="e-category">Category</label><select id="e-category">${CATEGORIES.map(([id, l]) => `<option value="${id}"${sel(id, s.category || 'other')}>${l}</option>`).join('')}</select>
       <label for="e-mode">How people collect</label>
       <select id="e-mode">${modeChoices(s.geometry).map((m) => `<option value="${m.id}"${sel(m.id, modeOf(s))}${m.disabled ? ' disabled' : ''}>${m.title}${m.disabled ? ' (places only)' : ''}</option>`).join('')}</select>
       <p class="hint">AI notes need a Photo question in the form (✎ Form). Points already added keep what they have.</p>
       <label class="toggle"><input type="checkbox" id="e-saver"${s.data_saver ? ' checked' : ''}> <span><strong>Data saver</strong><span class="hint">Smaller photos (about 150 KB instead of 300 KB), for paid or weak mobile data.</span></span></label>
-      <label>Data year <span class="hint">(optional)</span></label><input id="e-year" inputmode="numeric" value="${meta.data_year ?? ''}" />
-      <label>Reference layer</label>
+      <label for="e-year">Data year <span class="hint">(optional)</span></label><input id="e-year" inputmode="numeric" value="${meta.data_year ?? ''}" />
+      <label for="e-ref-search">Reference layer</label>
       <div id="e-refnow">${s.reference_layer ? `<div class="link-box"><code>${escapeHtml(s.reference_layer.id)}</code><button type="button" id="e-ref-remove">Remove</button></div>` : '<p class="hint">None.</p>'}</div>
       <input id="e-ref-search" placeholder="Browse layers, or type to filter…" autocomplete="off" />
       <div id="e-ref-results" class="ref-results"></div>
-      <label>Licence</label>
+      <label${locked ? '' : ' for="e-license"'}>Licence</label>
       ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}
     </form>
     <div class="foot row">
@@ -1219,8 +1201,8 @@ async function manageSheet(): Promise<void> {
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong>Manage map</strong>
         <span class="row" style="gap:6px">
-          <button id="edit-form" style="min-height:36px;font-size:var(--fs-sm)">✎ Form</button>
-          <button id="edit-settings" style="min-height:36px;font-size:var(--fs-sm)">✎ Settings</button>
+          <button id="edit-form" class="btn-sm">✎ Form</button>
+          <button id="edit-settings" class="btn-sm">✎ Settings</button>
         </span>
       </div>
       <div class="tabs" id="mtabs" role="tablist" aria-label="Manage sections">
@@ -1269,11 +1251,11 @@ function renderReviewTab(body: HTMLElement): void {
       <div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to bharatlas until you approve.</div>
       <button type="button" class="primary" id="approve-all">✓ Approve all ${c.pending}</button>
     </div>` : ''}
-    <div class="row" id="pfilter" style="margin:8px 0 4px">
-      <button type="button" class="chip on" data-s="">All ${c.total}</button>
-      <button type="button" class="chip" data-s="pending">Pending ${c.pending}</button>
-      <button type="button" class="chip" data-s="published">Approved ${c.published}</button>
-      ${c.rejected ? `<button type="button" class="chip" data-s="rejected">Rejected ${c.rejected}</button>` : ''}
+    <div class="row" id="pfilter" role="group" aria-label="Show points" style="margin:8px 0 4px">
+      <button type="button" class="chip on" aria-pressed="true" data-s="">All ${c.total}</button>
+      <button type="button" class="chip" aria-pressed="false" data-s="pending">Pending ${c.pending}</button>
+      <button type="button" class="chip" aria-pressed="false" data-s="published">Approved ${c.published}</button>
+      ${c.rejected ? `<button type="button" class="chip" aria-pressed="false" data-s="rejected">Rejected ${c.rejected}</button>` : ''}
     </div>
     <div id="points"><p class="hint">Loading points…</p></div>`;
   const approveAll = document.getElementById('approve-all') as HTMLButtonElement | null;
@@ -1289,8 +1271,7 @@ function renderReviewTab(body: HTMLElement): void {
   };
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
-      document.querySelectorAll('#pfilter .chip').forEach((x) => x.classList.remove('on'));
-      b.classList.add('on');
+      document.querySelectorAll('#pfilter .chip').forEach((x) => setPressed(x, x === b));
       renderPoints(); // in-memory filter — instant, no network
     };
   });
@@ -1583,14 +1564,14 @@ async function importFlow(file: File): Promise<void> {
     <p class="hint"><strong>${n} row${n === 1 ? '' : 's'}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file. This applies to <strong>all ${n}</strong> at once, not one point.</p>
     ${needsLngLat
       ? `<div class="maplabel">Location <span class="hint">(a CSV keeps coordinates in columns)</span></div>
-         <div class="maprow"><span>Longitude</span><select data-map="lng">${opts(guess.lng)}</select></div>
-         <div class="maprow"><span>Latitude</span><select data-map="lat">${opts(guess.lat)}</select></div>`
+         <div class="maprow"><span>Longitude</span><select data-map="lng" aria-label="Longitude column">${opts(guess.lng)}</select></div>
+         <div class="maprow"><span>Latitude</span><select data-map="lat" aria-label="Latitude column">${opts(guess.lat)}</select></div>`
       : `<p class="hint">Locations come from the file's own geometry, so there's nothing to match for coordinates.</p>`}
     <div class="maplabel">Fields <span class="hint">(which column fills each)</span></div>
-    ${fields.map((f) => `<div class="maprow"><span>${escapeHtml(f.label)}${f.required ? ' *' : ''}</span><select data-field="${f.key}">${opts(guess.fields[f.key])}</select></div>`).join('')}
+    ${fields.map((f) => `<div class="maprow"><span>${escapeHtml(f.label)}${f.required ? ' *' : ''}</span><select data-field="${f.key}" aria-label="Column for ${escapeHtml(f.label)}">${opts(guess.fields[f.key])}</select></div>`).join('')}
     <div id="map-preview" class="hint" style="margin:10px 0"></div>
     <div class="maplabel">Where's this data from? <span class="hint">(the source, shown in the published credit)</span></div>
-    <input id="imp-source" placeholder="e.g. SOI Forest Atlas 2021, or a link" maxlength="200" />
+    <input id="imp-source" placeholder="e.g. SOI Forest Atlas 2021, or a link" maxlength="200" aria-label="Where's this data from?" />
     <label class="chip" style="gap:8px;margin-top:10px;align-items:flex-start;border-radius:12px;padding:10px 12px"><input type="checkbox" id="imp-rights" style="width:auto;min-height:auto;margin-top:3px"><span style="white-space:normal;font-weight:400;font-size:var(--fs-sm)">I have the right to publish this under the map's licence (${escapeHtml(meta.license)}): it's my own data, or from a source whose terms allow it.</span></label>
     <button class="primary" id="do-import" style="margin-top:12px">Import all ${n} rows</button>
     <div id="import-result"></div>`;
@@ -1947,7 +1928,7 @@ async function recordEditor(): Promise<void> {
       <form class="body" id="recform">
         <strong>Edit your ${noun}</strong>
         <p class="hint">${isPoint ? 'Move the map to reposition; update the details.' : 'Update the details below.'} Status: ${escapeHtml(rec.status)}.</p>
-        ${fields.map((f) => `<label>${escapeHtml(f.label)}${f.required ? ' *' : ''}</label>${f.hint ? `<p class="hint" style="margin:-2px 0 4px">${escapeHtml(f.hint)}</p>` : ''}${fieldInput(f)}`).join('')}
+        ${fieldsHtml(fields)}
       </form>
       <div class="foot">
         <button class="primary" id="save">Save changes</button>
@@ -1993,8 +1974,8 @@ async function recordEditor(): Promise<void> {
     if (f.type === 'multiselect') {
       const arr = Array.isArray(val) ? val : [];
       el.querySelectorAll<HTMLElement>('.chip').forEach((c) => {
-        c.onclick = () => c.classList.toggle('on');
-        if (arr.includes(c.dataset.v)) c.classList.add('on');
+        c.onclick = () => setPressed(c, !c.classList.contains('on'));
+        setPressed(c, arr.includes(c.dataset.v));
       });
     } else if (val != null) {
       // A saved date-time the picker can't show (date only, or with an offset)
