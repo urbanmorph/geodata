@@ -253,6 +253,11 @@
         white-space: nowrap;
       }
       .btn-primary:hover { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
+      /* Opens a map that downloads one large file (shared/large-load.mjs): warning edge + hourglass. */
+      .btn-primary--large { gap: 6px; border-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--bg-elevated)); }
+      .btn-primary--large .large-icon { flex: none; color: var(--warn); }
+      .link--large { white-space: nowrap; }
+      .link--large .large-icon { width: 14px; height: 14px; margin-right: 3px; vertical-align: -2px; color: var(--warn); }
       .btn-primary.disabled { background: transparent; color: var(--muted); border: 1px dashed var(--line); cursor: not-allowed; }
 
       .dl-inline { display: inline-flex; gap: 16px; align-items: center; font-size: var(--fs-sm); color: var(--muted); }

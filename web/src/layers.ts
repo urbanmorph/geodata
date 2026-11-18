@@ -4,8 +4,10 @@
 import { filterCards, matchLine, type CardLike } from './catalog-filter';
 import { refreshLiveCounts } from './live-counts';
 import { focusOnSlash } from './search-pop';
+import { markLargeViews } from './large-load';
 
 refreshLiveCounts();
+markLargeViews(document);
 
 const input = document.getElementById('catalog-search') as HTMLInputElement | null;
 const grid = document.getElementById('catalog-grid');

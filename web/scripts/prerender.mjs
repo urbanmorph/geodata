@@ -10,6 +10,7 @@ import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
+import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg } from '../../shared/brand.mjs';
 import { THEME_DESC, THEME_GLYPH } from './themes.mjs';
 import { indiaMapHtml } from './india-map.mjs';
@@ -371,7 +372,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   // v4.7: link to the canonical /view/<id> path. Edge function serves the
   // home HTML with layer-specific OG meta; main.ts opens the map on load.
   const viewBtn = viewable
-    ? `<a href="/view/${esc(primary.id)}" class="btn-primary">View map</a>`
+    ? viewMapLink(`/view/${primary.id}`, wholeFileBytes(primary), 'btn-primary', 'View map')
     : `<span class="btn-primary disabled" title="No map for this layer">no map</span>`;
 
   const downloads = downloadLinks(primary);
@@ -434,7 +435,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   // below. The inline "also:" list is exclusively for "you can view this".
   const altSources = layersForLevel
     .filter((l) => l !== primary && (l.pmtiles?.url || l.geojson?.url))
-    .map((l) => `<a href="/view/${esc(l.id)}">${esc(l.source)}</a>`);
+    .map((l) => inlineMapLink(`/view/${l.id}`, wholeFileBytes(l), l.source));
   const sourceText = primary.attribution?.primary
     ? `Per <a href="${esc(primary.attribution.primary.url)}" target="_blank" rel="noopener">${esc(primary.attribution.primary.name)}</a>${altSources.length ? ` <span class="row__alts">also: ${altSources.join(', ')}</span>` : ''}`
     : '';

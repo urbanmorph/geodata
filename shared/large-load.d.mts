@@ -1,0 +1,10 @@
+export declare const LARGE_BYTES: number;
+export declare const SLOW_SECONDS: number;
+export type LoadCost = { bytes: number | null; seconds: number | null; large: boolean };
+export declare function loadCost(bytes: number | null | undefined, downlinkMbps?: number | null): LoadCost;
+export declare function wholeFileBytes(layer: { pmtiles?: { url?: string } | null; geojson?: { url?: string; bytes?: number | null } | null } | null | undefined): number | null;
+export declare const LARGE_VIEW_LABEL: string;
+export declare const LARGE_ICON: string;
+export declare function largeViewNote(bytes: number): string;
+export declare function viewMapLink(href: string, bytes: number | null | undefined, cls: string, label: string): string;
+export declare function inlineMapLink(href: string, bytes: number | null | undefined, text: string): string;

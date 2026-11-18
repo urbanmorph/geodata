@@ -26,6 +26,8 @@ import { resolveLocateConfig } from './locate-config';
 import { openLocate, closeLocate } from './locate';
 import { aboutLayerHtml, type AboutMeta } from './about-layer';
 import { usageLine, type Usage } from '../functions/lib/usage';
+import { confirmLargeLoad, clearLargeLoad } from './large-load';
+import { dlProxyUrl } from '../../shared/downloads.mjs';
 import { fetchWardIndex, type WardIndexFile } from './ward-index';
 import { buildFeatureFilter, parseAtParam } from './locate-actions';
 import {
@@ -503,6 +505,8 @@ async function attachData(layer: Layer) {
     // extent, and fit the view to it — same outcome as the pmtiles path above.
     // Passing the parsed data to addSource avoids a second fetch.
     let data: unknown = layer.geojson.url;
+    // A whole-file load: if it is large or slow on this connection, the reader chooses first.
+    await confirmLargeLoad(map.getContainer(), layer.geojson.bytes, dlProxyUrl(layer.geojson.url, 'geojson'));
     try {
       const resp = await fetch(layer.geojson.url);
       if (resp.ok) {
@@ -1085,6 +1089,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
 }
 
 export function closeLayer() {
+  clearLargeLoad(document);
   if (map) {
     map.remove();
     map = null;

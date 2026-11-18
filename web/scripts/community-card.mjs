@@ -23,6 +23,7 @@ export const CHANNEL_LABEL = { collect: 'via collect', form: 'via the contributi
 
 // The counted download link lives in shared/downloads.mjs (the map page uses it too).
 import { dlProxyUrl } from '../../shared/downloads.mjs';
+import { viewMapLink, wholeFileBytes } from '../../shared/large-load.mjs';
 export { dlProxyUrl };
 
 // Curated download order: data-first (parquet), then tiles, then the
@@ -36,7 +37,7 @@ export function communityCardActions(s, baked) {
       const obj = baked[fmt];
       if (obj?.url) downloads.push({ fmt, url: dlProxyUrl(obj.url, fmt), size: obj.bytes ?? null });
     }
-    return { baked: true, viewUrl: `/view/${baked.id}`, downloads };
+    return { baked: true, viewUrl: `/view/${baked.id}`, downloads, loadBytes: wholeFileBytes(baked) };
   }
 
   // Unbaked: stream the raw object through the allowlisted /api/r2 proxy and
@@ -46,6 +47,7 @@ export function communityCardActions(s, baked) {
     baked: false,
     viewUrl: `/preview?url=${encodeURIComponent(r2Path)}`,
     downloads: [{ fmt: s.format, url: r2Path, size: s.bytes ?? null, raw: true }],
+    loadBytes: s.bytes ?? null,
   };
 }
 
@@ -70,7 +72,7 @@ export function renderCommunityActions(s, baked, { esc, fmtBytes }) {
     dl = `<a class="btn comm-card__dl" href="${esc(d.url)}" download="${esc(filename)}">Download .${esc(s.format)}<span class="size">${d.size != null ? fmtBytes(d.size) : ''}</span></a>`;
   }
   return `<div class="comm-card__actions">
-      <a class="btn-primary comm-card__view" href="${esc(a.viewUrl)}">View map →</a>
+      ${viewMapLink(a.viewUrl, a.loadBytes, 'btn-primary', 'View map →').replace('class="btn-primary', 'class="btn-primary comm-card__view')}
       ${dl}
     </div>`;
 }
