@@ -1,7 +1,8 @@
 // collect's offline worker: the landing page and the map app open with no signal.
 // Same safety rules as chaalwise's and irrational's workers (after SaralCare's
 // 10 June 2026 incident):
-// - pages and loose files are fetched network-first, so a deploy shows at once;
+// - pages and loose files are fetched network-first, so a deploy shows at once
+//   (on a stalled connection, the saved copy after a few seconds);
 // - only content-hashed build files are served from the cache, and only a copy
 //   whose content type fits the file (never an HTML error page for a script);
 // - the API, Turnstile, map tiles and every POST go straight to the network
@@ -74,22 +75,35 @@ a.go{background:#F28C28;border-color:#F28C28;color:#0B1B3F}</style></head>
 <p>This page isn't saved on this phone. Maps you've opened before with a connection still work, and points you add are kept and sent when you're back online.</p>
 <a class="go" href="">Try again</a><a href="/">Your maps</a></main></body></html>`;
 
-// Network first; the saved copy when there's no connection.
+// How long a page waits for the network before opening from the saved copy. On
+// a weak signal a request can stall for tens of seconds without failing.
+const NETWORK_WAIT_MS = 3500;
+const SLOW = Symbol('slow');
+
+const savedCopy = async (key) => (await caches.match(key, { cacheName: CURRENT })) ?? (await caches.match(key));
+
+// Network first; the saved copy when there's no connection, or when the network
+// is slower than NETWORK_WAIT_MS (the request carries on and refreshes the copy).
 async function networkFirst(event, key) {
+  const network = (async () => (await event.preloadResponse) ?? (await fetch(event.request)))();
+  // A full disk only means this copy isn't saved.
+  event.waitUntil(network.then((response) => {
+    if (!response.ok) return undefined;
+    const copy = response.clone();
+    return caches.open(CURRENT).then((c) => c.put(key, copy));
+  }).catch(() => {}));
+  let timer;
   try {
-    const response = (await event.preloadResponse) ?? (await fetch(event.request));
-    if (response.ok) {
-      const copy = response.clone();
-      // A full disk only means this copy isn't saved.
-      event.waitUntil(caches.open(CURRENT).then((c) => c.put(key, copy)).catch(() => {}));
-    }
-    return response;
+    const first = await Promise.race([network, new Promise((r) => { timer = setTimeout(() => r(SLOW), NETWORK_WAIT_MS); })]);
+    if (first !== SLOW) return first;
+    return (await savedCopy(key)) ?? (await network);
   } catch {
-    const cached = (await caches.match(key, { cacheName: CURRENT })) ?? (await caches.match(key));
-    return cached ?? new Response(OFFLINE_PAGE, {
+    return (await savedCopy(key)) ?? new Response(OFFLINE_PAGE, {
       status: 503,
       headers: { 'content-type': 'text/html; charset=utf-8' },
     });
+  } finally {
+    clearTimeout(timer);
   }
 }
 

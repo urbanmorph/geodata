@@ -1,7 +1,7 @@
 // Opening a collect map with no signal: the map's form (meta) is saved on the
 // phone whenever it loads online, and used only when the network is down. A
 // real refusal (link turned off, map gone) still shows, never a stale copy.
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach, vi } from 'vitest';
 import { jsonWithOfflineCopy } from '../src/api';
 
 function memoryStorage(): Storage {
@@ -48,6 +48,40 @@ describe('jsonWithOfflineCopy with a size limit', () => {
     // Too big to keep: the old copy goes too, so offline never shows an outdated list as current.
     expect(store.getItem('k')).toBeNull();
     await expect(jsonWithOfflineCopy('k', offline, store, 100)).rejects.toThrow();
+  });
+});
+
+describe('jsonWithOfflineCopy on a stalled connection', () => {
+  afterEach(() => { vi.useRealTimers(); });
+  const slow = (body: unknown, ms: number) => () => new Promise<Response>((r) => setTimeout(() => r(new Response(JSON.stringify(body))), ms));
+
+  it('uses the saved copy after a few seconds, and keeps the late answer for next time', async () => {
+    vi.useFakeTimers();
+    const store = memoryStorage();
+    store.setItem('k', JSON.stringify({ name: 'Trees' }));
+    const res = jsonWithOfflineCopy('k', slow({ name: 'Trees v2' }, 20_000), store);
+    await vi.advanceTimersByTimeAsync(3600);
+    expect(await res).toEqual({ data: { name: 'Trees' }, offline: true });
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(JSON.parse(store.getItem('k')!)).toEqual({ name: 'Trees v2' });
+  });
+
+  it('with no saved copy, waits for the network however long it takes', async () => {
+    vi.useFakeTimers();
+    const res = jsonWithOfflineCopy('k', slow({ name: 'Trees' }, 20_000), memoryStorage());
+    await vi.advanceTimersByTimeAsync(20_000);
+    expect(await res).toEqual({ data: { name: 'Trees' }, offline: false });
+  });
+
+  it('a late refusal never replaces the saved copy', async () => {
+    vi.useFakeTimers();
+    const store = memoryStorage();
+    store.setItem('k', JSON.stringify({ name: 'Trees' }));
+    const refused = () => new Promise<Response>((r) => setTimeout(() => r(new Response('{"error":"off"}', { status: 401 })), 20_000));
+    const res = jsonWithOfflineCopy('k', refused, store);
+    await vi.advanceTimersByTimeAsync(25_000);
+    expect((await res).offline).toBe(true);
+    expect(JSON.parse(store.getItem('k')!)).toEqual({ name: 'Trees' });
   });
 });
 
