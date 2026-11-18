@@ -2,8 +2,8 @@
 // A point leaves the queue only when the server has it; nothing is dropped
 // silently. A refusal that retrying can't fix is kept with its reason for the
 // person to see and discard.
-import { describe, it, expect } from 'vitest';
-import { flush, fate, newClientId, uploadPhotos, sendBody, forgetUploads, photosMissing, type QueuedPoint, type OutboxStore, type SendResult } from '../src/outbox';
+import { describe, it, expect, vi } from 'vitest';
+import { flush, fate, stuckReason, newClientId, uploadPhotos, sendBody, forgetUploads, photosMissing, type QueuedPoint, type OutboxStore, type SendResult } from '../src/outbox';
 
 function memoryStore(points: QueuedPoint[] = []): OutboxStore & { rows: Map<string, QueuedPoint> } {
   const rows = new Map(points.map((p) => [p.client_id, p]));
@@ -71,12 +71,14 @@ describe('flush', () => {
     expect(r.sent).toEqual([]);
   });
 
-  it('on a rate limit, stops and keeps the rest for later', async () => {
+  it('on a rate limit, stops sending that map and keeps the rest for later', async () => {
     const a = point(), b = point(), c = point();
     const store = memoryStore([a, b, c]);
-    const r = await flush(store, async (p) => (p.client_id === a.client_id ? ok('r1') : no(429)));
+    let calls = 0;
+    const r = await flush(store, async (p) => (calls++, p.client_id === a.client_id ? ok('r1') : no(429)));
     expect([...store.rows.keys()]).toEqual([b.client_id, c.client_id]);
     expect(r.sent).toHaveLength(1);
+    expect(calls).toBe(2);
   });
 
   it('keeps a refused point with its reason, skips it next time, and carries on', async () => {
@@ -172,5 +174,81 @@ describe('photos the server no longer has', () => {
     expect(p.photos![0].id).toBe('ph_gone000000001'); // the original is untouched
     expect(photosMissing({ status: 400, error: 'a photo was not uploaded to this map; take it again' })).toBe(true);
     expect(photosMissing({ status: 400, error: 'Name is required' })).toBe(false);
+  });
+});
+
+describe('one stuck point or map does not hold up the rest', () => {
+  it('when one map answers 429, carries on with other maps\' points and keeps that map\'s for later', async () => {
+    const a1 = point({ collection_id: 'busy' }), b1 = point({ collection_id: 'calm' }), a2 = point({ collection_id: 'busy' }), b2 = point({ collection_id: 'calm' });
+    const store = memoryStore([a1, b1, a2, b2]);
+    const tried: string[] = [];
+    const r = await flush(store, async (p) => (tried.push(p.client_id), p.collection_id === 'busy' ? no(429, 'rate limit') : ok(p.client_id)));
+    // The busy map is asked once, not once per point.
+    expect(tried).toEqual([a1.client_id, b1.client_id, b2.client_id]);
+    expect(r.sent.map((s) => s.point.client_id)).toEqual([b1.client_id, b2.client_id]);
+    expect([...store.rows.keys()].sort()).toEqual([a1.client_id, a2.client_id].sort());
+  });
+
+  it('a point the server fails on (5xx) waits, and the points after it still go', async () => {
+    const stuck = point(), next = point();
+    const store = memoryStore([stuck, next]);
+    const r = await flush(store, async (p) => (p.client_id === stuck.client_id ? no(500, 'boom') : ok('r')));
+    expect(r.sent.map((s) => s.point.client_id)).toEqual([next.client_id]);
+    expect(store.rows.get(stuck.client_id)?.error).toBeUndefined();
+  });
+
+  it('with no connection, still stops at once (nothing else would get through)', async () => {
+    const store = memoryStore([point({ collection_id: 'x' }), point({ collection_id: 'y' })]);
+    let calls = 0;
+    await flush(store, async () => (calls++, no(0)));
+    expect(calls).toBe(1);
+  });
+});
+
+describe('a spam check (Turnstile) that keeps failing', () => {
+  it('is counted on the point, and after a few failures there is a plain reason to show', async () => {
+    const p = point();
+    const store = memoryStore([p]);
+    for (let i = 0; i < 2; i++) await flush(store, async () => no(403, 'captcha failed'));
+    expect(store.rows.get(p.client_id)!.captcha_fails).toBe(2);
+    expect(stuckReason([...store.rows.values()])).toBeNull();
+    await flush(store, async () => no(403, 'captcha failed'));
+    expect(stuckReason([...store.rows.values()])).toMatch(/spam check/i);
+    // Still waiting, never refused: it goes once the check passes.
+    expect(store.rows.get(p.client_id)!.error).toBeUndefined();
+    await flush(store, async (q) => ok(q.client_id));
+    expect(store.rows.size).toBe(0);
+  });
+});
+
+describe('two tabs sending the queue at once', () => {
+  it('take turns through a browser lock, so each point is sent once', async () => {
+    // A minimal Web Locks: one holder per name at a time.
+    const held = new Map<string, Promise<unknown>>();
+    const names: string[] = [];
+    const locks = {
+      request: (name: string, cb: () => Promise<unknown>) => {
+        names.push(name);
+        const run = (held.get(name) ?? Promise.resolve()).catch(() => {}).then(cb);
+        held.set(name, run);
+        return run;
+      },
+    };
+    vi.stubGlobal('navigator', { locks });
+    try {
+      // Two tabs = two copies of the module, sharing one IndexedDB store.
+      vi.resetModules();
+      const tabA = await import('../src/outbox');
+      vi.resetModules();
+      const tabB = await import('../src/outbox');
+      const store = memoryStore([point(), point()]);
+      let sends = 0;
+      const send = async (p: QueuedPoint) => { sends++; await new Promise((r) => setTimeout(r, 5)); return ok(p.client_id); };
+      await Promise.all([tabA.flush(store, send), tabB.flush(store, send)]);
+      expect(sends).toBe(2);
+      expect(names).toEqual(['collect-outbox', 'collect-outbox']);
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });
