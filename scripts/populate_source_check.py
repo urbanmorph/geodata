@@ -71,8 +71,9 @@ OVERRIDES: dict[str, dict] = {
     'high_courts': manual(DERIVED_FROM_LGD, 'https://lgdirectory.gov.in/'),
     'ngt_zones': manual(DERIVED_FROM_LGD, 'https://lgdirectory.gov.in/'),
     'nclt_benches': manual(DERIVED_FROM_LGD, 'https://lgdirectory.gov.in/'),
-    'ir_stations_merged': manual('merged by bharatlas from ir_stations, PM GatiShakti and Wikidata; refresh it when '
-                                 'ir_stations changes', 'https://irgeoportal.gov.in/'),
+    'ir_stations': manual('merged by bharatlas (scripts/bake_ir_stations_merged.py) from two copies of the CRIS station '
+                          'layer (IR GIS portal, PM GatiShakti) and Wikidata; re-run that bake to refresh',
+                          'https://irgeoportal.gov.in/'),
     'bharatviz_pincodes': manual('bharatviz.org/India_pincodes_simplified.geojson now answers with a web page, '
                                  'not the file', 'https://bharatviz.org/'),
     'wards_patna': manual('a cleaned copy made by hand (Jayesh Keswani, Nov 2026) of the datta07 file',
