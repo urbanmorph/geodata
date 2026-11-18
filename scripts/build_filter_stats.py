@@ -56,6 +56,88 @@ def normalise_type(t: str) -> str:
     return DUCKDB_TO_NORM.get(base, 'string')
 
 
+# ── the Filter panel's column pick (mirrors web/src/filter-schema.ts) ───────
+# The map tiles carry these columns, so the map can draw every filter the panel
+# offers. web/tests/fixtures/filter-columns.json holds cases both sides check.
+
+DISPLAY_CAP = 6
+ALL_UNIQUE_MIN_ROWS = 50
+GEOM_NAME_RX = re.compile(r'^(geom|geometry|shape|wkb|wkt)$', re.I)
+BBOX_NAME_RX = re.compile(r'^[xy](min|max)$')
+ID_NAME_RX = re.compile(r'^(id|fid|objectid|gid|uuid|hash|geohash)$|_id$|^ogc_fid$|^orig_fid$|^InPoly_FID$', re.I)
+NUMERIC_RX = re.compile(r'^-?\d+(\.\d+)?$')
+BOOL_VALUE_SETS = [{'0', '1'}, {'true', 'false'}, {'yes', 'no'}, {'y', 'n'}]
+KIND_PRIORITY = {'facet': 5, 'boolean': 4, 'range': 3, 'searchable': 2, 'search': 1}
+
+
+def is_unoffered_name(name: str) -> bool:
+    """Columns the panel never offers by name (isUnofferedName)."""
+    return bool(GEOM_NAME_RX.search(name) or BBOX_NAME_RX.search(name) or ID_NAME_RX.search(name)
+                or name.startswith('_'))
+
+
+def _js_str(v) -> str:
+    """String(v) as JavaScript writes it: 1.0 is '1', True is 'true'."""
+    if isinstance(v, bool):
+        return str(v).lower()
+    if isinstance(v, float) and v.is_integer():
+        return str(int(v))
+    return str(v)
+
+
+def _is_number(v) -> bool:
+    return isinstance(v, (int, float)) and not isinstance(v, bool)
+
+
+def affordance(col: dict, row_count: int) -> str:
+    """The kind of control the panel renders for a column (pickAffordance), or 'drop'."""
+    name, kind, distinct = col['name'], col['type'], col['distinct']
+    null = col.get('null_frac', 0)
+    top = col.get('top_values') or []
+    if kind in ('geometry', 'blob') or GEOM_NAME_RX.search(name) or BBOX_NAME_RX.search(name):
+        return 'drop'
+    if distinct <= 1 or null > 0.95 or ID_NAME_RX.search(name) or name.startswith('_'):
+        return 'drop'
+    if kind == 'bool':
+        return 'boolean'
+    if distinct == 2 and len(top) == 2 and {_js_str(t['v']).strip().lower() for t in top} in BOOL_VALUE_SETS:
+        return 'boolean'
+    if distinct <= 3 and top and all(NUMERIC_RX.match(_js_str(t['v']).strip()) for t in top):
+        return 'drop'  # near-constant technical metadata (tessellate=-1)
+    non_null = row_count * (1 - null)
+    if kind == 'float' and row_count >= 10 and non_null > 0 and distinct / non_null > 0.9:
+        return 'drop'  # a per-row computed stat (area, length)
+    if (kind == 'int' and row_count >= ALL_UNIQUE_MIN_ROWS and distinct > 50
+            and non_null > 0 and distinct / non_null > 0.97):
+        return 'drop'  # a row key
+    if kind in ('int', 'float', 'date'):
+        if distinct <= 20:
+            return 'facet'
+        if _is_number(col.get('min')) and _is_number(col.get('max')):
+            return 'range'
+    if distinct <= FACET_THRESHOLD:
+        return 'facet'
+    return 'searchable' if distinct <= 2000 else 'search'
+
+
+def rank_columns(cols: list[dict], row_count: int) -> list[dict]:
+    """The columns the panel shows, best first, at most DISPLAY_CAP (rankColumns)."""
+    scored = [(KIND_PRIORITY[k] * 10 + (1 - c.get('null_frac', 0)), c)
+              for c in cols if (k := affordance(c, row_count)) != 'drop']
+    return [c for _, c in sorted(scored, key=lambda s: -s[0])][:DISPLAY_CAP]
+
+
+def tile_filter_columns(stats: dict) -> list[str]:
+    """The columns the map tiles need so the map can draw the panel's filters:
+    the panel's columns (equivalent columns folded into their canonical one, as
+    the viewer does) with at most FACET_THRESHOLD distinct values. Higher
+    cardinality columns would bloat the tiles; the count and export still
+    filter on them."""
+    folded = {m for g in stats.get('column_groups') or [] for m in g['members'] if m != g['canonical']}
+    cols = [c for c in stats['columns'] if c['name'] not in folded]
+    return [c['name'] for c in rank_columns(cols, stats['row_count']) if c['distinct'] <= FACET_THRESHOLD]
+
+
 def _column_aggs(col: str) -> list[str]:
     """distinct, non-null count, min, max of one column, as SELECT expressions.
     Plain aggregates: a FILTER clause or a cast inside them makes DuckDB's
@@ -113,25 +195,28 @@ def is_url(path: Path | str) -> bool:
     return str(path).startswith(('http://', 'https://'))
 
 
-def stats_for_parquet(path: Path | str, con: duckdb.DuckDBPyConnection) -> dict | None:
+def stats_for_parquet(path: Path | str, con: duckdb.DuckDBPyConnection, probe: bool = False) -> dict | None:
     """Per-column stats in two scans of the parquet: every aggregate at once,
     then the top values of every faceted column at once. `path` is a local
-    file or an http(s) URL (read with range requests, nothing kept on disk)."""
+    file or an http(s) URL (read with range requests, nothing kept on disk).
+    `probe` matches the viewer's live probe (web/src/filter-probe.ts): columns
+    the panel never offers by name are not aggregated (distinct -1)."""
     if not is_url(path) and not Path(path).exists():
         return None
     src = str(path)
     try:
         desc = con.execute(f"DESCRIBE SELECT * FROM '{src}' LIMIT 0").fetchall()
         types = {row[0]: normalise_type(row[1]) for row in desc}
-        flat = [c for c, norm in types.items() if norm not in ('geometry', 'blob')]
-        row_count, aggs = column_aggregates(con, src, flat)
+        skipped = {c for c, norm in types.items()
+                   if norm in ('geometry', 'blob') or (probe and is_unoffered_name(c))}
+        row_count, aggs = column_aggregates(con, src, [c for c in types if c not in skipped])
     except duckdb.Error as e:
         print(f'  filter_stats: DESCRIBE failed on {Path(src).name} — {e}')
         return None
 
     columns: list[dict] = []
     for col_name, norm in types.items():
-        if norm in ('geometry', 'blob'):
+        if col_name in skipped:
             columns.append({'name': col_name, 'type': norm, 'distinct': -1, 'null_frac': 0})
             continue
         if col_name not in aggs:

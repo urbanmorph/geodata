@@ -28,7 +28,7 @@ SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
 
 
 def layer_url(catalog: dict, layer_id: str, fmt: str) -> str:
-    return next(l for l in catalog['layers'] if l['id'] == layer_id)[fmt]['url']
+    return next(x for x in catalog['layers'] if x['id'] == layer_id)[fmt]['url']
 
 
 def fetch_layer_file(catalog_path: Path, layer_id: str, fmt: str, dest: Path) -> Path:
@@ -75,6 +75,18 @@ def plain_popup_fields(schema: list[tuple[str, str]], junk: set[str]) -> list[st
     column but GIS artefacts (`junk`, lower case), the bbox and nested or
     geometry columns. The parquet and downloads keep every column."""
     return [c for c, t in schema if c not in BBOX and c.lower() not in junk and not is_nested(t)]
+
+
+def tile_fields(popup: Iterable[str], filter_columns: Iterable[str],
+                schema: list[tuple[str, str]]) -> list[str]:
+    """The fields map tiles carry: the popup fields, then each column the
+    Filter panel filters on (build_filter_stats.tile_filter_columns) that the
+    popup lacks, so the map can draw every filter. Names not in the source
+    are left out."""
+    names = {c for c, _ in schema}
+    out = list(popup)
+    out += [c for c in dict.fromkeys(filter_columns) if c in names and c not in out]
+    return out
 
 
 def geojson_popup_fields(geojson: Path) -> list[str]:

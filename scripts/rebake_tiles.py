@@ -24,6 +24,8 @@ Popup fields: every column a click popup or /api/v1/locate would show (the
 locate response already leaves out GIS artefact columns), minus geometry,
 the flat bbox and nested columns. POPUP_FIELDS narrows a layer whose rows
 carry dozens of columns; every column stays in the parquet and downloads.
+The tiles also carry each low-cardinality column the Filter panel filters on
+(build_filter_stats.tile_filter_columns), so the map can draw every filter.
 
 Run (R2 creds in the env: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY):
     python3 -u scripts/rebake_tiles.py fsi_beats gb_adm1      # build, check, upload, patch
@@ -59,7 +61,9 @@ from bake_formats import (  # noqa: E402
     gis_artefact_columns,
     pmtiles_args,
     plain_popup_fields,
+    tile_fields,
 )
+from build_filter_stats import stats_for_parquet, tile_filter_columns  # noqa: E402
 from bake_land_water import (  # noqa: E402
     Deadline,
     OutOfTime,
@@ -84,7 +88,7 @@ CATALOG = ROOT / 'catalog.json'
 MANIFEST = HERE / 'external-ingested.json'
 WORK = Path(os.environ.get('TILES_WORK', '/tmp/ramseraph/tiles'))
 LOCK = Path('/tmp/bharatlas-upload.lock')
-LOCK_OWNER = 'rebake_tiles (feat/tile-rebakes)'
+LOCK_OWNER = f'rebake_tiles pid {os.getpid()}'
 
 # tippecanoe's default budget is 500,000 bytes a tile, and dense layers fill
 # their low-zoom tiles right up to it. A smaller budget keeps country-zoom
@@ -93,6 +97,10 @@ MAX_TILE_BYTES = 300_000
 # Coordinates per tile edge below the max zoom: 2^10 = 1,024 is still finer
 # than the 512 px a tile is drawn at; the max zoom keeps tippecanoe's 4,096.
 LOW_DETAIL = 10
+# Detail settings tried in turn, with each try's file suffix: the lower detail
+# first; when its tiles fail the checks (fine parcels in a small area turn to
+# dust at country zoom), tippecanoe's default detail. Never worse coverage.
+DETAIL_TRIES = ((LOW_DETAIL, ''), (None, '.full-detail'))
 # Never bake fewer zooms than the tiles being replaced had (locate tests a
 # point at the max zoom), nor fewer than this for a layer that had none.
 MIN_MAX_ZOOM = 10
@@ -142,10 +150,20 @@ def popup_fields(layer_id: str, schema: list[tuple[str, str]], junk: set[str],
     return fields
 
 
+def filter_stats(baked: dict | None, src: Path, fmt: str, con, cache: Path) -> dict | None:
+    """The column stats the viewer's Filter panel ranks: the catalog's baked
+    filter_stats, else what its live probe of the parquet finds (computed
+    once, cached). None without a parquet: the viewer has no Filter then."""
+    if baked or fmt != 'parquet':
+        return baked
+    return json.loads(cached(cache, lambda p: p.write_text(
+        json.dumps(stats_for_parquet(src, con, probe=True), default=str))).read_text())
+
+
 # ── tiles ────────────────────────────────────────────────────────────────────
 
 def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], kind: str,
-                    min_max_zoom: int) -> list[str]:
+                    min_max_zoom: int, low_detail: int | None = LOW_DETAIL) -> list[str]:
     """bake_formats.pmtiles_args (popup fields, -zg, extend zooms while
     still dropping) with a smaller tile budget and lower detail below the
     max zoom; polygons coalesce instead of dropping, so low zooms keep
@@ -160,8 +178,9 @@ def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], kind: s
         args.insert(args.index('--force'), '-r1')
     if not fields:
         args.insert(args.index('--force'), '-X')  # no attributes at all (-y with none keeps every one)
-    extra = [f'--maximum-tile-bytes={MAX_TILE_BYTES}', f'--low-detail={LOW_DETAIL}',
-             f'--smallest-maximum-zoom-guess={min_max_zoom}']
+    extra = [f'--maximum-tile-bytes={MAX_TILE_BYTES}', f'--smallest-maximum-zoom-guess={min_max_zoom}']
+    if low_detail is not None:
+        extra.insert(1, f'--low-detail={low_detail}')
     if kind == 'polygon':
         extra.append('--detect-shared-borders')  # neighbours simplify alike: no slivers or gaps
     i = args.index('--force')
@@ -289,7 +308,7 @@ def flat_parquet(con, src: Path, fmt: str, part: Path) -> None:
                     FROM {read} WHERE {geom} IS NOT NULL) TO '{part}' (FORMAT PARQUET)""")
 
 
-def build(layer: dict, deadline: Deadline) -> tuple[Path, dict]:
+def build(layer: dict, deadline: Deadline, baked_stats: dict | None = None) -> tuple[Path, dict]:
     """The checked PMTiles file for one layer and its check record."""
     lid = layer['id']
     work = WORK / lid
@@ -308,37 +327,51 @@ def build(layer: dict, deadline: Deadline) -> tuple[Path, dict]:
     columns = schema(con, flat)
     live = live_tiles(layer)
     junk = gis_artefact_columns()
-    fields = popup_fields(lid, columns, junk, live['fields'] if live else None)
+    stats = filter_stats(baked_stats, src, fmt, con, work / 'filter_stats.json')
+    fields = tile_fields(popup_fields(lid, columns, junk, live['fields'] if live else None),
+                         tile_filter_columns(stats) if stats else [], columns)
     # Narrowed: the tiles leave out a column a reader could want (not just artefacts).
     narrowed = bool(set(popup_fields('', columns, junk)) - set(fields))
-    log(f'  {lid}: {kind}s, popup fields {fields}')
+    log(f'  {lid}: {kind}s, tile fields {fields}')
 
-    deadline.check(f'{lid}: GeoJSONSeq')
     seq = work / 'tiles.geojsonl'
-    pm = work / 'tiles.pmtiles'
-    if not pm.exists():
-        cols = ''.join(f'"{f}", ' for f in fields)
-        cached(seq, lambda p: con.execute(
-            f"COPY (SELECT {cols}geometry FROM read_parquet('{flat}') WHERE geometry IS NOT NULL) "
-            f"TO '{p}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"))
-        deadline.check(f'{lid}: tippecanoe')
-        min_max_zoom = max(live['max_zoom'] if live else 0, MIN_MAX_ZOOM)
-        log(f'  {lid}: tippecanoe ({seq.stat().st_size / 1e6:,.0f} MB in)')
-        t0 = time.monotonic()
-        cached(pm, lambda p: subprocess.run(tippecanoe_args(seq, p, lid, fields, kind, min_max_zoom),
-                                            check=True, capture_output=True,
-                                            timeout=min(STEP_TIMEOUT_S, max(60, deadline.end - deadline.clock()))))
-        log(f'  {lid}: {pm.stat().st_size / 1e6:,.1f} MB of tiles in {time.monotonic() - t0:,.0f} s')
-    seq.unlink(missing_ok=True)
+    try:
+        for i, (detail, suffix) in enumerate(DETAIL_TRIES):
+            pm = work / f'tiles{suffix}.pmtiles'
+            if not pm.exists():
+                deadline.check(f'{lid}: GeoJSONSeq')
+                cols = ''.join(f'"{f}", ' for f in fields)
+                cached(seq, lambda p: con.execute(
+                    f"COPY (SELECT {cols}geometry FROM read_parquet('{flat}') WHERE geometry IS NOT NULL) "
+                    f"TO '{p}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"))
+                deadline.check(f'{lid}: tippecanoe')
+                min_max_zoom = max(live['max_zoom'] if live else 0, MIN_MAX_ZOOM)
+                log(f'  {lid}: tippecanoe, low detail {detail or "default"} ({seq.stat().st_size / 1e6:,.0f} MB in)')
+                t0 = time.monotonic()
+                cached(pm, lambda p: subprocess.run(
+                    tippecanoe_args(seq, p, lid, fields, kind, min_max_zoom, detail), check=True, capture_output=True,
+                    timeout=min(STEP_TIMEOUT_S, max(60, deadline.end - deadline.clock()))))
+                log(f'  {lid}: {pm.stat().st_size / 1e6:,.1f} MB of tiles in {time.monotonic() - t0:,.0f} s')
+            deadline.check(f'{lid}: checks')
+            checks, record = tile_checks(layer, pm, flat, con, kind, fields, narrowed, work / f'checks{suffix}.json')
+            failed = checks['flags'] + checks['problems']
+            if not failed:
+                return pm, checks
+            if i + 1 < len(DETAIL_TRIES):
+                log(f'  {lid}: {failed}; trying the next detail setting')
+        raise RuntimeError(f"{lid}: tiles fail the checks: {failed} (see {record})")
+    finally:
+        if not isinstance(sys.exc_info()[1], OutOfTime):  # a stopped run keeps it for the re-run
+            seq.unlink(missing_ok=True)
 
-    deadline.check(f'{lid}: checks')
-    record = work / 'checks.json'
+
+def tile_checks(layer: dict, pm: Path, flat: Path, con, kind: str, fields: list[str], narrowed: bool,
+                record: Path) -> tuple[dict, Path]:
+    """The check record of one tiles file (written once), with today's rule applied."""
     if not record.exists():
         audit = at.audit_archive(at.file_reader(pm))
         rows = tile_report(pm, flat, con, kind)
-        out = {'kind': kind, 'fields': fields, 'narrowed': narrowed, 'audit': audit, 'tiles': rows,
-               'flags': at.flag(audit, layer.get('rows')),
-               'problems': report_problems(rows, audit['max_zoom'], kind)}
+        out = {'kind': kind, 'fields': fields, 'narrowed': narrowed, 'audit': audit, 'tiles': rows}
         record.write_text(json.dumps(out, indent=1))
     checks = json.loads(record.read_text())
     # The rule may have changed since the record was written: apply today's.
@@ -346,9 +379,7 @@ def build(layer: dict, deadline: Deadline) -> tuple[Path, dict]:
     checks['problems'] = report_problems(checks['tiles'], checks['audit']['max_zoom'], checks['kind'])
     for r in checks['tiles']:
         log(f"    z{r['z']}/{r['x']}/{r['y']}: decoded {r['decoded']:,}  parquet {r['parquet']:,}  cover {r['cover']}")
-    if checks['flags'] or checks['problems']:
-        raise RuntimeError(f"{lid}: tiles fail the checks: {checks['flags'] + checks['problems']} (see {record})")
-    return pm, checks
+    return checks, record
 
 
 def live_tiles(layer: dict) -> dict | None:
@@ -464,7 +495,7 @@ def main(argv: list[str]) -> int:
             continue
         log(f'\n-> {lid}')
         try:
-            pm, checks = build(layer, deadline)
+            pm, checks = build(layer, deadline, catalog.get('filter_stats', {}).get(lid))
             if do_upload:
                 log(f'  {lid}: on R2 as {publish(layer, pm, checks)}')
         except OutOfTime as e:

@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import gzip
 import json
+import os
 import struct
 import sys
 import time
@@ -40,7 +41,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-CACHE = Path('/tmp/ramseraph/tiles/audit')
+CACHE = Path(os.environ.get('TILES_WORK', '/tmp/ramseraph/tiles')) / 'audit'
 
 # About 500 KB: tippecanoe's default budget is 500,000 bytes a tile, and a
 # low-zoom tile filled to within a few percent of it was cut down to fit.
@@ -247,7 +248,7 @@ def audit_archive(read: Callable[[int, int], bytes], max_z: int = max(LOW_ZOOMS)
     """Per zoom: tile count, max and total stored bytes, decoded features
     (by geometry type), and the tippecanoe metadata's drop/coalesce counts."""
     h = parse_header(read(0, 127))
-    meta = json.loads(decompress(read(h.metadata_offset, h.metadata_length), h.internal_compression) or b'{}')
+    meta = read_metadata(read, h)
     zooms: dict[int, dict] = {}
     for e in low_zoom_entries(read, h, max_z):
         z, x, y = tileid_to_zxy(e.tile_id)
@@ -265,13 +266,27 @@ def audit_archive(read: Callable[[int, int], bytes], max_z: int = max(LOW_ZOOMS)
     strategies = meta.get('strategies')
     if isinstance(strategies, str):
         strategies = json.loads(strategies)
-    vlayers = meta.get('vector_layers')
-    if isinstance(vlayers, str):
-        vlayers = json.loads(vlayers)
     return {'min_zoom': h.min_zoom, 'max_zoom': h.max_zoom,
             'zooms': {str(z): zooms[z] for z in sorted(zooms)},
             'strategies': strategies or [],
-            'fields': sorted((vlayers or [{}])[0].get('fields', {}))}
+            'fields': vector_fields(meta)}
+
+
+def read_metadata(read: Callable[[int, int], bytes], h: Header) -> dict:
+    return json.loads(decompress(read(h.metadata_offset, h.metadata_length), h.internal_compression) or b'{}')
+
+
+def vector_fields(meta: dict) -> list[str]:
+    """The attribute names the tiles carry (the metadata's vector_layers)."""
+    vlayers = meta.get('vector_layers')
+    if isinstance(vlayers, str):
+        vlayers = json.loads(vlayers)
+    return sorted((vlayers or [{}])[0].get('fields', {}))
+
+
+def archive_fields(read: Callable[[int, int], bytes]) -> list[str]:
+    """vector_fields from the header and metadata alone (two range reads)."""
+    return vector_fields(read_metadata(read, parse_header(read(0, 127))))
 
 
 # ── the rule ─────────────────────────────────────────────────────────────────

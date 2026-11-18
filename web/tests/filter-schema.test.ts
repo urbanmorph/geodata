@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import {
   pickAffordance,
@@ -281,5 +282,25 @@ describe('pickAffordance — bake bbox columns', () => {
       { name: 'basic_category', type: 'string' as const, distinct: 280, nullFrac: 0.04 },
     ];
     expect(rankColumns(cols, 1_000_000).map((c) => c.name)).toContain('basic_category');
+  });
+});
+
+// The same cases drive scripts/test_build_filter_stats.py: the tile bake picks
+// the columns this ranking offers, so the map can draw every filter.
+describe('rankColumns: shared cases with the tile bake', () => {
+  type Baked = { name: string; type: ColumnStats['type']; distinct: number; null_frac: number;
+    min?: number | string; max?: number | string; top_values?: ColumnStats['topValues'] };
+  type Case = { name: string; row_count: number; columns: Baked[]; ranked: string[];
+    column_groups?: { canonical: string; members: string[] }[] };
+  const { cases } = JSON.parse(
+    readFileSync(new URL('./fixtures/filter-columns.json', import.meta.url), 'utf8'),
+  ) as { cases: Case[] };
+  it.each(cases.map((c) => [c.name, c] as const))('%s', (_, c) => {
+    const grouped = new Set((c.column_groups ?? []).flatMap((g) => g.members.filter((m) => m !== g.canonical)));
+    const cols: ColumnStats[] = c.columns.filter((x) => !grouped.has(x.name)).map((x) => ({
+      name: x.name, type: x.type, distinct: x.distinct, nullFrac: x.null_frac,
+      min: x.min, max: x.max, topValues: x.top_values,
+    }));
+    expect(rankColumns(cols, c.row_count).map((x) => x.name)).toEqual(c.ranked);
   });
 });

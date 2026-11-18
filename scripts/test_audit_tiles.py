@@ -106,6 +106,11 @@ def test_audit_archive_reads_a_real_tileset(tmp_path):
     a = at.audit_archive(at.file_reader(out))
     assert (a['min_zoom'], a['max_zoom']) == (0, 6)
     assert a['fields'] == ['n']
+    # The fields alone come from the header and metadata: two reads, no tiles.
+    reads = []
+    read = at.file_reader(out)
+    assert at.archive_fields(lambda o, n: reads.append(o) or read(o, n)) == ['n']
+    assert len(reads) == 2
     # -r1: no dot dropping; one tile holds all 40 points at z0, and tiles
     # sharing a buffer repeat a few at higher zooms.
     assert a['zooms']['0']['features'] == 40

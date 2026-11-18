@@ -60,6 +60,18 @@ def test_tippecanoe_args_points_and_lines_thin(kind):
     assert ('-r1' in args) == (kind == 'point')
 
 
+def test_tippecanoe_args_full_detail_leaves_tippecanoes_default():
+    args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', ['n'], 'polygon', 10, low_detail=None)
+    assert not any(a.startswith('--low-detail') for a in args)
+    assert f'--maximum-tile-bytes={rt.MAX_TILE_BYTES}' in args
+
+
+def test_detail_tries_lower_detail_first_then_full_detail_files():
+    # Fine parcels in a small area turn to dust at country zoom with the lower
+    # detail; the second try keeps tippecanoe's default detail.
+    assert rt.DETAIL_TRIES == ((rt.LOW_DETAIL, ''), (None, '.full-detail'))
+
+
 def test_tippecanoe_args_no_fields_means_no_attributes():
     args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', [], 'point', 10)
     assert '--detect-shared-borders' not in args
@@ -128,6 +140,21 @@ def test_report_problems():
     assert len(problems) == 2
     assert 'decoded' in problems[0] and 'cover 50%' in problems[1]
     assert rt.report_problems(rows[2:], 11, 'polygon') == []
+
+
+def test_filter_stats_baked_first_else_probed_once_and_cached(tmp_path):
+    import duckdb
+    src = tmp_path / 'source.parquet'
+    con = duckdb.connect()
+    con.execute(f"COPY (SELECT range AS fid, chr(65 + range::INT % 4) AS corporation FROM range(40)) TO '{src}'")
+    baked = {'row_count': 1, 'columns': []}
+    assert rt.filter_stats(baked, src, 'parquet', con, tmp_path / 'fs.json') is baked
+    probed = rt.filter_stats(None, src, 'parquet', con, tmp_path / 'fs.json')
+    assert rt.tile_filter_columns(probed) == ['corporation']
+    src.unlink()  # the second run reads the cache, not the parquet
+    assert rt.filter_stats(None, src, 'parquet', con, tmp_path / 'fs.json') == probed
+    # No parquet, no Filter panel: nothing to add.
+    assert rt.filter_stats(None, tmp_path / 'x.geojson', 'geojson', con, tmp_path / 'g.json') is None
 
 
 def test_geometry_column_by_type_not_name():
