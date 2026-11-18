@@ -17,6 +17,7 @@ runs out of Worker CPU (Cloudflare 1102). Per layer:
      place, after each layer
 
 The source data is never changed: no column is dropped, renamed or cleaned.
+A GeoParquet `bbox` struct stays; the flat columns are copied from it.
 build_catalog.py and ingest_ramseraph.py keep the versioned key on a rebuild
 (scripts/tile_keys.py). The old keys stay on R2 until the deploy that stops
 using them; delete them by hand after that.
@@ -102,9 +103,8 @@ def bbox_kind(src: str) -> str | None:
 
 def missing_bbox(catalog: dict, kind: Callable[[str], str | None] = bbox_kind) -> dict[str, list[str]]:
     """Ids of catalog layers whose parquet lacks flat bbox columns, in catalog
-    order: {'none': [...], 'struct': [...]}. rebake_flatten_bbox would turn a
-    `bbox` struct into the 4 columns, dropping the struct, so those are listed
-    apart and left alone."""
+    order: {'none': [...], 'struct': [...]} ('struct': only a GeoParquet `bbox`
+    struct, which the rebake keeps, adding the flat columns from it)."""
     layers = [(layer['id'], layer['parquet']['url']) for layer in catalog['layers']
               if (layer.get('parquet') or {}).get('url')]
     with ThreadPoolExecutor(16) as pool:
@@ -167,18 +167,19 @@ def publish(local: Path, key: str) -> None:
 
 
 def rebake(layer: dict, deadline: Deadline, upload: bool = True) -> dict | None:
-    """Rebake one layer; None when it already has bbox columns."""
+    """Rebake one layer; None when it already has flat bbox columns. A `bbox`
+    struct stays as it is; the flat columns are added beside it."""
     lid, url = layer['id'], layer['parquet']['url']
-    kind = bbox_kind(url)
-    if kind:
-        log(f'  {lid}: has a {kind} bbox, skipped')
+    if bbox_kind(url) == 'flat':
+        log(f'  {lid}: has flat bbox columns, skipped')
         return None
     work = WORK / lid
     src = work / url.rsplit('/', 1)[1]
     deadline.check(f'{lid} download')
     download(url, src)
     deadline.check(f'{lid} rebake')
-    dst = cached(work / f'{lid}.bbox.parquet', lambda part: rebake_flatten_bbox(src, part, make_con()))
+    dst = cached(work / f'{lid}.bbox.parquet',
+                 lambda part: rebake_flatten_bbox(src, part, make_con(), keep_struct=True))
     checks = verify(src, dst)
     key = versioned_key(r2_key_from_url(url), file_md5(dst))
     out = {'old_key': r2_key_from_url(url), 'new_key': key, 'old_bytes': src.stat().st_size,
@@ -215,8 +216,11 @@ def main(argv: list[str]) -> int:
     if '--missing' in args:
         found = missing_bbox(catalog)
         log(f"{len(found['none'])} layers without bbox columns: {found['none']}")
-        log(f"{len(found['struct'])} with a bbox struct, left alone: {found['struct']}")
-        ids += [i for i in found['none'] if i not in ids]
+        log(f"{len(found['struct'])} with only a bbox struct (kept; flat columns added): {found['struct']}")
+        ids += [i for i in found['none'] + found['struct'] if i not in ids]
+    if not ids and '--missing' in args:
+        log('nothing to rebake')
+        return 0
     if not ids:
         log('Usage: rebake_layer.py [--missing] [--no-upload] [--minutes N] [<layer_id> ...]')
         return 2
