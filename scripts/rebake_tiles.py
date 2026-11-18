@@ -195,6 +195,21 @@ def probe_points(con, parquet: Path, n: int = 4) -> list[tuple[float, float]]:
     return pts
 
 
+def amount_sql(kind: str, col: str, env: str) -> str:
+    """SQL for the area (polygons) or length (lines) of `col` inside `env`,
+    summed; '0' for points. Only the parts of the measured dimension are
+    intersected (GEOS refuses a mixed-dimension overlay input). A shape whose
+    ST_MakeValid GEOS rejects (a ring of identical points beside a real one)
+    falls back to ST_Buffer(0), which drops the zero-area ring."""
+    dim = {'polygon': 3, 'line': 2}.get(kind)
+    if dim is None:
+        return '0'
+    measure = 'ST_Area' if kind == 'polygon' else 'ST_Length'
+    fallback = f'ST_Buffer({col}, 0)' if kind == 'polygon' else col
+    valid = f'ST_CollectionExtract(coalesce(TRY(ST_MakeValid({col})), {fallback}), {dim})'
+    return f'coalesce(sum({measure}(ST_Intersection({valid}, {env}))), 0)'
+
+
 def check_zooms(max_zoom: int) -> list[int]:
     return sorted({min(3, max_zoom), min(5, max_zoom), min(8, max_zoom), max_zoom})
 
@@ -203,7 +218,7 @@ def tile_report(pm: Path, parquet: Path, con, kind: str) -> list[dict]:
     """Per probe tile at a low, a mid and the max zoom: decoded features vs
     parquet features meeting the tile, and the area (polygons) or length
     (lines) each covers inside it. Points compare counts only."""
-    measure = {'polygon': 'ST_Area', 'line': 'ST_Length'}.get(kind)
+    measured = kind in ('polygon', 'line')
     max_zoom = at.parse_header(pm.read_bytes()[:127]).max_zoom
     tmp = pm.with_name(f'{pm.stem}.decoded.geojson')
     rows, seen = [], set()
@@ -215,16 +230,14 @@ def tile_report(pm: Path, parquet: Path, con, kind: str) -> list[dict]:
             seen.add((z, x, y))
             w, s, e, n = tile_bounds(z, x, y)
             env = f'ST_MakeEnvelope({w}, {s}, {e}, {n})'
-            amount = f'coalesce(sum({measure}(ST_Intersection(ST_MakeValid(geometry), {env}))), 0)' \
-                if measure else '0'
             expect, want = con.execute(
-                f"SELECT count(*), {amount} FROM read_parquet('{parquet}') "
+                f"SELECT count(*), {amount_sql(kind, 'geometry', env)} FROM read_parquet('{parquet}') "
                 f"WHERE xmax >= ? AND xmin <= ? AND ymax >= ? AND ymin <= ? AND ST_Intersects(geometry, {env})",
                 [w, e, s, n]).fetchone()
             decoded = decode_tile(pm, z, x, y, tmp)
             got = con.execute(
-                f"SELECT {amount.replace('geometry', 'geom')} FROM ST_Read('{tmp}')").fetchone()[0] \
-                if decoded and measure else 0
+                f"SELECT {amount_sql(kind, 'geom', env)} FROM ST_Read('{tmp}')").fetchone()[0] \
+                if decoded and measured else 0
             rows.append({'z': z, 'x': x, 'y': y, 'decoded': decoded, 'parquet': expect,
                          'cover': round(got / want, 3) if want else None})
     tmp.unlink(missing_ok=True)
