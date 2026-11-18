@@ -112,6 +112,25 @@ describe('uploading a photo', () => {
     const row = env.DB.raw.prepare('SELECT * FROM collect_photos WHERE id = ?').get(r.body.id) as Record<string, any>;
     expect(row).toMatchObject({ lat: null, lng: null, taken_at: null, source: null });
   });
+
+  it('caps photos not yet on a point per map per day, so uploads alone cannot fill storage', async () => {
+    const m = await newMap();
+    const other = await newMap();
+    const seed = (collectionId: string, count: number, at: string, recordId: string | null = null) => {
+      const ins = env.DB.raw.prepare('INSERT INTO collect_photos (id, collection_id, record_id, r2_key, bytes, ip_hash, created_at) VALUES (?, ?, ?, ?, 1, ?, ?)');
+      for (let i = 0; i < count; i++) ins.run(`ph_seed_${collectionId}_${at}_${recordId}_${i}`, collectionId, recordId, 'k', 'ip', at);
+    };
+    const now = new Date().toISOString();
+    seed(m.id, ph.MAX_UNCLAIMED_PHOTOS_PER_DAY - 1, now);
+    seed(m.id, 50, now, 'rec_claimed'); // on a point: not counted
+    seed(m.id, 50, new Date(Date.now() - 25 * 3_600_000).toISOString()); // older than a day: not counted
+    expect((await upload(m)).status).toBe(200); // reaches the cap
+    const r = await upload(m);
+    expect(r.status).toBe(429);
+    expect(r.body.error).toMatch(/too many photos/);
+    expect(r.body.error).not.toMatch(/—/);
+    expect((await upload(other)).status).toBe(200); // another map is unaffected
+  });
 });
 
 describe('photos on a point', () => {

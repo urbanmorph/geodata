@@ -2,7 +2,8 @@
 // when it was taken) and uploads it before the point; the point then claims its
 // photos by id. A photo is private (its map's admin, or the contributor of its
 // point) until its point is approved, then public under the map's open licence.
-// Deleting a point deletes its photos; photos never claimed are cleared after a day.
+// Deleting a point deletes its photos; photos never claimed are cleared after two
+// weeks, and a map takes at most MAX_UNCLAIMED_PHOTOS_PER_DAY of them a day.
 import type { Env } from '../types';
 import { bad, json } from './http';
 import { bearer, linkFor, atLeast } from './auth';
@@ -16,6 +17,10 @@ export const MAX_PHOTO_BYTES = 2_000_000; // the phone sends ~300 KB; this is a 
 // A phone can be offline for days after uploading a point's photos (the point
 // itself waiting for signal), so unclaimed photos are kept two weeks.
 const ORPHAN_AGE_MS = 14 * 86_400_000;
+// Photos not yet on a point, per map in the last 24 hours. A real day of
+// collecting stays well under it; a script uploading photos it never attaches
+// is stopped before it fills storage.
+export const MAX_UNCLAIMED_PHOTOS_PER_DAY = 300;
 const CLIENT_ID = /^[A-Za-z0-9_-]{16,64}$/;
 
 const salt = (env: Env) => env.IP_SALT || 'collect-v1';
@@ -58,6 +63,13 @@ export async function uploadPhoto(env: Env, req: Request, collectionId: string, 
   const seen = (await env.DB.prepare('SELECT id FROM collect_photos WHERE collection_id = ? AND client_key_hash = ?')
     .bind(collectionId, clientKey).first()) as { id: string } | null;
   if (seen) return json(200, { id: seen.id, url: photoUrl(new URL(req.url).origin, seen.id) });
+
+  const since = new Date(Date.now() - 86_400_000).toISOString();
+  const unclaimed = (await env.DB.prepare('SELECT COUNT(*) AS n FROM collect_photos WHERE collection_id = ? AND record_id IS NULL AND created_at > ?')
+    .bind(collectionId, since).first()) as { n: number } | null;
+  if ((unclaimed?.n ?? 0) >= MAX_UNCLAIMED_PHOTOS_PER_DAY) {
+    return bad(429, 'too many photos on this map are waiting for their points today; try again later');
+  }
 
   const declared = Number(req.headers.get('content-length') || 0);
   if (declared > MAX_PHOTO_BYTES) return bad(413, 'photo too large');
