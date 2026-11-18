@@ -1181,6 +1181,16 @@
       "label": "Priority micro-watersheds (SLUSI)",
       "unit": "micro-watersheds",
       "description": "Micro-watersheds ranked by the Soil and Land Use Survey of India for soil conservation (priority from very high to very low), with hydrologic unit code. Use with the SLUSI micro-watershed boundaries."
+    },
+    "gsi_lithology_50k": {
+      "label": "Lithology 1:50k (GSI)",
+      "unit": "rock units",
+      "description": "Rock units mapped at 1:50,000 by the Geological Survey of India: lithology, age, supergroup, group, formation and stratigraphy, by toposheet."
+    },
+    "bhuvan_geomorphology_50k": {
+      "label": "Geomorphology 1:50k (Bhuvan 2005-06)",
+      "unit": "landform polygons",
+      "description": "Landforms mapped at 1:50,000 by NRSC in the 2005-06 national geomorphology mapping, in three levels (origin, process, landform). Mizoram, Lakshadweep and some UTs are missing in the source."
     }
   },
   "level_order": [
@@ -1329,7 +1339,9 @@
     "cadastrals_andaman_coastal",
     "cadastrals_goa",
     "cadastrals_delhi",
-    "fsi_recorded_forest_area"
+    "fsi_recorded_forest_area",
+    "gsi_lithology_50k",
+    "bhuvan_geomorphology_50k"
   ],
   "layers": [
     {
@@ -8994,6 +9006,80 @@
         "fingerprint": "updated_at=2026-03-08T23:09:09Z size=569219858",
         "checked_at": "2026-11-18T13:24:15Z",
         "changed_at": "2026-03-08T23:09:09Z"
+      }
+    },
+    {
+      "id": "gsi_lithology_50k",
+      "level": "gsi_lithology_50k",
+      "source": "NGDR",
+      "rows": 3966842,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geology/NGDR_Lithology_50k.parquet",
+        "bytes": 527034110
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.pmtiles",
+        "bytes": 201072784
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": "2026-11-18T15:11:43+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/geology/NGDR_Lithology_50k.parquet",
+        "fingerprint": "updated_at=2026-03-09T18:20:41Z size=615562945",
+        "checked_at": "2026-11-18T15:28:56Z",
+        "changed_at": "2026-03-09T18:20:41Z"
+      }
+    },
+    {
+      "id": "bhuvan_geomorphology_50k",
+      "level": "bhuvan_geomorphology_50k",
+      "source": "Bhuvan",
+      "rows": 586259,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-geomorphology-50k/Bhuvan_Geomorphology_50k_0506.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/Bhuvan_Geomorphology_50k_0506.parquet",
+        "bytes": 1525528726
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-geomorphology-50k/Bhuvan_Geomorphology_50k_0506.pmtiles",
+        "bytes": 526473820
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bhuvan (NRSC, ISRO)",
+          "url": "https://bhuvan.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area.",
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "fetched_at": "2026-11-18T15:11:43+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/Bhuvan_Geomorphology_50k_0506.parquet",
+        "fingerprint": "updated_at=2026-03-09T18:41:15Z size=1769689105",
+        "checked_at": "2026-11-18T15:28:58Z",
+        "changed_at": "2026-03-09T18:41:15Z"
       }
     }
   ],
