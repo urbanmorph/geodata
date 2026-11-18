@@ -2336,9 +2336,9 @@
       "source": "Bharatmaps",
       "rows": 99,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wetlands/Bharatmaps_Parivesh_Ramsar_Wetlands.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wetlands/Bharatmaps_Parivesh_Ramsar_Wetlands.9b40d041.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/wetlands/Bharatmaps_Parivesh_Ramsar_Wetlands.parquet",
-        "bytes": 2320886
+        "bytes": 1757461
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wetlands/Bharatmaps_Parivesh_Ramsar_Wetlands.pmtiles",
@@ -2426,9 +2426,9 @@
       "source": "CWC",
       "rows": 25,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/hydro-boundaries/WRIS_Basin.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/hydro-boundaries/WRIS_Basin.cbfdfe38.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/hydro-boundaries/WRIS_Basin.parquet",
-        "bytes": 4164883
+        "bytes": 3137376
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/hydro-boundaries/WRIS_Basin.pmtiles",
@@ -2476,9 +2476,9 @@
       "source": "CWC",
       "rows": 99,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/hydro-boundaries/WRIS_SubBasin.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/hydro-boundaries/WRIS_SubBasin.0db0344c.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/hydro-boundaries/WRIS_SubBasin.parquet",
-        "bytes": 23314612
+        "bytes": 14517043
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/hydro-boundaries/WRIS_SubBasin.pmtiles",
@@ -2615,9 +2615,9 @@
       "source": "Bharatmaps",
       "rows": 5608,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/irrigation/Bharatmaps_Dams.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/irrigation/Bharatmaps_Dams.83be85d4.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/irrigation/Bharatmaps_Dams.parquet",
-        "bytes": 460523
+        "bytes": 607429
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/irrigation/Bharatmaps_Dams.pmtiles",
@@ -2665,9 +2665,9 @@
       "source": "CWC",
       "rows": 5600,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/irrigation/WRIS_Dams.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/irrigation/WRIS_Dams.22f94826.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/irrigation/WRIS_Dams.parquet",
-        "bytes": 472841
+        "bytes": 610345
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/irrigation/WRIS_Dams.pmtiles",
@@ -2765,9 +2765,9 @@
       "source": "GatiShakti",
       "rows": 10317,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.cd48e275.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/infra/national-highways/GatiShakti_MORTH_National_Highways.parquet",
-        "bytes": 58742537
+        "bytes": 57724374
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.aa8ad6a8.pmtiles",
