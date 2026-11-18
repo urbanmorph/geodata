@@ -319,39 +319,47 @@ def _remote_etags(s3, prefix: str) -> dict[str, str]:
         token = page['NextContinuationToken']
 
 
+CACHE_WORKERS = 16  # cache files are many and small: send them in parallel
+
+
 def checkpoint_cache(local_dir: Path, prefix: str, s3) -> int:
     """Upload every cached answer under `local_dir` to R2 at cache/<prefix>/<path>
     whose bytes R2 doesn't already hold (md5); returns how many went up."""
     from boto3.s3.transfer import TransferConfig
+    from concurrent.futures import ThreadPoolExecutor
     single_part = TransferConfig(multipart_threshold=4 * 1024**3)  # keeps the ETag an MD5
     remote = _remote_etags(s3, prefix)
-    sent = 0
-    for rel, path in _cache_files(local_dir).items():
-        md5 = file_md5(path)
-        if remote.get(rel) == md5:
-            continue
+    todo = [(rel, path, md5) for rel, path in _cache_files(local_dir).items()
+            if remote.get(rel) != (md5 := file_md5(path))]
+
+    def put(job: tuple[str, Path, str]) -> None:
+        rel, path, md5 = job
         extra = {'ContentType': 'application/octet-stream', 'CacheControl': 'no-cache', 'Metadata': {'md5': md5}}
         s3.upload_file(str(path), BUCKET, f'{CACHE_PREFIX}/{prefix}/{rel}', ExtraArgs=extra, Config=single_part)
-        sent += 1
-    log(f'  cache checkpoint {prefix}: {sent} file(s) sent to R2')
-    return sent
+
+    with ThreadPoolExecutor(CACHE_WORKERS) as pool:
+        list(pool.map(put, todo))
+    log(f'  cache checkpoint {prefix}: {len(todo)} file(s) sent to R2')
+    return len(todo)
 
 
 def restore_cache(local_dir: Path, prefix: str, s3) -> int:
     """Download what R2 holds under cache/<prefix>/ that `local_dir` lacks (a
     local file is never overwritten); returns how many came down."""
-    got = 0
-    for rel in _remote_etags(s3, prefix):
+    from concurrent.futures import ThreadPoolExecutor
+    todo = [rel for rel in _remote_etags(s3, prefix) if not (local_dir / rel).exists()]
+
+    def get(rel: str) -> None:
         dest = local_dir / rel
-        if dest.exists():
-            continue
         dest.parent.mkdir(parents=True, exist_ok=True)
         with atomic_output(dest) as part:
             s3.download_file(BUCKET, f'{CACHE_PREFIX}/{prefix}/{rel}', str(part))
-        got += 1
-    if got:
-        log(f'  cache restore {prefix}: {got} file(s) from R2')
-    return got
+
+    with ThreadPoolExecutor(CACHE_WORKERS) as pool:
+        list(pool.map(get, todo))
+    if todo:
+        log(f'  cache restore {prefix}: {len(todo)} file(s) from R2')
+    return len(todo)
 
 
 @contextlib.contextmanager
