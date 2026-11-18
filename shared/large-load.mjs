@@ -66,3 +66,9 @@ export function usesServerFilter(layer) {
   const bytes = layer?.parquet?.bytes;
   return typeof bytes === 'number' && bytes > LARGE_FILTER_BYTES;
 }
+
+// GeoJSON/KML filtered exports for layers over LARGE_FILTER_BYTES are paused:
+// on 18 Nov 2026 production cut those streams off after the opening line
+// (decoding shapes ran past the Worker's CPU limit; local wrangler doesn't
+// enforce it). CSV works. Flip back once shapes decode per matching row only.
+export const SERVER_SHAPE_EXPORT = false;
