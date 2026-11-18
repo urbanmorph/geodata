@@ -51,12 +51,15 @@ describe('locate highlight', () => {
 });
 
 describe('Escape', () => {
-  it('closes an open popover, sheet or large-load card before the map', () => {
+  it('closes an open popover or sheet before the map', () => {
     const main = src('src/main.ts');
     expect(main).toContain('closeTopSurface()');
     const close = fnBody('src/map.ts', 'closeTopSurface');
     expect(close).toContain('overlayState.active');
-    expect(close).toContain('.large-load');
+  });
+  it('on the large-map card, Escape closes the map (declining the load leaves nothing to show)', () => {
+    // owner, 2026-11-18: closing only the card left an empty basemap
+    expect(fnBody('src/map.ts', 'closeTopSurface')).not.toContain('.large-load');
   });
   it('home search ignores Enter while an IME is composing', () => {
     expect(src('src/main.ts')).toContain('e.isComposing');

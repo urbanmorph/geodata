@@ -1197,9 +1197,7 @@ export function closeTopSurface(): boolean {
     dispatchOverlay({ type: 'close' });
     return true;
   }
-  if (document.querySelector('.large-load')) {
-    clearLargeLoad(document);
-    return true;
-  }
+  // The large-map card is not closed on its own: declining the load leaves an
+  // empty map, so Escape there closes the map (closeLayer clears the card).
   return false;
 }
