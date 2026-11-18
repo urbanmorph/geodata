@@ -10,8 +10,9 @@ with a parquet (the Filter panel needs one) and tiles:
      reads of the public R2 file)
   2. the parquet's columns (DESCRIBE reads only its footer); a layer whose
      tiles carry every column the panel could offer has no gap
-  3. otherwise the panel's columns: the catalog's baked filter_stats, else
-     the stats the viewer's live probe computes (a scan of the parquet), then
+  3. otherwise the panel's columns, from the stats the viewer reads
+     (build_filter_stats.panel_stats: the catalog's, the layer's stats file,
+     or what the browser's probe computes, a scan of the parquet), then
      build_filter_stats.tile_filter_columns; missing = those not in the tiles
 
 Each layer's answer is cached under WORK by its tile and parquet URLs, so a
@@ -34,7 +35,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import audit_tiles as at  # noqa: E402
-from build_filter_stats import is_unoffered_name, normalise_type, stats_for_parquet, tile_filter_columns  # noqa: E402
+from build_filter_stats import (  # noqa: E402
+    is_unoffered_name, normalise_type, panel_stats, stats_for_parquet, tile_filter_columns)
 from pipeline import make_con, write_json  # noqa: E402
 
 ROOT = HERE.parent
@@ -54,13 +56,13 @@ def missing_columns(tile_fields: list[str], stats: dict) -> list[str]:
     return [c for c in tile_filter_columns(stats) if c not in have]
 
 
-def layer_gap(layer: dict, baked: dict | None, con) -> dict:
+def layer_gap(layer: dict, catalog: dict, con) -> dict:
     pm, pq = layer['pmtiles']['url'], layer['parquet']['url']
     fields = at.archive_fields(at.http_reader(pm))
     schema = [(r[0], r[1]) for r in con.execute(f"DESCRIBE SELECT * FROM '{pq}' LIMIT 0").fetchall()]
     out = {'pmtiles': pm, 'parquet': pq, 'tile_fields': fields, 'missing': []}
-    if baked or unseen_columns(schema, fields):
-        stats = baked or stats_for_parquet(pq, con, probe=True)
+    if unseen_columns(schema, fields):
+        stats = panel_stats(layer, catalog, lambda: stats_for_parquet(pq, con, probe=True))
         out['missing'] = missing_columns(fields, stats) if stats else []
         out['filter_columns'] = tile_filter_columns(stats) if stats else []
     return out
@@ -82,7 +84,7 @@ def main(argv: list[str]) -> int:
             r = json.loads(cache.read_text())
         else:
             try:
-                r = layer_gap(layer, catalog.get('filter_stats', {}).get(lid), con)
+                r = layer_gap(layer, catalog, con)
             except Exception as e:  # noqa: BLE001  one layer's failure never stops the sweep
                 print(f'[{i}/{len(layers)}] ERR  {lid}: {type(e).__name__}: {e}', flush=True)
                 continue

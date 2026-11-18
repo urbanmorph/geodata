@@ -19,6 +19,7 @@ Called from scripts/build_catalog.py; can be run standalone:
 from __future__ import annotations
 import json
 import re
+from collections.abc import Callable
 from pathlib import Path
 
 import duckdb
@@ -125,6 +126,34 @@ def rank_columns(cols: list[dict], row_count: int) -> list[dict]:
     scored = [(KIND_PRIORITY[k] * 10 + (1 - c.get('null_frac', 0)), c)
               for c in cols if (k := affordance(c, row_count)) != 'drop']
     return [c for _, c in sorted(scored, key=lambda s: -s[0])][:DISPLAY_CAP]
+
+
+PANEL_STATS_DIR = ROOT / 'web' / 'public' / 'api-data' / 'filter-stats'
+
+
+def panel_stats(layer: dict, catalog: dict, probe: Callable[[], dict | None],
+                stats_dir: Path = PANEL_STATS_DIR, threshold: int | None = None) -> dict | None:
+    """The column stats the viewer's Filter panel ranks for `layer`, from
+    where it reads them (web/src/filter-stats.ts, filter-schema.ts
+    columnStatsSource): the catalog's filter_stats, else the layer's
+    filter-stats file; else, for a parquet at or under LARGE_FILTER_BYTES,
+    what the browser's probe finds (`probe()`). None when there is no panel:
+    no parquet, or a large layer without a stats file."""
+    pq = layer.get('parquet') or {}
+    if not pq.get('url'):
+        return None
+    inline = (catalog.get('filter_stats') or {}).get(layer['id'])
+    if inline:
+        return inline
+    filed = stats_dir / f"{layer['id']}.json"
+    if filed.exists():
+        return json.loads(filed.read_text())
+    if threshold is None:
+        from bake_large_filter_stats import large_filter_bytes  # it imports this module
+        threshold = large_filter_bytes()
+    if isinstance(pq.get('bytes'), int) and pq['bytes'] > threshold:
+        return None
+    return probe()
 
 
 def tile_filter_columns(stats: dict) -> list[str]:

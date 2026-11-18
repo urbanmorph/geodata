@@ -65,7 +65,7 @@ from bake_formats import (  # noqa: E402
     plain_popup_fields,
     tile_fields,
 )
-from build_filter_stats import stats_for_parquet, tile_filter_columns  # noqa: E402
+from build_filter_stats import panel_stats, stats_for_parquet, tile_filter_columns  # noqa: E402
 from bake_land_water import (  # noqa: E402
     Deadline,
     OutOfTime,
@@ -155,14 +155,11 @@ def popup_fields(layer_id: str, schema: list[tuple[str, str]], junk: set[str],
     return fields
 
 
-def filter_stats(baked: dict | None, src: Path, fmt: str, con, cache: Path) -> dict | None:
-    """The column stats the viewer's Filter panel ranks: the catalog's baked
-    filter_stats, else what its live probe of the parquet finds (computed
-    once, cached). None without a parquet: the viewer has no Filter then."""
-    if baked or fmt != 'parquet':
-        return baked
-    return json.loads(cached(cache, lambda p: p.write_text(
-        json.dumps(stats_for_parquet(src, con, probe=True), default=str))).read_text())
+def filter_stats(layer: dict, catalog: dict, src: Path, con, cache: Path) -> dict | None:
+    """The column stats the viewer's Filter panel ranks (panel_stats); the
+    probe reads the layer's parquet `src` once and is cached."""
+    return panel_stats(layer, catalog, lambda: json.loads(cached(cache, lambda p: p.write_text(
+        json.dumps(stats_for_parquet(src, con, probe=True), default=str))).read_text()))
 
 
 # ── tiles ────────────────────────────────────────────────────────────────────
@@ -341,7 +338,7 @@ def flat_parquet(con, src: Path, fmt: str, part: Path) -> None:
                     FROM {read} WHERE {geom} IS NOT NULL) TO '{part}' (FORMAT PARQUET)""")
 
 
-def build(layer: dict, deadline: Deadline, baked_stats: dict | None = None) -> tuple[Path, dict]:
+def build(layer: dict, deadline: Deadline, catalog: dict | None = None) -> tuple[Path, dict]:
     """The checked PMTiles file for one layer and its check record."""
     lid = layer['id']
     work = WORK / lid
@@ -360,7 +357,7 @@ def build(layer: dict, deadline: Deadline, baked_stats: dict | None = None) -> t
     columns = schema(con, flat)
     live = live_tiles(layer)
     junk = gis_artefact_columns()
-    stats = filter_stats(baked_stats, src, fmt, con, work / 'filter_stats.json')
+    stats = filter_stats(layer, catalog or {}, src, con, work / 'filter_stats.json')
     fields = tile_fields(popup_fields(lid, columns, junk, live['fields'] if live else None),
                          tile_filter_columns(stats) if stats else [], columns)
     # Narrowed: the tiles leave out a column a reader could want (not just artefacts).
@@ -546,7 +543,7 @@ def main(argv: list[str]) -> int:
             continue
         log(f'\n-> {lid}')
         try:
-            pm, checks = build(layer, deadline, catalog.get('filter_stats', {}).get(lid))
+            pm, checks = build(layer, deadline, catalog)
             if do_upload:
                 log(f'  {lid}: on R2 as {publish(layer, pm, checks)}')
         except OutOfTime as e:

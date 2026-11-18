@@ -168,14 +168,15 @@ def test_filter_stats_baked_first_else_probed_once_and_cached(tmp_path):
     src = tmp_path / 'source.parquet'
     con = duckdb.connect()
     con.execute(f"COPY (SELECT range AS fid, chr(65 + range::INT % 4) AS corporation FROM range(40)) TO '{src}'")
+    layer = {'id': 'wards_x', 'parquet': {'url': 'https://r2/wards_x.parquet', 'bytes': 1000}}
     baked = {'row_count': 1, 'columns': []}
-    assert rt.filter_stats(baked, src, 'parquet', con, tmp_path / 'fs.json') is baked
-    probed = rt.filter_stats(None, src, 'parquet', con, tmp_path / 'fs.json')
+    assert rt.filter_stats(layer, {'filter_stats': {'wards_x': baked}}, src, con, tmp_path / 'fs.json') is baked
+    probed = rt.filter_stats(layer, {}, src, con, tmp_path / 'fs.json')
     assert rt.tile_filter_columns(probed) == ['corporation']
     src.unlink()  # the second run reads the cache, not the parquet
-    assert rt.filter_stats(None, src, 'parquet', con, tmp_path / 'fs.json') == probed
+    assert rt.filter_stats(layer, {}, src, con, tmp_path / 'fs.json') == probed
     # No parquet, no Filter panel: nothing to add.
-    assert rt.filter_stats(None, tmp_path / 'x.geojson', 'geojson', con, tmp_path / 'g.json') is None
+    assert rt.filter_stats({'id': 'g', 'geojson': {'url': 'x'}}, {}, src, con, tmp_path / 'g.json') is None
 
 
 def test_geometry_column_by_type_not_name():

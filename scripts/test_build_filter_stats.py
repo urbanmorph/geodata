@@ -99,6 +99,22 @@ def test_tile_filter_columns_are_the_panels_low_cardinality_columns(case):
     assert fs.tile_filter_columns(case) == case['tile']
 
 
+def test_panel_stats_come_from_where_the_viewer_reads_them(tmp_path):
+    # web/src/filter-stats.ts loadBakedStats, then filter-schema.ts columnStatsSource.
+    inline, filed, probed = ({'row_count': n, 'columns': []} for n in (1, 2, 3))
+    (tmp_path / 'big.json').write_text(json.dumps(filed))
+
+    def stats(lid, nbytes, catalog=None):
+        layer = {'id': lid, 'parquet': {'url': 'https://r2/x.parquet', 'bytes': nbytes}}
+        return fs.panel_stats(layer, catalog or {}, lambda: probed, stats_dir=tmp_path, threshold=100)
+
+    assert stats('small', 10, {'filter_stats': {'small': inline}}) == inline   # the catalog's
+    assert stats('big', 500) == filed                                           # the layer's file
+    assert stats('other_big', 500) is None      # large, no file: no panel, so no columns
+    assert stats('small', 10) == probed         # the browser's probe
+    assert fs.panel_stats({'id': 'x', 'parquet': None}, {}, lambda: probed, tmp_path, 100) is None
+
+
 def test_probe_stats_skip_columns_the_panel_never_offers(tmp_path):
     # Mirrors web/src/filter-probe.ts, which the viewer runs for layers without baked stats.
     src = tmp_path / 'p.parquet'
