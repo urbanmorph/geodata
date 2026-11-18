@@ -1116,7 +1116,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     // Prefer the friendly title from level_meta (e.g. "Greater Bengaluru Wards
     // (2025)") so the bar never shows a raw id like "wards_bengaluru_gba". Layers
     // without a level_meta entry (most standard admin levels resolve theirs only
-    // on the edge via BUILTIN_LEVEL_META) keep the level · source · rows line.
+    // on the edge via shared/level-meta.mjs) keep the level · source · rows line.
     const levelMeta = cat.level_meta?.[layerId];
     const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
     const friendly = (levelMeta?.label || levelMeta?.seo_title || layer.name || '').trim();
