@@ -1693,9 +1693,8 @@
         "bytes": 69148863
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/LGD_Blocks.pmtiles",
-        "bytes": 36758638
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.c00ac144.pmtiles",
+        "bytes": 19548258
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.geojson",
@@ -1723,7 +1722,7 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:58:07.316028+00:00",
-      "notes": "Community-development blocks across India from the Local Government Directory (LGD). 7,146 polygons with the full LGD code chain joining to subdistricts, districts and states."
+      "notes": "Community-development blocks across India from the Local Government Directory (LGD). 7,146 polygons with the full LGD code chain joining to subdistricts, districts and states. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
     },
     {
       "id": "bhuvan_blocks",
@@ -1810,9 +1809,8 @@
         "bytes": 344831603
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/panchayats/LGD_Panchayats.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/panchayats/LGD_Panchayats.pmtiles",
-        "bytes": 189994168
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/panchayats/LGD_Panchayats.f71f9f17.pmtiles",
+        "bytes": 115138798
       },
       "geojson": null,
       "kml": null,
@@ -1831,7 +1829,7 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-21T10:12:19.703241+00:00",
-      "notes": "Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom."
+      "notes": "Authoritative. 319k gram-panchayat polygons. Use vector tiles to render at zoom. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
     },
     {
       "id": "lgd_villages",
@@ -1844,9 +1842,8 @@
         "bytes": 437980882
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/LGD_Villages.pmtiles",
-        "bytes": 269837981
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/LGD_Villages.c08c0de4.pmtiles",
+        "bytes": 176147477
       },
       "geojson": null,
       "kml": null,
@@ -1865,7 +1862,7 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-04-26T13:08:10.529947+00:00",
-      "notes": "Authoritative. 584k polygons. Use vector tiles to render."
+      "notes": "Authoritative. 584k polygons. Use vector tiles to render. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
     },
     {
       "id": "soi_village_points",
@@ -1878,9 +1875,8 @@
         "bytes": 26718248
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/SOI_VILLAGE_POINT.pmtiles",
-        "bytes": 60575972
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.b1f2ce9c.pmtiles",
+        "bytes": 76355202
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.geojson",
@@ -1908,7 +1904,7 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-04-26T13:01:32.132923+00:00",
-      "notes": "SoI village centroids (point geometry). 5.76 lakh point features. Coverage is dense in southern + western states and sparse in UP, Bihar, Jharkhand and several NE states (SoI source limitation, not a rendering issue)."
+      "notes": "SoI village centroids (point geometry). 5.76 lakh point features. Coverage is dense in southern + western states and sparse in UP, Bihar, Jharkhand and several NE states (SoI source limitation, not a rendering issue). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
     },
     {
       "id": "lgd_parliament",
@@ -2164,9 +2160,8 @@
         "bytes": 81409189
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/SOI_Forests.pmtiles",
-        "bytes": 47142540
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.3ad9c5b7.pmtiles",
+        "bytes": 22672948
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.geojson",
@@ -2191,7 +2186,7 @@
       "category": "environment",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:03:54.695520+00:00",
-      "notes": "Forest boundary polygons from Survey of India topographic maps. Includes reserved + protected + unclassed forests."
+      "notes": "Forest boundary polygons from Survey of India topographic maps. Includes reserved + protected + unclassed forests. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
     },
     {
       "id": "bp_ramsar",
@@ -2247,9 +2242,8 @@
         "bytes": 285534264
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.pmtiles",
-        "bytes": 373581813
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.1b4e1d1d.pmtiles",
+        "bytes": 280318304
       },
       "geojson": null,
       "kml": null,
@@ -2268,7 +2262,7 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-05-24T14:06:28.606557+00:00",
-      "notes": "All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh."
+      "notes": "All wetland boundary polygons notified under MoEFCC Wetland Rules 2017. Sourced via Bharatmaps Parivesh. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
     },
     {
       "id": "wris_basin",
@@ -2570,9 +2564,8 @@
         "bytes": 58742537
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/infra/national-highways/GatiShakti_MORTH_National_Highways.pmtiles",
-        "bytes": 39946793
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.aa8ad6a8.pmtiles",
+        "bytes": 35937968
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.geojson",
@@ -2597,7 +2590,7 @@
       "category": "transport",
       "provenance": "curated",
       "fetched_at": "2026-05-25T16:56:59+00:00",
-      "notes": "National highway centerlines from Ministry of Road Transport and Highways via PM GatiShakti. 10,317 line segments."
+      "notes": "National highway centerlines from Ministry of Road Transport and Highways via PM GatiShakti. 10,317 line segments. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
     },
     {
       "id": "nic_health",
@@ -2610,9 +2603,8 @@
         "bytes": 7792134
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.pmtiles",
-        "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.pmtiles",
-        "bytes": 10455128
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.fc08f98d.pmtiles",
+        "bytes": 23494882
       },
       "geojson": null,
       "kml": null,
@@ -4061,7 +4053,10 @@
       "source": "LGD",
       "rows": 1,
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.999f09a2.pmtiles",
+        "bytes": 746332
+      },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson",
         "bytes": 7528328
@@ -4142,7 +4137,10 @@
         "bytes": 46170854
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.466461ac.pmtiles",
+        "bytes": 1899106
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4167,7 +4165,10 @@
         "bytes": 48317735
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.87bacccd.pmtiles",
+        "bytes": 4632639
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4192,7 +4193,10 @@
         "bytes": 106291594
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.50b78dec.pmtiles",
+        "bytes": 11828870
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4217,7 +4221,10 @@
         "bytes": 110364589
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.c1550f23.pmtiles",
+        "bytes": 12205168
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4443,7 +4450,10 @@
         "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/soil-health/SLUSI_SHC.parquet",
         "bytes": 315208629
       },
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/slusi-soil-health/SLUSI_SHC.efdc27fe.pmtiles",
+        "bytes": 454941400
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -4454,7 +4464,7 @@
       },
       "category": "agriculture",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI Soil Health Card layer. Parquet-only; pmtiles deferred (1.77 GB; oversized for the viewer).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI Soil Health Card layer. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": null,
       "kml": null,
       "shapefile": null,
@@ -4831,9 +4841,8 @@
         "bytes": 55189632
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/habitations/PMGSY_Habitations.pmtiles",
-        "bytes": 61937753
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/pmgsy-habitations/PMGSY_Habitations.57ce07aa.pmtiles",
+        "bytes": 79306769
       },
       "licence": "GODL-India",
       "attribution": {
@@ -4911,9 +4920,8 @@
         "bytes": 28309210
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/floods/NDEM_All_India_Flood_Innundation_1998_to_2022.pmtiles",
-        "bytes": 10053234
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.b7e4a6f7.pmtiles",
+        "bytes": 12331779
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5111,9 +5119,8 @@
         "bytes": 304155180
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/WRIS_Waterbodies.pmtiles",
-        "bytes": 339169658
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/wris-waterbodies/WRIS_Waterbodies.036baf92.pmtiles",
+        "bytes": 211862985
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5142,9 +5149,8 @@
         "bytes": 474854958
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_MicroWatersheds.pmtiles",
-        "bytes": 158542307
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.b18e2a50.pmtiles",
+        "bytes": 98556142
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5156,7 +5162,7 @@
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": null,
       "kml": null,
       "shapefile": null,
@@ -5173,9 +5179,8 @@
         "bytes": 831269104
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.pmtiles",
-        "bytes": 412589839
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/pmgsy-roads/pmgsy_roads.ef6db65b.pmtiles",
+        "bytes": 325113239
       },
       "licence": "GODL-India",
       "attribution": {
@@ -5323,9 +5328,8 @@
         "upstream_url": "https://drive.google.com/file/d/1DGdHOojdBqTO65YjPbcUW_cpotlTGFm9/view"
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Groundwater_Extraction.pmtiles",
-        "bytes": 28786536,
-        "upstream_url": "https://drive.google.com/file/d/1DGdHOojdBqTO65YjPbcUW_cpotlTGFm9/view"
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Groundwater_Extraction.71c26a82.pmtiles",
+        "bytes": 21102295
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/groundwater/CGWB_Groundwater_Extraction.geojson",
@@ -5347,7 +5351,7 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-06-08",
-      "notes": "CGWB dynamic groundwater resource assessment (stage of extraction), 2020 assessment (Dynamic Ground Water Resources of India, 2020): national totals recharge 436.1 bcm, extractable 397.6 bcm, extraction 244.9 bcm, stage 61.6%. Newer assessments (2022 to 2025) exist at CGWB/INGRES; this layer is the 2020 edition. -9999 marks units not assessed. Sourced via CoRE Stack (core-stack.org).",
+      "notes": "CGWB dynamic groundwater resource assessment (stage of extraction), 2020 assessment (Dynamic Ground Water Resources of India, 2020): national totals recharge 436.1 bcm, extractable 397.6 bcm, extraction 244.9 bcm, stage 61.6%. Newer assessments (2022 to 2025) exist at CGWB/INGRES; this layer is the 2020 edition. -9999 marks units not assessed. Sourced via CoRE Stack (core-stack.org). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "groundwater",
         "over-exploited",
@@ -5574,8 +5578,8 @@
         "bytes": 74448598
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.pmtiles",
-        "bytes": 30561020
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.27652ef8.pmtiles",
+        "bytes": 21033580
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.geojson",
@@ -5600,7 +5604,7 @@
       "category": "agriculture",
       "provenance": "modelled",
       "fetched_at": "2026-10-03",
-      "notes": "Modelled data, not official crop statistics: block totals of CoRE Stack's IndiaSAT v4 land-use classification (10 m, 2023-24). Areas are in hectares and shares are of each block's mapped area, so add up hectares, not shares, when combining blocks. Not mapped: Lakshadweep and Andaman & Nicobar; partly mapped in the high Himalaya (see mapped_pct). The annual series from 2017-18 is available from CoRE Stack.",
+      "notes": "Modelled data, not official crop statistics: block totals of CoRE Stack's IndiaSAT v4 land-use classification (10 m, 2023-24). Areas are in hectares and shares are of each block's mapped area, so add up hectares, not shares, when combining blocks. Not mapped: Lakshadweep and Andaman & Nicobar; partly mapped in the high Himalaya (see mapped_pct). The annual series from 2017-18 is available from CoRE Stack. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "land use",
         "land cover",
@@ -5706,9 +5710,8 @@
         "bytes": 66680769
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/urban/SBM_Wards.pmtiles",
-        "bytes": 77731364
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.70fe7054.pmtiles",
+        "bytes": 52930282
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5720,7 +5723,7 @@
       },
       "category": "city-wards",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/sbm-wards/SBM_Wards.geojson",
         "bytes": 280788155
@@ -5906,9 +5909,8 @@
         "bytes": 71062441
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Circles.pmtiles",
-        "bytes": 37761024
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.d4bad9ca.pmtiles",
+        "bytes": 15516268
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5920,7 +5922,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.geojson",
         "bytes": 239119472
@@ -5946,9 +5948,8 @@
         "bytes": 172459428
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Divisions.pmtiles",
-        "bytes": 75523267
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.c2c0f1d5.pmtiles",
+        "bytes": 30862742
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5960,7 +5961,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.geojson",
         "bytes": 579142018
@@ -5986,9 +5987,8 @@
         "bytes": 144253317
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Ranges.pmtiles",
-        "bytes": 65999499
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.97f4af73.pmtiles",
+        "bytes": 27133139
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -6000,7 +6000,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.geojson",
         "bytes": 503064663
@@ -6026,9 +6026,8 @@
         "bytes": 328028526
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Beats.pmtiles",
-        "bytes": 184052619
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.8357dbd8.pmtiles",
+        "bytes": 78318357
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -6040,7 +6039,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.geojson",
         "bytes": 1424589326
@@ -6386,9 +6385,8 @@
         "bytes": 7856121
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/NGDR_Lineament_250k.pmtiles",
-        "bytes": 6168846
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.f52637d1.pmtiles",
+        "bytes": 7325695
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -6400,7 +6398,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lineaments-250k/NGDR_Lineament_250k.geojson",
         "bytes": 27360116
@@ -6706,9 +6704,8 @@
         "bytes": 4820995
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/waterbodies/Amrit_Sarovar_Water_Observatory_Ponds.pmtiles",
-        "bytes": 8952938
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.71ee556f.pmtiles",
+        "bytes": 17999728
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -6720,7 +6717,7 @@
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/amrit-sarovar-ponds/Amrit_Sarovar_Water_Observatory_Ponds.geojson",
         "bytes": 39692778
@@ -7331,8 +7328,8 @@
         "bytes": 28655136
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.pmtiles",
-        "bytes": 10025166
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.3e9733ce.pmtiles",
+        "bytes": 12757613
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -7344,7 +7341,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.geojson",
         "bytes": 173800562
@@ -7409,8 +7406,8 @@
         "bytes": 315643938
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.pmtiles",
-        "bytes": 86610198
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.a07abf25.pmtiles",
+        "bytes": 66017396
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -7422,7 +7419,7 @@
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI (Soil & Land Use Survey of India). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI (Soil & Land Use Survey of India). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.geojson",
         "bytes": 1756253606
@@ -7793,9 +7790,8 @@
         "bytes": 408433242
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/Bharatmaps_RFA.pmtiles",
-        "bytes": 170960010
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.1a98f9ae.pmtiles",
+        "bytes": 123782273
       },
       "licence": "CC0-1.0",
       "attribution": {
