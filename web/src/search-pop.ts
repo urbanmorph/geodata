@@ -1,6 +1,6 @@
 // The home search's results popover (the mockup): matching layers under the
 // bar, keyboard-navigable, with the ward answer above them. Pure helpers here;
-// main.ts owns the DOM. Each card carries data-title / data-sub / data-href.
+// main.ts owns the DOM. Each hit is one /layer-index.json entry: title, sub, link.
 import { escapeHtml as esc } from './util';
 import { matchLine } from './catalog-filter';
 

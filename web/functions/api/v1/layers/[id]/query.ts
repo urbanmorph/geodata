@@ -1,11 +1,12 @@
 import type { Env } from '../../../_middleware';
-import { loadCatalog } from '../../../../lib/catalog-loader';
+import { loadCatalogVersioned } from '../../../../lib/catalog-loader';
 import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, QueryInputError } from '../../../../lib/parquet-query';
 import { parseQueryParams } from '../../../../lib/query-params';
 import { json, safeStringify } from '../../../../lib/http';
+import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const id = (ctx.params as { id: string }).id;
@@ -14,7 +15,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 
   const url = new URL(ctx.request.url);
-  const catalog = await loadCatalog(url.origin);
+  const { catalog, version } = await loadCatalogVersioned(ctx);
   const layer = catalog.layers.find((l) => l.id === id);
   if (!layer) return json(404, { error: 'Layer not found', status: 404 });
   countApiUse(ctx, id);
@@ -24,21 +25,28 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   const { select, groupBy, sum, limit, where, includeCentroid } = parseQueryParams(url.searchParams);
 
-  try {
-    const start = Date.now();
-    const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
-    const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid });
-    const timing = Date.now() - start;
+  const run = async (): Promise<Response> => {
+    try {
+      const start = Date.now();
+      const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
+      const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid });
+      const timing = Date.now() - start;
 
-    return new Response(safeStringify({ data: result, layer_id: id, ...ncFields(layer), timing_ms: timing }), {
-      headers: {
-        'content-type': 'application/json',
-        'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
-      },
-    });
-  } catch (e) {
-    const msg = (e as Error).message;
-    if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
-    return json(500, { error: `Query failed: ${msg}`, status: 500 });
-  }
+      return new Response(safeStringify({ data: result, layer_id: id, ...ncFields(layer), timing_ms: timing }), {
+        headers: {
+          'content-type': 'application/json',
+          'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
+          ...(groupBy ? { etag: `"${version}-${file.etag}"` } : {}),
+        },
+      });
+    } catch (e) {
+      const msg = (e as Error).message;
+      if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
+      return json(500, { error: `Query failed: ${msg}`, status: 500 });
+    }
+  };
+
+  // Aggregates (group_by) are small and asked again and again; row answers vary
+  // with every filter and can be large, so they are not kept.
+  return groupBy ? cached(ctx, cacheKey(version, url), EDGE_TTL.r2, run) : run();
 };

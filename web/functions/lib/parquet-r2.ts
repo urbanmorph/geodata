@@ -11,6 +11,8 @@ export interface AsyncBuffer {
   slice(start: number, end?: number): Promise<ArrayBuffer>;
   /** Identifies the object version; set => its parsed footer is cached. */
   cacheKey?: string;
+  /** The R2 object's etag, when read from R2. */
+  etag?: string;
 }
 
 // Parsed parquet footers, per object version (key + size + etag), kept for
@@ -45,13 +47,36 @@ export function r2KeyFromLayer(layer: CatalogLayer): string | null {
   return url.replace(/^https:\/\/[^/]+\//, '');
 }
 
-export async function asyncBufferFromR2(r2: R2Bucket, key: string): Promise<AsyncBuffer> {
+// R2 heads (size + etag) per key, for a few minutes: every schema, query and
+// nearby call headed its object first. Layer keys are versioned, so a short
+// memory is safe; a missing key is never remembered.
+const HEAD_TTL_MS = 5 * 60_000;
+const HEAD_CACHE_MAX = 256;
+const headCache = new Map<string, { size: number; etag: string; at: number }>();
+
+export function clearHeadCache(): void {
+  headCache.clear();
+}
+
+async function headOf(r2: R2Bucket, key: string): Promise<{ size: number; etag: string }> {
+  const now = Date.now();
+  const hit = headCache.get(key);
+  if (hit && now - hit.at < HEAD_TTL_MS) return hit;
   const head = await r2.head(key);
   if (!head) throw new Error(`R2 key not found: ${key}`);
+  headCache.delete(key);
+  headCache.set(key, { size: head.size, etag: head.etag, at: now });
+  while (headCache.size > HEAD_CACHE_MAX) headCache.delete(headCache.keys().next().value!);
+  return head;
+}
+
+export async function asyncBufferFromR2(r2: R2Bucket, key: string): Promise<AsyncBuffer> {
+  const head = await headOf(r2, key);
   const byteLength = head.size;
 
   return {
     byteLength,
+    etag: head.etag,
     cacheKey: `${key}@${byteLength}:${head.etag}`,
     async slice(start: number, end?: number): Promise<ArrayBuffer> {
       const length = (end ?? byteLength) - start;

@@ -15,6 +15,7 @@ export type CatalogLayer = {
   name?: string;
   description?: string;
   provenance?: string;
+  category?: string;
   licence?: string;
   non_commercial?: boolean;
   notes?: string;
@@ -201,7 +202,7 @@ export type WardIndex = {
 // vadodara") that a map page can't satisfy in the SERP. Renders ONLY the columns
 // the layer actually carries: a number-only layer gets a number list and no
 // ItemList JSON-LD — we never invent an area name. Data is what it is.
-export function buildWardTable(idx: WardIndex | null | undefined): {
+function wardTable(idx: WardIndex | null | undefined): {
   html: string;
   jsonLd: Record<string, unknown> | null;
 } {
@@ -271,7 +272,7 @@ const wardItem = (r: WardRow) => `<li>Ward ${esc(r.no)}${r.name && r.name !== r.
 // The zone-wise ward list ("zone wise ward list lucknow", "bhopal nagar nigam zone list"): the wards grouped under
 // the zone the layer's own zone column gives them (scripts/build_ward_index.py). Rendered only when the layer has
 // at least two zones; wards the source gives no zone are named as such, never placed in one.
-export function buildZoneList(idx: WardIndex | null | undefined): { html: string; zones: number } {
+function zoneList(idx: WardIndex | null | undefined): { html: string; zones: number } {
   const groups = new Map<string, WardRow[]>();
   for (const r of idx?.rows ?? []) {
     if (r.zone) groups.set(r.zone, [...(groups.get(r.zone) ?? []), r]);
@@ -292,6 +293,19 @@ export function buildZoneList(idx: WardIndex | null | undefined): { html: string
     `<p>${plural(zoned, 'ward')} in ${groups.size} zones, as the source groups them.${none}</p>${sections}</section>`;
   return { html, zones: groups.size };
 }
+
+// A ward page uses each table twice (the article, and the description or the
+// ItemList JSON-LD): build them once per ward index.
+function oncePerIndex<T>(build: (idx: WardIndex | null | undefined) => T): (idx: WardIndex | null | undefined) => T {
+  const memo = new WeakMap<WardIndex, T>();
+  return (idx) => {
+    if (!idx) return build(idx);
+    if (!memo.has(idx)) memo.set(idx, build(idx));
+    return memo.get(idx)!;
+  };
+}
+export const buildWardTable = oncePerIndex(wardTable);
+export const buildZoneList = oncePerIndex(zoneList);
 
 export function buildViewDataset(
   layer: CatalogLayer,
@@ -314,10 +328,8 @@ export function buildViewDataset(
     levelMeta?.description ??
     (layer.description || `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
   const description = baseDescription.slice(0, META_DESC_MAX);
-  // Same padding template as prerender's homeSeo Dataset block: lifts
-  // terse base descriptions over the ≥50 floor and seeds format/provenance
-  // keywords for SERP rich snippets. Keep in sync with prerender.mjs's
-  // padDatasetDescription suffix.
+  // Lifts terse base descriptions over Google Dataset Search's ≥50 floor and
+  // seeds format/provenance words for SERP rich snippets.
   const ldDescription =
     baseDescription.length >= LD_DESC_MIN
       ? baseDescription
@@ -330,6 +342,10 @@ export function buildViewDataset(
   // crawlers (PDGI "humans in the loop"): the credit to reproduce, that access
   // is unrestricted, and where the usage terms live.
   const creditText = `Source: ${layer.source}. Published via bharatlas (bharatlas.com).${layer.licence ? ` Licence: ${layer.licence}.` : ''}`;
+  // Google Dataset Search matches queries on keywords (the home page's
+  // per-level Dataset blocks carried them before they moved here).
+  const keywords = [...new Set([layer.level, levelMeta?.label, layer.source, layer.category, 'India']
+    .filter((k): k is string => typeof k === 'string' && k.length > 0))];
 
   return {
     title,
@@ -345,6 +361,7 @@ export function buildViewDataset(
       url: canonical,
       license: layer.licence ? licenceUrl(layer.licence) ?? layer.licence : undefined,
       isAccessibleForFree: true,
+      keywords,
       creditText,
       conditionsOfAccess: 'Free and open. No account or API key required.',
       usageInfo: `${origin}/terms`,

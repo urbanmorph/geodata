@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { buildViewDataset, resolveLevelMeta, type CatalogLayer } from '../functions/lib/view-dataset';
 
 function metaContent(html: string, name: string, attr = 'name'): string | null {
   const m = html.match(new RegExp(`<meta\\s+${attr}="${name}"[^>]*content="([^"]+)"`));
@@ -73,63 +74,57 @@ describe('SEO — home JSON-LD enrichments', () => {
     expect(site.potentialAction['query-input']).toBe('required name=search_term_string');
   });
 
-  it('Dataset count matches the number of visible level rows', () => {
-    // Previously only LGD-sourced layers emitted JSON-LD — 8 of 10 visible
-    // levels. Wildlife (GatiShakti) and eco-zones (Bharatmaps) were
-    // invisible to Google Dataset Search. Now every visible row should
-    // emit exactly one Dataset.
+  it('carries no Dataset blocks: each /view/<id> page has its own, richer one', () => {
+    // 146 home Datasets were 240 KB raw (26 KB gz) of the home page and
+    // duplicated the /view pages' (functions/lib/view-dataset.ts).
     const graph = loadGraph();
-    const datasets = graph.filter((n) => n['@type'] === 'Dataset');
-    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
-    // The compact-layout sections carry `row--compact` as an extra class.
-    // Match anything starting with "row row--curated" until the class
-    // attribute's closing quote.
-    const visibleRows = (html.match(/<section class="row row--curated[^"]*"/g) || []).length;
-    expect(datasets.length).toBe(visibleRows);
+    expect(graph.filter((n) => n['@type'] === 'Dataset')).toEqual([]);
+    expect(graph.map((n) => n['@type'])).toEqual(['WebSite']);
+  });
+});
+
+describe('SEO: /view/<id> Dataset JSON-LD (the Dataset Search surface)', () => {
+  const catalog = JSON.parse(readFileSync(resolve(__dirname, '..', '..', 'catalog.json'), 'utf8'));
+  const viewable = (catalog.layers as CatalogLayer[]).filter((l) => l.provenance !== 'community' && l.level);
+  const datasets = viewable.map((l) => buildViewDataset(l, resolveLevelMeta(l, catalog.level_meta), 'https://bharatlas.com').jsonLd as any);
+
+  it('every curated layer page emits a Dataset', () => {
     expect(datasets.length).toBeGreaterThanOrEqual(10);
+    for (const d of datasets) expect(d['@type']).toBe('Dataset');
   });
 
-  it('every Dataset has a license URL + at least one DataDownload', () => {
-    const datasets = loadGraph().filter((n) => n['@type'] === 'Dataset');
-    for (const d of datasets) {
-      expect(d.license, `${d.name} missing license`).toMatch(/^https:\/\//);
-      expect(d.distribution?.length, `${d.name} no distribution`).toBeGreaterThan(0);
-    }
+  it('every Dataset with a licence has its URL, and one with downloads lists them', () => {
+    viewable.forEach((l, i) => {
+      if (l.licence) expect(datasets[i].license, `${l.id} license`).toBeTruthy();
+      if (l.parquet?.url) expect(datasets[i].distribution?.length, `${l.id} distribution`).toBeGreaterThan(0);
+    });
   });
 
-  it('every Dataset description is ≥50 chars (Google Dataset Search rule)', () => {
-    // Google Search Console rejects Dataset entries with shorter descriptions
-    // ("Invalid string length in field 'description'"). The prerender pads
-    // short notes via padDatasetDescription(); this test ensures the pad
-    // actually fired on every emitted row, including future additions where
-    // someone forgets to write a long description.
-    const datasets = loadGraph().filter((n) => n['@type'] === 'Dataset');
-    for (const d of datasets) {
-      expect(
-        d.description?.length ?? 0,
-        `${d.name}: description too short (${d.description?.length} chars): "${d.description}"`,
-      ).toBeGreaterThanOrEqual(50);
-    }
+  it('every Dataset description is at least 50 chars (Google Dataset Search rule)', () => {
+    for (const d of datasets) expect(d.description.length, d.name).toBeGreaterThanOrEqual(50);
   });
 
   it('every Dataset declares isAccessibleForFree:true', () => {
-    // Small but free Google Dataset Search signal — explicitly marking the
-    // data as free helps rank vs paywalled alternates.
-    const datasets = loadGraph().filter((n) => n['@type'] === 'Dataset');
-    for (const d of datasets) {
-      expect(d.isAccessibleForFree, `${d.name} missing isAccessibleForFree`).toBe(true);
-    }
+    for (const d of datasets) expect(d.isAccessibleForFree, d.name).toBe(true);
   });
 
-  it('every Dataset has keywords (array, ≥3 items)', () => {
-    // Google Dataset Search uses keywords for query matching.
-    // We derive: [level, label, source, category, 'India'].
-    const datasets = loadGraph().filter((n) => n['@type'] === 'Dataset');
+  it('every Dataset has keywords (array, at least 3, with India)', () => {
+    // Google Dataset Search uses keywords for query matching (moved here from the home blocks).
     for (const d of datasets) {
-      expect(Array.isArray(d.keywords), `${d.name} keywords not an array`).toBe(true);
+      expect(Array.isArray(d.keywords), `${d.name} keywords`).toBe(true);
       expect(d.keywords.length, `${d.name} too few keywords`).toBeGreaterThanOrEqual(3);
       expect(d.keywords).toContain('India');
     }
+  });
+});
+
+describe('SEO: /layers keeps its BreadcrumbList', () => {
+  it('layers.html carries the Home > All layers BreadcrumbList', () => {
+    const html = readFileSync(resolve(__dirname, '..', 'layers.html'), 'utf8');
+    const m = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    const data = JSON.parse(m![1].replace(/\\u003c/g, '<'));
+    expect(data['@type']).toBe('BreadcrumbList');
+    expect(data.itemListElement.map((i: { name: string }) => i.name)).toEqual(['Home', 'All layers']);
   });
 });
 

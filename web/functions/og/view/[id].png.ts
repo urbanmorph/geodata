@@ -1,11 +1,13 @@
 // GET /og/view/<id>.png — curated-layer OG card.
-// Reads catalog.json from same-origin, builds metadata, renders PNG.
+// Reads the catalog, builds metadata, renders PNG; the PNG is kept in the edge
+// cache (keyed by the deploy version), so resvg runs once per colo and deploy.
 
 import { curatedMetadata } from '../../lib/og-metadata';
 import { renderOgPng } from '../../lib/og-render';
 import { ogError, PNG_HEADERS } from '../../lib/og-response';
 import { renderOgSvg } from '../../lib/og-template';
-import { loadCatalog } from '../../lib/catalog-loader';
+import { loadCatalogVersioned } from '../../lib/catalog-loader';
+import { cached, cacheKey, EDGE_TTL } from '../../lib/edge-cache';
 
 type Params = { id: string };
 
@@ -14,19 +16,21 @@ type Catalog = {
   level_meta?: Record<string, { label: string; unit?: string }>;
 };
 
-export const onRequestGet: PagesFunction<unknown, keyof Params> = async (ctx) => {
+export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
   if (!/^[a-zA-Z0-9_-]+$/.test(id)) return ogError(404, 'invalid layer id');
 
-  const origin = new URL(ctx.request.url).origin;
   // Cached per isolate (catalog.json only changes with a deploy).
-  const catalog = (await loadCatalog(origin).catch(() => null)) as Catalog | null;
-  if (!catalog) return ogError(503, 'catalog unavailable');
+  const loaded = await loadCatalogVersioned(ctx).catch(() => null);
+  if (!loaded) return ogError(503, 'catalog unavailable');
+  const catalog = loaded.catalog as unknown as Catalog;
 
   const layer = catalog.layers?.find((l) => l.id === id);
   if (!layer) return ogError(404, 'layer not found');
 
-  const meta = curatedMetadata({ layer, levelMeta: catalog.level_meta?.[layer.level] });
-  const png = await renderOgPng(renderOgSvg(meta), origin);
-  return new Response(png, { headers: PNG_HEADERS });
+  const key = cacheKey(loaded.version, new URL(ctx.request.url), { query: false });
+  return cached(ctx, key, EDGE_TTL.page, async () => {
+    const meta = curatedMetadata({ layer, levelMeta: catalog.level_meta?.[layer.level] });
+    return new Response(await renderOgPng(renderOgSvg(meta), ctx), { headers: PNG_HEADERS });
+  });
 };

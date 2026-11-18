@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
-import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
+import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg } from '../../shared/brand.mjs';
 import { THEME_DESC, THEME_GLYPH } from './themes.mjs';
@@ -31,8 +31,9 @@ if (!existsSync(catalogPath)) {
   process.exit(1);
 }
 const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
-// The home search's index (/layer-index.json): one entry per /layers row,
-// pushed by renderRow / renderCommunityCard from the same values the row shows.
+// The search index (/layer-index.json): one entry per /layers row, in row
+// order, pushed by renderRow / renderCommunityCard from the same values the row
+// shows. The home search and the /layers filter both read it (by id, `i`).
 const layerIndex = [];
 // Live download counts (falls back to the catalog snapshot if unreachable).
 const liveCounts = await fetchLiveCounts();
@@ -51,22 +52,6 @@ const LOCATE_N = DEFAULT_LOCATE_LAYERS.length;
 
 // TOKENS, renderNav, FOOTER imported from ./shared-chrome.mjs above
 // (extracted so vitest can test the pure helpers).
-
-// Google Dataset Search rejects schema.org Dataset entries whose description
-// is under ~50 chars. Pad short notes with a stable contextual suffix so
-// future drift (short notes / new layers with terse meta.description) doesn't
-// re-trigger Search Console warnings.
-const DATASET_DESC_MIN = 80;
-function padDatasetDescription(desc, name, source) {
-  const trimmed = (desc || '').trim();
-  if (trimmed.length >= DATASET_DESC_MIN) return trimmed;
-  // Padded suffix lifts terse level descriptions over Google's Dataset
-  // Search ≥50 floor with margin and adds format keywords + provenance
-  // for richer SERP snippets. Stays under the ~250-char rich-snippet cap
-  // when combined with the longest level description (~110 chars).
-  const suffix = ` Free to view, slice and download as Parquet, PMTiles, GeoJSON or KML. Open atlas of India by Urban Morph, sourced from ${source}.`;
-  return (trimmed + suffix).trim();
-}
 
 // Link previews (LinkedIn, WhatsApp, X) cache a share image by URL for weeks,
 // so the URL carries the image's content hash: a new image is a new URL.
@@ -443,20 +428,11 @@ function renderRow(level, layersForLevel, opts = {}) {
   });
 
   const sub = [primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · ');
-  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
+  layerIndex.push({ i: primary.id, p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
-    `data-level="${esc(level)}"`,
     `data-category="${esc(primary.category || 'boundaries')}"`,
     `data-layers="${layersForLevel.length}"`,
-    // What the search dropdown shows for this card (src/search-pop.ts).
-    `data-title="${esc(meta.label)}"`,
-    `data-sub="${esc(sub)}"`,
-    `data-href="${viewable ? `/view/${esc(primary.id)}` : `#${esc(level)}`}"`,
-    `data-provenance="${esc(primary.provenance || 'curated')}"`,
-    `data-source="${esc(primary.source)}"`,
-    `data-search-primary="${esc(primaryHaystack)}"`,
-    `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
 
   // Compact list layout — one-line entry per layer. Description, source,
@@ -523,7 +499,8 @@ const attrLinks = Object.entries(catalog.attribution || {})
   .join(' · ');
 
 
-// SEO head for the home page (+ JSON-LD Dataset for each curated layer)
+// SEO head for the home page: WebSite + SearchAction. Each layer's Dataset
+// JSON-LD lives on its own /view/<id> page (functions/lib/view-dataset.ts).
 const homeSeo = seoHead({
   title: "India's open atlas: every boundary, one search away",
   description:
@@ -555,43 +532,6 @@ const homeSeo = seoHead({
           'query-input': 'required name=search_term_string',
         },
       },
-      // One Dataset per VISIBLE level — primary layer regardless of source.
-      // (Used to filter to source === 'LGD' which dropped wildlife + eco
-      // zones from Dataset Search visibility.)
-      ...LEVEL_ORDER
-        .filter((lvl) => byLevel[lvl]?.length)
-        .map((lvl) => {
-          const layers = byLevel[lvl];
-          const l = pickPrimary(layers);
-          const meta = LEVEL_META[lvl] || {};
-          // Keywords for Google Dataset Search query matching. Dedup +
-          // filter empties so we always emit a clean array; tests pin
-          // ≥3 items including 'India'.
-          const keywords = [...new Set([
-            lvl, meta.label, l.source, l.category, 'India',
-          ].filter((x) => typeof x === 'string' && x.length > 0))];
-          return {
-            '@type': 'Dataset',
-            name: `${meta.label ?? l.id} (${l.source})`,
-            description: padDatasetDescription(meta.description ?? l.notes ?? '', meta.label ?? l.id, l.source),
-            url: ORIGIN + '/layers#' + lvl,
-            license: licenceUrl(l.licence),
-            isAccessibleForFree: true,
-            keywords,
-            creator: l.attribution?.primary
-              ? { '@type': 'Organization', name: l.attribution.primary.name, url: l.attribution.primary.url }
-              : undefined,
-            distribution: [
-              l.parquet?.url && { '@type': 'DataDownload', encodingFormat: 'application/x-parquet', contentUrl: l.parquet.url, contentSize: l.parquet.bytes },
-              l.pmtiles?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.pmtiles', contentUrl: l.pmtiles.url, contentSize: l.pmtiles.bytes },
-              l.geojson?.url && { '@type': 'DataDownload', encodingFormat: 'application/geo+json', contentUrl: l.geojson.url, contentSize: l.geojson.bytes },
-              l.kml?.url && { '@type': 'DataDownload', encodingFormat: 'application/vnd.google-earth.kml+xml', contentUrl: l.kml.url, contentSize: l.kml.bytes },
-              l.shapefile?.url && { '@type': 'DataDownload', encodingFormat: 'application/zip', contentUrl: l.shapefile.url, contentSize: l.shapefile.bytes },
-            ].filter(Boolean),
-            spatialCoverage: { '@type': 'Place', name: 'India' },
-          };
-        })
-        .filter((d) => d.distribution.length > 0),
     ],
   },
 });
@@ -703,18 +643,11 @@ function renderCommunityCard(s, opts = {}) {
   const bodyHaystack = expandAliases(
     [s.description || '', s.attribution || '', cat, s.format || ''].join(' '),
   ).toLowerCase();
-  layerIndex.push({ p: primaryHaystack, b: bodyHaystack, t: s.name, s: `community · ${s.format}`, h: `/c/${s.id}` });
+  layerIndex.push({ i: s.id, p: primaryHaystack, b: bodyHaystack, t: s.name, s: `community · ${s.format}`, h: `/c/${s.id}` });
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
     `data-useful="${useful}"`,
-    `data-created="${esc(s.created_at)}"`,
     `data-category="${esc(cat)}"`,
-    `data-provenance="community"`,
-    `data-title="${esc(s.name)}"`,
-    `data-sub="${esc(`community · ${s.format}`)}"`,
-    `data-href="/c/${esc(s.id)}"`,
-    `data-search-primary="${esc(primaryHaystack)}"`,
-    `data-search-body="${esc(bodyHaystack)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
   // View map + Download. The action targets depend on whether the submission
@@ -784,7 +717,7 @@ const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('')
 
 // Render one section per non-empty category. Inside each: curated level rows
 // first (in LEVEL_ORDER), then community cards (newest first). Both are
-// searchable via data-search; the category pill picks one section to show.
+// searchable via /layer-index.json; the category pill picks one section to show.
 //
 // Density management: sections with > VISIBLE_LIMIT layers collapse the
 // overflow under a "show all N" toggle (data-overflow attr); main.ts wires

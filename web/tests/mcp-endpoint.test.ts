@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
-import { handleMcp, type ApiRoute, type McpDeps } from '../functions/lib/mcp';
+import { handleMcp, apiRateLimit, type ApiRoute, type McpDeps } from '../functions/lib/mcp';
 import { READ_TOOLS, readToolRequest } from '../../mcp/read-tools.js';
 
 const ORIGIN = 'https://bharatlas.com';
@@ -178,13 +178,21 @@ describe('/mcp tools/call', () => {
 
   it('is rate limited per caller IP, with locate on its own tighter limit', async () => {
     const asked: { ip: string; tool: string }[] = [];
-    const deny = async (ip: string, tool: string) => { asked.push({ ip, tool }); return { ok: false as const, retryAfter: 12 }; };
+    const deny = async (req: Request, tool: string) => { asked.push({ ip: req.headers.get('cf-connecting-ip')!, tool }); return { ok: false as const, retryAfter: 12 }; };
     const { routes, seen } = stubRoutes();
     const { json } = await rpc(call('locate', { lat: 12.9, lng: 77.5 }), { routes, rateLimit: deny });
     expect(asked).toEqual([{ ip: '203.0.113.9', tool: 'locate' }]);
     expect(seen).toHaveLength(0);
     expect(json.result.isError).toBe(true);
     expect(json.result.content[0].text).toContain('12');
+  });
+
+  it("apiRateLimit is the API's own limiter: it answers without waiting on D1", async () => {
+    const hanging = { prepare: () => ({ bind: () => ({ first: () => new Promise(() => {}) }) }) };
+    const waited: Promise<unknown>[] = [];
+    const limit = apiRateLimit({ DB: hanging, IP_SALT: 's' } as never, (p) => { waited.push(p); });
+    expect(await limit(post({}), 'locate')).toEqual({ ok: true });
+    expect(waited).toHaveLength(1);
   });
 });
 

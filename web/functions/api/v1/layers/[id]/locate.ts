@@ -43,7 +43,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const zoom = clampNum(url.searchParams.get('zoom'), 14, 4, 16, true);
   const radiusKm = clampNum(url.searchParams.get('radius_km'), 25, 1, 200);
 
-  const catalog = await loadCatalog(url.origin);
+  const catalog = await loadCatalog(ctx);
   const layer = catalog.layers.find((l) => l.id === id);
   if (!layer) return json(404, { error: 'Layer not found', status: 404 });
 

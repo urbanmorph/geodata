@@ -26,7 +26,7 @@ describe('/layers', () => {
   });
   it('lists every curated layer level', () => {
     const levels = new Set(catalog.layers.filter((l) => l.provenance !== 'community').map((l) => l.level));
-    for (const lvl of levels) expect(layers, lvl).toContain(`data-level="${lvl}"`);
+    for (const lvl of levels) expect(layers, lvl).toMatch(new RegExp(`<section class="row row--curated[^"]*" id="${lvl}"`));
   });
   it('loads its own script, not the home page bundle', () => {
     expect(layers).toContain('src="/src/layers.ts"');
@@ -48,19 +48,35 @@ describe('lean home page', () => {
   it('searches /layer-index.json, which matches the /layers rows one for one', () => {
     // Fetched on the search's first focus, so the home page carries no list.
     expect(read('src/main.ts')).toContain("fetch('/layer-index.json')");
-    const index = JSON.parse(read('public/layer-index.json')) as { t: string; h: string }[];
-    const rows = [...layers.matchAll(/data-search-primary="/g)].length;
-    expect(index.length).toBe(rows);
+    const index = JSON.parse(read('public/layer-index.json')) as { i: string; t: string; h: string; n?: number }[];
+    // Every row, in page order, is one entry of the index, by its id.
+    const rowIds = [...layers.matchAll(/<(?:section class="row row--curated[^"]*"|article class="comm-card[^"]*") id="[^"]*" data-id="([^"]+)"|<article class="comm-card[^"]*" data-id="([^"]+)"/g)]
+      .map((m) => m[1] ?? m[2]);
+    expect(rowIds.length).toBeGreaterThan(10);
+    expect(index.map((e) => e.i)).toEqual(rowIds);
     // Curated rows open their map or their /layers anchor; community layers
     // (production builds only, from D1) open their /c/<id> page.
     // Each entry says how many layers its row holds, as the row's data-layers does.
     const rowLayers = [...layers.matchAll(/data-layers="(\d+)"/g)].map((m) => Number(m[1]));
-    expect(index.filter((e) => (e as { n?: number }).n).map((e) => (e as { n?: number }).n)).toEqual(rowLayers);
+    expect(index.filter((e) => e.n).map((e) => e.n)).toEqual(rowLayers);
     for (const e of index) expect(e.h).toMatch(/^\/view\/[a-z0-9_]+$|^\/layers#[a-z0-9_]+$|^\/c\/[A-Za-z0-9_-]+$/);
   });
   it('is back under 85 KB gzipped', async () => {
     const { gzipSync } = await import('node:zlib');
     expect(gzipSync(home).length).toBeLessThan(85 * 1024);
+  });
+});
+
+describe('/layers weight', () => {
+  it('filters from /layer-index.json: rows carry no search haystacks or unused data-*', () => {
+    expect(read('src/layers.ts')).toContain("fetch('/layer-index.json')");
+    for (const attr of ['data-search-primary', 'data-search-body', 'data-title', 'data-sub', 'data-href', 'data-provenance', 'data-source', 'data-level', 'data-created']) {
+      expect(layers, attr).not.toContain(`${attr}=`);
+    }
+  });
+  it('is under 50 KB gzipped', async () => {
+    const { gzipSync } = await import('node:zlib');
+    expect(gzipSync(layers).length).toBeLessThan(50 * 1024);
   });
 });
 

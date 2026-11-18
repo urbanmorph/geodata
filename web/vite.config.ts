@@ -36,10 +36,22 @@ function prerenderPlugin(): Plugin {
   };
 }
 
+// dist/build-id.txt: one new id per build. The Functions read it (lib/catalog-loader.ts)
+// into the deploy version that keys the edge cache, so each deploy starts fresh.
+function buildIdPlugin(): Plugin {
+  return {
+    name: 'geodata-build-id',
+    apply: 'build',
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'build-id.txt', source: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}\n` });
+    },
+  };
+}
+
 export default defineConfig({
   // VITE_* build keys (the ArcGIS key) live in one gitignored file: geodata/.env.local.
   envDir: resolve(__dirname, '..'),
-  plugins: [prerenderPlugin()],
+  plugins: [prerenderPlugin(), buildIdPlugin()],
   // Proxy paths that aren't served by Vite to a background `wrangler pages dev`
   // on 8788. /api/* are Pages Functions (D1, R2, Turnstile). /c/<id> is the
   // edge-rendered view page. Start wrangler with:

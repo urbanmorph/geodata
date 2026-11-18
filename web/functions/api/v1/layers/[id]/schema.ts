@@ -1,10 +1,11 @@
 import type { Env } from '../../../_middleware';
-import { loadCatalog } from '../../../../lib/catalog-loader';
+import { loadCatalogVersioned } from '../../../../lib/catalog-loader';
 import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
 import { json, safeStringify } from '../../../../lib/http';
+import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
@@ -15,7 +16,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   }
 
   const url = new URL(ctx.request.url);
-  const catalog = await loadCatalog(url.origin);
+  const { catalog, version } = await loadCatalogVersioned(ctx);
   const layer = catalog.layers.find((l) => l.id === id);
   if (!layer) return json(404, { error: 'Layer not found', status: 404 });
   countApiUse(ctx, id);
@@ -23,13 +24,15 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const r2Key = r2KeyFromLayer(layer);
   if (!r2Key) return json(404, { error: 'No parquet file for this layer', status: 404 });
 
-  try {
-    const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
-    const schema = await getSchema(file);
-    return new Response(safeStringify({ data: schema, ...ncFields(layer) }), {
-      headers: { 'content-type': 'application/json', 'cache-control': CACHE },
-    });
-  } catch (e) {
-    return json(500, { error: `Schema read failed: ${(e as Error).message}`, status: 500 });
-  }
+  return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
+    try {
+      const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
+      const schema = await getSchema(file);
+      return new Response(safeStringify({ data: schema, ...ncFields(layer) }), {
+        headers: { 'content-type': 'application/json', 'cache-control': CACHE, etag: `"${version}-${file.etag}"` },
+      });
+    } catch (e) {
+      return json(500, { error: `Schema read failed: ${(e as Error).message}`, status: 500 });
+    }
+  });
 };

@@ -64,7 +64,8 @@ describe('home hero', () => {
 
   it('offers quick searches that each find at least one layer', async () => {
     const { filterCards } = await import('../src/catalog-filter');
-    const cards = [...list.matchAll(/data-category="([^"]+)"[^>]*data-search-primary="([^"]*)" data-search-body="([^"]*)"/g)].map((m) => ({ category: m[1], primary: m[2], body: m[3] }));
+    const index = JSON.parse(readFileSync(resolve(__dirname, '..', 'public', 'layer-index.json'), 'utf8')) as { p: string; b: string }[];
+    const cards = index.map((e) => ({ primary: e.p, body: e.b }));
     const nav = html.match(/<nav class="quick-search"[^>]*>([\s\S]*?)<\/nav>/)?.[1] || '';
     const queries = [...nav.matchAll(/href="\/\?q=([^"]+)"/g)].map((m) => decodeURIComponent(m[1].replace(/\+/g, ' ')));
     expect(queries.length).toBeGreaterThanOrEqual(4);
@@ -90,14 +91,14 @@ describe('home page weight', () => {
   // The weight budget itself is in tests/layers-page.test.ts (lean home, < 85 KB).
 });
 
-describe('cards carry what the search dropdown shows', () => {
-  it('every curated row has a title, a subtitle and a link', () => {
-    const rowsMeta = [...list.matchAll(/<section class="row row--curated[^>]*>/g)].map((m) => m[0]);
-    expect(rowsMeta.length).toBeGreaterThan(10);
-    for (const r of rowsMeta) {
-      expect(r, r.slice(0, 80)).toMatch(/data-title="[^"]+"/);
-      expect(r).toMatch(/data-sub="[^"]+"/);
-      expect(r).toMatch(/data-href="(\/view\/[a-z0-9_]+|#[a-z0-9_]+)"/);
+describe('the search index carries what the search dropdown shows', () => {
+  it('every entry has a title, a subtitle and a link', () => {
+    const index = JSON.parse(readFileSync(resolve(__dirname, '..', 'public', 'layer-index.json'), 'utf8')) as { t: string; s: string; h: string }[];
+    expect(index.length).toBeGreaterThan(10);
+    for (const e of index) {
+      expect(e.t, JSON.stringify(e).slice(0, 80)).toBeTruthy();
+      expect(e.s).toBeTruthy();
+      expect(e.h).toMatch(/^(\/view\/[a-z0-9_]+|\/layers#[a-z0-9_]+|\/c\/[A-Za-z0-9_-]+)$/);
     }
   });
 });
