@@ -96,6 +96,14 @@ def test_data_gov_in_layers_use_the_keyless_resource_metadata():
     assert 'ee03643a-ee4c-48c2-ac30-9f2ff26ab722' in sc['url']
 
 
+def test_osm_transit_layers_are_checked_on_the_dated_india_extract_and_bus_stops_on_the_bmtc_feed():
+    for lid in ('urban_rail_stations', 'urban_rail_lines'):
+        sc = ps.infer(layer(lid, 'OpenStreetMap'), None)
+        assert sc == {'method': 'http', 'url': 'https://download.geofabrik.de/asia/india-latest.osm.pbf'}
+    sc = ps.infer(layer('bus_stops', 'OpenStreetMap, GTFS feeds'), None)
+    assert sc == {'method': 'github_commit', 'url': 'https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs'}
+
+
 def test_layers_bharatlas_derives_from_another_layer_are_manual_and_name_it():
     sc = ps.infer(layer('high_courts', 'LGD'), None)
     assert sc['method'] == 'manual' and 'lgd_states' in sc['reason']

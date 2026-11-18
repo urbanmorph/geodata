@@ -3,7 +3,8 @@
 Give every catalog layer a `refresh` block: how it is kept up to date (spec-data-lifecycle sections 4 and 5).
 Internal, like `source_check`: web/scripts/public-catalog.mjs strips it from the served catalog.
 
-    refresh = {class, check, rebuild, release, audit, audited_at, next_due}   (+ tolerance, tolerance_reason)
+    refresh = {class, check, rebuild, release, audit, audited_at, next_due}   (+ tolerance, tolerance_reason,
+                                                                            audit_result)
 
 Classes (the owner's decisions of 18 Nov 2026):
   frozen   a one-off or historical publication that will not change: never checked, never rebuilt, released once
@@ -80,7 +81,8 @@ HISTORICAL = 'a historical vintage, kept as published; a newer one is a separate
 ONE_OFF_CENSUS = 'a one-off census: its tables are final once published'
 JUDICIARY = 'a bharatlas-derived judiciary map, dissolved from LGD states by a gazette notification'
 
-# Layers the rules get wrong. {id: {class?, reason?, tolerance?, tolerance_reason?}}; a tolerance needs its reason.
+# Layers the rules get wrong, or whose class audit needs naming.
+# {id: {class?, reason?, tolerance?, tolerance_reason?, audit?}}; a tolerance needs its reason.
 OVERRIDES: dict[str, dict] = {
     'state_finance': {'class': 'frozen', 'reason': 'one-off snapshots of Rajya Sabha answers; an answered '
                                                    'question does not change'},
@@ -102,6 +104,15 @@ OVERRIDES: dict[str, dict] = {
     'cgwb_gw_extraction': {'class': 'regular', 'reason': 'groundwater is reassessed every year or two'},
     'gw_quality_premonsoon': {'class': 'regular', 'reason': 'groundwater quality is sampled every season'},
     'gw_quality_postmonsoon': {'class': 'regular', 'reason': 'groundwater quality is sampled every season'},
+    # scripts/bake_transit.py writes audited_at and audit_result (the numbers) on each build
+    'urban_rail_stations': {'audit': 'stations per system within 2 of Wikipedia\'s operational count (Urban rail '
+                                     'transit in India) and against OSM\'s tagged count; no under-construction '
+                                     'stations; operational lines and stations reviewed for Mumbai and Chennai; '
+                                     'Delhi Metro from station tags; the Mumbai Monorail out while suspended'},
+    'urban_rail_lines': {'audit': 'lines per system against Wikipedia\'s operational lines; operational sections '
+                                  'only (Mumbai 2B and 9, Chennai Yellow)'},
+    'bus_stops': {'audit': 'stops per city against each GTFS feed\'s stops.txt and the OSM count in the city; '
+                           'every row names its source and licence'},
 }
 
 
@@ -109,11 +120,14 @@ def _pct(x: float) -> str:
     return f'{x * 100:g}%'
 
 
-def audit_text(klass: str, tolerance: float | None) -> str:
+def audit_text(klass: str, tolerance: float | None, class_audit: str | None = None) -> str:
+    """What each build is checked against; `class_audit` names what a fast layer's own audit compares."""
     if klass == 'frozen':
         return 'none while frozen: re-check by hand if the source publishes a correction'
     out = (f'row count within {_pct(tolerance)} of the previous version; schema diff (removed or renamed columns '
            'noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode')
+    if class_audit:
+        return f'{out}; the class audit: {class_audit}'
     return out + ('; the class audit (counts against the reference)' if klass == 'fast' else '')
 
 
@@ -126,7 +140,7 @@ def infer(layer: dict) -> tuple[dict, str]:
     klass, reason = over.get('class', klass), over.get('reason', reason)
     block = {'class': klass, **CLASSES[klass]}
     tolerance = over.get('tolerance', TOLERANCE.get(klass))
-    block['audit'] = audit_text(klass, tolerance)
+    block['audit'] = audit_text(klass, tolerance, over.get('audit'))
     if 'tolerance' in over:
         block['tolerance'] = over['tolerance']
         block['tolerance_reason'] = over['tolerance_reason']
@@ -162,8 +176,10 @@ def populate(catalog: dict, releases: dict | None) -> dict:
         old = layer.pop('refresh', None) or {}     # re-added last, so the key sits at the end of every layer
         block, _ = infer(layer)
         tolerance = {k: block.pop(k) for k in ('tolerance', 'tolerance_reason') if k in block}
+        # audit_result (the numbers of the last build's class audit) is written by the layer's bake, kept here
+        result = {'audit_result': old['audit_result']} if 'audit_result' in old else {}
         layer['refresh'] = {**block, 'audited_at': old.get('audited_at'),
-                            'next_due': next_due(block['rebuild'], last_build(layer, releases)), **tolerance}
+                            'next_due': next_due(block['rebuild'], last_build(layer, releases)), **tolerance, **result}
     return catalog
 
 

@@ -44,6 +44,7 @@ YASHVEER_REPO = 'yashveeeeeeer/india-geodata'
 OVERTURE_STAC = 'https://stac.overturemaps.org/catalog.json'
 GEOBOUNDARIES_API = 'https://www.geoboundaries.org/api/current/gbOpen/IND/{adm}/'
 DATAGOV_LISTING = 'https://www.data.gov.in/backend/dmspublic/v1/resources'
+GEOFABRIK_INDIA = 'https://download.geofabrik.de/asia/india-latest.osm.pbf'
 
 _GB_ADM = re.compile(r'/gbOpen/IND/(ADM\d)/')
 
@@ -88,6 +89,11 @@ OVERRIDES: dict[str, dict] = {
                           'INDIA_HEALTH_FACILITIES_NIC.geojson'},
     'seismic_zones': manual('the recorded india-geodata release (environment/seismic) does not exist',
                             'https://data.gov.in/'),
+    # scripts/bake_transit.py: OSM's dated India extract (a HEAD follows india-latest to today's file); bus stops
+    # come from five GTFS feeds and OSM, checked on the largest feed (the fast class rebuilds monthly anyway)
+    'urban_rail_stations': {'method': 'http', 'url': GEOFABRIK_INDIA},
+    'urban_rail_lines': {'method': 'http', 'url': GEOFABRIK_INDIA},
+    'bus_stops': {'method': 'github_commit', 'url': 'https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs'},
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }
