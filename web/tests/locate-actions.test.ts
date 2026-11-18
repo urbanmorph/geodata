@@ -46,7 +46,9 @@ describe('parseAtParam', () => {
 
 describe('skyUrl: the sky over a located ward, on mugilu', () => {
   it('a ward layer links mugilu\'s page for the point, rounded to about 1 km', () => {
-    expect(skyUrl('wards_jaipur', 26.912345, 75.787654)).toBe('https://mugilu.live/c/26.91,75.79');
+    // utm_* tags tell mugilu's analytics the visit came from a bharatlas ward lookup (the referrer
+    // policy only sends the origin).
+    expect(skyUrl('wards_jaipur', 26.912345, 75.787654)).toBe('https://mugilu.live/c/26.91,75.79?utm_source=bharatlas&utm_medium=ward_locate');
   });
   it('other layers get no link', () => {
     expect(skyUrl('lgd_districts', 26.9, 75.8)).toBeNull();

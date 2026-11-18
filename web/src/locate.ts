@@ -7,7 +7,7 @@
 import { pickFeatureName, wardTitle, type WardSidecar } from './locate-format';
 import type { LocateConfig } from './locate-config';
 import { escapeHtml } from './util';
-import { shareUrl, skyUrl } from './locate-actions';
+import { shareUrl, skyUrl, skyLinkHtml } from './locate-actions';
 import { blurFocusWithin } from './focus-utils';
 import { fetchWardIndex } from './ward-index';
 
@@ -119,9 +119,7 @@ export function openLocate(opts: {
       '<button type="button" class="ls-act ls-share">Share</button></div>';
     // a ward you are in: the sky over it now, on mugilu (a link out, opened by the reader)
     const sky = !isNearest ? skyUrl(layerId, lat, lng) : null;
-    const skyLink = sky
-      ? `<p class="ls-sub ls-sky"><a href="${sky}" target="_blank" rel="noopener">The sky over this ward now · mugilu ↗</a></p>`
-      : '';
+    const skyLink = sky ? skyLinkHtml(sky, name) : '';
     result(isNearest ? 'Nearest to you' : 'You are in', escapeHtml(name), sub + actions + skyLink);
 
     const zoom = () => onZoom?.(props, zp.lng, zp.lat);
