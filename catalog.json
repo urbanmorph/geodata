@@ -9019,8 +9019,8 @@
         "bytes": 527034110
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.pmtiles",
-        "bytes": 201072784
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.0f1c048f.pmtiles",
+        "bytes": 201232291
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -9056,8 +9056,8 @@
         "bytes": 1525528726
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-geomorphology-50k/Bhuvan_Geomorphology_50k_0506.pmtiles",
-        "bytes": 526473820
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-geomorphology-50k/Bhuvan_Geomorphology_50k_0506.2a168a4a.pmtiles",
+        "bytes": 523891089
       },
       "licence": "CC0-1.0",
       "attribution": {
