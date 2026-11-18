@@ -1,7 +1,7 @@
 // Edge-rendered HTML for /c/[id] community submission view pages.
 // Pure function so it unit-tests without a Pages Functions runtime.
 // Stays light on purpose: no MapLibre, no Vite assets — just metadata,
-// downloads, thumbs-up, and a "view on map" link that punts to /preview.
+// downloads, thumbs-up, and a "View map" link that punts to /preview.
 //
 // Origin handling: in production the request origin is bharatlas.com and
 // everything's fine. In dev, vite forwards /c/* to wrangler on :8788 — so
@@ -165,7 +165,7 @@ export function renderViewPage(opts: RenderOpts): string {
     </dl>
 
     <div class="actions">
-      <a class="btn btn--fill" href="${esc(verifyUrl)}">View on map</a>
+      <a class="btn btn--fill" href="${esc(verifyUrl)}">View map</a>
       <a class="btn btn--line" href="${esc(r2Path)}" download="${esc(filename)}">Download .${esc(s.format)}</a>
       <button class="btn btn--line vote-useful" id="vote-useful" type="button" aria-pressed="false">
         <span aria-hidden="true">👍</span>

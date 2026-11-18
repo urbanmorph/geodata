@@ -126,3 +126,27 @@ export function buildMaplibreFilter(filters: ActiveFilter[]): MaplibreFilter {
   if (exprs.length === 1) return exprs[0];
   return ['all', ...exprs];
 }
+
+// The active filter in a few words, for the "Filtered: ..." pill over the map
+// once the panel closes: the first filter, then how many more.
+function describeFilter(f: ActiveFilter): string {
+  if (f.kind === 'in') return f.values.length <= 2 ? `${f.col} = ${f.values.join(', ')}` : `${f.col}: ${f.values.length} values`;
+  if (f.kind === 'range') {
+    if (f.min != null && f.max != null) return `${f.col} ${f.min} to ${f.max}`;
+    return f.min != null ? `${f.col} ≥ ${f.min}` : `${f.col} ≤ ${f.max}`;
+  }
+  if (f.kind === 'search') return `${f.col} contains "${f.q.trim()}"`;
+  return `${f.col} = ${f.v ? 'yes' : 'no'}`;
+}
+
+export function filterSummary(filters: ActiveFilter[]): string {
+  if (!filters.length) return '';
+  const more = filters.length - 1;
+  return describeFilter(filters[0]) + (more ? ` + ${more} more` : '');
+}
+
+/** "9,386 of 9,483": the matches out of the whole layer (just the matches without a total). */
+export function matchCountText(matched: number, total: number): string {
+  const fmt = (n: number) => n.toLocaleString('en-IN');
+  return total ? `${fmt(matched)} of ${fmt(total)}` : fmt(matched);
+}

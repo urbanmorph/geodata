@@ -1,10 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { displayTitle, prettifyId } from '../src/layer-display';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { displayTitle, layerHeading, prettifyId } from '../src/layer-display';
 
-// The /view map chrome currently shows the raw layer id ("wards_..."),
-// truncated, which reads as broken on mobile. displayTitle resolves the same
-// human title the edge uses (functions/lib/view-dataset.ts buildViewDataset):
-// seo_title > label > name > prettified id. Keep the two in sync.
+// The /view map chrome (top bar and About heading) shows the same title as the
+// layer's /layers card: the level label, never a raw id, a pipeline line
+// ("district · LGD · 785 rows") or the long SEO title (that one is for <title>).
 
 describe('prettifyId', () => {
   it('turns an underscored id into spaced words', () => {
@@ -17,18 +18,14 @@ describe('prettifyId', () => {
   });
 });
 
-describe('displayTitle (precedence mirrors the edge buildViewDataset title)', () => {
-  it('prefers seo_title above everything', () => {
+describe('displayTitle: the card label, not the SEO title', () => {
+  it('prefers the label over the seo_title', () => {
     expect(
       displayTitle(
-        { id: 'wards_bengaluru_bbmp_2022', name: 'BBMP wards' },
-        { seo_title: 'Bengaluru Ward Map', label: 'Wards' },
+        { id: 'wards_bengaluru_gba', name: 'GBA wards' },
+        { seo_title: 'Bengaluru Ward Map: 369 wards (GBA 2025)', label: 'Greater Bengaluru Wards (2025)' },
       ),
-    ).toBe('Bengaluru Ward Map');
-  });
-
-  it('falls back to label when seo_title is absent', () => {
-    expect(displayTitle({ id: 'lgd_states' }, { label: 'States (2024)' })).toBe('States (2024)');
+    ).toBe('Greater Bengaluru Wards (2025)');
   });
 
   it('falls back to the layer name when there is no level meta', () => {
@@ -40,17 +37,41 @@ describe('displayTitle (precedence mirrors the edge buildViewDataset title)', ()
   });
 
   it('treats blank / whitespace-only fields as absent and falls through', () => {
-    expect(
-      displayTitle({ id: 'wards_surat', name: 'Surat Wards' }, { seo_title: '   ', label: '' }),
-    ).toBe('Surat Wards');
+    expect(displayTitle({ id: 'wards_surat', name: 'Surat Wards' }, { label: '  ' })).toBe('Surat Wards');
+  });
+});
+
+describe('layerHeading: title and a short meta line, from the catalog', () => {
+  const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../catalog.json'), 'utf8'));
+  const heading = (id: string) => layerHeading(catalog.layers.find((l: { id: string }) => l.id === id), catalog.level_meta);
+
+  it('a built-in level gets its card label and count noun', () => {
+    const h = heading('lgd_districts');
+    expect(h.title).toBe('Districts (2024)');
+    expect(h.meta).toBe('785 districts · LGD');
   });
 
-  it('gives a ward layer a friendly title, never the raw id', () => {
-    const title = displayTitle(
-      { id: 'wards_ahmedabad', name: 'Ahmedabad Wards' },
-      { seo_title: 'Ahmedabad Ward Map', label: 'Wards' },
-    );
-    expect(title).toBe('Ahmedabad Ward Map');
-    expect(title).not.toContain('_');
+  it('an alternate source of a level reads as that level, with its own source', () => {
+    const h = heading('gb_adm4');
+    expect(h.title).toBe('Blocks (2024)');
+    expect(h.meta).toMatch(/^7,143 [a-z -]+ · geoBoundaries$/);
+  });
+
+  it('a ward layer gets its card label, not the long SEO title', () => {
+    const h = heading('wards_bengaluru_gba');
+    expect(h.title).toBe('Greater Bengaluru Wards (2025)');
+    expect(h.meta).toBe('369 wards · OpenCity');
+  });
+
+  it('never shows a raw id or the word "rows", for any layer', () => {
+    for (const l of catalog.layers) {
+      const h = layerHeading(l, catalog.level_meta);
+      expect(h.title, l.id).not.toContain('_');
+      expect(h.meta, l.id).not.toMatch(/\brows\b/);
+    }
+  });
+
+  it('leaves the count out when it is unknown', () => {
+    expect(layerHeading({ id: 'x_y', level: null, source: 'OpenCity', rows: null, name: 'X' }, {}).meta).toBe('OpenCity');
   });
 });

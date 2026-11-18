@@ -12,6 +12,10 @@ const touch = css.match(/@media \(pointer: coarse\), \(max-width: 640px\) \{([\s
 describe('touch targets', () => {
   it('has one touch block', () => expect(touch).not.toBe(''));
 
+  it('buttons use the site font, not the browser default (Arial)', () => {
+    expect(css).toMatch(/\nbutton, \.btn \{\s*font: inherit;/);
+  });
+
   for (const sel of ['.chip', '.tabs button', '.seg button', '.link-box button', '.btn-sm']) {
     it(`${sel} is at least 44 px tall on touch screens`, () => {
       const rule = touch.match(new RegExp(`([^{}]*)\\{[^}]*min-height: 44px`, 'g'))?.join(' ') ?? '';

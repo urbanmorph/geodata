@@ -17,10 +17,11 @@ import {
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
-import { filterColumnsInTiles, type ActiveFilter, type MaplibreFilter } from './filter-where';
+import { filterColumnsInTiles, filterSummary, matchCountText, type ActiveFilter, type MaplibreFilter } from './filter-where';
 import { featureCollectionBounds, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
-import { displayTitle } from './layer-display';
+import { layerHeading, type LayerHeading } from './layer-display';
+import type { LevelMeta } from '../functions/lib/view-dataset';
 import { paddingForPanelRect, type Padding } from './map-padding';
 import { resolveLocateConfig } from './locate-config';
 // Static (not dynamic) import: geolocation must be requested synchronously
@@ -277,7 +278,7 @@ function arrivalPadding(): Padding {
 
 function panelAwarePadding(): Padding {
   const base = 20;
-  const filter = document.querySelector<HTMLElement>('.filter-panel');
+  const filter = document.querySelector<HTMLElement>('.filter-panel:not([hidden])');
   const about = document.querySelector<HTMLElement>('.about-panel:not([hidden])');
   const panel = filter ?? about;
   if (!panel) return { top: base, bottom: base, left: base, right: base };
@@ -701,6 +702,7 @@ function applyActiveFilters(
   // than a blank map (the DuckDB count and export still apply the filter).
   if (!filterColumnsInTiles(filters, tilePropertyKeys())) {
     setDataFilters(null);
+    flyTo(layerBounds, { padding, duration: 600 });
     return;
   }
   setDataFilters(mapFilter as maplibregl.FilterSpecification | null);
@@ -847,6 +849,26 @@ function wireBasemapButton(): void {
   render();
 }
 
+// The filter's panel, its "Filtered" pill and the badge on the Filter button,
+// gone (a new layer, or the map closing).
+function removeFilterUi(btn: HTMLElement | null): void {
+  document.querySelector('.filter-panel')?.remove();
+  document.querySelector('.filter-pill')?.remove();
+  if (btn) delete btn.dataset.filterCount;
+  btn?.removeAttribute('aria-label');
+}
+
+// The map bar: the layer's title, then its meta line (hidden on phones).
+function setMapTitle(el: HTMLElement, heading: LayerHeading): void {
+  const name = document.createElement('span');
+  name.className = 'map-title__name';
+  name.textContent = heading.title;
+  const meta = document.createElement('span');
+  meta.className = 'map-title__meta';
+  meta.textContent = heading.meta;
+  el.replaceChildren(name, ' ', meta);
+}
+
 async function wireFilterButton(layer: Layer) {
   const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
   if (!btn) return;
@@ -856,12 +878,56 @@ async function wireFilterButton(layer: Layer) {
 
   delete surfaceHandles.filter;
   btn.classList.remove('shown');
-  document.querySelector('.filter-panel')?.remove();
+  removeFilterUi(btn);
   if (!layer.parquet?.url) return;
 
   btn.classList.add('shown');
   setToolLabel(btn, 'Filter');
   btn.disabled = false;
+
+  // What the map is filtered by. Closing the panel keeps the filter, so while it
+  // is closed a count badge on the Filter button and a pill over the map say so;
+  // the pill's × clears it.
+  let active: ActiveFilter[] = [];
+  let activeMapFilter: MaplibreFilter = null;
+  let matched: number | null = null;
+  let total = 0;
+  const pill = document.createElement('div');
+  pill.className = 'filter-pill';
+  pill.hidden = true;
+  pill.innerHTML = `<button type="button" class="filter-pill__open"></button>` +
+    `<button type="button" class="filter-pill__clear" aria-label="Clear filter">×</button>`;
+  document.getElementById('map')?.appendChild(pill);
+  const pillText = pill.querySelector<HTMLButtonElement>('.filter-pill__open')!;
+  const filterPanel = () => document.querySelector<HTMLElement>('.filter-panel');
+  const showFilterState = () => {
+    if (active.length) {
+      btn.dataset.filterCount = String(active.length);
+      btn.setAttribute('aria-label', `Filter, ${active.length} active`);
+    } else {
+      delete btn.dataset.filterCount;
+      btn.removeAttribute('aria-label');
+    }
+    const panel = filterPanel();
+    pill.hidden = !active.length || !!(panel && !panel.hidden);
+    pillText.textContent = `Filtered: ${filterSummary(active)}` + (matched != null ? ` · ${matchCountText(matched, total)}` : '');
+  };
+  const hideFilterPanel = () => {
+    const panel = filterPanel();
+    if (!panel || panel.hidden) return;
+    panel.hidden = true;
+    showFilterState();
+    // Re-frame the matches for the map without the panel beside or over it.
+    if (active.length) applyActiveFilters(active, activeMapFilter);
+  };
+  pillText.addEventListener('click', (e) => {
+    e.stopPropagation();
+    dispatchOverlay({ type: 'open', surface: 'filter' });
+  }, { signal });
+  pill.querySelector('.filter-pill__clear')!.addEventListener('click', (e) => {
+    e.stopPropagation();
+    clearFilter();
+  }, { signal });
 
   // The columns are read the first time the panel opens, not with the map: for a
   // layer without baked stats that means DuckDB-WASM and a scan of the parquet.
@@ -878,16 +944,23 @@ async function wireFilterButton(layer: Layer) {
     flyTo(layerBounds, { padding: BASE_PADDING });
   };
 
-  // Switching surfaces on mobile tears the sheet down (direct removal mirrors
-  // closeLayer); the user's filters reset, same as the panel's own close.
-  const dismissFilterPanel = () => {
-    if (!document.querySelector('.filter-panel')) return;
-    document.querySelector('.filter-panel')?.remove();
+  // The pill's ×: drop the panel (and with it the picked values) and the filter.
+  const clearFilter = () => {
+    filterPanel()?.remove();
+    active = [];
+    activeMapFilter = null;
+    matched = null;
     resetFilterChrome();
+    showFilterState();
   };
 
   const openFilterPanel = async () => {
-    if (document.querySelector('.filter-panel')) return; // already open
+    const existing = filterPanel();
+    if (existing) { // already built (open, or closed with its filter kept)
+      existing.hidden = false;
+      showFilterState();
+      return;
+    }
     const container = document.getElementById('map')!;
 
     const { VERBS_ENGINE } = await import('./loading');
@@ -917,13 +990,21 @@ async function wireFilterButton(layer: Layer) {
         notifyOverlayClosed('filter');
         return;
       }
+      total = rowCount;
       mountFilterPanel(layer, container, ranked, rowCount, {
         onClose: () => {
-          resetFilterChrome();
+          hideFilterPanel();
           notifyOverlayClosed('filter');
         },
         onActiveFiltersChange: (filters, mapFilter) => {
+          active = filters;
+          activeMapFilter = mapFilter;
           applyActiveFilters(filters, mapFilter);
+          showFilterState();
+        },
+        onCount: (n) => {
+          matched = n;
+          showFilterState();
         },
       });
       if (map) {
@@ -940,13 +1021,13 @@ async function wireFilterButton(layer: Layer) {
   };
 
   // The filter panel is a persistent workspace, not a transient menu: on
-  // desktop it coexists with the basemap/download dropdowns (hide is a no-op,
-  // matching today). On mobile every surface is a bottom sheet competing for
-  // the same space, so switching away tears it down.
+  // desktop it stays beside the basemap/download dropdowns and closes only from
+  // its own button or ×. On mobile every surface is a bottom sheet competing for
+  // the same space, so switching away closes it. Closing keeps the filter.
   surfaceHandles.filter = {
     btn,
     show: () => { void openFilterPanel(); },
-    hide: () => { if (isMobileViewport()) dismissFilterPanel(); },
+    hide: () => { if (isMobileViewport() || overlayState.active === null) hideFilterPanel(); },
   };
 
   btn.addEventListener(
@@ -1009,7 +1090,7 @@ function wireLocateButton(
 // fetched the first time the panel shows.
 const ABOUT_OPEN_BY_DEFAULT = '(min-width: 1100px)';
 
-function wireAboutButton(layer: Layer, levelMeta: AboutMeta, container: HTMLElement): void {
+function wireAboutButton(layer: Layer, levelMeta: AboutMeta, heading: LayerHeading, container: HTMLElement): void {
   const btn = document.getElementById('map-about') as HTMLButtonElement | null;
   delete surfaceHandles.about;
   if (!btn) return;
@@ -1027,7 +1108,7 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, container: HTMLElem
   };
   const render = (wardIndex: WardIndexFile | null = null) => {
     panel.innerHTML = `<button type="button" class="about-panel__close" aria-label="Close">×</button>` +
-      aboutLayerHtml({ layer, meta: levelMeta, wardIndex });
+      aboutLayerHtml({ layer, meta: levelMeta, heading, wardIndex });
     panel.querySelector('.about-panel__close')?.addEventListener('click', () => dispatchOverlay({ type: 'close' }));
     fillUsage();
   };
@@ -1105,7 +1186,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   try {
     const cat = (await getCatalog()) as {
       layers?: Layer[];
-      level_meta?: Record<string, { label?: string; seo_title?: string; unit?: string; locate_label?: string; locate_mode?: string }>;
+      level_meta?: Record<string, LevelMeta & { locate_label?: string; locate_mode?: string }>;
     };
     if (!live()) return;
     const layer = cat.layers?.find((l) => l.id === layerId);
@@ -1117,23 +1198,18 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     // The tile header is read alongside the style load (awaited in attachData).
     const tiles = layer.pmtiles?.url ? readPmtiles(layer.pmtiles.url) : null;
     tiles?.catch(() => {}); // a failure surfaces where attachData awaits it
-    // Prefer the friendly title from level_meta (e.g. "Greater Bengaluru Wards
-    // (2025)") so the bar never shows a raw id like "wards_bengaluru_gba". Layers
-    // without a level_meta entry (most standard admin levels resolve theirs only
-    // on the edge via shared/level-meta.mjs) keep the level · source · rows line.
+    // The bar shows the layer's /layers card title ("Districts (2024)") and a
+    // short meta line ("785 districts · LGD"), never a raw id or a row count.
     const levelMeta = cat.level_meta?.[layerId];
-    const rowsPart = layer.rows != null ? ` · ${layer.rows.toLocaleString('en-IN')} ${layer.level ? 'rows' : 'features'}` : '';
-    const friendly = (levelMeta?.label || levelMeta?.seo_title || layer.name || '').trim();
-    opts.titleEl.textContent = friendly
-      ? displayTitle({ id: layerId, name: layer.name }, levelMeta)
-      : `${layer.level ? `${layer.level} · ` : ''}${layer.source}${rowsPart}`;
+    const heading = layerHeading(layer, cat.level_meta);
+    setMapTitle(opts.titleEl, heading);
 
     wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
     wireDownloadButton(layer);
     wireBasemapButton();
     currentLayerLevel = layer.level;
     wireLocateButton(layer, levelMeta);
-    wireAboutButton(layer, levelMeta, container);
+    wireAboutButton(layer, levelMeta, heading, container);
 
     await loaded;
     if (!live()) return;
@@ -1178,12 +1254,12 @@ export function closeLayer() {
   filterAbort = null;
   resetOverlays();
   const btn = document.getElementById('map-filter') as HTMLButtonElement | null;
-  if (btn) btn.classList.remove('shown');
+  btn?.classList.remove('shown');
+  removeFilterUi(btn);
   const locateBtn = document.getElementById('map-locate');
   locateBtn?.classList.remove('shown', 'locating');
   const locateSheet = document.getElementById('locate-sheet');
   if (locateSheet) { locateSheet.classList.remove('open'); locateSheet.innerHTML = ''; }
-  document.querySelector('.filter-panel')?.remove();
   for (const p of document.querySelectorAll('.map-popover.open')) p.classList.remove('open');
 }
 
@@ -1191,7 +1267,7 @@ export function closeLayer() {
  *  large-load card) and say so; false when nothing was, so the map itself closes. */
 export function closeTopSurface(): boolean {
   if (overlayState.active === 'filter') {
-    // The panel's own close also resets the filter (on desktop the surface's hide is a no-op).
+    // The panel's own close: hides it on desktop too, and keeps the filter.
     const close = document.querySelector<HTMLButtonElement>('.filter-panel__close');
     if (close) { close.click(); return true; }
   }
