@@ -281,16 +281,23 @@ def test_r2_upload_skips_on_md5_not_size(tmp_path):
     assert match.puts == []
 
 
+class FakeClientError(Exception):
+    """Stands in for botocore's ClientError: not a KeyError, so a missing key in a
+    response is a crash here too, as it is against real R2."""
+
+
 class FakeMultipartS3:
     """Multipart stand-in; `fail_parts` lose their connection every time."""
     class exceptions:  # noqa: N801
-        ClientError = KeyError
+        ClientError = FakeClientError
 
     def __init__(self, fail_parts=()):
         self.objects, self.pending, self.sent, self.completed = {}, {}, [], 0
         self.fail_parts = set(fail_parts)
 
     def head_object(self, Bucket, Key):  # noqa: N803
+        if Key not in self.objects:
+            raise FakeClientError('404 Not Found')
         return self.objects[Key]
 
     def create_multipart_upload(self, Bucket, Key, **extra):  # noqa: N803
@@ -307,8 +314,9 @@ class FakeMultipartS3:
 
     def list_parts(self, Bucket, Key, UploadId, MaxParts):  # noqa: N803
         if UploadId not in self.pending:
-            raise KeyError('NoSuchUpload')
-        return {'Parts': [{'PartNumber': n, 'ETag': f'"e{n}"'} for n in sorted(self.pending[UploadId]['parts'])]}
+            raise FakeClientError('NoSuchUpload')
+        parts = [{'PartNumber': n, 'ETag': f'"e{n}"'} for n in sorted(self.pending[UploadId]['parts'])]
+        return {'Parts': parts} if parts else {}  # like R2: no 'Parts' key before the first part lands
 
     def complete_multipart_upload(self, Bucket, Key, UploadId, MultipartUpload):  # noqa: N803
         up = self.pending.pop(UploadId)
@@ -336,6 +344,21 @@ def test_resumable_upload_continues_after_a_dropped_run_and_then_skips(tmp_path)
     assert not list(state.glob('*.json'))            # state removed once complete
     pipeline.r2_upload_resumable(s3, f, 'k/big.geojson', state, part_size=1000)
     assert s3.completed == 1                         # unchanged file: skipped by md5
+
+
+def test_resumable_upload_resumes_a_run_that_dropped_before_its_first_part(tmp_path):
+    # 2026-11-18: the 2.4 GB water-bodies geojson's saved upload had 0 parts;
+    # R2's ListParts then has no 'Parts' key and the resume crashed (KeyError).
+    f = tmp_path / 'big.geojson'
+    f.write_bytes(bytes(range(256)) * 10)
+    state = tmp_path / 'state'
+    s3 = FakeMultipartS3(fail_parts={1})
+    with pytest.raises(ConnectionResetError):
+        pipeline.r2_upload_resumable(s3, f, 'k/big.geojson', state, part_size=1000, tries=2, wait=lambda n: None)
+    assert s3.sent == []
+    s3.fail_parts.clear()
+    pipeline.r2_upload_resumable(s3, f, 'k/big.geojson', state, part_size=1000, wait=lambda n: None)
+    assert s3.sent == [1, 2, 3] and s3.objects['k/big.geojson']['body'] == f.read_bytes()
 
 
 def test_r2_upload_trusts_a_single_part_etag_when_no_md5_metadata(tmp_path):

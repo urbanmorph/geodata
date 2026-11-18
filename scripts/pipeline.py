@@ -253,7 +253,8 @@ def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: i
     done: dict[int, str] = {}
     if state and state['md5'] == md5 and state['part_size'] == part_size:
         try:
-            parts = s3.list_parts(Bucket=BUCKET, Key=key, UploadId=state['upload_id'], MaxParts=1000)['Parts']
+            # R2 leaves 'Parts' out until the first part lands.
+            parts = s3.list_parts(Bucket=BUCKET, Key=key, UploadId=state['upload_id'], MaxParts=1000).get('Parts', [])
             done = {p['PartNumber']: p['ETag'] for p in parts}
         except s3.exceptions.ClientError:  # expired or aborted upload: start over
             state = None
