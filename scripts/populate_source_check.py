@@ -71,8 +71,8 @@ OVERRIDES: dict[str, dict] = {
     'high_courts': manual(DERIVED_FROM_LGD, 'https://lgdirectory.gov.in/'),
     'ngt_zones': manual(DERIVED_FROM_LGD, 'https://lgdirectory.gov.in/'),
     'nclt_benches': manual(DERIVED_FROM_LGD, 'https://lgdirectory.gov.in/'),
-    'ir_stations': manual('merged by bharatlas (scripts/bake_ir_stations_merged.py) from two copies of the CRIS station '
-                          'layer (IR GIS portal, PM GatiShakti) and Wikidata; re-run that bake to refresh',
+    'ir_stations': manual('merged by bharatlas (scripts/bake_ir_stations_merged.py) from two copies of the CRIS '
+                          'station layer (IR GIS portal, PM GatiShakti) and Wikidata; re-run that bake to refresh',
                           'https://irgeoportal.gov.in/'),
     'bharatviz_pincodes': manual('bharatviz.org/India_pincodes_simplified.geojson now answers with a web page, '
                                  'not the file', 'https://bharatviz.org/'),
@@ -145,6 +145,8 @@ def populate(catalog: dict, manifest: list[dict]) -> dict:
     for layer in catalog['layers']:
         old = layer.pop('source_check', None)    # re-added last, so the key sits at the end of every layer
         layer['source_check'] = merge(old, infer(layer, ext.get(layer['id'])))
+        if 'refresh' in layer:                   # but before populate_refresh.py's block, which it keeps last
+            layer['refresh'] = layer.pop('refresh')
     return catalog
 
 
