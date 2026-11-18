@@ -76,7 +76,7 @@ export function mountFilterPanel(
         <div class="filter-panel__status" id="filter-status" aria-live="polite"></div>
       </div>
       <p class="filter-panel__hint">
-        Filtering runs in your browser. Only parquet pages matching your filter are streamed from R2.
+        Filtering runs in your browser. It downloads only the parts of the file your filter needs.
       </p>
     </div>
   `;

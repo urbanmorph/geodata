@@ -3,8 +3,15 @@
 // The download total is passed in: the build's live counts (download-counts.mjs),
 // the same figure the home page shows.
 
+/** The site's one layer total: every curated layer (alternates count one by
+ *  one) plus every accepted community submission. A submission baked into the
+ *  catalog (provenance 'community') is that same submission, so it counts once. */
+export function layerTotal(catalog, community = []) {
+  return (catalog.layers || []).filter((l) => l.provenance !== 'community').length + community.length;
+}
+
 /** Layer count, layers per licence (most used first, then by name), downloads. */
-export function docsStats(catalog, downloads = 0) {
+export function docsStats(catalog, downloads = 0, community = []) {
   const counts = new Map();
   for (const l of catalog.layers || []) {
     const key = l.licence || 'not stated';
@@ -12,5 +19,5 @@ export function docsStats(catalog, downloads = 0) {
   }
   const licences = [...counts].sort((a, b) =>
     (a[0] === 'not stated') - (b[0] === 'not stated') || b[1] - a[1] || a[0].localeCompare(b[0]));
-  return { layers: (catalog.layers || []).length, licences, downloads };
+  return { layers: layerTotal(catalog, community), licences, downloads };
 }

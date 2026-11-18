@@ -54,6 +54,16 @@ function matchTokens(cards: CardLike[], tokens: string[]): boolean[] {
   return primary.some(Boolean) ? primary : cards.map((c) => matchAll(c.body));
 }
 
+/** Layers in the matching rows, per group (a /layers theme); a group with no
+ *  match is absent. */
+export function layersPerGroup<K>(cards: CardLike[], matches: boolean[], groupOf: (i: number) => K): Map<K, number> {
+  const out = new Map<K, number>();
+  cards.forEach((c, i) => {
+    if (matches[i]) out.set(groupOf(i), (out.get(groupOf(i)) ?? 0) + (c.layers ?? 1));
+  });
+  return out;
+}
+
 export function filterCards(cards: CardLike[], query: string): FilterResult {
   const tokens = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
 

@@ -126,7 +126,7 @@ describe('map startup order (map.ts)', () => {
   });
 
   it('starts the style from the active basemap only', () => {
-    expect(MAP).toContain('style: baseStyle(activeBasemap)');
+    expect(MAP).toContain('style: baseStyle(activeBasemap, mapScheme())');
     expect(MAP).not.toContain('buildBaseStyle');
     expect(MAP).not.toContain('minimal-india-boundary');
   });

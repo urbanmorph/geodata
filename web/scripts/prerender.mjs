@@ -12,7 +12,7 @@ import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../sh
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg } from '../../shared/brand.mjs';
-import { LEVEL_META as BUILTIN_LEVEL_META } from '../../shared/level-meta.mjs';
+import { LEVEL_META as BUILTIN_LEVEL_META, pickPrimary } from '../../shared/level-meta.mjs';
 import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
 import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
@@ -20,7 +20,7 @@ import { WARD_PLACES } from '../functions/lib/ward-places.ts';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
 import { fillTemplate } from './fill-template.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
-import { docsStats } from './docs-stats.mjs';
+import { docsStats, layerTotal } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
 import { publicCatalogJson } from './public-catalog.mjs';
@@ -167,11 +167,6 @@ function formatTokens(layer) {
   return t.join(' ');
 }
 
-// Pick the primary layer for each level. LGD is canonical wherever it exists.
-function pickPrimary(layers) {
-  return layers.find((l) => l.source === 'LGD') || layers[0];
-}
-
 // Map an R2 public URL to the /api/dl/<path> route so every click hits the
 // counter Pages Function. PMTiles bypasses (Range-fetched by MapLibre).
 function countFor(layer, fmt) {
@@ -229,8 +224,8 @@ function renderRow(level, layersForLevel, opts = {}) {
                 .join('<span class="dot">·</span>');
               return `<div class="alt__row${isPrimary ? ' alt__row--primary' : ''}">
                 <span class="src">${esc(o.source)}${isPrimary ? ' <span class="tag">primary</span>' : ''}</span>
-                <span class="meta">${fmtInt(o.rows)} rows · ${esc(o.notes || '')}</span>
-                <span class="links">${links || '<span class="muted">—</span>'}</span>
+                <span class="meta">${[o.rows != null ? `${fmtInt(o.rows)} ${esc(meta.unit || 'features')}` : '', esc(o.notes || '')].filter(Boolean).join(' · ')}</span>
+                <span class="links">${links || '<span class="muted">no downloads</span>'}</span>
               </div>`;
             })
             .join('')}
@@ -549,6 +544,11 @@ for (const cat of Object.keys(communityByCategory)) {
 // matches the sum of per-category chips exactly. Build chip HTML now
 // that the counts are stable.
 const totalLayers = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
+// The same total /docs prints (docs-stats.mjs layerTotal); a gap means a level
+// with layers has no row on /layers.
+if (totalLayers !== layerTotal(catalog, community)) {
+  console.warn(`[prerender] theme counts total ${totalLayers}, but there are ${layerTotal(catalog, community)} layers: a level is missing from LEVEL_ORDER`);
+}
 const activeCats = Object.entries(catalog.categories || {})
   .filter(([id]) => categoryCounts[id]);
 // Theme cards ("Browse by theme"): each links to its section on /layers.
@@ -804,7 +804,7 @@ const ABOUT_FAQ = [
   },
   {
     q: `Is my file uploaded when I drop it?`,
-    a: `No, not until you click <strong>Publish</strong>. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.`,
+    a: `No, not until you click <strong>Publish</strong>. Parsing, validation and the map render all happen in your browser. Only Publish sends the file to bharatlas, where it waits for a maintainer to review it.`,
   },
   {
     q: `What's the difference between dropping a file and collect?`,
@@ -1004,7 +1004,7 @@ const DOCS_FAQ = [
   },
 ];
 
-const docs = docsStats(catalog, totalDownloads(dlCounts));
+const docs = docsStats(catalog, totalDownloads(dlCounts), community);
 // Plain-text answers: escaped on the page so "&select=" reads as typed (not "§lect").
 const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) => `      <h3>${esc(q)}</h3>\n      <p>${esc(a)}</p>`).join('\n')}\n`;
 
