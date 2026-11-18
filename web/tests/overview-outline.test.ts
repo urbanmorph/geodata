@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { featureFilter, type FilterSpecification } from '@maplibre/maplibre-gl-style-spec';
-import { DATA_BASE_FILTERS, OVERVIEW_MARKER } from '../src/map-paint';
+import {
+  featureFilter, createPropertyExpression, latest, type FilterSpecification, type ExpressionSpecification,
+} from '@maplibre/maplibre-gl-style-spec';
+import { DATA_BASE_FILTERS, DATA_FILL, OVERVIEW_MARKER, fillOutlineColor } from '../src/map-paint';
 import { popupEntries } from '../src/popup-value';
 import { combineFilters } from '../../shared/choropleth.mjs';
 
@@ -38,6 +40,19 @@ describe('overview features are filled but never outlined', () => {
       const f = combineFilters(DATA_BASE_FILTERS[id], user) as FilterSpecification;
       expect(draws(f, overview), id).toBe(false);
       expect(draws(f, detail), id).toBe(true);
+    }
+  });
+
+  it("the fill's own antialiased edge skips overview features too", () => {
+    // A fill draws its edge in the fill colour; two cell pieces meeting on a
+    // line drew it twice, a darker grid even with the outline layers off.
+    for (const fill of [DATA_FILL, ['get', 'colour'] as ExpressionSpecification]) {
+      const expr = createPropertyExpression(fillOutlineColor(fill), latest.paint_fill['fill-outline-color'] as never);
+      if (expr.result !== 'success') throw new Error(JSON.stringify(expr.value));
+      const colour = (props: Record<string, unknown>) =>
+        (expr.value as { evaluate: (g: object, f: object) => { a: number } }).evaluate({ zoom: 5 }, polygon(props));
+      expect(colour({ ...overview, colour: '#ff0000' }).a).toBe(0);
+      expect(colour({ ...detail, colour: '#ff0000' }).a).toBe(1);
     }
   });
 

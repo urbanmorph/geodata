@@ -11,7 +11,9 @@ import {
   BASEMAPS, baseStyle, basemapById, basemapInsertBefore, getStoredBasemap, setStoredBasemap, type BasemapId,
 } from './basemaps';
 import { onFirstRender, openGenerations, framesFromFile } from './map-startup';
-import { DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED, DATA_BASE_FILTERS } from './map-paint';
+import {
+  DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED, DATA_BASE_FILTERS, fillOutlineColor,
+} from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
@@ -337,8 +339,9 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
     id: 'fill', type: 'fill', source: sourceId, ...common,
     // A value layer is graded by its column, opaque so the shades read true.
     paint: choropleth
-      ? { 'fill-color': fillColorExpr(choropleth) as maplibregl.ExpressionSpecification, 'fill-opacity': 1 }
-      : { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY },
+      ? { 'fill-color': fillColorExpr(choropleth) as maplibregl.ExpressionSpecification, 'fill-opacity': 1,
+          'fill-outline-color': fillOutlineColor(fillColorExpr(choropleth) as maplibregl.ExpressionSpecification) }
+      : { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY, 'fill-outline-color': fillOutlineColor(DATA_FILL) },
   });
   if (choropleth) {
     baseFilters['fill-nodata'] = noDataFilter(choropleth) as maplibregl.FilterSpecification;

@@ -1,6 +1,6 @@
 // How data is drawn on every map (the layer map and the contribute preview):
 // India-green land, chakra-navy edges and points, saffron for a selection.
-import type { FilterSpecification } from 'maplibre-gl';
+import type { ExpressionSpecification, FilterSpecification } from 'maplibre-gl';
 import { PALETTE } from '../../shared/brand.mjs';
 
 export const DATA_FILL = PALETTE.green;
@@ -22,3 +22,10 @@ export const DATA_BASE_FILTERS = {
   line: NOT_OVERVIEW,
   'line-halo': NOT_OVERVIEW,
 } satisfies Record<string, FilterSpecification>;
+
+/** A fill's antialiased edge, drawn in its own colour: none on overview
+ * features, where two cell pieces meeting on a line drew it twice (a darker
+ * grid even with the outline layers filtered). */
+export function fillOutlineColor(fill: string | ExpressionSpecification): ExpressionSpecification {
+  return ['case', ['has', OVERVIEW_MARKER], 'rgba(0, 0, 0, 0)', fill];
+}
