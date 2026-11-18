@@ -1363,7 +1363,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.shp.zip",
-        "bytes": 11708294
+        "bytes": 11708295
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
@@ -1449,7 +1449,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.shp.zip",
-        "bytes": 3044423
+        "bytes": 3044424
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
@@ -1492,7 +1492,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.shp.zip",
-        "bytes": 39338901
+        "bytes": 39338902
       },
       "licence": "CC0-1.0 / CC-BY-4.0",
       "attribution": {
@@ -1664,7 +1664,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.shp.zip",
-        "bytes": 97183541
+        "bytes": 97183542
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -1892,7 +1892,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.shp.zip",
-        "bytes": 32722739
+        "bytes": 35577192
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -1935,7 +1935,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.shp.zip",
-        "bytes": 38264817
+        "bytes": 38264818
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -1978,7 +1978,7 @@
       },
       "shapefile": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.shp.zip",
-        "bytes": 67986277
+        "bytes": 67986278
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -2398,12 +2398,12 @@
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/seismic/Seismic_Zones.parquet",
-        "bytes": 3171593
+        "bytes": 3629631
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.pmtiles",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/seismic/Seismic_Zones.pmtiles",
-        "bytes": 32768
+        "bytes": 1240690
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.geojson",
@@ -4139,7 +4139,7 @@
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.geojson",
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM1/geoBoundaries-IND-ADM1.geojson",
-        "bytes": null
+        "bytes": 46170854
       },
       "parquet": null,
       "pmtiles": null,
@@ -4164,7 +4164,7 @@
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.geojson",
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM2/geoBoundaries-IND-ADM2.geojson",
-        "bytes": null
+        "bytes": 48317735
       },
       "parquet": null,
       "pmtiles": null,
@@ -4189,7 +4189,7 @@
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.geojson",
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM3/geoBoundaries-IND-ADM3.geojson",
-        "bytes": null
+        "bytes": 106291594
       },
       "parquet": null,
       "pmtiles": null,
@@ -4214,7 +4214,7 @@
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.geojson",
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM4/geoBoundaries-IND-ADM4.geojson",
-        "bytes": null
+        "bytes": 110364589
       },
       "parquet": null,
       "pmtiles": null,
@@ -4356,7 +4356,7 @@
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airport.pmtiles",
-        "bytes": 95439
+        "bytes": 206478
       },
       "licence": "GODL-India",
       "attribution": {

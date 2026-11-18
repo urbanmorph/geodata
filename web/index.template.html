@@ -697,6 +697,12 @@
       body.embed #map-overlay header.map-bar { display: none; }
       #map { flex: 1; background: var(--bg); position: relative; }
       #map-loading { color: var(--muted); padding: 16px; }
+      /* Whole-file loads over the size/time rule (src/large-load.ts): the reader chooses first. */
+      .large-load { position: absolute; z-index: 5; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(420px, calc(100% - 32px));
+        padding: var(--sp-5); background: var(--bg-elevated); border: 1.5px solid var(--edge); box-shadow: var(--shadow); }
+      .large-load__title { margin: 0 0 8px; font-size: var(--fs-md); font-weight: 750; color: var(--fg); }
+      .large-load__hint { margin: 0 0 16px; font-size: var(--fs-sm); color: var(--muted); }
+      .large-load__actions { display: flex; gap: 10px; flex-wrap: wrap; }
       .map-loader {
         position: absolute; inset: 0;
         display: flex; flex-direction: column;
