@@ -172,3 +172,54 @@ def test_missing_bbox_lists_layers_without_flat_columns() -> None:
                       {'id': 'c', 'parquet': None}, {'id': 'd'}, {'id': 'e', 'parquet': {'url': 'u3'}}]}
     kinds = {'u1': None, 'u2': 'flat', 'u3': 'struct'}
     assert missing_bbox(cat, kinds.get) == {'none': ['a'], 'struct': ['e']}
+
+
+def _write_struct(con, path: Path) -> None:
+    """A ramSeraph-shaped parquet: geometry plus a GeoParquet `bbox` struct."""
+    _write(con, path, ROWS)
+    con.execute(f"COPY (SELECT *, {{'xmin': ST_XMin(geometry), 'ymin': ST_YMin(geometry), "
+                f"'xmax': ST_XMax(geometry), 'ymax': ST_YMax(geometry)}} AS bbox "
+                f"FROM read_parquet('{path}')) TO '{path}.tmp' (FORMAT PARQUET)")
+    Path(f'{path}.tmp').replace(path)
+
+
+def test_rebake_flatten_bbox_can_keep_the_struct(tmp_path: Path, con) -> None:
+    from pipeline import rebake_flatten_bbox
+    src, dst = tmp_path / 'a.parquet', tmp_path / 'b.parquet'
+    _write_struct(con, src)
+    rebake_flatten_bbox(src, dst, keep_struct=True)
+    cols = [r[0] for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{dst}')").fetchall()]
+    assert cols == ['code', 'name', 'geometry', 'bbox', 'xmin', 'ymin', 'xmax', 'ymax']
+    assert con.execute(f"SELECT count(*) FROM read_parquet('{dst}') WHERE xmin <> bbox.xmin OR ymin <> bbox.ymin "
+                       "OR xmax <> bbox.xmax OR ymax <> bbox.ymax").fetchone()[0] == 0
+
+
+def test_rebake_adds_flat_columns_beside_a_bbox_struct(tmp_path: Path, con, monkeypatch) -> None:
+    """A layer with only the struct keeps it, untouched, and gains the 4 columns."""
+    import shutil
+    import rebake_layer
+    src = tmp_path / 'a.parquet'
+    _write_struct(con, src)
+    monkeypatch.setattr(rebake_layer, 'WORK', tmp_path / 'work')
+    kind = rebake_layer.bbox_kind
+    monkeypatch.setattr(rebake_layer, 'bbox_kind', lambda url: kind(str(src)))
+
+    def copy(url: str, dest: Path) -> None:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy(src, dest)
+    monkeypatch.setattr(rebake_layer, 'download', copy)
+    layer = {'id': 'x', 'parquet': {'url': f'{R2}/water/x/X.parquet'}}
+    out = rebake_layer.rebake(layer, rebake_layer.Deadline(10), upload=False)
+    assert out['rows'] == 4 and out['columns'] == 4  # code, name, geometry, bbox
+    assert out['new_key'].startswith('water/x/X.') and out['new_key'].endswith('.parquet')
+    assert kind(str(tmp_path / 'work' / 'x' / 'x.bbox.parquet')) == 'flat'
+
+
+def test_main_rebakes_struct_layers_too(monkeypatch) -> None:
+    import rebake_layer
+    monkeypatch.setattr(rebake_layer, 'missing_bbox', lambda cat: {'none': ['a'], 'struct': ['e']})
+    seen = []
+    monkeypatch.setattr(rebake_layer, 'rebake', lambda layer, deadline, upload: seen.append(layer['id']))
+    monkeypatch.setattr(rebake_layer, 'find_layer', lambda cat, lid: {'id': lid})
+    assert rebake_layer.main(['x', '--missing', '--no-upload']) == 0
+    assert seen == ['a', 'e']

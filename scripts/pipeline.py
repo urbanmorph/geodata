@@ -382,7 +382,7 @@ def row_group_size_for(feature_count: int) -> int | None:
     return 20_000
 
 
-def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]:
+def rebake_flatten_bbox(src: Path, dst: Path, con=None, keep_struct: bool = False) -> tuple[int, list[str]]:
     """Re-emit parquet so /api/v1/nearby can prune efficiently:
       1. Top-level flat xmin/ymin/xmax/ymax columns — either flattened from
          an existing `bbox` STRUCT (ramSeraph shape) or synthesised from the
@@ -396,6 +396,8 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
 
     Pass `con` to run on a caller's connection (big bakes set temp_directory
     and preserve_insertion_order there so the Hilbert sort can spill).
+    `keep_struct` keeps a `bbox` STRUCT and adds the flat columns beside it
+    (rebake_layer.py: a published layer keeps every column it had).
 
     Returns (feature_count, non-geom column names).
     """
@@ -419,9 +421,9 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None) -> tuple[int, list[str]]
     india_bbox = "ST_Extent(ST_MakeEnvelope(68, 6, 98, 38))"
 
     if has_bbox_struct:
-        # Flatten the struct into top-level cols, drop the struct itself.
+        # Flatten the struct into top-level cols; drop the struct unless kept.
         bbox_clause = (
-            "SELECT * EXCLUDE (bbox), "
+            f"SELECT *{'' if keep_struct else ' EXCLUDE (bbox)'}, "
             "bbox.xmin AS xmin, bbox.ymin AS ymin, "
             "bbox.xmax AS xmax, bbox.ymax AS ymax"
         )
