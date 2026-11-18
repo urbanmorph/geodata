@@ -174,6 +174,18 @@ describe('toApiLayer', () => {
     const api = toApiLayer(SAMPLE_CATALOG.layers[0], SAMPLE_CATALOG, false);
     expect(api.filter_stats).toBeUndefined();
   });
+
+  it('never carries the upstream update check (scripts/check_updates.py bookkeeping)', () => {
+    const layer = {
+      ...SAMPLE_CATALOG.layers[0],
+      source_check: { method: 'http', url: 'https://x', fingerprint: 'etag=1', checked_at: 'a', changed_at: 'b' },
+    };
+    for (const detail of [false, true]) {
+      const json = JSON.stringify(toApiLayer(layer, SAMPLE_CATALOG, detail));
+      expect(json).not.toContain('source_check');
+      expect(json).not.toContain('fingerprint');
+    }
+  });
 });
 
 describe('toApiCategory', () => {

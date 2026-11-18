@@ -1,6 +1,6 @@
 // Build-time prerender: produce one large card per admin level.
 // Zero JS needed to read or navigate the catalog.
-import { readFile, writeFile, copyFile } from 'node:fs/promises';
+import { readFile, writeFile } from 'node:fs/promises';
 import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
 import { existsSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -22,6 +22,7 @@ import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-total
 import { docsStats } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
+import { publicCatalogJson } from './public-catalog.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '..');
@@ -41,7 +42,7 @@ const layerIndex = [];
 const liveCounts = await fetchLiveCounts();
 const dlCounts = bakedCounts(catalog, liveCounts);
 console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
-await copyFile(catalogPath, resolve(WEB, 'public', 'catalog.json'));
+await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalog));
 
 
 // Keep in sync with web/src/util.ts:escapeHtml
