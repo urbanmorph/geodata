@@ -1140,6 +1140,8 @@ const sitemapUrls = [
   { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/docs', changefreq: 'monthly', priority: '0.7' },
   { loc: ORIGIN + '/mcp', changefreq: 'monthly', priority: '0.7' },
+  { loc: ORIGIN + '/releases', changefreq: 'monthly', priority: '0.5' },
+  ...Object.keys(releaseIndex.latest || {}).map((d) => ({ loc: `${ORIGIN}/releases/${d}`, changefreq: 'monthly', priority: '0.4' })),
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
