@@ -116,7 +116,7 @@ button, .btn {
 }
 button:active, .btn:active { transform: translateY(1px); }
 /* apex focus ring: solid 2px accent-strong, offset 2px */
-button:focus-visible, .btn:focus-visible,
+button:focus-visible, .btn:focus-visible, a:focus-visible, summary:focus-visible,
 input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
 button:disabled, .btn:disabled { opacity: .5; cursor: default; transform: none; }
 
@@ -182,10 +182,10 @@ textarea { min-height: 92px; line-height: 1.5; }
 /* Reserve one line so the async "N points collected" stat fills this space
    instead of pushing the CTA + maps list down when it loads (a layout shift). */
 .masthead-stat { color: var(--muted); font-size: var(--fs-sm); margin: 2px 0 14px; min-height: 1.2rem; }
-/* "Install app": small secondary pill under the masthead, shown only where install
-   is possible (src/landing.ts + web/src/install-button.ts). */
+/* "Install app": small secondary pill after your maps (not above the main
+   action), shown only where install is possible (src/landing.ts + web/src/install-button.ts). */
 button.install-app {
-  min-height: 36px; padding: 0 14px; margin: 0 0 14px; border-radius: var(--radius-pill);
+  min-height: 36px; padding: 0 14px; margin: 18px 0 0; border-radius: var(--radius-pill);
   font-size: var(--fs-sm); color: var(--accent); background: transparent; border-color: var(--line-strong);
 }
 button.install-app:hover { border-color: var(--accent); }

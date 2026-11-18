@@ -71,12 +71,12 @@ function home(focusSync = false) {
       <h1>Make a map, collect together</h1>
       <p class="hint">Here you <strong>design</strong> a small form and share a link. <strong>Anyone with the link</strong> can <strong>add points</strong> on the map, no accounts. Download the data, or publish it to bharatlas when it's ready.</p>
       <p id="masthead-stat" class="masthead-stat"></p>
-      <span id="install-slot"></span>
       <button class="primary" id="start">＋ Make a new map</button>
       <div style="height:18px"></div>
       <p class="hint" id="outbox-note"></p>
       <div id="mymaps">${mapsSection()}</div>
       <div id="sync"></div>
+      <span id="install-slot"></span>
       <footer class="foot-note">
         <span>Part of <a href="https://bharatlas.com">bharatlas</a>, built for the field and optimised for mobile.</span>
         <span>${footerLinksHtml({ absolute: true })}</span>
