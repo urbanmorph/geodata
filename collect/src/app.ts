@@ -35,6 +35,7 @@ import { modeChoices } from './create/plan';
 import { isInIndia } from './geo/bounds';
 import { metresBetween, ringArea, lineLength, formatArea, formatLength, simplify } from './geo/measure';
 import { createTrace, averageFix, type Trace, type Fix } from './capture/trace';
+import { saveWalk, loadWalk, clearWalk } from './capture/walk-store';
 import { keepScreenOn, watchFixes } from './capture/gps';
 import { preparePhoto } from './photos/prepare';
 import { mountPhotoField, authedSrc, openViewer, type PhotoField, type PhotoFieldOptions, type PhotoItem } from './photos/widget';
@@ -697,9 +698,23 @@ function captureSheet(): void {
   verts = [];
   stopRecording();
   trace = null;
+  if (modeOf(meta.schema) === 'photos_ai') { redrawDraw(); return renderPhotoBar(); }
+  // A walk the phone cut short (the tab was killed in the background) comes back.
+  const kept = loadWalk(sessionStorage, ctx.id);
+  if (kept && modes.includes(kept.mode)) {
+    drawMode = kept.mode;
+    drawHow = kept.how;
+    verts = kept.verts;
+    if (kept.walking) trace = createTrace(kept.verts); // paused: Resume picks it up
+  }
   redrawDraw();
-  if (modeOf(meta.schema) === 'photos_ai') return renderPhotoBar();
   renderPlaceBar(modes);
+}
+
+/** Keeps a shape being marked with the GPS for this map (see walk-store.ts). */
+function keepWalk(): void {
+  if (drawMode === 'point' || drawHow === 'map') clearWalk(sessionStorage, ctx.id);
+  else saveWalk(sessionStorage, ctx.id, { mode: drawMode, how: drawHow, verts, walking: !!trace });
 }
 
 function renderPlaceBar(modes: GeomMode[]): void {
@@ -746,6 +761,7 @@ function renderPlaceBar(modes: GeomMode[]): void {
     ch?.classList.toggle('crosshair--draw', shape);
     ch?.classList.toggle('crosshair--off', shape && how !== 'map');
     syncVertexMarkers();
+    keepWalk(); // every change to the shape (each GPS reading too) is kept for a reload
   };
 
   // Corners as handles to drag (not while recording; a long walk is simplified first).
@@ -779,6 +795,11 @@ function renderPlaceBar(modes: GeomMode[]): void {
     verts = [];
     lastFix = null;
     redrawDraw();
+    watchWalk();
+  };
+
+  // The GPS feeding the walk (a new one, or one brought back after a reload).
+  const watchWalk = (): void => {
     const sleep = keepScreenOn();
     const stopWatch = watchFixes((f) => {
       lastFix = f;
@@ -830,7 +851,7 @@ function renderPlaceBar(modes: GeomMode[]): void {
     if (drawHow === 'map' || drawMode === 'point') verts.push(crosshairLngLat());
     else if (drawHow === 'walk') {
       if (!trace) startWalk();
-      else if (trace.paused()) trace.resume();
+      else if (trace.paused()) { trace.resume(); if (!stopGps) watchWalk(); }
       else trace.pause();
     } else if (!cornerTimer) addCorner();
     redrawDraw();

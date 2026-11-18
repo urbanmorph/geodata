@@ -25,10 +25,12 @@ export interface Trace {
   undo(): void;
 }
 
-export function createTrace(): Trace {
-  const pts: LngLat[] = [];
-  let farthest = 0;
-  let isPaused = false;
+/** A new walk, or (given the corners kept from one) that walk again, paused
+ *  until the walker resumes it. */
+export function createTrace(resumeFrom: LngLat[] = []): Trace {
+  const pts: LngLat[] = resumeFrom.map((p) => [p[0], p[1]]);
+  let farthest = pts.reduce((m, p) => Math.max(m, metresBetween(pts[0], p)), 0);
+  let isPaused = pts.length > 0;
   return {
     add(f) {
       if (isPaused) return 'paused';
