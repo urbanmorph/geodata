@@ -25,12 +25,30 @@ describe('usageChannel', () => {
 });
 
 describe('incrementApiUse', () => {
-  it('upserts one row per layer and channel', async () => {
-    const calls: { sql: string; args: unknown[] }[] = [];
-    const db = { prepare: (sql: string) => ({ bind: (...args: unknown[]) => ({ run: async () => { calls.push({ sql, args }); } }) }) };
-    await incrementApiUse(db as never, 'lgd_states', 'mcp');
-    expect(calls[0].sql).toMatch(/INSERT INTO api_usage[\s\S]*ON CONFLICT\(layer_id, channel\)[\s\S]*count = count \+ 1/);
-    expect(calls[0].args.slice(0, 2)).toEqual(['lgd_states', 'mcp']);
+  // Both counters in one round trip: the running total (layer-page line) and a
+  // UTC-day row, so ops can show the last 30 days. No caller data in either.
+  const fakeDb = () => {
+    const batches: { sql: string; args: unknown[] }[][] = [];
+    const db = {
+      prepare: (sql: string) => ({ bind: (...args: unknown[]) => ({ sql, args }) }),
+      batch: async (stmts: { sql: string; args: unknown[] }[]) => { batches.push(stmts); return []; },
+    };
+    return { db, batches };
+  };
+  it('upserts the running total and the day row in one batch', async () => {
+    const { db, batches } = fakeDb();
+    await incrementApiUse(db as never, 'lgd_states', 'mcp', new Date('2026-11-18T23:59:59Z'));
+    expect(batches).toHaveLength(1);
+    const [total, daily] = batches[0];
+    expect(total.sql).toMatch(/INSERT INTO api_usage[\s\S]*ON CONFLICT\(layer_id, channel\)[\s\S]*count = count \+ 1/);
+    expect(total.args.slice(0, 2)).toEqual(['lgd_states', 'mcp']);
+    expect(daily.sql).toMatch(/INSERT INTO api_usage_daily[\s\S]*ON CONFLICT\(day, layer_id, channel\)[\s\S]*count = count \+ 1/);
+    expect(daily.args).toEqual(['2026-11-18', 'lgd_states', 'mcp']);
+  });
+  it('the day is the UTC date', async () => {
+    const { db, batches } = fakeDb();
+    await incrementApiUse(db as never, 'x', 'api', new Date('2026-11-19T02:00:00+05:30'));
+    expect(batches[0][1].args[0]).toBe('2026-11-18');
   });
 });
 

@@ -5,7 +5,7 @@
 import { fmtCount } from '../../../shared/format.mjs';
 
 export type Channel = 'api' | 'mcp';
-type RunnableD1 = Pick<D1Database, 'prepare'>;
+type RunnableD1 = Pick<D1Database, 'prepare' | 'batch'>;
 
 const NOT_COUNTED = /bharatlas-mcp-test|bot\b|bot\/|crawler|spider|slurp|facebookexternalhit/i;
 
@@ -16,16 +16,26 @@ export function usageChannel(userAgent: string | null): Channel | null {
   return /^bharatlas-mcp\//.test(ua) ? 'mcp' : 'api';
 }
 
-export async function incrementApiUse(db: RunnableD1, layerId: string, channel: Channel): Promise<void> {
-  await db
-    .prepare(
-      `INSERT INTO api_usage (layer_id, channel, count, last_at)
-       VALUES (?, ?, 1, ?)
-       ON CONFLICT(layer_id, channel)
-       DO UPDATE SET count = count + 1, last_at = excluded.last_at`,
-    )
-    .bind(layerId, channel, new Date().toISOString())
-    .run();
+/** Bump the running total (layer-page line) and the UTC-day row (ops' last 30 days) in one round trip. */
+export async function incrementApiUse(db: RunnableD1, layerId: string, channel: Channel, now = new Date()): Promise<void> {
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO api_usage (layer_id, channel, count, last_at)
+         VALUES (?, ?, 1, ?)
+         ON CONFLICT(layer_id, channel)
+         DO UPDATE SET count = count + 1, last_at = excluded.last_at`,
+      )
+      .bind(layerId, channel, now.toISOString()),
+    db
+      .prepare(
+        `INSERT INTO api_usage_daily (day, layer_id, channel, count)
+         VALUES (?, ?, ?, 1)
+         ON CONFLICT(day, layer_id, channel)
+         DO UPDATE SET count = count + 1`,
+      )
+      .bind(now.toISOString().slice(0, 10), layerId, channel),
+  ]);
 }
 
 /** Count a call that names a layer, without delaying the answer (waitUntil; failures ignored). */

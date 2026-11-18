@@ -61,9 +61,11 @@ const assets = {
 const db = {
   prepare: (sql: string) => ({
     bind: (...args: unknown[]) => ({
-      run: async () => { if (/api_usage/.test(sql)) counted.push(String(args[0])); return { meta: {} }; },
+      // one count per call: the running-total row (the day row rides in the same batch)
+      run: async () => { if (/INTO api_usage \(/.test(sql)) counted.push(String(args[0])); return { meta: {} }; },
     }),
   }),
+  batch: async (stmts: { run(): Promise<unknown> }[]) => Promise.all(stmts.map((s) => s.run())),
 };
 
 async function call(handler: (ctx: never) => Promise<Response> | Response, path: string, params: Record<string, string> = {}, headers: Record<string, string> = {}) {
