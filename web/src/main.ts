@@ -54,16 +54,14 @@ async function showMap(layerId: string) {
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
   document.body.style.overflow = 'hidden';
-  let m: Awaited<ReturnType<typeof loadMap>>;
   try {
-    m = await loadMap();
+    const m = await loadMap();
+    await m.openLayer(layerId, { titleEl: mapTitle });
   } catch (e) {
-    // The map's own code is a separate download: with no connection it can't load,
-    // so say why instead of leaving "loading map…" up for good.
+    // The map's own code is a separate download, and the catalog another: with no
+    // connection they can't load, so say why instead of leaving "loading map…" up.
     showLayerError(document.getElementById('map')!, e);
-    return;
   }
-  await m.openLayer(layerId, { titleEl: mapTitle });
 }
 
 // Mirrors the prerendered <title> in web/index.html. If that changes,

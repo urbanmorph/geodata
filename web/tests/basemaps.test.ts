@@ -2,6 +2,8 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import {
   BASEMAPS,
   DEFAULT_BASEMAP,
+  baseStyle,
+  basemapInsertBefore,
   getStoredBasemap,
   setStoredBasemap,
   type BasemapId,
@@ -120,6 +122,47 @@ describe('basemaps — registry', () => {
         expect(String((src as { attribution?: string }).attribution).length).toBeGreaterThan(5);
       }
     }
+  });
+});
+
+// MapLibre's \`load\`, which gates attaching the data layer, waits for every
+// source's metadata and the sprite in the style. So the first style carries only
+// the active basemap; another one is added when the reader switches to it.
+describe('basemaps — the starting style', () => {
+  const sourceIds = (id: BasemapId) => Object.keys(baseStyle(id).sources);
+  const layerIds = (id: BasemapId) => baseStyle(id).layers.map((l) => l.id);
+
+  it('carries only the active basemap (no hidden sources to wait on)', () => {
+    for (const b of BASEMAPS) {
+      expect(sourceIds(b.id)).toEqual(Object.keys(b.sources));
+      expect(layerIds(b.id)).toEqual(b.layers.map((l) => l.id));
+    }
+  });
+
+  it('asks for the Streets sprite and glyphs only when Streets is the active basemap', () => {
+    expect(baseStyle('liberty').sprite).toBe(LIBERTY.sprite);
+    expect(baseStyle('liberty').glyphs).toBe(LIBERTY.glyphs);
+    for (const id of ['minimal', 'opentopo'] as const) {
+      expect(baseStyle(id).sprite).toBeUndefined();
+      expect(baseStyle(id).glyphs).toBeUndefined();
+    }
+  });
+
+  it('the default minimal map fetches nothing from OpenFreeMap', () => {
+    expect(JSON.stringify(baseStyle('minimal'))).not.toContain('openfreemap');
+  });
+
+  it('drops the india-boundary source that no layer draws', () => {
+    expect(sourceIds('minimal')).not.toContain('india-boundary');
+    expect(sourceIds('minimal').sort()).toEqual(['india-outline', 'world-land']);
+  });
+
+  it('a basemap added later goes under the first layer that is not a basemap layer', () => {
+    const minimal = layerIds('minimal');
+    expect(basemapInsertBefore([...minimal, 'fill', 'line-halo', 'lgd-overlay-line'])).toBe('fill');
+    expect(basemapInsertBefore(['minimal-bg', 'fill', 'minimal-india-outline', 'line-halo'])).toBe('fill');
+    expect(basemapInsertBefore(minimal)).toBeUndefined(); // no data yet: on top is fine
+    expect(basemapInsertBefore([])).toBeUndefined();
   });
 });
 

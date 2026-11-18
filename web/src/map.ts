@@ -7,8 +7,10 @@ import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { popupValueHtml } from './popup-value';
 import { availableDownloads, fmtBytes } from './format-hints';
-import { BASEMAPS, getStoredBasemap, setStoredBasemap, type BasemapId } from './basemaps';
-import { LIBERTY } from '../../shared/liberty';
+import {
+  BASEMAPS, baseStyle, basemapById, basemapInsertBefore, getStoredBasemap, setStoredBasemap, type BasemapId,
+} from './basemaps';
+import { onFirstRender, openGenerations, framesFromFile } from './map-startup';
 import { DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED } from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
@@ -77,6 +79,11 @@ let currentLayerLevel: string | null = null;
 // Coords from a shared ?at=lat,lng link, consumed by the next locate show()
 // so the deep-link reproduces the result without the visitor's own GPS.
 let pendingLocateCoords: { lat: number; lng: number } | null = null;
+// Every open and close starts a new generation: an older open that resumes after
+// an await (catalog, style, tile header, the large-load card) stops there.
+const opens = openGenerations();
+// Resolves at the map's `load`: the style is in and the data source can be added.
+const styleLoaded = new WeakMap<MlMap, Promise<void>>();
 
 // Arrival zoom for "Zoom to it", keyed by layer level. A best-effort fitBounds
 // then tightens to the actual feature; this just gets us close enough that the
@@ -212,6 +219,24 @@ function getArchive(url: string): PMTiles {
   return a;
 }
 
+type PmtilesInfo = { header: Awaited<ReturnType<PMTiles['getHeader']>>; sourceLayer: string };
+
+/** The archive's header and first vector layer: read as soon as the layer is known,
+ *  alongside the style load, and awaited when the data is attached. */
+async function readPmtiles(url: string): Promise<PmtilesInfo> {
+  const archive = getArchive(url);
+  const [header, metadata] = await Promise.all([archive.getHeader(), archive.getMetadata()]);
+  const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
+  if (!vlayers.length) throw new Error('pmtiles has no vector_layers');
+  return { header, sourceLayer: vlayers[0].id };
+}
+
+// Work that can wait for a quiet moment (prefetching a chunk the reader may want).
+const whenIdle = (cb: () => void): void => {
+  if ('requestIdleCallback' in window) window.requestIdleCallback(cb, { timeout: 4000 });
+  else setTimeout(cb, 1500);
+};
+
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -261,34 +286,40 @@ function panelAwarePadding(): Padding {
 // Basemap
 // ---------------------------------------------------------------------------
 
-function buildBaseStyle(active: BasemapId): maplibregl.StyleSpecification {
-  const sources: Record<string, maplibregl.SourceSpecification> = {};
-  const layers: maplibregl.LayerSpecification[] = [];
+// The map starts with the active basemap only (baseStyle); another is added the
+// first time the reader picks it, under the data, then shown or hidden after that.
+function addBasemap(m: MlMap, id: BasemapId): void {
+  const b = basemapById(id);
+  if (!b || m.getLayer(b.layers[0].id)) return;
+  const style = m.getStyle();
+  if (b.sprite && !style.sprite) m.setSprite(b.sprite);
+  if (b.glyphs && !style.glyphs) m.setGlyphs(b.glyphs);
+  for (const [sid, spec] of Object.entries(b.sources)) if (!m.getSource(sid)) m.addSource(sid, spec);
+  const before = basemapInsertBefore(style.layers.map((l) => l.id));
+  for (const lyr of b.layers) m.addLayer(lyr, before);
+  raiseIndiaOutline(m);
+}
+
+function showBasemap(m: MlMap, id: BasemapId): void {
+  addBasemap(m, id);
   for (const b of BASEMAPS) {
-    Object.assign(sources, b.sources);
     for (const lyr of b.layers) {
-      const existingLayout = (lyr as { layout?: Record<string, unknown> }).layout || {};
-      layers.push({
-        ...lyr,
-        layout: { ...existingLayout, visibility: b.id === active ? 'visible' : 'none' },
-      } as maplibregl.LayerSpecification);
+      if (m.getLayer(lyr.id)) m.setLayoutProperty(lyr.id, 'visibility', b.id === id ? 'visible' : 'none');
     }
   }
-  // Streets' labels and icons; the other basemaps need neither.
-  return { version: 8, glyphs: LIBERTY.glyphs, sprite: LIBERTY.sprite, sources, layers };
 }
 
 function setBasemap(id: BasemapId): void {
-  if (!map) return;
-  for (const b of BASEMAPS) {
-    for (const lyr of b.layers) {
-      if (map.getLayer(lyr.id)) {
-        map.setLayoutProperty(lyr.id, 'visibility', b.id === id ? 'visible' : 'none');
-      }
-    }
-  }
   activeBasemap = id;
   setStoredBasemap(id);
+  const m = map;
+  // Sources can't be added before the style has loaded: a pick made that early applies on load.
+  if (m) void styleLoaded.get(m)?.then(() => { if (map === m && activeBasemap === id) showBasemap(m, id); });
+}
+
+// The minimal basemap's India outline draws over the data's fill, under its edges.
+function raiseIndiaOutline(m: MlMap): void {
+  if (m.getLayer('minimal-india-outline') && m.getLayer('line-halo')) m.moveLayer('minimal-india-outline', 'line-halo');
 }
 
 // ---------------------------------------------------------------------------
@@ -347,9 +378,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
     },
   });
 
-  for (const id of ['minimal-india-outline', 'minimal-india-boundary']) {
-    if (map.getLayer(id)) map.moveLayer(id, 'line-halo');
-  }
+  raiseIndiaOutline(map);
 }
 
 // ---------------------------------------------------------------------------
@@ -479,18 +508,14 @@ function bindPopupToLayers() {
 // Data source attachment
 // ---------------------------------------------------------------------------
 
-async function attachData(layer: Layer) {
-  if (!map) return;
-
-  if (layer.pmtiles?.url) {
-    const archive = getArchive(layer.pmtiles.url);
-    const [header, metadata] = await Promise.all([archive.getHeader(), archive.getMetadata()]);
-    const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
-    if (!vlayers.length) throw new Error('pmtiles has no vector_layers');
-    const sourceLayer = vlayers[0].id;
+// `tiles` is the header read openLayer started (PMTiles layers); `live` says
+// whether this open is still the current one after each wait.
+async function attachData(m: MlMap, layer: Layer, tiles: Promise<PmtilesInfo> | null, live: () => boolean) {
+  if (tiles && layer.pmtiles?.url) {
+    const { header, sourceLayer } = await tiles;
+    if (!live()) return;
     currentSourceLayer = sourceLayer;
-
-    map.addSource('layer', {
+    m.addSource('layer', {
       type: 'vector',
       url: `pmtiles://${layer.pmtiles.url}`,
       attribution: layer.source,
@@ -501,28 +526,31 @@ async function attachData(layer: Layer) {
     flyTo(layerBounds, { padding: arrivalPadding(), duration: 0 });
     addDataLayers('layer', sourceLayer, layer.choropleth);
   } else if (layer.geojson?.url) {
-    // No pmtiles header to read bounds from. Fetch the geojson once, derive its
-    // extent, and fit the view to it — same outcome as the pmtiles path above.
-    // Passing the parsed data to addSource avoids a second fetch.
-    let data: unknown = layer.geojson.url;
     // A whole-file load: if it is large or slow on this connection, the reader chooses first.
-    await confirmLargeLoad(map.getContainer(), layer.geojson.bytes, dlProxyUrl(layer.geojson.url, 'geojson'));
-    try {
-      const resp = await fetch(layer.geojson.url);
-      if (resp.ok) {
-        const fc = (await resp.json()) as FC;
-        data = fc;
-        const b = featureCollectionBounds(fc);
-        if (b) {
-          layerBounds = snapToIndiaIfLarge(b);
-          flyTo(layerBounds, { padding: arrivalPadding(), duration: 0 });
+    await confirmLargeLoad(m.getContainer(), layer.geojson.bytes, dlProxyUrl(layer.geojson.url, 'geojson'));
+    if (!live()) return;
+    // No tile header to read bounds from. A small file (one city's community
+    // layer) is fetched and read here for its extent, then handed over parsed (one
+    // download). A large one goes to MapLibre by URL, parsed in its worker, not on
+    // the page; those are national, so the view stays on India.
+    let data: unknown = layer.geojson.url;
+    if (framesFromFile(layer.geojson.bytes)) {
+      try {
+        const resp = await fetch(layer.geojson.url);
+        if (resp.ok) {
+          const fc = (await resp.json()) as FC;
+          data = fc;
+          const b = featureCollectionBounds(fc);
+          if (b) layerBounds = snapToIndiaIfLarge(b);
         }
+      } catch {
+        // network/parse failure → fall back to the URL load + India bounds
       }
-    } catch {
-      // network/parse failure → fall back to the URL load + India bounds
+      if (!live()) return;
     }
+    flyTo(layerBounds, { padding: arrivalPadding(), duration: 0 });
     currentSourceLayer = undefined;
-    map.addSource('layer', { type: 'geojson', data: data as never, attribution: layer.source });
+    m.addSource('layer', { type: 'geojson', data: data as never, attribution: layer.source });
     addDataLayers('layer', undefined, layer.choropleth);
   } else {
     throw new Error('no renderable source for ' + layer.id);
@@ -533,8 +561,8 @@ async function attachData(layer: Layer) {
 
 // LGD state boundaries layered on top of any non-LGD layer for cross-source
 // comparison and to show India-correct state boundaries over any basemap.
-async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Promise<void> {
-  if (!map) return;
+// Added after the data layer's first render, so its tiles don't compete with the data's.
+async function addLgdOverlay(m: MlMap, catalogLayers: Layer[], activeLayerId: string, live: () => boolean): Promise<void> {
   if (activeLayerId === 'lgd_states') return;
   const lgd = catalogLayers.find((l) => l.id === 'lgd_states');
   if (!lgd?.pmtiles?.url) return;
@@ -542,16 +570,16 @@ async function addLgdOverlay(catalogLayers: Layer[], activeLayerId: string): Pro
   const archive = getArchive(lgd.pmtiles.url);
   const metadata = await archive.getMetadata();
   const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
-  if (!vlayers.length) return;
+  if (!vlayers.length || !live()) return;
   const sourceLayer = vlayers[0].id;
 
-  if (map.getSource('lgd-overlay')) return;
-  map.addSource('lgd-overlay', {
+  if (m.getSource('lgd-overlay')) return;
+  m.addSource('lgd-overlay', {
     type: 'vector',
     url: `pmtiles://${lgd.pmtiles.url}`,
     attribution: 'India boundaries · LGD',
   });
-  map.addLayer({
+  m.addLayer({
     id: 'lgd-overlay-line',
     type: 'line',
     source: 'lgd-overlay',
@@ -806,13 +834,13 @@ async function wireFilterButton(layer: Layer) {
   setToolLabel(btn, 'Filter');
   btn.disabled = false;
 
-  const columnsPromise = loadFilterColumns(layer, signal);
-
-  const idle: (cb: () => void) => void =
-    'requestIdleCallback' in window
-      ? (cb) => (window as unknown as { requestIdleCallback: (c: () => void, o: { timeout: number }) => void }).requestIdleCallback(cb, { timeout: 4000 })
-      : (cb) => setTimeout(cb, 1500);
-  idle(() => import('./filter'));
+  // The columns are read the first time the panel opens, not with the map: for a
+  // layer without baked stats that means DuckDB-WASM and a scan of the parquet.
+  let columnsPromise: ReturnType<typeof loadFilterColumns> | null = null;
+  const filterColumns = () => (columnsPromise ??= loadFilterColumns(layer, signal).catch((e) => {
+    console.warn('filter columns failed for', layer.id, e);
+    return null;
+  }));
 
   const resetFilterChrome = () => {
     btn.disabled = false;
@@ -843,7 +871,7 @@ async function wireFilterButton(layer: Layer) {
     msg.textContent = VERBS_ENGINE[0];
     const timer = setInterval(() => { msg.textContent = VERBS_ENGINE[++vi % VERBS_ENGINE.length]; }, 1800);
 
-    const result = await columnsPromise;
+    const result = await filterColumns();
     clearInterval(timer);
     panel.remove();
     if (signal.aborted || !result) {
@@ -1005,35 +1033,8 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, container: HTMLElem
 // ---------------------------------------------------------------------------
 
 export async function openLayer(layerId: string, opts: { titleEl: HTMLElement }) {
+  const gen = opens.next();
   resetOverlays();
-  const cat = (await getCatalog()) as {
-    layers?: Layer[];
-    level_meta?: Record<string, { label?: string; seo_title?: string; unit?: string; locate_label?: string; locate_mode?: string }>;
-  };
-  const layer = cat.layers?.find((l) => l.id === layerId);
-  if (!layer) {
-    opts.titleEl.textContent = `unknown layer: ${layerId}`;
-    return;
-  }
-  // Prefer the friendly title from level_meta (e.g. "Greater Bengaluru Wards
-  // (2025)") so the bar never shows a raw id like "wards_bengaluru_gba". Layers
-  // without a level_meta entry (most standard admin levels resolve theirs only
-  // on the edge via BUILTIN_LEVEL_META) keep the level · source · rows line.
-  const levelMeta = cat.level_meta?.[layerId];
-  const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
-  const friendly = (levelMeta?.label || levelMeta?.seo_title || layer.name || '').trim();
-  opts.titleEl.textContent = friendly
-    ? displayTitle({ id: layerId, name: layer.name }, levelMeta)
-    : layer.level
-      ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
-      : `${layer.source} · ${rowsLabel} features`;
-
-  wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
-  wireDownloadButton(layer);
-  wireBasemapButton();
-  currentLayerLevel = layer.level;
-  wireLocateButton(layer, levelMeta);
-
   const container = document.getElementById('map')!;
   container.innerHTML = '';
   if (map) {
@@ -1041,55 +1042,105 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     map = null;
   }
   const loader = overlayLoader(container, VERBS_MAP);
+  // The map and its basemap don't depend on the layer, so they start before the
+  // catalog arrives; the data is attached once both are in.
   activeBasemap = getStoredBasemap();
-  map = new maplibregl.Map({
+  layerBounds = INDIA_BOUNDS;
+  const m = new maplibregl.Map({
     container,
-    style: buildBaseStyle(activeBasemap),
+    style: baseStyle(activeBasemap),
     bounds: INDIA_BOUNDS,
     fitBoundsOptions: { padding: BASE_PADDING },
     attributionControl: false,
     preserveDrawingBuffer: true,
   });
-  wireAboutButton(layer, levelMeta, container);
-  map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+  map = m;
+  const live = () => opens.isCurrent(gen) && map === m;
+  const loaded = new Promise<void>((resolve) => m.once('load', () => resolve()));
+  styleLoaded.set(m, loaded);
+  m.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
   // Attribution as a compact (i) docked top-left, off the bottom bar; it expands
   // on tap (satisfies the licence). Scale is desktop-only — on mobile it just
   // clutters the bottom edge where the toolbar now lives.
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
-  if (!isMobileViewport()) map.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
+  m.addControl(new maplibregl.AttributionControl({ compact: true }), 'top-left');
+  if (!isMobileViewport()) m.addControl(new maplibregl.ScaleControl({ unit: 'metric' }));
   // MapLibre opens the compact attribution on load (a full-width credit strip
   // over the map top). Collapse it to just the (i); it still expands on tap.
-  map.once('load', () => {
+  m.once('load', () => {
     const a = container.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact');
     a?.classList.remove('maplibregl-compact-show');
     a?.removeAttribute('open');
   });
 
-  map.on('load', async () => {
-    try {
-      await attachData(layer);
-      addLegend(container, layer.choropleth, levelMeta?.unit);
-      await addLgdOverlay(cat.layers ?? [], layer.id);
-      if (!map) return; // closeLayer may have run during the awaits
-      map.once('idle', () => {
-        loader.dismiss();
-        // ?at=lat,lng deep-link (from Share): reproduce the located result and
-        // zoom/highlight using the shared coords, not the visitor's own GPS.
-        const at = parseAtParam(new URLSearchParams(location.search).get('at'));
-        if (at && surfaceHandles.findward) {
-          pendingLocateCoords = at;
-          dispatchOverlay({ type: 'toggle', surface: 'findward' });
-        }
-      });
-    } catch (e) {
-      console.error('attachData failed', e);
-      showLayerError(document.getElementById('map')!, e);
+  try {
+    const cat = (await getCatalog()) as {
+      layers?: Layer[];
+      level_meta?: Record<string, { label?: string; seo_title?: string; unit?: string; locate_label?: string; locate_mode?: string }>;
+    };
+    if (!live()) return;
+    const layer = cat.layers?.find((l) => l.id === layerId);
+    if (!layer) {
+      opts.titleEl.textContent = `unknown layer: ${layerId}`;
+      loader.dismiss();
+      return;
     }
-  });
+    // The tile header is read alongside the style load (awaited in attachData).
+    const tiles = layer.pmtiles?.url ? readPmtiles(layer.pmtiles.url) : null;
+    tiles?.catch(() => {}); // a failure surfaces where attachData awaits it
+    // Prefer the friendly title from level_meta (e.g. "Greater Bengaluru Wards
+    // (2025)") so the bar never shows a raw id like "wards_bengaluru_gba". Layers
+    // without a level_meta entry (most standard admin levels resolve theirs only
+    // on the edge via BUILTIN_LEVEL_META) keep the level · source · rows line.
+    const levelMeta = cat.level_meta?.[layerId];
+    const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
+    const friendly = (levelMeta?.label || levelMeta?.seo_title || layer.name || '').trim();
+    opts.titleEl.textContent = friendly
+      ? displayTitle({ id: layerId, name: layer.name }, levelMeta)
+      : layer.level
+        ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
+        : `${layer.source} · ${rowsLabel} features`;
+
+    wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
+    wireDownloadButton(layer);
+    wireBasemapButton();
+    currentLayerLevel = layer.level;
+    wireLocateButton(layer, levelMeta);
+    wireAboutButton(layer, levelMeta, container);
+
+    await loaded;
+    if (!live()) return;
+    await attachData(m, layer, tiles, live);
+    if (!live()) return;
+    addLegend(container, layer.choropleth, levelMeta?.unit);
+    // Once the data is on screen: the loader goes, then the extras that would
+    // otherwise compete with the data's own requests.
+    onFirstRender(m, 'layer', () => {
+      if (!live()) return;
+      loader.dismiss();
+      addLgdOverlay(m, cat.layers ?? [], layer.id, live).catch((e) => console.warn('LGD overlay failed', e));
+      if (layer.parquet?.url) whenIdle(() => void import('./filter'));
+    });
+    m.once('idle', () => {
+      if (!live()) return;
+      // ?at=lat,lng deep-link (from Share): reproduce the located result and
+      // zoom/highlight using the shared coords, not the visitor's own GPS.
+      const at = parseAtParam(new URLSearchParams(location.search).get('at'));
+      if (at && surfaceHandles.findward) {
+        pendingLocateCoords = at;
+        dispatchOverlay({ type: 'toggle', surface: 'findward' });
+      }
+    });
+  } catch (e) {
+    if (!live()) return;
+    console.error('opening the layer failed', e);
+    loader.dismiss();
+    showLayerError(container, e);
+  }
 }
 
 export function closeLayer() {
   clearLargeLoad(document);
+  opens.next(); // an open still in flight stops at its next step
   if (map) {
     map.remove();
     map = null;
