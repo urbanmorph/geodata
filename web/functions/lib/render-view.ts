@@ -42,20 +42,16 @@ function relativeTime(iso: string, now: Date = new Date()): string {
 
 export type RenderOpts = {
   submission: SubmissionView;
-  origin: string;
+  /** Up-votes at render time; c-vote.js fetches the live tally and the
+   *  visitor's own vote from /api/c/:id/rate on load. */
   ratingsCount: number;
-  /** Deprecated: kept so the test suite + edge handler still build during
-   *  the up/down vote rollout. The view JS fetches the actual myVote
-   *  state from /api/c/:id/rate on page load. */
-  alreadyRated: boolean;
   embed?: boolean;
   now?: Date;
 };
 
 export function renderViewPage(opts: RenderOpts): string {
   const { submission: s, ratingsCount, embed, now } = opts;
-  void opts.alreadyRated;
-  void opts.origin; // intentionally unused — see file header for why.
+  // No origin option: see the file header for why links are relative.
   // RELATIVE paths for everything the user might click — resolved by the
   // browser against the page's actual origin (5173 in dev, bharatlas.com in
   // prod). The ?url= form signals view-only to /preview so the publish CTA

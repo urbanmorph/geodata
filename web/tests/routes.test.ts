@@ -68,5 +68,16 @@ describe('retired pages', () => {
     expect(existsSync(resolve(WEB, 'submit.html'))).toBe(false);
     expect(readFileSync(resolve(WEB, 'public/_redirects'), 'utf8')).toMatch(/^\/submit\s+\/preview\s+301$/m);
   });
+
+  it('endpoints nothing calls stay deleted (live tallies: /api/c/useful-counts, /api/c/:id/rate|summary)', () => {
+    for (const f of ['functions/api/community/scores.ts', 'functions/api/c/[id].ts']) {
+      expect(existsSync(resolve(WEB, f)), f).toBe(false);
+    }
+  });
+
+  it('the community page renderer takes no dead options', () => {
+    const src = readFileSync(resolve(WEB, 'functions/lib/render-view.ts'), 'utf8');
+    expect(src).not.toMatch(/alreadyRated|void opts\./);
+  });
 });
 

@@ -46,9 +46,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const url = new URL(ctx.request.url);
   const html = renderViewPage({
     submission,
-    origin: url.origin,
     ratingsCount,
-    alreadyRated: false,
     embed: url.searchParams.has('embed'),
   });
 

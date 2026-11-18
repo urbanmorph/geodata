@@ -4,7 +4,6 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { onRequestGet as v1Counts } from '../functions/api/v1/downloads/counts';
 import { onRequestGet as dlCounts } from '../functions/api/dl/counts';
 import { onRequestGet as layerRoute } from '../functions/api/v1/layers/[id]';
-import { onRequestGet as cRoute, onRequestPut as cPut } from '../functions/api/c/[id]';
 import { onRequestGet as releasesRoute } from '../functions/api/v1/releases';
 import { onRequestGet as dlRoute } from '../functions/api/dl/[[path]]';
 import { onRequestGet as r2Route } from '../functions/api/r2/[[path]]';
@@ -48,11 +47,6 @@ describe('API errors are JSON', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ layers: [] }))));
     await isJsonError(await layerRoute(ctx('https://b.test/api/v1/layers/a.b', { params: { id: 'a.b' } })), 400);
     await isJsonError(await layerRoute(ctx('https://b.test/api/v1/layers/nope', { params: { id: 'nope' } })), 404);
-  });
-
-  it('/api/c/:id: not found and not implemented', async () => {
-    await isJsonError(await cRoute(ctx('https://b.test/api/c/x', { params: { id: 'x' } })), 404);
-    await isJsonError(await cPut(ctx('https://b.test/api/c/x', { params: { id: 'x' } })), 501);
   });
 
   it('/api/v1/releases: the index unavailable', async () => {

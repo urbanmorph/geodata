@@ -40,7 +40,7 @@ describe('every surface uses the shared footer', () => {
       category: 'environment', license: 'CC0-1.0', attribution: 'x', source_url: 'https://x', is_original: 0,
       data_year: null, format: 'geojson', bytes: 10, feature_count: 1, geometry_types: 'Point', r2_key: 'community/x/x.geojson',
     };
-    const html = renderViewPage({ submission: submission as never, origin: 'https://bharatlas.com', ratingsCount: 0, alreadyRated: false });
+    const html = renderViewPage({ submission: submission as never, ratingsCount: 0 });
     expect(html).toContain(footerLinksHtml());
   });
 
