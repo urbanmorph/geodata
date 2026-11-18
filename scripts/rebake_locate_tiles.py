@@ -50,7 +50,7 @@ WORK = Path('/tmp/rebake_locate_tiles')
 MAX_ZOOM = 12
 
 # Polygon layers whose tiles stop below z10 (audit, Nov 2026).
-LAYERS = ['bharatviz_pincodes', 'bda_jurisdiction', 'wards_hyderabad', 'wards_delhi',
+LAYERS = ['bharatviz_pincodes', 'bda_jurisdiction', 'wards_hyderabad_osm', 'wards_delhi',
           'wards_chandigarh', 'wards_vadodara', 'wards_faridabad']
 
 

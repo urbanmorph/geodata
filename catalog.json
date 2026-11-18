@@ -217,7 +217,7 @@
     "wards_hyderabad": {
       "order": 106,
       "plural": "wards hyderabad",
-      "path": "admin/wards-hyderabad",
+      "path": "admin/wards-hyderabad-ghmc-2022",
       "category": "city-wards"
     },
     "wards_mumbai": {
@@ -387,6 +387,12 @@
       "plural": "wards vijayawada",
       "path": "admin/wards-vijayawada",
       "category": "city-wards"
+    },
+    "wards_hyderabad_osm": {
+      "order": 106,
+      "plural": "wards hyderabad osm",
+      "path": "admin/wards-hyderabad",
+      "category": "city-wards"
     }
   },
   "level_meta": {
@@ -447,12 +453,12 @@
     "wards_hyderabad": {
       "label": "Hyderabad (GHMC) Wards",
       "unit": "wards",
-      "description": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones.",
+      "description": "Greater Hyderabad Municipal Corporation: 150 wards in 30 circles and 6 zones, from GHMC's ward map (2022), plus 5 areas inside the outline that are no ward.",
       "source_url": "https://data.opencity.in/dataset/hyderabad-wards-info",
       "source_org": "Greater Hyderabad Municipal Corporation",
-      "notes": "",
-      "seo_title": "Hyderabad Ward Map: 145 wards (GHMC)",
-      "seo_description": "Interactive map of all 145 wards in Hyderabad (GHMC). View ward boundaries and names, filter by ward, and download as GeoJSON, KML or Parquet."
+      "notes": "The earlier OpenStreetMap-derived 145-ward map stays as a historical layer.",
+      "seo_title": "Hyderabad Ward Map: 150 wards, 30 circles, 6 zones (GHMC)",
+      "seo_description": "Map of all 150 GHMC wards in Hyderabad with their circle and zone. View ward boundaries and names, find your ward, and download as GeoJSON, KML, Shapefile or Parquet."
     },
     "wards_mumbai": {
       "label": "Mumbai (BMC) Wards",
@@ -1120,6 +1126,26 @@
       "label": "Railway stations (merged, one per station)",
       "unit": "stations",
       "description": "One point per Indian Railways station or halt, with its station code, merged by bharatlas from two government copies of the CRIS station layer (PM GatiShakti and the IR GIS portal) and Wikidata station codes, with a source and match-confidence column on every row."
+    },
+    "property_tax_chennai_wards": {
+      "label": "Chennai Property Tax by Ward (2013-18)",
+      "unit": "wards",
+      "description": "Property tax demand and collection in each of Chennai's 200 wards, residential and commercial, for 2013-14 to 2017-18, in rupees crore, from Greater Chennai Corporation via the Smart Cities Mission data portal."
+    },
+    "wards_hyderabad_osm": {
+      "label": "Hyderabad Wards (OpenStreetMap, historical)",
+      "unit": "wards",
+      "description": "Greater Hyderabad Municipal Corporation wards as mapped in OpenStreetMap (2017-18): 144 of the 150 wards in 145 polygons, the map bharatlas showed before GHMC's own. Historical reference; use the GHMC 150-ward layer.",
+      "source_url": "https://data.opencity.in/dataset/hyderabad-wards-info",
+      "source_org": "Greater Hyderabad Municipal Corporation",
+      "notes": "Use the GHMC 150-ward layer for current ward boundaries.",
+      "seo_title": "Hyderabad Ward Map: 145 wards (OpenStreetMap, historical)",
+      "seo_description": "Earlier OpenStreetMap-derived map of 145 Hyderabad (GHMC) wards, kept for reference. View ward boundaries and names; download as GeoJSON, KML or Parquet."
+    },
+    "cityfinance_ulb_balance_sheets": {
+      "label": "City Balance Sheets (CityFinance.in)",
+      "unit": "ULBs",
+      "description": "Balance sheets of Indian cities (urban local bodies) from their annual accounts, as standardised by CityFinance.in (MoHUA): municipal fund and reserves, grants, loans, current liabilities, fixed assets, investments, receivables and cash, in rupees, on Swachh Bharat Mission ULB boundaries."
     }
   },
   "level_order": [
@@ -1159,6 +1185,7 @@
     "bda_layouts",
     "wards_chennai",
     "wards_hyderabad",
+    "wards_hyderabad_osm",
     "wards_mumbai",
     "electoral_wards_mumbai_2017",
     "wards_kolkata",
@@ -1257,6 +1284,8 @@
     "wb_amrut_ulbs",
     "ir_stations",
     "ir_tracks",
+    "property_tax_chennai_wards",
+    "cityfinance_ulb_balance_sheets",
     "cadastrals_puducherry_coastal",
     "ir_stations_merged"
   ],
@@ -2791,6 +2820,44 @@
       "id": "wards_hyderabad",
       "level": "wards_hyderabad",
       "source": "OpenCity",
+      "rows": 155,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.parquet",
+        "bytes": 400309
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.pmtiles",
+        "bytes": 256635
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.geojson",
+        "bytes": 1742050
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.kml",
+        "bytes": 1504960
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.shp.zip",
+        "bytes": 420037
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/"
+        },
+        "publisher": null
+      },
+      "category": "city-wards",
+      "provenance": "curated",
+      "fetched_at": "2026-11-17",
+      "notes": "Each ward carries its number and name (ward, e.g. \"127-RANGAREDDY NAGAR\"), circle and zone. Five polygons are not wards and have no zone: Osmania University (OU), the Cantonment area, Peerzadiguda and Kalvancha gram panchayats, and Bandlaguda. This is the 150-ward map in force before the 2025 merger of 27 towns into GHMC; the new 300-ward delimitation is not published as a map file yet. The earlier OpenStreetMap-derived 145-ward map stays as Hyderabad Wards (OpenStreetMap, historical)."
+    },
+    {
+      "id": "wards_hyderabad_osm",
+      "level": "wards_hyderabad_osm",
+      "source": "OpenCity",
       "rows": 145,
       "parquet": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.parquet",
@@ -2825,7 +2892,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Greater Hyderabad Municipal Corporation \u2014 145 wards across 6 zones."
+      "notes": "Earlier OpenStreetMap-derived ward map (OpenStreetMap ids, versions and changesets in the columns), edited December 2017 to January 2018, taken from OpenCity's Hyderabad wards dataset before OpenCity replaced it with GHMC's map. 145 polygons cover 144 wards; wards 3, 4, 11, 13, 31 and 113 are missing. Superseded by Hyderabad (GHMC) Wards (wards_hyderabad)."
     },
     {
       "id": "wards_mumbai",
@@ -7206,6 +7273,137 @@
       "fetched_at": "2026-11-15T14:42:16+00:00"
     },
     {
+      "id": "property_tax_chennai_wards",
+      "level": "property_tax_chennai_wards",
+      "source": "SmartCitiesChennai",
+      "rows": 200,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/property-tax-chennai-wards/property_tax_chennai_wards.parquet",
+        "bytes": 702064
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/property-tax-chennai-wards/property_tax_chennai_wards.pmtiles",
+        "bytes": 306081
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/property-tax-chennai-wards/property_tax_chennai_wards.geojson",
+        "bytes": 3715292
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/property-tax-chennai-wards/property_tax_chennai_wards.kml",
+        "bytes": 2982091
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/property-tax-chennai-wards/property_tax_chennai_wards.shp.zip",
+        "bytes": 765663
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Greater Chennai Corporation / Chennai Smart City Ltd, via the Smart Cities Mission data portal (MoHUA)",
+          "url": "https://smartcities.data.gov.in/catalog/property-tax-chennai"
+        },
+        "publisher": {
+          "name": "OpenCity / Oorvani Foundation",
+          "url": "https://data.opencity.in/dataset/chennai-property-tax-collections"
+        }
+      },
+      "category": "economy",
+      "provenance": "curated",
+      "fetched_at": "2026-11-17",
+      "notes": "Published by Chennai Smart City Ltd on the Smart Cities Mission data portal (smartcities.data.gov.in, \"Property Tax Data : Chennai : 2013 - 2018\", GODL-India). The portal puts each download behind a captcha, so the file was taken from OpenCity's identical copy (data.opencity.in/dataset/chennai-property-tax-collections). Columns and units (rupees crore) are as published; Ward Name is NA in the source. Joined by ward number (N001 to N200) to the 200-ward Greater Chennai Corporation map (wards_chennai), the ward map in force in 2013-18. Other Smart Cities property tax files are city totals or sit behind the same captcha and are not included.",
+      "tags": [
+        "property tax",
+        "municipal finance",
+        "ward",
+        "Chennai",
+        "Greater Chennai Corporation",
+        "GCC",
+        "tax collection",
+        "tax demand",
+        "Smart Cities Mission"
+      ],
+      "choropleth": {
+        "column": "2017-18 - Property Tax Collection (in crores) - Residential",
+        "label": "Residential property tax collected, 2017-18",
+        "unit": "INR crore",
+        "breaks": [
+          0.51,
+          0.9,
+          1.3,
+          2
+        ]
+      }
+    },
+    {
+      "id": "cityfinance_ulb_balance_sheets",
+      "level": "cityfinance_ulb_balance_sheets",
+      "source": "CityFinance",
+      "rows": 3368,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.parquet",
+        "bytes": 15355436
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.pmtiles",
+        "bytes": 11157129
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.geojson",
+        "bytes": 53493175
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.kml",
+        "bytes": 45721579
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.shp.zip",
+        "bytes": 19509416
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "CityFinance.in, Ministry of Housing and Urban Affairs",
+          "url": "https://cityfinance.in/"
+        },
+        "publisher": null
+      },
+      "category": "economy",
+      "provenance": "curated",
+      "fetched_at": "2026-11-18",
+      "notes": "Figures from the standardised balance sheets on CityFinance.in (Ministry of Housing and Urban Affairs; run by NIUA and Janaagraha), in rupees, by National Municipal Accounts Manual line item, as published. Each polygon carries every line item for its latest year with a balance sheet (fy) and total assets and total liabilities for every year it has. Accumulated depreciation and provisions for bad debts are negative, as CityFinance publishes them. Polygons and the city matching are those of the City Finances (cityfinance_ulbs) layer: Swachh Bharat Mission ULB polygons matched to CityFinance by Census 2011 town code or SBM code, never by name; see that layer for the method and its gaps (no West Bengal polygons). Polygons with no matched city or no balance sheet carry empty figures. CityFinance states no licence; treated here as GODL-India.",
+      "tags": [
+        "municipal finance",
+        "urban local body",
+        "ULB",
+        "city finance",
+        "balance sheet",
+        "assets",
+        "liabilities",
+        "municipal debt",
+        "loans",
+        "reserves",
+        "fixed assets",
+        "receivables",
+        "municipal corporation",
+        "municipality",
+        "nagar panchayat",
+        "NMAM",
+        "MoHUA"
+      ],
+      "choropleth": {
+        "column": "total_assets",
+        "label": "Total assets (latest year)",
+        "unit": "INR",
+        "breaks": [
+          140000000,
+          260000000,
+          450000000,
+          920000000
+        ]
+      }
+    },
+    {
       "id": "cadastrals_puducherry_coastal",
       "level": "cadastrals_puducherry_coastal",
       "source": "NCSCM",
@@ -9765,6 +9963,10 @@
     "bharatlas (CRIS, PM GatiShakti, Wikidata)": {
       "name": "Indian Railways (CRIS), via PM GatiShakti and the IR GIS portal; Wikidata",
       "url": "https://irgeoportal.gov.in/"
+    },
+    "SmartCitiesChennai": {
+      "name": "Greater Chennai Corporation / Chennai Smart City Ltd, via the Smart Cities Mission data portal (MoHUA)",
+      "url": "https://smartcities.data.gov.in/catalog/property-tax-chennai"
     }
   },
   "licence_summary": {

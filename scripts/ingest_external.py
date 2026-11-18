@@ -171,19 +171,30 @@ DATASETS: list[Dataset] = [
     ),
 
     # ──────── Hyderabad ────────
+    # GHMC's own ward map (OpenCity "Greater Hyderabad Wards Map - 2022", updated
+    # Feb 2026). Replaces the earlier 145-ward OpenStreetMap extract, which stays
+    # in the catalog as wards_hyderabad_osm on its original R2 keys (immutable).
     Dataset(
         id='wards_hyderabad',
         name='Hyderabad (GHMC) Wards',
-        src=str(HOME / 'GitHub/notf/supporting documents/hyderabad/hyderabad-wards.kml'),
+        src=str(SRC / 'ghmc_wards_2022.kml'),
         category='city-wards',
         level='wards_hyderabad',
-        description='Greater Hyderabad Municipal Corporation — 145 wards across 6 zones.',
+        description=('Greater Hyderabad Municipal Corporation: 150 wards in 30 circles and 6 zones, from '
+                     "GHMC's ward map (2022), plus 5 areas inside the outline that are no ward."),
         source_org='Greater Hyderabad Municipal Corporation',
         source_url='https://data.opencity.in/dataset/hyderabad-wards-info',
         license='CC0-1.0',
         unit='wards',
-        r2_prefix='admin/wards-hyderabad',
-        features=145,
+        r2_prefix='admin/wards-hyderabad-ghmc-2022',
+        features=155,
+        notes=('Each ward carries its number and name (ward, e.g. "127-RANGAREDDY NAGAR"), circle and zone. '
+               'Five polygons are not wards and have no zone: Osmania University (OU), the '
+               'Cantonment area, Peerzadiguda and Kalvancha gram panchayats, and Bandlaguda. This is the '
+               '150-ward map in force before the 2025 merger of 27 towns into GHMC; the new 300-ward '
+               'delimitation is not published as a map file yet. The earlier OpenStreetMap-derived '
+               '145-ward map stays as Hyderabad Wards (OpenStreetMap, historical).'),
+        kml_name_field='ward',
     ),
 
     # ──────── Mumbai ────────

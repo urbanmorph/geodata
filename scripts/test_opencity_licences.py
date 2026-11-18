@@ -29,6 +29,7 @@ CKAN = {
     'bda_layouts': ('bda-layouts', 'other-pd'),
     'wards_chennai': ('gcc-ward-information', 'notspecified'),
     'wards_hyderabad': ('hyderabad-wards-info', 'other-pd'),
+    'wards_hyderabad_osm': ('hyderabad-wards-info', 'other-pd'),
     'wards_mumbai': ('mumbai-wards-map', 'other-pd'),
     'electoral_wards_mumbai_2017': ('mumbai-wards-map', 'other-pd'),
     'wards_kolkata': ('kolkata-wards-information', 'other-pd'),
@@ -58,6 +59,8 @@ CKAN = {
 # republisher label (ODbL-1.0) and the description says so.
 LABEL = {'other-pd': 'CC0-1.0', 'cc-by-sa': 'CC-BY-SA-4.0', 'notspecified': 'ODbL-1.0', None: 'ODbL-1.0'}
 UNSTATED = {'notspecified', None}
+# Historical layers kept on their published files and never rebuilt by ingest_external.
+NOT_REBUILT = {'wards_hyderabad_osm'}
 
 
 def _expected(layer_id: str) -> str:
@@ -108,6 +111,8 @@ def test_ingest_config_matches_ckan(manifest):
     ie = pytest.importorskip('ingest_external')
     by_id = {d.id: d for d in ie.DATASETS}
     for layer_id, (slug, _) in CKAN.items():
+        if layer_id in NOT_REBUILT:
+            continue
         d = by_id[layer_id]
         assert d.license == _expected(layer_id), layer_id
         assert d.source_url == _opencity_url(slug), layer_id

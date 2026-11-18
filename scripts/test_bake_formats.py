@@ -36,6 +36,22 @@ def test_zip_with_key_writes_columns_txt_and_every_file(tmp_path):
         assert zf.read('columns.txt').decode() == 'line one\nline two\n'
 
 
+def test_zip_with_key_is_byte_stable_across_runs(tmp_path):
+    # Same input, same bytes, same md5: a re-bake must not re-upload an unchanged shapefile.
+    import os
+    import time
+    src = tmp_path / 'shp'
+    src.mkdir()
+    (src / 'x.shp').write_bytes(b'shp')
+    a, b = tmp_path / 'a.shp.zip', tmp_path / 'b.shp.zip'
+    f.zip_with_key(src, a, ['k'])
+    later = time.time() + 120
+    for p in src.iterdir():
+        os.utime(p, (later, later))
+    f.zip_with_key(src, b, ['k'])
+    assert a.read_bytes() == b.read_bytes()
+
+
 def test_short_field_names_fit_dbf_and_stay_unique_case_insensitively():
     cols = ['dist_lgd', 'shallow_tw_in_use', 'shallow_tw_share', 'shallow_tw',
             'energy_electric_all', 'energy_electric', 'Energy_Electric_X']
