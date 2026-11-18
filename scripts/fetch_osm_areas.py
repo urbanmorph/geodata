@@ -26,7 +26,7 @@ from datetime import date
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import log, make_con, with_retries  # noqa: E402
+from pipeline import cache_backup, log, make_con, with_retries  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / 'data' / 'osm-areas'
@@ -103,15 +103,16 @@ def main() -> int:
     layers = [l for l in catalog.get('layers', []) if l['id'] in number_only and (not args or l['id'] in args)]
     con = make_con()
     log(f'osm-areas: {len(layers)} number-only ward layer(s)')
-    for n, layer in enumerate(layers, 1):
-        pq = w.find_parquet(layer)
-        if not pq:
-            log(f'  [{n}/{len(layers)}] {layer["id"]}: no local parquet — skipped')
-            continue
-        result = fetch_one(layer['id'], bbox_of(con, pq), refresh)
-        log(f'  [{n}/{len(layers)}] {layer["id"]}: {result}')
-        if result != 'cached' and n < len(layers):
-            time.sleep(PAUSE)
+    with cache_backup(CACHE, 'fetch_osm_areas'):
+        for n, layer in enumerate(layers, 1):
+            pq = w.find_parquet(layer)
+            if not pq:
+                log(f'  [{n}/{len(layers)}] {layer["id"]}: no local parquet — skipped')
+                continue
+            result = fetch_one(layer['id'], bbox_of(con, pq), refresh)
+            log(f'  [{n}/{len(layers)}] {layer["id"]}: {result}')
+            if result != 'cached' and n < len(layers):
+                time.sleep(PAUSE)
     return 0
 
 

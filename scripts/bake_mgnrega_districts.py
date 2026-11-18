@@ -43,6 +43,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pipeline import (  # noqa: E402,F401  (re-exported for bake_state_finance)
+    atomic_output,
+    cache_backup,
     log,
     make_con,
     with_retries,
@@ -113,7 +115,8 @@ def pull_pages(cache: Path, filters: dict, fetch: Fetcher, limit: int = LIMIT, r
         page = cache / f'offset_{offset:07d}.json.gz'
         if refresh or not page.exists():
             recs = fetch(offset, limit, filters)['records']
-            page.write_bytes(gzip.compress(json.dumps(recs).encode(), mtime=0))
+            with atomic_output(page) as part:
+                part.write_bytes(gzip.compress(json.dumps(recs).encode(), mtime=0))
             log(f'  {cache.name}: rows {offset:,}-{offset + len(recs):,} of {total:,}')
         records.extend(json.loads(gzip.decompress(page.read_bytes())))
     return records
@@ -397,7 +400,8 @@ def main() -> None:
     ap.add_argument('--refresh', action='store_true', help='refetch every page (the source updates daily)')
     a = ap.parse_args()
     if a.step == 'pull':
-        pull(a.refresh)
+        with cache_backup(RAW, 'bake_mgnrega_districts'):
+            pull(a.refresh)
     elif a.step == 'bake':
         bake()
     elif a.step == 'upload':

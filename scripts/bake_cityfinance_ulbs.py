@@ -40,11 +40,12 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
-from pipeline import is_client_error, log, make_con, with_retries  # noqa: E402
+from pipeline import cache_backup, is_client_error, log, make_con, with_retries  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 RAW = ROOT / 'data' / 'raw' / 'cityfinance'
+CACHE_NAME = 'cityfinance'  # R2 cache/cityfinance/: both CityFinance bakes share RAW
 
 LAYER_ID = 'cityfinance_ulbs'
 BASENAME = 'CityFinance_ULBs'
@@ -589,7 +590,9 @@ def main() -> None:
     ap.add_argument('--out', type=Path, default=ROOT / 'data' / 'baked' / R2_PREFIX)
     a = ap.parse_args()
     if a.step == 'pull':
-        sys.exit(0 if pull(max_minutes=a.max_minutes) else 3)
+        with cache_backup(RAW, CACHE_NAME):
+            done = pull(max_minutes=a.max_minutes)
+        sys.exit(0 if done else 3)
     elif a.step == 'bake':
         log(json.dumps(bake(a.out), indent=2))
     elif a.step == 'upload':

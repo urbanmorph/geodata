@@ -41,7 +41,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from bake_mgnrega_districts import api_key, norm, num  # noqa: E402
-from pipeline import log, make_con, with_retries  # noqa: E402
+from pipeline import cache_backup, log, make_con, with_retries  # noqa: E402
 
 RAW = ROOT / 'data' / 'raw' / 'state-finance'
 LAYER_ID = 'state_finance'
@@ -375,7 +375,8 @@ def main() -> None:
     ap.add_argument('--refresh', action='store_true', help='refetch every table')
     a = ap.parse_args()
     if a.step == 'pull':
-        pull(a.refresh)
+        with cache_backup(RAW, 'bake_state_finance'):
+            pull(a.refresh)
     elif a.step == 'bake':
         bake()
     elif a.step == 'upload':
