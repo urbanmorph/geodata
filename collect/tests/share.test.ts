@@ -48,22 +48,42 @@ describe('linksMailtoHref', () => {
   });
 });
 
-import { splitLinks, type LinkInfo } from '../src/share';
+import { shareTabLinks, heldToken, type LinkInfo } from '../src/share';
 
-describe('splitLinks — the Share tab\'s named links', () => {
-  const L = (o: Partial<LinkInfo>): LinkInfo => ({ id: 'x', permission: 'edit', label: null, active: true, created_at: '2026-10-01', records: 0, ...o });
-  it('lists named collect/view links newest first, active before turned-off', () => {
-    const out = splitLinks([
+describe('shareTabLinks: every collect/view link in the Share tab, each one switchable off', () => {
+  const L = (o: Partial<LinkInfo>): LinkInfo => ({ id: 'x', permission: 'edit', label: null, active: true, created_at: '2026-10-01T05:00:00.000Z', records: 0, ...o });
+  it('lists named and unnamed links, active before turned-off, newest first; never admin', () => {
+    const out = shareTabLinks([
       L({ id: 'a', label: 'Asha', created_at: '2026-10-01' }),
       L({ id: 'b', label: 'Ward 12', created_at: '2026-10-03', active: false }),
       L({ id: 'c', label: 'School', permission: 'view', created_at: '2026-10-02' }),
+      L({ id: 'u1', created_at: '2026-09-01' }),
       L({ id: 'adm', label: null, permission: 'admin' }),
     ]);
-    expect(out.named.map((l) => l.id)).toEqual(['c', 'a', 'b']);
+    expect(out.map((l) => l.id)).toEqual(['c', 'a', 'u1', 'b']);
   });
-  it('counts unnamed collect links (and their points) without listing them', () => {
-    const out = splitLinks([L({ id: '1', records: 3 }), L({ id: '2', records: 2 }), L({ id: '3', permission: 'view' }), L({ id: '4', label: 'Asha' })]);
-    expect(out.unnamed).toEqual({ links: 2, records: 5 });
+  it('names unnamed links plainly, numbered by age per kind, with the day they were made', () => {
+    const out = shareTabLinks([
+      L({ id: 'u1', created_at: '2026-09-01T10:00:00.000Z' }),
+      L({ id: 'v1', permission: 'view', created_at: '2026-09-02T10:00:00.000Z' }),
+      L({ id: 'u2', created_at: '2026-09-03T10:00:00.000Z' }),
+      L({ id: 'n', label: 'Asha', created_at: '2026-09-04T10:00:00.000Z' }),
+    ]);
+    const name = Object.fromEntries(out.map((l) => [l.id, l.name]));
+    expect(name).toEqual({ u1: 'Collect link 1 (made 2026-09-01)', u2: 'Collect link 2 (made 2026-09-03)', v1: 'View-only link 1 (made 2026-09-02)', n: 'Asha' });
+  });
+});
+
+describe('heldToken: the token of a link this device already holds, for reuse', () => {
+  it('reads the token of a saved link of the wanted kind', () => {
+    expect(heldToken('https://collect.bharatlas.com/c/abc#edt_x1', 'edit')).toBe('edt_x1');
+    expect(heldToken('https://collect.bharatlas.com/c/abc/view#viw_y2', 'view')).toBe('viw_y2');
+  });
+  it('gives nothing for no link, a garbled link, or another kind', () => {
+    expect(heldToken(undefined, 'edit')).toBeUndefined();
+    expect(heldToken('not a url', 'edit')).toBeUndefined();
+    expect(heldToken('https://collect.bharatlas.com/c/abc#viw_y2', 'edit')).toBeUndefined();
+    expect(heldToken('https://collect.bharatlas.com/c/abc#adm_z', 'view')).toBeUndefined();
   });
 });
 

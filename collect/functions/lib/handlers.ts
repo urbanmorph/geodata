@@ -253,7 +253,10 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
 
 // ---- POST /collections/:id/tokens ------------------------------------------
 // Mint a fresh edit or view link (admin only). The originals are hash-only and
-// can't be re-shown, so "share another collect link" = mint a new one.
+// can't be re-shown, so "share another collect link" = mint a new one. An
+// unlabelled request may pass `reuse`: a link token the caller already holds.
+// If it is an active unnamed link of the wanted kind on this map, it comes back
+// as is, so opening the Share tab doesn't add a new link every visit.
 
 export async function mintToken(env: Env, req: Request, id: string): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
@@ -273,6 +276,14 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
     if (label && label.length > LINK_LABEL_MAX) return bad(400, `label must be at most ${LINK_LABEL_MAX} characters`);
   }
 
+  const origin = new URL(req.url).origin;
+  const linkUrl = (token: string): string => (want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`);
+  if (!label && typeof body?.reuse === 'string') {
+    const held = await linkFor(env.DB, id, body.reuse);
+    const row = held?.permission === want ? await db.getLink(env.DB, id, held.id) : null;
+    if (row && !row.label) return json(200, { permission: want, token: body.reuse, link: linkUrl(body.reuse), id: row.id, label: null });
+  }
+
   const token = generateToken(want);
   const linkId = await db.addCollectionToken(env.DB, {
     collectionId: id,
@@ -281,9 +292,7 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
     permission: want,
     label,
   });
-  const origin = new URL(req.url).origin;
-  const link = want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`;
-  return json(200, { permission: want, token, link, id: linkId, label });
+  return json(200, { permission: want, token, link: linkUrl(token), id: linkId, label });
 }
 
 const LINK_LABEL_MAX = 60;

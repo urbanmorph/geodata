@@ -122,11 +122,11 @@ export async function listLinks(db: DB, collectionId: string): Promise<LinkRow[]
   return (res.results ?? []) as unknown as LinkRow[];
 }
 
-export async function getLink(db: DB, collectionId: string, tokenId: string): Promise<{ id: string; permission: string } | null> {
+export async function getLink(db: DB, collectionId: string, tokenId: string): Promise<{ id: string; permission: string; label: string | null } | null> {
   return (await db
-    .prepare(`SELECT id, permission FROM collection_tokens WHERE collection_id = ? AND id = ?`)
+    .prepare(`SELECT id, permission, label FROM collection_tokens WHERE collection_id = ? AND id = ?`)
     .bind(collectionId, tokenId)
-    .first()) as { id: string; permission: string } | null;
+    .first()) as { id: string; permission: string; label: string | null } | null;
 }
 
 export async function deactivateLink(db: DB, collectionId: string, tokenId: string): Promise<void> {

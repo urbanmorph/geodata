@@ -22,12 +22,12 @@ import { escapeHtml, downloadText } from './util';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
 import type { Mapping } from './import/build';
-import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
+import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
 import { fitsLocalPicker } from './schema/dates';
 import { wireSheetSwipe } from './sheet-swipe';
 import { pickNearest } from './pick-nearest';
-import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
+import { linksMailtoHref, shareTabLinks, heldToken, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
 import { modeOf, photoFields } from './schema/modes';
@@ -1334,7 +1334,7 @@ function renderShareTab(body: HTMLElement): void {
       <div class="linkrow__body" hidden></div>
     </div>`).join('')}
     <a class="btn wide" id="email-links" style="margin-top:12px">✉ Email these links to me</a>
-    <strong style="display:block;margin-top:18px">Named collect links</strong>
+    <strong style="display:block;margin-top:18px">Collect and view links</strong>
     <p class="hint">Give a team or a person their own link. You'll see which points came through it, and can turn it off without changing anyone else's link.</p>
     <div class="row">
       <input id="nl-label" maxlength="60" placeholder="e.g. Ward 12 team" aria-label="Name for the new link" style="flex:1" />
@@ -1347,14 +1347,18 @@ function renderShareTab(body: HTMLElement): void {
   const refreshEmail = (): void => { emailA.href = linksMailtoHref({ admin: adminLink, ...minted } as MapLinks, meta.name); };
   refreshEmail();
 
-  // The URL for a row — admin is this page; collect/view mint once, then cache.
+  // The URL for a row — admin is this page. Collect/view reuse the link this
+  // device saved for the map while it is still on (else mint one and save it),
+  // then cache for the session.
   const linkFor = async (r: LinkRow): Promise<string | null> => {
     if (r.role === 'admin') return adminLink;
     const perm = r.perm!;
     if (minted[perm]) return minted[perm]!;
     try {
-      const res = await apiJson<{ link: string }>(`/collections/${ctx.id}/tokens`, ctx.token, { method: 'POST', body: JSON.stringify({ permission: perm }) });
+      const reuse = heldToken(myMaps().find((m) => m.id === ctx.id)?.links[perm], perm);
+      const res = await apiJson<{ link: string }>(`/collections/${ctx.id}/tokens`, ctx.token, { method: 'POST', body: JSON.stringify({ permission: perm, reuse }) });
       minted[perm] = res.link;
+      rememberMap(ctx.id, meta.name, perm === 'edit' ? 'collect' : 'view', res.link);
       refreshEmail();
       return res.link;
     } catch (e) { toast((e as Error).message); return null; }
@@ -1391,22 +1395,21 @@ function renderShareTab(body: HTMLElement): void {
   });
 }
 
-// Named links: mint a labelled collect link, list named links with how many
-// points each added, and turn one off (two taps). The token is shown once, at
-// creation; the list only ever has labels and counts.
+// Named links: mint a labelled collect link, list every collect/view link
+// (named, or plainly numbered when unnamed) with how many points each added,
+// and turn one off (two taps). The token is shown once, at creation; the list
+// only ever has names and counts.
 async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
   const list = body.querySelector<HTMLElement>('#nl-list')!;
   const render = async (): Promise<void> => {
     try {
       const { links } = await apiJson<{ links: LinkInfo[] }>(`/collections/${ctx.id}/tokens`, ctx.token);
-      const { named, unnamed } = splitLinks(links);
       const plural = (n: number, w: string): string => `${n} ${w}${n === 1 ? '' : 's'}`;
-      list.innerHTML = named.map((l) => `<div class="link-box${l.active ? '' : ' link-box--off'}">
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.label!)}
+      list.innerHTML = shareTabLinks(links).map((l) => `<div class="link-box${l.active ? '' : ' link-box--off'}">
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.name)}
             <span class="hint">· ${l.permission === 'view' ? 'view only' : plural(l.records, 'point')}${l.active ? '' : ' · turned off'}</span></span>
           ${l.active ? `<button type="button" data-revoke="${escapeHtml(l.id)}">Turn off</button>` : ''}
-        </div>`).join('')
-        + (unnamed.links ? `<p class="hint">${plural(unnamed.links, 'unnamed collect link')} from earlier shares added ${plural(unnamed.records, 'point')}.</p>` : '');
+        </div>`).join('');
       list.querySelectorAll<HTMLButtonElement>('button[data-revoke]').forEach((b) => {
         let armed = false;
         b.onclick = async () => {

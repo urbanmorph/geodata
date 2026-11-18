@@ -128,6 +128,35 @@ describe('revoke one link', () => {
   });
 });
 
+describe('reuse an unnamed link instead of minting one per Share visit', () => {
+  const mint = async (id: string, admin: string, body: unknown) =>
+    j(await h.mintToken(env, req('POST', `/collections/${id}/tokens`, admin, body), id));
+  const count = async (id: string, admin: string) =>
+    (await j(await h.listTokens(env, req('GET', `/collections/${id}/tokens`, admin), id))).body.links.length;
+
+  it('hands back the active link the admin already holds, adding none', async () => {
+    const m = await newMap();
+    const before = await count(m.id, m.admin);
+    const r = await mint(m.id, m.admin, { permission: 'edit', reuse: m.edit });
+    expect(r.status).toBe(200);
+    expect(r.body.token).toBe(m.edit);
+    expect(r.body.link).toBe(`${O}/c/${m.id}#${m.edit}`);
+    expect(await count(m.id, m.admin)).toBe(before);
+  });
+  it('mints a fresh one when the held link is off, of another permission, named, or from another map', async () => {
+    const m = await newMap();
+    const other = await newMap();
+    const named = (await mint(m.id, m.admin, { permission: 'edit', label: 'Asha' })).body;
+    const editId = (await j(await h.listTokens(env, req('GET', `/x`, m.admin), m.id))).body.links.find((l: any) => l.permission === 'edit' && !l.label).id;
+    await h.revokeToken(env, req('DELETE', `/x`, m.admin), m.id, editId);
+    for (const [permission, reuse] of [['edit', m.edit], ['view', m.edit], ['edit', named.token], ['edit', other.edit], ['edit', 42]]) {
+      const r = await mint(m.id, m.admin, { permission, reuse });
+      expect(r.status).toBe(200);
+      expect(r.body.token).not.toBe(reuse);
+    }
+  });
+});
+
 describe('backward compatible', () => {
   it('create still returns id, links and tokens', async () => {
     const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
