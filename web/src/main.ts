@@ -1,13 +1,13 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose, catalogVisibleOnLoad } from './embed-snippet';
-import { filterCards, matchLine, type CardLike } from './catalog-filter';
+import { filterCards, type CardLike } from './catalog-filter';
 import { blurFocusWithin } from './focus-utils';
 import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
 import { findMyWard } from './find-my-ward';
 import { fetchWardIndex } from './ward-index';
-import { rankHits, hitsHtml, moveActive, allLayersUrl, focusOnSlash, type Hit } from './search-pop';
+import { rankHits, hitsHtml, moveActive, allLayersUrl, focusOnSlash, matchSummaryHtml, type Hit } from './search-pop';
 
 // The crawler-only `.view-seo` article that /view/<id>'s Pages Function
 // injects is NOT removed on hydrate — doing so shrank the body and was the
@@ -238,7 +238,7 @@ if (searchInput) {
     activeHit = -1;
     searchInput.removeAttribute('aria-activedescendant');
     setPop(true);
-    if (searchMeta) searchMeta.textContent = matchLine(totalLayers, searchInput.value.trim());
+    if (searchMeta) searchMeta.innerHTML = matchSummaryHtml(totalLayers, searchInput.value.trim());
   };
 
   searchInput.addEventListener('input', () => {

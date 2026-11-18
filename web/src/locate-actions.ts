@@ -1,3 +1,4 @@
+import { escapeHtml } from '../../shared/format.mjs';
 // Pure helpers for the Find-my-location result-sheet actions (Zoom / Highlight
 // / Share). No DOM, no map — just data in, data out, so they're unit-testable.
 
@@ -24,7 +25,15 @@ export function shareUrl(origin: string, layerId: string, lat: number, lng: numb
 // The sky over a located ward, on mugilu (mugilu.live/c/<lat>,<lng>): ward layers only. The point is rounded to
 // 2 decimals (about 1 km), enough for the air and weather there and no more precise than that.
 export function skyUrl(layerId: string, lat: number, lng: number): string | null {
-  return /^wards_/.test(layerId) ? `https://mugilu.live/c/${lat.toFixed(2)},${lng.toFixed(2)}` : null;
+  return /^wards_/.test(layerId)
+    ? `https://mugilu.live/c/${lat.toFixed(2)},${lng.toFixed(2)}?utm_source=bharatlas&utm_medium=ward_locate`
+    : null;
+}
+
+/** The locate card's link out to mugilu: what is there, for this ward, now. */
+export function skyLinkHtml(url: string, wardName: string): string {
+  return `<p class="ls-sub ls-sky"><a href="${escapeHtml(url)}" target="_blank" rel="noopener">` +
+    `Air quality and weather in ${escapeHtml(wardName)} right now <span class="ls-sky__via">on mugilu ↗</span></a></p>`;
 }
 
 // Parse the ?at=lat,lng deep-link back into coords. Rejects anything outside the

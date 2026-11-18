@@ -2,6 +2,7 @@
 // bar, keyboard-navigable, with the ward answer above them. Pure helpers here;
 // main.ts owns the DOM. Each card carries data-title / data-sub / data-href.
 import { escapeHtml as esc } from './util';
+import { matchLine } from './catalog-filter';
 
 export type Hit = { title: string; sub: string; href: string };
 
@@ -28,6 +29,12 @@ export function rankHits(cards: Hit[], matches: boolean[], query: string, n: num
 
 const ICON =
   '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/></svg>';
+
+/** The result line under the search box: the count, linked to the matching layers on /layers
+ *  (the list itself closes when focus leaves, so the line must lead somewhere on its own). */
+export function matchSummaryHtml(n: number, query: string): string {
+  return `<a href="${esc(allLayersUrl(query))}">${esc(matchLine(n, query))}</a>`;
+}
 
 /** Options for the listbox, and a link to the full filtered list when there are more. */
 export function hitsHtml(hits: Hit[], total: { rows: number; layers: number }, query: string): string {
