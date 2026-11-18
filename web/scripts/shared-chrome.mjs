@@ -270,8 +270,8 @@ export function renderNav(activeKey, { installScript = true } = {}) {
   return `<a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
       ${wordmarkHtml({ tagline: "India's open atlas" })}
-      <input type="checkbox" id="nav-toggle" class="nav-toggle" />
-      <label for="nav-toggle" class="nav-burger" aria-label="Menu">☰</label>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-label="Menu" />
+      <label for="nav-toggle" class="nav-burger" aria-hidden="true">☰</label>
       <nav class="site-nav" id="site-nav" aria-label="Primary">
         ${NAV_LINKS.map(
           (l) =>

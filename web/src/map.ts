@@ -826,7 +826,7 @@ function wireBasemapButton(): void {
         (b) =>
           `<button class="map-popover__item map-popover__item--btn${
             b.id === activeBasemap ? ' is-active' : ''
-          }" data-basemap="${b.id}">
+          }" data-basemap="${b.id}" aria-pressed="${b.id === activeBasemap}">
             <span class="map-popover__fmt">${escapeHtml(b.name)}</span>
             <span class="map-popover__hint">${escapeHtml(b.hint)}</span>
           </button>`,
@@ -1012,6 +1012,7 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, container: HTMLElem
   if (!btn) return;
   const panel = document.createElement('aside');
   panel.className = 'about-panel';
+  panel.id = 'map-about-panel';
   panel.hidden = true;
   panel.setAttribute('aria-labelledby', 'about-title');
   // How much the layer is used (downloads, API and MCP queries): fetched once,

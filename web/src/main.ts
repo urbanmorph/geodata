@@ -2,7 +2,7 @@
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose, catalogVisibleOnLoad } from './embed-snippet';
 import { filterCards, type CardLike, type LayerIndexEntry } from './catalog-filter';
-import { blurFocusWithin } from './focus-utils';
+import { openDialog, closeDialog } from './overlay-dialog';
 import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
 import { findMyWard } from './find-my-ward';
@@ -52,7 +52,7 @@ const viewProbe = isViewPath(location.pathname);
 
 async function showMap(layerId: string) {
   overlay.classList.add('open');
-  overlay.setAttribute('aria-hidden', 'false');
+  openDialog(overlay);
   document.body.style.overflow = 'hidden';
   try {
     const m = await loadMap();
@@ -70,12 +70,9 @@ async function showMap(layerId: string) {
 const HOME_TITLE = "India's open atlas: every boundary, one search away · bharatlas";
 
 async function hideMap() {
-  // Move focus out of the overlay BEFORE hiding it from assistive tech — closing
-  // via #map-close leaves focus on a descendant, and aria-hidden on its ancestor
-  // is blocked by the browser (see focus-utils).
-  blurFocusWithin(overlay);
+  // Hands focus back to what opened the map (or out of it) before hiding it.
+  closeDialog(overlay);
   overlay.classList.remove('open');
-  overlay.setAttribute('aria-hidden', 'true');
   document.body.style.overflow = '';
   (await loadMap()).closeLayer();
   // The crawler-only SEO article (.view-seo, server-injected on /view/<id>)
