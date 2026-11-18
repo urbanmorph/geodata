@@ -40,6 +40,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
+from tile_keys import is_rebaked, keep_rebaked_pmtiles  # noqa: E402
 
 # Re-exported: other scripts import these names from here (use pipeline directly in new code).
 from pipeline import (  # noqa: E402,F401
@@ -730,6 +731,8 @@ def merge_layer_into_catalog(
     prev = next((l for l in catalog['layers'] if l.get('id') == d.id), None)
     merged: dict = dict(prev) if prev else {}
     merged.update(ingest_owned)
+    # Rebaked tiles (versioned keys) stay; see wants_upstream_pmtiles().
+    keep_rebaked_pmtiles(merged, prev)
     # Whole-layer bakes: prefer fresh bakes from this run; otherwise
     # carry forward whatever previous run (or bake_whole_layer.py) wrote.
     bakes_local = bakes_info or {}
@@ -806,6 +809,24 @@ def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, f
     pipeline.write_json(f, items)
 
 
+def current_catalog_layer(layer_id: str) -> dict | None:
+    """The layer's entry in the repo-root catalog.json, or None."""
+    f = ROOT / 'catalog.json'
+    if not f.exists():
+        return None
+    return next((l for l in json.loads(f.read_text()).get('layers', []) if l.get('id') == layer_id), None)
+
+
+def wants_upstream_pmtiles(d: Dataset) -> bool:
+    """Download and upload ramSeraph's tiles, unless the layer opted out or
+    the catalog already serves tiles bharatlas rebaked (their upstream-named
+    key is deleted after the rebake, and re-uploading it would bring back the
+    heavy low-zoom tiles the rebake replaced)."""
+    if not d.pmtiles_url:
+        return False
+    return not is_rebaked((current_catalog_layer(d.id) or {}).get('pmtiles'))
+
+
 def ingest(d: Dataset, upload: bool = True) -> None:
     """Download, flatten, bake every format, then (upload=True) put the files
     on R2 and record the layer in the manifest + catalog. upload=False builds
@@ -831,11 +852,13 @@ def ingest(d: Dataset, upload: bool = True) -> None:
     files = {flat_parquet: Path(d.parquet_url).name}
 
     pm_bytes: int | None = None
-    if d.pmtiles_url:
+    if wants_upstream_pmtiles(d):
         raw_pmtiles = WORK / f'{d.id}.pmtiles'
         http_download(d.pmtiles_url, raw_pmtiles)
         pm_bytes = raw_pmtiles.stat().st_size
         files[raw_pmtiles] = Path(d.pmtiles_url).name
+    elif d.pmtiles_url:
+        print('  pmtiles kept: the catalog already has tiles bharatlas rebaked (scripts/rebake_tiles.py)')
     else:
         print('  pmtiles skipped (opted out for this layer)')
 
