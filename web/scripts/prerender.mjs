@@ -18,6 +18,7 @@ import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
 import { fillTemplate } from './fill-template.mjs';
+import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
@@ -681,6 +682,9 @@ const themeIndexHtml = sectionCats
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const homeDownloads = totalDownloads(dlCounts);
+// API/MCP totals for the home line and the /layers block (shown once past API_SHOW_MIN).
+const apiUse = (await fetchUsageTotals()) ?? { api: 0, mcp: 0 };
+const siteUse = { downloads: homeDownloads, ...apiUse };
 const out = fillTemplate(tmpl, {
   CATEGORY_CHIPS: chipsHtml,
   SEO_HEAD: homeSeo,
@@ -693,7 +697,7 @@ const out = fillTemplate(tmpl, {
   INDIA_MAP: indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog }),
   LAYER_TOTAL: String(totalLayers),
   UPDATED: updatedHtml,
-  DOWNLOAD_TOTAL: homeDownloads > 0 ? ` · <span class="search-meta__count">${fmtCount(homeDownloads)}</span> downloads` : '',
+  DOWNLOAD_TOTAL: (homeDownloads > 0 ? ` · <span class="search-meta__count">${fmtCount(homeDownloads)}</span> downloads` : '') + homeUsageSuffix(apiUse),
 });
 
 await writeFile(resolve(WEB, 'index.html'), out);
@@ -723,6 +727,7 @@ await writeFile(
     CATEGORY_SECTIONS: categorySections,
     LAYER_TOTAL: String(totalLayers),
     THEME_TOTAL: String(sectionCats.length),
+    USAGE_BLOCK: usageBlockHtml(siteUse),
   }),
 );
 await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));
