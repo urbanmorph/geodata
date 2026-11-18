@@ -1146,6 +1146,26 @@
       "label": "City Balance Sheets (CityFinance.in)",
       "unit": "ULBs",
       "description": "Balance sheets of Indian cities (urban local bodies) from their annual accounts, as standardised by CityFinance.in (MoHUA): municipal fund and reserves, grants, loans, current liabilities, fixed assets, investments, receivables and cash, in rupees, on Swachh Bharat Mission ULB boundaries."
+    },
+    "cadastrals_andaman_coastal": {
+      "label": "Coastal land parcels, Andaman and Nicobar (NCSCM)",
+      "unit": "land parcels",
+      "description": "Survey-number land parcels in the coastal villages of the Andaman and Nicobar Islands from the coastal zone management plan maps, with plot or survey number, village and island. Coastal villages only; column names vary between islands in the source."
+    },
+    "cadastrals_goa": {
+      "label": "Land parcels, Goa (NBSS)",
+      "unit": "land parcels",
+      "description": "Survey-number land parcels across Goa from Goa Bhoomi (ICAR-NBSS&LUP), with district, taluka and panchayat."
+    },
+    "cadastrals_delhi": {
+      "label": "Land parcels (khasras), Delhi (GSDL)",
+      "unit": "land parcels",
+      "description": "Khasra (survey-number) parcels in the revenue villages of Delhi from Geospatial Delhi Limited, with district, sub-division, village (and Census codes), khasra number, land use type (agriculture, abadi, forest, water bodies, transport, public) and patwari status. Digitised 2012 to 2013; built-up urban Delhi has few khasras."
+    },
+    "fsi_recorded_forest_area": {
+      "label": "Recorded forest area (FSI)",
+      "unit": "forest polygons",
+      "description": "Recorded forest area: land recorded as forest in government records (reserved, protected and unclassed forests), as digitised by the Forest Survey of India, with reserved forest name, compartment, beat, range, division, circle, district and LGD codes. Covers more states than the forest beats layer (Rajasthan, Assam, Himachal Pradesh, Uttar Pradesh and the North East); Gujarat and Madhya Pradesh are less complete here. Legal status, not tree cover. Many name fields are blank in the source."
     }
   },
   "level_order": [
@@ -1287,6 +1307,10 @@
     "property_tax_chennai_wards",
     "cityfinance_ulb_balance_sheets",
     "cadastrals_puducherry_coastal",
+    "cadastrals_andaman_coastal",
+    "cadastrals_goa",
+    "cadastrals_delhi",
+    "fsi_recorded_forest_area",
     "ir_stations_merged"
   ],
   "layers": [
@@ -7442,6 +7466,166 @@
         "bytes": 1629179
       },
       "fetched_at": "2026-11-17T12:09:17+00:00"
+    },
+    {
+      "id": "cadastrals_andaman_coastal",
+      "level": "cadastrals_andaman_coastal",
+      "source": "NCSCM",
+      "rows": 38701,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-andaman-coastal/NCSCM_AN_Cadastrals.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/andaman-and-nicobar/NCSCM_AN_Cadastrals.parquet",
+        "bytes": 5493486
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-andaman-coastal/NCSCM_AN_Cadastrals.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/andaman-and-nicobar/NCSCM_AN_Cadastrals.pmtiles",
+        "bytes": 3222188
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "National Centre for Sustainable Coastal Management (MoEFCC)",
+          "url": "https://czmp.ncscm.res.in/"
+        },
+        "publisher": null
+      },
+      "category": "boundaries",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from National Centre for Sustainable Coastal Management (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parcel boundaries only: the source carries no owner names, and bharatlas does not publish any. Not a legal record; the state land records are authoritative. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-andaman-coastal/NCSCM_AN_Cadastrals.geojson",
+        "bytes": 35037665
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-andaman-coastal/NCSCM_AN_Cadastrals.kml",
+        "bytes": 47563315
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-andaman-coastal/NCSCM_AN_Cadastrals.shp.zip",
+        "bytes": 6822058
+      },
+      "fetched_at": "2026-11-18T02:11:03+00:00"
+    },
+    {
+      "id": "cadastrals_goa",
+      "level": "cadastrals_goa",
+      "source": "NBSS",
+      "rows": 83861,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-goa/NBSS_Goa_Cadastrals.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/goa/NBSS_Goa_Cadastrals.parquet",
+        "bytes": 29699606
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-goa/NBSS_Goa_Cadastrals.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/goa/NBSS_Goa_Cadastrals.pmtiles",
+        "bytes": 9073333
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Goa Bhoomi, ICAR National Bureau of Soil Survey and Land Use Planning",
+          "url": "http://14.139.123.73:9090/WEB/goabhoomi.php"
+        },
+        "publisher": null
+      },
+      "category": "boundaries",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Goa Bhoomi, ICAR National Bureau of Soil Survey and Land Use Planning. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parcel boundaries only: the source carries no owner names, and bharatlas does not publish any. Not a legal record; the state land records are authoritative. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-goa/NBSS_Goa_Cadastrals.geojson",
+        "bytes": 163348140
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-goa/NBSS_Goa_Cadastrals.kml",
+        "bytes": 175984763
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-goa/NBSS_Goa_Cadastrals.shp.zip",
+        "bytes": 32228972
+      },
+      "fetched_at": "2026-11-18T02:11:16+00:00"
+    },
+    {
+      "id": "cadastrals_delhi",
+      "level": "cadastrals_delhi",
+      "source": "GSDL",
+      "rows": 387780,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/delhi/GSDL_Cadastrals.parquet",
+        "bytes": 38767014
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/delhi/GSDL_Cadastrals.pmtiles",
+        "bytes": 10225699
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geospatial Delhi Limited (GSDL)",
+          "url": "https://gsdl.org.in/"
+        },
+        "publisher": null
+      },
+      "category": "boundaries",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geospatial Delhi Limited (GSDL). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parcel boundaries only: the source carries no owner names, and bharatlas does not publish any. Not a legal record; the state land records are authoritative. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.geojson",
+        "bytes": 365341334
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.kml",
+        "bytes": 679110595
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.shp.zip",
+        "bytes": 49984874
+      },
+      "fetched_at": "2026-11-18T02:11:46+00:00"
+    },
+    {
+      "id": "fsi_recorded_forest_area",
+      "level": "fsi_recorded_forest_area",
+      "source": "FSI",
+      "rows": 422197,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/Bharatmaps_RFA.parquet",
+        "bytes": 408433242
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/Bharatmaps_RFA.pmtiles",
+        "bytes": 170960010
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Forest Survey of India (MoEFCC), via Bharatmaps",
+          "url": "https://fsi.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC), via Bharatmaps. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.geojson",
+        "bytes": 1675081064
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.kml",
+        "bytes": 1785120597
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.shp.zip",
+        "bytes": 558183633
+      },
+      "fetched_at": "2026-11-18T02:14:02+00:00"
     },
     {
       "id": "ir_stations_merged",
