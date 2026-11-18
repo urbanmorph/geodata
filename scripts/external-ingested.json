@@ -2426,5 +2426,43 @@
     "source_url": "https://fsi.nic.in/",
     "source_org": "Forest Survey of India (MoEFCC), via Bharatmaps",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC), via Bharatmaps. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+  },
+  {
+    "id": "gsi_lithology_50k",
+    "name": "Lithology 1:50k (GSI)",
+    "level": "gsi_lithology_50k",
+    "category": "environment",
+    "source": "NGDR",
+    "description": "Rock units mapped at 1:50,000 by the Geological Survey of India: lithology, age, supergroup, group, formation and stratigraphy, by toposheet.",
+    "unit": "rock units",
+    "features": 3966842,
+    "license": "CC0-1.0",
+    "r2_prefix": "environment/gsi-lithology-50k",
+    "parquet_file": "NGDR_Lithology_50k.parquet",
+    "parquet_bytes": 527034110,
+    "pmtiles_file": "NGDR_Lithology_50k.0f1c048f.pmtiles",
+    "pmtiles_bytes": 201232291,
+    "source_url": "https://bhukosh.gsi.gov.in/",
+    "source_org": "Geological Survey of India (NGDR / Bhukosh)",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area."
+  },
+  {
+    "id": "bhuvan_geomorphology_50k",
+    "name": "Geomorphology 1:50k (Bhuvan 2005-06)",
+    "level": "bhuvan_geomorphology_50k",
+    "category": "environment",
+    "source": "Bhuvan",
+    "description": "Landforms mapped at 1:50,000 by NRSC in the 2005-06 national geomorphology mapping, in three levels (origin, process, landform). Mizoram, Lakshadweep and some UTs are missing in the source.",
+    "unit": "landform polygons",
+    "features": 586259,
+    "license": "CC0-1.0",
+    "r2_prefix": "environment/bhuvan-geomorphology-50k",
+    "parquet_file": "Bhuvan_Geomorphology_50k_0506.parquet",
+    "parquet_bytes": 1525528726,
+    "pmtiles_file": "Bhuvan_Geomorphology_50k_0506.2a168a4a.pmtiles",
+    "pmtiles_bytes": 523891089,
+    "source_url": "https://bhuvan.nrsc.gov.in/",
+    "source_org": "Bhuvan (NRSC, ISRO)",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area."
   }
 ]

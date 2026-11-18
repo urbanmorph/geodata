@@ -258,13 +258,44 @@ def test_catalog_patch_touches_only_the_given_root_file_and_is_idempotent(tmp_pa
     gj = tmp_path / 'X.geojson'
     gj.write_text('{}')
     d = blw.DATASETS[0]
-    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, catalog=cat)
+    tiles = 'SLUSI_Priority_MicroWatersheds.0123abcd.pmtiles'
+    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, tiles, catalog=cat)
     first = cat.read_text()
-    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, catalog=cat)
+    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, tiles, catalog=cat)
     assert cat.read_text() == first
     layer = json.loads(first)['layers'][0]
     assert (layer['id'], layer['rows'], layer['geojson']['bytes']) == (d.id, 3, 2)
     assert layer['parquet']['url'].endswith(f'{d.r2_prefix}/SLUSI_Priority_MicroWatersheds.parquet')
+    assert layer['pmtiles'] == {'url': f'{ir.R2_PUBLIC}/{d.r2_prefix}/{tiles}', 'bytes': 20}
+
+
+def test_register_points_catalog_and_manifest_at_the_versioned_tiles(tmp_path, monkeypatch):
+    (tmp_path / 'scripts').mkdir()
+    (tmp_path / 'scripts' / 'external-ingested.json').write_text('[]')
+    cat = tmp_path / 'catalog.json'
+    cat.write_text(json.dumps({'layers': [], 'level_meta': {}, 'level_order': []}))
+    monkeypatch.setattr(ir, 'ROOT', tmp_path)
+    monkeypatch.setattr(blw, 'CATALOG', cat)
+    d = blw.DATASETS[0]
+    pq, pm = tmp_path / 'SLUSI_Priority_MicroWatersheds.parquet', tmp_path / 'SLUSI_Priority_MicroWatersheds.pmtiles'
+    pq.write_bytes(b'pq')
+    pm.write_bytes(b'tiles')
+    name = blw.tiles_name(pm)
+    blw.register(d, {'files': {pq: pq.name, pm: name}, 'features': 1, 'bakes': {}})
+    row = json.loads((tmp_path / 'scripts' / 'external-ingested.json').read_text())[0]
+    assert (row['pmtiles_file'], row['parquet_file']) == (name, pq.name)
+    assert json.loads(cat.read_text())['layers'][0]['pmtiles']['url'].endswith('/' + name)
+
+
+def test_tiles_go_to_a_new_key_per_content(tmp_path):
+    # R2 objects are immutable once a catalog points at them: a rebuilt
+    # tileset gets its own key, <stem>.<md5[:8]>.pmtiles.
+    pm = tmp_path / 'NGDR_Lithology_50k.pmtiles'
+    pm.write_bytes(b'tiles v1')
+    first = blw.tiles_name(pm)
+    assert first == f'NGDR_Lithology_50k.{ir.file_md5(pm)[:8]}.pmtiles'
+    pm.write_bytes(b'tiles v2')
+    assert blw.tiles_name(pm) != first
     assert blw.CATALOG == ir.ROOT / 'catalog.json'
 
 
@@ -278,31 +309,240 @@ def test_layers_over_two_gigabytes_are_not_ingested():
     assert all(v['parquet_bytes'] > 2 * 1024**3 for v in blw.SKIPPED.values())
 
 
-def test_gentle_client_uploads_fewer_parts_at_once_and_keeps_md5_skip():
-    class Fake:
-        def __init__(self):
-            self.cfg = None
-
-        def upload_file(self, path, bucket, key, ExtraArgs, Config):  # noqa: N803
-            self.cfg = Config
-
-        def head_object(self, Bucket, Key):  # noqa: N803
-            return {'Metadata': {'md5': 'x'}}
-    fake = Fake()
-    s3 = blw.GentleS3(fake)
-    s3.upload_file('p', 'b', 'k', ExtraArgs={}, Config=object())
-    assert fake.cfg is blw.GentleS3.TRANSFER and fake.cfg.max_concurrency == 2
-    assert s3.head_object(Bucket='b', Key='k')['Metadata']['md5'] == 'x'  # delegated
-
-
 def test_upload_retries_a_dropped_connection(tmp_path, monkeypatch):
     from botocore.exceptions import SSLError
     calls = []
 
-    def flaky(s3, local, key):
+    def flaky(s3, local, key, state_dir):
         calls.append(key)
         if len(calls) == 1:
             raise SSLError(endpoint_url='https://r2', error='EOF occurred in violation of protocol')
-    monkeypatch.setattr(ir, 'r2_upload', flaky)
+    monkeypatch.setattr(blw.pipeline, 'r2_upload_resumable', flaky)
     blw.upload(None, tmp_path / 'a.parquet', 'k', retries=2, backoff=0)
     assert calls == ['k', 'k']
+
+
+def test_upload_lock_waits_for_another_job_and_is_released_on_failure(tmp_path):
+    lock = tmp_path / 'upload.lock'
+    lock.mkdir()  # another job (tile rebakes) holds it
+    threading.Timer(0.2, lock.rmdir).start()
+    with pytest.raises(RuntimeError):
+        with blw.upload_lock(lock, wait=0.05):
+            assert lock.is_dir()
+            raise RuntimeError('upload failed')
+    assert not lock.exists()
+
+
+def test_publish_uploads_resumably_under_the_lock_then_registers(tmp_path, monkeypatch):
+    lock = tmp_path / 'upload.lock'
+    monkeypatch.setattr(blw, 'UPLOAD_LOCK', lock)
+    monkeypatch.setattr(blw, 'r2_client', lambda: 's3')
+    seen, registered = [], []
+
+    def fake_upload(s3, local, key, state_dir):
+        # md5 skip + multipart resume live in r2_upload_resumable (test_pipeline.py)
+        assert lock.is_dir() and state_dir == blw.WORK / 'r2-uploads'
+        seen.append(key)
+    monkeypatch.setattr(blw.pipeline, 'r2_upload_resumable', fake_upload)
+    monkeypatch.setattr(blw, 'register', lambda d, built: registered.append(d.id))
+    d = blw.DATASETS[0]
+    a, b = tmp_path / 'X.parquet', tmp_path / 'X.pmtiles'
+    blw.publish(d, {'files': {a: 'X.parquet', b: 'X.pmtiles'}, 'features': 1, 'bakes': {}})
+    assert seen == [f'{d.r2_prefix}/X.parquet', f'{d.r2_prefix}/X.pmtiles']
+    assert registered == [d.id] and not lock.exists()
+
+
+# ── dissolved low-zoom overview for dense polygon layers ───────────────
+
+def _squares(tmp_path: Path) -> Path:
+    """Three 0.1-degree squares in a row: A, A, B (the two A's dissolve into one)."""
+    src = tmp_path / 'S.parquet'
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    con.execute(f"""COPY (SELECT cls, other, geometry, ST_XMin(geometry) xmin, ST_YMin(geometry) ymin,
+                         ST_XMax(geometry) xmax, ST_YMax(geometry) ymax FROM (VALUES
+        ('A', 'x', ST_GeomFromText('POLYGON((77.0 28.0, 77.1 28.0, 77.1 28.1, 77.0 28.1, 77.0 28.0))')),
+        ('A', 'y', ST_GeomFromText('POLYGON((77.1 28.0, 77.2 28.0, 77.2 28.1, 77.1 28.1, 77.1 28.0))')),
+        ('B', 'z', ST_GeomFromText('POLYGON((77.2 28.0, 77.3 28.0, 77.3 28.1, 77.2 28.1, 77.2 28.0))')))
+        t(cls, other, geometry)) TO '{src}' (FORMAT PARQUET)""")
+    return src
+
+
+def test_overview_dissolves_by_class_keeps_area_and_leaves_the_parquet_alone(tmp_path):
+    src = _squares(tmp_path)
+    before = src.read_bytes()
+    con = blw.make_con(tmp_path)
+    out = blw.dissolve_overview(src, tmp_path / 'ov.geojsonl', 'cls', con, blw.Deadline(5))
+    feats = [json.loads(line.strip('\x1e')) for line in out.read_text().splitlines() if line.strip()]
+    assert sorted(f['properties']['cls'] for f in feats) == ['A', 'B']
+    assert all(set(f['properties']) == {'cls'} for f in feats)  # class only: popups stay on detail zooms
+    area = con.execute(f"SELECT sum(ST_Area(geom)) FROM ST_Read('{out}')").fetchone()[0]
+    assert area == pytest.approx(0.03, rel=1e-3)
+    assert src.read_bytes() == before  # generalised in tiles only
+    assert blw.dissolve_overview(src, out, 'cls', con, blw.Deadline(5)) == out  # cached: no work
+
+
+def test_overview_drops_vertices_closer_than_a_tile_unit(tmp_path):
+    # A vertex half a tile unit off its neighbours' line cannot show at the
+    # overview's max zoom; dropping such vertices cut geomorphology's 4x.
+    g = blw.overview_grid()
+    ring = f'77.0 28.0, 77.05 {28.0 + 2 * g}, 77.1 {28.0 + 3 * g}, 77.1 28.1, 77.0 28.1, 77.0 28.0'
+    src = tmp_path / 'V.parquet'
+    con = blw.make_con(tmp_path)
+    con.execute(f"""COPY (SELECT 'A' AS cls, g AS geometry, ST_XMin(g) xmin, ST_YMin(g) ymin, ST_XMax(g) xmax,
+                         ST_YMax(g) ymax FROM (SELECT ST_GeomFromText('POLYGON(({ring}))') g))
+                    TO '{src}' (FORMAT PARQUET)""")
+    out = blw.dissolve_overview(src, tmp_path / 'ov.geojsonl', 'cls', con, blw.Deadline(5))
+    assert con.execute(f"SELECT ST_NPoints(geom) FROM ST_Read('{out}')").fetchone()[0] == 5
+
+
+def test_overview_writes_single_polygons(tmp_path):
+    # tippecanoe shrinks sub-pixel polygons per feature, not per ring: one
+    # multipolygon of 155,000 ponds kept every ring and overflowed every tile.
+    src = tmp_path / 'P.parquet'
+    con = blw.make_con(tmp_path)
+    con.execute(f"""COPY (SELECT 'pond' AS cls, g AS geometry, ST_XMin(g) xmin, ST_YMin(g) ymin, ST_XMax(g) xmax,
+                         ST_YMax(g) ymax FROM (SELECT ST_Buffer(ST_Point(77.3 + range / 10, 28.5), 0.01) g
+                                               FROM range(3)))
+                    TO '{src}' (FORMAT PARQUET)""")
+    out = blw.dissolve_overview(src, tmp_path / 'ov.geojsonl', 'cls', con, blw.Deadline(5))
+    types = con.execute(f"SELECT list(ST_GeometryType(geom)::VARCHAR) FROM ST_Read('{out}')").fetchone()[0]
+    assert types == ['POLYGON'] * 3
+
+
+def test_overview_cells_meet_without_overlap(tmp_path):
+    # GSI sheets overlap at their edges; assigned whole to the cell of their
+    # centre, the strips drew twice (a darker 1-degree grid at country zoom).
+    # Clipped to each cell they touch, neighbouring pieces meet on the line.
+    src = tmp_path / 'C.parquet'
+    con = blw.make_con(tmp_path)
+    rows = [('A', 76.5, 77.2), ('A', 76.9, 77.6)]  # centres in cells 76 and 77, overlapping 76.9-77.2
+    values = ', '.join(f"('{c}', ST_GeomFromText('POLYGON(({x0} 28.0, {x1} 28.0, {x1} 28.1, {x0} 28.1, {x0} 28.0))'))"
+                       for c, x0, x1 in rows)
+    con.execute(f"""COPY (SELECT cls, g AS geometry, ST_XMin(g) xmin, ST_YMin(g) ymin, ST_XMax(g) xmax,
+                         ST_YMax(g) ymax FROM (VALUES {values}) t(cls, g)) TO '{src}' (FORMAT PARQUET)""")
+    out = blw.dissolve_overview(src, tmp_path / 'ov.geojsonl', 'cls', con, blw.Deadline(5))
+    area, n = con.execute(f"SELECT sum(ST_Area(geom)), count(*) FROM ST_Read('{out}')").fetchone()
+    assert area == pytest.approx(1.1 * 0.1, rel=1e-3) and n == 2  # the union once, cut at 77.0
+
+
+def test_overview_snaps_to_one_tile_unit_at_its_max_zoom():
+    assert blw.overview_grid(8) == pytest.approx(360 / 2 ** 8 / 4096)
+    assert blw.overview_grid(9) == blw.overview_grid(8) / 2
+
+
+def test_overview_and_detail_tiles_split_the_zoom_range():
+    m = blw.OVERVIEW_MAXZOOM
+    ov = blw.tippecanoe_args(Path('o.geojsonl'), Path('o.pmtiles'), 'lyr', ['cls'], polygons=True, maxzoom=m)
+    assert ov[ov.index('-Z0') + 1] == f'-z{m}'
+    assert '--extend-zooms-if-still-dropping' not in ov  # must not spill into the detail zooms
+    # Coalescing merged sub-pixel ponds back into many-ring features that
+    # overflowed again; an overview drops the smallest polygons first.
+    assert '--drop-smallest-as-needed' in ov and '--coalesce-densest-as-needed' not in ov
+    assert '-D11' in ov  # half the detail below its max zoom: z5 geomorphology cover 0.70 -> 0.95
+    # every overview feature carries the marker the viewer leaves unstroked (1-degree cell seams)
+    assert ov[ov.index('--set-attribute') + 1] == f'{blw.OVERVIEW_MARKER}:1'
+    assert ov[ov.index('-y', ov.index('-y') + 1) + 1] == blw.OVERVIEW_MARKER
+    det = blw.tippecanoe_args(Path('d.geojsonl'), Path('d.pmtiles'), 'lyr', ['cls', 'age'], polygons=True,
+                              minzoom=m + 1)
+    assert f'-Z{m + 1}' in det and '-zg' in det and '-Z0' not in det
+    assert '--set-attribute' not in det and blw.OVERVIEW_MARKER not in det
+
+
+def test_every_overview_class_is_a_popup_field():
+    for lid, field in blw.OVERVIEW.items():
+        fields, polygons = blw.TILES[lid]
+        assert polygons and field in fields, lid
+
+
+def test_overview_and_detail_join_into_one_tileset(tmp_path):
+    src = _squares(tmp_path)
+    out = tmp_path / 'S.pmtiles'
+    con = blw.make_con(tmp_path)
+    blw.bake_tiles(src, out, 'lyr', ['cls', 'other'], True, con, overview='cls', deadline=blw.Deadline(5))
+    low = blw.decode_tile(out, 3, *blw.tile_for(77.15, 28.05, 3), tmp_path / 'low.geojson')
+    z = blw.OVERVIEW_MAXZOOM + 1
+    high = tmp_path / 'high.geojson'
+    blw.decode_tile(out, z, *blw.tile_for(77.15, 28.05, z), high)
+    assert low == 2  # dissolved A + B
+    low_props = [f['properties'] for f in json.loads((tmp_path / 'low.geojson').read_text())['features']]
+    assert all(p == {'cls': p['cls'], '_ov': 1} for p in low_props)
+    props = [f['properties'] for f in json.loads(high.read_text())['features']]
+    assert sorted(p['other'] for p in props) == ['x', 'y', 'z']  # every source polygon, popup fields
+    assert not any('_ov' in p for p in props)  # detail features are outlined as before
+    left = sorted(p.name for p in tmp_path.glob('S.*'))
+    # the slow steps stay cached for a re-tune of the overview tiles; the big GeoJSON goes
+    assert left == ['S.detail.pmtiles', 'S.overview.geojsonl', 'S.parquet', 'S.pmtiles', 'S.tippecanoe.log']
+
+
+def test_a_retune_of_the_overview_tiles_reuses_the_slow_steps(tmp_path):
+    src = _squares(tmp_path)
+    out = tmp_path / 'S.pmtiles'
+    blw.bake_tiles(src, out, 'lyr', ['cls', 'other'], True, blw.make_con(tmp_path), overview='cls',
+                   deadline=blw.Deadline(5))
+    out.unlink()
+    # No connection: neither the GeoJSON of every feature nor the dissolve is redone.
+    blw.bake_tiles(src, out, 'lyr', ['cls', 'other'], True, None, overview='cls', deadline=blw.Deadline(5))
+    assert out.exists() and not list(tmp_path.glob('S.tiles*'))
+
+
+def test_probe_zooms_cover_both_sides_of_the_overview_seam():
+    m = blw.OVERVIEW_MAXZOOM
+    assert blw.probe_zooms(11, overview=False) == [5, 11]
+    assert blw.probe_zooms(11, overview=True) == sorted({5, m, m + 1, 11})
+
+
+def test_tiles_must_be_complete_from_the_first_detail_zoom():
+    rows = [{'z': 8, 'decoded': 50, 'parquet': 900, 'cover': 0.99},
+            {'z': 9, 'decoded': 300, 'parquet': 300, 'cover': 1.0},
+            {'z': 11, 'decoded': 40, 'parquet': 40, 'cover': 1.0}]
+    assert blw.tiles_ok(rows, 9, polygons=True)
+    assert not blw.tiles_ok([rows[0], dict(rows[1], decoded=299), rows[2]], 9, polygons=True)
+
+
+def test_overview_zooms_allow_the_generalisation_detail_zooms_do_not():
+    z5 = {'z': 5, 'decoded': 400, 'parquet': 100_000, 'cover': 0.95}
+    detail = [{'z': 9, 'decoded': 300, 'parquet': 300, 'cover': 1.0}]
+    assert blw.tiles_ok([z5, *detail], 9, polygons=True, overview=True)
+    assert not blw.tiles_ok([z5, *detail], 11, polygons=True)  # no overview: 0.98 everywhere
+    assert not blw.tiles_ok([dict(z5, cover=0.54), *detail], 9, polygons=True, overview=True)  # real holes
+    assert not blw.tiles_ok([z5, dict(detail[0], cover=0.95)], 9, polygons=True, overview=True)
+
+
+def test_cover_counts_overlapping_source_polygons_once(tmp_path):
+    # GSI lithology repeats rock units across overlapping sheets: summed source
+    # area was 11x a z8 tile, so complete tiles read as 9% cover.
+    con = blw.make_con(tmp_path)
+    sq = "ST_GeomFromText('POLYGON((77.0 28.0, 77.3 28.0, 77.3 28.3, 77.0 28.3, 77.0 28.0))')"
+    env = 'ST_MakeEnvelope(76, 27, 79, 29)'
+
+    line = "ST_GeomFromText('LINESTRING(77.0 28.0, 77.3 28.0)')"
+
+    def cover(geom: str, copies: int, polygons: bool = True) -> float:
+        return con.execute(f"SELECT {blw.covered('g', env, polygons, 5)} "
+                           f"FROM (SELECT {geom} AS g FROM range({copies}))").fetchone()[0]
+    assert cover(sq, 3) == pytest.approx(cover(sq, 1)) == pytest.approx(0.09, rel=0.01)
+    assert cover(line, 2, polygons=False) == pytest.approx(0.6)  # lines: summed length
+
+
+def test_tile_report_counts_features_that_meet_the_tile_not_just_its_bbox(tmp_path, monkeypatch):
+    # Big irregular landforms: 16 bboxes met a z12 tile, 9 polygons did.
+    src = tmp_path / 'T.parquet'
+    con = blw.make_con(tmp_path)
+    tri = "ST_GeomFromText('POLYGON((77.0 28.0, 77.4 28.0, 77.0 28.9, 77.0 28.0))')"
+    con.execute(f"""COPY (SELECT 1 AS n, g AS geometry, ST_XMin(g) xmin, ST_YMin(g) ymin, ST_XMax(g) xmax,
+                         ST_YMax(g) ymax FROM (SELECT {tri} AS g)) TO '{src}' (FORMAT PARQUET)""")
+    pm = tmp_path / 'T.pmtiles'
+    blw.bake_tiles(src, pm, 'lyr', ['n'], True, con)
+    monkeypatch.setattr(blw, 'PROBES', [(77.2, 28.6)])  # inside the bbox, outside the triangle
+    assert blw.tile_report(pm, src, con, True, [12])[0]['parquet'] == 0
+
+
+def test_no_upload_can_still_register_the_local_build(monkeypatch):
+    calls = []
+    monkeypatch.setattr(blw, 'build', lambda d, deadline: {'id': d.id})
+    monkeypatch.setattr(blw, 'publish', lambda d, built: calls.append(('publish', d.id)))
+    monkeypatch.setattr(blw, 'register', lambda d, built: calls.append(('register', d.id)))
+    lid = blw.DATASETS[0].id
+    assert blw.main(['x', lid, '--no-upload']) == 0 and calls == []
+    assert blw.main(['x', lid, '--no-upload', '--register']) == 0 and calls == [('register', lid)]

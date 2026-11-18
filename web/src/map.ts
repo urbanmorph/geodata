@@ -5,13 +5,15 @@ import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_MAP } from './loading';
 import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
-import { popupValueHtml } from './popup-value';
+import { popupValueHtml, popupEntries } from './popup-value';
 import { availableDownloads, fmtBytes } from './format-hints';
 import {
   BASEMAPS, baseStyle, basemapById, basemapInsertBefore, getStoredBasemap, setStoredBasemap, type BasemapId,
 } from './basemaps';
 import { onFirstRender, openGenerations, framesFromFile } from './map-startup';
-import { DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED } from './map-paint';
+import {
+  DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED, DATA_BASE_FILTERS, fillOutlineColor,
+} from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
@@ -59,7 +61,7 @@ const BASE_PADDING = { top: 60, bottom: 20, left: 20, right: 20 };
 const MAX_POPUP_PROPS = 10;
 const DATA_LAYERS = ['fill', 'fill-nodata', 'line-halo', 'line', 'point'] as const;
 const INTERACTIVE_LAYERS = ['fill', 'point'] as const;
-const POINT_GEOM_FILTER: maplibregl.FilterSpecification = ['==', ['geometry-type'], 'Point'];
+const POINT_GEOM_FILTER: maplibregl.FilterSpecification = DATA_BASE_FILTERS.point;
 
 // ---------------------------------------------------------------------------
 // Module state
@@ -332,13 +334,14 @@ const fadeInByZoom = (low: number, high: number): maplibregl.ExpressionSpecifica
 function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: ChoroplethSpec) {
   if (!map) return;
   const common = sourceLayer ? { 'source-layer': sourceLayer } : {};
-  baseFilters = { point: POINT_GEOM_FILTER };
+  baseFilters = { ...DATA_BASE_FILTERS };
   map.addLayer({
     id: 'fill', type: 'fill', source: sourceId, ...common,
     // A value layer is graded by its column, opaque so the shades read true.
     paint: choropleth
-      ? { 'fill-color': fillColorExpr(choropleth) as maplibregl.ExpressionSpecification, 'fill-opacity': 1 }
-      : { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY },
+      ? { 'fill-color': fillColorExpr(choropleth) as maplibregl.ExpressionSpecification, 'fill-opacity': 1,
+          'fill-outline-color': fillOutlineColor(fillColorExpr(choropleth) as maplibregl.ExpressionSpecification) }
+      : { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY, 'fill-outline-color': fillOutlineColor(DATA_FILL) },
   });
   if (choropleth) {
     baseFilters['fill-nodata'] = noDataFilter(choropleth) as maplibregl.FilterSpecification;
@@ -351,6 +354,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
   }
   map.addLayer({
     id: 'line-halo', type: 'line', source: sourceId, ...common,
+    filter: baseFilters['line-halo'],
     paint: {
       'line-color': '#ffffff',
       'line-width': ['interpolate', ['linear'], ['zoom'], 4, 1.5, 10, 3.5],
@@ -360,6 +364,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
   });
   map.addLayer({
     id: 'line', type: 'line', source: sourceId, ...common,
+    filter: baseFilters.line,
     paint: {
       'line-color': DATA_LINE,
       'line-width': ['interpolate', ['linear'], ['zoom'], 4, 0.4, 10, 1.2],
@@ -454,9 +459,7 @@ function bindPopupToLayers() {
   });
 
   function buildRows(props: Record<string, unknown> | null | undefined): string {
-    return Object.entries(props || {})
-      .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
-      .slice(0, MAX_POPUP_PROPS)
+    return popupEntries(props, MAX_POPUP_PROPS)
       .map(
         ([k, v]) =>
           `<div class="geo-popup__row"><span class="geo-popup__k">${escapeHtml(k)}</span><span class="geo-popup__v">${popupValueHtml(v)}</span></div>`,

@@ -21,3 +21,11 @@ export function popupValueHtml(v: unknown): string {
   return `<span class="geo-popup__photos">${photos.map((u, i) =>
     `<a href="${escapeHtml(u)}" target="_blank" rel="noopener"><img src="${escapeHtml(u)}" alt="Photo ${i + 1}" loading="lazy" width="72" height="72"></a>`).join('')}</span>`;
 }
+
+/** The fields a pop-up lists: up to `max`, skipping empty values and
+ * internal properties (a leading underscore, like the overview marker `_ov`). */
+export function popupEntries(props: Record<string, unknown> | null | undefined, max: number): [string, unknown][] {
+  return Object.entries(props || {})
+    .filter(([k, v]) => !k.startsWith('_') && v != null && v !== '')
+    .slice(0, max);
+}
