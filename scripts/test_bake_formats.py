@@ -113,3 +113,9 @@ def test_byte_ranges_cover_the_file_exactly():
 
 def test_shapefile_key_default_intro_explains_short_names():
     assert f.shapefile_key({'a_long_name': 'a_long_nam'})[0].startswith('Shapefile field names are limited')
+
+
+def test_pmtiles_args_fixed_max_zoom_replaces_the_guess():
+    # -zg picked z4 for ~9k railway stations: 600 m coordinate steps when zoomed in.
+    args = f.pmtiles_args(Path('in.geojson'), Path('o.pmtiles'), 'l', ('a',), max_zoom=12)
+    assert '-zg' not in args and '-Z0' in args and '-z12' in args

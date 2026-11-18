@@ -128,6 +128,8 @@ ATTR = {
     'SBM':           {'name': 'Swachh Bharat Mission (Urban), MoHUA', 'url': 'https://sbmurban.org/'},
     'WBAMRUT':       {'name': 'West Bengal AMRUT (Nagar GIS Pariseva)', 'url': 'https://nagargispariseva.wb.gov.in/'},
     'IRGIS':         {'name': 'Indian Railways GIS portal (CRIS)', 'url': 'https://irgeoportal.gov.in/'},
+    # bake_ir_stations_merged.py: bharatlas's merge of CRIS (via GatiShakti + IRGIS) and Wikidata.
+    'bharatlas (CRIS, PM GatiShakti, Wikidata)': {'name': 'Indian Railways (CRIS), via PM GatiShakti and the IR GIS portal; Wikidata', 'url': 'https://irgeoportal.gov.in/'},
     'VEDAS':         {'name': 'ISRO VEDAS Energymap',         'url': 'https://vedas.sac.gov.in/energymap/'},
     'SLUSI':         {'name': 'SLUSI (Soil & Land Use Survey of India)', 'url': 'https://slusi.dacnet.nic.in/'},
     # Wave 2 — natural disasters.

@@ -69,9 +69,10 @@ def pmtiles_args(src: Path, out: Path, layer: str, fields: Iterable[str],
     return args + ['--force', '--no-progress-indicator', str(src)]
 
 
-def write_pmtiles(src: Path, out: Path, layer: str, fields: Iterable[str], parallel: bool = False) -> None:
+def write_pmtiles(src: Path, out: Path, layer: str, fields: Iterable[str], parallel: bool = False,
+                  max_zoom: int | None = None) -> None:
     out.unlink(missing_ok=True)
-    subprocess.run(pmtiles_args(src, out, layer, fields, parallel), check=True, capture_output=True)
+    subprocess.run(pmtiles_args(src, out, layer, fields, parallel, max_zoom), check=True, capture_output=True)
 
 
 def short_field_names(columns: list[str]) -> dict[str, str]:
