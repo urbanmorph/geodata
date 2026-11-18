@@ -9,6 +9,7 @@ export type Env = {
   R2: R2Bucket;
   ASSETS: Fetcher;     // Pages' static assets (e.g. /releases/index.json)
   TURNSTILE_SECRET?: string;
+  IP_SALT?: string;    // salts hashed IPs (rate-limit keys); unsalted when absent
 };
 
 const READS = new Set(['GET', 'HEAD']);

@@ -6,7 +6,7 @@ import { handleMcp, API_ROUTES, apiRateLimit } from './lib/mcp';
 const serve: PagesFunction<Env> = (ctx) =>
   handleMcp(ctx.request, ctx.env, {
     routes: API_ROUTES,
-    rateLimit: apiRateLimit(ctx.env),
+    rateLimit: apiRateLimit(ctx.env, (p) => ctx.waitUntil(p)),
     waitUntil: (p) => ctx.waitUntil(p),
   });
 

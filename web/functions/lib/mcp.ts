@@ -11,9 +11,8 @@ import type { Env } from '../api/_middleware';
 import {
   INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams,
 } from '../../../mcp/read-tools.js';
-import { checkApiRateLimit } from './api-ratelimit';
+import { apiLimit, apiRateKey } from './api-ratelimit';
 import { safeStringify } from './http';
-import { sha256Hex } from './submit-helpers';
 import { onRequestGet as layersIndex } from '../api/v1/layers/index';
 import { onRequestGet as layerDetail } from '../api/v1/layers/[id]';
 import { onRequestGet as layerSchema } from '../api/v1/layers/[id]/schema';
@@ -53,7 +52,7 @@ type WaitUntil = (p: Promise<unknown>) => void;
 type Handler = (ctx: { request: Request; env: Env; params: Record<string, string>; waitUntil: WaitUntil }) => Promise<Response> | Response;
 /** An /api/v1 path pattern (one capture = the layer id) and its handler. */
 export type ApiRoute = [RegExp, Handler];
-type RateLimit = (ip: string, tool: string) => Promise<{ ok: true } | { ok: false; retryAfter: number }>;
+type RateLimit = (req: Request, tool: string) => Promise<{ ok: true } | { ok: false; retryAfter: number }>;
 export interface McpDeps { routes: ApiRoute[]; rateLimit: RateLimit; waitUntil: WaitUntil }
 
 const asHandler = (h: unknown) => h as Handler;
@@ -68,15 +67,11 @@ export const API_ROUTES: ApiRoute[] = [
   [/^\/submissions$/, asHandler(submissions)],
 ];
 
-/** The API's own per-IP limit (D1), shared with /api/v1: 120 calls a minute, locate 60. */
-export function apiRateLimit(env: Env): RateLimit {
-  return async (ip, tool) => {
-    try {
-      return await checkApiRateLimit(env.DB, await sha256Hex(new TextEncoder().encode(ip).buffer as ArrayBuffer), tool === 'locate' ? 60 : 120);
-    } catch {
-      return { ok: true }; // a D1 failure should not block reads (as in /api/v1)
-    }
-  };
+/** The API's own per-IP limit, shared with /api/v1 (same key, same D1 row, and
+ *  the same non-blocking check): 120 calls a minute, locate 60. */
+export function apiRateLimit(env: Env, waitUntil: WaitUntil): RateLimit {
+  return async (req, tool) =>
+    apiLimit({ db: env.DB, key: await apiRateKey(req, env.IP_SALT), limit: tool === 'locate' ? 60 : 120, waitUntil });
 }
 
 const ok = (id: Id, result: unknown) => rpc({ jsonrpc: '2.0', id, result });
@@ -155,7 +150,7 @@ async function callTool(req: Request, env: Env, deps: McpDeps, name: string, arg
     return toolText({ error: (e as Error).message }, true);
   }
 
-  const limit = await deps.rateLimit(req.headers.get('cf-connecting-ip') || 'unknown', name);
+  const limit = await deps.rateLimit(req, name);
   if (!limit.ok) {
     return toolText({ error: `Rate limit exceeded. Try again in ${limit.retryAfter} s.` }, true);
   }
