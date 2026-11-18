@@ -100,7 +100,9 @@ describe('uploading a photo', () => {
 
   it('needs the collect link, a JPEG, and a sensible size', async () => {
     const m = await newMap();
-    expect((await j(await ph.uploadPhoto(env, req('POST', `/collections/${m.id}/photos`, m.view, JPEG, { 'x-client-id': 'client-photo-view-xxxx' }), m.id))).status).toBe(401);
+    const viewer = await j(await ph.uploadPhoto(env, req('POST', `/collections/${m.id}/photos`, m.view, JPEG, { 'x-client-id': 'client-photo-view-xxxx' }), m.id));
+    expect(viewer.status).toBe(401);
+    expect(viewer.body.error).not.toMatch(/—/);
     expect((await upload(m, {}, 'client-photo-png-xxxxx', new Uint8Array([0x89, 0x50, 0x4e, 0x47]))).status).toBe(400);
     const big = new Uint8Array(ph.MAX_PHOTO_BYTES + 1); big.set(JPEG.slice(0, 3));
     expect((await upload(m, {}, 'client-photo-big-xxxxx', big)).status).toBe(413);

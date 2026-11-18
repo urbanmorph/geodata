@@ -99,6 +99,14 @@ describe('list links', () => {
     const m = await newMap();
     expect((await h.listTokens(env, req('GET', `/collections/${m.id}/tokens`, m.edit), m.id)).status).toBe(401);
   });
+  it('a view link adding a point is told why, in plain words', async () => {
+    const m = await newMap();
+    const view = (await j(await h.mintToken(env, req('POST', `/collections/${m.id}/tokens`, m.admin, { permission: 'view' }), m.id))).body.token;
+    const r = await j(await add(m.id, view, 'x'));
+    expect(r.status).toBe(401);
+    expect(r.body.error).toMatch(/edit or admin link/);
+    expect(r.body.error).not.toMatch(/—/);
+  });
 });
 
 describe('revoke one link', () => {

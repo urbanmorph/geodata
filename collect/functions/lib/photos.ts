@@ -52,7 +52,7 @@ function cleanMeta(raw: string | null): { lat: number | null; lng: number | null
 
 export async function uploadPhoto(env: Env, req: Request, collectionId: string, defer?: (p: Promise<unknown>) => void): Promise<Response> {
   const via = await linkFor(env.DB, collectionId, bearer(req));
-  if (!atLeast(via?.permission ?? null, 'edit')) return bad(401, 'unauthorised — need the edit or admin link');
+  if (!atLeast(via?.permission ?? null, 'edit')) return bad(401, 'unauthorised: needs the edit or admin link');
   const c = (await env.DB.prepare('SELECT status FROM collections WHERE id = ?').bind(collectionId).first()) as { status: string } | null;
   if (!c) return bad(404, 'not found');
   if (c.status === 'closed') return bad(403, 'this collection is closed to new records');

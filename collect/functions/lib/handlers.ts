@@ -384,7 +384,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   const ipHash = await ipHashFor(req, salt(env));
   const via = await linkFor(env.DB, id, bearer(req));
   const perm = via?.permission ?? null;
-  if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised — need the edit or admin link');
+  if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised: needs the edit or admin link');
 
   const c = await db.getCollection(env.DB, id);
   if (!c) return bad(404, 'not found');
@@ -999,7 +999,7 @@ async function publishMap(
     feature_count: features.length,
     attribution: attribution.line,
     status: 'pending',
-    message: 'Submitted to the bharatlas catalog. A curator reviews it before it goes live — it is not public yet.',
+    message: 'Submitted to bharatlas. A curator reviews it before it goes live, so it is not public yet.',
     admin_token: adminToken,
   });
 }

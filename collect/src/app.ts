@@ -1829,7 +1829,7 @@ function confirmPublish(): void {
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
     <strong>Submit to bharatlas?</strong>
-    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com — it won't be public until then. Do this once the map is ready to share widely.</p>
+    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com, so it won't be public until then. Do this once the map is ready to share widely.</p>
     ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}
   </div><div class="foot row">
     <button id="pub-cancel">← Back</button>
