@@ -36,6 +36,46 @@ export interface GroupByResult {
 /** A caller mistake (bad column, wrong type, missing group_by): maps to HTTP 400. */
 export class QueryInputError extends Error {}
 
+/** The Filter panel's filters (web/src/filter-where.ts ActiveFilter), sent as
+ *  `filter=` JSON for layers too large to filter in the browser. */
+export type FilterSpec =
+  | { col: string; kind: 'in'; values: Array<string | number> }
+  | { col: string; kind: 'range'; min?: number; max?: number }
+  | { col: string; kind: 'search'; q: string }
+  | { col: string; kind: 'bool'; v: boolean };
+
+type RowMatch = (row: Record<string, unknown>) => boolean;
+
+/** One predicate for `where` (case-insensitive equality) and `filters`:
+ *  `in` is case-insensitive membership, `range` numeric bounds, `search` a
+ *  case-insensitive substring, `bool` exact. Nulls never match. */
+export function rowMatcher(where: Array<[string, string]>, filters: FilterSpec[] = []): RowMatch {
+  const tests: RowMatch[] = where.map(([col, val]) => (row) => {
+    const rv = row[col];
+    return rv !== null && rv !== undefined && String(rv).toLowerCase() === val;
+  });
+  for (const f of filters) {
+    const get = (row: Record<string, unknown>) => row[f.col];
+    if (f.kind === 'in') {
+      const set = new Set(f.values.map((v) => String(v).toLowerCase()));
+      tests.push((row) => { const v = get(row); return v != null && set.has(String(v).toLowerCase()); });
+    } else if (f.kind === 'range') {
+      tests.push((row) => {
+        const v = get(row);
+        if (v == null) return false;
+        const n = Number(v);
+        return Number.isFinite(n) && (f.min == null || n >= f.min) && (f.max == null || n <= f.max);
+      });
+    } else if (f.kind === 'search') {
+      const q = f.q.toLowerCase();
+      tests.push((row) => { const v = get(row); return v != null && String(v).toLowerCase().includes(q); });
+    } else {
+      tests.push((row) => { const v = get(row); return v != null && Boolean(v) === f.v; });
+    }
+  }
+  return (row) => tests.every((t) => t(row));
+}
+
 const MAX_ROWS = 1000;
 const MAX_GROUP_BY_VALUES = 500;
 const MAX_DISTINCT_SAMPLE = 20;
@@ -56,9 +96,12 @@ export function topLevelColumns(metadata: FileMetaData): { name: string; element
   }));
 }
 
-/** Geometry columns (geometry, geom, wkb_geometry...) hold WKB, never a filter value. */
-function isGeomColumn(name: string): boolean {
-  return name.toLowerCase().includes('geom');
+/** Geometry columns hold the shapes, never a filter value. By name, exactly:
+ *  "anything containing geom" also caught source columns such as GEOM_UNIT and
+ *  geom_landf (groundwater prospects), hiding them from results and filters. */
+const GEOM_NAMES = new Set(['geometry', 'geom', 'wkb_geometry', 'the_geom']);
+export function isGeomColumn(name: string): boolean {
+  return GEOM_NAMES.has(name.toLowerCase());
 }
 
 /**
@@ -76,6 +119,18 @@ function assertFlat(cols: ReturnType<typeof topLevelColumns>, names: string[]): 
     if (isGeomColumn(n) && cols.some((c) => c.name === n)) {
       throw new QueryInputError(`Column "${n}" is the geometry and can't be filtered or grouped. For a point per row use include_centroid=true; for shapes use the layer's downloads. Flat columns: ${flat.join(', ')}`);
     }
+  }
+}
+
+/** Every filter column exists and is flat (not the geometry, not nested). */
+export function assertFilterColumns(cols: ReturnType<typeof topLevelColumns>, names: string[]): void {
+  if (!names.length) return;
+  assertFlat(cols, names);
+  const known = new Set(cols.map((c) => c.name));
+  const missing = names.filter((n) => !known.has(n));
+  if (missing.length) {
+    const flat = cols.filter((c) => !c.nested && !isGeomColumn(c.name)).map((c) => c.name);
+    throw new QueryInputError(`Filter column(s) ${missing.map((m) => `"${m}"`).join(', ')} not found. Flat columns: ${flat.join(', ')}`);
   }
 }
 
@@ -129,12 +184,14 @@ export async function query(
     sum?: string[];
     limit?: number;
     includeCentroid?: boolean;
+    filters?: FilterSpec[];
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await cachedMetadata(file);
   const cols = topLevelColumns(metadata);
   const allCols = cols.map((c) => c.name);
   assertFlat(cols, [...Object.keys(opts.where ?? {}), ...(opts.groupBy ? [opts.groupBy] : [])]);
+  assertFilterColumns(cols, (opts.filters ?? []).map((f) => f.col));
 
   const sumCols = opts.sum?.length ? opts.sum : [];
   if (sumCols.length && !opts.groupBy) {
@@ -145,7 +202,7 @@ export async function query(
     if (sumCols.length) {
       validateSumColumns(sumCols, Object.fromEntries(cols.map((c) => [c.name, c.nested ? undefined : c.element.type])));
     }
-    return groupByQuery(file, metadata, allCols, opts.groupBy, opts.where, sumCols);
+    return groupByQuery(file, metadata, allCols, opts.groupBy, opts.where, sumCols, opts.filters);
   }
 
   return selectQuery(file, metadata, allCols, opts);
@@ -243,18 +300,9 @@ function rowGroupSpans(metadata: FileMetaData): Array<{ start: number; end: numb
   return spans;
 }
 
-/** where entries with the values lowercased once, for matchesWhere. */
+/** where entries with the values lowercased once, for rowMatcher. */
 function lowerWhere(where: Record<string, string> | undefined): Array<[string, string]> {
   return Object.entries(where ?? {}).map(([c, v]) => [c, v.toLowerCase()]);
-}
-
-/** Case-insensitive equality on every where column (nulls never match).
- *  `where` values are already lowercased (lowerWhere): this runs per row. */
-function matchesWhere(row: Record<string, unknown>, where: Array<[string, string]>): boolean {
-  return where.every(([col, val]) => {
-    const rv = row[col];
-    return rv !== null && rv !== undefined && String(rv).toLowerCase() === val;
-  });
 }
 
 function distinctSample(rows: Record<string, unknown>[], col: string): string[] {
@@ -265,6 +313,34 @@ function distinctSample(rows: Record<string, unknown>[], col: string): string[] 
     if (distinct.size >= 15) break;
   }
   return [...distinct].sort();
+}
+
+/** Pass 1 of a filtered read: only the match columns, row groups in parallel
+ *  (bounded); per group, the match count and the first `keep` matching row
+ *  numbers (in row order). The first group also keeps a distinct-value sample
+ *  of each match column, for zero-result hints. */
+export async function scanMatches(
+  file: AsyncBuffer,
+  metadata: FileMetaData,
+  cols: string[],
+  match: (row: Record<string, unknown>) => boolean,
+  keep: number,
+): Promise<{ perGroup: Array<{ idxs: number[]; count: number; sample?: Record<string, string[]> }>; total: number }> {
+  const perGroup = await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
+    const rows = await parquetReadObjects({
+      file, metadata, compressors, columns: cols, rowStart: span.start, rowEnd: span.end,
+    }) as Record<string, unknown>[];
+    const idxs: number[] = [];
+    let count = 0;
+    rows.forEach((row, i) => {
+      if (!match(row)) return;
+      count++;
+      if (idxs.length < keep) idxs.push(span.start + i);
+    });
+    const sample = span.start === 0 ? Object.fromEntries(cols.map((c) => [c, distinctSample(rows, c)])) : undefined;
+    return { idxs, count, sample };
+  });
+  return { perGroup, total: perGroup.reduce((n, g) => n + g.count, 0) };
 }
 
 /**
@@ -278,7 +354,10 @@ async function selectQuery(
   file: AsyncBuffer,
   metadata: FileMetaData,
   allCols: string[],
-  opts: { select?: string[]; where?: Record<string, string>; limit?: number; includeCentroid?: boolean },
+  opts: {
+    select?: string[]; where?: Record<string, string>; limit?: number; includeCentroid?: boolean;
+    filters?: FilterSpec[];
+  },
 ): Promise<QueryResult> {
   const selectCols = opts.select?.length
     ? opts.select.filter((c) => allCols.includes(c))
@@ -305,7 +384,8 @@ async function selectQuery(
   };
 
   const where = lowerWhere(opts.where);
-  if (where.length === 0) {
+  const filters = opts.filters ?? [];
+  if (where.length === 0 && filters.length === 0) {
     const total = Number(metadata.num_rows);
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: [...readCols], rowStart: 0, rowEnd: Math.min(limit, total),
@@ -323,24 +403,10 @@ async function selectQuery(
     };
   }
 
-  // Pass 1: where columns only, row groups in parallel; each group is reduced
-  // to its match count and first `limit` row numbers as soon as it arrives.
-  const whereCols = where.map(([c]) => c);
-  const perGroup = await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
-    const rows = await parquetReadObjects({
-      file, metadata, compressors, columns: whereCols, rowStart: span.start, rowEnd: span.end,
-    }) as Record<string, unknown>[];
-    const idxs: number[] = [];
-    let count = 0;
-    rows.forEach((row, i) => {
-      if (!matchesWhere(row, where)) return;
-      count++;
-      if (idxs.length < limit) idxs.push(span.start + i);
-    });
-    const sample = span.start === 0 ? Object.fromEntries(whereCols.map((c) => [c, distinctSample(rows, c)])) : undefined;
-    return { idxs, count, sample };
-  });
-  const total = perGroup.reduce((n, g) => n + g.count, 0);
+  // Pass 1: where and filter columns only; each group is reduced to its match
+  // count and first `limit` row numbers as soon as it arrives.
+  const matchCols = [...new Set([...where.map(([c]) => c), ...filters.map((f) => f.col)])];
+  const { perGroup, total } = await scanMatches(file, metadata, matchCols, rowMatcher(where, filters), limit);
   const hitGroups: number[][] = []; // row numbers to return, per row group, in order
   let kept = 0;
   for (const g of perGroup) {
@@ -372,6 +438,7 @@ async function groupByQuery(
   groupCol: string,
   whereObj?: Record<string, string>,
   sumCols: string[] = [],
+  filters: FilterSpec[] = [],
 ): Promise<GroupByResult> {
   if (!allCols.includes(groupCol)) {
     const available = allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c));
@@ -379,7 +446,9 @@ async function groupByQuery(
   }
 
   const where = lowerWhere(whereObj);
-  const readCols = new Set([groupCol, ...sumCols, ...where.map(([c]) => c)]);
+  const readCols = new Set([groupCol, ...sumCols, ...where.map(([c]) => c), ...filters.map((f) => f.col)]);
+  const filtered = where.length > 0 || filters.length > 0;
+  const match = rowMatcher(where, filters);
   const colList = [...readCols].filter((c) => allCols.includes(c));
   const acc = groupAccumulator(groupCol, sumCols);
   let sample: Record<string, string[]> | undefined;
@@ -388,7 +457,7 @@ async function groupByQuery(
       file, metadata, compressors, columns: colList, rowStart: span.start, rowEnd: span.end,
     }) as Record<string, unknown>[];
     if (span.start === 0) sample = Object.fromEntries(where.map(([c]) => [c, distinctSample(rows, c)]));
-    acc.add(where.length ? rows.filter((row) => matchesWhere(row, where)) : rows);
+    acc.add(filtered ? rows.filter(match) : rows);
   });
   const agg = acc.result();
 

@@ -145,3 +145,11 @@ export function rankColumns(cols: ColumnStats[], rowCount: number): ColumnStats[
     .slice(0, DISPLAY_CAP)
     .map((x) => x.c);
 }
+
+/** Where the Filter panel's columns come from: the catalog's baked stats when
+ *  there are some; otherwise the in-browser probe, which scans the whole parquet
+ *  and so is never used for a layer over LARGE_FILTER_BYTES ('none': no panel). */
+export function columnStatsSource(hasBaked: boolean, serverFilter: boolean): 'baked' | 'probe' | 'none' {
+  if (hasBaked) return 'baked';
+  return serverFilter ? 'none' : 'probe';
+}

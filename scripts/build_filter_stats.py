@@ -19,7 +19,6 @@ Called from scripts/build_catalog.py; can be run standalone:
 from __future__ import annotations
 import json
 import re
-import sys
 from pathlib import Path
 
 import duckdb
@@ -110,10 +109,15 @@ def value_counts(con, src: str, cols: list[str], limit: int) -> dict[str, list[t
     return out
 
 
-def stats_for_parquet(path: Path, con: duckdb.DuckDBPyConnection) -> dict | None:
+def is_url(path: Path | str) -> bool:
+    return str(path).startswith(('http://', 'https://'))
+
+
+def stats_for_parquet(path: Path | str, con: duckdb.DuckDBPyConnection) -> dict | None:
     """Per-column stats in two scans of the parquet: every aggregate at once,
-    then the top values of every faceted column at once."""
-    if not path.exists():
+    then the top values of every faceted column at once. `path` is a local
+    file or an http(s) URL (read with range requests, nothing kept on disk)."""
+    if not is_url(path) and not Path(path).exists():
         return None
     src = str(path)
     try:
@@ -122,7 +126,7 @@ def stats_for_parquet(path: Path, con: duckdb.DuckDBPyConnection) -> dict | None
         flat = [c for c, norm in types.items() if norm not in ('geometry', 'blob')]
         row_count, aggs = column_aggregates(con, src, flat)
     except duckdb.Error as e:
-        print(f'  filter_stats: DESCRIBE failed on {path.name} — {e}')
+        print(f'  filter_stats: DESCRIBE failed on {Path(src).name} — {e}')
         return None
 
     columns: list[dict] = []
@@ -271,13 +275,15 @@ def pick_canonical(group: list[str], columns: list[dict]) -> str:
     return sorted(group, key=score, reverse=True)[0]
 
 
-def build_all(layers: list[tuple[str, Path]]) -> dict:
-    """layers: [(layer_id, local_parquet_path), …]"""
+def build_all(layers: list[tuple[str, Path | str]]) -> dict:
+    """layers: [(layer_id, local parquet path or http(s) URL), …]"""
     con = duckdb.connect()
     try:
         con.execute('INSTALL spatial; LOAD spatial')
     except duckdb.Error:
         pass
+    if any(is_url(p) for _, p in layers):
+        con.execute('INSTALL httpfs; LOAD httpfs')
     out: dict = {}
     for layer_id, path in layers:
         s = stats_for_parquet(path, con)

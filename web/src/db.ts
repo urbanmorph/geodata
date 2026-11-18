@@ -2,6 +2,7 @@
 // WASM blobs are fetched from JsDelivr CDN (Cloudflare Pages has a 25 MiB per-file
 // cap; DuckDB's eh blob is ~34 MiB) — only the JS shim is bundled with our site.
 import * as duckdb from '@duckdb/duckdb-wasm';
+import { featuresToKML } from '../../shared/kml.mjs';
 
 let dbPromise: Promise<duckdb.AsyncDuckDB> | null = null;
 
@@ -209,95 +210,6 @@ export async function exportFilteredKML(
   layerName: string,
 ): Promise<Blob> {
   const feats = await fetchFeatures(parquetUrl, whereClause);
-  const kml = geoJSONFeaturesToKML(feats, layerName);
+  const kml = featuresToKML(feats, layerName);
   return new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
 }
-
-// --- inline GeoJSON → KML conversion (avoids a dep; handles Polygon/MultiPolygon/Point) ---
-// Keep in sync with scripts/bake_extracts.py KML section
-
-// Try most-specific first (village name) so a feature's KML <name> matches
-// the level you're looking at, not its parent.
-const NAME_KEYS = [
-  'vilname11', 'vilnam_soi', 'vname',     // village
-  'blkname11', 'blkname', 'block_name',   // block
-  'sdtname', 'subdt_name',                // sub-district
-  'dtname',                                // district
-  'stname', 'STNAME',                     // state
-  'wardname', 'ward_name', 'WARD_NAME',   // city ward
-  'NAME', 'name',                          // generic fallback
-];
-
-function escXml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
-}
-
-function geoJSONFeaturesToKML(
-  feats: Array<{ geometry: unknown; properties: Record<string, unknown> }>,
-  layerName: string,
-): string {
-  const placemarks = feats
-    .map((f) => {
-      const name = NAME_KEYS.map((k) => f.properties?.[k]).find((v) => v != null) ?? '';
-      const extData = Object.entries(f.properties)
-        .filter(([, v]) => v != null && v !== '')
-        .map(
-          ([k, v]) => `<Data name="${escXml(k)}"><value>${escXml(String(v))}</value></Data>`,
-        )
-        .join('');
-      const geom = geometryToKML(f.geometry);
-      return `<Placemark><name>${escXml(String(name))}</name><ExtendedData>${extData}</ExtendedData>${geom}</Placemark>`;
-    })
-    .join('');
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<kml xmlns="http://www.opengis.net/kml/2.2">
-<Document><name>${escXml(layerName)}</name>${placemarks}</Document>
-</kml>`;
-}
-
-function coordPair(c: [number, number]): string {
-  return `${c[0]},${c[1]}`;
-}
-
-function ring(r: [number, number][]): string {
-  return `<LinearRing><coordinates>${r.map(coordPair).join(' ')}</coordinates></LinearRing>`;
-}
-
-function polygon(p: [number, number][][]): string {
-  const [outer, ...inners] = p;
-  return `<Polygon><outerBoundaryIs>${ring(outer)}</outerBoundaryIs>${inners
-    .map((i) => `<innerBoundaryIs>${ring(i)}</innerBoundaryIs>`)
-    .join('')}</Polygon>`;
-}
-
-function geometryToKML(g: unknown): string {
-  if (!g || typeof g !== 'object' || !('type' in g)) return '';
-  const geom = g as Geometry;
-  switch (geom.type) {
-    case 'Point':
-      return `<Point><coordinates>${coordPair(geom.coordinates)}</coordinates></Point>`;
-    case 'LineString':
-      return `<LineString><coordinates>${geom.coordinates.map(coordPair).join(' ')}</coordinates></LineString>`;
-    case 'Polygon':
-      return polygon(geom.coordinates);
-    case 'MultiPolygon':
-      return `<MultiGeometry>${geom.coordinates.map(polygon).join('')}</MultiGeometry>`;
-    case 'MultiLineString':
-      return `<MultiGeometry>${geom.coordinates
-        .map(
-          (line) =>
-            `<LineString><coordinates>${line.map(coordPair).join(' ')}</coordinates></LineString>`,
-        )
-        .join('')}</MultiGeometry>`;
-    case 'GeometryCollection':
-      return `<MultiGeometry>${geom.geometries.map(geometryToKML).join('')}</MultiGeometry>`;
-    default:
-      return '';
-  }
-}
-
