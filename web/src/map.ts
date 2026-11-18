@@ -33,6 +33,7 @@ import { aboutLayerHtml, downloadListHtml, type AboutMeta } from './about-layer'
 import { usageLine, type Usage } from '../functions/lib/usage';
 import { confirmLargeLoad, clearLargeLoad } from './large-load';
 import { dlProxyUrl } from '../../shared/downloads.mjs';
+import { usesServerFilter } from '../../shared/large-load.mjs';
 import { fetchWardIndex, type WardIndexFile } from './ward-index';
 import { buildFeatureFilter, parseAtParam } from './locate-actions';
 import {
@@ -617,13 +618,18 @@ async function loadFilterColumns(
 ): Promise<{ columns: import('./filter-schema').ColumnStats[]; rowCount: number } | null> {
   if (!layer.parquet?.url) return null;
 
-  const { rankColumns } = await import('./filter-schema');
-  const fullCat = await getCatalog();
-  const baked = fullCat.filter_stats?.[layer.id];
+  const { rankColumns, columnStatsSource } = await import('./filter-schema');
+  const { loadBakedStats } = await import('./filter-stats');
+  const baked = await loadBakedStats(layer.id, await getCatalog());
+  const source = columnStatsSource(!!baked, usesServerFilter(layer));
+  if (source === 'none') {
+    console.warn('no filter stats file for large layer', layer.id); // scripts/bake_large_filter_stats.py
+    return null;
+  }
 
   let columns: import('./filter-schema').ColumnStats[];
   let rowCount: number;
-  if (baked) {
+  if (baked) { // source === 'baked'
     rowCount = baked.row_count;
     columns = baked.columns.map((c) => ({
       name: c.name,

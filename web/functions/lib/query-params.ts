@@ -16,7 +16,7 @@ export interface ParsedQueryParams {
 
 /** Option names: every other param is a column filter. Exported so the OpenAPI
  *  description (lib/openapi.ts) is tested to document each one. */
-export const QUERY_OPTIONS = ['select', 'group_by', 'sum', 'limit', 'where', 'order_by', 'include_centroid'] as const;
+export const QUERY_OPTIONS = ['select', 'group_by', 'sum', 'limit', 'where', 'order_by', 'include_centroid', 'filter', 'format', 'estimate'] as const;
 const RESERVED = new Set<string>(QUERY_OPTIONS);
 
 /** A numeric query param, clamped to [lo, hi]; the default when absent or not a number. */

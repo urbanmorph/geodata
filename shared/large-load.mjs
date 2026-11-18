@@ -47,3 +47,22 @@ export function inlineMapLink(href, bytes, text) {
   return `<a href="${escapeHtml(href)}" class="link--large" data-load-bytes="${bytes}" title="${escapeHtml(note)}" ` +
     `aria-label="${escapeHtml(`${text}: ${note.charAt(0).toLowerCase()}${note.slice(1)}`)}">${LARGE_ICON}${escapeHtml(text)}</a>`;
 }
+
+// Filter & export (owner, 2026-11-18): a layer whose parquet is over this is
+// filtered and exported by the API (/api/v1/layers/{id}/query and /export);
+// the browser never opens its parquet. Smaller layers are filtered in the
+// browser with DuckDB-WASM, which reads the whole file into the tab: a 2.3 GB
+// parquet crashed it. One rule for every layer.
+export const LARGE_FILTER_BYTES = 100 * 1024 * 1024;
+
+// Most rows, and most estimated bytes, one filtered export returns (the panel
+// and the API share them). The byte cap keeps a wide or detailed layer's
+// export within what one Worker request can stream.
+export const FILTER_EXPORT_MAX_ROWS = 50_000;
+export const FILTER_EXPORT_MAX_BYTES = 100 * 1024 * 1024;
+
+/** Whether the Filter panel uses the API for this layer (size known and over the line). */
+export function usesServerFilter(layer) {
+  const bytes = layer?.parquet?.bytes;
+  return typeof bytes === 'number' && bytes > LARGE_FILTER_BYTES;
+}

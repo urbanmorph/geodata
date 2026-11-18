@@ -79,7 +79,8 @@ function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> 
     if (ref?.url) {
       out.push({
         '@type': 'DataDownload',
-        encodingFormat,
+        // A layer split per state ships its GeoJSON/KML as a zip of state files.
+        encodingFormat: ref.url.endsWith('.zip') ? 'application/zip' : encodingFormat,
         contentUrl: ref.url,
         ...(ref.bytes ? { contentSize: String(ref.bytes) } : {}),
       });

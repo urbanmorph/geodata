@@ -162,6 +162,18 @@ describe('buildViewDataset — Dataset distribution (Google Dataset Search)', ()
     ]);
   });
 
+  it('labels a per-state zip (geojson/kml split by state) as a zip, not as the format inside it', () => {
+    const zipped: CatalogLayer = {
+      ...layer,
+      geojson: { url: 'https://r2.example.com/x.1a2b3c4d.geojson.zip', bytes: 2000000 },
+      kml: { url: 'https://r2.example.com/x.1a2b3c4d.kml.zip', bytes: 1500000 },
+    };
+    const dist = buildViewDataset(zipped, { label: 'X' }, ORIGIN).jsonLd.distribution as Array<
+      Record<string, unknown>
+    >;
+    expect(dist.map((d) => d.encodingFormat)).toEqual(['application/zip', 'application/zip']);
+  });
+
   it('omits distribution entirely when the layer has no download files', () => {
     expect(buildViewDataset(layer, { label: 'X' }, ORIGIN).jsonLd.distribution).toBeUndefined();
   });

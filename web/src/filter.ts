@@ -14,6 +14,7 @@ import {
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
 import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
+import { usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS } from '../../shared/large-load.mjs';
 import { fmtBytes } from './format-hints';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
 import {
@@ -28,7 +29,8 @@ import {
 
 type Layer = {
   id: string;
-  parquet?: { url: string } | null;
+  parquet?: { url: string; bytes?: number | null } | null;
+  geojson?: { url?: string } | null;
   level: string | null;
   source: string;
 };
@@ -48,6 +50,19 @@ export function mountFilterPanel(
   rowCount: number,
   callbacks: FilterCallbacks,
 ): void {
+  // Over LARGE_FILTER_BYTES the API counts and exports; the browser never
+  // opens the layer's parquet (shared/large-load.mjs).
+  const server = usesServerFilter(layer);
+  const firstBtn = server
+    ? `<button class="filter-panel__btn filter-panel__btn--primary" data-fmt="csv" disabled>
+            <span class="fmt">CSV</span><span class="muted">spreadsheets · centre point</span>
+          </button>`
+    : `<button class="filter-panel__btn filter-panel__btn--primary" data-fmt="parquet" disabled>
+            <span class="fmt">Parquet</span><span class="muted">analytics · smallest</span>
+          </button>`;
+  const hint = server
+    ? `This layer is large, so filtering runs on the bharatlas server: the count and exports (up to ${FILTER_EXPORT_MAX_ROWS.toLocaleString('en-US')} rows) come from there.`
+    : 'Filtering runs in your browser. It downloads only the parts of the file your filter needs.';
   const panel = document.createElement('aside');
   panel.className = 'filter-panel';
   panel.id = 'map-filter-panel';
@@ -63,9 +78,7 @@ export function mountFilterPanel(
           <span class="filter-panel__muted">Pick a value above to enable export.</span>
         </div>
         <div class="filter-panel__actions">
-          <button class="filter-panel__btn filter-panel__btn--primary" data-fmt="parquet" disabled>
-            <span class="fmt">Parquet</span><span class="muted">analytics · smallest</span>
-          </button>
+          ${firstBtn}
           <button class="filter-panel__btn" data-fmt="geojson" disabled>
             <span class="fmt">GeoJSON</span><span class="muted">QGIS, web</span>
           </button>
@@ -75,9 +88,7 @@ export function mountFilterPanel(
         </div>
         <div class="filter-panel__status" id="filter-status" aria-live="polite"></div>
       </div>
-      <p class="filter-panel__hint">
-        Filtering runs in your browser. It downloads only the parts of the file your filter needs.
-      </p>
+      <p class="filter-panel__hint">${hint}</p>
     </div>
   `;
   container.appendChild(panel);
@@ -120,26 +131,39 @@ export function mountFilterPanel(
       return;
     }
     summary.innerHTML = `<span class="filter-panel__muted">Counting…</span>`;
+    lastPlan = null;
     countTimer = window.setTimeout(() => runRowCount(active), 300);
+  }
+
+  // A large layer's latest count and estimated export sizes, so its export
+  // can refuse above the caps without asking the server again.
+  let lastPlan: ExportPlan | null = null;
+
+  async function countMatches(active: ActiveFilter[]): Promise<number> {
+    if (server) {
+      lastPlan = await apiPlan(layer.id, active);
+      return lastPlan.total;
+    }
+    const where = buildWhereSQL(active).replace(/^WHERE\s+/i, '');
+    const rows = await query<{ n: bigint | number }>(`SELECT COUNT(*) AS n FROM '${layer.parquet!.url}' WHERE ${where}`);
+    return Number(rows[0]?.n ?? 0);
   }
 
   async function runRowCount(active: ActiveFilter[]) {
     if (!layer.parquet?.url) return;
     const mySeq = ++countSeq;
-    const where = buildWhereSQL(active).replace(/^WHERE\s+/i, '');
-    const sql = `SELECT COUNT(*) AS n FROM '${layer.parquet.url}' WHERE ${where}`;
-    countLoader = inlineLoader(summary, engineWarm ? VERBS_COUNT : VERBS_ENGINE);
-    const warmTimer = !engineWarm
+    const warm = engineWarm || server;
+    countLoader = inlineLoader(summary, warm ? VERBS_COUNT : VERBS_ENGINE);
+    const warmTimer = !warm
       ? window.setTimeout(() => countLoader?.setVerbs(VERBS_COUNT), 8000)
       : undefined;
     try {
-      const rows = await query<{ n: bigint | number }>(sql);
+      const n = await countMatches(active);
       window.clearTimeout(warmTimer);
       if (mySeq !== countSeq) return;
       countLoader?.dismiss();
       countLoader = undefined;
       engineWarm = true;
-      const n = Number(rows[0]?.n ?? 0);
       summary.innerHTML = `<span><strong>${matchCountText(n, rowCount)}</strong> match.</span>`;
       callbacks.onCount?.(n);
     } catch (e) {
@@ -157,7 +181,7 @@ export function mountFilterPanel(
     const field = renderField(col, aff, (filter) => {
       filterState.set(col.name, filter);
       notifyChange();
-    }, layer.parquet?.url);
+    }, server ? undefined : layer.parquet?.url); // no typeahead scan for a large layer
     colsEl.appendChild(field);
   }
 
@@ -178,13 +202,36 @@ export function mountFilterPanel(
 
   // Warm DuckDB-WASM in the background — masks the cold start when the
   // user clicks an export button.
-  getDb().catch(() => {});
+  if (!server) getDb().catch(() => {});
+
+  /** Large layer: check the count against the cap, then let the browser
+   *  stream /export straight to a file (no copy of the rows in the tab). */
+  async function serverExport(fmt: ExportFmt, active: ActiveFilter[]) {
+    let plan = lastPlan;
+    if (!plan) {
+      try {
+        plan = lastPlan = await apiPlan(layer.id, active);
+      } catch (e) {
+        status.innerHTML = `<span class="filter-panel__err">Export failed: ${escapeHtml(String((e as Error).message))}</span>`;
+        return;
+      }
+    }
+    const n = plan.total;
+    const refusal = overCapMessage(n, plan.estimated_bytes[fmt], fmt, active, !!layer.geojson?.url?.endsWith('.zip'));
+    if (refusal) {
+      status.innerHTML = `<span class="filter-panel__err">${escapeHtml(refusal)}</span>`;
+      return;
+    }
+    const filename = `${layer.id}.${fmt}`;
+    downloadUrl(`/api/v1/layers/${encodeURIComponent(layer.id)}/export?format=${fmt}&filter=${filterParam(active)}`, filename);
+    status.innerHTML = `<span class="filter-panel__ok">Downloading ${escapeHtml(filename)} (${n.toLocaleString('en-US')} rows) from the server.</span>`;
+  }
 
   exportBtns.forEach((btn) => {
     btn.addEventListener('click', async () => {
       const active = getActiveFilters();
       if (!active.length) return;
-      const fmt = btn.dataset.fmt as 'parquet' | 'geojson' | 'kml';
+      const fmt = btn.dataset.fmt as 'parquet' | 'geojson' | 'kml' | 'csv';
 
       // Pre-baked R2 fast path: skip DuckDB entirely when the user picked
       // exactly one state (single value on a known state column) and a
@@ -199,6 +246,11 @@ export function mountFilterPanel(
           status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(fn)} (${fmtBytes(bake.bytes)}, pre-baked).</span>`;
           return;
         }
+      }
+
+      if (server) {
+        await serverExport(fmt as ExportFmt, active);
+        return;
       }
 
       // Generic path: build WHERE via filter-where.ts and run DuckDB export.
@@ -243,6 +295,47 @@ export function mountFilterPanel(
       }
     });
   });
+}
+
+// ───── Server path (layers over LARGE_FILTER_BYTES) ─────
+
+function filterParam(active: ActiveFilter[]): string {
+  return encodeURIComponent(JSON.stringify(active));
+}
+
+type ExportFmt = 'geojson' | 'kml' | 'csv';
+type ExportPlan = { total: number; estimated_bytes: Record<ExportFmt, number> };
+
+/** The match count and each format's estimated export size, from
+ *  /api/v1/layers/{id}/export?estimate=1 (reads only the filter columns). */
+async function apiPlan(layerId: string, active: ActiveFilter[]): Promise<ExportPlan> {
+  const r = await fetch(`/api/v1/layers/${encodeURIComponent(layerId)}/export?estimate=1&filter=${filterParam(active)}`);
+  const body = (await r.json()) as { data?: ExportPlan; error?: string };
+  if (!r.ok || typeof body.data?.total !== 'number') throw new Error(body.error || `HTTP ${r.status}`);
+  return body.data;
+}
+
+const MB = (n: number) => `${Math.round(n / (1024 * 1024)).toLocaleString('en-US')} MB`;
+const FMT_LABEL: Record<ExportFmt, string> = { geojson: 'GeoJSON', kml: 'KML', csv: 'CSV' };
+
+/** Above either export cap (rows, estimated bytes): what to say instead of
+ *  exporting, the same as the API's 400; null when the export may go ahead.
+ *  A single value on one column of a layer split per state (its GeoJSON is a
+ *  zip of state files) points to that zip. */
+export function overCapMessage(
+  n: number, bytes: number, fmt: ExportFmt, active: ActiveFilter[], perStateZips: boolean,
+): string | null {
+  const one = active.length === 1 && active[0].kind === 'in' && active[0].values.length === 1;
+  const instead = perStateZips && one
+    ? 'For a whole state, download the per-state zip (GeoJSON, KML or shapefile) from the layer\'s files; or narrow the filter.'
+    : 'Narrow the filter, or download the whole layer from its files.';
+  if (n > FILTER_EXPORT_MAX_ROWS) {
+    return `${n.toLocaleString('en-US')} match: more than one export holds (${FILTER_EXPORT_MAX_ROWS.toLocaleString('en-US')}). ${instead}`;
+  }
+  if (bytes > FILTER_EXPORT_MAX_BYTES) {
+    return `${n.toLocaleString('en-US')} match, an estimated ${MB(bytes)} as ${FMT_LABEL[fmt]}: more than one export holds (${MB(FILTER_EXPORT_MAX_BYTES)}). ${instead}`;
+  }
+  return null;
 }
 
 // ───── Per-affordance renderers ─────

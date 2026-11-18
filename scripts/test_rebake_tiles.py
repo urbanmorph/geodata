@@ -132,3 +132,38 @@ def test_report_problems():
 
 def test_geometry_column_by_type_not_name():
     assert rt.geometry_column([('id', 'VARCHAR'), ('geom', 'GEOMETRY')]) == 'geom'
+
+
+# A source polygon whose MakeValid throws in GEOS ("Overlay input is mixed-
+# dimension"): land degradation 2015-16 row TS.28062 carries a ring of four
+# identical points beside its real ring. The check must still measure it.
+DEGENERATE_RING = (
+    'MULTIPOLYGON (((77.6146832 17.4472724, 77.6146832 17.4472724, 77.6146832 17.4472724, 77.6146832 17.4472724)), '
+    '((77.6069205 17.4460576, 77.6085345 17.4461351, 77.6146831 17.4472723, 77.6141494 17.446572, '
+    '77.6132726 17.4455628, 77.6110442 17.4451136, 77.6094739 17.445199, 77.6076526 17.4452247, '
+    '77.6069205 17.4460576)))')
+
+
+def _measure(kind, wkt, env='ST_MakeEnvelope(77, 17, 78, 18)'):
+    import duckdb
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial')
+    return con.execute(f"SELECT {rt.amount_sql(kind, 'geometry', env)} FROM "
+                       f"(SELECT ST_GeomFromText('{wkt}') AS geometry)").fetchone()[0]
+
+
+def test_amount_measures_a_polygon_that_make_valid_rejects():
+    area = _measure('polygon', DEGENERATE_RING)
+    assert area == pytest.approx(8.4288e-06, rel=1e-3)  # the real ring's area
+
+
+def test_amount_unchanged_for_valid_shapes_and_by_kind():
+    square = 'POLYGON((77 17, 77.5 17, 77.5 17.5, 77 17.5, 77 17))'
+    assert _measure('polygon', square) == pytest.approx(0.25)
+    assert _measure('polygon', square, 'ST_MakeEnvelope(77, 17, 77.25, 17.5)') == pytest.approx(0.125)
+    assert _measure('line', 'LINESTRING(77 17, 77.5 17)') == pytest.approx(0.5)
+    # a collection mixing a polygon and a line measures only the polygon (area) or line (length)
+    mixed = 'GEOMETRYCOLLECTION(POLYGON((77 17, 77.5 17, 77.5 17.5, 77 17.5, 77 17)), LINESTRING(77.6 17.6, 77.9 17.6))'
+    assert _measure('polygon', mixed) == pytest.approx(0.25)
+    assert _measure('line', mixed) == pytest.approx(0.3)
+    assert rt.amount_sql('point', 'geometry', 'e') == '0'

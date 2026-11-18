@@ -1,3 +1,4 @@
+import { fetchAsset, type AssetCtx } from './catalog-loader';
 import { layerIsNonCommercial, NC_NOTICE } from '../../../shared/licences.mjs';
 export interface CatalogLayer {
   id: string;
@@ -135,6 +136,17 @@ export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = f
   }
   if (detail) result.versions = layer.versions ?? [];
   return result;
+}
+
+/** Layer detail: a layer over LARGE_FILTER_BYTES keeps its filter stats in
+ *  /api-data/filter-stats/<id>.json, not in the catalog; add them from there. */
+export async function attachFilterStats(ctx: AssetCtx, api: ApiLayer): Promise<ApiLayer> {
+  if (api.filter_stats) return api;
+  try {
+    const r = await fetchAsset(ctx, `/api-data/filter-stats/${encodeURIComponent(api.id)}.json`);
+    if (r.ok) return { ...api, filter_stats: await r.json() };
+  } catch { /* no file: no stats */ }
+  return api;
 }
 
 export function toApiCategory(catalog: CatalogData): Array<{ id: string; label: string; layer_count: number }> {

@@ -5,6 +5,7 @@ import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, QueryInputError } from '../../../../lib/parquet-query';
 import { parseQueryParams } from '../../../../lib/query-params';
+import { parseFilterParam } from '../../../../lib/parquet-export';
 import { json, safeStringify } from '../../../../lib/http';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
@@ -28,8 +29,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const run = async (): Promise<Response> => {
     try {
       const start = Date.now();
+      const filters = parseFilterParam(url.searchParams.get('filter'));
       const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
-      const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid });
+      const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters });
       const timing = Date.now() - start;
 
       return new Response(safeStringify({ data: result, layer_id: id, ...ncFields(layer), timing_ms: timing }), {

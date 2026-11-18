@@ -1191,6 +1191,16 @@
       "label": "Geomorphology 1:50k (Bhuvan 2005-06)",
       "unit": "landform polygons",
       "description": "Landforms mapped at 1:50,000 by NRSC in the 2005-06 national geomorphology mapping, in three levels (origin, process, landform). Mizoram, Lakshadweep and some UTs are missing in the source."
+    },
+    "bhuvan_gw_prospects": {
+      "label": "Groundwater prospect zones (Bhuvan)",
+      "unit": "prospect zones",
+      "description": "Hydrogeomorphological units mapped at 1:50,000 by NRSC for the Rajiv Gandhi National Drinking Water Mission: lithology, landform and groundwater prospects, by state. Columns vary by state in the source."
+    },
+    "bhuvan_land_degradation_1516": {
+      "label": "Land degradation 1:50k (Bhuvan 2015-16)",
+      "unit": "degraded land polygons",
+      "description": "Degraded land mapped at 1:50,000 by NRSC from 2015-16 satellite imagery: the process (water or wind erosion, salinity, waterlogging, mining and more) and its severity, with the 2005-06 mapping alongside."
     }
   },
   "level_order": [
@@ -1341,7 +1351,9 @@
     "cadastrals_delhi",
     "fsi_recorded_forest_area",
     "gsi_lithology_50k",
-    "bhuvan_geomorphology_50k"
+    "bhuvan_geomorphology_50k",
+    "bhuvan_gw_prospects",
+    "bhuvan_land_degradation_1516"
   ],
   "layers": [
     {
@@ -10539,6 +10551,84 @@
         "audited_at": null,
         "next_due": null
       }
+    },
+    {
+      "id": "bhuvan_gw_prospects",
+      "level": "bhuvan_gw_prospects",
+      "source": "Bhuvan",
+      "rows": 820552,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.669ca817.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/tag/groundwater-prospects",
+        "bytes": 2277672828
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.ae1714b1.pmtiles",
+        "bytes": 485859909
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bhuvan (NRSC, ISRO)",
+          "url": "https://bhuvan-app1.nrsc.gov.in/gwis/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GeoJSON, KML and shapefile downloads are zips holding one file per state (36 files, by the source column `sname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.8d171e51.geojson.zip",
+        "bytes": 3808345123
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.6e0c4b0d.kml.zip",
+        "bytes": 3167340190
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.a78a4c94.shp.zip",
+        "bytes": 2706532489
+      },
+      "fetched_at": "2026-11-18T17:17:05+00:00"
+    },
+    {
+      "id": "bhuvan_land_degradation_1516",
+      "level": "bhuvan_land_degradation_1516",
+      "source": "Bhuvan",
+      "rows": 1106126,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.b374b36c.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/tag/degradation",
+        "bytes": 2473955771
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.9124dbb1.pmtiles",
+        "bytes": 550870262
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bhuvan (NRSC, ISRO)",
+          "url": "https://bhuvan.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GeoJSON, KML and shapefile downloads are zips holding one file per state (35 files, by the source column `lname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.24389621.geojson.zip",
+        "bytes": 2270457611
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.e44f3069.kml.zip",
+        "bytes": 2195260856
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.e969ca38.shp.zip",
+        "bytes": 3618977377
+      },
+      "fetched_at": "2026-11-18T17:17:05+00:00"
     }
   ],
   "state_extracts": [],
