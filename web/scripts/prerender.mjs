@@ -1161,7 +1161,7 @@ await renderPage('terms', {
 const DOCS_FAQ = [
   {
     q: 'Do I need an API key to use the bharatlas API?',
-    a: 'No. The API is public, read-only and CORS-enabled. No auth, no signup, no API key. Rate limit is 120 requests per minute per IP, 60/min for the locate endpoints. Please send a User-Agent naming your app and a link. The full description is at https://bharatlas.com/api/v1/openapi.json (OpenAPI 3.1).',
+    a: 'No. The API is public, read-only and CORS-enabled. No auth, no signup, no API key. Rate limit is 120 requests per minute per IP, 60/min for the locate endpoints. Please send a `User-Agent` that names your app (for example `my-app/1.0`). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don\'t store it, and we don\'t track who you are. The full description is at https://bharatlas.com/api/v1/openapi.json (OpenAPI 3.1).',
   },
   {
     q: 'How do I list all geo layers via the API?',
