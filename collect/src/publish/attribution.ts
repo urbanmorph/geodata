@@ -46,7 +46,7 @@ export function composeAttribution(
 
   const sources = [...new Set(importSources.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean))];
 
-  let line = who ? `${projectName} — ${who} (${license})` : projectName;
+  let line = who ? `${projectName}: ${who} (${license})` : projectName;
   if (sources.length) {
     if (!who) line = `${projectName} (${license})`; // still needs the licence
     line += `. Includes data from ${sources.join(', ')}`;

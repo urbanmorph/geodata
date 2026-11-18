@@ -17,17 +17,17 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace } from './review';
 import { escapeHtml, downloadText } from './util';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
 import type { Mapping } from './import/build';
-import { rememberMap, rememberRecord, forgetRecord, recordLabel } from './maps-store';
+import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps, backLink, replaceAdminLink } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
 import { fitsLocalPicker } from './schema/dates';
 import { wireSheetSwipe } from './sheet-swipe';
 import { pickNearest } from './pick-nearest';
-import { linksMailtoHref, splitLinks, type MapLinks, type LinkInfo } from './share';
+import { linksMailtoHref, shareTabLinks, heldToken, type MapLinks, type LinkInfo } from './share';
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
 import { modeOf, photoFields } from './schema/modes';
@@ -1322,7 +1322,7 @@ function pendingHint(): string {
 
 function renderShareTab(body: HTMLElement): void {
   const title = meta.name || 'bharatlas collect map';
-  const adminLink = location.href;
+  let adminLink = location.href;
   body.innerHTML = `
     ${pendingHint()}
     <p class="hint">Tap a link to open its copy options. No accounts, so the link is the key: whoever holds it can use it at that level.</p>
@@ -1334,7 +1334,9 @@ function renderShareTab(body: HTMLElement): void {
       <div class="linkrow__body" hidden></div>
     </div>`).join('')}
     <a class="btn wide" id="email-links" style="margin-top:12px">✉ Email these links to me</a>
-    <strong style="display:block;margin-top:18px">Named collect links</strong>
+    <button type="button" class="linklike" id="replace-admin">Replace admin link</button>
+    <div id="ra-new"></div>
+    <strong style="display:block;margin-top:18px">Collect and view links</strong>
     <p class="hint">Give a team or a person their own link. You'll see which points came through it, and can turn it off without changing anyone else's link.</p>
     <div class="row">
       <input id="nl-label" maxlength="60" placeholder="e.g. Ward 12 team" aria-label="Name for the new link" style="flex:1" />
@@ -1347,20 +1349,55 @@ function renderShareTab(body: HTMLElement): void {
   const refreshEmail = (): void => { emailA.href = linksMailtoHref({ admin: adminLink, ...minted } as MapLinks, meta.name); };
   refreshEmail();
 
-  // The URL for a row — admin is this page; collect/view mint once, then cache.
+  // The URL for a row — admin is this page. Collect/view reuse the link this
+  // device saved for the map while it is still on (else mint one and save it),
+  // then cache for the session.
   const linkFor = async (r: LinkRow): Promise<string | null> => {
     if (r.role === 'admin') return adminLink;
     const perm = r.perm!;
     if (minted[perm]) return minted[perm]!;
     try {
-      const res = await apiJson<{ link: string }>(`/collections/${ctx.id}/tokens`, ctx.token, { method: 'POST', body: JSON.stringify({ permission: perm }) });
+      const reuse = heldToken(myMaps().find((m) => m.id === ctx.id)?.links[perm], perm);
+      const res = await apiJson<{ link: string }>(`/collections/${ctx.id}/tokens`, ctx.token, { method: 'POST', body: JSON.stringify({ permission: perm, reuse }) });
       minted[perm] = res.link;
+      rememberMap(ctx.id, meta.name, perm === 'edit' ? 'collect' : 'view', res.link);
       refreshEmail();
       return res.link;
     } catch (e) { toast((e as Error).message); return null; }
   };
 
   void wireNamedLinks(body, title);
+
+  // Replace the admin link (it leaked, or a device that had it is lost): two
+  // taps, then the new link is shown once and this page carries on with it.
+  const replaceBtn = body.querySelector<HTMLButtonElement>('#replace-admin')!;
+  let replaceArmed = false;
+  replaceBtn.onclick = async () => {
+    if (!replaceArmed) { replaceArmed = true; replaceBtn.textContent = 'Tap again to replace. The current admin link stops working everywhere.'; return; }
+    replaceBtn.disabled = true;
+    try {
+      const res = await apiJson<{ link: string; token: string }>(`/collections/${ctx.id}/admin-link`, ctx.token, { method: 'POST' });
+      replaceAdminLink(ctx.id, meta.name, adminLink, res.link); // syncs to the other devices when sync is on
+      ctx.token = res.token;
+      history.replaceState(null, '', res.link);
+      adminLink = res.link;
+      refreshEmail();
+      const adminBody = body.querySelector<HTMLElement>('.linkrow[data-role="admin"] .linkrow__body')!;
+      delete adminBody.dataset.filled; // the row shows the new link next time it opens
+      adminBody.setAttribute('hidden', '');
+      adminBody.previousElementSibling?.setAttribute('aria-expanded', 'false');
+      const out = body.querySelector<HTMLElement>('#ra-new')!;
+      out.innerHTML = shareItemHtml('admin-new', '🔑 New admin link', res.link,
+        'Save it now. The old admin link no longer works, on any device or tool that had it.');
+      wireShareItems(out, title);
+      replaceBtn.hidden = true;
+    } catch (e) {
+      toast((e as Error).message);
+      replaceArmed = false;
+      replaceBtn.textContent = 'Replace admin link';
+      replaceBtn.disabled = false;
+    }
+  };
 
   let busy = false; // a mint is in flight — block other taps (else double-mint / two rows open)
   LINK_ROWS.forEach((r) => {
@@ -1391,22 +1428,21 @@ function renderShareTab(body: HTMLElement): void {
   });
 }
 
-// Named links: mint a labelled collect link, list named links with how many
-// points each added, and turn one off (two taps). The token is shown once, at
-// creation; the list only ever has labels and counts.
+// Named links: mint a labelled collect link, list every collect/view link
+// (named, or plainly numbered when unnamed) with how many points each added,
+// and turn one off (two taps). The token is shown once, at creation; the list
+// only ever has names and counts.
 async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
   const list = body.querySelector<HTMLElement>('#nl-list')!;
   const render = async (): Promise<void> => {
     try {
       const { links } = await apiJson<{ links: LinkInfo[] }>(`/collections/${ctx.id}/tokens`, ctx.token);
-      const { named, unnamed } = splitLinks(links);
       const plural = (n: number, w: string): string => `${n} ${w}${n === 1 ? '' : 's'}`;
-      list.innerHTML = named.map((l) => `<div class="link-box${l.active ? '' : ' link-box--off'}">
-          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.label!)}
+      list.innerHTML = shareTabLinks(links).map((l) => `<div class="link-box${l.active ? '' : ' link-box--off'}">
+          <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.name)}
             <span class="hint">· ${l.permission === 'view' ? 'view only' : plural(l.records, 'point')}${l.active ? '' : ' · turned off'}</span></span>
           ${l.active ? `<button type="button" data-revoke="${escapeHtml(l.id)}">Turn off</button>` : ''}
-        </div>`).join('')
-        + (unnamed.links ? `<p class="hint">${plural(unnamed.links, 'unnamed collect link')} from earlier shares added ${plural(unnamed.records, 'point')}.</p>` : '');
+        </div>`).join('');
       list.querySelectorAll<HTMLButtonElement>('button[data-revoke]').forEach((b) => {
         let armed = false;
         b.onclick = async () => {
@@ -1621,13 +1657,6 @@ async function refreshCounts(): Promise<void> {
   updateReviewCounts(meta.counts);
 }
 
-type AdminCtx = { state?: string; district?: string; subdistrict?: string } | null;
-function fmtAdminCtx(ctx: AdminCtx): string {
-  if (!ctx) return '';
-  const parts = [ctx.district, ctx.state].filter(Boolean);
-  return parts.length ? `📍 ${parts.join(', ')}` : '';
-}
-
 // Queue card label: the record's `name`, else the first author field value
 // (the author may have renamed/removed the seeded `name` field).
 function cardTitle(props: Record<string, unknown>): string {
@@ -1711,7 +1740,7 @@ function openReview(idx: number): void {
   const f = reviewFeats[idx];
   if (!f) return;
   const p = f.properties as {
-    _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; _link_label?: string | null; _captured_at?: string | null; _created_at?: string;
+    _status?: string; _contributor?: string; _admin_ctx?: { state?: string; district?: string } | null; _source?: string; _link_label?: string | null; _captured_at?: string | null; _created_at?: string;
     _photos?: Array<{ field: string; id: string; url: string }>; _ai?: Notes | null; [k: string]: unknown;
   };
   const st = p._status || 'published';
@@ -1726,10 +1755,8 @@ function openReview(idx: number): void {
 
   const attrs = attrRowsHtml(p, 'attr');
   // meta line: who (source or a named contributor; nothing for an unnamed capture) + place
-  const who = recordWho(p._source, p._contributor);
-  const via = recordVia(p._link_label);
-  const when = recordWhen(p._captured_at, p._created_at);
-  const meta = [who ? escapeHtml(who) : '', via ? escapeHtml(via) : '', escapeHtml(when), fmtAdminCtx(p._admin_ctx ?? null)].filter(Boolean).join(' · ');
+  const meta = [recordWho(p._source, p._contributor), recordVia(p._link_label), recordWhen(p._captured_at, p._created_at), recordPlace(p._admin_ctx)]
+    .filter(Boolean).map(escapeHtml).join(' · ');
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
@@ -1835,7 +1862,7 @@ function confirmPublish(): void {
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
     <strong>Submit to bharatlas?</strong>
-    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com — it won't be public until then. Do this once the map is ready to share widely.</p>
+    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com, so it won't be public until then. Do this once the map is ready to share widely.</p>
     ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}
   </div><div class="foot row">
     <button id="pub-cancel">← Back</button>
@@ -1882,7 +1909,7 @@ async function recordEditor(): Promise<void> {
   rememberRecord(ctx.id, rec.collection_name, { id: rec.id, label: recordLabel(rec.properties, noun), link: location.href });
 
   app.innerHTML = `
-    <div class="topbar"><a href="/c/${ctx.id}#${ctx.token}" aria-label="Back">←</a><span>Your ${noun}</span>
+    <div class="topbar"><a href="${escapeHtml(backLink(myMaps(), ctx.id))}" aria-label="Back">←</a><span>Your ${noun}</span>
       <span class="muted" style="margin-left:auto">${escapeHtml(rec.collection_name)}</span></div>
     <div class="map">
       <div id="map"></div>${isPoint ? '<div class="crosshair" aria-hidden="true"></div>' : ''}
@@ -2007,7 +2034,7 @@ async function recordEditor(): Promise<void> {
     try {
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
       forgetRecord(ctx.id, ctx.recordId!);
-      app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="/c/${ctx.id}#${ctx.token}">← Back to the map</a></div>`;
+      app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
     } catch (e) { toast((e as Error).message); btn.disabled = false; }
   };
 }

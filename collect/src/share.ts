@@ -72,13 +72,24 @@ export interface LinkInfo {
   records: number;
 }
 
-// The Share tab lists named collect/view links (newest first, turned-off last)
-// and only counts the unnamed collect links, which pile up one per share session
-// and can't be told apart.
-export function splitLinks(links: LinkInfo[]): { named: LinkInfo[]; unnamed: { links: number; records: number } } {
-  const named = links
-    .filter((l) => l.permission !== 'admin' && l.label)
+// Every collect/view link for the Share tab (active first, newest first), each
+// with a name to show: its label, or a plain "Collect link 2 (made 2026-10-01)"
+// numbered by age, so unnamed links can be told apart and turned off too.
+export type ShareTabLink = LinkInfo & { name: string };
+const KIND: Record<'edit' | 'view', string> = { edit: 'Collect link', view: 'View-only link' };
+
+export function shareTabLinks(links: LinkInfo[]): ShareTabLink[] {
+  const seen = { edit: 0, view: 0 };
+  return links
+    .filter((l): l is LinkInfo & { permission: 'edit' | 'view' } => l.permission !== 'admin')
+    .sort((a, b) => a.created_at.localeCompare(b.created_at))
+    .map((l) => ({ ...l, name: l.label || `${KIND[l.permission]} ${++seen[l.permission]} (made ${l.created_at.slice(0, 10)})` }))
     .sort((a, b) => Number(b.active) - Number(a.active) || b.created_at.localeCompare(a.created_at));
-  const unnamedEdit = links.filter((l) => l.permission === 'edit' && !l.label);
-  return { named, unnamed: { links: unnamedEdit.length, records: unnamedEdit.reduce((n, l) => n + l.records, 0) } };
+}
+
+// The token in a link this device saved, if it is of the wanted kind (sent as
+// `reuse` so the server hands that link back instead of minting another).
+export function heldToken(link: string | undefined, perm: 'edit' | 'view'): string | undefined {
+  const token = link?.split('#')[1];
+  return token?.startsWith(perm === 'edit' ? 'edt_' : 'viw_') ? token : undefined;
 }

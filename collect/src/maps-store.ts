@@ -13,6 +13,8 @@ export interface SavedMap {
   links: { edit?: string; admin?: string; view?: string };
   records?: SavedRecord[];
   at: string;
+  /** Admin links replaced on some device: they no longer work, and sync must not bring them back. */
+  retired?: string[];
 }
 
 const KEY = 'collect:maps';
@@ -63,25 +65,47 @@ export function capMaps(maps: SavedMap[]): SavedMap[] {
   return maps.filter((m) => m.role === 'owner' || (m.records?.length ?? 0) > 0 || ++shared <= MAX_SHARED);
 }
 
-// Restore from a saved file: union links and records per map (highest role
-// wins) rather than keeping whichever copy came first. Malformed rows dropped.
+// Restore from a saved file, or sync: union links and records per map (highest
+// role wins) rather than keeping whichever copy came first; a link retired on
+// any device is dropped everywhere. Malformed rows dropped.
 export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[] {
   const byId = new Map<string, SavedMap>();
+  const candidates = new Map<string, SavedMap['links'][]>(); // every copy's links, first copy first
   for (const m of [...incoming, ...existing]) {
     if (!m || typeof m !== 'object' || typeof m.id !== 'string' || !m.id) continue;
     const links = m.links && typeof m.links === 'object' ? m.links : {};
     const role = m.role && RANK[m.role] ? m.role : roleFromLinks(links);
     const records = Array.isArray(m.records) ? m.records.filter((r) => r && typeof r.id === 'string' && typeof r.link === 'string') : [];
+    const retired = Array.isArray(m.retired) ? m.retired.filter((l) => typeof l === 'string') : [];
+    candidates.set(m.id, [...(candidates.get(m.id) ?? []), links]);
     const e = byId.get(m.id);
     if (!e) {
-      byId.set(m.id, { id: m.id, name: m.name || 'Untitled map', role, links: { ...links }, records, at: m.at || '' });
+      byId.set(m.id, { id: m.id, name: m.name || 'Untitled map', role, links: {}, records, at: m.at || '', ...(retired.length ? { retired } : {}) });
       continue;
     }
-    e.links = { ...links, ...e.links };
     if (RANK[role] > RANK[e.role]) e.role = role;
     e.records = [...(e.records ?? []), ...records.filter((r) => !e.records?.some((x) => x.id === r.id))];
+    if (retired.length) e.retired = [...new Set([...(e.retired ?? []), ...retired])];
+  }
+  for (const e of byId.values()) {
+    for (const links of candidates.get(e.id)!) {
+      for (const slot of ['edit', 'admin', 'view'] as const) {
+        const l = links[slot];
+        if (l && !e.links[slot] && !e.retired?.includes(l)) e.links[slot] = l;
+      }
+    }
   }
   return [...byId.values()];
+}
+
+// The admin link was replaced (Manage, Share): keep the new one, retire the old
+// one(s) so a synced or restored copy never brings them back (pure).
+export function applyAdminReplace(maps: SavedMap[], id: string, name: string, oldLink: string, newLink: string, now: string): SavedMap[] {
+  const old = maps.find((m) => m.id === id)?.links.admin; // read first: applyRemember updates the entry in place
+  const list = applyRemember(maps, id, name, 'owner', newLink, now);
+  const e = list.find((m) => m.id === id)!;
+  e.retired = [...new Set([...(e.retired ?? []), oldLink, ...(old && old !== newLink ? [old] : [])])];
+  return list;
 }
 
 // A short label for a record in "Your points": its first text value.
@@ -93,6 +117,13 @@ export function recordLabel(props: Record<string, unknown>, noun: string): strin
 // The link to open for a saved map, and whether it also has an admin link.
 export function openLink(m: SavedMap): string | undefined {
   return m.role === 'view' ? m.links.view : (m.links.edit || m.links.admin || m.links.view);
+}
+
+// Where a contributor goes back to from their own point's page: the map link
+// saved on this device, else home (their rec_ token can't open the map).
+export function backLink(maps: SavedMap[], id: string): string {
+  const m = maps.find((x) => x.id === id);
+  return (m && openLink(m)) || '/';
 }
 
 export function myMaps(): SavedMap[] {
@@ -127,6 +158,11 @@ export function saveOwnedMap(id: string, name: string, links: { edit?: string; a
   const maps = myMaps().filter((m) => m.id !== id);
   maps.unshift({ id, name: name || 'Untitled map', role: 'owner', links, records: prev?.records, at: new Date().toISOString() });
   write(maps);
+  keepStorage();
+}
+
+export function replaceAdminLink(id: string, name: string, oldLink: string, newLink: string): void {
+  write(applyAdminReplace(myMaps(), id, name, oldLink, newLink, new Date().toISOString()));
   keepStorage();
 }
 

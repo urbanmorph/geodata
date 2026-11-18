@@ -253,7 +253,10 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
 
 // ---- POST /collections/:id/tokens ------------------------------------------
 // Mint a fresh edit or view link (admin only). The originals are hash-only and
-// can't be re-shown, so "share another collect link" = mint a new one.
+// can't be re-shown, so "share another collect link" = mint a new one. An
+// unlabelled request may pass `reuse`: a link token the caller already holds.
+// If it is an active unnamed link of the wanted kind on this map, it comes back
+// as is, so opening the Share tab doesn't add a new link every visit.
 
 export async function mintToken(env: Env, req: Request, id: string): Promise<Response> {
   const perm = await permissionFor(env.DB, id, bearer(req));
@@ -273,6 +276,14 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
     if (label && label.length > LINK_LABEL_MAX) return bad(400, `label must be at most ${LINK_LABEL_MAX} characters`);
   }
 
+  const origin = new URL(req.url).origin;
+  const linkUrl = (token: string): string => (want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`);
+  if (!label && typeof body?.reuse === 'string') {
+    const held = await linkFor(env.DB, id, body.reuse);
+    const row = held?.permission === want ? await db.getLink(env.DB, id, held.id) : null;
+    if (row && !row.label) return json(200, { permission: want, token: body.reuse, link: linkUrl(body.reuse), id: row.id, label: null });
+  }
+
   const token = generateToken(want);
   const linkId = await db.addCollectionToken(env.DB, {
     collectionId: id,
@@ -281,12 +292,35 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
     permission: want,
     label,
   });
-  const origin = new URL(req.url).origin;
-  const link = want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`;
-  return json(200, { permission: want, token, link, id: linkId, label });
+  return json(200, { permission: want, token, link: linkUrl(token), id: linkId, label });
 }
 
 const LINK_LABEL_MAX = 60;
+
+// ---- POST /collections/:id/admin-link -----------------------------------------
+// Admin: replace the admin link (it leaked, or a device holding it is gone). A
+// new admin link is minted and every older one for this map stops working.
+
+export async function replaceAdminLink(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const token = generateToken('admin');
+  await db.swapAdminToken(env.DB, id, tokenPrefix(token), await hashToken(token));
+  return json(200, { permission: 'admin', token, link: `${new URL(req.url).origin}/c/${id}/admin#${token}` });
+}
+
+// A refused call made with a link that was turned off (or an admin link that
+// was replaced) says so in plain words; any other 401 stays a bare refusal.
+export async function explainRefusal(env: Env, req: Request, res: Response): Promise<Response> {
+  const token = bearer(req);
+  if (res.status !== 401 || !token) return res;
+  for (const r of await db.retiredTokens(env.DB, tokenPrefix(token))) {
+    if (await verifyToken(token, r.token_hash)) {
+      return bad(401, r.permission === 'admin' ? 'this admin link was replaced or turned off' : 'this link was turned off by the map owner');
+    }
+  }
+  return res;
+}
 
 // ---- GET /collections/:id/tokens --------------------------------------------
 // Admin: every link with its label, state and how many records it added. The
@@ -375,7 +409,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   const ipHash = await ipHashFor(req, salt(env));
   const via = await linkFor(env.DB, id, bearer(req));
   const perm = via?.permission ?? null;
-  if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised — need the edit or admin link');
+  if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised: needs the edit or admin link');
 
   const c = await db.getCollection(env.DB, id);
   if (!c) return bad(404, 'not found');
@@ -990,7 +1024,7 @@ async function publishMap(
     feature_count: features.length,
     attribution: attribution.line,
     status: 'pending',
-    message: 'Submitted to the bharatlas catalog. A curator reviews it before it goes live — it is not public yet.',
+    message: 'Submitted to bharatlas. A curator reviews it before it goes live, so it is not public yet.',
     admin_token: adminToken,
   });
 }

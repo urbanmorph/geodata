@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyRemember, openLink, type SavedMap } from '../src/maps-store';
+import { applyRemember, openLink, backLink, type SavedMap } from '../src/maps-store';
 
 const T = '2026-08-19T00:00:00Z';
 
@@ -95,5 +95,57 @@ describe('recordLabel', () => {
     expect(recordLabel({ name: '  Big neem  ', n: 3 }, 'point')).toBe('Big neem');
     expect(recordLabel({ n: 3 }, 'point')).toBe('Your point');
     expect(recordLabel({ name: 'x'.repeat(200) }, 'area')).toHaveLength(80);
+  });
+});
+
+describe('backLink: where a contributor goes back to from their own point', () => {
+  const maps: SavedMap[] = [
+    { id: 'm1', name: 'Trees', role: 'collect', links: { edit: 'https://collect.bharatlas.com/c/m1#edt_x' }, at: '2026-08-19T00:00:00Z' },
+    { id: 'm2', name: 'Only my points', role: 'collect', links: {}, at: '2026-08-19T00:00:00Z' },
+  ];
+  it('is the map link saved on this device', () => {
+    expect(backLink(maps, 'm1')).toBe('https://collect.bharatlas.com/c/m1#edt_x');
+  });
+  it('is the home page when no map link is saved (a rec_ token cannot open the map)', () => {
+    expect(backLink(maps, 'm2')).toBe('/');
+    expect(backLink(maps, 'nope')).toBe('/');
+  });
+});
+
+import { applyAdminReplace } from '../src/maps-store';
+
+describe('a replaced admin link (Manage, Share, Replace admin link)', () => {
+  const T0 = '2026-11-01T00:00:00Z';
+  const owned = (admin: string, retired?: string[]): SavedMap =>
+    ({ id: 'm', name: 'Trees', role: 'owner', links: { admin, edit: 'E' }, at: T0, ...(retired ? { retired } : {}) });
+
+  it('saves the new admin link and remembers the old one as retired', () => {
+    const [m] = applyAdminReplace([owned('A1')], 'm', 'Trees', 'A1', 'A2', T);
+    expect(m.links).toEqual({ admin: 'A2', edit: 'E' });
+    expect(m.role).toBe('owner');
+    expect(m.retired).toEqual(['A1']);
+  });
+  it('retires the link this page was opened with even if another one was saved', () => {
+    const [m] = applyAdminReplace([owned('A0')], 'm', 'Trees', 'A1', 'A2', T);
+    expect(m.links.admin).toBe('A2');
+    expect(m.retired?.sort()).toEqual(['A0', 'A1']);
+  });
+  it('saves the map as owned when this device had not saved it', () => {
+    const [m] = applyAdminReplace([], 'm', 'Trees', 'A1', 'A2', T);
+    expect(m).toMatchObject({ id: 'm', role: 'owner', links: { admin: 'A2' }, retired: ['A1'] });
+  });
+  it('sync never brings the old link back: a retired link loses to the new one, whichever side has it', () => {
+    const here = applyAdminReplace([owned('A1')], 'm', 'Trees', 'A1', 'A2', T)[0];
+    const otherDevice = owned('A1');
+    for (const [a, b] of [[[otherDevice], [here]], [[here], [otherDevice]]] as SavedMap[][][]) {
+      const [m] = mergeMaps(a, b);
+      expect(m.links.admin).toBe('A2');
+      expect(m.retired).toEqual(['A1']);
+    }
+  });
+  it('a device that only has the old link drops it once it learns it was retired', () => {
+    const [m] = mergeMaps([{ ...owned('A1'), links: { edit: 'E' }, retired: ['A1'] }], [owned('A1')]);
+    expect(m.links.admin).toBeUndefined();
+    expect(m.links.edit).toBe('E');
   });
 });

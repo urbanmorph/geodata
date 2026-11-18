@@ -77,6 +77,12 @@ describe('publish', () => {
     expect((await publishAttempts())[0]).toMatchObject({ outcome: 'ok', attempt_id: r.body.attempt_id, submission_id: r.body.submission_id });
   });
 
+  it('tells the owner in plain words that a person reviews it first (no em-dash, says bharatlas)', async () => {
+    const r = await publish(await mapWithAPoint());
+    expect(r.body.message).toMatch(/bharatlas/);
+    expect(r.body.message).not.toMatch(/—|catalog/i);
+  });
+
   it('keeps nothing when a file cannot be stored, and logs why', async () => {
     const m = await mapWithAPoint();
     failPut = true;

@@ -14,7 +14,9 @@ const CORS = {
   'access-control-allow-headers': 'authorization,content-type,x-client-id,x-photo-meta',
 };
 
-export const onRequest: PagesFunction<Env> = async (ctx) => {
+export const onRequest: PagesFunction<Env> = async (ctx) => h.explainRefusal(ctx.env, ctx.request, await route(ctx));
+
+async function route(ctx: Parameters<PagesFunction<Env>>[0]): Promise<Response> {
   const method = ctx.request.method.toUpperCase();
   if (method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
 
@@ -76,6 +78,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     if (p.length === 4 && p[2] === 'tokens') {
       return method === 'DELETE' ? h.revokeToken(env, request, id, p[3]) : bad(405, 'method not allowed');
     }
+    if (p.length === 3 && p[2] === 'admin-link') {
+      return method === 'POST' ? h.replaceAdminLink(env, request, id) : bad(405, 'method not allowed');
+    }
   }
 
   // /v1/keyrings/:id — opt-in encrypted sync (ciphertext only)
@@ -112,4 +117,4 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   }
 
   return bad(404, 'not found');
-};
+}

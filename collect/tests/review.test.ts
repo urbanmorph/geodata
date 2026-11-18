@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia } from '../src/review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordPlace } from '../src/review';
 
 const F = (status?: string) => ({ properties: status ? { _status: status } : {} });
 
@@ -92,5 +92,16 @@ describe('recordWhen', () => {
     expect(recordWhen('2026-10-24T05:10:00.000Z', '2026-10-24T09:00:00.000Z', 'Asia/Kolkata')).toBe('added 24 Oct 2026, 10:40 am');
     expect(recordWhen(null, '2026-10-24T09:00:00.000Z', 'Asia/Kolkata')).toBe('added 24 Oct 2026, 2:30 pm');
     expect(recordWhen(null, undefined)).toBe('');
+  });
+});
+
+describe('recordPlace', () => {
+  it('names district then state, as plain text for the caller to escape', () => {
+    expect(recordPlace({ district: 'Bengaluru Urban', state: 'KARNATAKA' })).toBe('📍 Bengaluru Urban, KARNATAKA');
+    expect(recordPlace({ state: '<img src=x onerror=alert(1)>' })).toBe('📍 <img src=x onerror=alert(1)>');
+  });
+  it('is empty with no place', () => {
+    expect(recordPlace(null)).toBe('');
+    expect(recordPlace({})).toBe('');
   });
 });

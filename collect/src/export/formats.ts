@@ -60,9 +60,14 @@ export function toGeoJSON(features: ExportFeature[], fieldKeys: string[]): strin
 
 const DERIVED = ['photo_description', 'photo_tags', 'photo_notes_model', 'area_sq_m'];
 
+// A text cell starting with one of these runs as a formula in Excel / Sheets
+// (CSV injection), so it gets a leading apostrophe. Numbers are left as they are.
+const FORMULA_START = /^[=+\-@\t\r]/;
+
 function csvCell(v: unknown): string {
   if (v == null) return '';
-  const s = Array.isArray(v) ? v.join('|') : String(v);
+  let s = Array.isArray(v) ? v.join('|') : String(v);
+  if (typeof v !== 'number' && FORMULA_START.test(s)) s = `'${s}`;
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }
 
