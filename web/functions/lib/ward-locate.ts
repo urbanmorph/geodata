@@ -61,6 +61,9 @@ export function wardLayersAt(
  * - Otherwise: the default set plus the city ward layer(s) covering the point, or
  *   the national SBM ward layer when none does; deduped, defaults first.
  */
+/** Most layers one locate call may ask: each is a tile read from R2. */
+export const MAX_LOCATE_LAYERS = 25;
+
 export function resolveLocateLayers(
   layersParam: string | null | undefined,
   lng: number,
@@ -69,7 +72,8 @@ export function resolveLocateLayers(
   bboxes: BboxTable = WARD_BBOXES,
   margin: number = WARD_MARGIN_DEG,
 ): string[] {
-  const explicit = (layersParam ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  // An explicit list is honoured, de-duplicated; the caller caps its length.
+  const explicit = [...new Set((layersParam ?? '').split(',').map((s) => s.trim()).filter(Boolean))];
   if (explicit.length) return explicit;
 
   const cityWards = wardLayersAt(lng, lat, bboxes, margin);

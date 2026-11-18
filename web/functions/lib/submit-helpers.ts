@@ -51,3 +51,11 @@ export async function ipHashFor(
   const material = `${ip}|${todayUTC(now)}|${salt}`;
   return sha256Hex(new TextEncoder().encode(material).buffer as ArrayBuffer);
 }
+
+/** The same IP hash without the date: for one vote per IP for good (ratings).
+ *  ipHashFor's daily hash is for daily limits; reused for votes, it let the
+ *  same IP vote again every day (review 2026-11-18). */
+export async function ipHashStable(request: Request, salt: string): Promise<string> {
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  return sha256Hex(new TextEncoder().encode(`${ip}|vote|${salt}`).buffer as ArrayBuffer);
+}

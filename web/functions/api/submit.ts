@@ -12,7 +12,7 @@
 // so the server parses it natively and `fc_json` is ignored.
 
 import type { Env as MiddlewareEnv } from './_middleware';
-import { validateSubmission } from '../lib/validate-server';
+import { validateSubmission, gateSubmission, MAX_SUBMIT_BYTES } from '../lib/validate-server';
 import { verifyTurnstile } from '../lib/turnstile';
 import { checkRateLimit } from '../lib/ratelimit';
 import { findDuplicateByHash } from '../lib/submissions';
@@ -77,6 +77,13 @@ async function handleSubmit(
   reply: (status: number, body: Record<string, unknown>) => Response,
 ): Promise<Response> {
   const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
+  // Refuse an oversized body by its declared length before reading any of it
+  // (the multipart envelope adds a little; 1 MB of slack covers the form fields).
+  const declared = Number(ctx.request.headers.get('content-length') || 0);
+  if (declared > MAX_SUBMIT_BYTES + 1024 * 1024) {
+    log(attemptRowReject('size', 'size too large', { ipHash, bytes: declared }));
+    return reply(413, { error: 'size too large', limit_bytes: MAX_SUBMIT_BYTES });
+  }
   let form: FormData;
   try {
     form = await ctx.request.formData();
@@ -113,6 +120,18 @@ async function handleSubmit(
     return reply(415, {
       error: `unsupported file extension .${ext} — accepts: ${[...ALLOWED].join(', ')}`,
     });
+  }
+
+  // Captcha, rate limit and size before the file is read, hashed or parsed.
+  const deps = {
+    verifyCaptcha: (t: string) => verifyTurnstile(t, ctx.env.TURNSTILE_SECRET || ''),
+    checkRate: (ip: string) => checkRateLimit(ctx.env.DB, ip),
+    findDuplicate: (h: string) => findDuplicateByHash(ctx.env.DB, h),
+  };
+  const gate = await gateSubmission({ turnstileToken, ipHash, bytes: file.size }, deps);
+  if ('rejected' in gate) {
+    log(attemptRowFromResult(gate.rejected, logMeta));
+    return reply(codeForReason(gate.rejected.reason), { error: gate.rejected.reason, report: gate.rejected.report });
   }
 
   const bytes = await file.arrayBuffer();
@@ -158,11 +177,8 @@ async function handleSubmit(
       sourceUrl,
       isOriginal,
     },
-    {
-      verifyCaptcha: (t) => verifyTurnstile(t, ctx.env.TURNSTILE_SECRET || ''),
-      checkRate: (ip) => checkRateLimit(ctx.env.DB, ip),
-      findDuplicate: (h) => findDuplicateByHash(ctx.env.DB, h),
-    },
+    deps,
+    gate.passed,
   );
 
   if (!result.accept) {
