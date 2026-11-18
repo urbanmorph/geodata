@@ -1338,9 +1338,9 @@
       "source": "LGD",
       "rows": 36,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.148c41d7.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/LGD_States.parquet",
-        "bytes": 7365957
+        "bytes": 7878522
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/LGD_States.pmtiles",
@@ -1388,9 +1388,9 @@
       "source": "SOI",
       "rows": 40,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.8d6d1ef2.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/SOI_States.parquet",
-        "bytes": 10780243
+        "bytes": 11899412
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/SOI_States.pmtiles",
@@ -1438,9 +1438,9 @@
       "source": "Bhuvan",
       "rows": 37,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.610044bd.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/states/bhuvan_states.parquet",
-        "bytes": 2242493
+        "bytes": 2309005
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.pmtiles",
@@ -1488,9 +1488,9 @@
       "source": "LGD",
       "rows": 785,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.f7cd82af.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/LGD_Districts.parquet",
-        "bytes": 22178335
+        "bytes": 24114074
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/LGD_Districts.pmtiles",
@@ -1538,9 +1538,9 @@
       "source": "SOI",
       "rows": 742,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.458ef276.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/SOI_Districts.parquet",
-        "bytes": 28691382
+        "bytes": 31275005
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/SOI_Districts.pmtiles",
@@ -1588,9 +1588,9 @@
       "source": "Bhuvan",
       "rows": 663,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.77c1fe6e.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/districts/bhuvan_districts.parquet",
-        "bytes": 37180992
+        "bytes": 40458643
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.pmtiles",
@@ -1638,9 +1638,9 @@
       "source": "LGD",
       "rows": 6471,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.a20ac04c.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/LGD_Subdistricts.parquet",
-        "bytes": 65955060
+        "bytes": 70353127
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/LGD_Subdistricts.pmtiles",
@@ -1688,9 +1688,9 @@
       "source": "SOI",
       "rows": 4723,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.60888025.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/subdistricts/SOI_Subdistricts.parquet",
-        "bytes": 56835970
+        "bytes": 61110752
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/subdistricts/SOI_Subdistricts.pmtiles",
@@ -1738,9 +1738,9 @@
       "source": "LGD",
       "rows": 7146,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.4ac6f168.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/LGD_Blocks.parquet",
-        "bytes": 69148863
+        "bytes": 74019556
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/LGD_Blocks.c00ac144.pmtiles",
@@ -1787,9 +1787,9 @@
       "source": "Bhuvan",
       "rows": 6393,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.1c53d297.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/bhuvan_blocks.parquet",
-        "bytes": 97298502
+        "bytes": 105467567
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.pmtiles",
@@ -1834,9 +1834,9 @@
       "source": "PMGSY",
       "rows": 6637,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/PMGSY_Blocks.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/PMGSY_Blocks.151c82fb.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/PMGSY_Blocks.parquet",
-        "bytes": 182298315
+        "bytes": 136494915
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/PMGSY_Blocks.pmtiles",
@@ -1955,9 +1955,9 @@
       "source": "SOI",
       "rows": 576430,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.8c7ee46d.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/villages/SOI_VILLAGE_POINT.parquet",
-        "bytes": 26718248
+        "bytes": 36949256
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/villages/SOI_VILLAGE_POINT.b1f2ce9c.pmtiles",
@@ -2004,9 +2004,9 @@
       "source": "LGD",
       "rows": 543,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.535f5e16.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Parliament_Constituencies.parquet",
-        "bytes": 21059109
+        "bytes": 23021399
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Parliament_Constituencies.pmtiles",
@@ -2054,9 +2054,9 @@
       "source": "LGD",
       "rows": 4177,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.5fdeda70.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/constituencies/LGD_Assembly_Constituencies.parquet",
-        "bytes": 39602105
+        "bytes": 41915941
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/constituencies/LGD_Assembly_Constituencies.pmtiles",
@@ -2104,9 +2104,9 @@
       "source": "data.gov.in",
       "rows": 19312,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/Datagov_Pincode_Boundaries.4942f38c.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
-        "bytes": 19819662
+        "bytes": 19479682
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/Datagov_Pincode_Boundaries.pmtiles",
@@ -2154,9 +2154,9 @@
       "source": "bharatviz",
       "rows": 63864,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/bharatviz_pincodes.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/bharatviz_pincodes.1de66297.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/bharatviz_pincodes.parquet",
-        "bytes": 1762991
+        "bytes": 1410819
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/postal/boundaries/bharatviz_pincodes.z12.pmtiles",
@@ -2240,9 +2240,9 @@
       "source": "Bharatmaps",
       "rows": 249,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.f430a732.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.parquet",
-        "bytes": 2220376
+        "bytes": 2295075
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles",
@@ -2567,9 +2567,9 @@
       "source": "data.gov.in",
       "rows": 173,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.ccdea0fb.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/environment/seismic/Seismic_Zones.parquet",
-        "bytes": 3629631
+        "bytes": 3551375
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.pmtiles",
@@ -2851,9 +2851,9 @@
       "source": "OpenCity",
       "rows": 369,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.61db3a4a.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-gba/wards_bengaluru_gba.parquet",
-        "bytes": 1002336
+        "bytes": 846137
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles",
@@ -2896,9 +2896,9 @@
       "source": "OpenCity",
       "rows": 5,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.a08982ca.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/corporation-bengaluru/corporation_bengaluru.parquet",
-        "bytes": 113302
+        "bytes": 112268
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.pmtiles",
@@ -2941,9 +2941,9 @@
       "source": "OpenCity",
       "rows": 243,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.154fda6d.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.parquet",
-        "bytes": 680145
+        "bytes": 582987
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-bbmp-2022/wards_bengaluru_bbmp_2022.pmtiles",
@@ -2989,9 +2989,9 @@
       "source": "OpenCity",
       "rows": 1,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.323f63f8.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-jurisdiction/bda_jurisdiction.parquet",
-        "bytes": 2929
+        "bytes": 3441
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-jurisdiction/bda_jurisdiction.z12.pmtiles",
@@ -3037,9 +3037,9 @@
       "source": "OpenCity",
       "rows": 149,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.f5f8484f.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/bda-layouts/bda_layouts.parquet",
-        "bytes": 151121
+        "bytes": 150313
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/bda-layouts/bda_layouts.pmtiles",
@@ -3085,9 +3085,9 @@
       "source": "OpenCity",
       "rows": 200,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.4d3df51c.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chennai/wards_chennai.parquet",
-        "bytes": 699072
+        "bytes": 666657
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.pmtiles",
@@ -3176,9 +3176,9 @@
       "source": "OpenCity",
       "rows": 145,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.96248f7d.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-hyderabad/wards_hyderabad.parquet",
-        "bytes": 61292
+        "bytes": 64172
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.z12.pmtiles",
@@ -3224,9 +3224,9 @@
       "source": "OpenCity",
       "rows": 24,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.1318f1c2.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mumbai/wards_mumbai.parquet",
-        "bytes": 230639
+        "bytes": 221162
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mumbai/wards_mumbai.pmtiles",
@@ -3272,9 +3272,9 @@
       "source": "OpenCity",
       "rows": 227,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.3f9daa61.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.parquet",
-        "bytes": 608859
+        "bytes": 600336
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/electoral/wards-mumbai-2017/electoral_wards_mumbai_2017.pmtiles",
@@ -3320,9 +3320,9 @@
       "source": "OpenCity",
       "rows": 141,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.8255116f.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kolkata/wards_kolkata.parquet",
-        "bytes": 589774
+        "bytes": 525677
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.pmtiles",
@@ -3365,9 +3365,9 @@
       "source": "OpenCity",
       "rows": 58,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.f55b90b0.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pune/wards_pune.parquet",
-        "bytes": 69324
+        "bytes": 66852
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pune/wards_pune.pmtiles",
@@ -3413,9 +3413,9 @@
       "source": "OpenCity",
       "rows": 48,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.7fd0eb49.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-ahmedabad/wards_ahmedabad.parquet",
-        "bytes": 79257
+        "bytes": 77995
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-ahmedabad/wards_ahmedabad.pmtiles",
@@ -3461,9 +3461,9 @@
       "source": "OpenCity",
       "rows": 150,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.12128f32.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-jaipur/wards_jaipur.parquet",
-        "bytes": 74429
+        "bytes": 76986
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-jaipur/wards_jaipur.pmtiles",
@@ -3509,9 +3509,9 @@
       "source": "OpenCity",
       "rows": 35,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.44c3cbf1.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-gurugram/wards_gurugram.parquet",
-        "bytes": 61559
+        "bytes": 60049
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-gurugram/wards_gurugram.pmtiles",
@@ -3557,9 +3557,9 @@
       "source": "OpenCity",
       "rows": 74,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.76f11a1d.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kochi/wards_kochi.parquet",
-        "bytes": 134965
+        "bytes": 135362
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kochi/wards_kochi.pmtiles",
@@ -3605,9 +3605,9 @@
       "source": "OpenCity",
       "rows": 67,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.683bfdf9.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhubaneshwar/wards_bhubaneshwar.parquet",
-        "bytes": 210185
+        "bytes": 207013
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.pmtiles",
@@ -3650,9 +3650,9 @@
       "source": "OpenCity",
       "rows": 98,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.5cfa95ef.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vizag/wards_vizag.parquet",
-        "bytes": 152494
+        "bytes": 152604
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vizag/wards_vizag.pmtiles",
@@ -3698,9 +3698,9 @@
       "source": "OpenCity",
       "rows": 47,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.61b92808.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-thane/wards_thane.parquet",
-        "bytes": 62553
+        "bytes": 62268
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-thane/wards_thane.pmtiles",
@@ -3746,9 +3746,9 @@
       "source": "DataMeet",
       "rows": 290,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.89731047.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-delhi/wards_delhi.parquet",
-        "bytes": 138208
+        "bytes": 139552
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-delhi/wards_delhi.z12.pmtiles",
@@ -3793,9 +3793,9 @@
       "source": "OpenCity",
       "rows": 85,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.44e0c87a.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-indore/wards_indore.parquet",
-        "bytes": 86265
+        "bytes": 88115
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-indore/wards_indore.pmtiles",
@@ -3841,9 +3841,9 @@
       "source": "DataMeet",
       "rows": 100,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.610a88ec.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-coimbatore/wards_coimbatore.parquet",
-        "bytes": 80607
+        "bytes": 83179
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-coimbatore/wards_coimbatore.pmtiles",
@@ -3888,9 +3888,9 @@
       "source": "OpenCity",
       "rows": 100,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.4264acd0.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-madurai/wards_madurai.parquet",
-        "bytes": 134864
+        "bytes": 135171
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-madurai/wards_madurai.pmtiles",
@@ -3936,9 +3936,9 @@
       "source": "OpenCity",
       "rows": 111,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.b560a6ff.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-navi-mumbai/wards_navi_mumbai.parquet",
-        "bytes": 82597
+        "bytes": 85108
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-navi-mumbai/wards_navi_mumbai.pmtiles",
@@ -3984,9 +3984,9 @@
       "source": "OpenCity",
       "rows": 60,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.bc6dd324.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-guwahati/wards_guwahati.parquet",
-        "bytes": 194788
+        "bytes": 199803
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-guwahati/wards_guwahati.pmtiles",
@@ -4032,9 +4032,9 @@
       "source": "OpenCity",
       "rows": 65,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.5d79ca69.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-mysuru/wards_mysuru.parquet",
-        "bytes": 126567
+        "bytes": 126013
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-mysuru/wards_mysuru.pmtiles",
@@ -4080,9 +4080,9 @@
       "source": "OpenCity",
       "rows": 86,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.785888c7.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-bhopal/wards_bhopal.parquet",
-        "bytes": 124796
+        "bytes": 114563
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhopal/wards_bhopal.pmtiles",
@@ -4128,9 +4128,9 @@
       "source": "DataMeet",
       "rows": 28,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.e8064682.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-chandigarh/wards_chandigarh.parquet",
-        "bytes": 13963
+        "bytes": 14755
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chandigarh/wards_chandigarh.z12.pmtiles",
@@ -4175,9 +4175,9 @@
       "source": "DataMeet",
       "rows": 112,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.a8990615.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-lucknow/wards_lucknow.parquet",
-        "bytes": 99253
+        "bytes": 101675
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-lucknow/wards_lucknow.pmtiles",
@@ -4222,9 +4222,9 @@
       "source": "DataMeet",
       "rows": 58,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.5dc81188.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-kanpur/wards_kanpur.parquet",
-        "bytes": 68690
+        "bytes": 68867
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kanpur/wards_kanpur.pmtiles",
@@ -4316,9 +4316,9 @@
       "source": "datta07",
       "rows": 30,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.e8eca35e.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-surat/wards_surat.parquet",
-        "bytes": 342845
+        "bytes": 320433
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-surat/wards_surat.pmtiles",
@@ -4363,9 +4363,9 @@
       "source": "DataMeet",
       "rows": 12,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.3c1d74b2.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vadodara/wards_vadodara.parquet",
-        "bytes": 21798
+        "bytes": 22428
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vadodara/wards_vadodara.z12.pmtiles",
@@ -4410,9 +4410,9 @@
       "source": "DataMeet",
       "rows": 40,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.15ef4060.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-faridabad/wards_faridabad.parquet",
-        "bytes": 19888
+        "bytes": 20994
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.z12.pmtiles",
@@ -4457,9 +4457,9 @@
       "source": "DataMeet",
       "rows": 66,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.330ff54d.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-pcmc/wards_pcmc.parquet",
-        "bytes": 74601
+        "bytes": 71885
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.pmtiles",
@@ -4504,9 +4504,9 @@
       "source": "DataMeet",
       "rows": 77,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.d147bcd7.parquet",
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/wards-vijayawada/wards_vijayawada.parquet",
-        "bytes": 25892
+        "bytes": 27721
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.pmtiles",
@@ -4796,8 +4796,8 @@
       "provenance": "curated",
       "notes": "India's 25 High Court territorial jurisdictions. Dissolved from LGD states. Filter by seat city or search by state.",
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.parquet",
-        "bytes": 12527536
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.f36b3c70.parquet",
+        "bytes": 7503807
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.pmtiles",
@@ -4842,8 +4842,8 @@
       "provenance": "curated",
       "notes": "National Green Tribunal's 5 zonal bench jurisdictions (2017 gazette notification). Dissolved from LGD states.",
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.parquet",
-        "bytes": 8065165
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.3cb9a176.parquet",
+        "bytes": 4993424
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.pmtiles",
@@ -4888,8 +4888,8 @@
       "provenance": "curated",
       "notes": "National Company Law Tribunal's 15 bench jurisdictions. Dissolved from LGD states per nclt.gov.in.",
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.parquet",
-        "bytes": 10250212
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.c8d1a25d.parquet",
+        "bytes": 6284752
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.pmtiles",
@@ -4923,8 +4923,8 @@
       "source": "data.gov.in",
       "rows": 151,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airport.parquet",
-        "bytes": 9228
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airport.21caf084.parquet",
+        "bytes": 14261
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airport.pmtiles",
