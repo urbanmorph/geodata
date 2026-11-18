@@ -25,15 +25,18 @@ unavailable in this Python build we fall back to building the
 FeatureCollection JSON manually from ST_AsGeoJSON(geometry) rows.
 
 KML path: pure-Python translator mirroring web/src/db.ts's
-geoJSONFeaturesToKML. Reads the just-written geojson, escapes XML, wraps
+geoJSONFeaturesToKML. Streams the just-written geojson one feature at a
+time (constant memory), escapes XML, wraps
 Polygon/MultiPolygon/Point/LineString/MultiLineString/GeometryCollection.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
+from collections.abc import Iterator
 from pathlib import Path
 
 import duckdb
@@ -294,17 +297,83 @@ def feature_to_placemark(feat: dict) -> str:
     )
 
 
-def write_kml_from_geojson(geojson_path: Path, layer_name: str, out: Path) -> None:
-    out.parent.mkdir(parents=True, exist_ok=True)
-    with geojson_path.open("r", encoding="utf-8") as f:
-        fc = json.load(f)
-    feats = fc.get("features") or []
+_WS = re.compile(r"[ \t\n\r]*")
 
+
+def iter_geojson_features(geojson_path: Path, chunk_size: int = 1 << 20) -> Iterator[dict]:
+    """Yield a FeatureCollection's features one at a time, holding one
+    feature and a read buffer in memory, never the whole file (a whole-India
+    GeoJSON is gigabytes). Top-level members other than "features" are parsed
+    and dropped. Features decode exactly as json.load would decode them."""
+    decoder = json.JSONDecoder()
+    with geojson_path.open("r", encoding="utf-8") as f:
+        buf, pos, eof = "", 0, False
+
+        def more() -> None:
+            nonlocal buf, pos, eof
+            data = f.read(max(chunk_size, len(buf) - pos))  # doubles for a feature bigger than the buffer
+            eof = not data
+            buf, pos = buf[pos:] + data, 0
+
+        def peek() -> str:
+            nonlocal pos
+            while True:
+                pos = _WS.match(buf, pos).end()
+                if pos < len(buf):
+                    return buf[pos]
+                if eof:
+                    raise ValueError(f"{geojson_path}: GeoJSON ends early")
+                more()
+
+        def take(ch: str) -> None:
+            nonlocal pos
+            if peek() != ch:
+                raise ValueError(f"{geojson_path}: expected {ch!r}, found {buf[pos]!r}")
+            pos += 1
+
+        def value():
+            nonlocal pos
+            peek()
+            while True:
+                try:
+                    v, end = decoder.raw_decode(buf, pos)
+                except json.JSONDecodeError:
+                    if eof:
+                        raise
+                    more()
+                    continue
+                if end == len(buf) and not eof:  # a number may run on into the next chunk
+                    more()
+                    continue
+                pos = end
+                return v
+
+        take("{")
+        while peek() != "}":
+            key = value()
+            take(":")
+            if key == "features" and peek() == "[":
+                take("[")
+                while peek() != "]":
+                    yield value()
+                    if peek() == ",":
+                        take(",")
+                take("]")
+            else:
+                value()
+            if peek() == ",":
+                take(",")
+
+
+def write_kml_from_geojson(geojson_path: Path, layer_name: str, out: Path) -> None:
+    """GeoJSON -> KML in constant memory: features stream in and placemarks
+    stream out."""
+    out.parent.mkdir(parents=True, exist_ok=True)
     with out.open("w", encoding="utf-8") as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n')
         f.write('<kml xmlns="http://www.opengis.net/kml/2.2">\n')
         f.write(f"<Document><name>{esc_xml(layer_name)}</name>")
-        for feat in feats:
+        for feat in iter_geojson_features(geojson_path):
             f.write(feature_to_placemark(feat))
         f.write("</Document>\n</kml>\n")
 

@@ -57,71 +57,107 @@ def normalise_type(t: str) -> str:
     return DUCKDB_TO_NORM.get(base, 'string')
 
 
+def _column_aggs(col: str) -> list[str]:
+    """distinct, non-null count, min, max of one column, as SELECT expressions.
+    Plain aggregates: a FILTER clause or a cast inside them makes DuckDB's
+    merged scan several times slower; min and max are cast on the one result row."""
+    q = f'"{col}"'
+    return [f'COUNT(DISTINCT {q})', f'COUNT({q})', f'MIN({q})', f'MAX({q})']
+
+
+def _aggregate_query(src: str, cols: list[str]) -> str:
+    inner = ', '.join(f'{e} AS a{i}_{k}' for i, c in enumerate(cols) for k, e in enumerate(_column_aggs(c)))
+    outer = ', '.join(f'a{i}_0, n - a{i}_1, a{i}_2::VARCHAR, a{i}_3::VARCHAR' for i in range(len(cols)))
+    return f"SELECT n{', ' if cols else ''}{outer} FROM (SELECT COUNT(*) AS n, {inner or '1'} FROM '{src}')"
+
+
+def column_aggregates(con, src: str, cols: list[str]) -> tuple[int, dict[str, tuple]]:
+    """(row count, {column: (distinct, nulls, min, max)}) in one scan. A column
+    the merged query can't aggregate fails it; then each column runs alone
+    and one that still fails is left out (logged)."""
+    try:
+        row = con.execute(_aggregate_query(src, cols)).fetchone()
+        return row[0], {c: tuple(row[1 + 4 * i:5 + 4 * i]) for i, c in enumerate(cols)}
+    except duckdb.Error:
+        if not cols:
+            raise
+    out = {}
+    for c in cols:
+        try:
+            out[c] = con.execute(_aggregate_query(src, [c])).fetchone()[1:]
+        except duckdb.Error as e:
+            print(f'  filter_stats: agg failed on {c} — {e}')
+    return con.execute(f"SELECT COUNT(*) FROM '{src}'").fetchone()[0], out
+
+
+def value_counts(con, src: str, cols: list[str], limit: int) -> dict[str, list[tuple[str, int]]]:
+    """{column: [(value as text, rows)]}, most rows first (ties by value), up to
+    `limit` per column, NULLs left out: every column in one scan (UNPIVOT
+    drops NULLs, as the per-column WHERE did)."""
+    if not cols:
+        return {}
+    alias = {f'c{i}': c for i, c in enumerate(cols)}
+    casts = ', '.join(f'"{c}"::VARCHAR AS {a}' for a, c in alias.items())
+    rows = con.execute(f"""
+        WITH t AS (SELECT {casts} FROM '{src}')
+        SELECT col, v, COUNT(*) AS n FROM (UNPIVOT t ON {', '.join(alias)} INTO NAME col VALUE v)
+        GROUP BY col, v
+        QUALIFY row_number() OVER (PARTITION BY col ORDER BY n DESC, v) <= {limit}
+        ORDER BY col, n DESC, v""").fetchall()
+    out: dict[str, list[tuple[str, int]]] = {c: [] for c in cols}
+    for a, v, n in rows:
+        out[alias[a]].append((v, int(n)))
+    return out
+
+
 def stats_for_parquet(path: Path, con: duckdb.DuckDBPyConnection) -> dict | None:
+    """Per-column stats in two scans of the parquet: every aggregate at once,
+    then the top values of every faceted column at once."""
     if not path.exists():
         return None
     src = str(path)
     try:
         desc = con.execute(f"DESCRIBE SELECT * FROM '{src}' LIMIT 0").fetchall()
-        row_count = con.execute(f"SELECT COUNT(*) FROM '{src}'").fetchone()[0]
+        types = {row[0]: normalise_type(row[1]) for row in desc}
+        flat = [c for c, norm in types.items() if norm not in ('geometry', 'blob')]
+        row_count, aggs = column_aggregates(con, src, flat)
     except duckdb.Error as e:
         print(f'  filter_stats: DESCRIBE failed on {path.name} — {e}')
         return None
 
     columns: list[dict] = []
-    for row in desc:
-        col_name, col_type = row[0], row[1]
-        norm = normalise_type(col_type)
+    for col_name, norm in types.items():
         if norm in ('geometry', 'blob'):
             columns.append({'name': col_name, 'type': norm, 'distinct': -1, 'null_frac': 0})
             continue
-
-        try:
-            agg = con.execute(f"""
-                SELECT
-                  COUNT(DISTINCT "{col_name}") AS distinct_count,
-                  COALESCE(
-                    CAST(COUNT(*) FILTER (WHERE "{col_name}" IS NULL) AS DOUBLE)
-                      / NULLIF(COUNT(*), 0),
-                    0
-                  ) AS null_frac,
-                  MIN("{col_name}")::VARCHAR AS min_v,
-                  MAX("{col_name}")::VARCHAR AS max_v
-                FROM '{src}'
-            """).fetchone()
-        except duckdb.Error as e:
-            print(f'  filter_stats: agg failed on {col_name} — {e}')
+        if col_name not in aggs:
             continue
-
-        distinct_count, null_frac, min_v, max_v = agg
+        distinct_count, nulls, min_v, max_v = aggs[col_name]
         entry: dict = {
             'name': col_name,
             'type': norm,
             'distinct': int(distinct_count) if distinct_count is not None else 0,
-            'null_frac': round(float(null_frac or 0), 4),
+            'null_frac': round(nulls / row_count, 4) if row_count else 0.0,
         }
         if min_v is not None:
             entry['min'] = _coerce(min_v, norm)
         if max_v is not None:
             entry['max'] = _coerce(max_v, norm)
-
-        if 2 <= entry['distinct'] <= FACET_THRESHOLD:
-            try:
-                top = con.execute(f"""
-                    SELECT "{col_name}"::VARCHAR AS v, COUNT(*) AS n
-                    FROM '{src}'
-                    WHERE "{col_name}" IS NOT NULL
-                    GROUP BY 1
-                    ORDER BY n DESC
-                    LIMIT {MAX_TOP_VALUES}
-                """).fetchall()
-                entry['top_values'] = [
-                    {'v': _coerce(v, norm), 'n': int(n)} for v, n in top
-                ]
-            except duckdb.Error as e:
-                print(f'  filter_stats: top_values failed on {col_name} — {e}')
-
         columns.append(entry)
+
+    faceted = [c for c in columns if 2 <= c['distinct'] <= FACET_THRESHOLD]
+    try:
+        top = value_counts(con, src, [c['name'] for c in faceted], MAX_TOP_VALUES)
+    except duckdb.Error:  # one column breaks the merged scan: take them one at a time
+        top = {}
+        for c in faceted:
+            try:
+                top.update(value_counts(con, src, [c['name']], MAX_TOP_VALUES))
+            except duckdb.Error as e:
+                print(f'  filter_stats: top_values failed on {c["name"]} — {e}')
+    for c in faceted:
+        if c['name'] in top:
+            c['top_values'] = [{'v': _coerce(v, c['type']), 'n': n} for v, n in top[c['name']]]
 
     return {'row_count': int(row_count), 'columns': columns}
 
@@ -182,28 +218,33 @@ def detect_equivalences(
         if ra != rb:
             parent[ra] = rb
 
-    for i in range(len(candidates)):
-        a = candidates[i]
-        for j in range(i + 1, len(candidates)):
-            b = candidates[j]
-            da, db = by_name[a]['distinct'], by_name[b]['distinct']
-            # Skip pairs with very different cardinalities — they can't bijective.
-            if abs(da - db) > 1:
-                continue
-            try:
-                row = con.execute(f"""
-                    SELECT COUNT(DISTINCT ("{a}", "{b}"))
-                    FROM '{src}'
-                    WHERE "{a}" IS NOT NULL AND "{b}" IS NOT NULL
-                """).fetchone()
-            except duckdb.Error:
-                continue
-            ab = int(row[0]) if row and row[0] is not None else 0
-            mx = max(da, db)
-            # Allow up to 1 row of slack: a NULL-encoded "Other" state can
-            # make stcode11 (28) differ from state_lgd (27) — still equivalent.
-            if mx - 1 <= ab <= mx + 1:
-                union(a, b)
+    # Skip pairs with very different cardinalities — they can't be bijective.
+    pairs = [(a, b) for i, a in enumerate(candidates) for b in candidates[i + 1:]
+             if abs(by_name[a]['distinct'] - by_name[b]['distinct']) <= 1]
+
+    def joint(a: str, b: str) -> str:
+        # CASE, not FILTER: COUNT(DISTINCT) skips the NULL, and a FILTER clause
+        # makes the merged scan several times slower.
+        return f'COUNT(DISTINCT CASE WHEN "{a}" IS NOT NULL AND "{b}" IS NOT NULL THEN ("{a}", "{b}") END)'
+
+    joint_counts: dict[tuple[str, str], int | None] = {}
+    if pairs:
+        try:  # every pair in one scan
+            row = con.execute(f"SELECT {', '.join(joint(a, b) for a, b in pairs)} FROM '{src}'").fetchone()
+            joint_counts = dict(zip(pairs, row))
+        except duckdb.Error:  # a pair breaks the merged scan: take them one at a time, skipping failures
+            for a, b in pairs:
+                try:
+                    joint_counts[(a, b)] = con.execute(f"SELECT {joint(a, b)} FROM '{src}'").fetchone()[0]
+                except duckdb.Error:
+                    continue
+    for (a, b), n in joint_counts.items():
+        ab = int(n) if n is not None else 0
+        mx = max(by_name[a]['distinct'], by_name[b]['distinct'])
+        # Allow up to 1 row of slack: a NULL-encoded "Other" state can
+        # make stcode11 (28) differ from state_lgd (27) — still equivalent.
+        if mx - 1 <= ab <= mx + 1:
+            union(a, b)
 
     groups_by_root: dict[str, list[str]] = {}
     for n in candidates:

@@ -31,7 +31,7 @@ OUT = ROOT / "data" / "baked" / "judiciary"
 
 sys.path.insert(0, str(HERE))
 from bake_extracts import write_kml_from_geojson  # noqa: E402
-from bake_formats import pmtiles_args  # noqa: E402
+from bake_formats import geojson_popup_fields, pmtiles_args  # noqa: E402
 from bake_whole_layer import have_ogr2ogr, write_shapefile_zip  # noqa: E402
 from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
 from pipeline import make_con  # noqa: E402
@@ -154,9 +154,11 @@ def geojson_to_parquet(con: duckdb.DuckDBPyConnection, gj: Path, out: Path) -> N
 
 
 def geojson_to_pmtiles(gj: Path, out: Path) -> None:
-    """Convert GeoJSON to PMTiles via tippecanoe; layer name = filename stem."""
+    """Convert GeoJSON to PMTiles via tippecanoe with the popup fields only;
+    layer name = filename stem."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(pmtiles_args(gj, out, gj.stem, ()), check=True, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    subprocess.run(pmtiles_args(gj, out, gj.stem, geojson_popup_fields(gj)), check=True,
+                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
 
 def main() -> int:

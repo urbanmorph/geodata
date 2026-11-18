@@ -4812,8 +4812,8 @@
         "bytes": 7503807
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.pmtiles",
-        "bytes": 2763952
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.f335070d.pmtiles",
+        "bytes": 1948791
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/high_courts.geojson",
@@ -4858,8 +4858,8 @@
         "bytes": 4993424
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.pmtiles",
-        "bytes": 1818382
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.740edaf4.pmtiles",
+        "bytes": 1306121
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/ngt_zones.geojson",
@@ -4904,8 +4904,8 @@
         "bytes": 6284752
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.pmtiles",
-        "bytes": 2225450
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.56ca5280.pmtiles",
+        "bytes": 1553080
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/judiciary/nclt_benches.geojson",

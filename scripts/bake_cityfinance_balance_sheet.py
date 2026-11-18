@@ -35,8 +35,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
 from bake_cityfinance_ulbs import (  # noqa: E402
-    API, ATTRIBUTION, PAUSE_S, SOURCE, YEARS, check_columns, fetch_cached, fy_col, fy_from_key, load_master, log,
+    API, ATTRIBUTION, CACHE_NAME, PAUSE_S, SOURCE, YEARS, check_columns, fetch_cached, fy_col, fy_from_key, load_master,
+    log,
 )
+from pipeline import cache_backup  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
@@ -400,7 +402,9 @@ def main() -> None:
     ap.add_argument('--out', type=Path, default=ROOT / 'data' / 'baked' / R2_PREFIX)
     a = ap.parse_args()
     if a.step == 'pull':
-        sys.exit(0 if pull(a.raw, a.max_minutes) else 3)
+        with cache_backup(a.raw, CACHE_NAME):
+            done = pull(a.raw, a.max_minutes)
+        sys.exit(0 if done else 3)
     elif a.step == 'bake':
         log(json.dumps(bake(a.out, a.raw), indent=2))
     elif a.step == 'upload':

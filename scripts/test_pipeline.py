@@ -238,18 +238,32 @@ def test_judiciary_parquet_gets_bbox_columns_for_nearby(tmp_path):
     assert {'xmin', 'ymin', 'xmax', 'ymax'} <= set(cols)
 
 
-def test_judiciary_and_community_tiles_use_the_shared_tippecanoe_args(tmp_path, monkeypatch):
+def _popup_geojson(path: Path) -> Path:
+    """A feature with a name, a code, a GIS artefact and flat bbox columns."""
+    path.write_text('{"type": "FeatureCollection", "features": [{"type": "Feature", "properties": '
+                    '{"name": "Patna HC", "code": 7, "Shape_Area": 1.5, "OBJECTID": 3, "xmin": 85.0, '
+                    '"ymax": 25.7}, "geometry": {"type": "Point", "coordinates": [85.1, 25.6]}}]}')
+    return path
+
+
+def test_popup_fields_of_a_geojson_leave_out_artefacts_and_bbox(tmp_path):
+    import bake_formats
+    assert bake_formats.geojson_popup_fields(_popup_geojson(tmp_path / 'p.geojson')) == ['name', 'code', 'OBJECTID']
+
+
+def test_judiciary_and_community_tiles_carry_popup_fields_only(tmp_path, monkeypatch):
     import bake_community as bc
     import bake_formats
     import bake_judiciary as bj
     seen = []
     monkeypatch.setattr(bj.subprocess, 'run', lambda cmd, *a, **k: seen.append(cmd))
     monkeypatch.setattr(bc, '_run', lambda cmd: seen.append(cmd))
-    gj, out = tmp_path / 'high_courts.geojson', tmp_path / 'o.pmtiles'
+    gj, out = _popup_geojson(tmp_path / 'high_courts.geojson'), tmp_path / 'o.pmtiles'
     bj.geojson_to_pmtiles(gj, out)
     bc.geojson_to_pmtiles(gj, out, 'c_x')
-    assert seen == [bake_formats.pmtiles_args(gj, out, 'high_courts', ()),
-                    bake_formats.pmtiles_args(gj, out, 'c_x', ())]
+    fields = ['name', 'code', 'OBJECTID']
+    assert seen == [bake_formats.pmtiles_args(gj, out, 'high_courts', fields),
+                    bake_formats.pmtiles_args(gj, out, 'c_x', fields)]
 
 
 # ── R2 uploads (review items 1, 11) ──────────────────────────────────────────
@@ -481,3 +495,146 @@ def test_write_json_ends_with_a_newline(tmp_path):
     p = tmp_path / 'm.json'
     pipeline.write_json(p, [{'id': 'a', 'name': 'ā'}])
     assert p.read_text().endswith(']\n') and '\\u0101' in p.read_text()
+
+
+# ── durable cache backup to R2 (review item 10) ─────────────────────────────
+
+class FakeBucket:
+    """list_objects_v2 / upload_file / download_file over a dict, paged two
+    keys at a time so the listing's continuation is exercised."""
+    class exceptions:  # noqa: N801
+        ClientError = KeyError
+
+    def __init__(self):
+        self.objects: dict[str, bytes] = {}
+        self.extra: dict[str, dict] = {}
+
+    def list_objects_v2(self, Bucket, Prefix, **kw):  # noqa: N803
+        keys = sorted(k for k in self.objects if k.startswith(Prefix))
+        start = int(kw.get('ContinuationToken') or 0)
+        page = keys[start:start + 2]
+        out = {'KeyCount': len(page), 'IsTruncated': start + 2 < len(keys),
+               'Contents': [{'Key': k, 'ETag': f'"{pipeline.hashlib.md5(self.objects[k]).hexdigest()}"',
+                             'Size': len(self.objects[k])} for k in page]}
+        if out['IsTruncated']:
+            out['NextContinuationToken'] = str(start + 2)
+        return out
+
+    def upload_file(self, path, bucket, key, ExtraArgs=None, Config=None):  # noqa: N803
+        self.objects[key] = Path(path).read_bytes()
+        self.extra[key] = ExtraArgs
+
+    def download_file(self, bucket, key, path):
+        Path(path).write_bytes(self.objects[key])
+
+
+def _cache(tmp_path):
+    d = tmp_path / 'raw'
+    (d / 'a').mkdir(parents=True)
+    (d / 'a' / 'p1.json.gz').write_bytes(b'one')
+    (d / 'p2.json').write_bytes(b'two')
+    (d / 'p3.json').write_bytes(b'three')
+    (d / 'p4.json.part').write_bytes(b'half')       # a write in progress: never backed up
+    return d
+
+
+def test_checkpoint_cache_uploads_under_cache_prefix_and_skips_unchanged(tmp_path):
+    d, s3 = _cache(tmp_path), FakeBucket()
+    assert pipeline.checkpoint_cache(d, 'bake_x', s3) == 3
+    assert sorted(s3.objects) == ['cache/bake_x/a/p1.json.gz', 'cache/bake_x/p2.json', 'cache/bake_x/p3.json']
+    assert s3.extra['cache/bake_x/p2.json']['CacheControl'] == 'no-cache'
+    assert pipeline.checkpoint_cache(d, 'bake_x', s3) == 0     # md5 match: nothing re-sent
+    (d / 'p2.json').write_bytes(b'two, changed')
+    (d / 'p5.json').write_bytes(b'five')
+    assert pipeline.checkpoint_cache(d, 'bake_x', s3) == 2
+    assert s3.objects['cache/bake_x/p2.json'] == b'two, changed'
+
+
+def test_restore_cache_fetches_only_missing_files(tmp_path):
+    d, s3 = _cache(tmp_path), FakeBucket()
+    pipeline.checkpoint_cache(d, 'bake_x', s3)
+    fresh = tmp_path / 'fresh'
+    fresh.mkdir()
+    (fresh / 'p2.json').write_bytes(b'local wins')
+    assert pipeline.restore_cache(fresh, 'bake_x', s3) == 2
+    assert (fresh / 'a' / 'p1.json.gz').read_bytes() == b'one'
+    assert (fresh / 'p2.json').read_bytes() == b'local wins'
+    assert pipeline.restore_cache(fresh, 'bake_x', s3) == 0     # second run: no work
+    assert not list(fresh.rglob('*.part*'))
+
+
+def test_cache_backup_restores_checkpoints_at_intervals_and_on_failure(tmp_path):
+    d, s3 = _cache(tmp_path), FakeBucket()
+    s3.objects['cache/job/old.json'] = b'from an earlier run'
+    with pytest.raises(RuntimeError):
+        with pipeline.cache_backup(d, 'job', s3, every_s=0.05):
+            assert (d / 'old.json').read_bytes() == b'from an earlier run'
+            (d / 'new.json').write_bytes(b'answer')
+            for _ in range(200):                      # wait for an interval checkpoint
+                if 'cache/job/new.json' in s3.objects:
+                    break
+                threading.Event().wait(0.02)
+            assert 'cache/job/new.json' in s3.objects
+            (d / 'last.json').write_bytes(b'saved on the way out')
+            raise RuntimeError('killed mid-run')
+    assert s3.objects['cache/job/last.json'] == b'saved on the way out'
+
+
+def _recording_backup(seen):
+    @contextlib.contextmanager
+    def fake(local_dir, prefix, *a, **k):
+        seen.append(('enter', local_dir, prefix))
+        yield
+        seen.append(('exit',))
+    return fake
+
+
+@pytest.mark.parametrize('name, prefix', [
+    ('bake_mgnrega_districts', 'bake_mgnrega_districts'),
+    ('bake_state_finance', 'bake_state_finance'),
+    ('bake_wbc1_water_bodies', 'bake_wbc1_water_bodies'),
+    ('bake_cityfinance_ulbs', 'cityfinance'),
+    ('bake_cityfinance_balance_sheet', 'cityfinance'),
+])
+def test_pull_steps_run_inside_a_cache_backup(monkeypatch, name, prefix):
+    import importlib
+    mod = importlib.import_module(name)
+    seen = []
+    monkeypatch.setattr(mod, 'cache_backup', _recording_backup(seen))
+    monkeypatch.setattr(mod, 'pull', lambda *a, **k: seen.append(('pull',)) or True)
+    monkeypatch.setattr(sys, 'argv', [name, 'pull'])
+    with contextlib.suppress(SystemExit):
+        mod.main()
+    assert [s[0] for s in seen] == ['enter', 'pull', 'exit']
+    assert seen[0][1:] == (mod.RAW, prefix)
+
+
+def test_fetch_osm_areas_runs_inside_a_cache_backup(monkeypatch, tmp_path):
+    import build_ward_index
+    import fetch_osm_areas
+    (tmp_path / 'catalog.json').write_text('{"layers": []}')
+    monkeypatch.setattr(build_ward_index, 'CATALOG', tmp_path / 'catalog.json')
+    seen = []
+    monkeypatch.setattr(fetch_osm_areas, 'cache_backup', _recording_backup(seen))
+    monkeypatch.setattr(sys, 'argv', ['fetch_osm_areas'])
+    assert fetch_osm_areas.main() == 0
+    assert seen == [('enter', fetch_osm_areas.CACHE, 'fetch_osm_areas'), ('exit',)]
+
+
+@pytest.mark.parametrize('name', ['bake_pmtiles', 'fix_r2_content_disposition'])
+def test_one_off_scripts_still_import_from_scripts_oneoff(name):
+    # Importing runs nothing; it checks their paths into scripts/ still resolve.
+    code = (f'import importlib.util as u; s = u.spec_from_file_location("m", "{HERE}/oneoff/{name}.py"); '
+            'm = u.module_from_spec(s); s.loader.exec_module(m); '
+            f'assert getattr(m, "ROOT", None) in (None, __import__("pathlib").Path("{HERE.parent}"))')
+    r = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
+def test_cache_backup_without_r2_credentials_is_local_only(tmp_path, monkeypatch):
+    for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
+        monkeypatch.delenv(k, raising=False)
+    d = _cache(tmp_path)
+    with pipeline.cache_backup(d, 'job'):
+        (d / 'x.json').write_text('{}')
+    assert (d / 'x.json').exists()

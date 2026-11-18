@@ -47,6 +47,7 @@ from typing import Callable, Iterable, Iterator
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from bake_mgnrega_districts import api_key, with_retries  # noqa: E402
+from pipeline import cache_backup  # noqa: E402
 
 CATALOG_UUID = '32f2ec95-ddca-4254-86c6-449d4471efe1'
 LISTING_URL = ('https://www.data.gov.in/backend/dmspublic/v1/resources?format=json&limit=200'
@@ -569,7 +570,8 @@ def main() -> None:
     ap.add_argument('--force', action='store_true', help='rebake even if inputs are unchanged')
     a = ap.parse_args()
     if a.step == 'pull':
-        pull(a.refresh, a.max_minutes, a.workers)
+        with cache_backup(RAW, 'bake_wbc1_water_bodies'):
+            pull(a.refresh, a.max_minutes, a.workers)
     elif a.step == 'bake':
         bake(force=a.force)
     elif a.step == 'upload':

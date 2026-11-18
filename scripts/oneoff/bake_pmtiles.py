@@ -17,18 +17,18 @@ After running, update scripts/build_catalog.py LAYERS to fill in the
 build_catalog.py and upload_r2.sh to publish.
 
 Run:
-    python3 scripts/bake_pmtiles.py            # all 8 layers
-    python3 scripts/bake_pmtiles.py bhuvan     # filter by substring
+    python3 scripts/oneoff/bake_pmtiles.py            # all 8 layers
+    python3 scripts/oneoff/bake_pmtiles.py bhuvan     # filter by substring
 """
 from __future__ import annotations
 import os, subprocess, sys, time
 from pathlib import Path
 import duckdb
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from bake_formats import pmtiles_args  # noqa: E402
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'sources' / 'india-geodata'
 WORK = Path('/tmp/bake')
 WORK.mkdir(exist_ok=True)

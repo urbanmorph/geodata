@@ -90,7 +90,7 @@ sys.path.insert(0, str(HERE))
 
 # Reuse the canonical bbox/Hilbert rebake + R2 helpers (scripts/pipeline.py,
 # side-effect free on import).
-from bake_formats import pmtiles_args  # noqa: E402
+from bake_formats import geojson_popup_fields, pmtiles_args  # noqa: E402
 from pipeline import (  # noqa: E402
     BUCKET,
     R2_PUBLIC,
@@ -313,8 +313,11 @@ def geojson_to_kml(gj: Path, out_kml: Path) -> None:
 
 
 def geojson_to_pmtiles(gj: Path, out_pmtiles: Path, layer_name: str) -> None:
+    """Tiles with the popup fields only (the rebake_tiles rule): every extra
+    attribute makes tippecanoe drop more features at low zoom; the parquet,
+    geojson and kml keep every column."""
     out_pmtiles.unlink(missing_ok=True)
-    _run(pmtiles_args(gj, out_pmtiles, layer_name, ()))
+    _run(pmtiles_args(gj, out_pmtiles, layer_name, geojson_popup_fields(gj)))
 
 
 # ===========================================================================

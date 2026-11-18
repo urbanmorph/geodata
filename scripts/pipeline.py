@@ -1,6 +1,6 @@
 """Shared helpers for the data pipeline: logging, retries, atomic files,
-DuckDB connections, R2 uploads, the parquet bbox/Hilbert rebake and the
-whole-layer download bakes.
+DuckDB connections, R2 uploads, durable cache backups (R2 cache/<prefix>/),
+the parquet bbox/Hilbert rebake and the whole-layer download bakes.
 
 Importing this module has no side effects (no directories, no network, no
 heavy imports): boto3 and duckdb load inside the functions that need them.
@@ -288,6 +288,120 @@ def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: i
     s3.complete_multipart_upload(Bucket=BUCKET, Key=key, UploadId=state['upload_id'], MultipartUpload={
         'Parts': [{'PartNumber': n, 'ETag': done[n]} for n in sorted(done)]})
     state_path.unlink()
+
+
+# ── durable caches: R2 under cache/<prefix>/ ─────────────────────────────────
+
+CACHE_PREFIX = 'cache'
+CHECKPOINT_EVERY_S = 600
+R2_ENV = ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY')
+
+
+def _cache_files(local_dir: Path) -> dict[str, Path]:
+    """{relative posix path: file}, leaving out writes in progress (*.part*)."""
+    if not local_dir.is_dir():
+        return {}
+    return {p.relative_to(local_dir).as_posix(): p for p in sorted(local_dir.rglob('*'))
+            if p.is_file() and '.part' not in p.name}
+
+
+def _remote_etags(s3, prefix: str) -> dict[str, str]:
+    """{relative path: ETag} under cache/<prefix>/, one paged listing. Cache
+    objects go up in a single part, so the ETag is the body's MD5."""
+    root = f'{CACHE_PREFIX}/{prefix}/'
+    out, token = {}, None
+    while True:
+        page = s3.list_objects_v2(Bucket=BUCKET, Prefix=root, **({'ContinuationToken': token} if token else {}))
+        for o in page.get('Contents', []):
+            out[o['Key'][len(root):]] = o['ETag'].strip('"')
+        if not page.get('IsTruncated'):
+            return out
+        token = page['NextContinuationToken']
+
+
+CACHE_WORKERS = 16  # cache files are many and small: send them in parallel
+
+
+def checkpoint_cache(local_dir: Path, prefix: str, s3) -> int:
+    """Upload every cached answer under `local_dir` to R2 at cache/<prefix>/<path>
+    whose bytes R2 doesn't already hold (md5); returns how many went up."""
+    from boto3.s3.transfer import TransferConfig
+    from concurrent.futures import ThreadPoolExecutor
+    single_part = TransferConfig(multipart_threshold=4 * 1024**3)  # keeps the ETag an MD5
+    remote = _remote_etags(s3, prefix)
+    todo = [(rel, path, md5) for rel, path in _cache_files(local_dir).items()
+            if remote.get(rel) != (md5 := file_md5(path))]
+
+    def put(job: tuple[str, Path, str]) -> None:
+        rel, path, md5 = job
+        extra = {'ContentType': 'application/octet-stream', 'CacheControl': 'no-cache', 'Metadata': {'md5': md5}}
+        s3.upload_file(str(path), BUCKET, f'{CACHE_PREFIX}/{prefix}/{rel}', ExtraArgs=extra, Config=single_part)
+
+    with ThreadPoolExecutor(CACHE_WORKERS) as pool:
+        list(pool.map(put, todo))
+    log(f'  cache checkpoint {prefix}: {len(todo)} file(s) sent to R2')
+    return len(todo)
+
+
+def restore_cache(local_dir: Path, prefix: str, s3) -> int:
+    """Download what R2 holds under cache/<prefix>/ that `local_dir` lacks (a
+    local file is never overwritten); returns how many came down."""
+    from concurrent.futures import ThreadPoolExecutor
+    todo = [rel for rel in _remote_etags(s3, prefix) if not (local_dir / rel).exists()]
+
+    def get(rel: str) -> None:
+        dest = local_dir / rel
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        with atomic_output(dest) as part:
+            s3.download_file(BUCKET, f'{CACHE_PREFIX}/{prefix}/{rel}', str(part))
+
+    with ThreadPoolExecutor(CACHE_WORKERS) as pool:
+        list(pool.map(get, todo))
+    if todo:
+        log(f'  cache restore {prefix}: {len(todo)} file(s) from R2')
+    return len(todo)
+
+
+@contextlib.contextmanager
+def cache_backup(local_dir: Path, prefix: str, s3=None, every_s: float = CHECKPOINT_EVERY_S) -> Iterator[None]:
+    """Keep `local_dir` (a data program's cache of answers) backed up on R2:
+    restore what is missing locally on entry, checkpoint every `every_s`
+    seconds from a background thread, and once more on exit, failure or
+    SIGTERM included. Without R2 credentials in the env it is local only."""
+    import signal
+    import sys
+    import threading
+    if s3 is None:
+        if not all(k in os.environ for k in R2_ENV):
+            log(f'  cache {prefix}: no R2 credentials in env, local cache only')
+            yield
+            return
+        s3 = r2_client()
+    restore_cache(local_dir, prefix, s3)
+    stop = threading.Event()
+
+    def checkpoint() -> None:
+        try:
+            checkpoint_cache(local_dir, prefix, s3)
+        except Exception as e:  # noqa: BLE001  (a failed checkpoint must not stop or mask the run)
+            log(f'  cache checkpoint {prefix} failed: {type(e).__name__}')
+
+    def loop() -> None:
+        while not stop.wait(every_s):
+            checkpoint()
+
+    thread = threading.Thread(target=loop, name=f'cache-{prefix}', daemon=True)
+    thread.start()
+    in_main = threading.current_thread() is threading.main_thread()
+    previous = signal.signal(signal.SIGTERM, lambda *_: sys.exit(143)) if in_main else None
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join()
+        if in_main:
+            signal.signal(signal.SIGTERM, previous)
+        checkpoint()
 
 
 def find_parquet(layer: dict) -> Path | None:
