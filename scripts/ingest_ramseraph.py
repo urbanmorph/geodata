@@ -40,7 +40,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
-from tile_keys import is_rebaked, keep_rebaked_pmtiles  # noqa: E402
+from tile_keys import is_rebaked, keep_all_rebaked  # noqa: E402
 
 # Re-exported: other scripts import these names from here (use pipeline directly in new code).
 from pipeline import (  # noqa: E402,F401
@@ -732,8 +732,8 @@ def merge_layer_into_catalog(
     prev = next((l for l in catalog['layers'] if l.get('id') == d.id), None)
     merged: dict = dict(prev) if prev else {}
     merged.update(ingest_owned)
-    # Rebaked tiles (versioned keys) stay; see wants_upstream_pmtiles().
-    keep_rebaked_pmtiles(merged, prev)
+    # Rebaked tiles and parquet (versioned keys) stay; see wants_upstream_pmtiles().
+    keep_all_rebaked(merged, prev)
     # Whole-layer bakes: prefer fresh bakes from this run; otherwise
     # carry forward whatever previous run (or bake_whole_layer.py) wrote.
     bakes_local = bakes_info or {}

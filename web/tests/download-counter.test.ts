@@ -33,6 +33,10 @@ describe('classifyDownload', () => {
     expect(classifyDownload('extracts/districts/29/districts_ka.parquet', catalog)).toEqual({ layer_id: 'lgd_districts', state_code: '29', format: 'parquet' });
     expect(classifyDownload('community/Xa9Kp7nB/bike_lanes.geojson', catalog)).toEqual({ layer_id: 'c_Xa9Kp7nB', state_code: '', format: 'geojson' });
   });
+  it('a rebaked, versioned parquet key counts for its layer (scripts/rebake_layer.py)', () => {
+    const cat = { layers: [{ id: 'soi_states', parquet: { url: 'https://pub-x.r2.dev/admin/states/SOI_States.0a1b2c3d.parquet' } }] };
+    expect(classifyDownload('admin/states/SOI_States.0a1b2c3d.parquet', cat)).toEqual({ layer_id: 'soi_states', state_code: '', format: 'parquet' });
+  });
   it('anything else (scanner probes, unknown files) is not a download', () => {
     for (const k of ['admin/x.php', 'wp-login.php', 'community/abc/readme.md', 'admin/states/Nope.parquet', '']) {
       expect(classifyDownload(k, catalog), k).toBeNull();

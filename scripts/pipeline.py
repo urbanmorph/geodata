@@ -292,17 +292,21 @@ def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: i
 
 def find_parquet(layer: dict) -> Path | None:
     """A catalog layer's parquet on disk: sources/india-geodata/<name> (fetch.sh),
-    else data/baked/<R2 key> (the bakes), else None."""
+    else data/baked/<R2 key> (the bakes), else None. A key rebake_layer.py
+    versioned (<stem>.<md5[:8]>.parquet) is also found under its upstream name:
+    the local copy holds the same rows, only without the bbox columns."""
+    from tile_keys import unversioned_name
     url = (layer.get('parquet') or {}).get('url')
     if not url:
         return None
-    candidate = ROOT / 'sources' / 'india-geodata' / url.rsplit('/', 1)[-1]
-    if candidate.exists():
-        return candidate
+    names = dict.fromkeys((url.rsplit('/', 1)[-1], unversioned_name(url)))
+    baked_dir = None
     if url.startswith(R2_PUBLIC + '/'):
-        baked = ROOT / 'data' / 'baked' / url[len(R2_PUBLIC) + 1:]
-        if baked.exists():
-            return baked
+        baked_dir = (ROOT / 'data' / 'baked' / url[len(R2_PUBLIC) + 1:]).parent
+    for name in names:
+        for d in (ROOT / 'sources' / 'india-geodata', baked_dir):
+            if d is not None and (d / name).exists():
+                return d / name
     return None
 
 
