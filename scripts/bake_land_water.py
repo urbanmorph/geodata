@@ -25,7 +25,10 @@ Run (R2 creds in the env: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACC
     python3 -u scripts/bake_land_water.py                     # all, smallest first
     python3 -u scripts/bake_land_water.py gsi_lithology_50k   # one layer
     python3 -u scripts/bake_land_water.py --no-upload         # build + check locally only
+    python3 -u scripts/bake_land_water.py --no-upload --register  # + manifest and root catalog entry
     python3 -u scripts/bake_land_water.py --minutes 300       # stop cleanly after 5 h
+Uploads wait for /tmp/bharatlas-upload.lock (shared with other upload jobs);
+a lock left by a killed job (kill -9) has to be removed by hand.
 """
 from __future__ import annotations
 
@@ -35,8 +38,10 @@ import json
 import math
 import os
 import re
+import signal
 import subprocess
 import sys
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -44,14 +49,12 @@ import zipfile
 from pathlib import Path
 from typing import Callable
 
-import boto3
 import duckdb
-from boto3.s3.transfer import TransferConfig
-from botocore.config import Config as BotoConfig
 from botocore.exceptions import BotoCoreError, ClientError
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ingest_ramseraph as ir  # noqa: E402
+import pipeline  # noqa: E402
 from bake_formats import atomic_output, pmtiles_args  # noqa: E402
 
 WORK = ir.WORK / 'land_water'
@@ -309,27 +312,40 @@ def pmtiles_maxzoom(pmtiles: Path) -> int:
 PROBES = [(77.2, 28.6), (73.85, 18.5), (85.3, 23.35), (76.3, 9.95)]
 
 
-def tile_report(pmtiles: Path, parquet: Path, con: duckdb.DuckDBPyConnection, polygons: bool) -> list[dict]:
-    """Per probe tile at z5 and the max zoom: decoded features vs parquet
+def covered(col: str, env: str, polygons: bool, z: int) -> str:
+    """SQL aggregate of what `col` covers inside the tile `env`: polygon area
+    of the union (sources overlap: GSI lithology's summed area was 11x a z8
+    tile), snapped to the tile's own grid so the union stays cheap; line length
+    summed."""
+    if not polygons:
+        return f'coalesce(sum(ST_Length(ST_Intersection(ST_MakeValid({col}), {env}))), 0)'
+    union = f'ST_Union_Agg(ST_ReducePrecision(ST_MakeValid({col}), {overview_grid(z)}))'
+    return f'coalesce(ST_Area(ST_Intersection({union}, {env})), 0)'
+
+
+def tile_report(pmtiles: Path, parquet: Path, con: duckdb.DuckDBPyConnection, polygons: bool,
+                zooms: list[int]) -> list[dict]:
+    """Per probe tile at each of `zooms`: decoded features vs parquet
     features meeting the tile, and the area (polygons) or length (lines)
     each covers inside the tile. tippecanoe can silently drop polygons and
     leave holes; decoded tiles, not HTTP statuses, show it."""
-    measure = 'ST_Area' if polygons else 'ST_Length'
     rows = []
-    zmax = pmtiles_maxzoom(pmtiles)
     tmp = pmtiles.with_name(f'{pmtiles.stem}.decoded.geojson')
     for lon, lat in PROBES:
-        for z in sorted({5, zmax}):
+        for z in zooms:
             x, y = tile_for(lon, lat, z)
             w, s, e, n = tile_bounds(z, x, y)
             env = f'ST_MakeEnvelope({w}, {s}, {e}, {n})'
+            # bbox first (cheap), then the geometry: a big irregular polygon's
+            # bbox meets many tiles the polygon does not.
             expect, want = con.execute(
-                f"SELECT count(*), coalesce(sum({measure}(ST_Intersection(ST_MakeValid(geometry), {env}))), 0) "
-                f"FROM read_parquet('{parquet}') WHERE xmax >= ? AND xmin <= ? AND ymax >= ? AND ymin <= ?",
+                f"SELECT count(*), {covered('geometry', env, polygons, z)} "
+                f"FROM read_parquet('{parquet}') WHERE xmax >= ? AND xmin <= ? AND ymax >= ? AND ymin <= ? "
+                f"AND ST_Intersects(geometry, {env})",
                 [w, e, s, n]).fetchone()
             decoded = decode_tile(pmtiles, z, x, y, tmp)
             got = con.execute(
-                f"SELECT coalesce(sum({measure}(ST_Intersection(ST_MakeValid(geom), {env}))), 0) FROM ST_Read('{tmp}')"
+                f"SELECT {covered('geom', env, polygons, z)} FROM ST_Read('{tmp}')"
             ).fetchone()[0] if decoded else 0
             rows.append({'z': z, 'x': x, 'y': y, 'decoded': decoded, 'parquet': expect,
                          'cover': round(got / want, 3) if want else None})
@@ -337,42 +353,166 @@ def tile_report(pmtiles: Path, parquet: Path, con: duckdb.DuckDBPyConnection, po
     return rows
 
 
-def tiles_ok(rows: list[dict], zmax: int, polygons: bool) -> bool:
-    """Max zoom keeps every feature; polygons also cover the land at z5 (no holes)."""
+def probe_zooms(zmax: int, overview: bool) -> list[int]:
+    """z5 and the max zoom; with an overview, both sides of its seam too."""
+    seam = {OVERVIEW_MAXZOOM, OVERVIEW_MAXZOOM + 1} if overview else set()
+    return sorted({5, zmax} | seam)
+
+
+MIN_COVER = 0.98
+# Below the detail zooms an overview generalises by design: tippecanoe's
+# simplification at z5 (about 1 km a tile unit) removes landforms narrower
+# than that (river channels, valleys). Geomorphology measured 0.95-0.96 at z5
+# even with every polygon kept; lithology 0.99. Real holes measured 0.54.
+MIN_OVERVIEW_COVER = 0.93
+
+
+def tiles_ok(rows: list[dict], complete_from: int, polygons: bool, overview: bool = False) -> bool:
+    """Every zoom from `complete_from` (the max zoom, or the first detail
+    zoom under an overview) keeps every feature; polygons also cover the
+    land at every probed zoom (no holes)."""
     for r in rows:
         if r['parquet'] == 0:
             continue
-        if r['z'] == zmax and r['decoded'] < r['parquet']:
+        if r['z'] >= complete_from and r['decoded'] < r['parquet']:
             return False
-        if polygons and r['cover'] is not None and r['cover'] < 0.98:
+        least = MIN_OVERVIEW_COVER if overview and r['z'] < complete_from else MIN_COVER
+        if polygons and r['cover'] is not None and r['cover'] < least:
             return False
     return True
 
 
-def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], polygons: bool) -> list[str]:
+def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], polygons: bool,
+                    minzoom: int = 0, maxzoom: int | None = None) -> list[str]:
     """The house tile settings (bake_formats.pmtiles_args: popup fields only),
     but polygons coalesce instead of dropping at low zoom: dropping left half
-    of a z5 tile of micro-watersheds empty, coalescing covers all of it."""
-    args = pmtiles_args(src, out, layer, fields, parallel=True)
-    if polygons:
+    of a z5 tile of micro-watersheds empty, coalescing covers all of it.
+    A fixed `maxzoom` (an overview) never extends past it; `minzoom` starts
+    the detail tiles above an overview."""
+    args = pmtiles_args(src, out, layer, fields, parallel=True, max_zoom=maxzoom)
+    if maxzoom is not None:
+        # An overview drops its smallest (sub-pixel) polygons first: coalescing
+        # merged them back into many-ring features that overflowed again.
+        args[args.index('--drop-densest-as-needed')] = '--drop-smallest-as-needed'
+        args.remove('--extend-zooms-if-still-dropping')
+        # Half the detail below its max zoom (invisible on a 512 px tile):
+        # z5 geomorphology tiles fit without dropping, cover 0.70 -> 0.95.
+        args.insert(args.index('-P'), '-D11')
+    elif polygons:
         args[args.index('--drop-densest-as-needed')] = '--coalesce-densest-as-needed'
+    if minzoom:
+        zmin = f'-Z{minzoom}'
+        if '-Z0' in args:
+            args[args.index('-Z0')] = zmin
+        else:
+            args.insert(args.index('-zg') + 1, zmin)
     return args
 
 
+# Polygon layers so dense that no low-zoom tile can hold their features
+# (4 million 1:50k rock units: a z5 tile met 900,000 and kept 2,000, 9% of
+# the land) get a dissolved overview below the detail tiles: the union per
+# class per 1-degree cell, written as single polygons (tippecanoe shrinks
+# sub-pixel polygons per feature, not per ring), snapped to and simplified at one tile unit of the
+# overview's max zoom (smaller than anything it can show). Value = the
+# class column (a popup field), kept as the overview's only attribute.
+OVERVIEW: dict[str, str] = {
+    'gsi_lithology_50k': 'lithologic',
+    'bhuvan_geomorphology_50k': 'Des',
+}
+# z9 is the first zoom whose lithology tiles kept every 1:50k polygon at all
+# four probes (z8 kept 3,223 of 33,539 near Pune), so the overview runs to z8.
+OVERVIEW_MAXZOOM = 8
+OVERVIEW_CELL_DEG = 1
+
+
+def overview_grid(maxzoom: int = OVERVIEW_MAXZOOM) -> float:
+    """One tile unit (of 4096) at `maxzoom`, in degrees: snapping to it
+    changes nothing the overview tiles can show."""
+    return 360 / 2 ** maxzoom / 4096
+
+
+def dissolve_overview(flat: Path, out: Path, field: str, con: duckdb.DuckDBPyConnection,
+                      deadline: Deadline) -> Path:
+    """Line-delimited GeoJSON of `field` + geometry, unioned per value per
+    cell. One cached file per 1-degree latitude band (a killed run redoes
+    one band), joined at the end. Reads the parquet; never writes it."""
+    if out.exists():
+        return out
+    grid, cell = overview_grid(), OVERVIEW_CELL_DEG
+    centre = f'floor((ymin + ymax) / 2 / {cell})'
+    real = 'xmin <= 180'  # rows with a real geometry (some are LINESTRING(nan nan, ...))
+    bands = [b for (b,) in con.execute(
+        f"SELECT DISTINCT {centre}::INT b FROM read_parquet('{flat}') WHERE {real} ORDER BY b").fetchall()]
+    parts = []
+    for i, band in enumerate(bands):
+        deadline.check(f'overview band {band}')
+        part_out = out.with_name(f'{out.stem}.band{band}.geojsonl')
+        cached(part_out, lambda part, band=band: con.execute(f"""
+            COPY (SELECT "{field}", geometry FROM (
+                    SELECT "{field}", unnest(ST_Dump(ST_SimplifyPreserveTopology(ST_CollectionExtract(ST_Union_Agg(
+                        ST_ReducePrecision(ST_MakeValid(geometry), {grid})), 3), {grid}))).geom AS geometry
+                    FROM read_parquet('{flat}') WHERE {real} AND {centre} = {band}
+                    GROUP BY "{field}", floor((xmin + xmax) / 2 / {cell}))
+                  WHERE NOT ST_IsEmpty(geometry))
+            TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"""))
+        parts.append(part_out)
+        print(f'    overview: band {band} done ({i + 1}/{len(bands)})', flush=True)
+
+    def join(part: Path) -> None:
+        with part.open('wb') as f:
+            for p in parts:
+                f.write(p.read_bytes())
+    cached(out, join)
+    for p in parts:
+        p.unlink()
+    return out
+
+
+def tippecanoe(args: list[str], log: Path) -> None:
+    """Run tippecanoe/tile-join, keeping its warnings (dropped or coalesced
+    features) in `log` for the report."""
+    with log.open('a') as f:
+        f.write(f'$ {" ".join(args)}\n')
+        f.flush()
+        subprocess.run(args, check=True, stdout=f, stderr=subprocess.STDOUT)
+
+
 def bake_tiles(flat: Path, out: Path, layer: str, fields: list[str], polygons: bool,
-               con: duckdb.DuckDBPyConnection) -> None:
+               con: duckdb.DuckDBPyConnection, overview: str | None = None,
+               deadline: Deadline | None = None) -> None:
     """Line-delimited GeoJSON of the popup fields (rows with a real geometry
-    only: two source rows are LINESTRING(nan nan, ...)), then tippecanoe."""
+    only: two source rows are LINESTRING(nan nan, ...)), then tippecanoe.
+    With an `overview` class column: dissolved overview tiles to
+    OVERVIEW_MAXZOOM, the detail tiles above it, tile-joined into one
+    tileset with one layer name. Every step is cached."""
     if out.exists():
         return
+    deadline = deadline or Deadline(600)
+    log = out.with_name(f'{out.stem}.tippecanoe.log')
     seq = out.with_name(f'{out.stem}.tiles.geojsonl')
     cols = ', '.join(f'"{f}"' for f in fields)
     cached(seq, lambda part: con.execute(
         f"COPY (SELECT {cols}, geometry FROM read_parquet('{flat}') WHERE xmin <= 180) "
         f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"))
-    cached(out, lambda part: subprocess.run(tippecanoe_args(seq, part, layer, fields, polygons),
-                                            check=True, capture_output=True))
-    seq.unlink(missing_ok=True)
+    if overview is None:
+        cached(out, lambda part: tippecanoe(tippecanoe_args(seq, part, layer, fields, polygons), log))
+        seq.unlink()
+        return
+    deadline.check('detail tiles')
+    detail = cached(out.with_name(f'{out.stem}.detail.pmtiles'), lambda part: tippecanoe(
+        tippecanoe_args(seq, part, layer, fields, polygons, minzoom=OVERVIEW_MAXZOOM + 1), log))
+    ov_seq = dissolve_overview(flat, out.with_name(f'{out.stem}.overview.geojsonl'), overview, con, deadline)
+    deadline.check('overview tiles')
+    low = cached(out.with_name(f'{out.stem}.overview.pmtiles'), lambda part: tippecanoe(
+        tippecanoe_args(ov_seq, part, layer, [overview], polygons, maxzoom=OVERVIEW_MAXZOOM), log))
+    # -pk: the two tilesets are already sized; tile-join must not drop tiles over 500 KB.
+    cached(out, lambda part: tippecanoe(
+        ['tile-join', '-o', str(part), '-n', layer, '-pk', '-f', '-q', str(low), str(detail)], log))
+    # The slow steps (detail tiles, dissolve) stay cached for a re-tune of the
+    # overview tiles; the GeoJSON of every feature (4-22 GB) goes.
+    for p in (seq, low):
+        p.unlink()
 
 
 # ── pipeline ───────────────────────────────────────────────────────────
@@ -384,6 +524,7 @@ def make_con(work: Path) -> duckdb.DuckDBPyConnection:
     con.execute(f"SET temp_directory = '{work / 'duckdb_tmp'}'")
     con.execute('SET preserve_insertion_order = false')
     con.execute("SET memory_limit = '24GB'")
+    con.execute('SET enable_progress_bar = false')  # it floods a redirected log
     return con
 
 
@@ -412,16 +553,19 @@ def build(d: ir.Dataset, deadline: Deadline) -> dict:
 
     deadline.check('tiles')
     fields, polygons = TILES[d.id]
+    overview = OVERVIEW.get(d.id)
     pm = work / pm_name
-    bake_tiles(flat, pm, d.id, fields, polygons, con)
+    bake_tiles(flat, pm, d.id, fields, polygons, con, overview, deadline)
+    zmax = pmtiles_maxzoom(pm)
     report = work / 'tiles.json'
     if not report.exists():
-        report.write_text(json.dumps(tile_report(pm, flat, con, polygons), indent=1))
+        report.write_text(json.dumps(
+            tile_report(pm, flat, con, polygons, probe_zooms(zmax, overview is not None)), indent=1))
     rows = json.loads(report.read_text())
     for r in rows:
         print(f"    z{r['z']}/{r['x']}/{r['y']}: decoded {r['decoded']:,}  parquet {r['parquet']:,}"
               f"  cover {r['cover']}", flush=True)
-    if not tiles_ok(rows, pmtiles_maxzoom(pm), polygons):
+    if not tiles_ok(rows, OVERVIEW_MAXZOOM + 1 if overview else zmax, polygons, overview is not None):
         raise RuntimeError(f'{d.id}: tiles lose features or leave holes; see {report}')
 
     files = {flat: pq_name, pm: pm_name, **{p: p.name for p in bakes.values()}}
@@ -444,11 +588,13 @@ def patch_root_catalog(d: ir.Dataset, pq_bytes: int, pm_bytes: int, features: in
 
 
 def upload(s3, local: Path, key: str, retries: int = 5, backoff: float = 30.0) -> None:
-    """ir.r2_upload (md5-skips unchanged files) with retries: a dropped TLS
-    connection mid-multipart killed a 316 MB upload once."""
+    """pipeline.r2_upload_resumable (md5-skips unchanged files; one part at a
+    time, its multipart id saved so a killed run resumes from the parts R2
+    holds; logs each part) with retries: a dropped TLS connection
+    mid-multipart killed a 316 MB upload once."""
     for attempt in range(retries + 1):
         try:
-            return ir.r2_upload(s3, local, key)
+            return pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads')
         except (BotoCoreError, ClientError, OSError) as e:
             if attempt == retries:
                 raise
@@ -457,40 +603,56 @@ def upload(s3, local: Path, key: str, retries: int = 5, backoff: float = 30.0) -
             time.sleep(wait)
 
 
-class GentleS3:
-    """The R2 client with fewer parallel parts and more per-request retries:
-    ten parallel 64 MB parts kept dropping TLS connections from this host.
-    ir.r2_upload passes its own TransferConfig; this one replaces it."""
-    TRANSFER = TransferConfig(multipart_threshold=64 * 1024 * 1024, multipart_chunksize=32 * 1024 * 1024,
-                              max_concurrency=2)
-
-    def __init__(self, s3):
-        self._s3 = s3
-
-    def __getattr__(self, name):
-        return getattr(self._s3, name)
-
-    def upload_file(self, *args, Config=None, **kwargs):  # noqa: N803 (boto3's name)
-        return self._s3.upload_file(*args, Config=self.TRANSFER, **kwargs)
+# Shared with the other jobs that upload to R2 from this host (tile rebakes):
+# one upload at a time, so neither starves the link.
+UPLOAD_LOCK = Path('/tmp/bharatlas-upload.lock')
 
 
-def r2_client() -> GentleS3:
-    return GentleS3(boto3.client(
-        's3', endpoint_url=f'https://{os.environ["CLOUDFLARE_ACCOUNT_ID"]}.r2.cloudflarestorage.com',
-        aws_access_key_id=os.environ['R2_ACCESS_KEY_ID'], aws_secret_access_key=os.environ['R2_SECRET_ACCESS_KEY'],
-        config=BotoConfig(signature_version='s3v4', retries={'max_attempts': 10, 'mode': 'adaptive'})))
+@contextlib.contextmanager
+def upload_lock(lock: Path, wait: float = 30.0):
+    """mkdir is atomic: hold `lock` while uploading, waiting `wait` s between
+    tries while another job holds it; released on exit, an exception, or
+    SIGTERM/SIGHUP (turned into SystemExit so this `finally` runs)."""
+    while True:
+        try:
+            lock.mkdir()
+            break
+        except FileExistsError:
+            print(f'  upload lock {lock} held by another job; retry in {wait:.0f} s', flush=True)
+            time.sleep(wait)
+    old = {s: signal.getsignal(s) for s in (signal.SIGTERM, signal.SIGHUP)}
+    if threading.current_thread() is threading.main_thread():
+        for s in old:
+            signal.signal(s, lambda n, _f: sys.exit(128 + n))
+    try:
+        yield lock
+    finally:
+        lock.rmdir()
+        if threading.current_thread() is threading.main_thread():
+            for s, h in old.items():
+                signal.signal(s, h)
+
+
+def r2_client():
+    return pipeline.r2_client(retries={'max_attempts': 10, 'mode': 'adaptive'})
 
 
 def publish(d: ir.Dataset, built: dict) -> None:
     s3 = r2_client()
-    for local, name in built['files'].items():
-        upload(s3, local, f'{d.r2_prefix}/{name}')
+    with upload_lock(UPLOAD_LOCK):
+        for local, name in built['files'].items():
+            upload(s3, local, f'{d.r2_prefix}/{name}')
+    register(d, built)
+
+
+def register(d: ir.Dataset, built: dict) -> None:
+    """The manifest row and the root catalog entry (both idempotent)."""
     files = {name: local for local, name in built['files'].items()}
     pq_bytes = files[Path(d.parquet_url).name].stat().st_size
     pm_bytes = files[Path(d.pmtiles_url).name].stat().st_size
     ir.append_manifest(d, pq_bytes, pm_bytes, built['features'])
     patch_root_catalog(d, pq_bytes, pm_bytes, built['features'], built['bakes'])
-    print(f'  {d.id}: on R2 and in the catalog', flush=True)
+    print(f'  {d.id}: in the manifest and the root catalog', flush=True)
 
 
 def main(argv: list[str]) -> int:
@@ -514,6 +676,8 @@ def main(argv: list[str]) -> int:
             built = build(d, deadline)
             if do_upload:
                 publish(d, built)
+            elif '--register' in args:
+                register(d, built)
         except OutOfTime as e:
             print(f'STOPPED: {e}; finished steps are cached, re-run to continue', flush=True)
             return 3
