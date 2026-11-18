@@ -186,6 +186,15 @@ describe('toApiLayer', () => {
       expect(json).not.toContain('fingerprint');
     }
   });
+
+  it('lists the layer\'s dated versions on the detail view, so an agent can cite one', () => {
+    const versions = [{ code: 'bharatlas-lgd_states-2026.12', released: '2026-12-01', sha256: 'ab',
+      w3id: 'https://w3id.org/bharatlas/lgd_states/2026.12', url: 'https://bharatlas.com/releases/bharatlas-lgd_states-2026.12/' }];
+    const layer = { ...SAMPLE_CATALOG.layers[0], versions };
+    expect(toApiLayer(layer, SAMPLE_CATALOG, true).versions).toEqual(versions);
+    expect(toApiLayer(SAMPLE_CATALOG.layers[0], SAMPLE_CATALOG, true).versions).toEqual([]);
+    expect(toApiLayer(layer, SAMPLE_CATALOG, false)).not.toHaveProperty('versions');
+  });
 });
 
 describe('toApiCategory', () => {

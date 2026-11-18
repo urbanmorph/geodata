@@ -1,8 +1,11 @@
 import { defineConfig, type Plugin } from 'vite';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 // @ts-expect-error: plain .mjs
 import { renderNotFoundPage } from './scripts/not-found-page.mjs';
+// @ts-expect-error: plain .mjs
+import { releasePages } from './scripts/releases-page.mjs';
 
 // Re-run prerender.mjs whenever any template or catalog.json changes.
 // Vite's HMR then reloads the page automatically.
@@ -63,10 +66,26 @@ function notFoundPagePlugin(): Plugin {
   };
 }
 
+// dist/releases.html and dist/releases/<dataset>.html: the release index
+// (public/releases/index.json) as pages; functions/releases serves them.
+// Built like the 404 page, so they leave no generated file in the tree.
+function releasePagesPlugin(): Plugin {
+  return {
+    name: 'geodata-releases',
+    apply: 'build',
+    generateBundle() {
+      const index = JSON.parse(readFileSync(resolve(__dirname, 'public', 'releases', 'index.json'), 'utf8'));
+      const catalog = JSON.parse(readFileSync(resolve(__dirname, '..', 'catalog.json'), 'utf8'));
+      const layerIds = new Set(catalog.layers.map((l: { id: string }) => l.id));
+      for (const { fileName, html } of releasePages(index, layerIds)) this.emitFile({ type: 'asset', fileName, source: html });
+    },
+  };
+}
+
 export default defineConfig({
   // VITE_* build keys (the ArcGIS key) live in one gitignored file: geodata/.env.local.
   envDir: resolve(__dirname, '..'),
-  plugins: [prerenderPlugin(), buildIdPlugin(), notFoundPagePlugin()],
+  plugins: [prerenderPlugin(), buildIdPlugin(), notFoundPagePlugin(), releasePagesPlugin()],
   // Proxy paths that aren't served by Vite to a background `wrangler pages dev`
   // on 8788. /api/* are Pages Functions (D1, R2, Turnstile). /c/<id> is the
   // edge-rendered view page. Start wrangler with:

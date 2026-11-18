@@ -26,6 +26,10 @@ catalog.json is only written by --accept / --accept-all-unchanged:
     python3 scripts/check_updates.py --accept wards_delhi     # after re-ingesting: record the new fingerprint
     python3 scripts/check_updates.py --accept-all-unchanged   # record fingerprints where none is recorded yet
     python3 scripts/check_updates.py --issue-body data/update-issue.md   # also write the GitHub issue text
+
+The issue also lists the layers due or overdue for a rebuild by their `refresh` block (scripts/populate_refresh.py):
+a fast layer a month after its last build (fetched_at, or its newest release), whatever the check says; a regular
+layer likewise, but only once its source has changed; slow layers go by the changed table; frozen layers never.
 """
 from __future__ import annotations
 
@@ -49,6 +53,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from catalog_record import github_asset  # noqa: E402
 from pipeline import is_client_error, log, with_retries, write_json  # noqa: E402
+from populate_refresh import RELEASES, last_build, load_releases, next_due  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -80,6 +85,10 @@ def iso(dt: datetime) -> str:
 
 def utc_now() -> str:
     return iso(datetime.now(timezone.utc))
+
+
+def today() -> str:
+    return datetime.now(timezone.utc).date().isoformat()
 
 
 def parse_date(s: str) -> datetime:
@@ -384,6 +393,25 @@ def accept_all_unchanged(catalog: dict, status: dict) -> list[str]:
     return done
 
 
+# ── rebuilds due by the refresh schedule ────────────────────────────────────
+
+def due_layers(catalog: dict, status: dict, releases: dict | None, on: str) -> list[dict]:
+    """Layers whose scheduled rebuild is due on the day `on` (YYYY-MM-DD), most overdue first."""
+    out = []
+    for lyr in catalog['layers']:
+        r = lyr.get('refresh') or {}
+        rebuild = r.get('rebuild')
+        if rebuild == 'monthly_if_changed' and (status.get(lyr['id']) or {}).get('status') != 'changed':
+            continue
+        last = last_build(lyr, releases)
+        due = next_due(rebuild, last)
+        if due and due <= on:
+            days = (datetime.fromisoformat(on) - datetime.fromisoformat(due)).days
+            out.append({'id': lyr['id'], 'class': r.get('class'), 'rebuild': rebuild, 'last_build': last,
+                        'next_due': due, 'days_over': days})
+    return sorted(out, key=lambda d: (-d['days_over'], d['id']))
+
+
 # ── the GitHub issue ────────────────────────────────────────────────────────
 
 def page_link(url: str | None) -> str:
@@ -396,17 +424,19 @@ def _cell(s) -> str:
     return str(s if s is not None else '').replace('|', '\\|').replace('\n', ' ')
 
 
-def summary(status: dict) -> dict:
+def summary(status: dict, due: list[dict] | None = None) -> dict:
     counts = Counter(e.get('status') for e in status.values())
     return {'checked_at': max((e['checked_at'] for e in status.values() if e.get('checked_at')), default=None),
             'counts': dict(counts),
             'changed': sorted(k for k, e in status.items() if e.get('status') == 'changed'),
-            'error': sorted(k for k, e in status.items() if e.get('status') == 'error')}
+            'error': sorted(k for k, e in status.items() if e.get('status') == 'error'),
+            'due': [d['id'] for d in due or []],
+            'due_count': len(due or [])}
 
 
-def issue_body(status: dict, catalog: dict) -> str:
+def issue_body(status: dict, catalog: dict, due: list[dict] | None = None) -> str:
     fetched = {lyr['id']: lyr.get('fetched_at') for lyr in catalog['layers']}
-    s = summary(status)
+    s = summary(status, due)
     c = s['counts']
     lines = [f'Weekly check of each layer\'s upstream source (metadata only), last run {s["checked_at"]}: '
              f'{c.get("changed", 0)} changed, {c.get("error", 0)} errors, {c.get("unchanged", 0)} unchanged, '
@@ -429,6 +459,16 @@ def issue_body(status: dict, catalog: dict) -> str:
             e = status[lid]
             lines.append(f'| {lid} | {e.get("method")} | {_cell(e.get("error"))} | {page_link(e.get("url"))} |')
         lines.append('')
+    if due:
+        lines += [f'### Due or overdue ({len(due)})', '',
+                  'Rebuilds due by each layer\'s refresh class, whether or not its source reported a change.', '',
+                  '| Layer | Class | Rebuild | Last build | Due | Days over |', '|---|---|---|---|---|---|']
+        lines += [f'| {d["id"]} | {d["class"]} | {d["rebuild"]} | {d["last_build"]} | {d["next_due"]} | '
+                  f'{d["days_over"]} |' for d in due]
+        lines += ['', 'Rebuild with the layer\'s own bake script into versioned keys, then cut its release '
+                      '(`python3 scripts/release.py --layer <layer id>`).', '']
+    else:
+        lines += ['No layer is due for a rebuild.', '']
     lines.append(f'<!-- update-summary {json.dumps(s, sort_keys=True)} -->')
     return '\n'.join(lines) + '\n'
 
@@ -444,6 +484,7 @@ def main(argv=None) -> int:
                     help='record a fingerprint for every unchanged layer that has none yet')
     ap.add_argument('--issue-body', help='also write the "Source updates" issue text (Markdown) here')
     ap.add_argument('--summary', help='also write the summary JSON here')
+    ap.add_argument('--releases', default=str(RELEASES), help='the release index, for each layer\'s last build')
     args = ap.parse_args(argv)
 
     catalog_path, status_path = Path(args.catalog), Path(args.status)
@@ -460,10 +501,11 @@ def main(argv=None) -> int:
     token = os.environ.get('GITHUB_TOKEN') or os.environ.get('GH_TOKEN')
     status = run(catalog, status_path, Client(token=token), max_minutes=args.max_minutes,
                  max_age_hours=args.max_age_hours)
-    s = summary(status)
-    log('status: ' + ', '.join(f'{k} {v}' for k, v in sorted(s['counts'].items())))
+    due = due_layers(catalog, status, load_releases(Path(args.releases)), today())
+    s = summary(status, due)
+    log('status: ' + ', '.join(f'{k} {v}' for k, v in sorted(s['counts'].items())) + f'; due {len(due)}')
     if args.issue_body:
-        Path(args.issue_body).write_text(issue_body(status, catalog))
+        Path(args.issue_body).write_text(issue_body(status, catalog, due))
     if args.summary:
         Path(args.summary).write_text(json.dumps(s, indent=1, sort_keys=True) + '\n')
     return 0

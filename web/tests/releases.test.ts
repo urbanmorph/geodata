@@ -24,11 +24,21 @@ describe('releaseRoute', () => {
     });
   });
 
-  it('sends a bare release address (where w3id.org will point) to its manifest, and /releases to the index', () => {
+  it('sends a bare release address (where w3id.org points) to its manifest', () => {
     expect(releaseRoute(['bharatlas-catalog-2026.11'])).toEqual({
       kind: 'redirect', location: '/releases/bharatlas-catalog-2026.11/manifest.json', status: 302,
     });
-    expect(releaseRoute([])).toEqual({ kind: 'redirect', location: '/releases/index.json', status: 302 });
+  });
+
+  it('serves /releases and /releases/<dataset> as pages, and resolves /releases/<dataset>/latest', () => {
+    expect(releaseRoute([])).toEqual({ kind: 'page', dataset: null });
+    expect(releaseRoute(['cw'])).toEqual({ kind: 'page', dataset: 'cw' });
+    expect(releaseRoute(['lgd_states'])).toEqual({ kind: 'page', dataset: 'lgd_states' });
+    expect(releaseRoute(['cw', 'latest'])).toEqual({ kind: 'latest', dataset: 'cw', file: null });
+    expect(releaseRoute(['cw', 'latest', 'cw_states.csv'])).toEqual({ kind: 'latest', dataset: 'cw', file: 'cw_states.csv' });
+    expect(releaseRoute(['cw', 'latest', '..'])).toEqual({ kind: 'notfound' });
+    expect(releaseRoute(['cw', 'nope'])).toEqual({ kind: 'notfound' });
+    expect(releaseRoute(['CW'])).toEqual({ kind: 'notfound' });
   });
 
   it('refuses anything that is not a release code and a plain file name', () => {
@@ -42,12 +52,18 @@ describe('releaseRoute', () => {
 });
 
 describe('the /releases function', () => {
-  // the committed SHA256SUMS of the one release that exists here; any other path is the SPA fallback
+  // the committed SHA256SUMS of the one release that exists here, and the index; any other path is the SPA fallback
   const SUMS = 'aa11  cw_states.csv\nbb22  cw_states.parquet\n';
+  const INDEX = { latest: { cw: 'bharatlas-cw-2026.11' }, releases: [{ code: 'bharatlas-cw-2026.11', dataset: 'cw' }] };
   const assets = {
-    fetch: async (req: Request) => new URL(req.url).pathname === '/releases/bharatlas-cw-2026.11/SHA256SUMS'
-      ? new Response(SUMS, { status: 200, headers: { 'content-type': 'text/plain' } })
-      : new Response('<!doctype html>', { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }),
+    fetch: async (req: Request | string) => {
+      const path = new URL(typeof req === 'string' ? req : req.url).pathname;
+      if (path === '/releases/bharatlas-cw-2026.11/SHA256SUMS') {
+        return new Response(SUMS, { status: 200, headers: { 'content-type': 'text/plain' } });
+      }
+      if (path === '/releases/index.json') return new Response(JSON.stringify(INDEX), { status: 200 });
+      return new Response('<!doctype html>', { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } });
+    },
   };
   const ctx = (path: string[]) => ({
     params: { path },
@@ -79,6 +95,29 @@ describe('the /releases function', () => {
     const spa = { ...ctx(['bharatlas-cw-1999.01', 'manifest.json']),
       next: async () => new Response('<!doctype html>', { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }) };
     expect((await releasesFn(spa)).status).toBe(404);
+  });
+
+  it('serves the /releases pages as built, and a 404 page for a dataset with no releases', async () => {
+    const page = (path: string[]) => ({ ...ctx(path),
+      next: async () => new Response('<!doctype html><h1>Releases</h1>', { status: 200, headers: { 'content-type': 'text/html; charset=utf-8' } }) });
+    for (const path of [[], ['cw']]) {
+      const r = await releasesFn(page(path));
+      expect(r.status).toBe(200);
+      expect(await r.text()).toContain('<h1>Releases</h1>');
+    }
+    const missing = await releasesFn(page(['nope']));
+    expect(missing.status).toBe(404);
+    expect(missing.headers.get('content-type')).toContain('text/html');
+  });
+
+  it('sends /releases/<dataset>/latest to the newest release, and a file to that release\'s file', async () => {
+    const r = await releasesFn(ctx(['cw', 'latest']));
+    expect(r.status).toBe(302);
+    expect(r.headers.get('location')).toBe('/releases/bharatlas-cw-2026.11');
+    expect(r.headers.get('cache-control')).toContain('max-age=300');
+    const f = await releasesFn(ctx(['cw', 'latest', 'cw_states.csv']));
+    expect(f.headers.get('location')).toBe('/releases/bharatlas-cw-2026.11/cw_states.csv');
+    expect((await releasesFn(ctx(['nope', 'latest']))).status).toBe(404);
   });
 
   it('answers HEAD as GET, so link checkers see the redirect, not the site’s HTML page', async () => {

@@ -47,6 +47,7 @@ describe('isKnownRoute', () => {
       .map((f) => f.replace('.template.html', ''))
       .map((n) => (n === 'index' ? '' : n))
       .filter((n) => n !== '404') // the 404 page (dist/404.html) is not a route of its own
+      .filter((n) => n !== 'releases') // the /releases pages, served by functions/releases (ROUTE_PREFIXES)
       .sort();
     expect(templatePages).toEqual([...STATIC_PAGES].sort());
   });

@@ -43,7 +43,9 @@ const layerIndex = [];
 const liveCounts = await fetchLiveCounts();
 const dlCounts = bakedCounts(catalog, liveCounts);
 console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
-await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalog));
+// Each layer's dated releases (scripts/release.py) go into the served catalog as `versions`.
+const releaseIndex = JSON.parse(await readFile(resolve(WEB, 'public', 'releases', 'index.json'), 'utf8'));
+await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalog, releaseIndex));
 
 
 // Keep in sync with web/src/util.ts:escapeHtml
@@ -1138,6 +1140,8 @@ const sitemapUrls = [
   { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/docs', changefreq: 'monthly', priority: '0.7' },
   { loc: ORIGIN + '/mcp', changefreq: 'monthly', priority: '0.7' },
+  { loc: ORIGIN + '/releases', changefreq: 'monthly', priority: '0.5' },
+  ...Object.keys(releaseIndex.latest || {}).map((d) => ({ loc: `${ORIGIN}/releases/${d}`, changefreq: 'monthly', priority: '0.4' })),
 ];
 const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">

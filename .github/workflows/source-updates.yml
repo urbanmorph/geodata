@@ -4,8 +4,10 @@ name: source-updates
 # them? scripts/check_updates.py asks each source for metadata only (no data
 # files) and compares it with the fingerprint in catalog.json. The result goes
 # to ONE issue titled "Source updates" (label source-updates): open while any
-# layer has changed, closed when none has. Its body ends with a JSON summary
-# (<!-- update-summary {...} -->) that the ops dashboard reads.
+# layer has changed, any check errors or any rebuild is due by the layer's
+# refresh class ("Due or overdue"); closed when none is. Its body ends with a
+# JSON summary (<!-- update-summary {...} -->, with counts, changed, error,
+# due and due_count) that the ops dashboard reads.
 #
 # Commits nothing. After re-ingesting a layer, record its new version locally:
 #   python3 scripts/check_updates.py --accept <layer id>
@@ -76,7 +78,8 @@ jobs:
           set -euo pipefail
           title='Source updates'
           label='source-updates'
-          changed=$(jq '.counts.changed // 0' data/update-summary.json)
+          # open while anything needs a person: a changed source, a failing check or a rebuild due
+          pending=$(jq '(.counts.changed // 0) + (.counts.error // 0) + (.due_count // 0)' data/update-summary.json)
           gh label create "$label" --color FBCA04 --description 'Weekly upstream source check' --force
           num=$(gh issue list --label "$label" --state all --limit 1 --json number --jq '.[0].number // empty')
           if [ -z "$num" ]; then
@@ -86,9 +89,10 @@ jobs:
             gh issue edit "$num" --title "$title" --body-file data/update-issue.md
           fi
           state=$(gh issue view "$num" --json state --jq .state)
-          if [ "$changed" -gt 0 ] && [ "$state" = CLOSED ]; then
+          if [ "$pending" -gt 0 ] && [ "$state" = CLOSED ]; then
             gh issue reopen "$num"
-          elif [ "$changed" -eq 0 ] && [ "$state" = OPEN ]; then
-            gh issue close "$num" --reason completed --comment 'No source has changed since it was ingested.'
+          elif [ "$pending" -eq 0 ] && [ "$state" = OPEN ]; then
+            gh issue close "$num" --reason completed \
+              --comment 'No source has changed since it was ingested, every check answered, and no rebuild is due.'
           fi
-          echo "issue #$num: $changed changed"
+          echo "issue #$num: $pending changed, erroring or due"

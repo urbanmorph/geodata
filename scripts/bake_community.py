@@ -53,11 +53,14 @@ Runbook (airtight: safe to run repeatedly, safe to drive from Claude Code):
        # then commit catalog.json on a branch, open a PR, merge -> CI deploys.
 
 Why it can't break anything:
-  - Idempotent. Re-running (or --all) overwrites the same deterministic R2
-    keys, replaces the c_<id> catalog entry in place (never duplicates), and
-    deletes any orphaned format from a prior larger bake. catalog.json is
-    written LAST, so a mid-run failure never leaves a dangling reference;
-    just re-run.
+  - Idempotent. Re-running (or --all) writes the same deterministic R2 keys
+    and replaces the c_<id> catalog entry in place (never duplicates).
+    catalog.json is written LAST, so a mid-run failure never leaves a
+    dangling reference; just re-run.
+  - Never deletes. A format an earlier, larger bake made (a pmtiles) stays on
+    R2 when a re-bake no longer makes it: a published URL never breaks
+    (supporting-docs/spec-data-lifecycle.md rule 1; old tiles are pruned only
+    by scripts/r2_prune.py, which keeps the current and previous versions).
   - Rebuild-safe. A full `python3 scripts/build_catalog.py` PRESERVES baked
     community entries via carry_forward_unbuilt() -- they are never silently
     dropped. Pinned by test_build_catalog_community.py.
@@ -152,22 +155,8 @@ def baked_key(submission_id: str, fmt: str) -> str:
     return f'{COMMUNITY_PREFIX}/{submission_id}/{submission_id}.{ext}'
 
 
-# Every format the bake can emit. A given run produces a subset (pmtiles is
-# size-gated); anything in this set but NOT in the run is a stale orphan.
+# Every format the bake can emit; pmtiles only above the size gate.
 ALL_BAKED_FORMATS = ('parquet', 'geojson', 'kml', 'pmtiles')
-
-
-def planned_formats(plan: BakePlan) -> list[str]:
-    return [f for f in ALL_BAKED_FORMATS if getattr(plan, f)]
-
-
-def orphan_keys(submission_id: str, plan: BakePlan) -> list[str]:
-    """R2 keys for baked formats this plan does NOT produce -- e.g. a pmtiles
-    left over from a prior bake when the layer was larger, now unwarranted
-    after an edit shrank it. Deleting these keeps community/<id>/ exactly
-    matching the catalog entry, so re-baking (or `--all`) is fully idempotent."""
-    planned = set(planned_formats(plan))
-    return [baked_key(submission_id, f) for f in ALL_BAKED_FORMATS if f not in planned]
 
 
 def build_community_catalog_entry(meta: dict, artifacts: dict) -> dict:
@@ -328,18 +317,6 @@ def _artifact_block(sub_id: str, fmt: str, path: Path) -> dict:
     return {'url': f'{R2_PUBLIC}/{baked_key(sub_id, fmt)}', 'bytes': path.stat().st_size}
 
 
-def _delete_orphans(s3, sub_id: str, plan: BakePlan) -> None:
-    """Remove stale baked objects from a previous, differently-sized bake so the
-    R2 prefix stays a 1:1 mirror of the catalog entry."""
-    for key in orphan_keys(sub_id, plan):
-        try:
-            s3.head_object(Bucket=BUCKET, Key=key)
-        except s3.exceptions.ClientError:
-            continue  # not present — already clean
-        s3.delete_object(Bucket=BUCKET, Key=key)
-        print(f'  cleaned orphan s3://{BUCKET}/{key}')
-
-
 def bake(sub_id: str, scope: str, s3, work: Path, *, dry_run: bool) -> dict:
     meta = fetch_submission(sub_id, scope)
     r2_key = meta.get('r2_key')
@@ -385,11 +362,6 @@ def bake(sub_id: str, scope: str, s3, work: Path, *, dry_run: bool) -> dict:
         print('  [dry-run] would upload:')
         for fmt in artifacts:
             print(f'    s3://{BUCKET}/{baked_key(sub_id, fmt)}')
-        orphans = orphan_keys(sub_id, plan)
-        if orphans:
-            print('  [dry-run] would clean orphans (if present):')
-            for key in orphans:
-                print(f'    s3://{BUCKET}/{key}')
         print('  [dry-run] catalog entry:')
         print('    ' + json.dumps(entry, ensure_ascii=False))
         return entry
@@ -397,8 +369,6 @@ def bake(sub_id: str, scope: str, s3, work: Path, *, dry_run: bool) -> dict:
     for fmt, path in (('parquet', pq), ('geojson', gj), ('kml', kml), ('pmtiles', pmt)):
         if fmt in artifacts:
             r2_upload(s3, path, baked_key(sub_id, fmt))
-    # Keep the R2 prefix a 1:1 mirror of the catalog entry → fully idempotent.
-    _delete_orphans(s3, sub_id, plan)
 
     catalog = json.loads(CATALOG.read_text())
     merge_community_entry(catalog, entry)

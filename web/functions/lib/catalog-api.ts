@@ -18,6 +18,17 @@ export interface CatalogLayer {
   notes?: string;
   tags?: string[];
   fetched_at?: string | null;
+  /** Its dated releases, newest first (added by web/scripts/public-catalog.mjs from the release index). */
+  versions?: LayerVersion[];
+}
+
+/** One dated release of a layer: cite it by its code, SHA-256 or w3id address. */
+export interface LayerVersion {
+  code: string;
+  released: string;
+  sha256: string;
+  w3id: string;
+  url: string;
 }
 
 export interface CatalogData {
@@ -63,6 +74,7 @@ export interface ApiLayer {
   filter_stats?: unknown;
   non_commercial?: true;
   licence_notice?: string;
+  versions?: LayerVersion[];
 }
 
 export function filterLayers(layers: CatalogLayer[], filter: LayerFilter): CatalogLayer[] {
@@ -121,6 +133,7 @@ export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = f
   if (detail && catalog.filter_stats?.[layer.id]) {
     result.filter_stats = catalog.filter_stats[layer.id];
   }
+  if (detail) result.versions = layer.versions ?? [];
   return result;
 }
 

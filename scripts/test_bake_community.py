@@ -141,21 +141,52 @@ def test_entry_falls_back_to_id_when_name_missing() -> None:
     assert entry['name'] == 'nL7zNStsW3'
 
 
-# ---------- orphan cleanup (full idempotency) -------------------------------
+# ---------- a re-bake never deletes an earlier R2 key ------------------------
 
-def test_orphan_keys_targets_unbaked_pmtiles_for_small_layer() -> None:
-    # A prior bake when the layer was large may have left a pmtiles behind.
-    # After a shrinking edit, plan_bakes drops pmtiles → that stale key is an
-    # orphan to clean so community/<id>/ matches the catalog entry exactly.
-    from bake_community import orphan_keys, plan_bakes
-    plan = plan_bakes(779, 1_687_231)  # small → no pmtiles
-    assert orphan_keys('nL7zNStsW3', plan) == ['community/nL7zNStsW3/nL7zNStsW3.pmtiles']
+class _FakeS3:
+    """Records every call; a re-bake may read and upload, never delete."""
+
+    def __init__(self):
+        self.deleted: list[str] = []
+
+    def download_file(self, bucket, key, dest):
+        Path(dest).write_text('{}')
+
+    def head_object(self, **kw):
+        return {}
+
+    def delete_object(self, Bucket, Key):  # noqa: N803
+        self.deleted.append(Key)
+
+    def delete_objects(self, Bucket, Delete):  # noqa: N803
+        self.deleted += [o['Key'] for o in Delete['Objects']]
 
 
-def test_orphan_keys_empty_when_every_format_baked() -> None:
-    from bake_community import orphan_keys, plan_bakes
-    plan = plan_bakes(200_000, 50_000_000)  # large → pmtiles baked too
-    assert orphan_keys('nL7zNStsW3', plan) == []
+def test_a_rebake_that_no_longer_makes_tiles_keeps_the_earlier_tiles_on_r2(tmp_path, monkeypatch) -> None:
+    # Spec rule 1 (a published URL never breaks) and the owner's decision of 18 Nov 2026: a community re-bake
+    # follows the keep/prune rules like every other bake, so a pmtiles left by a larger earlier bake stays on R2.
+    import bake_community as bc
+
+    def touch(*paths):
+        for p in paths:
+            Path(p).write_text('x')
+
+    meta = {'id': 'nL7zNStsW3', 'name': 'n', 'r2_key': 'submissions/nL7zNStsW3/raw.geojson', 'format': 'geojson',
+            'licence': 'CC-BY-4.0', 'category': 'environment', 'source_url': 'https://example.org/'}
+    monkeypatch.setattr(bc, 'fetch_submission', lambda sub_id, scope: dict(meta))
+    monkeypatch.setattr(bc, 'normalize_to_geojson', lambda raw, fmt, gj: touch(gj))
+    monkeypatch.setattr(bc, 'geojson_to_parquet', lambda gj, pq: touch(pq) or 779)     # small: no tiles this time
+    monkeypatch.setattr(bc, 'geojson_to_kml', lambda gj, kml: touch(kml))
+    monkeypatch.setattr(bc, 'geojson_to_pmtiles', lambda *a: (_ for _ in ()).throw(AssertionError('no tiles')))
+    monkeypatch.setattr(bc, 'r2_upload', lambda s3, path, key: None)
+    monkeypatch.setattr(bc, 'build_community_catalog_entry', lambda m, a: {'id': 'c_nL7zNStsW3', **a})
+    catalog = tmp_path / 'catalog.json'
+    catalog.write_text('{"layers": []}')
+    monkeypatch.setattr(bc, 'CATALOG', catalog)
+    s3 = _FakeS3()
+    bc.bake('nL7zNStsW3', 'local', s3, tmp_path / 'work', dry_run=False)
+    assert s3.deleted == []
+    assert not hasattr(bc, 'orphan_keys')
 
 
 # ---------- catalog merge (idempotent) --------------------------------------
@@ -179,6 +210,6 @@ def test_merge_replaces_existing_community_entry_in_place() -> None:
         ]
     }
     merge_community_entry(catalog, {'id': 'c_x', 'provenance': 'community', 'rows': 2})
-    ids = [l['id'] for l in catalog['layers']]
+    ids = [lyr['id'] for lyr in catalog['layers']]
     assert ids == ['lgd_states', 'c_x', 'lgd_districts']  # no dupes, order kept
     assert catalog['layers'][1]['rows'] == 2  # replaced

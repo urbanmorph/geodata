@@ -139,6 +139,13 @@ def test_populate_adds_source_check_last_touches_nothing_else_and_is_idempotent(
     assert json.dumps(twice) == json.dumps(once)
 
 
+def test_a_refresh_block_stays_last_so_the_two_populate_scripts_never_reorder_each_other():
+    lyr = layer(upstream=f'{YASH}/admin/districts/LGD_Districts.parquet')
+    lyr['refresh'] = {'class': 'slow'}
+    out = ps.populate({'layers': [lyr]}, [])
+    assert list(out['layers'][0])[-2:] == ['source_check', 'refresh']
+
+
 def test_counts_group_manual_layers_by_reason():
     cat = {'layers': [{'id': 'a', 'source_check': {'method': 'manual', 'reason': 'r1'}},
                       {'id': 'b', 'source_check': {'method': 'manual', 'reason': 'r1'}},

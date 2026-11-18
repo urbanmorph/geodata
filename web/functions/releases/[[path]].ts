@@ -1,12 +1,37 @@
 // GET /releases/… — see lib/releases.ts for what each path serves.
-import { releaseRoute, sumsList } from '../lib/releases';
+import { releaseRoute, sumsList, latestCode } from '../lib/releases';
 import { json } from '../lib/http';
+import { notFoundResponse } from '../lib/not-found';
 
 type Params = { path: string[] };
 type Env = { ASSETS: { fetch: (req: Request) => Promise<Response> } };
 
+// The release index (static, committed); null if it can't be read.
+async function releaseIndex(ctx: { request: Request; env: Env }): Promise<{ latest?: Record<string, string> } | null> {
+  try {
+    const r = await ctx.env.ASSETS.fetch(new Request(new URL('/releases/index.json', ctx.request.url)));
+    return r.ok ? await r.json() : null;
+  } catch {
+    return null;   // the single-page-app fallback (HTML) fails to parse
+  }
+}
+
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const route = releaseRoute(((ctx.params.path as string[]) || []).filter(Boolean));
+  if (route.kind === 'page') {
+    if (route.dataset && !latestCode((await releaseIndex(ctx)) || {}, route.dataset)) {
+      return notFoundResponse(ctx, { title: 'No such release', message: `bharatlas has no releases of "${route.dataset}".`,
+        extra: '<p><a href="/releases">All releases</a></p>' });
+    }
+    return ctx.next();   // dist/releases.html or dist/releases/<dataset>.html
+  }
+  if (route.kind === 'latest') {
+    const code = latestCode((await releaseIndex(ctx)) || {}, route.dataset);
+    if (!code) return notFound();
+    // short-lived: the newest release changes when one is cut
+    return new Response(null, { status: 302, headers: {
+      location: `/releases/${code}${route.file ? `/${route.file}` : ''}`, 'cache-control': 'public, max-age=300' } });
+  }
   if (route.kind === 'static') {
     const asset = await ctx.next();
     // Pages answers a missing file with its single-page-app fallback (index.html, 200): that is a 404 here.

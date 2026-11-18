@@ -22,7 +22,7 @@ export const PUBLIC_PAGES = new Set<string>(['offline']);
  *  404 for a bad /view/<id>), the redirect returns 301 — so never police them. */
 export const ROUTE_PREFIXES = new Set<string>([
   'view', 'c', 'api', 'embed',          // functions/view, functions/c, functions/api, _redirects /embed/*
-  'releases',                           // functions/releases: dated releases (static files + R2 redirects)
+  'releases',                           // functions/releases: dated releases (pages, static files, R2 redirects)
   'verify', 'submit', 'contribute',     // _redirects → /preview (301)
 ]);
 
