@@ -2464,5 +2464,43 @@
     "source_url": "https://bhuvan.nrsc.gov.in/",
     "source_org": "Bhuvan (NRSC, ISRO)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area."
+  },
+  {
+    "id": "bhuvan_gw_prospects",
+    "name": "Groundwater prospect zones (Bhuvan)",
+    "level": "bhuvan_gw_prospects",
+    "category": "water",
+    "source": "Bhuvan",
+    "description": "Hydrogeomorphological units mapped at 1:50,000 by NRSC for the Rajiv Gandhi National Drinking Water Mission: lithology, landform and groundwater prospects, by state. Columns vary by state in the source.",
+    "unit": "prospect zones",
+    "features": 820552,
+    "license": "CC0-1.0",
+    "r2_prefix": "water/bhuvan-gw-prospects",
+    "parquet_file": "Bhuvan_Groundwater_Prospects_LGEOM.669ca817.parquet",
+    "parquet_bytes": 2277672828,
+    "pmtiles_file": "Bhuvan_Groundwater_Prospects_LGEOM.ae1714b1.pmtiles",
+    "pmtiles_bytes": 485859909,
+    "source_url": "https://bhuvan-app1.nrsc.gov.in/gwis/",
+    "source_org": "Bhuvan (NRSC, ISRO)",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GeoJSON, KML and shapefile downloads are zips holding one file per state (36 files, by the source column `sname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
+  },
+  {
+    "id": "bhuvan_land_degradation_1516",
+    "name": "Land degradation 1:50k (Bhuvan 2015-16)",
+    "level": "bhuvan_land_degradation_1516",
+    "category": "environment",
+    "source": "Bhuvan",
+    "description": "Degraded land mapped at 1:50,000 by NRSC from 2015-16 satellite imagery: the process (water or wind erosion, salinity, waterlogging, mining and more) and its severity, with the 2005-06 mapping alongside.",
+    "unit": "degraded land polygons",
+    "features": 1106126,
+    "license": "CC0-1.0",
+    "r2_prefix": "environment/bhuvan-land-degradation-1516",
+    "parquet_file": "Bhuvan_Land_Degradation_50k_1516.b374b36c.parquet",
+    "parquet_bytes": 2473955771,
+    "pmtiles_file": "Bhuvan_Land_Degradation_50k_1516.9124dbb1.pmtiles",
+    "pmtiles_bytes": 550870262,
+    "source_url": "https://bhuvan.nrsc.gov.in/",
+    "source_org": "Bhuvan (NRSC, ISRO)",
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GeoJSON, KML and shapefile downloads are zips holding one file per state (35 files, by the source column `lname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   }
 ]
