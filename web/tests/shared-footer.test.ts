@@ -1,5 +1,5 @@
 // One footer for every surface: the prerendered pages, the community layer
-// pages (/c/<id>), /submit and collect's home. Adding a link (status) once
+// pages (/c/<id>) and collect's home. Adding a link (status) once
 // must reach all of them.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -42,10 +42,6 @@ describe('every surface uses the shared footer', () => {
     };
     const html = renderViewPage({ submission: submission as never, origin: 'https://bharatlas.com', ratingsCount: 0, alreadyRated: false });
     expect(html).toContain(footerLinksHtml());
-  });
-
-  it('/submit (a standalone page, kept identical)', () => {
-    expect(read('web/submit.html')).toContain(footerHtml());
   });
 
   it('collect home', () => {

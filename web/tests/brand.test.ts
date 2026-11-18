@@ -99,7 +99,6 @@ describe('logo and wordmark', () => {
 describe('every surface uses the brand (no leftover violet)', () => {
   const files = [
     'web/scripts/shared-chrome.mjs',
-    'web/submit.html',
     'web/functions/lib/render-view.ts',
     'web/functions/lib/og-template.ts',
     'web/functions/_middleware.ts',
@@ -132,14 +131,8 @@ describe('every surface uses the brand (no leftover violet)', () => {
     for (const l of css.split('\n').filter((x) => x.includes('var(--accent-solid)'))) expect(l).not.toMatch(/color: ?#fff\b/);
   });
 
-  it('submit.html carries the same theme tokens (it is a standalone page)', () => {
-    const html = read('web/submit.html');
-    expect(html).toContain(themeDecls('light'));
-    expect(html).toContain(themeDecls('dark'));
-  });
-
   it('buttons on the saffron fill use navy text, not white', () => {
-    for (const f of ['web/index.template.html', 'web/preview.template.html', 'web/docs.template.html', 'web/mcp.template.html', 'web/submit.html', 'web/functions/lib/render-view.ts', 'web/scripts/shared-chrome.mjs']) {
+    for (const f of ['web/index.template.html', 'web/preview.template.html', 'web/docs.template.html', 'web/mcp.template.html', 'web/functions/lib/render-view.ts', 'web/scripts/shared-chrome.mjs']) {
       const lines = read(f).split('\n').filter((l) => l.includes('var(--accent-fill)'));
       for (const l of lines) expect(l, `${f}: ${l.trim()}`).not.toMatch(/color: ?#fff\b/);
     }
@@ -149,7 +142,6 @@ describe('every surface uses the brand (no leftover violet)', () => {
 describe('wordmark weight', () => {
   it('is heavy (800) everywhere the name is set', () => {
     expect(WORDMARK_CSS).toContain('font-weight: 800');
-    expect(read('web/submit.html')).toContain(WORDMARK_CSS);
     const css = read('collect/src/styles.css');
     expect(css).toMatch(/\.topbar \.brand \{[^}]*font-weight: 800/);
     expect(css).toMatch(/\.topbar \.collect-name \{[^}]*font-weight: 800/);

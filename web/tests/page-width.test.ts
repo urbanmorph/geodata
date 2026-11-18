@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 
 const web = resolve(__dirname, '..');
 const chrome = readFileSync(resolve(web, 'scripts/shared-chrome.mjs'), 'utf8');
-const pages = [...readdirSync(web).filter((f) => f.endsWith('.template.html')), 'submit.html'];
+const pages = [...readdirSync(web).filter((f) => f.endsWith('.template.html'))];
 
 describe('one page width', () => {
   it('the shared styles set the column to 1120px', () => {
