@@ -621,6 +621,16 @@ def test_fetch_osm_areas_runs_inside_a_cache_backup(monkeypatch, tmp_path):
     assert seen == [('enter', fetch_osm_areas.CACHE, 'fetch_osm_areas'), ('exit',)]
 
 
+@pytest.mark.parametrize('name', ['bake_pmtiles', 'fix_r2_content_disposition'])
+def test_one_off_scripts_still_import_from_scripts_oneoff(name):
+    # Importing runs nothing; it checks their paths into scripts/ still resolve.
+    code = (f'import importlib.util as u; s = u.spec_from_file_location("m", "{HERE}/oneoff/{name}.py"); '
+            'm = u.module_from_spec(s); s.loader.exec_module(m); '
+            f'assert getattr(m, "ROOT", None) in (None, __import__("pathlib").Path("{HERE.parent}"))')
+    r = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+
+
 def test_cache_backup_without_r2_credentials_is_local_only(tmp_path, monkeypatch):
     for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
         monkeypatch.delenv(k, raising=False)
