@@ -1171,6 +1171,21 @@
       "label": "Water Bodies (1st Census, 2017-18)",
       "unit": "water bodies",
       "description": "Ponds, tanks, lakes, reservoirs and check dams from the 1st Census of Water Bodies (reference year 2017-18): one point per water body with its type, ownership, use, storage, water spread, encroachment and repair or revival schemes."
+    },
+    "bhuvan_lineaments_50k": {
+      "label": "Lineaments 1:50k (Bhuvan 2005-06)",
+      "unit": "lineaments",
+      "description": "Geological and geomorphic lineaments mapped at 1:50,000 by NRSC in the 2005-06 national geomorphology mapping. Mizoram, Lakshadweep and some UTs are missing in the source."
+    },
+    "bhuvan_gw_prospect_structures": {
+      "label": "Groundwater prospect structures (Bhuvan)",
+      "unit": "structures",
+      "description": "Faults, fractures, dykes and lineaments mapped on the groundwater prospect maps of the Rajiv Gandhi National Drinking Water Mission (NRSC, 1:50k). Columns vary by state in the source. The prospect zones themselves are not included (too large for one file)."
+    },
+    "slusi_priority_micro_watersheds": {
+      "label": "Priority micro-watersheds (SLUSI)",
+      "unit": "micro-watersheds",
+      "description": "Micro-watersheds ranked by the Soil and Land Use Survey of India for soil conservation (priority from very high to very low), with hydrologic unit code. Use with the SLUSI micro-watershed boundaries."
     }
   },
   "level_order": [
@@ -1309,6 +1324,9 @@
     "wb_amrut_ulbs",
     "ir_stations",
     "ir_tracks",
+    "bhuvan_lineaments_50k",
+    "bhuvan_gw_prospect_structures",
+    "slusi_priority_micro_watersheds",
     "wbc1_water_bodies",
     "property_tax_chennai_wards",
     "cityfinance_ulb_balance_sheets",
@@ -7301,6 +7319,123 @@
         "bytes": 13881942
       },
       "fetched_at": "2026-11-15T14:42:16+00:00"
+    },
+    {
+      "id": "bhuvan_lineaments_50k",
+      "level": "bhuvan_lineaments_50k",
+      "source": "Bhuvan",
+      "rows": 236334,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geomorphology/Bhuvan_Lineament_50k_0506.parquet",
+        "bytes": 28655136
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.pmtiles",
+        "bytes": 10025166
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bhuvan (NRSC, ISRO)",
+          "url": "https://bhuvan.nrsc.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.geojson",
+        "bytes": 173800562
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.kml",
+        "bytes": 304416817
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.shp.zip",
+        "bytes": 33556387
+      },
+      "fetched_at": "2026-11-18T02:33:47+00:00"
+    },
+    {
+      "id": "bhuvan_gw_prospect_structures",
+      "level": "bhuvan_gw_prospect_structures",
+      "source": "Bhuvan",
+      "rows": 859695,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Prospects_STRU.parquet",
+        "bytes": 68910962
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.pmtiles",
+        "bytes": 20993725
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Bhuvan (NRSC, ISRO)",
+          "url": "https://bhuvan-app1.nrsc.gov.in/gwis/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.geojson",
+        "bytes": 1058548081
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.kml",
+        "bytes": 1006385293
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.shp.zip",
+        "bytes": 93387008
+      },
+      "fetched_at": "2026-11-18T02:35:00+00:00"
+    },
+    {
+      "id": "slusi_priority_micro_watersheds",
+      "level": "slusi_priority_micro_watersheds",
+      "source": "SLUSI",
+      "rows": 196276,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/hydro-boundaries/SLUSI_Priority_MicroWatersheds.parquet",
+        "bytes": 315643938
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.pmtiles",
+        "bytes": 86610198
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "SLUSI (Soil & Land Use Survey of India)",
+          "url": "https://slusi.dacnet.nic.in/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI (Soil & Land Use Survey of India). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.geojson",
+        "bytes": 1756253606
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.kml",
+        "bytes": 1342427759
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/slusi-priority-micro-watersheds/SLUSI_Priority_MicroWatersheds.shp.zip",
+        "bytes": 353839557
+      },
+      "fetched_at": "2026-11-18T02:36:54+00:00"
     },
     {
       "id": "wbc1_water_bodies",
