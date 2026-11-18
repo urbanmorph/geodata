@@ -58,7 +58,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
-from tile_keys import keep_rebaked_pmtiles  # noqa: E402
+from tile_keys import keep_rebaked  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
@@ -645,7 +645,7 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summa
         fetched_at = min(s['fetched_at'] for s in summary['sources'].values())
     catalog = json.loads(catalog_path.read_text())
     entry = catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public)
-    keep_rebaked_pmtiles(entry, next((e for e in catalog['layers'] if e.get('id') == LAYER_ID), None))
+    keep_rebaked(entry, next((e for e in catalog['layers'] if e.get('id') == LAYER_ID), None), 'pmtiles')
     catalog['layers'] = _replace_in_place(catalog['layers'], entry)
     for rid in RETIRED_IDS:
         catalog['level_meta'].pop(rid, None)

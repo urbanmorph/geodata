@@ -1,44 +1,69 @@
-"""Re-bake an existing R2-hosted catalog layer to be /api/v1/nearby-optimised.
+#!/usr/bin/env python3
+"""Give a catalog layer's parquet the flat bbox columns /api/v1/nearby needs.
 
-Reads the layer's parquet URL from catalog.json, downloads it from R2,
-runs rebake_flatten_bbox (which flattens any bbox STRUCT into top-level
-cols, synthesises bbox cols from geometry when neither is present,
-Hilbert-sorts rows, uses density-aware ROW_GROUP_SIZE and ZSTD level 9),
-uploads back to the same R2 key, and patches the catalog's parquet.bytes.
+Without xmin/ymin/xmax/ymax, /nearby decodes every geometry of the layer and
+runs out of Worker CPU (Cloudflare 1102). Per layer:
+  1. skip it when its parquet already has the 4 columns (read from the footer)
+  2. download the parquet (cached in WORK/<id>/; a killed run keeps it)
+  3. rebake_flatten_bbox: add bbox columns from each geometry's extent,
+     Hilbert-sort the rows, density-aware row groups, ZSTD
+  4. verify: same rows, the original columns with the same names and types in
+     the same order plus the 4 bbox columns, and the same values (an
+     order-free hash over every original column, geometry as WKB)
+  5. upload to <stem>.<md5[:8]>.parquet next to the old key (R2 objects are
+     served immutable, so a key is never rewritten), md5-skipped, holding the
+     shared upload lock only while uploading
+  6. patch catalog.json (parquet url + bytes) and the ingest manifest in
+     place, after each layer
 
-Use this for layers that pre-date the nearby rewrite — bp_wetlands,
-lgd_villages, lgd_panchayats, etc. New ingests from ramSeraph already
-get this treatment through ingest_ramseraph.py.
+The source data is never changed: no column is dropped, renamed or cleaned.
+build_catalog.py and ingest_ramseraph.py keep the versioned key on a rebuild
+(scripts/tile_keys.py). The old keys stay on R2 until the deploy that stops
+using them; delete them by hand after that.
 
-Usage:
-    python3 scripts/rebake_layer.py bp_wetlands
-    python3 scripts/rebake_layer.py lgd_villages lgd_panchayats
+Run (R2 creds in the env: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY):
+    python3 -u scripts/rebake_layer.py --missing             # every layer without bbox columns
+    python3 -u scripts/rebake_layer.py soi_states lgd_blocks
+    python3 -u scripts/rebake_layer.py --missing --no-upload # build + verify only
+    python3 -u scripts/rebake_layer.py --minutes 60 ...      # stop cleanly between steps
+
+Idempotent: a layer with bbox columns is skipped, each step's output is kept
+(written atomically), the key is the file's md5, uploads skip on an md5 match
+and the catalog patch is by layer id.
 """
 from __future__ import annotations
 
 import json
 import os
+import re
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Callable
+
+import duckdb
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-
-# Reuse the rebake logic and R2 helpers verbatim; the only thing this
-# script adds is "find a layer by id in catalog.json" + URL key parsing.
-from ingest_ramseraph import (  # noqa: E402
-    BUCKET, R2_PUBLIC, rebake_flatten_bbox, r2_client, r2_upload,
+from bake_land_water import Deadline, OutOfTime, cached, r2_client, upload  # noqa: E402
+from pipeline import (  # noqa: E402
+    R2_PUBLIC, _remote_has, download, file_md5, log, make_con, rebake_flatten_bbox, write_json,
 )
 
 CATALOG = ROOT / 'catalog.json'
-WORK = Path('/tmp/rebake_layer')
+MANIFEST = HERE / 'external-ingested.json'
+WORK = Path(os.environ.get('REBAKE_WORK', '/tmp/rebake_layer'))
+LOCK_OWNER = 'rebake_layer (fix/parquet-bbox-rebake)'
+BBOX = ('xmin', 'ymin', 'xmax', 'ymax')
+CRS84 = "GEOMETRY('OGC:CRS84')"
+REPORT = 'report.json'
 
 
 def find_layer(catalog: dict, layer_id: str) -> dict:
-    for l in catalog.get('layers', []):
-        if l.get('id') == layer_id:
-            return l
+    for layer in catalog.get('layers', []):
+        if layer.get('id') == layer_id:
+            return layer
     raise KeyError(f'layer {layer_id!r} not found in catalog')
 
 
@@ -50,65 +75,176 @@ def r2_key_from_url(url: str) -> str:
     return url[len(prefix):]
 
 
-def patch_catalog_bytes(catalog_path: Path, layer_id: str, new_bytes: int) -> None:
-    cat = json.loads(catalog_path.read_text())
-    layer = find_layer(cat, layer_id)
-    layer.setdefault('parquet', {})['bytes'] = new_bytes
-    # Match build_catalog.py's encoding exactly (ensure_ascii default + trailing
-    # newline) so a one-field patch stays a one-line diff instead of re-encoding
-    # every \uXXXX escape in the file.
-    catalog_path.write_text(json.dumps(cat, indent=2) + '\n')
+def versioned_key(key: str, md5: str) -> str:
+    """<stem>.<md5[:8]>.parquet next to `key` (replacing an earlier rebake's suffix)."""
+    stem = re.sub(r'(\.[0-9a-f]{8})?\.parquet$', '', key)
+    return f'{stem}.{md5[:8]}.parquet'
 
 
-def rebake(layer_id: str, s3) -> None:
-    catalog = json.loads(CATALOG.read_text())
-    layer = find_layer(catalog, layer_id)
-    parquet_url = layer.get('parquet', {}).get('url')
-    if not parquet_url:
-        raise RuntimeError(f'layer {layer_id} has no parquet URL')
+# ── checks ───────────────────────────────────────────────────────────────────
 
-    r2_key = r2_key_from_url(parquet_url)
+def _con(src: str) -> duckdb.DuckDBPyConnection:
+    con = duckdb.connect()
+    if src.startswith('http'):
+        con.execute('INSTALL httpfs; LOAD httpfs')
+    return con
+
+
+def bbox_kind(src: str) -> str | None:
+    """'flat' when the parquet (path or URL; only the footer is read) has
+    top-level xmin/ymin/xmax/ymax columns, 'struct' when it has a GeoParquet
+    `bbox` struct instead, else None."""
+    cols = {r[0] for r in _con(src).execute('DESCRIBE SELECT * FROM read_parquet(?)', [src]).fetchall()}
+    if all(c in cols for c in BBOX):
+        return 'flat'
+    return 'struct' if 'bbox' in cols else None
+
+
+def missing_bbox(catalog: dict, kind: Callable[[str], str | None] = bbox_kind) -> dict[str, list[str]]:
+    """Ids of catalog layers whose parquet lacks flat bbox columns, in catalog
+    order: {'none': [...], 'struct': [...]}. rebake_flatten_bbox would turn a
+    `bbox` struct into the 4 columns, dropping the struct, so those are listed
+    apart and left alone."""
+    layers = [(layer['id'], layer['parquet']['url']) for layer in catalog['layers']
+              if (layer.get('parquet') or {}).get('url')]
+    with ThreadPoolExecutor(16) as pool:
+        kinds = list(pool.map(lambda t: kind(t[1]), layers))
+    return {'none': [lid for (lid, _), k in zip(layers, kinds) if k is None],
+            'struct': [lid for (lid, _), k in zip(layers, kinds) if k == 'struct']}
+
+
+def _fingerprint(con, path: Path, cols: list[tuple[str, str]]) -> tuple:
+    """Rows and an order-free hash of every row over `cols` (geometry as WKB)."""
+    exprs = ', '.join(f'ST_AsWKB("{c}")' if 'GEOMETRY' in t else f'"{c}"' for c, t in cols)
+    return con.execute(f'SELECT count(*), sum(hash({exprs})::HUGEINT), bit_xor(hash({exprs})) '
+                       f"FROM read_parquet('{path}')").fetchone()
+
+
+def _row_groups(con, path: Path) -> int:
+    return con.execute(f"SELECT count(DISTINCT row_group_id) FROM parquet_metadata('{path}')").fetchone()[0]
+
+
+def verify(src: Path, dst: Path) -> dict:
+    """Raise ValueError unless `dst` is `src` plus the 4 bbox columns: same
+    rows, same columns (names, types, order) and the same values. Geometry
+    without a CRS reads back as OGC:CRS84, the GeoParquet default it meant."""
+    con = make_con()
+    old = [(r[0], r[1]) for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{src}')").fetchall()]
+    same = [(c, CRS84 if t == 'GEOMETRY' else t) for c, t in old]
+    new = [(r[0], r[1]) for r in con.execute(f"DESCRIBE SELECT * FROM read_parquet('{dst}')").fetchall()]
+    rows_old, rows_new = (con.execute(f"SELECT count(*) FROM read_parquet('{p}')").fetchone()[0] for p in (src, dst))
+    if rows_old != rows_new:
+        raise ValueError(f'rows changed: {rows_old:,} -> {rows_new:,}')
+    if [c for c in new if c[0] not in BBOX] != same or [c for c, _ in new if c in BBOX] != list(BBOX):
+        raise ValueError(f'columns changed: {old} -> {new}')
+    if _fingerprint(con, src, old) != _fingerprint(con, dst, old):
+        raise ValueError('values changed: the hash over the original columns differs')
+    return {'rows': rows_new, 'columns': len(old), 'row_groups': (_row_groups(con, src), _row_groups(con, dst))}
+
+
+# ── publish ──────────────────────────────────────────────────────────────────
+
+def patch_catalog(lid: str, key: str, nbytes: int, catalog: Path = CATALOG, manifest: Path = MANIFEST) -> None:
+    """Point the layer's parquet block at `key` (url + bytes; the rest stays),
+    and the ingest manifest row too: build_catalog.py templates the URL from it."""
+    c = json.loads(catalog.read_text())
+    layer = find_layer(c, lid)
+    layer['parquet'] = {**layer['parquet'], 'url': f'{R2_PUBLIC}/{key}', 'bytes': nbytes}
+    write_json(catalog, c)
+    rows = json.loads(manifest.read_text())
+    for r in rows:
+        if r.get('id') == lid and key.startswith(f"{r.get('r2_prefix')}/"):
+            r['parquet_file'], r['parquet_bytes'] = key.rsplit('/', 1)[1], nbytes
+    write_json(manifest, rows)
+
+
+def publish(local: Path, key: str) -> None:
+    from rebake_tiles import upload_lock
+    s3 = r2_client()
+    if not _remote_has(s3, key, file_md5(local)):  # the md5 skip, before taking the upload lock
+        with upload_lock(owner=LOCK_OWNER):
+            upload(s3, local, key)
+
+
+def rebake(layer: dict, deadline: Deadline, upload: bool = True) -> dict | None:
+    """Rebake one layer; None when it already has bbox columns."""
+    lid, url = layer['id'], layer['parquet']['url']
+    kind = bbox_kind(url)
+    if kind:
+        log(f'  {lid}: has a {kind} bbox, skipped')
+        return None
+    work = WORK / lid
+    src = work / url.rsplit('/', 1)[1]
+    deadline.check(f'{lid} download')
+    download(url, src)
+    deadline.check(f'{lid} rebake')
+    dst = cached(work / f'{lid}.bbox.parquet', lambda part: rebake_flatten_bbox(src, part, make_con()))
+    checks = verify(src, dst)
+    key = versioned_key(r2_key_from_url(url), file_md5(dst))
+    out = {'old_key': r2_key_from_url(url), 'new_key': key, 'old_bytes': src.stat().st_size,
+           'new_bytes': dst.stat().st_size, **checks}
+    log(f"  {lid}: {out['rows']:,} rows, {out['columns']} columns unchanged; row groups "
+        f"{checks['row_groups'][0]} -> {checks['row_groups'][1]}; {out['old_bytes']:,} -> {out['new_bytes']:,} bytes")
+    if upload:
+        deadline.check(f'{lid} upload')
+        publish(dst, key)
+        patch_catalog(lid, key, out['new_bytes'])
+        log(f'  {lid}: on R2 as {key}; catalog.json patched')
+    return out
+
+
+def save_report(lid: str, out: dict) -> None:
+    path = WORK / REPORT
+    report = json.loads(path.read_text()) if path.exists() else {}
+    report[lid] = out
     WORK.mkdir(parents=True, exist_ok=True)
-    src = WORK / f'_raw_{layer_id}.parquet'
-    dst = WORK / f'{layer_id}.parquet'
+    path.write_text(json.dumps(report, indent=2) + '\n')
 
-    print(f'→ {layer_id}')
-    if src.exists() and src.stat().st_size > 0:
-        print(f'  cached: {src}')
-    else:
-        # Public R2 URL blocks urllib (UA check). Use the authenticated
-        # S3 client we already have for upload — same R2 endpoint, no UA games.
-        print(f'  fetching s3://{BUCKET}/{r2_key}')
-        s3.download_file(BUCKET, r2_key, str(src))
-        print(f'  fetched: {src.stat().st_size:,} bytes')
 
-    features, cols = rebake_flatten_bbox(src, dst)
-    new_bytes = dst.stat().st_size
-    print(f'  features: {features:,}; cols: {cols}; baked: {new_bytes:,} bytes')
-
-    r2_upload(s3, dst, r2_key)
-    patch_catalog_bytes(CATALOG, layer_id, new_bytes)
-    print(f'✓ {layer_id}: rebake done, catalog patched (bytes {new_bytes:,})')
-
+# ── CLI ──────────────────────────────────────────────────────────────────────
 
 def main(argv: list[str]) -> int:
-    for key in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
-        if key not in os.environ:
-            print(f'ERROR: {key} not set in env')
-            return 2
-    if len(argv) < 2:
-        print('Usage: rebake_layer.py <layer_id> [<layer_id>...]')
+    args = argv[1:]
+    do_upload = '--no-upload' not in args
+    minutes = 600.0
+    if '--minutes' in args:
+        i = args.index('--minutes')
+        minutes = float(args.pop(i + 1))
+    ids = [a for a in args if not a.startswith('--')]
+    catalog = json.loads(CATALOG.read_text())
+    if '--missing' in args:
+        found = missing_bbox(catalog)
+        log(f"{len(found['none'])} layers without bbox columns: {found['none']}")
+        log(f"{len(found['struct'])} with a bbox struct, left alone: {found['struct']}")
+        ids += [i for i in found['none'] if i not in ids]
+    if not ids:
+        log('Usage: rebake_layer.py [--missing] [--no-upload] [--minutes N] [<layer_id> ...]')
         return 2
-
-    s3 = r2_client()
-    for layer_id in argv[1:]:
+    if do_upload:
+        missing = [k for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY')
+                   if k not in os.environ]
+        if missing:
+            log(f'ERROR: not set in env: {missing}')
+            return 2
+    deadline = Deadline(minutes)
+    failed = []
+    for n, lid in enumerate(ids, 1):
+        log(f'\n-> [{n}/{len(ids)}] {lid}')
         try:
-            rebake(layer_id, s3)
-        except Exception as e:
-            print(f'ERROR rebake {layer_id}: {e}')
-            return 1
-    return 0
+            out = rebake(find_layer(json.loads(CATALOG.read_text()), lid), deadline, do_upload)
+            if out:
+                save_report(lid, out)
+        except OutOfTime as e:
+            log(f'STOPPED: {e}; finished steps are kept, re-run to continue')
+            return 3
+        except (KeyError, ValueError, OSError, duckdb.Error) as e:
+            log(f'  FAILED {lid}: {e}')
+            failed.append(lid)
+    if failed:
+        log(f'\nfailed: {failed}')
+    return 1 if failed else 0
 
 
 if __name__ == '__main__':
+    sys.stdout.reconfigure(line_buffering=True)
     sys.exit(main(sys.argv))

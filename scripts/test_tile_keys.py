@@ -38,21 +38,83 @@ def test_rebake_scripts_produce_keys_the_rule_recognises():
     assert tile_keys.is_rebaked({'url': f'{R2}/{key}'})
     z = rebake_locate_tiles.versioned_key(f'{R2}/admin/states/LGD_States.pmtiles')
     assert tile_keys.is_rebaked({'url': f'{R2}/{z}'})
+    import rebake_layer
+    pq = rebake_layer.versioned_key('admin/states/LGD_States.parquet', '0a1b2c3d' + '0' * 24)
+    assert tile_keys.is_rebaked({'url': f'{R2}/{pq}'}, 'parquet')
 
 
-def test_keep_rebaked_pmtiles_prefers_the_previous_rebaked_block():
-    prev = {'pmtiles': {'url': f'{R2}/a/X.c08c0de4.pmtiles', 'bytes': 5}}
-    layer = {'pmtiles': {'url': f'{R2}/a/X.pmtiles', 'upstream_url': 'u', 'bytes': 9}}
-    assert tile_keys.keep_rebaked_pmtiles(layer, prev) is True
-    assert layer['pmtiles'] == prev['pmtiles']
+def test_rebake_tiles_names_new_tiles_after_a_rebaked_parquet_without_doubling_the_suffix():
+    import rebake_tiles
+    layer = {'parquet': {'url': f'{R2}/admin/wards-x/wards_x.0a1b2c3d.parquet'}}
+    assert rebake_tiles.versioned_key(layer, 'ffffffff' + '0' * 24) == 'admin/wards-x/wards_x.ffffffff.pmtiles'
 
 
-def test_keep_rebaked_pmtiles_leaves_plain_tiles_alone():
-    prev = {'pmtiles': {'url': f'{R2}/a/X.pmtiles', 'bytes': 5}}
-    layer = {'pmtiles': {'url': f'{R2}/a/X.pmtiles', 'bytes': 9}}
-    assert tile_keys.keep_rebaked_pmtiles(layer, prev) is False
-    assert layer['pmtiles']['bytes'] == 9
-    assert tile_keys.keep_rebaked_pmtiles(layer, None) is False
+def test_is_rebaked_parquet_recognises_the_md5_key_only():
+    assert tile_keys.is_rebaked({'url': f'{R2}/admin/states/LGD_States.0a1b2c3d.parquet'}, 'parquet')
+    assert not tile_keys.is_rebaked({'url': f'{R2}/admin/states/LGD_States.parquet'}, 'parquet')
+    assert not tile_keys.is_rebaked({'url': f'{R2}/admin/states/LGD_States.z12.parquet'}, 'parquet')
+    # a key of one format never counts for the other
+    assert not tile_keys.is_rebaked({'url': f'{R2}/a/X.0a1b2c3d.parquet'}, 'pmtiles')
+    assert not tile_keys.is_rebaked({'url': f'{R2}/a/X.0a1b2c3d.pmtiles'}, 'parquet')
+
+
+def test_keep_rebaked_prefers_the_previous_rebaked_block():
+    for fmt in tile_keys.FORMATS:
+        prev = {fmt: {'url': f'{R2}/a/X.c08c0de4.{fmt}', 'bytes': 5}}
+        layer = {fmt: {'url': f'{R2}/a/X.{fmt}', 'upstream_url': 'u', 'bytes': 9}}
+        assert tile_keys.keep_rebaked(layer, prev, fmt) is True
+        assert layer[fmt] == prev[fmt]
+
+
+def test_keep_rebaked_leaves_plain_blocks_alone():
+    for fmt in tile_keys.FORMATS:
+        prev = {fmt: {'url': f'{R2}/a/X.{fmt}', 'bytes': 5}}
+        layer = {fmt: {'url': f'{R2}/a/X.{fmt}', 'bytes': 9}}
+        assert tile_keys.keep_rebaked(layer, prev, fmt) is False
+        assert layer[fmt]['bytes'] == 9
+        assert tile_keys.keep_rebaked(layer, None, fmt) is False
+
+
+def test_keep_all_rebaked_keeps_each_format_on_its_own():
+    prev = {'parquet': {'url': f'{R2}/a/X.0a1b2c3d.parquet', 'bytes': 1},
+            'pmtiles': {'url': f'{R2}/a/X.pmtiles', 'bytes': 2}}
+    layer = {'parquet': {'url': f'{R2}/a/X.parquet', 'bytes': 3},
+             'pmtiles': {'url': f'{R2}/a/X.pmtiles', 'bytes': 4}}
+    assert tile_keys.keep_all_rebaked(layer, prev) == ['parquet']
+    assert layer['parquet'] == prev['parquet']
+    assert layer['pmtiles']['bytes'] == 4
+
+
+def test_unversioned_name_strips_the_rebake_suffix():
+    assert tile_keys.unversioned_name(f'{R2}/admin/states/LGD_States.0a1b2c3d.parquet') == 'LGD_States.parquet'
+    assert tile_keys.unversioned_name(f'{R2}/admin/states/LGD_States.z12.pmtiles') == 'LGD_States.pmtiles'
+    assert tile_keys.unversioned_name(f'{R2}/admin/states/LGD_States.parquet') == 'LGD_States.parquet'
+
+
+def test_find_parquet_finds_the_local_source_of_a_rebaked_parquet(tmp_path, monkeypatch):
+    """build_api_indexes / build_ward_index read the local source parquet by
+    the catalog file name; a rebaked key must still find it."""
+    import pipeline
+    src = tmp_path / 'sources' / 'india-geodata'
+    src.mkdir(parents=True)
+    (src / 'LGD_States.parquet').write_bytes(b'x')
+    monkeypatch.setattr(pipeline, 'ROOT', tmp_path)
+    layer = {'parquet': {'url': f'{R2}/admin/states/LGD_States.0a1b2c3d.parquet'}}
+    assert pipeline.find_parquet(layer) == src / 'LGD_States.parquet'
+    baked = tmp_path / 'data' / 'baked' / 'admin' / 'wards-x'
+    baked.mkdir(parents=True)
+    (baked / 'wards_x.parquet').write_bytes(b'x')
+    assert pipeline.find_parquet({'parquet': {'url': f'{R2}/admin/wards-x/wards_x.0a1b2c3d.parquet'}}) == \
+        baked / 'wards_x.parquet'
+
+
+def test_build_catalog_carry_forward_keeps_a_rebaked_parquet():
+    import build_catalog
+    prev = {'id': 'soi_states', 'parquet': {'url': f'{R2}/admin/states/SOI_States.0a1b2c3d.parquet', 'bytes': 11,
+                                            'upstream_url': 'u'}}
+    layer = {'id': 'soi_states', 'parquet': {'url': f'{R2}/admin/states/SOI_States.parquet', 'bytes': 10780243}}
+    build_catalog.carry_forward_from_prev(layer, {'soi_states': prev})
+    assert layer['parquet'] == prev['parquet']
 
 
 def test_build_catalog_carry_forward_keeps_rebaked_tiles():
@@ -71,6 +133,15 @@ def test_ingest_merge_keeps_rebaked_tiles():
     c = {'layers': [{'id': 'test_layer', 'pmtiles': dict(rebaked)}]}
     merge_layer_into_catalog(c, _ds(), 100, 200, 50)
     assert c['layers'][0]['pmtiles'] == rebaked
+
+
+def test_ingest_merge_keeps_a_rebaked_parquet():
+    from ingest_ramseraph import merge_layer_into_catalog
+    from test_catalog_idempotent import _ds
+    rebaked = {'url': f'{R2}/environment/test-layer/Test.0123abcd.parquet', 'upstream_url': 'u', 'bytes': 7}
+    c = {'layers': [{'id': 'test_layer', 'parquet': dict(rebaked)}]}
+    merge_layer_into_catalog(c, _ds(), 100, 200, 50)
+    assert c['layers'][0]['parquet'] == rebaked
 
 
 def test_ingest_skips_upstream_tiles_when_the_catalog_has_rebaked_ones(monkeypatch):
