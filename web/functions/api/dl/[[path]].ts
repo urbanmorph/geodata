@@ -6,13 +6,14 @@ import type { Env } from '../_middleware';
 import { classifyDownload, R2_PUBLIC_BASE as R2_BASE } from '../../lib/r2-keys';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { incrementDownload } from '../../lib/counters';
+import { json } from '../../lib/http';
 
 type Params = { path: string[] };
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];
   const key = segs.join('/');
-  if (!key) return new Response('missing key', { status: 400 });
+  if (!key) return json(400, { error: 'missing key', status: 400 });
   // Classify after answering: the redirect never waits on the catalog or D1.
   ctx.waitUntil(
     loadCatalog(new URL(ctx.request.url).origin)

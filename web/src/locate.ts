@@ -69,7 +69,7 @@ export function openLocate(opts: {
       stopPulse();
       render(msg(err.code === err.PERMISSION_DENIED
         ? 'Location permission denied. Allow it in your browser to use this.'
-        : "Couldn't get your location — try again outdoors."));
+        : "Couldn't get your location. Try again outdoors."));
     },
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 },
   );
@@ -93,7 +93,7 @@ export function openLocate(opts: {
       if (!r.ok) throw new Error(String(r.status));
       renderResult((await r.json()) as LocateApiResponse, lat, lng, autoZoom, await sidecar);
     } catch {
-      render(msg("Couldn't look that up — try again."));
+      render(msg("Couldn't look that up. Try again."));
     }
   }
 
@@ -133,7 +133,7 @@ export function openLocate(opts: {
     // navigator.share / clipboard must run in this click gesture; call them
     // synchronously (the awaited promise resolving later is fine).
     if (navigator.share) {
-      try { await navigator.share({ title: 'bharatlas', text: `${name} — bharatlas`, url }); }
+      try { await navigator.share({ title: 'bharatlas', text: `${name} on bharatlas`, url }); }
       catch { /* user cancelled the share sheet */ }
       return;
     }

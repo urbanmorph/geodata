@@ -15,6 +15,8 @@ import { brandMarkSvg } from '../../shared/brand.mjs';
 import { THEME_DESC, THEME_GLYPH } from './themes.mjs';
 import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
+import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
+import { fillTemplate } from './fill-template.mjs';
 import { docsStats } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
@@ -39,30 +41,13 @@ console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total
 await copyFile(catalogPath, resolve(WEB, 'public', 'catalog.json'));
 
 
-// Human-readable "X ago" — coarse buckets, no library needed.
-function relativeTime(iso) {
-  if (!iso) return '';
-  const days = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 86400000));
-  if (days < 1) return 'updated today';
-  if (days < 7) return `updated ${days}d ago`;
-  if (days < 30) return `updated ${Math.floor(days / 7)}w ago`;
-  if (days < 365) return `updated ${Math.floor(days / 30)}mo ago`;
-  const years = Math.floor(days / 365);
-  const months = Math.floor((days % 365) / 30);
-  return months > 0 ? `updated ${years}y ${months}mo ago` : `updated ${years}y ago`;
-}
-
-// Anything older than this is highlighted as stale on the card.
-const STALE_DAYS = 180;
-function isStale(iso) {
-  if (!iso) return false;
-  return (Date.now() - new Date(iso).getTime()) / 86400000 > STALE_DAYS;
-}
 // Keep in sync with web/src/util.ts:escapeHtml
 
 // SEO head block (title, description, canonical, OG/Twitter, JSON-LD) for the
 // prerendered pages. /view pages rewrite theirs at the edge (functions/view).
 const ORIGIN = 'https://bharatlas.com';
+// How many layers /api/v1/locate checks by default (the FAQ copy on /docs and /mcp).
+const LOCATE_N = DEFAULT_LOCATE_LAYERS.length;
 
 // TOKENS, renderNav, FOOTER imported from ./shared-chrome.mjs above
 // (extracted so vitest can test the pure helpers).
@@ -308,12 +293,11 @@ const externalLevels = (catalog.level_order || []).filter(
 );
 const LEVEL_ORDER = [...BUILTIN_LEVEL_ORDER, ...externalLevels];
 
-// Display order for category sections on the home page. Categories not in
-// this list fall to the end in catalog.categories declaration order.
-const CATEGORY_ORDER = [
-  'boundaries', 'city-wards', 'people', 'environment', 'agriculture',
-  'transport', 'infrastructure', 'culture', 'health-edu', 'economy', 'other',
-];
+// Themes: catalog.categories is the one list, in display order. A layer or
+// submission whose category isn't in it counts as 'other' (catOf), so the
+// sections, their counts and the theme index agree.
+const CATEGORY_ORDER = Object.keys(catalog.categories || {});
+const catOf = (c) => (c && CATEGORY_ORDER.includes(c) ? c : 'other');
 
 // Search-index alias dictionary + haystack builders live in
 // ../src/search-aliases.mjs so they have a red-green unit test
@@ -421,9 +405,6 @@ function renderRow(level, layersForLevel, opts = {}) {
       : `<p class="row__viewer-hint">↳ Inside the viewer: slice by state · instant download as <strong>GeoJSON</strong> (QGIS, web) or <strong>KML</strong> (Google Earth & Maps)</p>`)
     : '';
 
-  const freshnessSpan = primary.fetched_at
-    ? `<span class="row__freshness${isStale(primary.fetched_at) ? ' stale' : ''}" title="${esc(primary.fetched_at)}">${relativeTime(primary.fetched_at)}</span>`
-    : '';
   // Show alternate sources for the same level inline. This signals plurality
   // at-a-glance — no single source is "the truth" for boundaries / names.
   // Clicking jumps to /view/<id> for that source's version. See terms.html
@@ -439,10 +420,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   const sourceText = primary.attribution?.primary
     ? `Per <a href="${esc(primary.attribution.primary.url)}" target="_blank" rel="noopener">${esc(primary.attribution.primary.name)}</a>${altSources.length ? ` <span class="row__alts">also: ${altSources.join(', ')}</span>` : ''}`
     : '';
-  const sourceLine =
-    sourceText || freshnessSpan
-      ? `<p class="row__source">${sourceText}${sourceText && freshnessSpan ? ' <span class="dot">·</span> ' : ''}${freshnessSpan}</p>`
-      : '';
+  const sourceLine = sourceText ? `<p class="row__source">${sourceText}</p>` : '';
 
   // Two haystacks so the client filter can do high-signal title matching
   // first, then fall back to body. Without the split, "villages" surfaced
@@ -534,7 +512,7 @@ for (const l of catalog.layers) {
 const categoryByLevel = {};
 for (const lvl of Object.keys(byLevel)) {
   const primary = pickPrimary(byLevel[lvl]);
-  categoryByLevel[lvl] = primary.category || 'other';
+  categoryByLevel[lvl] = catOf(primary.category);
 }
 
 // Attribution links — used by the /about page footer only (the home page
@@ -554,13 +532,6 @@ const homeSeo = seoHead({
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'All layers', item: ORIGIN + '/layers' },
-        ],
-      },
       {
         '@type': 'WebSite',
         name: 'bharatlas',
@@ -631,11 +602,10 @@ const homeSeo = seoHead({
 // `categoryCounts` is initialised here from visible levels; community
 // submissions get added below once communityByCategory is built; chip
 // HTML is rendered AFTER that so the totals are final.
-const knownCats = new Set(Object.keys(catalog.categories || {}));
 const categoryCounts = {};
 for (const lvl of LEVEL_ORDER) {
   if (!byLevel[lvl]?.length) continue;
-  const cat = knownCats.has(categoryByLevel[lvl]) ? categoryByLevel[lvl] : 'other';
+  const cat = categoryByLevel[lvl];
   categoryCounts[cat] = (categoryCounts[cat] || 0) + byLevel[lvl].length;
 }
 
@@ -722,7 +692,7 @@ function renderCommunityCard(s, opts = {}) {
   // Single-direction "Useful" voting (task #61). Display + sort key both
   // use up_count only; existing down_count rows in D1 are ignored here.
   const useful = s.up_count;
-  const cat = s.category || 'other';
+  const cat = catOf(s.category);
   const collapsed = opts.collapsed ? ' row--collapsed' : '';
   // Two-tier haystack (matches curated cards). Title is the only field
   // we trust as "this card is about X"; the rest is body. We also lift
@@ -772,7 +742,7 @@ function renderCommunityCard(s, opts = {}) {
 // section alongside curated layers (no separate "community" wall).
 const communityByCategory = {};
 for (const s of community) {
-  const cat = (s.category && (catalog.categories || {})[s.category]) ? s.category : 'other';
+  const cat = catOf(s.category);
   (communityByCategory[cat] ||= []).push(s);
 }
 for (const cat of Object.keys(communityByCategory)) {
@@ -907,11 +877,7 @@ const allCategories = new Set([
   ...Object.values(categoryByLevel),
   ...Object.keys(communityByCategory),
 ]);
-const sortedCats = [...allCategories].sort((a, b) => {
-  const ai = CATEGORY_ORDER.indexOf(a);
-  const bi = CATEGORY_ORDER.indexOf(b);
-  return (ai === -1 ? 99 : ai) - (bi === -1 ? 99 : bi);
-});
+const sortedCats = [...new Set([...CATEGORY_ORDER, 'other'])].filter((c) => allCategories.has(c));
 const sectionHtml = new Map(sortedCats.map((cat) => [cat, renderCategorySection(cat)]).filter(([, html]) => html));
 const categorySections = [...sectionHtml.values()].join('\n');
 
@@ -926,23 +892,21 @@ const themeIndexHtml = sectionCats
   .join('');
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
-const out = tmpl
-  .replace('<!-- CATEGORY_CHIPS -->', chipsHtml)
-  .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
-  .replace('<!-- SEO_HEAD -->', homeSeo)
-  .replace('<!-- TOKENS -->', TOKENS)
-  .replace('<!-- NAV -->', renderNav('home'))
-  .replace('<!-- FOOTER -->', FOOTER)
-  .replace('<!-- POPULAR -->', popularHtml)
-  .replace('<!-- MAP_BRAND -->', `<a class="map-brand" href="/" aria-label="bharatlas home">${brandMarkSvg(26)}</a>`)
-  .replace('<!-- QUICK_SEARCH -->', quickSearchHtml)
-  .replace('<!-- INDIA_MAP -->', indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog }))
-  .replaceAll('<!-- LAYER_TOTAL -->', String(totalLayers))
-  .replace('<!-- UPDATED -->', updatedHtml)
-  .replace('<!-- DOWNLOAD_TOTAL -->', (() => {
-    const total = totalDownloads(dlCounts);
-    return total > 0 ? ` · <span class="search-meta__count">${fmtCount(total)}</span> downloads` : '';
-  })());
+const homeDownloads = totalDownloads(dlCounts);
+const out = fillTemplate(tmpl, {
+  CATEGORY_CHIPS: chipsHtml,
+  SEO_HEAD: homeSeo,
+  TOKENS,
+  NAV: renderNav('home'),
+  FOOTER,
+  POPULAR: popularHtml,
+  MAP_BRAND: `<a class="map-brand" href="/" aria-label="bharatlas home">${brandMarkSvg(26)}</a>`,
+  QUICK_SEARCH: quickSearchHtml,
+  INDIA_MAP: indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog }),
+  LAYER_TOTAL: String(totalLayers),
+  UPDATED: updatedHtml,
+  DOWNLOAD_TOTAL: homeDownloads > 0 ? ` · <span class="search-meta__count">${fmtCount(homeDownloads)}</span> downloads` : '',
+});
 
 await writeFile(resolve(WEB, 'index.html'), out);
 
@@ -962,15 +926,16 @@ const layersSeo = seoHead({
 const layersTmpl = await readFile(resolve(WEB, 'layers.template.html'), 'utf8');
 await writeFile(
   resolve(WEB, 'layers.html'),
-  layersTmpl
-    .replace('<!-- SEO_HEAD -->', layersSeo)
-    .replace('<!-- TOKENS -->', TOKENS)
-    .replace('<!-- NAV -->', renderNav('layers'))
-    .replace('<!-- FOOTER -->', FOOTER)
-    .replace('<!-- THEME_INDEX -->', themeIndexHtml)
-    .replace('<!-- CATEGORY_SECTIONS -->', categorySections)
-    .replace('<!-- LAYER_TOTAL -->', String(totalLayers))
-    .replace('<!-- THEME_TOTAL -->', String(sectionCats.length)),
+  fillTemplate(layersTmpl, {
+    SEO_HEAD: layersSeo,
+    TOKENS,
+    NAV: renderNav('layers'),
+    FOOTER,
+    THEME_INDEX: themeIndexHtml,
+    CATEGORY_SECTIONS: categorySections,
+    LAYER_TOTAL: String(totalLayers),
+    THEME_TOTAL: String(sectionCats.length),
+  }),
 );
 await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));
 console.log(`prerendered /layers — ${sectionCats.length} themes, ${layerIndex.length} rows in the search index`);
@@ -981,50 +946,82 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
   const path = resolve(WEB, `${name}.template.html`);
   if (!existsSync(path)) return;
   const tmpl = await readFile(path, 'utf8');
-  let out = tmpl
-    .replace('<!-- SEO_HEAD -->', seoHead(seoOpts))
-    .replace('<!-- GENERATED -->', esc(catalog.generated || ''))
-    .replace('<!-- TOKENS -->', TOKENS)
-    .replace('<!-- NAV -->', renderNav(navKey))
-    .replace('<!-- FOOTER -->', FOOTER);
-  for (const [k, v] of Object.entries(extra)) out = out.replaceAll(`<!-- ${k} -->`, v);
+  const out = fillTemplate(tmpl, {
+    SEO_HEAD: seoHead(seoOpts),
+    TOKENS,
+    NAV: renderNav(navKey),
+    FOOTER,
+    ...extra,
+  });
   await writeFile(resolve(WEB, `${name}.html`), out);
   console.log(`prerendered /${name}`);
 }
 
-// /about FAQ — kept in sync with the visible <dl class="faq"> block in
-// about.template.html. JSON-LD FAQPage gives Google rich-result eligibility
-// and lets LLM crawlers ingest Q&A pairs cleanly.
+// FAQ answers written as HTML are shown as written; their FAQPage JSON-LD carries
+// the same words as plain text (Google wants the markup to match the page).
+const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" };
+function htmlToText(html) {
+  return html
+    .replace(/<\/?(p|br)\b[^>]*>/gi, ' ')
+    .replace(/<[^>]+>/g, '')
+    .replace(/&(amp|lt|gt|quot|#39);/g, (m) => ENTITIES[m])
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+const faqPage = (items) => ({
+  '@type': 'FAQPage',
+  mainEntity: items.map(({ q, text }) => ({
+    '@type': 'Question',
+    name: q,
+    acceptedAnswer: { '@type': 'Answer', text },
+  })),
+});
+
+// /about FAQ: the visible <dl class="faq wide"> and its FAQPage JSON-LD, from this one
+// list (the wording the owner approved on 2026-11-17). `q` and `a` are HTML as shown;
+// `id` is an anchor on the question.
 const ABOUT_FAQ = [
   {
-    q: 'What is bharatlas?',
-    a: "An open visualiser, in-browser verifier and anonymous contribution flow for India's geospatial data. Browse curated admin boundaries from state to village, drop a file to render and validate it, or publish your own layer under an open licence.",
+    q: `Do I need to sign up?`,
+    a: `No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a <code>.txt</code> backup) that you keep forever to edit or delete that submission.`,
   },
   {
-    q: 'Do I need to sign up?',
-    a: 'No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a .txt backup) that you keep forever to edit or delete that submission.',
+    q: `What data sources does bharatlas use?`,
+    a: `Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, OpenCity / Oorvani Foundation, PMGSY (Rural Roads), PM GatiShakti, Bharatmaps (NIC), bharatviz (pincode polygons), geoBoundaries and data.gov.in. Water, groundwater and agro-zone layers (CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, Wildlife Institute of India biogeographic zones) are republished via CoRE Stack (core-stack.org). Most admin levels carry several source variants you can compare on the same map; the layer's card shows "Per LGD · also: SOI, Bhuvan" with clickable alternates. Community submissions credit their own source on every card. Points of interest come from the Overture Maps Foundation, and district well counts from the Minor Irrigation Census (Ministry of Jal Shakti).`,
   },
   {
-    q: 'What data sources does bharatlas use?',
-    a: 'Curated layers come from the Local Government Directory (LGD), Survey of India (SOI), NRSC/ISRO Bhuvan, PMGSY (Rural Roads), geoBoundaries, PM GatiShakti, Bharatmaps (NIC), data.gov.in, the Overture Maps Foundation (places) and the Minor Irrigation Census (Ministry of Jal Shakti). Water, groundwater and agro-zone layers are republished via CoRE Stack (core-stack.org). Community submissions credit their own source on every card.',
+    q: `What licences apply?`,
+    a: `Curated layers carry CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, ODbL-1.0, GODL-India, MIT, or CDLA-Permissive-2.0 / Apache-2.0 depending on the source (each card names its licence). Layers under a non-commercial licence are marked <strong>Non-commercial only</strong>. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.`,
   },
   {
-    q: 'What licences apply?',
-    a: 'Curated layers carry CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, ODbL-1.0, GODL-India, MIT, or CDLA-Permissive-2.0 / Apache-2.0 depending on the source (each card names its licence). Publicly funded government geodata is republished with full credit to the publishing department. Layers under a non-commercial licence are marked Non-commercial only on their card, map page and API answers. Privately owned data without an open licence, and personal data, are left out, and publishers can ask for corrections or removal. Community submissions choose from an open-licence allowlist: CC0, CC-BY, CC-BY-SA, ODbL, ODC-PDDL, GODL-India or CDLA Permissive 2.0. Proprietary or "all rights reserved" content is rejected at submit.',
+    q: `How do you choose sources?`,
+    id: 'sources-and-licensing',
+    a: `
+        <p>Curated layers come from Indian government bodies (central, state and city), public institutions, open-data communities such as DataMeet and OpenCity, and openly licensed research and industry datasets. We favour data you can't get from a map app: official boundaries and jurisdictions, regulatory zones, and measured or surveyed records.</p>
+        <p><strong>Government data.</strong> Publicly funded geospatial data is meant to be freely available (National Geospatial Guidelines 2021, National Geospatial Policy 2022). We republish it with full credit to the publishing department, including where a portal's general website terms ask visitors to seek permission. A few layers carry a non-commercial licence: they are marked <strong>Non-commercial only</strong> on their card, on their map page and in every API and MCP answer, so check before using them in a product or for a client. We leave out privately owned data without an open licence, and personal data.</p>
+        <p><strong>Licence labels.</strong> Where the publisher states an open licence (for example GODL-India or CC BY), the layer carries it. Where the publisher states none, the layer carries the licence of the open-data republisher we took it from (for example CC0 from DataMeet's indianopenmaps), and the card and notes credit both.</p>
+        <p><strong>Changes and removal.</strong> If you publish a dataset shown here and want it corrected, credited differently or removed, email <a href="mailto:sathya@urbanmorph.com">sathya@urbanmorph.com</a> or open a <a href="https://github.com/urbanmorph/geodata/issues">GitHub issue</a>. We act on publisher requests promptly.</p>
+      `,
   },
   {
-    q: 'Is my file uploaded when I drop it?',
-    a: 'No, not until you click Publish. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.',
+    q: `Is my file uploaded when I drop it?`,
+    a: `No, not until you click <strong>Publish</strong>. Parsing, validation and the map render all happen in your browser. Only the explicit Publish action ships the file to R2 and records metadata in D1.`,
   },
   {
-    q: 'How can I trust community submissions?',
-    a: "Each carries a source URL, attribution and an open licence on the card and the view page. Automated checks validate licence, attribution and basic geometry, then a curator reviews each submission before it appears; neither step verifies accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.",
+    q: `What's the difference between dropping a file and collect?`,
+    a: `Dropping a file (<a href="/preview">/preview</a>) is for data you already have as one complete file: validate it, then publish it. <a href="https://collect.bharatlas.com">collect</a> is for data you don't have yet: make a form, many people add points from the field over time, then you review and publish the result. One publishes; the other gathers.`,
   },
   {
-    q: 'Can AI assistants read and recommend bharatlas?',
-    a: 'Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. Every layer page and every /c/<id> view page are server-rendered as plain HTML with JSON-LD Dataset structured data, easy for LLMs to ingest.',
+    q: `How can I trust community submissions?`,
+    a: `Each carries a source URL, attribution and an open licence on the card and the view page. Automated checks validate licence, attribution and basic geometry, then a curator reviews each submission before it appears; neither step verifies accuracy beyond the contributor's self-attestation. For sensitive use, follow the source link on the card to confirm provenance.`,
+  },
+  {
+    q: `Can AI assistants read and recommend bharatlas?`,
+    a: `Yes. The robots.txt explicitly allows GPTBot, ClaudeBot, PerplexityBot, Google-Extended and other major AI crawlers. Every layer page and every <code>/c/&lt;id&gt;</code> view page are server-rendered as plain HTML with JSON-LD <code>Dataset</code> structured data, easy for LLMs to ingest.`,
   },
 ];
+const aboutFaqHtml = `<dl class="faq wide">\n${ABOUT_FAQ.map(({ q, a, id }) =>
+  `      <dt${id ? ` id="${id}"` : ''}>${q}</dt>\n      <dd>${a}</dd>\n`).join('\n')}    </dl>`;
 
 await renderPage('about', {
   title: 'About',
@@ -1060,17 +1057,10 @@ await renderPage('about', {
         ],
         worksFor: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
       },
-      {
-        '@type': 'FAQPage',
-        mainEntity: ABOUT_FAQ.map(({ q, a }) => ({
-          '@type': 'Question',
-          name: q,
-          acceptedAnswer: { '@type': 'Answer', text: a },
-        })),
-      },
+      faqPage(ABOUT_FAQ.map(({ q, a }) => ({ q: htmlToText(q), text: htmlToText(a) }))),
     ],
   },
-}, { ATTR_LINKS: attrLinks });
+}, { ATTR_LINKS: attrLinks, ABOUT_FAQ: aboutFaqHtml });
 
 // Turnstile site key — Cloudflare's test key (always passes) when no env override.
 // In production, set TURNSTILE_SITEKEY in the deploy environment.
@@ -1179,7 +1169,7 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I find what state or district a coordinate is in?',
-    a: 'GET https://bharatlas.com/api/v1/locate?lat=12.97&lng=77.59 runs point-in-polygon across 13 admin and zone layers (plus the city ward layer covering the point) in a single call. Returns state, district, ward, pincode, seismic zone, eco-zone and more, with LGD codes to join on.',
+    a: `GET https://bharatlas.com/api/v1/locate?lat=12.97&lng=77.59 runs point-in-polygon across ${LOCATE_N} admin and zone layers (plus the city ward layer covering the point) in a single call. Returns state, district, ward, pincode, seismic zone, eco-zone and more, with LGD codes to join on.`,
   },
   {
     q: 'How do I find features near a point?',
@@ -1195,11 +1185,11 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I connect an LLM to the bharatlas API?',
-    a: 'Use the bharatlas MCP server: add bharatlas-mcp to your MCP client config and run npx -y bharatlas-mcp@latest. Connects Claude, GPT, Gemini or any MCP-compatible LLM to query the catalog (schema-first querying, spatial joins) and, with a collect share link, to author your own maps.',
+    a: 'Use the bharatlas MCP server: add bharatlas-mcp to your MCP client config and run npx -y bharatlas-mcp@latest. Connects Claude, GPT, Gemini or any MCP-compatible LLM to query the layers (schema-first querying, spatial joins) and, with a collect share link, to author your own maps.',
   },
   {
     q: 'How do I collect map data from the field with a shared form?',
-    a: 'Use collect (collect.bharatlas.com), the write side. Design a small form, share a link, and anyone who has it adds points from their phone with no account. You review incoming points, then publish the approved ones to this catalog, where a curator approves the submission before it appears. API base: https://collect.bharatlas.com/api/collect/v1.',
+    a: 'Use collect (collect.bharatlas.com), the write side. Design a small form, share a link, and anyone who has it adds points from their phone with no account. You review incoming points, then publish the approved ones to bharatlas, where a curator approves the submission before it appears. API base: https://collect.bharatlas.com/api/collect/v1.',
   },
   {
     q: 'How do I manage or publish a collect map from an LLM?',
@@ -1207,7 +1197,7 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I create a collect map programmatically?',
-    a: 'POST https://collect.bharatlas.com/api/collect/v1/collections with an X-API-Key header (the anti-abuse gate; the browser flow uses Turnstile instead). It returns admin, collect and view links whose tokens live in the URL fragment. Then GET /collections/:id/records to review and POST /collections/:id/publish to submit approved points to this catalog for review (a maintainer approves before it appears). Or from an LLM: the bharatlas MCP (npx bharatlas-mcp@latest) authors collect maps too, register your share link with register_map then moderate and publish.',
+    a: 'POST https://collect.bharatlas.com/api/collect/v1/collections with an X-API-Key header (the anti-abuse gate; the browser flow uses Turnstile instead). It returns admin, collect and view links whose tokens live in the URL fragment. Then GET /collections/:id/records to review and POST /collections/:id/publish to submit approved points to bharatlas for review (a maintainer approves before it appears). Or from an LLM: the bharatlas MCP (npx bharatlas-mcp@latest) authors collect maps too, register your share link with register_map then moderate and publish.',
   },
   {
     q: 'Where do published collect maps show up?',
@@ -1216,7 +1206,8 @@ const DOCS_FAQ = [
 ];
 
 const docs = docsStats(catalog, totalDownloads(dlCounts));
-const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) => `      <h3>${q}</h3>\n      <p>${a}</p>`).join('\n')}\n`;
+// Plain-text answers: escaped on the page so "&select=" reads as typed (not "§lect").
+const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) => `      <h3>${esc(q)}</h3>\n      <p>${esc(a)}</p>`).join('\n')}\n`;
 
 await renderPage('docs', {
   title: 'API v1',
@@ -1242,14 +1233,7 @@ await renderPage('docs', {
         provider: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
         documentation: ORIGIN + '/docs',
       },
-      {
-        '@type': 'FAQPage',
-        mainEntity: DOCS_FAQ.map(({ q, a }) => ({
-          '@type': 'Question',
-          name: q,
-          acceptedAnswer: { '@type': 'Answer', text: a },
-        })),
-      },
+      faqPage(DOCS_FAQ.map(({ q, a }) => ({ q, text: a }))),
     ],
   },
 }, {
@@ -1261,60 +1245,65 @@ await renderPage('docs', {
     .join(''),
 });
 
-// /mcp FAQ — kept in sync with the visible <p class="question"> / <p class="answer">
-// pairs in mcp.template.html. FAQPage JSON-LD lights up Google rich results
-// and lets LLM crawlers ingest the Q&A surface cleanly.
+// /mcp "What you can ask": the visible questions (under their group headings) and the
+// FAQPage JSON-LD, from this one list. Plain text, escaped on the page.
 const MCP_FAQ = [
   {
-    q: 'How many national parks vs wildlife sanctuaries are in India?',
-    a: '101 national parks and 560 wildlife sanctuaries, from the gs_wildlife layer grouped by category. The bharatlas MCP server returns this from a single group-by query against the curated GatiShakti wildlife layer.',
+    group: 'Counting and filtering',
+    q: `How many national parks vs wildlife sanctuaries in India?`,
+    a: `101 national parks, 560 sanctuaries (from the gs_wildlife layer, grouped by category)`,
   },
   {
-    q: 'How many villages are in Bengaluru Urban district?',
-    a: '949 villages. The lgd_villages layer filtered by dtname=BENGALURU URBAN. Schema-first pattern: get_layer_schema first, then query_layer with the right column name.',
+    q: `How many villages are in Bengaluru Urban district?`,
+    a: `949 villages (lgd_villages filtered by dtname=BENGALURU URBAN)`,
   },
   {
-    q: 'How many health facilities are in Bihar?',
-    a: '8,363 facilities: 3,232 sub-centres, 591 PHCs, 74 CHCs and others. From the nic_health layer filtered by state. Sub-typing via the category column gives the breakdown.',
+    q: `How many health facilities are in Bihar?`,
+    a: `8,363 facilities: 3,232 sub-centres, 591 PHCs, 74 CHCs (nic_health filtered by state)`,
   },
   {
-    q: 'How many wards does Chennai have vs Pune?',
-    a: 'Chennai has 200 wards, Pune has 58. From the wards_chennai and wards_pune layers respectively. Each Indian city has its own ward layer because authoritative ward maps come from city corporations, not a central registry.',
+    q: `How many wards does Chennai have vs Pune?`,
+    a: `Chennai: 200, Pune: 58 (from wards_chennai and wards_pune layer metadata)`,
   },
   {
-    q: 'What state, district, and seismic zone is Bengaluru in?',
-    a: 'Karnataka, Bengaluru Urban district, Seismic Zone II. The MCP locate endpoint runs point-in-polygon against 12 layers in a single call: state, district, ward, pincode, forest, eco-zone, seismic zone and more.',
+    group: 'Location queries',
+    q: `What state, district, and seismic zone is Bengaluru in?`,
+    a: `Karnataka, Bengaluru Urban, Seismic Zone II (locate endpoint checks ${LOCATE_N} layers in one call)`,
   },
   {
-    q: 'Which blocks are in district 571?',
-    a: '10 community-development blocks including Kunigal, Tumakuru, Gubbi, Turuvekere and Tiptur. From the lgd_blocks layer filtered by dtcode11=571 (Tumakuru district in Karnataka).',
+    q: `Which blocks are in district 571?`,
+    a: `10 blocks: Kunigal, Tumakuru, Gubbi, Turuvekere, Tiptur... (lgd_blocks filtered by dtcode11)`,
   },
   {
-    q: 'How many airports are in Bengaluru district and what types?',
-    a: '3 airports: HAL (Domestic), Yelahanka AFB (Civil Enclave), Kempegowda International. The MCP locates the district from a name, then filters the airports layer by state and district.',
+    group: 'Cross-layer queries',
+    q: `How many airports in Bengaluru district? What are their types?`,
+    a: `3 airports: HAL (Domestic), Yelahanka AFB (Civil Enclave), Kempegowda International. The MCP locates the district, then filters the airports layer by state and district.`,
   },
   {
-    q: 'Which airports in Karnataka are near water bodies?',
-    a: 'Hubballi Airport (~3 km from Unkal Lake), Mangalore Airport (between Netravathi and Gurupura rivers) and Jindal Vijaynagar (~7 km from JSW Reservoir). The MCP cross-references the airports and reservoirs layers via spatial proximity.',
+    q: `Which airports in Karnataka are near water bodies?`,
+    a: `Hubballi Airport (~3 km from Unkal Lake), Mangalore Airport (between Netravathi and Gurupura rivers), Jindal Vijaynagar (~7 km from JSW Reservoir). Cross-references airports + reservoirs layers.`,
   },
   {
-    q: 'Which villages in Madhya Pradesh are in eco-sensitive zones?',
-    a: 'MP has 4 eco-sensitive zones: Kharmor, Chambal, Orchha and Kheoni. The MCP narrows 47,571 MP villages by district, then tests each candidate against the eco-zone boundaries via point-in-polygon.',
+    group: 'Spatial queries (multi-step)',
+    q: `Which villages in Madhya Pradesh are in eco-sensitive zones?`,
+    a: `MP has 4 eco-sensitive zones (Kharmor, Chambal, Orchha, Kheoni). The MCP narrows 47,571 MP villages by district, then tests each against the eco-zone boundaries.`,
   },
   {
-    q: 'Which districts does NH-44 pass through?',
-    a: 'NH-44 runs through Delhi, Uttar Pradesh, Madhya Pradesh, Telangana and Karnataka. The MCP samples points along the route line geometry and runs locate at each sample to assemble the district list.',
+    q: `Which districts does NH-44 pass through?`,
+    a: `Delhi, UP, MP, Telangana, Karnataka. The MCP samples points along the route and locates the state at each point.`,
   },
   {
-    q: 'How many hospitals are in flood-prone areas of Assam?',
-    a: 'Assam has 3,909 health facilities, narrowed by state from the nic_health layer. For precise flood-zone overlap, the MCP tests hospital points against the India Flood Inventory polygons via point-in-polygon.',
+    q: `How many hospitals are in flood-prone areas of Assam?`,
+    a: `3,909 health facilities in Assam (narrowed by state). For precise flood-zone overlap, the MCP tests hospital points against the India Flood Inventory layer.`,
   },
 ];
+const mcpFaqHtml = MCP_FAQ.map(({ group, q, a }) =>
+  `${group ? `      <h3>${esc(group)}</h3>\n` : ''}      <p class="question">${esc(q)}</p>\n      <p class="answer">${esc(a)}</p>\n`).join('\n');
 
 await renderPage('mcp', {
   title: 'MCP Server',
   description:
-    "Ask questions about India's geo data in natural language. Connect Claude, GPT, or any LLM to 77 geo layers via the bharatlas MCP server.",
+    `Ask questions about India's geo data in natural language. Connect Claude, GPT, or any LLM to ${totalLayers} geo layers via the bharatlas MCP server.`,
   url: ORIGIN + '/mcp',
   image: ogImage('og-default'),
   structuredData: {
@@ -1337,17 +1326,10 @@ await renderPage('mcp', {
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
         softwareRequirements: 'Node.js, any MCP-compatible LLM client',
       },
-      {
-        '@type': 'FAQPage',
-        mainEntity: MCP_FAQ.map(({ q, a }) => ({
-          '@type': 'Question',
-          name: q,
-          acceptedAnswer: { '@type': 'Answer', text: a },
-        })),
-      },
+      faqPage(MCP_FAQ.map(({ q, a }) => ({ q, text: a }))),
     ],
   },
-});
+}, { MCP_FAQ: mcpFaqHtml });
 
 // Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
 const sitemapUrls = [

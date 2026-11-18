@@ -5,6 +5,7 @@
 // Skeleton — full handlers land in checkpoint #29/#30.
 
 import type { Env } from '../_middleware';
+import { json } from '../../lib/http';
 
 type Params = { id: string };
 
@@ -17,12 +18,12 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   )
     .bind(id)
     .first();
-  if (!row) return new Response(JSON.stringify({ error: 'not found' }), { status: 404, headers: { 'content-type': 'application/json' } });
-  return new Response(JSON.stringify(row), { headers: { 'content-type': 'application/json' } });
+  if (!row) return json(404, { error: 'not found' });
+  return json(200, row);
 };
 
 export const onRequestPut: PagesFunction<Env, keyof Params> = async () =>
-  new Response(JSON.stringify({ error: 'not implemented' }), { status: 501, headers: { 'content-type': 'application/json' } });
+  json(501, { error: 'not implemented' });
 
 export const onRequestDelete: PagesFunction<Env, keyof Params> = async () =>
-  new Response(JSON.stringify({ error: 'not implemented' }), { status: 501, headers: { 'content-type': 'application/json' } });
+  json(501, { error: 'not implemented' });

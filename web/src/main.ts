@@ -109,8 +109,10 @@ function handleHash() {
 }
 
 mapCloseBtn.addEventListener('click', hideMap);
-window.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && overlay.classList.contains('open')) hideMap();
+// Escape closes what is open on the map first, and the map only when nothing is.
+window.addEventListener('keydown', async (e) => {
+  if (e.key !== 'Escape' || !overlay.classList.contains('open')) return;
+  if (!(await loadMap()).closeTopSurface()) hideMap();
 });
 window.addEventListener('hashchange', handleHash);
 handleHash();
@@ -258,6 +260,7 @@ if (searchInput) {
   // shows every match on /layers), Esc closes; a click outside closes it;
   // "/" focuses search from anywhere on the page.
   searchInput.addEventListener('keydown', (e) => {
+    if (e.isComposing) return; // Enter / arrows belong to the IME while it composes (Hindi, Tamil...)
     const opts = Array.from(resultsBox?.querySelectorAll<HTMLAnchorElement>('.search-hit') ?? []);
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       if (!opts.length) return;

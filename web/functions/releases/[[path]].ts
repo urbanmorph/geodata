@@ -1,5 +1,6 @@
 // GET /releases/… — see lib/releases.ts for what each path serves.
 import { releaseRoute, sumsList } from '../lib/releases';
+import { json } from '../lib/http';
 
 type Params = { path: string[] };
 type Env = { ASSETS: { fetch: (req: Request) => Promise<Response> } };
@@ -27,11 +28,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   return notFound();
 };
 
-const notFound = () =>
-  new Response(JSON.stringify({ error: 'No such release or file', status: 404 }), {
-    status: 404,
-    headers: { 'content-type': 'application/json' },
-  });
+const notFound = () => json(404, { error: 'No such release or file', status: 404 });
 
 // HEAD gets the same answer (the runtime drops the body), so link checkers see the redirect or the 404,
 // not the site's single-page-app fallback.

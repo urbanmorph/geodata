@@ -55,6 +55,20 @@ export function buildWhereSQL(filters: ActiveFilter[]): string {
   return parts.length ? 'WHERE ' + parts.join(' AND ') : '';
 }
 
+// The search box's suggestions: up to 8 distinct values containing q, with % and _
+// matched literally (the same escaping as the search filter itself).
+export function typeaheadSQL(parquetUrl: string, col: string, q: string): string {
+  const c = `${escIdent(col)}::VARCHAR`;
+  return `SELECT DISTINCT ${c} AS v FROM ${escString(parquetUrl)} ` +
+    `WHERE ${c} ILIKE ${escString('%' + escLike(q) + '%')} ESCAPE '\\' ORDER BY v LIMIT 8`;
+}
+
+// Whether the map can draw the filter: every filtered column is a property of the
+// layer's tiles. Null keys (no tile loaded yet) means unknown, so the filter is kept.
+export function filterColumnsInTiles(filters: ActiveFilter[], tileKeys: Set<string> | null): boolean {
+  return !tileKeys || filters.every((f) => tileKeys.has(f.col));
+}
+
 // Resolve an ActiveFilter to the LGD state codes it selects, when (and only
 // when) the user picked exactly one IN filter on a known state column. Used
 // by both the R2 pre-baked-extract fast path (filter.ts) and the camera

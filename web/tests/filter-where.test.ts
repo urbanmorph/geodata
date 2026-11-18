@@ -2,8 +2,32 @@ import { describe, it, expect } from 'vitest';
 import {
   buildWhereSQL,
   buildMaplibreFilter,
+  filterColumnsInTiles,
+  typeaheadSQL,
   type ActiveFilter,
 } from '../src/filter-where';
+
+describe('filterColumnsInTiles: whether the map can draw the filter', () => {
+  const f: ActiveFilter[] = [{ col: 'zone', kind: 'in', values: ['Adyar'] }, { col: 'q', kind: 'search', q: 'x' }];
+  it('true when every filtered column is a tile property', () => {
+    expect(filterColumnsInTiles(f, new Set(['zone', 'q', 'other']))).toBe(true);
+  });
+  it('false when a filtered column is not in the tiles', () => {
+    expect(filterColumnsInTiles(f, new Set(['zone']))).toBe(false);
+  });
+  it('true while no tile has loaded (unknown), so the filter is kept', () => {
+    expect(filterColumnsInTiles(f, null)).toBe(true);
+  });
+});
+
+describe('typeaheadSQL: the search box suggestions', () => {
+  it('matches % and _ literally, like the filter itself', () => {
+    const sql = typeaheadSQL('https://r2/x.parquet', 'name', "50%_o'k");
+    expect(sql).toContain(`"name"::VARCHAR ILIKE '%50\\%\\_o''k%' ESCAPE '\\'`);
+    expect(sql).toContain(`FROM 'https://r2/x.parquet'`);
+    expect(sql).toMatch(/LIMIT 8$/);
+  });
+});
 
 describe('buildWhereSQL — empty', () => {
   it('returns empty string for no filters', () => {

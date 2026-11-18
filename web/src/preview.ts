@@ -238,7 +238,7 @@ async function handleFile(file: File): Promise<void> {
   drop.style.display = 'none';
 
   if (file.size > 500 * 1024 * 1024) {
-    renderReport([{ k: `file is ${fmtBytes(file.size)} — max 500 MB`, level: 'err' }]);
+    renderReport([{ k: `file is ${fmtBytes(file.size)}, max 500 MB`, level: 'err' }]);
     return;
   }
 
@@ -350,7 +350,7 @@ function buildReport(file: File, r: Report): Row[] {
   });
 
   if (r.crs && !okCRS(r.crs)) {
-    rows.push({ k: `CRS ${r.crs} — must be EPSG:4326`, level: 'err' });
+    rows.push({ k: `CRS ${r.crs}: must be EPSG:4326`, level: 'err' });
   } else {
     rows.push({ k: `CRS EPSG:4326`, level: 'ok' });
   }
@@ -358,7 +358,7 @@ function buildReport(file: File, r: Report): Row[] {
   if (r.invalid === 0) {
     rows.push({ k: `all geometries valid`, level: 'ok' });
   } else if (ratio < 0.95) {
-    rows.push({ k: `${r.invalid} / ${r.count} invalid — must be < 5%`, level: 'err' });
+    rows.push({ k: `${r.invalid} / ${r.count} invalid: must be < 5%`, level: 'err' });
   } else {
     rows.push({ k: `${r.invalid} / ${r.count} invalid geometries`, level: 'warn' });
   }
@@ -470,7 +470,7 @@ function applyProvenanceMode(): void {
   const original = (form.querySelector('input[name="is_original"]:checked') as HTMLInputElement)?.value === '1';
   if (original) {
     srcLabel.textContent = 'Method';
-    srcHint.textContent = 'How was this created? e.g. "Hand-digitized in QGIS, Aug 2025" — optional.';
+    srcHint.textContent = 'How was this created? e.g. "Hand-digitized in QGIS, Aug 2025" (optional).';
     srcInput.type = 'text';
     srcInput.required = false;
     srcInput.placeholder = 'Hand-digitized in QGIS, GPS traces, …';
@@ -678,7 +678,7 @@ function wirePasteBack(): void {
     try {
       resp = await fetch(`/api/c/${encodeURIComponent(parsed.id)}/summary`);
     } catch {
-      return fail('network error — try again');
+      return fail('network error, try again');
     }
     if (resp.status === 404) return fail('submission not found');
     if (!resp.ok) return fail(`server returned ${resp.status}`);
