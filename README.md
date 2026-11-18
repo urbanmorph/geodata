@@ -103,7 +103,7 @@ The files are served from Cloudflare R2. `GET /api/v1/layers/<id>` returns the U
 claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 ```
 
-AI apps send their own name when they connect. We count calls by app (Claude, Cursor, …) and keep nothing else.
+We count MCP calls per layer, and keep nothing about the caller.
 
 The collect (authoring) tools need the npm package below, which keeps share links on your machine.
 

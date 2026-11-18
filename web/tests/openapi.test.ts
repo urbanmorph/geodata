@@ -42,6 +42,12 @@ describe('the OpenAPI description', () => {
     expect(d).not.toMatch(/tell you before a change/);
   });
 
+  it('llms.txt says MCP calls are counted per layer, not by caller', () => {
+    const llms = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../public/llms.txt'), 'utf8');
+    expect(llms).toContain('We count MCP calls per layer, and keep nothing about the caller.');
+    expect(llms).not.toMatch(/count calls by app/);
+  });
+
   it('is OpenAPI 3.1 for the v1 base URL', () => {
     expect(OPENAPI.openapi).toBe('3.1.0');
     expect(OPENAPI.servers[0].url).toBe('https://bharatlas.com/api/v1');
