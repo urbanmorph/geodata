@@ -200,6 +200,12 @@ export const TOKENS = `
   .lic-badge { background: color-mix(in srgb, var(--brand-green) 18%, var(--bg-elevated)); text-decoration: none; }
   a.lic-badge:hover { text-decoration: underline; }
   .lic-badge--nc { background: color-mix(in srgb, var(--err) 16%, var(--bg-elevated)); }
+  /* Touch screens: the licence link and Install app keep their look, with a 44 px hit area. */
+  @media (pointer: coarse) {
+    a.lic-badge, .install-app { position: relative; }
+    a.lic-badge::before { content: ""; position: absolute; inset: -13px 0; }
+    .install-app::before { content: ""; position: absolute; inset: -7px 0; }
+  }
   @media (max-width: 640px) {
     body.page { padding: 0 16px 60px; } /* = the header's 16px, so content lines up with the logo */
     .page pre { font-size: var(--fs-xs); }

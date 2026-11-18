@@ -75,7 +75,7 @@ describe('renderViewPage', () => {
     expect(html).toMatch(/href="\/api\/r2\/community\/rT0I6Kgo9X\/file\.geojson"/);
   });
 
-  it('renders the "View on map" CTA that points at /preview with url param', () => {
+  it('renders the "View map" CTA that points at /preview with url param', () => {
     const html = renderViewPage({ submission: row(), ratingsCount: 0 });
     expect(html).toContain('href="/preview?url=');
     expect(html).toContain(encodeURIComponent('/api/r2/'));

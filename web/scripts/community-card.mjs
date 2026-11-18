@@ -1,4 +1,4 @@
-// Decide a community card's "View on map" target + download set, branching on
+// Decide a community card's "View map" target + download set, branching on
 // whether the submission has been baked into the catalog by
 // scripts/bake_community.py (a c_<id> provenance:'community' layer carrying
 // parquet/pmtiles/geojson/kml blocks).
@@ -72,7 +72,7 @@ export function renderCommunityActions(s, baked, { esc, fmtBytes }) {
     dl = `<a class="btn comm-card__dl" href="${esc(d.url)}" download="${esc(filename)}">Download .${esc(s.format)}<span class="size">${d.size != null ? fmtBytes(d.size) : ''}</span></a>`;
   }
   return `<div class="comm-card__actions">
-      ${viewMapLink(a.viewUrl, a.loadBytes, 'btn-primary', 'View map →').replace('class="btn-primary', 'class="btn-primary comm-card__view')}
+      ${viewMapLink(a.viewUrl, a.loadBytes, 'btn-primary', 'View map').replace('class="btn-primary', 'class="btn-primary comm-card__view')}
       ${dl}
     </div>`;
 }

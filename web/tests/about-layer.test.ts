@@ -14,13 +14,16 @@ const layer = {
   parquet: { url: 'https://r2/x.parquet', bytes: 79257 },
 };
 const meta = { label: 'Ahmedabad Wards', seo_title: 'Ahmedabad Ward Map: 48 wards (AMC)', unit: 'wards' };
+// The heading the map chrome shows (layerHeading): the card label and count noun.
+const heading = { title: 'Ahmedabad Wards', unit: 'wards' };
 const wardIndex = { place: 'Ahmedabad', nameLabel: 'Area', rows: [{ no: '1', name: 'Gota' }, { no: '9', name: 'Naranpura' }] };
 
 describe('aboutLayerHtml', () => {
-  const html = aboutLayerHtml({ layer, meta });
+  const html = aboutLayerHtml({ layer, meta, heading });
 
-  it('leads with the title and a one-line answer: count, source, licence, date', () => {
-    expect(html).toContain('<h2 class="about-panel__title" id="about-title">Ahmedabad Ward Map: 48 wards (AMC)</h2>');
+  it('leads with the card title (not the SEO title) and a one-line answer: count, source, licence, date', () => {
+    expect(html).toContain('<h2 class="about-panel__title" id="about-title">Ahmedabad Wards</h2>');
+    expect(html).not.toContain('Ward Map');
     expect(html).toMatch(/<strong>48<\/strong> wards/);
     expect(html).toContain('OpenCity');
     expect(html).toContain('<time datetime="2026-05-26">26 May 2026</time>');
@@ -31,7 +34,7 @@ describe('aboutLayerHtml', () => {
   });
 
   it('flags non-commercial licences', () => {
-    const nc = aboutLayerHtml({ layer: { ...layer, licence: 'CC-BY-NC-4.0' }, meta });
+    const nc = aboutLayerHtml({ layer: { ...layer, licence: 'CC-BY-NC-4.0' }, meta, heading });
     expect(nc).toContain('badge lic-badge lic-badge--nc');
     expect(nc).toContain('Non-commercial only');
   });
@@ -43,19 +46,19 @@ describe('aboutLayerHtml', () => {
 
   it('adds the ward list when the ward index is known', () => {
     expect(html).not.toContain('<table');
-    const withWards = aboutLayerHtml({ layer, meta, wardIndex });
+    const withWards = aboutLayerHtml({ layer, meta, heading, wardIndex });
     expect(withWards).toContain('<table class="ward-index">');
     expect(withWards).toContain('Naranpura');
   });
 
   it('escapes data', () => {
-    const bad = aboutLayerHtml({ layer: { ...layer, source: '<script>' }, meta });
+    const bad = aboutLayerHtml({ layer: { ...layer, source: '<script>' }, meta, heading });
     expect(bad).not.toContain('<script>');
   });
 });
 
 describe('aboutLayerHtml: usage and downloads up front', () => {
-  const html = aboutLayerHtml({ layer, meta });
+  const html = aboutLayerHtml({ layer, meta, heading });
   it('has a usage line slot under the facts, filled live from /api/v1/usage', () => {
     expect(html).toMatch(/<p class="about-panel__facts">[\s\S]*?<\/p><p class="about-panel__usage" data-usage hidden><\/p>/);
     const map = readFileSync(resolve(__dirname, '../src/map.ts'), 'utf8');

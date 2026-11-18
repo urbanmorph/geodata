@@ -6,7 +6,7 @@ import { PALETTE } from '../../shared/brand.mjs';
 export const THEME_DESC = {
   all: 'Every layer in the atlas',
   boundaries: 'Country to village: states, districts, blocks, panchayats and towns',
-  'city-wards': 'Ward and zone maps for over 30 cities',
+  'city-wards': 'Ward and zone maps for {cities} cities',
   people: 'Constituencies, courts and police station areas',
   environment: 'Forests, coasts, geology, minerals and natural hazards',
   water: 'Rivers, lakes, watersheds, aquifers, groundwater and floods',
@@ -19,6 +19,11 @@ export const THEME_DESC = {
   other: 'Layers that fit no other theme',
   community: 'Layers people added under open licences',
 };
+
+/** A theme's description, with {cities} filled by the number of cities with ward maps. */
+export function themeDesc(id, cityCount) {
+  return (THEME_DESC[id] ?? '').replace('{cities}', String(cityCount));
+}
 
 // Map symbols for the legend (Direction A, survey sheet): a closed shape in a
 // 28-unit box and its fill (brand colours from PALETTE; 'ink' = the text colour).

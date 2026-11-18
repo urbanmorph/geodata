@@ -60,7 +60,7 @@ const OPENTOPOMAP_ATTRIB =
 export const BASEMAPS: Basemap[] = [
   {
     id: 'minimal',
-    name: 'Bharatlas Minimal',
+    name: 'bharatlas Minimal',
     hint: 'India-correct boundaries · land + ocean · no labels',
     sources: {
       'world-land': {

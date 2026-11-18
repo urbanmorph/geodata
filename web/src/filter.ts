@@ -21,6 +21,7 @@ import {
   buildWhereSQL,
   resolveStateCodes,
   typeaheadSQL,
+  matchCountText,
   type ActiveFilter,
   type MaplibreFilter,
 } from './filter-where';
@@ -33,8 +34,11 @@ type Layer = {
 };
 
 export type FilterCallbacks = {
+  /** The panel's × : the map hides the panel and keeps the filter. */
   onClose: () => void;
   onActiveFiltersChange?: (filters: ActiveFilter[], mapFilter: MaplibreFilter) => void;
+  /** How many features match the filter, once counted (null while counting or unknown). */
+  onCount?: (matched: number | null) => void;
 };
 
 export function mountFilterPanel(
@@ -54,24 +58,26 @@ export function mountFilterPanel(
     </header>
     <div class="filter-panel__body">
       <div class="filter-panel__cols" id="filter-cols"></div>
-      <div class="filter-panel__row" id="filter-summary">
-        <span class="filter-panel__muted">Pick a value above to enable export.</span>
-      </div>
-      <div class="filter-panel__actions">
-        <button class="filter-panel__btn filter-panel__btn--primary" data-fmt="parquet" disabled>
-          <span class="fmt">Parquet</span><span class="muted">analytics · smallest</span>
-        </button>
-        <button class="filter-panel__btn" data-fmt="geojson" disabled>
-          <span class="fmt">GeoJSON</span><span class="muted">QGIS, web</span>
-        </button>
-        <button class="filter-panel__btn" data-fmt="kml" disabled>
-          <span class="fmt">KML</span><span class="muted">Google Earth &amp; Maps</span>
-        </button>
+      <div class="filter-panel__foot">
+        <div class="filter-panel__row" id="filter-summary">
+          <span class="filter-panel__muted">Pick a value above to enable export.</span>
+        </div>
+        <div class="filter-panel__actions">
+          <button class="filter-panel__btn filter-panel__btn--primary" data-fmt="parquet" disabled>
+            <span class="fmt">Parquet</span><span class="muted">analytics · smallest</span>
+          </button>
+          <button class="filter-panel__btn" data-fmt="geojson" disabled>
+            <span class="fmt">GeoJSON</span><span class="muted">QGIS, web</span>
+          </button>
+          <button class="filter-panel__btn" data-fmt="kml" disabled>
+            <span class="fmt">KML</span><span class="muted">Google Earth &amp; Maps</span>
+          </button>
+        </div>
+        <div class="filter-panel__status" id="filter-status" aria-live="polite"></div>
       </div>
       <p class="filter-panel__hint">
         Filtering runs in your browser. Only parquet pages matching your filter are streamed from R2.
       </p>
-      <div class="filter-panel__status" id="filter-status" aria-live="polite"></div>
     </div>
   `;
   container.appendChild(panel);
@@ -108,6 +114,7 @@ export function mountFilterPanel(
     window.clearTimeout(countTimer);
     countLoader?.dismiss();
     countLoader = undefined;
+    callbacks.onCount?.(null);
     if (!active.length) {
       summary.innerHTML = `<span class="filter-panel__muted">Pick a value above to enable export.</span>`;
       return;
@@ -133,7 +140,8 @@ export function mountFilterPanel(
       countLoader = undefined;
       engineWarm = true;
       const n = Number(rows[0]?.n ?? 0);
-      summary.innerHTML = `<span><strong>${n.toLocaleString('en-IN')}</strong> rows match.</span>`;
+      summary.innerHTML = `<span><strong>${matchCountText(n, rowCount)}</strong> match.</span>`;
+      callbacks.onCount?.(n);
     } catch (e) {
       window.clearTimeout(warmTimer);
       if (mySeq !== countSeq) return;
@@ -153,11 +161,7 @@ export function mountFilterPanel(
     colsEl.appendChild(field);
   }
 
-  closeBtn.addEventListener('click', () => {
-    callbacks.onActiveFiltersChange?.([], null);
-    panel.remove();
-    callbacks.onClose();
-  });
+  closeBtn.addEventListener('click', () => callbacks.onClose());
 
   // Pre-baked R2 extracts manifest — used only for the state-filter fast
   // path (one IN on a state column with one value). Lazy-fetched.

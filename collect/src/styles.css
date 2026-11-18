@@ -106,6 +106,7 @@ strong { font-weight: 650; letter-spacing: -.01em; }
 
 /* ── action buttons: one shape, one height ─────────────────────────────── */
 button, .btn {
+  font: inherit; /* the site's font, not the browser's Arial */
   min-height: var(--ctl-h); padding: 0 16px; border-radius: var(--radius);
   border: 1.5px solid var(--edge); background: var(--card); color: var(--fg);
   font-size: var(--fs-base); font-weight: 500; line-height: 1; cursor: pointer;

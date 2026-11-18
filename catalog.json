@@ -399,7 +399,7 @@
     "wards_bengaluru_gba": {
       "label": "Greater Bengaluru Wards (2025)",
       "unit": "wards",
-      "description": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025.",
+      "description": "Greater Bengaluru Authority: 369 final wards across 5 corporations, notified Nov 2025.",
       "source_url": "https://data.opencity.in/dataset/gba-wards-delimitation-2025",
       "source_org": "Greater Bengaluru Authority",
       "notes": "Latest GBA delimitation. Pair with the 5-corp polygons for parent grouping.",
@@ -2892,7 +2892,7 @@
       "category": "city-wards",
       "provenance": "curated",
       "fetched_at": "2026-05-26T14:44:38+00:00",
-      "notes": "Greater Bengaluru Authority \u2014 369 final wards across 5 corporations, notified Nov 2025.",
+      "notes": "Greater Bengaluru Authority: 369 final wards across 5 corporations, notified Nov 2025.",
       "source_check": {
         "method": "manual",
         "url": "https://data.opencity.in/dataset/gba-wards-delimitation-2025",
@@ -4782,7 +4782,7 @@
       "category": "boundaries",
       "provenance": "curated",
       "fetched_at": "2026-05-19T07:50:55.916651+00:00",
-      "notes": "mislabeled in upstream \u2014 block-equivalent, not village",
+      "notes": "Block-level boundaries from geoBoundaries (published upstream as ADM4, but they match blocks, not villages).",
       "source_check": {
         "method": "http",
         "url": "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM4/",

@@ -4,8 +4,48 @@ import {
   buildMaplibreFilter,
   filterColumnsInTiles,
   typeaheadSQL,
+  filterSummary,
+  matchCountText,
   type ActiveFilter,
 } from '../src/filter-where';
+
+// The "Filtered: ..." pill over the map says what is filtered once the panel closes.
+describe('filterSummary: the active filter in a few words', () => {
+  it('one value reads as column = value', () => {
+    expect(filterSummary([{ col: 'source', kind: 'in', values: ['GatiShakti'] }])).toBe('source = GatiShakti');
+  });
+  it('two values are listed, more are counted', () => {
+    expect(filterSummary([{ col: 'zone', kind: 'in', values: ['Adyar', 'Anna Nagar'] }])).toBe('zone = Adyar, Anna Nagar');
+    expect(filterSummary([{ col: 'zone', kind: 'in', values: ['A', 'B', 'C'] }])).toBe('zone: 3 values');
+  });
+  it('ranges, searches and yes/no', () => {
+    expect(filterSummary([{ col: 'pop', kind: 'range', min: 10, max: 20 }])).toBe('pop 10 to 20');
+    expect(filterSummary([{ col: 'pop', kind: 'range', min: 10 }])).toBe('pop ≥ 10');
+    expect(filterSummary([{ col: 'pop', kind: 'range', max: 20 }])).toBe('pop ≤ 20');
+    expect(filterSummary([{ col: 'name', kind: 'search', q: ' ganga ' }])).toBe('name contains "ganga"');
+    expect(filterSummary([{ col: 'active', kind: 'bool', v: false }])).toBe('active = no');
+  });
+  it('several filters: the first, then how many more', () => {
+    expect(filterSummary([
+      { col: 'source', kind: 'in', values: ['GatiShakti'] },
+      { col: 'state', kind: 'in', values: ['Goa'] },
+      { col: 'pop', kind: 'range', min: 1 },
+    ])).toBe('source = GatiShakti + 2 more');
+  });
+  it('nothing active is empty', () => {
+    expect(filterSummary([])).toBe('');
+  });
+});
+
+describe('matchCountText: "9,386 of 9,483"', () => {
+  it('formats both numbers the Indian way', () => {
+    expect(matchCountText(9386, 9483)).toBe('9,386 of 9,483');
+    expect(matchCountText(123456, 584000)).toBe('1,23,456 of 5,84,000');
+  });
+  it('without a total, just the count', () => {
+    expect(matchCountText(12, 0)).toBe('12');
+  });
+});
 
 describe('filterColumnsInTiles: whether the map can draw the filter', () => {
   const f: ActiveFilter[] = [{ col: 'zone', kind: 'in', values: ['Adyar'] }, { col: 'q', kind: 'search', q: 'x' }];

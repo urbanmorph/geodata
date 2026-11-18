@@ -23,7 +23,7 @@
         display: flex; align-items: center; gap: 10px; max-width: 640px; min-height: 52px; margin: 0 0 8px; padding: 0 14px;
         background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm); box-shadow: var(--shadow);
       }
-      .layers-search:focus-within { box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
+      .layers-search:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
       .search-meta { margin: 8px 0 0; }
       .layers-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: 28px; }
       .theme-index { position: sticky; top: 16px; display: flex; flex-direction: column; border: 1.5px solid var(--edge); background: var(--bg-elevated); }
@@ -33,7 +33,7 @@
       }
       .theme-index a:last-child { border-bottom: 0; }
       .theme-index a:hover { background: var(--land); }
-      .theme-index__n { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); }
+      .theme-index__n { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
       @media (max-width: 900px) {
         /* Phones and tablets: the index becomes a row of chips that scrolls sideways. */
         .layers-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
@@ -50,7 +50,7 @@
       .category-section.hidden { display: none; }
       .category-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
       .category-section__title { margin: 0; font-size: var(--fs-2xl); font-weight: 850; letter-spacing: -.02em; color: var(--fg); }
-      .category-section__count { color: var(--muted); font: 600 var(--fs-sm) var(--font-mono); }
+      .category-section__count { color: var(--muted); font: 600 var(--fs-sm) var(--font-mono); font-variant-numeric: tabular-nums; }
       .category-section__body { display: flex; flex-direction: column; gap: 0; }
       .category-cta {
         display: inline-block; margin-top: 14px;
@@ -131,13 +131,15 @@
       .row--compact .row__summary::-webkit-details-marker { display: none; }
       .row--compact .row__summary::marker { content: ""; }
       .row--compact .row__summary:hover { background: var(--bg-card); }
-      .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+      /* Two lines, so the year or source that tells sibling layers apart stays visible. */
+      .row--compact .row__summary > .row__title { font-weight: 600; color: var(--fg); overflow: hidden; min-width: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
       .row--compact .row__summary > .row__source { font-size: var(--fs-xs); color: var(--muted); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       /* display: block so text-overflow ellipsis applies to the combined
          num + unit text flow (spans inside default to inline; inline elems
          ignore overflow:hidden + text-overflow:ellipsis). */
       .row--compact .row__summary > .row__count { display: block; color: var(--muted); font-size: var(--fs-xs); text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
       .row--compact .row__summary > .row__count .row__num { font-variant-numeric: tabular-nums; color: var(--fg); font-weight: 500; margin-right: 6px; }
+      @media (min-width: 641px) { .row--compact .row__summary > .row__count .row__num { display: inline-block; min-width: 6ch; text-align: right; } }
       .row--compact .row__summary > .row__count .row__unit { color: var(--muted); }
       .row--compact .row__head > .row__actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; min-width: 0; padding: 10px 4px; }
       /* Download links live inside row__expand (under "Download:") instead

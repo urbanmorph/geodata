@@ -13,9 +13,10 @@ import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/l
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg } from '../../shared/brand.mjs';
 import { LEVEL_META as BUILTIN_LEVEL_META } from '../../shared/level-meta.mjs';
-import { THEME_DESC, THEME_GLYPH } from './themes.mjs';
+import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
 import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
+import { WARD_PLACES } from '../functions/lib/ward-places.ts';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
 import { fillTemplate } from './fill-template.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
@@ -557,11 +558,13 @@ const legendGlyph = (id) => {
 };
 // Theme cards link into /layers: each theme is a section there (Option B).
 const themeHref = (id) => (id === 'community' ? '/layers?q=community' : `/layers#${id}`);
+// Cities with a ward map (a city's vintages and alternates count once).
+const WARD_CITY_COUNT = new Set(Object.values(WARD_PLACES).map((p) => p.city)).size;
 const themeCard = (id, name, n) =>
   `<a class="theme-card" href="${themeHref(id)}">` +
   legendGlyph(id) +
-  `<span class="theme-card__name">${esc(name)}</span><span class="theme-card__n"><span class="count">${n}</span> layers</span>` +
-  (THEME_DESC[id] ? `<span class="theme-card__desc">${esc(THEME_DESC[id])}</span>` : '') +
+  `<span class="theme-card__name">${esc(name)}</span><span class="theme-card__n"><span class="count">${n}</span> layer${n === 1 ? '' : 's'}</span>` +
+  (THEME_DESC[id] ? `<span class="theme-card__desc">${esc(themeDesc(id, WARD_CITY_COUNT))}</span>` : '') +
   `</a>`;
 // No "All layers" card: the "See all N layers" button under the grid does that.
 const chips = activeCats.map(([id, name]) => themeCard(id, name, categoryCounts[id]));
@@ -695,7 +698,7 @@ const out = fillTemplate(tmpl, {
   POPULAR: popularHtml,
   MAP_BRAND: `<a class="map-brand" href="/" aria-label="bharatlas home">${brandMarkSvg(26)}</a>`,
   QUICK_SEARCH: quickSearchHtml,
-  INDIA_MAP: indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog }),
+  INDIA_MAP: indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog, cityCount: WARD_CITY_COUNT }),
   LAYER_TOTAL: String(totalLayers),
   UPDATED: updatedHtml,
   DOWNLOAD_TOTAL: (homeDownloads > 0 ? ` · <span class="search-meta__count">${fmtCount(homeDownloads)}</span> downloads` : '') + homeUsageSuffix(apiUse),

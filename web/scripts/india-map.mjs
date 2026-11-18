@@ -64,7 +64,7 @@ export function hexPath(cells) {
 export function mapThemes(catalog, cityCount) {
   const rows = (id) => fmtInt(catalog.layers.find((l) => l.id === id)?.rows);
   return [
-    { key: 'wards', label: 'City wards', caption: `Ward maps for ${cityCount} cities, over villages and towns covered everywhere` },
+    { key: 'wards', label: 'City wards', caption: `Ward maps for ${cityCount} cities. Village and town boundaries everywhere.` },
     { key: 'rail', label: 'Rail', caption: `Indian Railways: ${rows('ir_tracks')} track sections, ${rows('ir_stations')} stations` },
     { key: 'rivers', label: 'Water', caption: `The 40 longest of ${rows('wris_rivers')} rivers mapped by India-WRIS` },
     { key: 'schools', label: 'Schools', caption: `${rows('udise_schools')} schools (UDISE+); darker hexagons have more` },
@@ -72,10 +72,11 @@ export function mapThemes(catalog, cityCount) {
   ];
 }
 
-/** The map figure: theme switch, the outline, and the inline ward theme. */
-export function indiaMapHtml({ wardBboxes, catalog }) {
+/** The map figure: theme switch, the outline, and the inline ward theme.
+ *  cityCount: the cities with ward maps (nearby cities can share one marker). */
+export function indiaMapHtml({ wardBboxes, catalog, cityCount }) {
   const cities = wardCities(wardBboxes);
-  const themes = mapThemes(catalog, cities.length);
+  const themes = mapThemes(catalog, cityCount ?? cities.length);
   const chips = themes
     .map(
       (t, i) =>

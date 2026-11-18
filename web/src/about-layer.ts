@@ -14,20 +14,20 @@ export type AboutLayer = {
   description?: string; notes?: string;
   parquet?: Fmt; pmtiles?: Fmt; geojson?: Fmt; kml?: Fmt; shapefile?: Fmt;
 };
-export type AboutMeta = { label?: string; seo_title?: string; unit?: string; description?: string } | undefined;
+export type AboutMeta = { description?: string } | undefined;
 
-
-
-export function aboutLayerHtml({ layer, meta, wardIndex }: { layer: AboutLayer; meta: AboutMeta; wardIndex?: WardIndex | null }): string {
-  const title = meta?.seo_title || meta?.label || layer.id.replace(/_/g, ' ');
+/** The heading: the layer's card title and count noun (layer-display.ts layerHeading). */
+export function aboutLayerHtml({ layer, meta, heading, wardIndex }: {
+  layer: AboutLayer; meta: AboutMeta; heading: { title: string; unit: string }; wardIndex?: WardIndex | null;
+}): string {
   const facts = [
-    layer.rows != null ? `<strong>${layer.rows.toLocaleString('en-IN')}</strong> ${esc(meta?.unit || 'features')}` : '',
+    layer.rows != null ? `<strong>${layer.rows.toLocaleString('en-IN')}</strong> ${esc(heading.unit)}` : '',
     layer.source ? `Source: ${esc(layer.source)}` : '',
     layer.fetched_at ? `Updated <time datetime="${esc(layer.fetched_at.slice(0, 10))}">${fmtDate(layer.fetched_at)}</time>` : '',
   ].filter(Boolean).join(' · ');
   const desc = meta?.description || layer.description || layer.notes || '';
   const downloads = availableDownloads(layer);
-  return `<h2 class="about-panel__title" id="about-title">${esc(title)}</h2>` +
+  return `<h2 class="about-panel__title" id="about-title">${esc(heading.title)}</h2>` +
     `<p class="about-panel__facts">${facts}</p>` +
     // Filled live by map.ts from /api/v1/usage: downloads and API/MCP queries.
     `<p class="about-panel__usage" data-usage hidden></p>` +
