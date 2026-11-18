@@ -21,7 +21,8 @@ Per layer:
   5. uploads to versioned keys (<stem>.<md5[:8]>.<ext>), md5-skipped, while
      holding the shared upload lock
   6. --register: patch catalog.json and scripts/external-ingested.json in
-     place, only once the query check for the layer has passed (the record
+     place (and bake the Filter panel's stats file, bake_large_filter_stats),
+     only once the query check for the layer has passed (the record
      WORK/<id>/query_check.json, written after timing a where + group_by
      query through the API code against the uploaded parquet)
 
@@ -53,7 +54,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import bake_land_water as blw  # noqa: E402
-import build_filter_stats  # noqa: E402
+import bake_large_filter_stats  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
 import rebake_tiles as rt  # noqa: E402
 from bake_formats import shapefile_key, short_field_names  # noqa: E402
@@ -274,19 +275,8 @@ def notes_for(layer: StateSplit, states: int) -> str:
     return (layer.d.notes + SPLIT_NOTE.format(states=states, col=layer.state_column) + ' ' + rt.NOTE)
 
 
-def filter_stats_for(lid: str, parquet: Path, record: Path) -> dict:
-    """build_filter_stats for the layer's parquet, cached in `record`: the
-    Filter panel reads these from the catalog instead of probing the whole
-    multi-GB parquet in the browser (which runs the tab out of memory)."""
-    if not record.exists():
-        stats = build_filter_stats.build_all([(lid, parquet)])[lid]
-        with blw.atomic_output(record) as part:
-            part.write_text(json.dumps(stats, default=str))
-    return json.loads(record.read_text())
-
-
 def register(layer: StateSplit, published: dict[str, tuple[str, int]], features: int, states: int,
-             catalog: Path = CATALOG, manifest: Path = MANIFEST, filter_stats: dict | None = None) -> None:
+             catalog: Path = CATALOG, manifest: Path = MANIFEST) -> None:
     """Patch catalog.json and the ingest manifest in place (by id)."""
     base = f'{R2_PUBLIC}/{layer.d.r2_prefix}'
     (pq_name, pq_bytes), (pm_name, pm_bytes) = published['parquet'], published['pmtiles']
@@ -298,8 +288,6 @@ def register(layer: StateSplit, published: dict[str, tuple[str, int]], features:
     entry = next(x for x in c['layers'] if x['id'] == d.id)
     entry['parquet']['upstream_url'] = layer.release_url
     entry['pmtiles'] = {'url': f'{base}/{pm_name}', 'bytes': pm_bytes}  # this run's tiles, ours (no upstream)
-    if filter_stats is not None:
-        c.setdefault('filter_stats', {})[d.id] = filter_stats
     write_json(catalog, c)
     rows = upsert_by_id(json.loads(manifest.read_text()), {
         'id': d.id, 'name': d.name, 'level': d.level, 'category': d.category, 'source': d.source,
@@ -428,9 +416,9 @@ def main(argv: list[str]) -> int:
                     log(f'  {lid}: NOT registered: no passing query check in {WORK / lid / "query_check.json"}')
                     continue
                 states = len(state_counts(_con(), built['files']['parquet'], layer.state_column))
-                pq = built['files']['parquet']
-                register(layer, published, built['total'], states,
-                         filter_stats=filter_stats_for(lid, pq, WORK / lid / 'filter_stats.json'))
+                register(layer, published, built['total'], states)
+                # The Filter panel's stats, a static file per layer (never in the catalog).
+                bake_large_filter_stats.bake()
                 log(f'  {lid}: in catalog.json and the manifest')
         except blw.OutOfTime as e:
             log(f'STOPPED: {e}; finished steps are cached, re-run to continue')

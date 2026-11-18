@@ -26,14 +26,13 @@ def test_threshold_is_read_from_the_shared_rule():
     assert b.large_filter_bytes() == 100 * MB
 
 
-def test_targets_are_large_layers_without_stats():
+def test_large_layers_are_those_over_the_threshold_with_a_parquet():
     cat = {'layers': [
         {'id': 'big', 'parquet': {'url': 'u1', 'bytes': 101 * MB}},
-        {'id': 'done', 'parquet': {'url': 'u2', 'bytes': 500 * MB}},
         {'id': 'small', 'parquet': {'url': 'u3', 'bytes': 99 * MB}},
         {'id': 'none', 'parquet': None},
-    ], 'filter_stats': {'done': {}}}
-    assert [x['id'] for x in b.targets(cat, 100 * MB)] == ['big']
+    ]}
+    assert [x['id'] for x in b.large_layers(cat, 100 * MB)] == ['big']
 
 
 @pytest.fixture
@@ -59,15 +58,22 @@ def test_stats_read_straight_from_a_url(served):
     assert state['distinct'] == 2 and {v['v'] for v in state['top_values']} == {'KA', 'MH'}
 
 
-def test_bake_patches_catalog_per_layer_and_is_idempotent(served, tmp_path):
-    cat = tmp_path / 'catalog.json'
+def test_bake_writes_a_file_per_large_layer_never_the_catalog_and_is_idempotent(served, tmp_path):
+    # Stats in catalog.json reach every visitor (75 -> 99 KB gzipped for 23
+    # layers): they live in web/public/api-data/filter-stats/<id>.json, read
+    # by the Filter panel when it opens.
+    cat, out = tmp_path / 'catalog.json', tmp_path / 'filter-stats'
     cat.write_text(json.dumps({'layers': [
         {'id': 'big', 'parquet': {'url': served, 'bytes': 200 * MB}},
+        {'id': 'moved', 'parquet': {'url': served, 'bytes': 300 * MB}},
         {'id': 'small', 'parquet': {'url': served, 'bytes': 1}},
-    ], 'filter_stats': {}}))
-    assert b.bake(cat, threshold=100 * MB) == ['big']
+    ], 'filter_stats': {'moved': {'row_count': 5, 'columns': []}, 'small': {'row_count': 1, 'columns': []}}}))
+    assert b.bake(cat, out, threshold=100 * MB) == ['big']
+    c = json.loads(cat.read_text())
+    assert c['filter_stats'] == {'small': {'row_count': 1, 'columns': []}}  # small layers keep theirs
+    assert json.loads((out / 'big.json').read_text())['row_count'] == 20
+    assert json.loads((out / 'moved.json').read_text())['row_count'] == 5  # moved out, not recomputed
+    files = {p.name: p.read_text() for p in out.iterdir()}
     first = cat.read_text()
-    stats = json.loads(first)['filter_stats']
-    assert list(stats) == ['big'] and stats['big']['row_count'] == 20
-    assert b.bake(cat, threshold=100 * MB) == []  # nothing left: no work, no change
-    assert cat.read_text() == first
+    assert b.bake(cat, out, threshold=100 * MB) == []  # nothing left: no work, no change
+    assert cat.read_text() == first and {p.name: p.read_text() for p in out.iterdir()} == files

@@ -157,6 +157,7 @@ export const OPENAPI = {
           q('order_by', 'Reserved, not applied yet: rows come in file order. Accepted so it is never read as a column filter.', { type: 'string' }),
           q('filter', 'Filters as a JSON list, for more than exact matches: `[{"col":"sname","kind":"in","values":["KA","TN"]}]`; kinds `in` (case-insensitive, any of the values), `range` (numeric `min` and/or `max`), `search` (case-insensitive substring `q`), `bool` (`v`). Combined with `where` (all must match).', { type: 'string' }),
           q('format', 'Not used by /query (see /layers/{id}/export). Accepted so it is never read as a column filter.', { type: 'string' }),
+          q('estimate', 'Not used by /query (see /layers/{id}/export). Accepted so it is never read as a column filter.', { type: 'string' }),
         ],
         responses: {
           '200': ok('Rows, or counts per group', {
@@ -176,10 +177,11 @@ export const OPENAPI = {
         operationId: 'exportLayerRows',
         tags: ['Layers'],
         summary: 'The rows matching a filter, with their shapes, as GeoJSON, KML or CSV',
-        description: 'Streams every row matching `where` and/or `filter` (same forms as /query), with all columns. A filter is required: the whole layer is a download (see the layer’s files). At most 50,000 rows; above that the answer is 400 with the match count, so narrow the filter or use the layer’s downloads. CSV carries the bounding-box centre as `_lat`, `_lng` instead of the shape.',
+        description: 'Streams every row matching `where` and/or `filter` (same forms as /query), with all columns. A filter is required: the whole layer is a download (see the layer’s files). At most 50,000 rows and an estimated 100 MB; above either the answer is 400 with the match count and the estimate, so narrow the filter or use the layer’s downloads. `estimate=1` returns the count and each format’s estimated size as JSON without exporting. CSV carries the bounding-box centre as `_lat`, `_lng` instead of the shape.',
         parameters: [
           LAYER_ID,
           q('format', 'geojson (default), kml or csv.', { type: 'string', enum: ['geojson', 'kml', 'csv'], default: 'geojson' }),
+          q('estimate', '1: only the match count and the estimated size of each format (JSON), no export.', { type: 'string', enum: ['1'] }),
           q('where', 'Filters as `col=val,col2=val2` (exact, case-insensitive).', { type: 'string' }),
           q('filter', 'Filters as a JSON list, for more than exact matches: `[{"col":"sname","kind":"in","values":["KA","TN"]}]`; kinds `in` (case-insensitive, any of the values), `range` (numeric `min` and/or `max`), `search` (case-insensitive substring `q`), `bool` (`v`). Combined with `where` (all must match).', { type: 'string' }),
         ],

@@ -127,3 +127,69 @@ describe('the geometry column is named geometry (or geom, wkb_geometry), not any
     expect(g.total).toBe(11); // unit 1, 10..19
   });
 });
+
+describe('export size cap', () => {
+  const ka = [{ col: 'state', kind: 'in' as const, values: ['KA'] }];
+
+  // Footer-only metadata shaped like groundwater prospects: Karnataka's 41,448
+  // rows (218 MB uncompressed over the exported columns; its GeoJSON measured
+  // 609 MB) and Sikkim with a class (179 rows, 0.99 MB; GeoJSON 6.5 MB).
+  const meta = (groups: Array<[rows: number, bytes: number]>) => ({
+    row_groups: groups.map(([rows, bytes]) => ({
+      num_rows: rows,
+      columns: [{ meta_data: { path_in_schema: ['geometry'], total_uncompressed_size: bytes } }],
+    })),
+  }) as never;
+
+  it('refuses a Karnataka-size GeoJSON and allows a Sikkim-size one', async () => {
+    const { estimateExportBytes, EXPORT_MAX_BYTES } = await import('../functions/lib/parquet-export');
+    const kaEst = estimateExportBytes(meta([[41_448, 218_000_000]]), [{ count: 41_448 }], ['geometry'], 'geojson');
+    const skEst = estimateExportBytes(meta([[179, 992_000]]), [{ count: 179 }], ['geometry'], 'geojson');
+    expect(EXPORT_MAX_BYTES).toBe(100 * 1024 * 1024);
+    expect(kaEst).toBeGreaterThan(EXPORT_MAX_BYTES);
+    expect(kaEst).toBeGreaterThanOrEqual(609_000_000); // never below the measured size
+    expect(skEst).toBeLessThan(EXPORT_MAX_BYTES);
+    expect(skEst).toBeGreaterThanOrEqual(6_500_000);
+  });
+
+  it('weights each row group by its own matches and only the exported columns', async () => {
+    const { estimateExportBytes } = await import('../functions/lib/parquet-export');
+    const m = meta([[100, 1000], [100, 100_000]]);
+    const dense = estimateExportBytes(m, [{ count: 0 }, { count: 10 }], ['geometry'], 'geojson');
+    const sparse = estimateExportBytes(m, [{ count: 10 }, { count: 0 }], ['geometry'], 'geojson');
+    expect(dense).toBeGreaterThan(sparse * 50);
+    expect(estimateExportBytes(m, [{ count: 10 }, { count: 10 }], ['other'], 'geojson')).toBe(0);
+  });
+
+  it('exportRows refuses above the byte cap with the estimate, the count and where to go instead', async () => {
+    await expect(exportRows(file, { filters: ka, format: 'geojson', maxBytes: 100, tooManyHint: 'download the per-state zip' }))
+      .rejects.toThrow(/10 rows match.*estimated .*GeoJSON.*per-state zip/);
+  });
+
+  it('planExport gives the count and every format\'s estimate without reading rows', async () => {
+    const { planExport } = await import('../functions/lib/parquet-export');
+    const p = await planExport(file, { filters: ka });
+    expect(p.total).toBe(10);
+    expect(p.estimatedBytes.geojson).toBeGreaterThan(0);
+    expect(p.estimatedBytes.csv).toBeGreaterThan(0);
+  });
+});
+
+describe('export memory stays bounded', () => {
+  // A Karnataka CSV (41,448 rows) ran a local Worker out of heap: each row
+  // group's matches were read in one go with every column and the shapes.
+  it('reads matches in windows of at most N rows', async () => {
+    const { readWindows } = await import('../functions/lib/parquet-export');
+    expect(readWindows([0, 1, 2, 5000, 5001, 9999], 1000)).toEqual([[0, 1, 2], [5000, 5001], [9999]]);
+    expect(readWindows([10, 1009, 1010], 1000)).toEqual([[10, 1009], [1010]]);
+    expect(readWindows([], 1000)).toEqual([]);
+  });
+  it('a CSV export never reads the shapes', async () => {
+    const ka = [{ col: 'state', kind: 'in' as const, values: ['KA'] }];
+    const csv = await collect((await exportRows(file, { filters: ka, format: 'csv' })).chunks);
+    expect(csv.split('\n')[1]).not.toMatch(/POLYGON|coordinates/);
+    const { readColumnsFor } = await import('../functions/lib/parquet-export');
+    expect(readColumnsFor('csv', ['a'], 'geometry', ['xmin'])).toEqual(['a', 'xmin']);
+    expect(readColumnsFor('geojson', ['a'], 'geometry', ['xmin'])).toEqual(['a', 'geometry', 'xmin']);
+  });
+});

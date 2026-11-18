@@ -1,6 +1,7 @@
 // @vitest-environment happy-dom
 // Filter & export for a layer over LARGE_FILTER_BYTES runs on the API: the
-// count is one /query call, export is a streamed /export download, and the
+// count (with each format's estimated size) is one /export?estimate=1 call,
+// export is a streamed /export download, and the
 // browser never hands the layer's parquet to DuckDB-WASM (a 2.3 GB parquet
 // read whole crashed the tab). Smaller layers keep the DuckDB path.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
@@ -46,13 +47,15 @@ const allDbCalls = () => Object.values(db).flatMap((f) => (vi.isMockFunction(f) 
 const dbSawParquet = () => allDbCalls().some((args) => JSON.stringify(args).includes(PARQUET));
 
 let fetchMock: ReturnType<typeof vi.fn>;
+const plan = (total: number, geojson: number, csv = geojson / 10) =>
+  new Response(JSON.stringify({ data: { total, estimated_bytes: { geojson, kml: geojson, csv } } }), { status: 200 });
 let clicked: string[];
 
 beforeEach(() => {
   vi.useFakeTimers();
   vi.clearAllMocks();
   clicked = [];
-  fetchMock = vi.fn(async () => new Response(JSON.stringify({ data: { total: 7, rows: [] } }), { status: 200 }));
+  fetchMock = vi.fn(async () => plan(7, 2_000_000));
   vi.stubGlobal('fetch', fetchMock);
   vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
     clicked.push(this.href);
@@ -65,15 +68,16 @@ afterEach(() => {
 });
 
 describe('a layer over LARGE_FILTER_BYTES', () => {
-  it('counts with one /query call carrying the filters', async () => {
+  it('counts with one estimate call carrying the filters', async () => {
     const { onCount } = mount(2300 * MB);
     chip('sname', 'KA').click();
     chip('LG_2', 'Pediplain').click();
     await vi.advanceTimersByTimeAsync(400);
-    const calls = fetchMock.mock.calls.map((c) => String(c[0])).filter((u) => u.includes('/query'));
+    const calls = fetchMock.mock.calls.map((c) => String(c[0])).filter((u) => u.includes('/api/v1/layers/'));
     expect(calls).toHaveLength(1);
     const u = new URL(calls[0], 'http://x');
-    expect(u.pathname).toBe('/api/v1/layers/big/query');
+    expect(u.pathname).toBe('/api/v1/layers/big/export');
+    expect(u.searchParams.get('estimate')).toBe('1');
     expect(JSON.parse(u.searchParams.get('filter')!)).toEqual([
       { col: 'sname', kind: 'in', values: ['KA'] },
       { col: 'LG_2', kind: 'in', values: ['Pediplain'] },
@@ -107,7 +111,7 @@ describe('a layer over LARGE_FILTER_BYTES', () => {
   });
 
   it('above the export cap says so, and points a single state to the per-state zip', async () => {
-    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ data: { total: 60_000, rows: [] } })));
+    fetchMock.mockImplementation(async () => plan(60_000, 50 * MB));
     mount(2300 * MB);
     chip('sname', 'KA').click();
     await vi.advanceTimersByTimeAsync(400);
@@ -118,6 +122,27 @@ describe('a layer over LARGE_FILTER_BYTES', () => {
     expect(msg).toMatch(/60,000/);
     expect(msg).toMatch(/50,000/);
     expect(msg).toMatch(/per-state zip/);
+  });
+});
+
+describe('export size cap on a large layer', () => {
+  it('a Karnataka-size GeoJSON is refused with the estimate; its CSV, under the cap, exports', async () => {
+    fetchMock.mockImplementation(async () => plan(41_448, 1_440 * MB, 29 * MB));
+    mount(2300 * MB);
+    chip('sname', 'KA').click();
+    await vi.advanceTimersByTimeAsync(400);
+    document.querySelector<HTMLButtonElement>('[data-fmt="geojson"]')!.click();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(clicked).toHaveLength(0);
+    const msg = document.querySelector('#filter-status')!.textContent!;
+    expect(msg).toMatch(/41,448/);
+    expect(msg).toMatch(/1,440 MB/);
+    expect(msg).toMatch(/100 MB/);
+    expect(msg).toMatch(/per-state zip/);
+    document.querySelector<HTMLButtonElement>('[data-fmt="csv"]')!.click();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(clicked).toHaveLength(1);
+    expect(new URL(clicked[0]).searchParams.get('format')).toBe('csv');
   });
 });
 

@@ -3,7 +3,9 @@ import { loadCatalogVersioned } from '../../../../lib/catalog-loader';
 import { countApiUse } from '../../../../lib/usage';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { QueryInputError } from '../../../../lib/parquet-query';
-import { exportRows, parseFilterParam, EXPORT_FORMATS, type ExportFormat } from '../../../../lib/parquet-export';
+import {
+  exportRows, planExport, parseFilterParam, EXPORT_FORMATS, EXPORT_MAX_BYTES, EXPORT_MAX_ROWS, type ExportFormat,
+} from '../../../../lib/parquet-export';
 import { parseQueryParams } from '../../../../lib/query-params';
 import { json } from '../../../../lib/http';
 
@@ -41,6 +43,12 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const filters = parseFilterParam(url.searchParams.get('filter'));
     const { where } = parseQueryParams(url.searchParams);
     const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
+    if (url.searchParams.get('estimate') === '1') {
+      const plan = await planExport(file, { where, filters });
+      return json(200, { data: {
+        total: plan.total, estimated_bytes: plan.estimatedBytes, max_rows: EXPORT_MAX_ROWS, max_bytes: EXPORT_MAX_BYTES,
+      } });
+    }
     const out = await exportRows(file, { where, filters, format, name: id, tooManyHint: downloadsHint(layer) });
     const enc = new TextEncoder();
     const iter = out.chunks[Symbol.asyncIterator]();

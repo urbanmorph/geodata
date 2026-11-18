@@ -619,11 +619,11 @@ async function loadFilterColumns(
   if (!layer.parquet?.url) return null;
 
   const { rankColumns, columnStatsSource } = await import('./filter-schema');
-  const fullCat = await getCatalog();
-  const baked = fullCat.filter_stats?.[layer.id];
+  const { loadBakedStats } = await import('./filter-stats');
+  const baked = await loadBakedStats(layer.id, await getCatalog());
   const source = columnStatsSource(!!baked, usesServerFilter(layer));
   if (source === 'none') {
-    console.warn('no baked filter stats for large layer', layer.id); // scripts/bake_large_filter_stats.py
+    console.warn('no filter stats file for large layer', layer.id); // scripts/bake_large_filter_stats.py
     return null;
   }
 

@@ -1,6 +1,6 @@
 import type { Env } from '../../_middleware';
 import { loadCatalogVersioned } from '../../../lib/catalog-loader';
-import { toApiLayer } from '../../../lib/catalog-api';
+import { attachFilterStats, toApiLayer } from '../../../lib/catalog-api';
 import { countApiUse } from '../../../lib/usage';
 import { json } from '../../../lib/http';
 import { retiredRedirect } from '../../../lib/retired-layers';
@@ -22,5 +22,5 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   countApiUse(ctx, id);
 
   return cached(ctx, cacheKey(version, url), EDGE_TTL.catalog, async () =>
-    json(200, { data: toApiLayer(layer, catalog, true) }, { 'cache-control': CACHE }));
+    json(200, { data: await attachFilterStats(ctx, toApiLayer(layer, catalog, true)) }, { 'cache-control': CACHE }));
 };

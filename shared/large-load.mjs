@@ -55,8 +55,11 @@ export function inlineMapLink(href, bytes, text) {
 // parquet crashed it. One rule for every layer.
 export const LARGE_FILTER_BYTES = 100 * 1024 * 1024;
 
-// Most rows one filtered export returns (the panel and the API share it).
+// Most rows, and most estimated bytes, one filtered export returns (the panel
+// and the API share them). The byte cap keeps a wide or detailed layer's
+// export within what one Worker request can stream.
 export const FILTER_EXPORT_MAX_ROWS = 50_000;
+export const FILTER_EXPORT_MAX_BYTES = 100 * 1024 * 1024;
 
 /** Whether the Filter panel uses the API for this layer (size known and over the line). */
 export function usesServerFilter(layer) {

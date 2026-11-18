@@ -228,25 +228,3 @@ def test_query_check_gates_registration(tmp_path):
     assert not s.query_check_passed(rec)
     rec.write_text(json.dumps({'ok': True, 'ms': 1234}))
     assert s.query_check_passed(rec)
-
-
-def test_register_bakes_filter_stats_so_the_browser_never_probes_gigabytes(tmp_path):
-    # Without baked stats the Filter panel's in-browser probe scans every
-    # column of the 2+ GB parquet and the tab runs out of memory.
-    cat, man = tmp_path / 'catalog.json', tmp_path / 'manifest.json'
-    cat.write_text(json.dumps({'layers': [], 'level_meta': {}, 'level_order': [], 'filter_stats': {'x': {}}}))
-    man.write_text('[]')
-    stats = {'row_count': 7, 'columns': [{'name': 'sname', 'type': 'string', 'distinct': 2, 'null_frac': 0}]}
-    s.register(s.LAYERS[0], _published(), features=7, states=31, catalog=cat, manifest=man, filter_stats=stats)
-    fs = json.loads(cat.read_text())['filter_stats']
-    assert fs['bhuvan_gw_prospects'] == stats and 'x' in fs
-
-
-def test_filter_stats_cached(shards, tmp_path):
-    pq = tmp_path / 'n.parquet'
-    s.national_parquet(shards, pq, tmp_path / 'work', _con())
-    rec = tmp_path / 'filter_stats.json'
-    first = s.filter_stats_for('lyr', pq, rec)
-    assert first['row_count'] == 5 and any(c['name'] == 'st' for c in first['columns'])
-    rec.write_text(json.dumps({'row_count': 99, 'columns': []}))
-    assert s.filter_stats_for('lyr', pq, rec)['row_count'] == 99  # cached, not recomputed

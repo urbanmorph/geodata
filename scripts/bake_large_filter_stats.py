@@ -3,12 +3,14 @@
 Filter stats for every layer the Filter panel filters on the API.
 
 A layer whose parquet is over LARGE_FILTER_BYTES (shared/large-load.mjs) is
-never opened in the browser: the panel's columns, chips and counts come from
-catalog.json `filter_stats` and the API. This bakes those stats for each such
-layer that has none, reading the parquet straight from its public R2 URL
-(DuckDB range requests; nothing is downloaded to disk), and patches the
-repo-root catalog.json in place after each layer, so a killed run keeps what
-it finished and a second run does no work.
+never opened in the browser: the panel's columns and chips come from a static
+file, web/public/api-data/filter-stats/<id>.json (fetched when the panel
+opens; kept out of catalog.json, which every visitor downloads), and its
+counts and exports from the API. This writes that file for each such layer
+that has none, reading the parquet straight from its public R2 URL (DuckDB
+range requests; nothing is downloaded to disk). Stats a large layer still has
+in catalog.json are moved to its file. Each file is written as soon as it is
+done, so a killed run keeps what it finished and a second run does no work.
 
 Run:
     python3 -u scripts/bake_large_filter_stats.py            # every large layer without stats
@@ -25,10 +27,11 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import build_filter_stats as fs  # noqa: E402
-from pipeline import write_json  # noqa: E402
+from pipeline import atomic_output, write_json  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
+STATS_DIR = ROOT / 'web' / 'public' / 'api-data' / 'filter-stats'
 SHARED_RULE = ROOT / 'shared' / 'large-load.mjs'
 
 
@@ -48,21 +51,39 @@ def large_filter_bytes(src: Path = SHARED_RULE) -> int:
     return n
 
 
-def targets(catalog: dict, threshold: int) -> list[dict]:
-    """Layers over the threshold with a parquet and no baked stats, in catalog order."""
-    have = catalog.get('filter_stats') or {}
+def large_layers(catalog: dict, threshold: int) -> list[dict]:
+    """Layers with a parquet over the threshold, in catalog order."""
     return [layer for layer in catalog['layers']
             if (layer.get('parquet') or {}).get('url')
-            and ((layer.get('parquet') or {}).get('bytes') or 0) > threshold
-            and layer['id'] not in have]
+            and ((layer.get('parquet') or {}).get('bytes') or 0) > threshold]
 
 
-def bake(catalog_path: Path = CATALOG, threshold: int | None = None, minutes: float = 600) -> list[str]:
-    """Stats for each target, saved to the catalog after each layer. Returns the ids baked."""
+def write_stats(path: Path, stats: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with atomic_output(path) as part:
+        part.write_text(json.dumps(stats, default=str, separators=(',', ':')) + '\n')
+
+
+def bake(catalog_path: Path = CATALOG, stats_dir: Path = STATS_DIR, threshold: int | None = None,
+         minutes: float = 600) -> list[str]:
+    """A stats file for each large layer without one (moved from the catalog
+    when it is there, else computed). Returns the ids computed."""
     threshold = large_filter_bytes() if threshold is None else threshold
+    catalog = json.loads(catalog_path.read_text())
+    large = large_layers(catalog, threshold)
+    in_catalog = catalog.get('filter_stats') or {}
+    moved = [layer['id'] for layer in large if layer['id'] in in_catalog]
+    for lid in moved:
+        if not (stats_dir / f'{lid}.json').exists():
+            write_stats(stats_dir / f'{lid}.json', in_catalog[lid])
+    if moved:
+        catalog['filter_stats'] = {k: v for k, v in in_catalog.items() if k not in set(moved)}
+        write_json(catalog_path, catalog)
+        log(f'moved {len(moved)} layer(s) out of the catalog: {", ".join(moved)}')
+
     end = time.monotonic() + minutes * 60
     done = []
-    todo = targets(json.loads(catalog_path.read_text()), threshold)
+    todo = [layer for layer in large if not (stats_dir / f"{layer['id']}.json").exists()]
     for i, layer in enumerate(todo, 1):
         if time.monotonic() > end:
             log(f'STOPPED: time limit; {len(todo) - i + 1} layer(s) left, re-run to continue')
@@ -74,9 +95,7 @@ def bake(catalog_path: Path = CATALOG, threshold: int | None = None, minutes: fl
         if stats is None:
             log(f'  {lid}: no stats (parquet unreadable); skipped')
             continue
-        c = json.loads(catalog_path.read_text())  # re-read: never overwrite a concurrent patch
-        c.setdefault('filter_stats', {})[lid] = json.loads(json.dumps(stats, default=str))
-        write_json(catalog_path, c)
+        write_stats(stats_dir / f'{lid}.json', stats)
         done.append(lid)
         log(f'  {lid}: saved in {time.monotonic() - t0:,.0f} s')
     return done
