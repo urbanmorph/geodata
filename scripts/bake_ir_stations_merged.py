@@ -58,20 +58,27 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
+from tile_keys import keep_rebaked_pmtiles  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
-RAW = ROOT / 'data' / 'raw' / 'ir_stations_merged'
+# Build artefacts keep the merged name; the published layer id is ir_stations:
+# the merged set replaced the IRGIS-only layer (owner, 2026-11-18), under the
+# same id so API/MCP clients and links keep working. ir_stations_merged (live
+# 17-18 Nov 2026) is retired; web/public/_redirects sends its /view page here.
+ARTEFACT = 'ir_stations_merged'
+RAW = ROOT / 'data' / 'raw' / ARTEFACT
 
-LAYER_ID = 'ir_stations_merged'
+LAYER_ID = 'ir_stations'
+RETIRED_IDS = ('ir_stations_merged',)
 BASENAME = 'IR_Stations_Merged'
 # Versioned: R2 objects are cached as immutable, so a re-bake gets a new
 # revision folder instead of overwriting (bump BAKE_REVISION).
 BAKE_REVISION = 'r2'
 R2_PREFIX = f'transport/ir-stations-merged/{BAKE_REVISION}'
 EXT = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'kml': 'kml', 'shapefile': 'shp.zip'}
-SUMMARY = ROOT / 'data' / f'{LAYER_ID}.summary.json'
-UNPLACED = ROOT / 'data' / f'{LAYER_ID}.wikidata_unplaced.csv'
+SUMMARY = ROOT / 'data' / f'{ARTEFACT}.summary.json'
+UNPLACED = ROOT / 'data' / f'{ARTEFACT}.wikidata_unplaced.csv'
 
 GS, IRGIS, WIKIDATA = 'GatiShakti', 'IRGIS', 'Wikidata'
 RELEASE = 'https://github.com/ramSeraph/indian_transport/releases/download/railways'
@@ -588,7 +595,7 @@ def notes() -> str:
 
 
 def level_meta() -> dict:
-    return {'label': 'Railway stations (merged, one per station)', 'unit': 'stations', 'description': description()}
+    return {'label': 'Railway stations', 'unit': 'stations', 'description': description()}
 
 
 def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str) -> dict:
@@ -637,17 +644,37 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summa
     if fetched_at is None:
         fetched_at = min(s['fetched_at'] for s in summary['sources'].values())
     catalog = json.loads(catalog_path.read_text())
-    catalog['layers'] = [e for e in catalog['layers'] if e['id'] != LAYER_ID]
-    catalog['layers'].append(catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public))
+    entry = catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public)
+    keep_rebaked_pmtiles(entry, next((e for e in catalog['layers'] if e.get('id') == LAYER_ID), None))
+    catalog['layers'] = _replace_in_place(catalog['layers'], entry)
+    for rid in RETIRED_IDS:
+        catalog['level_meta'].pop(rid, None)
     catalog['level_meta'][LAYER_ID] = level_meta()
+    catalog['level_order'] = [lvl for lvl in catalog['level_order'] if lvl not in RETIRED_IDS]
     if LAYER_ID not in catalog['level_order']:
         catalog['level_order'].append(LAYER_ID)
     catalog['attribution'][SOURCE] = dict(ATTRIBUTION)
     catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
 
-    manifest = [e for e in json.loads(manifest_path.read_text()) if e['id'] != LAYER_ID]
-    manifest.append(manifest_entry(summary['rows'], summary['sizes']))
+    manifest = _replace_in_place(json.loads(manifest_path.read_text()), manifest_entry(summary['rows'], summary['sizes']))
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
+
+
+def _replace_in_place(entries: list[dict], new: dict) -> list[dict]:
+    """Put `new` where the LAYER_ID entry was (else at the end) and drop retired ids."""
+    out, placed = [], False
+    for e in entries:
+        if e.get('id') in RETIRED_IDS:
+            continue
+        if e.get('id') == LAYER_ID:
+            if not placed:
+                out.append(new)
+                placed = True
+            continue
+        out.append(e)
+    if not placed:
+        out.append(new)
+    return out
 
 
 def main() -> None:
