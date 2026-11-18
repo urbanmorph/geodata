@@ -2,7 +2,7 @@ import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { locate, DEFAULT_LOCATE_LAYERS } from '../../lib/locate';
-import { resolveLocateLayers, wardFallbackNeeded, mergeLocateResults, fallbackWardLayers } from '../../lib/ward-locate';
+import { resolveLocateLayers, wardFallbackNeeded, mergeLocateResults, fallbackWardLayers, MAX_LOCATE_LAYERS } from '../../lib/ward-locate';
 import { json } from '../../lib/http';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
@@ -28,6 +28,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const layerIds = resolveLocateLayers(
     url.searchParams.get('layers'), lng, lat, DEFAULT_LOCATE_LAYERS,
   );
+
+  if (layerIds.length > MAX_LOCATE_LAYERS) {
+    return json(400, { error: `ask at most ${MAX_LOCATE_LAYERS} layers at once`, status: 400 });
+  }
 
   const catalog = await loadCatalog(url.origin);
   const result = await locate(lat, lng, layerIds, zoom, catalog, ctx.env.R2);

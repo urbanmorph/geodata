@@ -9,11 +9,11 @@ import {
 import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams } from "./read-tools.js";
+import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
 import { withClientIds, importSummary } from "./import-records.js";
 
 /** One version for the server and its user agent; bump with every release (version.test.js). */
-const VERSION = "1.6.0";
+const VERSION = "1.6.1";
 
 const API = process.env.BHARATLAS_API || "https://bharatlas.com/api/v1";
 
@@ -281,7 +281,7 @@ async function handleTool(name, args) {
     }
 
     case "moderate_record":
-      return collectApi("POST", `/records/${args.record_id}/moderate`, {
+      return collectApi("POST", `/records/${idSegment(args.record_id, "record_id")}/moderate`, {
         token: tokenFor(args.id, "admin"),
         body: { status: args.status, reason: args.reason },
       });

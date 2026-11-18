@@ -8,6 +8,7 @@
 // production.
 
 import type { Env } from '../_middleware';
+import { getSubmissionForView } from '../../lib/submissions';
 
 type Params = { path: string[] };
 
@@ -37,6 +38,10 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   if (key === null) return new Response('bad key', { status: 400 });
   if (!key) return new Response('missing key', { status: 400 });
   if (!ALLOWED_PREFIX.test(key)) return new Response('not found', { status: 404 });
+  // Only accepted submissions: pending, rejected and withdrawn uploads stay
+  // private even to someone holding the link (review 2026-11-18).
+  const subId = key.split('/')[1] ?? '';
+  if (!(await getSubmissionForView(ctx.env.DB, subId))) return new Response('not found', { status: 404 });
 
   const obj = await ctx.env.R2.get(key);
   if (!obj) return new Response('not found', { status: 404 });

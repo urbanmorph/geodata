@@ -255,6 +255,14 @@ const READ_NAMES = new Set(READ_TOOLS.map((t) => t.name));
 const QUERY_RESERVED = new Set(["select", "group_by", "sum", "limit", "where", "order_by", "include_centroid"]);
 
 const LAYER_ID = /^[a-zA-Z0-9_-]+$/;
+/** A value going into a URL path (e.g. a collect record id): letters, digits, _ and -
+ *  only, so a crafted id can't walk to another endpoint (review 2026-11-18). */
+export function idSegment(value, name) {
+  const v = String(value ?? "");
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(v)) throw new Error(`${name} must be an id (letters, digits, _ and -)`);
+  return v;
+}
+
 function layerPath(id, suffix = "") {
   if (!LAYER_ID.test(String(id ?? ""))) {
     throw new Error("layer_id must be a layer ID such as lgd_states (letters, digits, _ and -)");

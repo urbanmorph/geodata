@@ -10,7 +10,7 @@
 import type { Env as MiddlewareEnv } from '../../_middleware';
 import { getSubmissionForView } from '../../../lib/submissions';
 import { recordVote, countVotes, getMyVote, type Vote } from '../../../lib/ratings';
-import { ipHashFor } from '../../../lib/submit-helpers';
+import { ipHashStable } from '../../../lib/submit-helpers';
 
 type Env = MiddlewareEnv & { IP_SALT?: string };
 type Params = { id: string };
@@ -28,7 +28,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   if (!validId(id)) return j(404, { error: 'not found' });
   const sub = await getSubmissionForView(ctx.env.DB, id);
   if (!sub) return j(404, { error: 'not found' });
-  const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
+  const ipHash = await ipHashStable(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
   const [tally, myVote] = await Promise.all([
     countVotes(ctx.env.DB, id),
     getMyVote(ctx.env.DB, id, ipHash),
@@ -54,7 +54,7 @@ export const onRequestPost: PagesFunction<Env, keyof Params> = async (ctx) => {
   const sub = await getSubmissionForView(ctx.env.DB, id);
   if (!sub) return j(404, { error: 'not found' });
 
-  const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
+  const ipHash = await ipHashStable(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
   const result = await recordVote(ctx.env.DB, id, ipHash, vote as Vote);
   return j(200, result);
 };

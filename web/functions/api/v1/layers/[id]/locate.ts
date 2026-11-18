@@ -16,6 +16,7 @@ import { locate } from '../../../../lib/locate';
 import { nearby } from '../../../../lib/nearby';
 import { pickContains, bearingLabel } from '../../../../lib/locate-layer';
 import { json } from '../../../../lib/http';
+import { clampNum } from '../../../../lib/query-params';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const id = (ctx.params as { id: string }).id;
@@ -33,9 +34,14 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return json(400, { error: 'lat must be 6-38, lng must be 68-98 (India bounding box)', status: 400 });
   }
 
-  const mode = (url.searchParams.get('mode') || 'auto') as 'auto' | 'contains' | 'nearest';
-  const zoom = Math.min(Math.max(parseInt(url.searchParams.get('zoom') || '14', 10), 4), 16);
-  const radiusKm = Math.min(Math.max(parseFloat(url.searchParams.get('radius_km') || '25'), 1), 200);
+  // clampNum turns NaN into the default: radius_km=x made the bbox NaN, and NaN
+  // comparisons matched every row group, so the whole layer was read.
+  const mode = url.searchParams.get('mode') || 'auto';
+  if (mode !== 'auto' && mode !== 'contains' && mode !== 'nearest') {
+    return json(400, { error: 'mode must be auto, contains or nearest', status: 400 });
+  }
+  const zoom = clampNum(url.searchParams.get('zoom'), 14, 4, 16, true);
+  const radiusKm = clampNum(url.searchParams.get('radius_km'), 25, 1, 200);
 
   const catalog = await loadCatalog(url.origin);
   const layer = catalog.layers.find((l) => l.id === id);

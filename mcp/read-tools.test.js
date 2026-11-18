@@ -30,3 +30,13 @@ test("the server identifies itself to the API, so MCP use is counted apart", asy
   assert.match(src, /"user-agent": USER_AGENT/);
   assert.match(readFileSync(new URL("./test.js", import.meta.url), "utf8"), /BHARATLAS_MCP_UA: "bharatlas-mcp-test"/);
 });
+
+test("an id that goes into a URL path must be a plain id (no path tricks)", async () => {
+  const { idSegment } = await import("./read-tools.js");
+  assert.equal(idSegment("r_8xYz-12", "record_id"), "r_8xYz-12");
+  for (const bad of ["../collections/abc/publish?", "a/b", "", "x y", "%2e%2e"]) {
+    assert.throws(() => idSegment(bad, "record_id"), /record_id/);
+  }
+  const { readFileSync } = await import("node:fs");
+  assert.match(readFileSync(new URL("./index.js", import.meta.url), "utf8"), /`\/records\/\$\{idSegment\(args\.record_id, "record_id"\)\}\/moderate`/);
+});

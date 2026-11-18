@@ -43,7 +43,8 @@ export type ValidationDeps = {
   findDuplicate: (contentHash: string) => Promise<string | null>;
 };
 
-const MAX_BYTES = 500 * 1024 * 1024;
+/** What a Worker (128 MB) can read and JSON-parse; the largest submission so far was 14 MB. */
+export const MAX_SUBMIT_BYTES = 25 * 1024 * 1024;
 const VALID_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
 const MIN_NAME = 3;
 const MAX_NAME = 120;
@@ -72,28 +73,45 @@ function reject(report: ValidationReport, gate: string, reason: string): Validat
   return { accept: false, report, reason };
 }
 
-export async function validateSubmission(
-  input: SubmissionInput,
-  deps: ValidationDeps,
-): Promise<ValidationResult> {
+/** The cheap gates (captcha, rate limit, size), run before the upload is read
+ *  or parsed. Returns the rejection, or the passing report to hand to
+ *  validateSubmission (the Turnstile token is single-use: never verify twice). */
+export async function gateSubmission(
+  input: Pick<SubmissionInput, 'turnstileToken' | 'ipHash' | 'bytes'>,
+  deps: Pick<ValidationDeps, 'verifyCaptcha' | 'checkRate'>,
+): Promise<{ rejected: ValidationResult } | { passed: ValidationReport }> {
   const report: ValidationReport = {};
-
   const captchaOk = await deps.verifyCaptcha(input.turnstileToken);
   report.captcha = { ok: captchaOk };
-  if (!captchaOk) return reject(report, 'captcha', 'captcha failed');
+  if (!captchaOk) return { rejected: reject(report, 'captcha', 'captcha failed') };
 
   const rate = await deps.checkRate(input.ipHash);
   report.rateLimit = {
     ok: rate.ok,
     info: rate.retryAfter ? { retryAfter: rate.retryAfter } : undefined,
   };
-  if (!rate.ok) return reject(report, 'rateLimit', 'rate limit exceeded');
+  if (!rate.ok) return { rejected: reject(report, 'rateLimit', 'rate limit exceeded') };
 
-  if (input.bytes > MAX_BYTES) {
+  if (input.bytes > MAX_SUBMIT_BYTES) {
     report.size = { ok: false, info: { bytes: input.bytes } };
-    return reject(report, 'size', 'size too large');
+    return { rejected: reject(report, 'size', 'size too large') };
   }
   report.size = { ok: true, info: { bytes: input.bytes } };
+  return { passed: report };
+}
+
+export async function validateSubmission(
+  input: SubmissionInput,
+  deps: ValidationDeps,
+  gated?: ValidationReport,
+): Promise<ValidationResult> {
+  let report: ValidationReport;
+  if (gated) report = { ...gated };
+  else {
+    const g = await gateSubmission(input, deps);
+    if ('rejected' in g) return g.rejected;
+    report = g.passed;
+  }
 
   if (
     input.filename.length < 1 ||
