@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { handleMcp, type ApiRoute, type McpDeps } from '../functions/lib/mcp';
 import { READ_TOOLS, readToolRequest } from '../../mcp/read-tools.js';
@@ -42,6 +44,7 @@ async function rpc(body: unknown, opts: { routes?: ApiRoute[]; rateLimit?: McpDe
   const res = await handleMcp(post(body), {} as never, {
     routes: opts.routes ?? stubRoutes().routes,
     rateLimit: opts.rateLimit ?? allow,
+    waitUntil: () => {},
   });
   const json: Json = res.status === 200 ? await res.json() : null;
   return { res, json };
@@ -115,7 +118,7 @@ describe('/mcp protocol', () => {
   });
 
   it('answers OPTIONS with CORS headers', async () => {
-    const res = await handleMcp(new Request(`${ORIGIN}/mcp`, { method: 'OPTIONS' }), {} as never, { routes: [], rateLimit: allow });
+    const res = await handleMcp(new Request(`${ORIGIN}/mcp`, { method: 'OPTIONS' }), {} as never, { routes: [], rateLimit: allow, waitUntil: () => {} });
     expect(res.status).toBe(204);
     expect(res.headers.get('access-control-allow-origin')).toBe('*');
   });
@@ -192,5 +195,33 @@ describe('read-tools (shared with the npm package)', () => {
       expect(readToolRequest(t.name, args), t.name).not.toBeNull();
     }
     expect(readToolRequest('publish', {})).toBeNull();
+  });
+});
+
+
+// 2026-11-18: every layer tool failed in production with "ctx.waitUntil is not a
+// function" (the API handlers count use via waitUntil since #277; the stubs above
+// never called it). The real handlers get a full context, and are told the caller
+// is the hosted MCP so its calls count as MCP use.
+describe('the API handlers get a full context from the hosted MCP', () => {
+  it('passes waitUntil through and names the caller bharatlas-mcp/hosted', async () => {
+    let got: { waitUntil?: unknown; ua?: string | null } = {};
+    const waited: Promise<unknown>[] = [];
+    const routes: ApiRoute[] = [[/^\/layers\/([^/]+)$/, async (ctx) => {
+      got = { waitUntil: (ctx as { waitUntil?: unknown }).waitUntil, ua: ctx.request.headers.get('user-agent') };
+      (ctx as unknown as { waitUntil(p: Promise<unknown>): void }).waitUntil(Promise.resolve());
+      return new Response('{"data":{}}', { headers: { 'content-type': 'application/json' } });
+    }]];
+    const res = await handleMcp(post(call('get_layer_detail', { layer_id: 'lgd_states' })), {} as never, {
+      routes, rateLimit: allow, waitUntil: (p) => { waited.push(p); },
+    });
+    const json = await res.json() as Json;
+    expect(json.result.isError).toBeFalsy();
+    expect(typeof got.waitUntil).toBe('function');
+    expect(waited).toHaveLength(1);
+    expect(got.ua).toBe('bharatlas-mcp/hosted');
+  });
+  it('the /mcp function hands its own waitUntil over', () => {
+    expect(readFileSync(resolve(__dirname, '../functions/mcp.ts'), 'utf8')).toMatch(/waitUntil: \(p\) => ctx\.waitUntil\(p\)/);
   });
 });

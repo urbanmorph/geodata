@@ -48,11 +48,13 @@ const CORS = {
 };
 
 type Id = string | number | null;
-type Handler = (ctx: { request: Request; env: Env; params: Record<string, string> }) => Promise<Response> | Response;
+type WaitUntil = (p: Promise<unknown>) => void;
+/** The context an /api/v1 handler needs: the API counts use per layer via waitUntil (lib/usage.ts). */
+type Handler = (ctx: { request: Request; env: Env; params: Record<string, string>; waitUntil: WaitUntil }) => Promise<Response> | Response;
 /** An /api/v1 path pattern (one capture = the layer id) and its handler. */
 export type ApiRoute = [RegExp, Handler];
 type RateLimit = (ip: string, tool: string) => Promise<{ ok: true } | { ok: false; retryAfter: number }>;
-export interface McpDeps { routes: ApiRoute[]; rateLimit: RateLimit }
+export interface McpDeps { routes: ApiRoute[]; rateLimit: RateLimit; waitUntil: WaitUntil }
 
 const asHandler = (h: unknown) => h as Handler;
 export const API_ROUTES: ApiRoute[] = [
@@ -166,9 +168,11 @@ async function callTool(req: Request, env: Env, deps: McpDeps, name: string, arg
   url.search = toSearchParams(call.params).toString();
   try {
     const res = await route[1]({
-      request: new Request(url, { headers: { accept: 'application/json' } }),
+      // The API counts this call as MCP use (usage.ts reads the bharatlas-mcp/ user agent).
+      request: new Request(url, { headers: { accept: 'application/json', 'user-agent': 'bharatlas-mcp/hosted' } }),
       env,
       params: layerId ? { id: layerId } : {},
+      waitUntil: deps.waitUntil,
     });
     const body = await res.json().catch(() => ({ error: `API ${res.status}` }));
     if (!res.ok) return toolText({ error: (body as { error?: string }).error || `API ${res.status}` }, true);
