@@ -7364,8 +7364,8 @@
         "bytes": 74448598
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.27652ef8.pmtiles",
-        "bytes": 21033580
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.c752e481.pmtiles",
+        "bytes": 21158356
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/corestack-lulc-blocks/CoREStack_LULC_Blocks_2023_24.geojson",
@@ -7448,8 +7448,8 @@
         "bytes": 24200442
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.pmtiles",
-        "bytes": 10404993
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.edbe90a9.pmtiles",
+        "bytes": 7290915
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/mi6-wells-districts/MI6_Wells_Districts_2017_18.geojson",
@@ -7474,7 +7474,7 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-10-07T13:29:02.722779+00:00",
-      "notes": "Counts from the 6th Minor Irrigation Census (reference year 2017-18, enumerated 2019-22), Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti, published on data.gov.in under GODL-India. Summed from the ground-water scheme files to LGD districts by Land Ledger; the total matches the census report (21,931,924 wells). Census districts are the 2017-18 ones: districts carved out since have no counts of their own (status new_district) and their former district keeps them (counts_pre_split); counts are not split. Irrigation potential utilised is gross, summed over seasons, not net irrigated area. Depth classes are bins of the reported scheme depth. Well locations are not published and nothing below the district is included here. Delhi, Ladakh, Lakshadweep and Dadra and Nagar Haveli and Daman and Diu were not in the census; Manipur and Sikkim report no ground-water schemes.",
+      "notes": "Counts from the 6th Minor Irrigation Census (reference year 2017-18, enumerated 2019-22), Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti, published on data.gov.in under GODL-India. Summed from the ground-water scheme files to LGD districts by Land Ledger; the total matches the census report (21,931,924 wells). Census districts are the 2017-18 ones: districts carved out since have no counts of their own (status new_district) and their former district keeps them (counts_pre_split); counts are not split. Irrigation potential utilised is gross, summed over seasons, not net irrigated area. Depth classes are bins of the reported scheme depth. Well locations are not published and nothing below the district is included here. Delhi, Ladakh, Lakshadweep and Dadra and Nagar Haveli and Daman and Diu were not in the census; Manipur and Sikkim report no ground-water schemes. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "wells",
         "groundwater",
@@ -7809,8 +7809,8 @@
         "bytes": 71062441
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.d4bad9ca.pmtiles",
-        "bytes": 15516268
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.24667fa3.pmtiles",
+        "bytes": 15729946
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -7864,8 +7864,8 @@
         "bytes": 172459428
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.c2c0f1d5.pmtiles",
-        "bytes": 30862742
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.3561ad11.pmtiles",
+        "bytes": 31162747
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -7919,8 +7919,8 @@
         "bytes": 144253317
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.97f4af73.pmtiles",
-        "bytes": 27133139
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.a8999d0f.pmtiles",
+        "bytes": 27420625
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -7974,8 +7974,8 @@
         "bytes": 328028526
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.8357dbd8.pmtiles",
-        "bytes": 78318357
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.49e7afdf.pmtiles",
+        "bytes": 78938750
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -9034,8 +9034,8 @@
         "bytes": 24229000
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.pmtiles",
-        "bytes": 10853165
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.57e1171b.pmtiles",
+        "bytes": 7801614
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.geojson",
@@ -9060,7 +9060,7 @@
       "category": "economy",
       "provenance": "curated",
       "fetched_at": "2026-11-15T13:35:02+00:00",
-      "notes": "\"District-wise MGNREGA Data at a Glance\", Ministry of Rural Development, on data.gov.in under GODL-India. Values are each district's latest cumulative snapshot of the year as published (March for most; the month column shows which); money columns (Total_Exp, Wages, Material_and_skilled_Wages, Total_Adm_Expenditure, exp_*) are in Rs lakh. NREGA districts are matched to LGD districts by name within the state, with hand-checked renames; districts without a match have no values. MGNREGA reports Rajasthan as its 33 districts before the 2023 reorganisation and Nagaland as 11 districts, so there an older district's figures include the newer districts carved from it, which show no values. Urban districts (Delhi, Mumbai, Chennai, Kolkata, Hyderabad, Chandigarh) have no MGNREGA. Darjeeling covers the Siliguri subdivision only (the hill areas report as GTA, which spans Darjeeling and Kalimpong). NREGA districts with no LGD polygon: ARUNACHAL PRADESH / KEYI PANYOR; WEST BENGAL / GORKHALAND TERRITORIAL ADMINISTRATION (GTA).",
+      "notes": "\"District-wise MGNREGA Data at a Glance\", Ministry of Rural Development, on data.gov.in under GODL-India. Values are each district's latest cumulative snapshot of the year as published (March for most; the month column shows which); money columns (Total_Exp, Wages, Material_and_skilled_Wages, Total_Adm_Expenditure, exp_*) are in Rs lakh. NREGA districts are matched to LGD districts by name within the state, with hand-checked renames; districts without a match have no values. MGNREGA reports Rajasthan as its 33 districts before the 2023 reorganisation and Nagaland as 11 districts, so there an older district's figures include the newer districts carved from it, which show no values. Urban districts (Delhi, Mumbai, Chennai, Kolkata, Hyderabad, Chandigarh) have no MGNREGA. Darjeeling covers the Siliguri subdivision only (the hill areas report as GTA, which spans Darjeeling and Kalimpong). NREGA districts with no LGD polygon: ARUNACHAL PRADESH / KEYI PANYOR; WEST BENGAL / GORKHALAND TERRITORIAL ADMINISTRATION (GTA). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "MGNREGA",
         "NREGA",
@@ -9113,8 +9113,8 @@
         "bytes": 15265584
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.pmtiles",
-        "bytes": 11330467
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.5b44e028.pmtiles",
+        "bytes": 12823067
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulbs/CityFinance_ULBs.geojson",
@@ -9139,7 +9139,7 @@
       "category": "economy",
       "provenance": "curated",
       "fetched_at": "2026-11-15T14:14:59.779226+00:00",
-      "notes": "Figures from the standardised income statements on CityFinance.in (Ministry of Housing and Urban Affairs; run by NIUA and Janaagraha), in rupees, by National Municipal Accounts Manual line item, as published. Each polygon carries every line item for its latest year with figures (fy) and total income and expenditure for every year it has (2015-16 to 2023-24; few cities have 2017-18 or 2018-19). Tax revenue includes property tax; CityFinance does not publish it separately here. Cities are matched to Swachh Bharat Mission ULB polygons by Census 2011 town code or SBM code, never by name, and only when the states agree; each match must also be corroborated by CityFinance's own location for the city falling on (or within 2 km of) the polygon, or by the two names agreeing. Some SBM codes point at another town; a match failing both checks is left out. Both names are kept (ulbnm from SBM, cf_ulb_name from CityFinance); where they differ, SBM's label is the one that is off (e.g. Bapatla's polygon is named GUNTUR in SBM). Cities with figures but no polygon (including all of West Bengal, which SBM does not map) are not shown. CityFinance states no licence; treated here as GODL-India.",
+      "notes": "Figures from the standardised income statements on CityFinance.in (Ministry of Housing and Urban Affairs; run by NIUA and Janaagraha), in rupees, by National Municipal Accounts Manual line item, as published. Each polygon carries every line item for its latest year with figures (fy) and total income and expenditure for every year it has (2015-16 to 2023-24; few cities have 2017-18 or 2018-19). Tax revenue includes property tax; CityFinance does not publish it separately here. Cities are matched to Swachh Bharat Mission ULB polygons by Census 2011 town code or SBM code, never by name, and only when the states agree; each match must also be corroborated by CityFinance's own location for the city falling on (or within 2 km of) the polygon, or by the two names agreeing. Some SBM codes point at another town; a match failing both checks is left out. Both names are kept (ulbnm from SBM, cf_ulb_name from CityFinance); where they differ, SBM's label is the one that is off (e.g. Bapatla's polygon is named GUNTUR in SBM). Cities with figures but no polygon (including all of West Bengal, which SBM does not map) are not shown. CityFinance states no licence; treated here as GODL-India. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "municipal finance",
         "urban local body",
@@ -9195,8 +9195,8 @@
         "bytes": 7879432
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.pmtiles",
-        "bytes": 3389181
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.da2e56c1.pmtiles",
+        "bytes": 2549243
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/state-finance/State_Finance.geojson",
@@ -9665,8 +9665,8 @@
         "bytes": 1258050
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations-merged/r2/IR_Stations_Merged.d8a75d7e.pmtiles",
-        "bytes": 6476466
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations-merged/r2/IR_Stations_Merged.0707fb2d.pmtiles",
+        "bytes": 7300536
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/ir-stations-merged/r2/IR_Stations_Merged.geojson",
@@ -9694,7 +9694,7 @@
       "category": "transport",
       "provenance": "curated",
       "fetched_at": "2026-11-17",
-      "notes": "Merged by bharatlas and published under CC BY 4.0 (credit: bharatlas, Indian Railways / CRIS, PM GatiShakti, Wikidata). Sources: (1) PM GatiShakti railway stations (BISAG-N), drawn from CRIS's Indian Railways station layer; (2) the Indian Railways GIS portal stations (irgeoportal.gov.in, CRIS), the ir_stations layer; both compiled by ramSeraph/indianopenmaps (DataMeet community, CC0 1.0) and republished with credit under bharatlas.com/about#sources-and-licensing; (3) Wikidata items with an Indian Railways station code (P5696), CC0 1.0. Every location comes from CRIS. CRIS records most stations as several points (start, centre, end, platforms); points sharing a station code become one row at their medoid, and uncoded points within 1 km fold into it (source_points counts them, source_spread_m is how far they spread). Points of one code more than 2 km apart are treated as different stations. GatiShakti is used first; the IR portal adds the 52 codes GatiShakti lacks. A Wikidata code missing from CRIS is placed on the nearest CRIS station within 1.5 km whose name or description agrees (match_method name+distance; this also links CRIS's older codes to the current ones, e.g. CSTM/CSMT, BCT/MMCT, HNZM/NZM, KEU/KIUL: stn_code keeps CRIS's code, code holds Wikidata's), or on an uncoded CRIS point within 500 m on distance alone (distance). match_confidence: high = CRIS code and Wikidata agree within 1 km; medium = CRIS code not in Wikidata or 1 to 2 km away, or a name-confirmed match; low = Wikidata more than 2 km away, a distance-only match, or an uncoded CRIS point (stn_code empty). Checked against OpenStreetMap: high rows sit a median 26 m from OSM's station with the same code (98% within 500 m), medium 90%, low 87%. OpenStreetMap is used only for that check and is not merged, because its ODbL licence would require the whole layer to stay under ODbL. Every source column is kept as published (sttncode, sttnname, fdetail ... from CRIS; item, code, coord, label from Wikidata; coord is Wikidata's point, kept for reference, never the location), except the CRIS GIS accounts that created and last edited each point (created_us, last_edite), left out because some are individuals' usernames. Known gaps: about 800 Wikidata codes have no CRIS point to sit on and are left out (e.g. Kalyan KYN, whose only CRIS point is coded THK, and Lokmanya Tilak Terminus LTT); Wikidata positions are mostly copied from the 2016 datameet/railways compilation and sit a median ~90 m and a 90th percentile ~1.2 km from CRIS, so they are not used as locations. About 300 rows are uncoded, unnamed CRIS points. CRIS state names are as published (mixed case, some blank).",
+      "notes": "Merged by bharatlas and published under CC BY 4.0 (credit: bharatlas, Indian Railways / CRIS, PM GatiShakti, Wikidata). Sources: (1) PM GatiShakti railway stations (BISAG-N), drawn from CRIS's Indian Railways station layer; (2) the Indian Railways GIS portal stations (irgeoportal.gov.in, CRIS), the ir_stations layer; both compiled by ramSeraph/indianopenmaps (DataMeet community, CC0 1.0) and republished with credit under bharatlas.com/about#sources-and-licensing; (3) Wikidata items with an Indian Railways station code (P5696), CC0 1.0. Every location comes from CRIS. CRIS records most stations as several points (start, centre, end, platforms); points sharing a station code become one row at their medoid, and uncoded points within 1 km fold into it (source_points counts them, source_spread_m is how far they spread). Points of one code more than 2 km apart are treated as different stations. GatiShakti is used first; the IR portal adds the 52 codes GatiShakti lacks. A Wikidata code missing from CRIS is placed on the nearest CRIS station within 1.5 km whose name or description agrees (match_method name+distance; this also links CRIS's older codes to the current ones, e.g. CSTM/CSMT, BCT/MMCT, HNZM/NZM, KEU/KIUL: stn_code keeps CRIS's code, code holds Wikidata's), or on an uncoded CRIS point within 500 m on distance alone (distance). match_confidence: high = CRIS code and Wikidata agree within 1 km; medium = CRIS code not in Wikidata or 1 to 2 km away, or a name-confirmed match; low = Wikidata more than 2 km away, a distance-only match, or an uncoded CRIS point (stn_code empty). Checked against OpenStreetMap: high rows sit a median 26 m from OSM's station with the same code (98% within 500 m), medium 90%, low 87%. OpenStreetMap is used only for that check and is not merged, because its ODbL licence would require the whole layer to stay under ODbL. Every source column is kept as published (sttncode, sttnname, fdetail ... from CRIS; item, code, coord, label from Wikidata; coord is Wikidata's point, kept for reference, never the location), except the CRIS GIS accounts that created and last edited each point (created_us, last_edite), left out because some are individuals' usernames. Known gaps: about 800 Wikidata codes have no CRIS point to sit on and are left out (e.g. Kalyan KYN, whose only CRIS point is coded THK, and Lokmanya Tilak Terminus LTT); Wikidata positions are mostly copied from the 2016 datameet/railways compilation and sit a median ~90 m and a 90th percentile ~1.2 km from CRIS, so they are not used as locations. About 300 rows are uncoded, unnamed CRIS points. CRIS state names are as published (mixed case, some blank). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "railway stations",
         "Indian Railways",
@@ -9792,8 +9792,8 @@
         "bytes": 28655136
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.3e9733ce.pmtiles",
-        "bytes": 12757613
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.1c1fc9ad.pmtiles",
+        "bytes": 13299292
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -9847,8 +9847,8 @@
         "bytes": 68910962
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.pmtiles",
-        "bytes": 20993725
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.fd5cf8fb.pmtiles",
+        "bytes": 40214958
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -9860,7 +9860,7 @@
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.geojson",
         "bytes": 1058548081
@@ -9956,8 +9956,8 @@
         "bytes": 44792752
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wbc1-water-bodies/WBC1_Water_Bodies_2017_18.pmtiles",
-        "bytes": 94714188
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wbc1-water-bodies/WBC1_Water_Bodies_2017_18.11d28cec.pmtiles",
+        "bytes": 193507360
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wbc1-water-bodies/WBC1_Water_Bodies_2017_18.geojson",
@@ -9985,7 +9985,7 @@
       "category": "water",
       "provenance": "curated",
       "fetched_at": "2026-11-15T15:19:45+00:00",
-      "notes": "Incomplete: this layer holds 1,101,912 of the 2,424,540 water bodies the 1st Census of Water Bodies counted, because its source, the data.gov.in API of the 1st Water Bodies Census, holds fewer for some States. Partial States: Andhra Pradesh 21,052 of 190,777; Assam 72,119 of 172,492; Odisha 61,802 of 181,837; Uttar Pradesh 41,435 of 245,087; West Bengal 54,876 of 747,480. Tripura is missing (the census counted 36,239 there). The data is complete for the other 27 States/UTs. 82,338 records without usable coordinates are kept with no geometry (no point on the map). 1st Census of Water Bodies (reference year 2017-18), Department of Water Resources, River Development and Ganga Rejuvenation and the Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti, published per State/UT on data.gov.in under GODL-India and read through its API. Columns are as published (\"NA\" or \"NULL\" in a numeric column becomes empty); unique_id holds the census's own state/district/block/village codes, not LGD codes. The point is the enumerator's latitude_dec/longitude_dec as published (the manual asks for the north-west corner of the water body); many were keyed in by hand and some are stacked on one spot. Of 1,101,912 records: 1,019,233 fall inside India's bounding box, 341 outside it, 0 at (0,0), 25 have impossible values (beyond 180 degrees longitude or 90 latitude) and 82,313 have no numeric coordinates (32 of them give degrees/minutes/seconds text such as 17/41/29). A registry, not satellite mapping: compare with wris_waterbodies, do not treat them as the same features.",
+      "notes": "Incomplete: this layer holds 1,101,912 of the 2,424,540 water bodies the 1st Census of Water Bodies counted, because its source, the data.gov.in API of the 1st Water Bodies Census, holds fewer for some States. Partial States: Andhra Pradesh 21,052 of 190,777; Assam 72,119 of 172,492; Odisha 61,802 of 181,837; Uttar Pradesh 41,435 of 245,087; West Bengal 54,876 of 747,480. Tripura is missing (the census counted 36,239 there). The data is complete for the other 27 States/UTs. 82,338 records without usable coordinates are kept with no geometry (no point on the map). 1st Census of Water Bodies (reference year 2017-18), Department of Water Resources, River Development and Ganga Rejuvenation and the Minor Irrigation (Statistics) Wing, Ministry of Jal Shakti, published per State/UT on data.gov.in under GODL-India and read through its API. Columns are as published (\"NA\" or \"NULL\" in a numeric column becomes empty); unique_id holds the census's own state/district/block/village codes, not LGD codes. The point is the enumerator's latitude_dec/longitude_dec as published (the manual asks for the north-west corner of the water body); many were keyed in by hand and some are stacked on one spot. Of 1,101,912 records: 1,019,233 fall inside India's bounding box, 341 outside it, 0 at (0,0), 25 have impossible values (beyond 180 degrees longitude or 90 latitude) and 82,313 have no numeric coordinates (32 of them give degrees/minutes/seconds text such as 17/41/29). A registry, not satellite mapping: compare with wris_waterbodies, do not treat them as the same features. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "water bodies",
         "ponds",
@@ -10106,8 +10106,8 @@
         "bytes": 15355436
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.pmtiles",
-        "bytes": 11157129
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.7c91bc1a.pmtiles",
+        "bytes": 12649761
       },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/cityfinance-ulb-balance-sheets/CityFinance_ULB_Balance_Sheets.geojson",
@@ -10132,7 +10132,7 @@
       "category": "economy",
       "provenance": "curated",
       "fetched_at": "2026-11-18",
-      "notes": "Figures from the standardised balance sheets on CityFinance.in (Ministry of Housing and Urban Affairs; run by NIUA and Janaagraha), in rupees, by National Municipal Accounts Manual line item, as published. Each polygon carries every line item for its latest year with a balance sheet (fy) and total assets and total liabilities for every year it has. Accumulated depreciation and provisions for bad debts are negative, as CityFinance publishes them. Polygons and the city matching are those of the City Finances (cityfinance_ulbs) layer: Swachh Bharat Mission ULB polygons matched to CityFinance by Census 2011 town code or SBM code, never by name; see that layer for the method and its gaps (no West Bengal polygons). Polygons with no matched city or no balance sheet carry empty figures. CityFinance states no licence; treated here as GODL-India.",
+      "notes": "Figures from the standardised balance sheets on CityFinance.in (Ministry of Housing and Urban Affairs; run by NIUA and Janaagraha), in rupees, by National Municipal Accounts Manual line item, as published. Each polygon carries every line item for its latest year with a balance sheet (fy) and total assets and total liabilities for every year it has. Accumulated depreciation and provisions for bad debts are negative, as CityFinance publishes them. Polygons and the city matching are those of the City Finances (cityfinance_ulbs) layer: Swachh Bharat Mission ULB polygons matched to CityFinance by Census 2011 town code or SBM code, never by name; see that layer for the method and its gaps (no West Bengal polygons). Polygons with no matched city or no balance sheet carry empty figures. CityFinance states no licence; treated here as GODL-India. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "tags": [
         "municipal finance",
         "urban local body",
@@ -10192,9 +10192,8 @@
         "bytes": 1332718
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/puducherry/NCSCM_PC_Cadastrals.pmtiles",
-        "bytes": 1037381
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-puducherry-coastal/NCSCM_PC_Cadastrals.15ae9f29.pmtiles",
+        "bytes": 1265917
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -10360,9 +10359,8 @@
         "bytes": 38767014
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_cadastrals/releases/download/delhi/GSDL_Cadastrals.pmtiles",
-        "bytes": 10225699
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/boundaries/cadastrals-delhi/GSDL_Cadastrals.0352d487.pmtiles",
+        "bytes": 17494501
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -10416,8 +10414,8 @@
         "bytes": 408433242
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.1a98f9ae.pmtiles",
-        "bytes": 123782273
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-recorded-forest-area/Bharatmaps_RFA.3f3db7b6.pmtiles",
+        "bytes": 126006632
       },
       "licence": "CC0-1.0",
       "attribution": {
