@@ -107,7 +107,8 @@ def test_a_new_layer_gets_fetched_at():
     import datetime
     c = {}
     ir.merge_layer_into_catalog(c, _ds(), 100, 200, 50)
-    assert c['layers'][0]['fetched_at'][:10] == datetime.date.today().isoformat()
+    # fetched_at is UTC; compare with today's UTC date (local today differs 00:00-05:30 IST)
+    assert c['layers'][0]['fetched_at'][:10] == datetime.datetime.now(datetime.timezone.utc).date().isoformat()
     c['layers'][0]['fetched_at'] = '2026-01-01T00:00:00+00:00'
     ir.merge_layer_into_catalog(c, _ds(), 100, 200, 50)
     assert c['layers'][0]['fetched_at'] == '2026-01-01T00:00:00+00:00'  # kept on re-run
