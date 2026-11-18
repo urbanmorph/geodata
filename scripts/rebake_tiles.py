@@ -49,6 +49,8 @@ import time
 from collections.abc import Iterator
 from pathlib import Path
 
+import duckdb
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import audit_tiles as at  # noqa: E402
@@ -64,7 +66,13 @@ from bake_land_water import (  # noqa: E402
     tile_for,
     upload,
 )
-from pipeline import R2_PUBLIC, file_md5, make_con, write_json  # noqa: E402
+from pipeline import (  # noqa: E402
+    R2_PUBLIC,
+    _remote_has,
+    file_md5,
+    make_con,
+    write_json,
+)
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -85,6 +93,8 @@ LOW_DETAIL = 10
 # point at the max zoom), nor fewer than this for a layer that had none.
 MIN_MAX_ZOOM = 10
 STEP_TIMEOUT_S = 4 * 3600
+COVER_AT_MAX = (0.98, 1.02)     # polygon area in a decoded tile / the parquet's
+COVER_BELOW_MAX = (0.9, 1.15)
 DUCKDB_MEMORY = os.environ.get('TILES_DUCKDB_MEMORY', '12GB')
 BBOX = ('bbox', 'xmin', 'ymin', 'xmax', 'ymax')
 NOTE = ('Map tiles rebaked by bharatlas with the popup fields only; every column is in the'
@@ -155,6 +165,10 @@ def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], kind: s
     args = pmtiles_args(src, out, layer, fields, parallel=True)
     if kind == 'polygon':
         args[args.index('--drop-densest-as-needed')] = '--coalesce-densest-as-needed'
+    if kind == 'point':
+        # No fixed thinning rate: each low-zoom tile keeps as many points as
+        # the budget holds (the densest go first), not a sparse sample.
+        args.insert(args.index('--force'), '-r1')
     if not fields:
         args.insert(args.index('--force'), '-X')  # no attributes at all (-y with none keeps every one)
     extra = [f'--maximum-tile-bytes={MAX_TILE_BYTES}', f'--low-detail={LOW_DETAIL}',
@@ -203,10 +217,13 @@ def tile_report(pm: Path, parquet: Path, con, kind: str) -> list[dict]:
     measure = {'polygon': 'ST_Area', 'line': 'ST_Length'}.get(kind)
     max_zoom = at.parse_header(pm.read_bytes()[:127]).max_zoom
     tmp = pm.with_name(f'{pm.stem}.decoded.geojson')
-    rows = []
+    rows, seen = [], set()
     for lon, lat in probe_points(con, parquet):
         for z in check_zooms(max_zoom):
             x, y = tile_for(lon, lat, z)
+            if (z, x, y) in seen:  # probes close together share their low-zoom tiles
+                continue
+            seen.add((z, x, y))
             w, s, e, n = tile_bounds(z, x, y)
             env = f'ST_MakeEnvelope({w}, {s}, {e}, {n})'
             amount = f'coalesce(sum({measure}(ST_Intersection(ST_MakeValid(geometry), {env}))), 0)' \
@@ -226,14 +243,18 @@ def tile_report(pm: Path, parquet: Path, con, kind: str) -> list[dict]:
 
 
 def report_problems(rows: list[dict], max_zoom: int, kind: str) -> list[str]:
-    """The max zoom keeps every feature; polygons cover the ground at every
-    checked zoom (coalesced shapes still do; a dropped one is a hole)."""
+    """The max zoom keeps every feature at its true area; below it, polygons
+    still cover the ground (coalesced shapes do; a dropped one is a hole;
+    tippecanoe turns sub-pixel polygons into dust squares of about the same
+    total area, hence the band)."""
     out = []
     for r in rows:
         tile = f"z{r['z']}/{r['x']}/{r['y']}"
-        if r['z'] == max_zoom and r['decoded'] < r['parquet']:
+        at_max = r['z'] == max_zoom
+        if at_max and r['decoded'] < r['parquet']:
             out.append(f"{tile}: {r['decoded']:,} decoded < {r['parquet']:,} in the parquet")
-        if kind == 'polygon' and r['cover'] is not None and not 0.95 <= r['cover'] <= 1.1:
+        low, high = COVER_AT_MAX if at_max else COVER_BELOW_MAX
+        if kind == 'polygon' and r['cover'] is not None and not low <= r['cover'] <= high:
             out.append(f"{tile}: polygons cover {r['cover']:.0%} of the parquet's area")
         if kind == 'line' and r['z'] == max_zoom and r['cover'] is not None and r['cover'] < 0.95:
             out.append(f"{tile}: lines keep {r['cover']:.0%} of the parquet's length")
@@ -250,11 +271,16 @@ def source_of(layer: dict) -> tuple[str, str]:
     raise ValueError(f"{layer['id']}: no parquet or geojson to bake tiles from")
 
 
+def geometry_column(columns: list[tuple[str, str]]) -> str:
+    return next(c for c, t in columns if 'GEOMETRY' in t.upper())
+
+
 def flat_parquet(con, src: Path, fmt: str, part: Path) -> None:
-    """A parquet with geometry and flat xmin/ymin/xmax/ymax, for the checks."""
+    """A parquet with `geometry` and flat xmin/ymin/xmax/ymax, for the checks."""
     read = f"read_parquet('{src}')" if fmt == 'parquet' else f"ST_Read('{src}')"
-    geom = 'geometry' if fmt == 'parquet' else 'geom'
-    cols = [r[0] for r in con.execute(f'DESCRIBE SELECT * FROM {read}').fetchall()]
+    described = [(r[0], r[1]) for r in con.execute(f'DESCRIBE SELECT * FROM {read}').fetchall()]
+    geom = geometry_column(described)
+    cols = [c for c, _ in described]
     keep = ', '.join(f'"{c}"' for c in cols if c not in (*BBOX, geom))
     con.execute(f"""COPY (SELECT {keep + ', ' if keep else ''}{geom} AS geometry,
                     ST_XMin({geom}) xmin, ST_YMin({geom}) ymin, ST_XMax({geom}) xmax, ST_YMax({geom}) ymax
@@ -273,8 +299,9 @@ def build(layer: dict, deadline: Deadline) -> tuple[Path, dict]:
     con.execute(f"SET memory_limit = '{DUCKDB_MEMORY}'")  # several bakes can share the host
 
     deadline.check(f'{lid}: flat parquet')
-    has_bbox = fmt == 'parquet' and {'xmin', 'ymax'} <= {c for c, _ in schema(con, src)}
-    flat = src if has_bbox else cached(work / 'flat.parquet', lambda p: flat_parquet(con, src, fmt, p))
+    src_cols = schema(con, src) if fmt == 'parquet' else []
+    ready = {'xmin', 'ymax'} <= {c for c, _ in src_cols} and geometry_column(src_cols) == 'geometry'
+    flat = src if ready else cached(work / 'flat.parquet', lambda p: flat_parquet(con, src, fmt, p))
     kind = geometry_kind(con, flat)
     columns = schema(con, flat)
     live = live_tiles(layer)
@@ -312,6 +339,9 @@ def build(layer: dict, deadline: Deadline) -> tuple[Path, dict]:
                'problems': report_problems(rows, audit['max_zoom'], kind)}
         record.write_text(json.dumps(out, indent=1))
     checks = json.loads(record.read_text())
+    # The rule may have changed since the record was written: apply today's.
+    checks['flags'] = at.flag(checks['audit'], layer.get('rows'))
+    checks['problems'] = report_problems(checks['tiles'], checks['audit']['max_zoom'], checks['kind'])
     for r in checks['tiles']:
         log(f"    z{r['z']}/{r['x']}/{r['y']}: decoded {r['decoded']:,}  parquet {r['parquet']:,}  cover {r['cover']}")
     if checks['flags'] or checks['problems']:
@@ -392,19 +422,14 @@ def upload_lock(lock: Path = LOCK, owner: str = LOCK_OWNER, wait_s: float = 30) 
 
 
 def publish(layer: dict, pm: Path, checks: dict) -> str:
-    key = versioned_key(layer, file_md5(pm))
+    md5 = file_md5(pm)
+    key = versioned_key(layer, md5)
     s3 = r2_client()
-    if not at_remote(s3, key, pm):
+    if not _remote_has(s3, key, md5):  # the md5 skip, before taking the upload lock
         with upload_lock():
             upload(s3, pm, key)
     patch_catalog(layer['id'], key, pm.stat().st_size, checks['narrowed'])
     return key
-
-
-def at_remote(s3, key: str, local: Path) -> bool:
-    """The md5 skip, checked before taking the upload lock."""
-    from pipeline import _remote_has
-    return _remote_has(s3, key, file_md5(local))
 
 
 # ── CLI ──────────────────────────────────────────────────────────────────────
@@ -443,7 +468,8 @@ def main(argv: list[str]) -> int:
         except OutOfTime as e:
             log(f'STOPPED: {e}; finished steps are kept, re-run to continue')
             return 3
-        except (RuntimeError, ValueError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
+        except (RuntimeError, ValueError, StopIteration, duckdb.Error,
+                subprocess.CalledProcessError, subprocess.TimeoutExpired) as e:
             tail = (getattr(e, 'stderr', None) or b'')[-800:]
             log(f'  FAILED {lid}: {e}' + (f"\n{tail.decode(errors='replace')}" if tail else ''))
             failed.append(lid)

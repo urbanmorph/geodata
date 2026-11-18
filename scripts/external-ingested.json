@@ -734,8 +734,8 @@
     "r2_prefix": "agriculture/slusi-soil-health",
     "parquet_file": "SLUSI_SHC.parquet",
     "parquet_bytes": 315208629,
-    "pmtiles_file": "SLUSI_SHC.4add9e5c.pmtiles",
-    "pmtiles_bytes": 241858251,
+    "pmtiles_file": "SLUSI_SHC.efdc27fe.pmtiles",
+    "pmtiles_bytes": 454941400,
     "source_url": "https://slusi.dacnet.nic.in/",
     "source_org": "SLUSI (Soil & Land Use Survey of India)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from SLUSI Soil Health Card layer. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
@@ -924,8 +924,8 @@
     "r2_prefix": "boundaries/pmgsy-habitations",
     "parquet_file": "PMGSY_Habitations.parquet",
     "parquet_bytes": 55189632,
-    "pmtiles_file": "PMGSY_Habitations.pmtiles",
-    "pmtiles_bytes": 61937753,
+    "pmtiles_file": "PMGSY_Habitations.57ce07aa.pmtiles",
+    "pmtiles_bytes": 79306769,
     "source_url": "https://omms.nic.in/",
     "source_org": "PMGSY GeoSadak (Ministry of Rural Development)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from PMGSY GeoSadak / OMMS. Updated 20 Oct 2024."
@@ -962,8 +962,8 @@
     "r2_prefix": "environment/ndem-floods-1998-2022",
     "parquet_file": "NDEM_All_India_Flood_Innundation_1998_to_2022.parquet",
     "parquet_bytes": 28309210,
-    "pmtiles_file": "NDEM_All_India_Flood_Innundation_1998_to_2022.pmtiles",
-    "pmtiles_bytes": 10053234,
+    "pmtiles_file": "NDEM_All_India_Flood_Innundation_1998_to_2022.b7e4a6f7.pmtiles",
+    "pmtiles_bytes": 12331779,
     "source_url": "https://ndem.nrsc.gov.in/",
     "source_org": "NDEM (NRSC / ISRO)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from NDEM all-India flood inundation 1998-2022."
@@ -1057,8 +1057,8 @@
     "r2_prefix": "environment/wris-waterbodies",
     "parquet_file": "WRIS_Waterbodies.parquet",
     "parquet_bytes": 304155180,
-    "pmtiles_file": "WRIS_Waterbodies.pmtiles",
-    "pmtiles_bytes": 339169658,
+    "pmtiles_file": "WRIS_Waterbodies.036baf92.pmtiles",
+    "pmtiles_bytes": 211862985,
     "source_url": "https://indiawris.gov.in/",
     "source_org": "Central Water Commission (WRIS)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS waterbodies layer."
@@ -1076,11 +1076,11 @@
     "r2_prefix": "environment/slusi-micro-watersheds",
     "parquet_file": "SLUSI_MicroWatersheds.parquet",
     "parquet_bytes": 474854958,
-    "pmtiles_file": "SLUSI_MicroWatersheds.pmtiles",
-    "pmtiles_bytes": 158542307,
+    "pmtiles_file": "SLUSI_MicroWatersheds.b18e2a50.pmtiles",
+    "pmtiles_bytes": 98556142,
     "source_url": "https://slusi.dacnet.nic.in/",
     "source_org": "SLUSI (Soil & Land Use Survey of India)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "pmgsy_roads",
@@ -1095,8 +1095,8 @@
     "r2_prefix": "transport/pmgsy-roads",
     "parquet_file": "pmgsy_roads.parquet",
     "parquet_bytes": 831269104,
-    "pmtiles_file": "pmgsy_roads.pmtiles",
-    "pmtiles_bytes": 412589839,
+    "pmtiles_file": "pmgsy_roads.ef6db65b.pmtiles",
+    "pmtiles_bytes": 325113239,
     "source_url": "https://omms.nic.in/",
     "source_org": "PMGSY GeoSadak (Ministry of Rural Development)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from PMGSY GeoSadak / OMMS."
@@ -1162,11 +1162,11 @@
     "r2_prefix": "water/groundwater",
     "parquet_file": "CGWB_Groundwater_Extraction.parquet",
     "parquet_bytes": 68510484,
-    "pmtiles_file": "CGWB_Groundwater_Extraction.pmtiles",
-    "pmtiles_bytes": 28786536,
+    "pmtiles_file": "CGWB_Groundwater_Extraction.71c26a82.pmtiles",
+    "pmtiles_bytes": 21102295,
     "source_url": "https://cgwb.gov.in/",
     "source_org": "Central Ground Water Board",
-    "notes": "CGWB dynamic groundwater resource assessment (stage of extraction), 2020 assessment (Dynamic Ground Water Resources of India, 2020): national totals recharge 436.1 bcm, extractable 397.6 bcm, extraction 244.9 bcm, stage 61.6%. Newer assessments (2022 to 2025) exist at CGWB/INGRES; this layer is the 2020 edition. -9999 marks units not assessed. Sourced via CoRE Stack (core-stack.org).",
+    "notes": "CGWB dynamic groundwater resource assessment (stage of extraction), 2020 assessment (Dynamic Ground Water Resources of India, 2020): national totals recharge 436.1 bcm, extractable 397.6 bcm, extraction 244.9 bcm, stage 61.6%. Newer assessments (2022 to 2025) exist at CGWB/INGRES; this layer is the 2020 edition. -9999 marks units not assessed. Sourced via CoRE Stack (core-stack.org). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
     "tags": [
       "groundwater",
       "over-exploited",
@@ -1315,11 +1315,11 @@
     "r2_prefix": "agriculture/corestack-lulc-blocks",
     "parquet_file": "CoREStack_LULC_Blocks_2023_24.parquet",
     "parquet_bytes": 74448598,
-    "pmtiles_file": "CoREStack_LULC_Blocks_2023_24.pmtiles",
-    "pmtiles_bytes": 30561020,
+    "pmtiles_file": "CoREStack_LULC_Blocks_2023_24.27652ef8.pmtiles",
+    "pmtiles_bytes": 21033580,
     "source_url": "https://core-stack.org/",
     "source_org": "CoRE Stack",
-    "notes": "Modelled data, not official crop statistics: block totals of CoRE Stack's IndiaSAT v4 land-use classification (10 m, 2023-24). Areas are in hectares and shares are of each block's mapped area, so add up hectares, not shares, when combining blocks. Not mapped: Lakshadweep and Andaman & Nicobar; partly mapped in the high Himalaya (see mapped_pct). The annual series from 2017-18 is available from CoRE Stack.",
+    "notes": "Modelled data, not official crop statistics: block totals of CoRE Stack's IndiaSAT v4 land-use classification (10 m, 2023-24). Areas are in hectares and shares are of each block's mapped area, so add up hectares, not shares, when combining blocks. Not mapped: Lakshadweep and Andaman & Nicobar; partly mapped in the high Himalaya (see mapped_pct). The annual series from 2017-18 is available from CoRE Stack. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
     "tags": [
       "land use",
       "land cover",
@@ -1387,11 +1387,11 @@
     "r2_prefix": "boundaries/sbm-wards",
     "parquet_file": "SBM_Wards.parquet",
     "parquet_bytes": 66680769,
-    "pmtiles_file": "SBM_Wards.pmtiles",
-    "pmtiles_bytes": 77731364,
+    "pmtiles_file": "SBM_Wards.70fe7054.pmtiles",
+    "pmtiles_bytes": 52930282,
     "source_url": "https://sbmurban.org/",
     "source_org": "Swachh Bharat Mission (Urban), MoHUA",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Swachh Bharat Mission (Urban) GIS. Licence: CC0 1.0 from the compiler (the government source states none); credit DataMeet and Swachh Bharat Mission (Urban). Records span Oct 2021 to Jan 2025. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "sbm_ulbs",
@@ -1710,11 +1710,11 @@
     "r2_prefix": "environment/gsi-lineaments-250k",
     "parquet_file": "NGDR_Lineament_250k.parquet",
     "parquet_bytes": 7856121,
-    "pmtiles_file": "NGDR_Lineament_250k.pmtiles",
-    "pmtiles_bytes": 6168846,
+    "pmtiles_file": "NGDR_Lineament_250k.f52637d1.pmtiles",
+    "pmtiles_bytes": 7325695,
     "source_url": "https://bhukosh.gsi.gov.in/",
     "source_org": "Geological Survey of India (NGDR / Bhukosh)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "police_stations_ap",
@@ -1862,11 +1862,11 @@
     "r2_prefix": "water/amrit-sarovar-ponds",
     "parquet_file": "Amrit_Sarovar_Water_Observatory_Ponds.parquet",
     "parquet_bytes": 4820995,
-    "pmtiles_file": "Amrit_Sarovar_Water_Observatory_Ponds.pmtiles",
-    "pmtiles_bytes": 8952938,
+    "pmtiles_file": "Amrit_Sarovar_Water_Observatory_Ponds.71ee556f.pmtiles",
+    "pmtiles_bytes": 17999728,
     "source_url": "https://amritsarovar.gov.in/",
     "source_org": "Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "jjm_facilities",
@@ -2176,11 +2176,11 @@
     "r2_prefix": "environment/bhuvan-lineaments-50k",
     "parquet_file": "Bhuvan_Lineament_50k_0506.parquet",
     "parquet_bytes": 28655136,
-    "pmtiles_file": "Bhuvan_Lineament_50k_0506.pmtiles",
-    "pmtiles_bytes": 10025166,
+    "pmtiles_file": "Bhuvan_Lineament_50k_0506.3e9733ce.pmtiles",
+    "pmtiles_bytes": 12757613,
     "source_url": "https://bhuvan.nrsc.gov.in/",
     "source_org": "Bhuvan (NRSC, ISRO)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "bhuvan_gw_prospect_structures",
@@ -2214,11 +2214,11 @@
     "r2_prefix": "water/slusi-priority-micro-watersheds",
     "parquet_file": "SLUSI_Priority_MicroWatersheds.parquet",
     "parquet_bytes": 315643938,
-    "pmtiles_file": "SLUSI_Priority_MicroWatersheds.pmtiles",
-    "pmtiles_bytes": 86610198,
+    "pmtiles_file": "SLUSI_Priority_MicroWatersheds.a07abf25.pmtiles",
+    "pmtiles_bytes": 66017396,
     "source_url": "https://slusi.dacnet.nic.in/",
     "source_org": "SLUSI (Soil & Land Use Survey of India)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI (Soil & Land Use Survey of India). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI (Soil & Land Use Survey of India). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "wbc1_water_bodies",
@@ -2409,8 +2409,8 @@
     "r2_prefix": "environment/fsi-recorded-forest-area",
     "parquet_file": "Bharatmaps_RFA.parquet",
     "parquet_bytes": 408433242,
-    "pmtiles_file": "Bharatmaps_RFA.pmtiles",
-    "pmtiles_bytes": 170960010,
+    "pmtiles_file": "Bharatmaps_RFA.1a98f9ae.pmtiles",
+    "pmtiles_bytes": 123782273,
     "source_url": "https://fsi.nic.in/",
     "source_org": "Forest Survey of India (MoEFCC), via Bharatmaps",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC), via Bharatmaps. The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."

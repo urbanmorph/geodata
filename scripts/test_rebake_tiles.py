@@ -57,6 +57,7 @@ def test_tippecanoe_args_polygons_coalesce_with_budget_and_shared_borders():
 def test_tippecanoe_args_points_and_lines_thin(kind):
     args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', ['n'], kind, 10)
     assert '--drop-densest-as-needed' in args and '--coalesce-densest-as-needed' not in args
+    assert ('-r1' in args) == (kind == 'point')
 
 
 def test_tippecanoe_args_no_fields_means_no_attributes():
@@ -122,7 +123,12 @@ def test_report_problems():
     rows = [{'z': 11, 'x': 1, 'y': 1, 'decoded': 9, 'parquet': 10, 'cover': 1.0},
             {'z': 5, 'x': 1, 'y': 1, 'decoded': 3, 'parquet': 900, 'cover': 0.5},
             {'z': 3, 'x': 1, 'y': 1, 'decoded': 3, 'parquet': 900, 'cover': 1.01}]
+    rows.append({'z': 8, 'x': 1, 'y': 1, 'decoded': 3, 'parquet': 9, 'cover': 0.94})  # dust: within the band
     problems = rt.report_problems(rows, 11, 'polygon')
     assert len(problems) == 2
     assert 'decoded' in problems[0] and 'cover 50%' in problems[1]
     assert rt.report_problems(rows[2:], 11, 'polygon') == []
+
+
+def test_geometry_column_by_type_not_name():
+    assert rt.geometry_column([('id', 'VARCHAR'), ('geom', 'GEOMETRY')]) == 'geom'
