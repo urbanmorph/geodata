@@ -179,6 +179,15 @@ def test_filter_stats_baked_first_else_probed_once_and_cached(tmp_path):
     assert rt.filter_stats({'id': 'g', 'geojson': {'url': 'x'}}, {}, src, con, tmp_path / 'g.json') is None
 
 
+def test_probes_are_picked_once_so_live_and_new_tiles_meet_the_same_tiles(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(rt, 'probe_points', lambda con, parquet: calls.append(1) or [(77.5, 12.9), (88.3, 22.5)])
+    first = rt.probes(None, tmp_path / 'p.parquet', tmp_path / 'probes.json')
+    assert first == [(77.5, 12.9), (88.3, 22.5)]
+    assert rt.probes(None, tmp_path / 'p.parquet', tmp_path / 'probes.json') == first
+    assert len(calls) == 1
+
+
 def test_geometry_column_by_type_not_name():
     assert rt.geometry_column([('id', 'VARCHAR'), ('geom', 'GEOMETRY')]) == 'geom'
 

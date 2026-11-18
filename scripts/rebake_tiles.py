@@ -234,11 +234,18 @@ def amount_sql(kind: str, col: str, env: str) -> str:
     return f'coalesce(sum({measure}(ST_Intersection({valid}, {env}))), 0)'
 
 
+def probes(con, parquet: Path, cache: Path) -> list[tuple[float, float]]:
+    """probe_points, picked once per layer (written to `cache`): the live
+    tiles and every new try are measured on the same probe tiles."""
+    cached(cache, lambda p: p.write_text(json.dumps(probe_points(con, parquet))))
+    return [tuple(pt) for pt in json.loads(cache.read_text())]
+
+
 def check_zooms(max_zoom: int) -> list[int]:
     return sorted({min(3, max_zoom), min(5, max_zoom), min(8, max_zoom), max_zoom})
 
 
-def tile_report(pm: Path, parquet: Path, con, kind: str) -> list[dict]:
+def tile_report(pm: Path, parquet: Path, con, kind: str, points: list[tuple[float, float]]) -> list[dict]:
     """Per probe tile at a low, a mid and the max zoom: decoded features vs
     parquet features meeting the tile, and the area (polygons) or length
     (lines) each covers inside it. Points compare counts only."""
@@ -246,7 +253,7 @@ def tile_report(pm: Path, parquet: Path, con, kind: str) -> list[dict]:
     max_zoom = at.parse_header(pm.read_bytes()[:127]).max_zoom
     tmp = pm.with_name(f'{pm.stem}.decoded.geojson')
     rows, seen = [], set()
-    for lon, lat in probe_points(con, parquet):
+    for lon, lat in points:
         for z in check_zooms(max_zoom):
             x, y = tile_for(lon, lat, z)
             if (z, x, y) in seen:  # probes close together share their low-zoom tiles
@@ -365,7 +372,8 @@ def build(layer: dict, deadline: Deadline, catalog: dict | None = None) -> tuple
     log(f'  {lid}: {kind}s, tile fields {fields}')
 
     deadline.check(f'{lid}: live tiles report')
-    before = live_report(layer, work, flat, con, kind)
+    points = probes(con, flat, work / 'probes.json')
+    before = live_report(layer, work, flat, con, kind, points)
     seq = work / 'tiles.geojsonl'
     try:
         for i, (detail, budget, suffix) in enumerate(TILE_TRIES):
@@ -387,7 +395,8 @@ def build(layer: dict, deadline: Deadline, catalog: dict | None = None) -> tuple
                     timeout=min(STEP_TIMEOUT_S, max(60, deadline.end - deadline.clock()))))
                 log(f'  {lid}: {pm.stat().st_size / 1e6:,.1f} MB of tiles in {time.monotonic() - t0:,.0f} s')
             deadline.check(f'{lid}: checks')
-            checks, record = tile_checks(layer, pm, flat, con, kind, fields, narrowed, work / f'checks{suffix}.json')
+            checks, record = tile_checks(layer, pm, flat, con, kind, points, fields, narrowed,
+                                         work / f'checks{suffix}.json')
             failed = checks['flags'] + checks['problems'] + worse_than(before, checks['tiles'], kind)
             if not failed:
                 return pm, checks
@@ -399,7 +408,8 @@ def build(layer: dict, deadline: Deadline, catalog: dict | None = None) -> tuple
             seq.unlink(missing_ok=True)
 
 
-def live_report(layer: dict, work: Path, flat: Path, con, kind: str) -> list[dict] | None:
+def live_report(layer: dict, work: Path, flat: Path, con, kind: str,
+                points: list[tuple[float, float]]) -> list[dict] | None:
     """tile_report of the tiles being replaced (None when there are none):
     the baseline worse_than holds the new tiles to. Written once."""
     url = (layer.get('pmtiles') or {}).get('url')
@@ -408,17 +418,18 @@ def live_report(layer: dict, work: Path, flat: Path, con, kind: str) -> list[dic
     record = work / 'live_report.json'
     if not record.exists():
         pm = fetch(url, work / 'live.pmtiles')
-        cached(record, lambda p: p.write_text(json.dumps(tile_report(pm, flat, con, kind))))
+        cached(record, lambda p: p.write_text(json.dumps(tile_report(pm, flat, con, kind, points))))
         pm.unlink()
     return json.loads(record.read_text())
 
 
-def tile_checks(layer: dict, pm: Path, flat: Path, con, kind: str, fields: list[str], narrowed: bool,
+def tile_checks(layer: dict, pm: Path, flat: Path, con, kind: str, points: list[tuple[float, float]],
+                fields: list[str], narrowed: bool,
                 record: Path) -> tuple[dict, Path]:
     """The check record of one tiles file (written once), with today's rule applied."""
     if not record.exists():
         audit = at.audit_archive(at.file_reader(pm))
-        rows = tile_report(pm, flat, con, kind)
+        rows = tile_report(pm, flat, con, kind, points)
         out = {'kind': kind, 'fields': fields, 'narrowed': narrowed, 'audit': audit, 'tiles': rows}
         record.write_text(json.dumps(out, indent=1))
     checks = json.loads(record.read_text())
