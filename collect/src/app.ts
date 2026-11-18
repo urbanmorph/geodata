@@ -17,12 +17,12 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace } from './review';
 import { escapeHtml, downloadText } from './util';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
 import type { Mapping } from './import/build';
-import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps } from './maps-store';
+import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps, backLink } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
 import { fitsLocalPicker } from './schema/dates';
 import { wireSheetSwipe } from './sheet-swipe';
@@ -1624,13 +1624,6 @@ async function refreshCounts(): Promise<void> {
   updateReviewCounts(meta.counts);
 }
 
-type AdminCtx = { state?: string; district?: string; subdistrict?: string } | null;
-function fmtAdminCtx(ctx: AdminCtx): string {
-  if (!ctx) return '';
-  const parts = [ctx.district, ctx.state].filter(Boolean);
-  return parts.length ? `📍 ${parts.join(', ')}` : '';
-}
-
 // Queue card label: the record's `name`, else the first author field value
 // (the author may have renamed/removed the seeded `name` field).
 function cardTitle(props: Record<string, unknown>): string {
@@ -1714,7 +1707,7 @@ function openReview(idx: number): void {
   const f = reviewFeats[idx];
   if (!f) return;
   const p = f.properties as {
-    _status?: string; _contributor?: string; _admin_ctx?: AdminCtx; _source?: string; _link_label?: string | null; _captured_at?: string | null; _created_at?: string;
+    _status?: string; _contributor?: string; _admin_ctx?: { state?: string; district?: string } | null; _source?: string; _link_label?: string | null; _captured_at?: string | null; _created_at?: string;
     _photos?: Array<{ field: string; id: string; url: string }>; _ai?: Notes | null; [k: string]: unknown;
   };
   const st = p._status || 'published';
@@ -1729,10 +1722,8 @@ function openReview(idx: number): void {
 
   const attrs = attrRowsHtml(p, 'attr');
   // meta line: who (source or a named contributor; nothing for an unnamed capture) + place
-  const who = recordWho(p._source, p._contributor);
-  const via = recordVia(p._link_label);
-  const when = recordWhen(p._captured_at, p._created_at);
-  const meta = [who ? escapeHtml(who) : '', via ? escapeHtml(via) : '', escapeHtml(when), fmtAdminCtx(p._admin_ctx ?? null)].filter(Boolean).join(' · ');
+  const meta = [recordWho(p._source, p._contributor), recordVia(p._link_label), recordWhen(p._captured_at, p._created_at), recordPlace(p._admin_ctx)]
+    .filter(Boolean).map(escapeHtml).join(' · ');
   const panel = document.getElementById('panel')!;
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
@@ -1885,7 +1876,7 @@ async function recordEditor(): Promise<void> {
   rememberRecord(ctx.id, rec.collection_name, { id: rec.id, label: recordLabel(rec.properties, noun), link: location.href });
 
   app.innerHTML = `
-    <div class="topbar"><a href="/c/${ctx.id}#${ctx.token}" aria-label="Back">←</a><span>Your ${noun}</span>
+    <div class="topbar"><a href="${escapeHtml(backLink(myMaps(), ctx.id))}" aria-label="Back">←</a><span>Your ${noun}</span>
       <span class="muted" style="margin-left:auto">${escapeHtml(rec.collection_name)}</span></div>
     <div class="map">
       <div id="map"></div>${isPoint ? '<div class="crosshair" aria-hidden="true"></div>' : ''}
@@ -2010,7 +2001,7 @@ async function recordEditor(): Promise<void> {
     try {
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
       forgetRecord(ctx.id, ctx.recordId!);
-      app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="/c/${ctx.id}#${ctx.token}">← Back to the map</a></div>`;
+      app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
     } catch (e) { toast((e as Error).message); btn.disabled = false; }
   };
 }

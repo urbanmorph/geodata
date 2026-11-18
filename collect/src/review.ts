@@ -49,6 +49,12 @@ export function recordVia(label?: string | null): string {
   return label && label.trim() ? `via ${label.trim()}` : '';
 }
 
+/** "📍 Bengaluru Urban, KARNATAKA" from the record's admin context, or ''. */
+export function recordPlace(ctx: { state?: string; district?: string } | null | undefined): string {
+  const parts = [ctx?.district, ctx?.state].filter(Boolean);
+  return parts.length ? `📍 ${parts.join(', ')}` : '';
+}
+
 export type PopupAction = { act: string; label: string; cls: string };
 
 // The moderation actions a record's map tooltip offers, by status — so an admin

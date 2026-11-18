@@ -95,6 +95,13 @@ export function openLink(m: SavedMap): string | undefined {
   return m.role === 'view' ? m.links.view : (m.links.edit || m.links.admin || m.links.view);
 }
 
+// Where a contributor goes back to from their own point's page: the map link
+// saved on this device, else home (their rec_ token can't open the map).
+export function backLink(maps: SavedMap[], id: string): string {
+  const m = maps.find((x) => x.id === id);
+  return (m && openLink(m)) || '/';
+}
+
 export function myMaps(): SavedMap[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) || '[]') as SavedMap[];

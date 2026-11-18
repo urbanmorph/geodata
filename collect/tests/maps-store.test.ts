@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { applyRemember, openLink, type SavedMap } from '../src/maps-store';
+import { applyRemember, openLink, backLink, type SavedMap } from '../src/maps-store';
 
 const T = '2026-08-19T00:00:00Z';
 
@@ -95,5 +95,19 @@ describe('recordLabel', () => {
     expect(recordLabel({ name: '  Big neem  ', n: 3 }, 'point')).toBe('Big neem');
     expect(recordLabel({ n: 3 }, 'point')).toBe('Your point');
     expect(recordLabel({ name: 'x'.repeat(200) }, 'area')).toHaveLength(80);
+  });
+});
+
+describe('backLink: where a contributor goes back to from their own point', () => {
+  const maps: SavedMap[] = [
+    { id: 'm1', name: 'Trees', role: 'collect', links: { edit: 'https://collect.bharatlas.com/c/m1#edt_x' }, at: '2026-08-19T00:00:00Z' },
+    { id: 'm2', name: 'Only my points', role: 'collect', links: {}, at: '2026-08-19T00:00:00Z' },
+  ];
+  it('is the map link saved on this device', () => {
+    expect(backLink(maps, 'm1')).toBe('https://collect.bharatlas.com/c/m1#edt_x');
+  });
+  it('is the home page when no map link is saved (a rec_ token cannot open the map)', () => {
+    expect(backLink(maps, 'm2')).toBe('/');
+    expect(backLink(maps, 'nope')).toBe('/');
   });
 });

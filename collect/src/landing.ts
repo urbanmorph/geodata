@@ -47,8 +47,8 @@ function mapsSection(): string {
     ${maps.length
       ? maps.map((m) => `<div class="link-box">
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(m.name || 'Untitled map')} <span class="pill pill--${m.role}">${ROLE_PILL[m.role]}</span></span>
-          <a class="btn" href="${openLink(m) || '#'}">Open</a>
-          ${m.links.admin ? `<a class="btn" href="${m.links.admin}">Manage</a>` : ''}
+          <a class="btn" href="${escapeHtml(openLink(m) || '#')}">Open</a>
+          ${m.links.admin ? `<a class="btn" href="${escapeHtml(m.links.admin)}">Manage</a>` : ''}
         </div>${recordsList(m)}`).join('')
       : '<p class="empty">No maps yet. Make one above, or open a link someone shared, and it will appear here to reopen anytime.</p>'}`;
 }
