@@ -4,7 +4,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 // @ts-expect-error: plain .mjs
-import { renderReleasesIndex, renderReleaseDataset, releasePages } from '../scripts/releases-page.mjs';
+import { renderReleasesIndex, renderReleaseDataset, releasePages, displayTitle } from '../scripts/releases-page.mjs';
 
 const INDEX = JSON.parse(readFileSync(resolve(__dirname, '../public/releases/index.json'), 'utf8'));
 const visible = (html: string) =>
@@ -49,7 +49,7 @@ describe('the /releases page', () => {
     expect(html).toContain('href="/releases/lgd_states"');
     expect(visible(html)).toContain('bharatlas-cw-2026.12');
     expect(visible(html)).toContain('2 releases');
-    expect(visible(html)).toContain('Census 2011 &lt;-&gt; LGD crosswalk');
+    expect(visible(html)).toContain('Census 2011 to LGD crosswalk');
   });
 
   it('keeps the site words: no "catalog" and no em-dash in what a reader sees', () => {
@@ -104,5 +104,14 @@ describe('releasePages', () => {
     const names = pages.map((p: { fileName: string }) => p.fileName).sort();
     expect(names).toEqual(['releases.html', ...Object.keys(INDEX.latest).map((d) => `releases/${d}.html`)].sort());
     for (const p of pages) expect(p.html).toMatch(/^<!doctype html>/);
+  });
+});
+
+describe('displayTitle', () => {
+  // A release title is immutable ("Census 2011 <-> LGD crosswalk"); pages show it in words so it
+  // doesn't break as "<-" / "> LGD" on phones (owner, 2026-11-18).
+  it('reads an arrow as words and leaves other titles alone', () => {
+    expect(displayTitle('Census 2011 <-> LGD crosswalk')).toBe('Census 2011 to LGD crosswalk');
+    expect(displayTitle('bharatlas record')).toBe('bharatlas record');
   });
 });

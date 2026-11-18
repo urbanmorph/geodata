@@ -43,7 +43,8 @@ def test_places_stations_transport_roads_pois_health_and_schools_are_fast():
     assert cls(layer('jjm_facilities', 'infrastructure')) == 'fast'
     assert cls(layer('nhp_hospitals', 'health-edu')) == 'fast'
     assert cls(layer('udise_schools', 'health-edu')) == 'fast'
-    assert cls(layer('police_stations_tn', 'people')) == 'fast'
+    # owner, 2026-11-18: state police portals rarely change; rebuild when the source does
+    assert cls(layer('police_stations_tn', 'people')) == 'regular'
 
 
 def test_one_off_censuses_historical_vintages_state_finance_and_mi6_are_frozen():

@@ -29,6 +29,11 @@ function byDataset(index) {
   return new Map([...out].sort(([a, x], [b, y]) => y[0].released.localeCompare(x[0].released) || a.localeCompare(b)));
 }
 
+/** A release title as pages show it: an arrow in an immutable title reads as words. */
+export function displayTitle(title) {
+  return String(title).replace(/\s*<->\s*/g, ' to ');
+}
+
 function head({ title, description, path }) {
   const url = ORIGIN + path;
   const full = `${title} · bharatlas`;
@@ -58,7 +63,7 @@ export function renderReleasesIndex(index, layerIds = new Set()) {
   const sections = [...groups].map(([ds, list]) => {
     const r = list[0];
     return `      <section>
-        <h2><a href="/releases/${esc(ds)}">${esc(r.title)}</a></h2>
+        <h2><a href="/releases/${esc(ds)}">${esc(displayTitle(r.title))}</a></h2>
         <ul class="pairs">
           ${pair('Newest', `<a href="/releases/${esc(ds)}#${esc(r.code)}"><code>${esc(r.code)}</code></a>, ${fmtDate(r.released)}`)}
           ${pair('Cite as', w3idLink(r))}
@@ -114,7 +119,7 @@ function releaseSection(r) {
 /** The /releases/<dataset> page: every release of one dataset, newest first. */
 export function renderReleaseDataset(index, dataset, layerIds = new Set()) {
   const list = byDataset(index).get(dataset) || [];
-  const title = list[0]?.title || dataset;
+  const title = displayTitle(list[0]?.title || dataset);
   const facts = [
     pair('Newest', `<a href="/releases/${esc(dataset)}/latest">bharatlas.com/releases/${esc(dataset)}/latest</a> always leads to the newest release`),
     layerIds.has(dataset) ? pair('Layer', `<a href="/view/${esc(dataset)}">See it on the map</a>, always the latest data`) : '',
