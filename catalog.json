@@ -1201,6 +1201,21 @@
       "label": "Land degradation 1:50k (Bhuvan 2015-16)",
       "unit": "degraded land polygons",
       "description": "Degraded land mapped at 1:50,000 by NRSC from 2015-16 satellite imagery: the process (water or wind erosion, salinity, waterlogging, mining and more) and its severity, with the 2005-06 mapping alongside."
+    },
+    "urban_rail_stations": {
+      "label": "Metro, monorail and RRTS stations",
+      "unit": "stations",
+      "description": "Stations in operation on India's metro, monorail and regional rapid transit (Namo Bharat) systems, one point per station, with its system, city and the lines that stop there."
+    },
+    "urban_rail_lines": {
+      "label": "Metro, monorail and RRTS lines",
+      "unit": "lines",
+      "description": "Lines in operation on India's metro, monorail and regional rapid transit systems, one feature per line with its name, number and colour where OpenStreetMap has them."
+    },
+    "bus_stops": {
+      "label": "Bus stops",
+      "unit": "bus stops",
+      "description": "City bus stops from the open bus feeds of Bengaluru, Pune, the Mumbai region, Ahmedabad and Chennai, and from OpenStreetMap for Delhi, Kolkata, Kochi and Hyderabad, each row with its city, operator, source and licence."
     }
   },
   "level_order": [
@@ -1353,7 +1368,10 @@
     "gsi_lithology_50k",
     "bhuvan_geomorphology_50k",
     "bhuvan_gw_prospects",
-    "bhuvan_land_degradation_1516"
+    "bhuvan_land_degradation_1516",
+    "urban_rail_stations",
+    "urban_rail_lines",
+    "bus_stops"
   ],
   "layers": [
     {
@@ -10629,6 +10647,698 @@
         "bytes": 3618977377
       },
       "fetched_at": "2026-11-18T17:17:05+00:00"
+    },
+    {
+      "id": "urban_rail_stations",
+      "level": "urban_rail_stations",
+      "source": "OpenStreetMap",
+      "rows": 883,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Stations.8f422b58.parquet",
+        "bytes": 60946
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Stations.1b284617.geojson",
+        "bytes": 472279
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Stations.411e74d4.kml",
+        "bytes": 885959
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Stations.e11104d8.shp.zip",
+        "bytes": 73665
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-17",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and the sources named here and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap. A station is a stop on a route relation of an operational line, placed at its station; stations of one name on one system within 1.5 km are one row, and lines lists every line stopping there. Delhi Metro comes from its station tags (its line relations were incomplete; both ways give the same stations in this extract). OpenStreetMap maps some lines and stations before they open; a hand-kept list of operational lines and stations (Mumbai Metro lines 2B and 9, Chennai Metro Yellow Line) leaves those out, and anything tagged as under construction, proposed or disused is never included. An interchange mapped as one station per line ('Kirti Nagar (Blue Line)') is one row named without the line. The Mumbai Monorail is left out while its operations are suspended (OpenStreetMap marks its route disused). Checked each build against the operational station counts on Wikipedia (Urban rail transit in India); suburban rail stations are in the Railway stations layer (ir_stations).",
+      "tags": [
+        "metro stations",
+        "metro",
+        "monorail",
+        "RRTS",
+        "Namo Bharat",
+        "urban rail",
+        "transit",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Stations.b3f2896f.pmtiles",
+        "bytes": 412940
+      },
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": "etag=\"6644da50-66081c688ccd3\" last-modified=Wed, 18 Nov 2026 00:05:58 GMT length=1715788368",
+        "checked_at": "2026-11-18T18:44:01Z",
+        "changed_at": "2026-11-18T00:05:58Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: stations per system within 2 of Wikipedia's operational count (Urban rail transit in India) and against OSM's tagged count; no under-construction stations; operational lines and stations reviewed for Mumbai and Chennai; Delhi Metro from station tags; the Mumbai Monorail out while suspended",
+        "audited_at": "2026-11-18",
+        "next_due": "2026-12-17",
+        "audit_result": {
+          "Agra Metro": {
+            "city": "Agra",
+            "rows": 6,
+            "station_lines": 6,
+            "osm_tagged": 6,
+            "reference": 6,
+            "basis": "station",
+            "compared": 6,
+            "diff": 0,
+            "ok": true
+          },
+          "Ahmedabad Metro": {
+            "city": "Ahmedabad",
+            "rows": 53,
+            "station_lines": 56,
+            "osm_tagged": 47,
+            "reference": 53,
+            "basis": "station",
+            "compared": 53,
+            "diff": 0,
+            "ok": true
+          },
+          "Bhoj Metro": {
+            "city": "Bhopal",
+            "rows": 8,
+            "station_lines": 8,
+            "osm_tagged": 0,
+            "reference": 8,
+            "basis": "station",
+            "compared": 8,
+            "diff": 0,
+            "ok": true
+          },
+          "Chennai Metro": {
+            "city": "Chennai",
+            "rows": 51,
+            "station_lines": 73,
+            "osm_tagged": 91,
+            "reference": 52,
+            "basis": "station",
+            "compared": 51,
+            "diff": -1,
+            "ok": true
+          },
+          "Delhi Metro": {
+            "city": "Delhi",
+            "rows": 245,
+            "station_lines": 271,
+            "osm_tagged": 245,
+            "reference": 271,
+            "basis": "line",
+            "compared": 271,
+            "diff": 0,
+            "ok": true
+          },
+          "Delhi-Meerut RRTS (Namo Bharat)": {
+            "city": "Delhi NCR",
+            "rows": 15,
+            "station_lines": 15,
+            "osm_tagged": 12,
+            "reference": 15,
+            "basis": "station",
+            "compared": 15,
+            "diff": 0,
+            "ok": true
+          },
+          "Gurugram Metro": {
+            "city": "Gurugram",
+            "rows": 11,
+            "station_lines": 11,
+            "osm_tagged": 11,
+            "reference": 11,
+            "basis": "station",
+            "compared": 11,
+            "diff": 0,
+            "ok": true
+          },
+          "Hyderabad Metro": {
+            "city": "Hyderabad",
+            "rows": 57,
+            "station_lines": 60,
+            "osm_tagged": 57,
+            "reference": 59,
+            "basis": "station",
+            "compared": 57,
+            "diff": -2,
+            "ok": true
+          },
+          "Indore Metro": {
+            "city": "Indore",
+            "rows": 16,
+            "station_lines": 16,
+            "osm_tagged": 6,
+            "reference": 16,
+            "basis": "station",
+            "compared": 16,
+            "diff": 0,
+            "ok": true
+          },
+          "Jaipur Metro": {
+            "city": "Jaipur",
+            "rows": 11,
+            "station_lines": 11,
+            "osm_tagged": 12,
+            "reference": 11,
+            "basis": "station",
+            "compared": 11,
+            "diff": 0,
+            "ok": true
+          },
+          "Kanpur Metro": {
+            "city": "Kanpur",
+            "rows": 14,
+            "station_lines": 14,
+            "osm_tagged": 14,
+            "reference": 14,
+            "basis": "station",
+            "compared": 14,
+            "diff": 0,
+            "ok": true
+          },
+          "Kochi Metro": {
+            "city": "Kochi",
+            "rows": 25,
+            "station_lines": 25,
+            "osm_tagged": 25,
+            "reference": 25,
+            "basis": "station",
+            "compared": 25,
+            "diff": 0,
+            "ok": true
+          },
+          "Kolkata Metro": {
+            "city": "Kolkata",
+            "rows": 55,
+            "station_lines": 57,
+            "osm_tagged": 55,
+            "reference": 58,
+            "basis": "line",
+            "compared": 57,
+            "diff": -1,
+            "ok": true
+          },
+          "Lucknow Metro": {
+            "city": "Lucknow",
+            "rows": 21,
+            "station_lines": 21,
+            "osm_tagged": 21,
+            "reference": 21,
+            "basis": "station",
+            "compared": 21,
+            "diff": 0,
+            "ok": true
+          },
+          "Meerut Metro": {
+            "city": "Meerut",
+            "rows": 12,
+            "station_lines": 12,
+            "osm_tagged": 8,
+            "reference": 13,
+            "basis": "station",
+            "compared": 12,
+            "diff": -1,
+            "ok": true
+          },
+          "Mumbai Metro": {
+            "city": "Mumbai",
+            "rows": 77,
+            "station_lines": 80,
+            "osm_tagged": 35,
+            "reference": 77,
+            "basis": "station",
+            "compared": 77,
+            "diff": 0,
+            "ok": true
+          },
+          "Mumbai Monorail": {
+            "city": "Mumbai",
+            "rows": 0,
+            "station_lines": 0,
+            "osm_tagged": 0,
+            "reference": 17,
+            "basis": "station",
+            "compared": 0,
+            "diff": -17,
+            "ok": false
+          },
+          "Nagpur Metro": {
+            "city": "Nagpur",
+            "rows": 37,
+            "station_lines": 38,
+            "osm_tagged": 12,
+            "reference": 37,
+            "basis": "station",
+            "compared": 37,
+            "diff": 0,
+            "ok": true
+          },
+          "Namma Metro": {
+            "city": "Bengaluru",
+            "rows": 88,
+            "station_lines": 91,
+            "osm_tagged": 88,
+            "reference": 91,
+            "basis": "line",
+            "compared": 91,
+            "diff": 0,
+            "ok": true
+          },
+          "Navi Mumbai Metro": {
+            "city": "Navi Mumbai",
+            "rows": 11,
+            "station_lines": 11,
+            "osm_tagged": 10,
+            "reference": 11,
+            "basis": "station",
+            "compared": 11,
+            "diff": 0,
+            "ok": true
+          },
+          "Noida Metro": {
+            "city": "Noida",
+            "rows": 21,
+            "station_lines": 21,
+            "osm_tagged": 21,
+            "reference": 21,
+            "basis": "station",
+            "compared": 21,
+            "diff": 0,
+            "ok": true
+          },
+          "Patna Metro": {
+            "city": "Patna",
+            "rows": 5,
+            "station_lines": 5,
+            "osm_tagged": 0,
+            "reference": 5,
+            "basis": "station",
+            "compared": 5,
+            "diff": 0,
+            "ok": true
+          },
+          "Pune Metro": {
+            "city": "Pune",
+            "rows": 44,
+            "station_lines": 46,
+            "osm_tagged": 30,
+            "reference": 46,
+            "basis": "line",
+            "compared": 46,
+            "diff": 0,
+            "ok": true
+          }
+        }
+      }
+    },
+    {
+      "id": "urban_rail_lines",
+      "level": "urban_rail_lines",
+      "source": "OpenStreetMap",
+      "rows": 54,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Lines.095379ba.parquet",
+        "bytes": 389284
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Lines.2af013fd.geojson",
+        "bytes": 866997
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Lines.89f1c24b.kml",
+        "bytes": 717509
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Lines.76a7a3c9.shp.zip",
+        "bytes": 359140
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-17",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and the sources named here and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap: the ways of each operational route relation, both directions merged into one feature per line, with the relation's name, ref, colour, from and to. OpenStreetMap draws each track, so a double-track line's length is about twice its route length. Partly open lines (Mumbai Metro 2B and 9, Chennai Metro Yellow Line) are mapped over their operational stretch only. A direction mapped without a ref joins its same-named line. The colour column holds OpenStreetMap's colour tag as mapped (a name or a hex code).",
+      "tags": [
+        "metro lines",
+        "metro",
+        "monorail",
+        "RRTS",
+        "urban rail",
+        "transit",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Urban_Rail_Lines.825e3a50.pmtiles",
+        "bytes": 211120
+      },
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": "etag=\"6644da50-66081c688ccd3\" last-modified=Wed, 18 Nov 2026 00:05:58 GMT length=1715788368",
+        "checked_at": "2026-11-18T18:44:01Z",
+        "changed_at": "2026-11-18T00:05:58Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: lines per system against Wikipedia's operational lines; operational sections only (Mumbai 2B and 9, Chennai Yellow)",
+        "audited_at": "2026-11-18",
+        "next_due": "2026-12-17",
+        "audit_result": {
+          "Agra Metro": {
+            "lines": 1,
+            "refs": [
+              "1"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Ahmedabad Metro": {
+            "lines": 4,
+            "refs": [
+              "1",
+              "2",
+              "3",
+              "4"
+            ],
+            "reference": 4,
+            "diff": 0
+          },
+          "Bhoj Metro": {
+            "lines": 1,
+            "refs": [
+              "1"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Chennai Metro": {
+            "lines": 4,
+            "refs": [
+              "1",
+              "2",
+              "2A",
+              "4"
+            ],
+            "reference": 3,
+            "diff": 1
+          },
+          "Delhi Metro": {
+            "lines": 10,
+            "refs": [
+              "1",
+              "2",
+              "3",
+              "4",
+              "5",
+              "6",
+              "7",
+              "8",
+              "9",
+              "AEx"
+            ],
+            "reference": 10,
+            "diff": 0
+          },
+          "Delhi-Meerut RRTS (Namo Bharat)": {
+            "lines": 1,
+            "refs": [
+              "Delhi\u2013Meerut RapidX"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Gurugram Metro": {
+            "lines": 1,
+            "refs": [
+              "RMGL"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Hyderabad Metro": {
+            "lines": 3,
+            "refs": [
+              "1",
+              "2",
+              "3"
+            ],
+            "reference": 3,
+            "diff": 0
+          },
+          "Indore Metro": {
+            "lines": 1,
+            "refs": [
+              "Yellow"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Jaipur Metro": {
+            "lines": 1,
+            "refs": [
+              "Pink Line"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Kanpur Metro": {
+            "lines": 1,
+            "refs": [
+              "1"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Kochi Metro": {
+            "lines": 1,
+            "refs": [
+              "I"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Kolkata Metro": {
+            "lines": 5,
+            "refs": [
+              "Blue",
+              "Green",
+              "Orange",
+              "Purple",
+              "Yellow"
+            ],
+            "reference": 5,
+            "diff": 0
+          },
+          "Lucknow Metro": {
+            "lines": 1,
+            "refs": [
+              "1"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Meerut Metro": {
+            "lines": 1,
+            "refs": [
+              "1"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Mumbai Metro": {
+            "lines": 6,
+            "refs": [
+              "1",
+              "2",
+              "2B",
+              "3",
+              "7",
+              "9"
+            ],
+            "reference": 6,
+            "diff": 0
+          },
+          "Mumbai Monorail": {
+            "lines": 0,
+            "refs": [],
+            "reference": 1,
+            "diff": -1
+          },
+          "Nagpur Metro": {
+            "lines": 2,
+            "refs": [
+              "Aqua Line",
+              "Orange Line"
+            ],
+            "reference": 2,
+            "diff": 0
+          },
+          "Namma Metro": {
+            "lines": 4,
+            "refs": [
+              "Green",
+              "Pink",
+              "Purple",
+              "Yellow"
+            ],
+            "reference": 4,
+            "diff": 0
+          },
+          "Navi Mumbai Metro": {
+            "lines": 1,
+            "refs": [
+              "N1"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Noida Metro": {
+            "lines": 1,
+            "refs": [
+              "Aqua Line"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Patna Metro": {
+            "lines": 1,
+            "refs": [
+              "2"
+            ],
+            "reference": 1,
+            "diff": 0
+          },
+          "Pune Metro": {
+            "lines": 3,
+            "refs": [
+              "1",
+              "2",
+              "3"
+            ],
+            "reference": 3,
+            "diff": 0
+          }
+        }
+      }
+    },
+    {
+      "id": "bus_stops",
+      "level": "bus_stops",
+      "source": "OpenStreetMap and city bus feeds",
+      "rows": 38916,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Bus_Stops.98c5a496.parquet",
+        "bytes": 1585748
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Bus_Stops.288b7345.geojson",
+        "bytes": 15983557
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Bus_Stops.df4fa604.kml",
+        "bytes": 29207218
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Bus_Stops.5cf2f4d0.shp.zip",
+        "bytes": 2035437
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-17",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and the sources named here and share changed versions of the data under ODbL. Stops only, no timetables. Bus feeds (GTFS): BMTC GTFS (Vonter/bmtc-gtfs), ODbL-1.0, https://github.com/Vonter/bmtc-gtfs; PMPML GTFS (croyla/pmpml-gtfs), MIT-0, https://github.com/croyla/pmpml-gtfs; Mumbai region GTFS (croyla/mumbai-gtfs), MIT-0, https://github.com/croyla/mumbai-gtfs; Ahmedabad GTFS (croyla/amd-gtfs), MIT, https://github.com/croyla/amd-gtfs; CUMTA MTC GTFS (cumta.org), none stated (government data, republished with credit), https://cumta.tn.gov.in/. The volunteer feeds are compiled from the operators' apps and websites; the CUMTA feed is government data with no licence stated, republished with credit (bharatlas.com/about#sources-and-licensing); takedown on request. OpenStreetMap (\u00a9 OpenStreetMap contributors, ODbL 1.0) gives the stops of Delhi (NCT), Kolkata, Kochi and Hyderabad (highway=bus_stop, or a bus platform), inside the city's boundary layer (lgd_states, wards_kolkata, wards_kochi, wards_hyderabad). Every row names its source, source_licence and as_of (the feed's version or start date, or the OpenStreetMap extract date). Stop names and positions are as published.",
+      "tags": [
+        "bus stops",
+        "bus",
+        "BMTC",
+        "PMPML",
+        "BEST",
+        "AMTS",
+        "Janmarg",
+        "MTC",
+        "GTFS",
+        "transit",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/transit/Bus_Stops.672043f0.pmtiles",
+        "bytes": 6139228
+      },
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs",
+        "fingerprint": "commit=4ced54ed79c7e33bb66fef87f1f1e79d21709a5c",
+        "checked_at": "2026-11-18T18:44:04Z",
+        "changed_at": "2026-11-09T12:38:25Z"
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: stops per city against each GTFS feed's stops.txt and the OSM count in the city; every row names its source and licence",
+        "audited_at": "2026-11-18",
+        "next_due": "2026-12-17",
+        "audit_result": {
+          "Ahmedabad | Ahmedabad GTFS (croyla/amd-gtfs)": 3129,
+          "Bengaluru | BMTC GTFS (Vonter/bmtc-gtfs)": 10114,
+          "Chennai | CUMTA MTC GTFS (cumta.org)": 7128,
+          "Delhi | OpenStreetMap": 2539,
+          "Gandhinagar | Ahmedabad GTFS (croyla/amd-gtfs)": 74,
+          "Hyderabad | OpenStreetMap": 498,
+          "Kalyan-Dombivli | Mumbai region GTFS (croyla/mumbai-gtfs)": 188,
+          "Kochi | OpenStreetMap": 597,
+          "Kolkata | OpenStreetMap": 320,
+          "Mumbai | Mumbai region GTFS (croyla/mumbai-gtfs)": 4817,
+          "Pune | PMPML GTFS (croyla/pmpml-gtfs)": 7011,
+          "Thane | Mumbai region GTFS (croyla/mumbai-gtfs)": 1805,
+          "Vasai-Virar | Mumbai region GTFS (croyla/mumbai-gtfs)": 696
+        }
+      }
     }
   ],
   "state_extracts": [],
