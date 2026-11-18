@@ -410,15 +410,10 @@
       .about-panel__lic { margin: 0 0 12px; }
       .about-panel__desc { margin: 0 0 14px; font-size: var(--fs-base); line-height: 1.55; }
       .about-panel__h { margin: 20px 0 8px; font-size: var(--fs-md); font-weight: 850; color: var(--fg); }
-      .about-panel__dl { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-      .about-panel__dl a {
-        display: flex; justify-content: space-between; min-height: 44px; align-items: center; padding: 0 12px;
-        border: 1.5px solid var(--edge); border-radius: var(--radius-sm); color: var(--fg); font-weight: 700; text-decoration: none;
-      }
-      .about-panel__dl a:hover { background: var(--land); }
-      .about-panel__size { color: var(--muted); font: 500 var(--fs-xs) var(--font-mono); }
+      /* The same rows as the Download menu (about-layer.ts downloadListHtml). */
+      .about-panel__dl { display: grid; gap: 2px; margin: 0 -10px; }
       .about-panel__usage { margin: -4px 0 10px; font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); }
-      .about-panel__rec { margin-left: 6px; font: 600 var(--fs-xs) var(--font-mono); font-style: normal; color: var(--brand-green); }
+      .dl-rec { margin-left: 6px; font: 600 var(--fs-xs) var(--font-mono); font-style: normal; color: var(--brand-green); }
       .about-panel .ward-index { width: 100%; margin-top: 16px; border-collapse: collapse; font-size: var(--fs-sm); }
       .about-panel .ward-index caption { text-align: left; font-size: var(--fs-xs); color: var(--muted); padding-bottom: 6px; }
       .about-panel .ward-index th, .about-panel .ward-index td { text-align: left; padding: 6px 8px; border-top: 1px solid var(--line); vertical-align: top; }
@@ -713,12 +708,20 @@
           position: fixed;
           left: 0; right: 0; top: auto;
           bottom: var(--map-toolbar-h);
-          width: 100%;
+          width: 100%; min-width: 0; max-width: none;
+          border-width: 1px 0 0; border-color: var(--line);
+          padding-top: 18px;
           max-height: 52vh;
           border-radius: 14px 14px 0 0;
           box-shadow: 0 -8px 24px rgba(0,0,0,0.18);
           z-index: 16;
           overflow-y: auto;
+        }
+
+        /* Grab handle, as on the Filter and About sheets. */
+        .map-popover::before {
+          content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+          width: 36px; height: 4px; border-radius: 999px; background: var(--line);
         }
 
         /* Scrim is shown only while a sheet is open (toggled in map.ts). */

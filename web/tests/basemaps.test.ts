@@ -6,8 +6,11 @@ import {
   basemapInsertBefore,
   getStoredBasemap,
   setStoredBasemap,
+  minimalPaint,
   type BasemapId,
 } from '../src/basemaps';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { LIBERTY } from '../../shared/liberty';
 
 class MockStorage implements Storage {
@@ -195,6 +198,52 @@ describe('basemaps — persistence', () => {
     // we degrade gracefully when the registry shrinks across deploys.
     storage.setItem('bharatlas:basemap', 'voyager' as unknown as BasemapId);
     expect(getStoredBasemap(storage)).toBe(DEFAULT_BASEMAP);
+  });
+});
+
+// Dark mode: the minimal basemap follows the page theme, so the map is not a
+// bright cream rectangle inside near-black chrome. Same layers, dark paint; the
+// list keeps one "bharatlas Minimal" entry (no new option to choose).
+describe('basemaps: minimal follows the colour scheme', () => {
+  const paintOf = (scheme: 'light' | 'dark', id: string) =>
+    (baseStyle('minimal', scheme).layers.find((l) => l.id === id) as { paint: Record<string, unknown> }).paint;
+  const lum = (hex: string) => {
+    const n = parseInt(hex.slice(1), 16);
+    return ((n >> 16) * 0.299 + ((n >> 8) & 255) * 0.587 + (n & 255) * 0.114) / 255;
+  };
+
+  it('light is the default and unchanged', () => {
+    expect(baseStyle('minimal')).toEqual(baseStyle('minimal', 'light'));
+    expect(paintOf('light', 'minimal-bg')['background-color']).toBe('#dee5e8');
+  });
+
+  it('dark paints a dark ocean and land, with a light India outline', () => {
+    expect(lum(paintOf('dark', 'minimal-bg')['background-color'] as string)).toBeLessThan(0.2);
+    expect(lum(paintOf('dark', 'minimal-land')['fill-color'] as string)).toBeLessThan(0.2);
+    expect(paintOf('dark', 'minimal-india-fill')['fill-color']).toBe(paintOf('dark', 'minimal-land')['fill-color']);
+    expect(lum(paintOf('dark', 'minimal-india-outline')['line-color'] as string)).toBeGreaterThan(0.6);
+  });
+
+  it('land and ocean stay distinguishable in dark', () => {
+    const d = Math.abs(lum(paintOf('dark', 'minimal-bg')['background-color'] as string) - lum(paintOf('dark', 'minimal-land')['fill-color'] as string));
+    expect(d).toBeGreaterThan(0.02);
+  });
+
+  it('minimalPaint lists every paint change between the schemes, for a live switch', () => {
+    const dark = minimalPaint('dark');
+    for (const [layer, prop, value] of dark) expect(paintOf('dark', layer)[prop]).toEqual(value);
+    for (const [layer, prop, value] of minimalPaint('light')) expect(paintOf('light', layer)[prop]).toEqual(value);
+    expect(dark.length).toBeGreaterThanOrEqual(4);
+  });
+
+  it('other basemaps do not change with the scheme', () => {
+    expect(baseStyle('liberty', 'dark')).toEqual(baseStyle('liberty', 'light'));
+  });
+
+  it('the map reads the page scheme and follows a change', () => {
+    const MAP = readFileSync(resolve(__dirname, '../src/map.ts'), 'utf8');
+    expect(MAP).toContain("matchMedia('(prefers-color-scheme: dark)')");
+    expect(MAP).toMatch(/minimalPaint\(/);
   });
 });
 

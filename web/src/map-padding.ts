@@ -13,6 +13,14 @@
 
 export type Padding = { top: number; bottom: number; left: number; right: number };
 
+/** The padding of a fit with no panel open. Desktop keeps 60 px at the top for
+ *  the controls over the map; on a phone the zoom buttons sit at the right edge,
+ *  clear of a fitted India, so top and bottom match and the map is centred
+ *  instead of sitting low under empty space. */
+export function basePadding(mobile: boolean): Padding {
+  return mobile ? { top: 20, bottom: 20, left: 20, right: 20 } : { top: 60, bottom: 20, left: 20, right: 20 };
+}
+
 export function paddingForPanelRect(
   r: { width: number; height: number },
   vw: number,

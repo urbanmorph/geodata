@@ -34,6 +34,8 @@
       .theme-index a:last-child { border-bottom: 0; }
       .theme-index a:hover { background: var(--land); }
       .theme-index__n { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+      /* While filtering: a theme with no matching layer (its section is hidden). */
+      .theme-index a.is-empty { opacity: .45; pointer-events: none; }
       @media (max-width: 900px) {
         /* Phones and tablets: the index becomes a row of chips that scrolls sideways. */
         .layers-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
@@ -43,6 +45,9 @@
       }
 
       .catalog-empty { color: var(--muted); font-size: var(--fs-base); text-align: center; padding: 32px 0; }
+      .catalog-empty a { margin-left: 4px; }
+      /* "clear the search": a button that reads as a link, with a 44 px hit area. */
+      .link-btn { font: inherit; color: var(--accent); background: none; border: 0; padding: 11px 0; margin: -11px 0; text-decoration: underline; cursor: pointer; }
 
       .catalog { margin-top: 8px; }
       .category-section { padding: 24px 0 28px; border-top: 1.5px solid var(--edge); scroll-margin-top: 16px; }
@@ -330,7 +335,7 @@
           <!-- THEME_INDEX -->
         </nav>
         <div>
-          <p class="catalog-empty" id="catalog-empty" hidden>No matches. <a href="/preview">Add the first one</a></p>
+          <p class="catalog-empty" id="catalog-empty" aria-live="polite" hidden></p>
           <div class="catalog" id="catalog-grid">
             <!-- CATEGORY_SECTIONS -->
           </div>

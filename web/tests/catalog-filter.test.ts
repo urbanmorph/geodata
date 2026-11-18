@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { filterCards, matchLine, type CardLike } from '../src/catalog-filter';
+import { filterCards, layersPerGroup, matchLine, type CardLike } from '../src/catalog-filter';
 
 // Fixture mirrors real prerender shape: each card carries a high-signal
 // "primary" haystack (title + level + aliases) and a low-signal "body"
@@ -109,5 +109,26 @@ describe('matchLine', () => {
   it('says how many layers match, in one shared wording', () => {
     expect(matchLine(9, 'district')).toBe('9 layers match "district"');
     expect(matchLine(1, 'pincode')).toBe('1 layer matches "pincode"');
+  });
+});
+
+// /layers while a query is active: each theme's count says how many of its
+// layers match, as the "N layers match" line does (a row counts its layers).
+describe('layersPerGroup', () => {
+  const rows: CardLike[] = [
+    { primary: 'a', body: '', layers: 4 },
+    { primary: 'b', body: '' },
+    { primary: 'c', body: '', layers: 2 },
+  ];
+  const theme = ['boundaries', 'boundaries', 'water'];
+
+  it('sums the layers of the matching rows per theme', () => {
+    const counts = layersPerGroup(rows, [true, false, true], (i) => theme[i]);
+    expect(counts.get('boundaries')).toBe(4);
+    expect(counts.get('water')).toBe(2);
+  });
+
+  it('leaves a theme with no match out (its count is 0)', () => {
+    expect(layersPerGroup(rows, [false, true, false], (i) => theme[i]).get('water')).toBeUndefined();
   });
 });

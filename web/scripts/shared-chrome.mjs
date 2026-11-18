@@ -254,7 +254,7 @@ export const TOKENS = `
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
     border-top: 1.5px solid var(--edge);
-    color: var(--muted); font: var(--fs-xs)/1.7 var(--font-mono);
+    color: var(--muted); font-size: var(--fs-sm); line-height: 1.6;
   }
   .site-footer p { margin: 0 0 var(--sp-2); }
   .site-footer a { color: var(--muted); text-decoration: underline; text-underline-offset: 2px; }

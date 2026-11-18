@@ -155,3 +155,10 @@ export const LEVEL_META = Object.freeze({
     description: 'Primary Health Centres, Community Health Centres, sub-centres, and district hospitals from NIC HealthGIS. 147,957 point features. Scraped March 2020.',
   },
 });
+
+// The primary layer of a level: the one its built-in label (and that label's
+// year) describes, and the one the /layers card leads with. LGD is canonical
+// wherever it exists; otherwise the first in catalog order.
+export function pickPrimary(layers) {
+  return layers.find((l) => l.source === 'LGD') || layers[0];
+}

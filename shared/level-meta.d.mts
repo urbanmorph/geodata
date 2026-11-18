@@ -8,3 +8,4 @@ export type LevelMeta = {
   seo_description?: string;
 };
 export declare const LEVEL_META: Readonly<Record<string, LevelMeta>>;
+export declare function pickPrimary<T extends { source?: string | null }>(layers: readonly T[]): T | undefined;

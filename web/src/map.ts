@@ -6,9 +6,9 @@ import { overlayLoader, VERBS_MAP } from './loading';
 import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
 import { popupValueHtml, popupEntries } from './popup-value';
-import { availableDownloads, fmtBytes } from './format-hints';
 import {
-  BASEMAPS, baseStyle, basemapById, basemapInsertBefore, getStoredBasemap, setStoredBasemap, type BasemapId,
+  BASEMAPS, baseStyle, basemapById, basemapInsertBefore, basemapLayers, getStoredBasemap, minimalPaint, setStoredBasemap,
+  type BasemapId,
 } from './basemaps';
 import { onFirstRender, openGenerations, framesFromFile } from './map-startup';
 import {
@@ -22,14 +22,14 @@ import { featureCollectionBounds, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
 import { layerHeading, type LayerHeading } from './layer-display';
 import type { LevelMeta } from '../functions/lib/view-dataset';
-import { paddingForPanelRect, type Padding } from './map-padding';
+import { basePadding, paddingForPanelRect, type Padding } from './map-padding';
 import { resolveLocateConfig } from './locate-config';
 // Static (not dynamic) import: geolocation must be requested synchronously
 // inside the tap handler. A dynamic import() pushes getCurrentPosition past the
 // user-gesture window, which mobile Chrome silently drops (no prompt, no sheet).
 // locate is tiny and folds into this already-lazy map chunk.
 import { openLocate, closeLocate } from './locate';
-import { aboutLayerHtml, type AboutMeta } from './about-layer';
+import { aboutLayerHtml, downloadListHtml, type AboutMeta } from './about-layer';
 import { usageLine, type Usage } from '../functions/lib/usage';
 import { confirmLargeLoad, clearLargeLoad } from './large-load';
 import { dlProxyUrl } from '../../shared/downloads.mjs';
@@ -58,7 +58,6 @@ type Layer = {
 // ---------------------------------------------------------------------------
 
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
-const BASE_PADDING = { top: 60, bottom: 20, left: 20, right: 20 };
 const MAX_POPUP_PROPS = 10;
 const DATA_LAYERS = ['fill', 'fill-nodata', 'line-halo', 'line', 'point'] as const;
 const INTERACTIVE_LAYERS = ['fill', 'point'] as const;
@@ -120,6 +119,7 @@ let overlayState: OverlayState = initialOverlayState;
 
 const isMobileViewport = (): boolean =>
   typeof window !== 'undefined' && window.matchMedia('(max-width: 640px)').matches;
+const fitPadding = (): Padding => basePadding(isMobileViewport());
 
 function applyOverlay(prevActive: Surface | null): void {
   const active = overlayState.active;
@@ -254,7 +254,7 @@ function flyTo(
 ): void {
   if (!map) return;
   map.fitBounds(asBounds(bounds), {
-    padding: opts?.padding ?? BASE_PADDING,
+    padding: opts?.padding ?? fitPadding(),
     duration: opts?.duration ?? 600,
   });
 }
@@ -270,9 +270,10 @@ function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, 
 // side an open panel covers.
 function arrivalPadding(): Padding {
   const p = panelAwarePadding();
+  const b = fitPadding();
   return {
-    top: Math.max(BASE_PADDING.top, p.top), bottom: Math.max(BASE_PADDING.bottom, p.bottom),
-    left: Math.max(BASE_PADDING.left, p.left), right: Math.max(BASE_PADDING.right, p.right),
+    top: Math.max(b.top, p.top), bottom: Math.max(b.bottom, p.bottom),
+    left: Math.max(b.left, p.left), right: Math.max(b.right, p.right),
   };
 }
 
@@ -289,6 +290,16 @@ function panelAwarePadding(): Padding {
 // Basemap
 // ---------------------------------------------------------------------------
 
+// The minimal basemap follows the page's colour scheme (dark paint in dark
+// mode), at start and when the scheme changes while the map is open.
+const darkScheme = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+const mapScheme = (): 'light' | 'dark' => (darkScheme?.matches ? 'dark' : 'light');
+darkScheme?.addEventListener('change', () => {
+  const m = map;
+  if (!m) return;
+  for (const [id, prop, value] of minimalPaint(mapScheme())) if (m.getLayer(id)) m.setPaintProperty(id, prop, value);
+});
+
 // The map starts with the active basemap only (baseStyle); another is added the
 // first time the reader picks it, under the data, then shown or hidden after that.
 function addBasemap(m: MlMap, id: BasemapId): void {
@@ -299,7 +310,7 @@ function addBasemap(m: MlMap, id: BasemapId): void {
   if (b.glyphs && !style.glyphs) m.setGlyphs(b.glyphs);
   for (const [sid, spec] of Object.entries(b.sources)) if (!m.getSource(sid)) m.addSource(sid, spec);
   const before = basemapInsertBefore(style.layers.map((l) => l.id));
-  for (const lyr of b.layers) m.addLayer(lyr, before);
+  for (const lyr of basemapLayers(b, mapScheme())) m.addLayer(lyr, before);
   raiseIndiaOutline(m);
 }
 
@@ -746,22 +757,13 @@ function wireDownloadButton(layer: Layer): void {
   const btn = document.getElementById('map-download') as HTMLButtonElement | null;
   const popover = document.getElementById('map-download-popover');
   if (!btn || !popover) return;
-  const downloads = availableDownloads(layer);
+  const downloads = downloadListHtml(layer);
   btn.classList.add('shown');
   popover.innerHTML =
-    (downloads.length
-      ? `<div class="map-popover__title">Download whole layer</div>` +
-        downloads
-          .map(
-            (d) =>
-              `<a class="map-popover__item" href="${escapeHtml(d.url)}" download>
-                <span class="map-popover__fmt">${escapeHtml(d.label)}</span>
-                <span class="map-popover__size">${escapeHtml(fmtBytes(d.bytes))}</span>
-                <span class="map-popover__hint">${escapeHtml(d.hint)}</span>
-              </a>`,
-          )
-          .join('') +
-        `<div class="map-popover__foot">Need a slice? Use <strong>Filter &amp; export</strong> for state-scoped GeoJSON &amp; KML.</div>`
+    (downloads
+      ? `<div class="map-popover__title">Download whole layer</div>${downloads}` +
+        // Filter exists only for a layer with a parquet file (wireFilterButton).
+        (layer.parquet?.url ? `<div class="map-popover__foot">Need a slice? Use <strong>Filter</strong> to download only the features you pick.</div>` : '')
       : '') +
     `<div class="map-popover__title">Share this view</div>` +
     `<button class="map-popover__item map-popover__item--btn" data-action="copy-embed">
@@ -941,7 +943,7 @@ async function wireFilterButton(layer: Layer) {
     btn.disabled = false;
     setToolLabel(btn, 'Filter');
     applyActiveFilters([], null);
-    flyTo(layerBounds, { padding: BASE_PADDING });
+    flyTo(layerBounds, { padding: fitPadding() });
   };
 
   // The pill's ×: drop the panel (and with it the picked values) and the filter.
@@ -1159,9 +1161,9 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   layerBounds = INDIA_BOUNDS;
   const m = new maplibregl.Map({
     container,
-    style: baseStyle(activeBasemap),
+    style: baseStyle(activeBasemap, mapScheme()),
     bounds: INDIA_BOUNDS,
-    fitBoundsOptions: { padding: BASE_PADDING },
+    fitBoundsOptions: { padding: fitPadding() },
     attributionControl: false,
     preserveDrawingBuffer: true,
   });
@@ -1201,7 +1203,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     // The bar shows the layer's /layers card title ("Districts (2024)") and a
     // short meta line ("785 districts · LGD"), never a raw id or a row count.
     const levelMeta = cat.level_meta?.[layerId];
-    const heading = layerHeading(layer, cat.level_meta);
+    const heading = layerHeading(layer, cat.level_meta, cat.layers ?? []);
     setMapTitle(opts.titleEl, heading);
 
     wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { aboutLayerHtml } from '../src/about-layer';
+import { aboutLayerHtml, downloadListHtml } from '../src/about-layer';
 
 const layer = {
   id: 'wards_ahmedabad',
@@ -66,7 +66,27 @@ describe('aboutLayerHtml: usage and downloads up front', () => {
     expect(map).toMatch(/usageLine\(/);
   });
   it('marks Parquet as the recommended download', () => {
-    expect(html).toMatch(/Parquet <em class="about-panel__rec">recommended<\/em>/);
-    expect(html.match(/about-panel__rec/g)).toHaveLength(1);
+    expect(html).toMatch(/Parquet <em class="dl-rec">recommended<\/em>/);
+    expect(html.match(/dl-rec/g)).toHaveLength(1);
+  });
+});
+
+// Audit M2: one download list on the map screen. The About panel and the
+// Download menu render the same rows (format, size, what it opens in), with
+// Parquet marked recommended in both.
+describe('downloadListHtml: one list for the About panel and the Download menu', () => {
+  const list = downloadListHtml(layer);
+  it('each row has the format, its size and a use-case hint', () => {
+    expect(list).toMatch(/<a class="map-popover__item" href="\/api\/dl\/x.parquet" download><span class="map-popover__fmt">Parquet <em class="dl-rec">recommended<\/em><\/span><span class="map-popover__size">77 KB<\/span><span class="map-popover__hint">analytics · DuckDB, pandas, R<\/span><\/a>/);
+    expect(list).toContain('web maps, QGIS, Earth');
+  });
+  it('the About panel and the map menu both use it', () => {
+    expect(aboutLayerHtml({ layer, meta, heading })).toContain(list);
+    const map = readFileSync(resolve(__dirname, '../src/map.ts'), 'utf8');
+    expect(map).toMatch(/downloadListHtml\(layer\)/);
+  });
+  it('the menu points to Filter only for a layer that has it (a parquet file)', () => {
+    const map = readFileSync(resolve(__dirname, '../src/map.ts'), 'utf8');
+    expect(map).toMatch(/layer\.parquet\?\.url\s*\?\s*`<div class="map-popover__foot">/);
   });
 });

@@ -57,6 +57,29 @@ export type Basemap = {
 const OPENTOPOMAP_ATTRIB =
   'Map data: © <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> · Style: © <a href="https://opentopomap.org">OpenTopoMap</a> (<a href="https://creativecommons.org/licenses/by-sa/3.0/">CC-BY-SA</a>)';
 
+// The minimal basemap's colours. Dark mode keeps the same layers with dark
+// paint (no extra list entry): a deep ocean, a slightly lighter land and the
+// India outline in the dark theme's edge colour, so the map sits inside the
+// near-black chrome instead of glowing cream.
+type Scheme = 'light' | 'dark';
+const MINIMAL_COLORS: Record<Scheme, { ocean: string; land: string; coast: string; outline: string }> = {
+  light: { ocean: '#dee5e8', land: '#f5f3ef', coast: '#d0c8be', outline: '#7d6a5a' },
+  dark: { ocean: '#0e141b', land: '#1f242b', coast: '#363d47', outline: '#c8d0e3' },
+};
+
+/** Every paint value of the minimal basemap that differs by scheme, as
+ *  [layer id, paint property, value]: the starting style and a live theme switch use it. */
+export function minimalPaint(scheme: Scheme): Array<[string, string, string]> {
+  const c = MINIMAL_COLORS[scheme];
+  return [
+    ['minimal-bg', 'background-color', c.ocean],
+    ['minimal-land', 'fill-color', c.land],
+    ['minimal-land', 'fill-outline-color', c.coast],
+    ['minimal-india-fill', 'fill-color', c.land],
+    ['minimal-india-outline', 'line-color', c.outline],
+  ];
+}
+
 export const BASEMAPS: Basemap[] = [
   {
     id: 'minimal',
@@ -91,7 +114,7 @@ export const BASEMAPS: Basemap[] = [
           // Soft cool grey-blue — reads as ocean / sea on a printed atlas.
           // Land polygons paint a warm off-white on top so the contrast is
           // calm + civic, not vibrant.
-          'background-color': '#dee5e8',
+          'background-color': MINIMAL_COLORS.light.ocean,
         },
       },
       {
@@ -99,8 +122,8 @@ export const BASEMAPS: Basemap[] = [
         type: 'fill',
         source: 'world-land',
         paint: {
-          'fill-color': '#f5f3ef', // warm off-white
-          'fill-outline-color': '#d0c8be', // subtle taupe coast outline
+          'fill-color': MINIMAL_COLORS.light.land, // warm off-white
+          'fill-outline-color': MINIMAL_COLORS.light.coast, // subtle taupe coast outline
         },
       },
       // Fill India with the SAME warm off-white using the LGD-dissolved
@@ -114,7 +137,7 @@ export const BASEMAPS: Basemap[] = [
         type: 'fill',
         source: 'india-outline',
         paint: {
-          'fill-color': '#f5f3ef',
+          'fill-color': MINIMAL_COLORS.light.land,
         },
       },
       // Complete India outline from the LGD-dissolved polygon. Renders
@@ -126,7 +149,7 @@ export const BASEMAPS: Basemap[] = [
         type: 'line',
         source: 'india-outline',
         paint: {
-          'line-color': '#7d6a5a',
+          'line-color': MINIMAL_COLORS.light.outline,
           'line-width': ['interpolate', ['linear'], ['zoom'], 3, 1.0, 10, 2.0],
           'line-opacity': 0.9,
         },
@@ -196,15 +219,28 @@ const BASEMAP_LAYER_IDS = new Set(BASEMAPS.flatMap((b) => b.layers.map((l) => l.
 
 export const basemapById = (id: BasemapId): Basemap | undefined => BASEMAPS.find((b) => b.id === id);
 
+/** A basemap's layers for a colour scheme: only the minimal basemap changes. */
+export function basemapLayers(b: Basemap, scheme: Scheme = 'light'): LayerSpecification[] {
+  if (b.id !== 'minimal' || scheme === 'light') return b.layers;
+  const paint = minimalPaint(scheme);
+  return b.layers.map((l) => {
+    const changes = paint.filter(([id]) => id === l.id);
+    if (!changes.length) return l;
+    const p = { ...(l as { paint?: Record<string, unknown> }).paint };
+    for (const [, prop, value] of changes) p[prop] = value;
+    return { ...l, paint: p } as LayerSpecification;
+  });
+}
+
 /** The map's starting style: the active basemap alone, with a sprite and glyphs only if it draws icons or labels. */
-export function baseStyle(active: BasemapId): StyleSpecification {
+export function baseStyle(active: BasemapId, scheme: Scheme = 'light'): StyleSpecification {
   const b = basemapById(active) ?? basemapById(DEFAULT_BASEMAP)!;
   return {
     version: 8,
     ...(b.sprite ? { sprite: b.sprite } : {}),
     ...(b.glyphs ? { glyphs: b.glyphs } : {}),
     sources: { ...b.sources },
-    layers: [...b.layers],
+    layers: [...basemapLayers(b, scheme)],
   };
 }
 

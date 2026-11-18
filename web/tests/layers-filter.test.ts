@@ -67,3 +67,57 @@ describe('/layers filter', () => {
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 });
+
+// While a query is active the theme counts say how many layers match (audit
+// M10), and a search with no match offers a way back (audit L9).
+describe('/layers filter: counts and the empty state', () => {
+  const type = async (q: string) => {
+    const input = document.getElementById('catalog-search') as HTMLInputElement;
+    input.value = q;
+    input.dispatchEvent(new Event('input'));
+    await flush(); await flush();
+  };
+  const sectionCount = (id: string) => document.querySelector(`#${id} .category-section__count`)!.textContent;
+  const indexCount = (id: string) => document.querySelector(`.theme-index a[href="#${id}"] .theme-index__n`)!.textContent;
+
+  beforeEach(() => {
+    page();
+    document.querySelector('#catalog-grid')!.insertAdjacentHTML('beforebegin', `<nav class="theme-index">
+      <a href="#boundaries"><span>Boundaries</span><span class="theme-index__n">26</span></a>
+      <a href="#environment"><span>Environment</span><span class="theme-index__n">13</span></a>
+      <a href="#water"><span>Water</span><span class="theme-index__n">9</span></a></nav>`);
+    for (const [id, n] of [['boundaries', 26], ['environment', 13], ['water', 9]] as const) {
+      document.getElementById(id)!.insertAdjacentHTML('afterbegin', `<header class="category-section__head"><span class="category-section__count">${n} layers</span></header>`);
+    }
+    history.replaceState(null, '', '/layers');
+  });
+
+  it('shows matched counts per theme, dims themes with none, and restores them when cleared', async () => {
+    await import('../src/layers');
+    release();
+    await type('district');
+    expect(sectionCount('boundaries')).toBe('4 layers');
+    expect(indexCount('boundaries')).toBe('4');
+    expect(indexCount('environment')).toBe('0');
+    expect(document.querySelector('.theme-index a[href="#environment"]')!.classList.contains('is-empty')).toBe(true);
+    await type('');
+    expect(sectionCount('boundaries')).toBe('26 layers');
+    expect(indexCount('environment')).toBe('13');
+    expect(document.querySelector('.theme-index a.is-empty')).toBeNull();
+  });
+
+  it('a search with no match names the query and offers to clear it', async () => {
+    await import('../src/layers');
+    release();
+    await type('zzqxv');
+    const empty = document.getElementById('catalog-empty')!;
+    expect(empty.hidden).toBe(false);
+    expect(empty.textContent).toContain('No layers match "zzqxv"');
+    const clear = empty.querySelector<HTMLButtonElement>('[data-clear-search]')!;
+    expect(clear.textContent).toBe('clear the search');
+    clear.click();
+    expect((document.getElementById('catalog-search') as HTMLInputElement).value).toBe('');
+    expect(empty.hidden).toBe(true);
+    expect(rows()).toEqual([true, true, true]);
+  });
+});

@@ -22,8 +22,9 @@
       .hero-meta { margin: 0 0 var(--sp-4); }
       .cta-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-4) 0 var(--sp-6); }
       /* "On this page": a sheet index, ruled above and below. */
-      .toc { display: flex; flex-wrap: wrap; gap: 0 var(--sp-4); margin: var(--sp-6) 0 0; padding: var(--sp-2) 0; border-top: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); font: var(--fs-sm) var(--font-mono); }
-      .toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--fg); }
+      .toc { display: flex; flex-wrap: wrap; gap: 0 var(--sp-4); margin: var(--sp-6) 0 0; padding: var(--sp-2) 0; border-top: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); font-size: var(--fs-sm); }
+      .toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; }
+      .toc a:hover, .toc a:focus-visible { text-decoration-color: currentColor; }
       .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin: var(--sp-3) 0; border-top: 1.5px solid var(--edge); border-left: 1.5px solid var(--edge); }
       .card { padding: var(--sp-4); background: var(--bg-elevated); border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); }
       .card h3 { margin: 0 0 var(--sp-1); font-size: var(--fs-md); }
