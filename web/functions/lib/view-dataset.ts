@@ -287,7 +287,7 @@ export function buildViewDataset(
     ward?.description ??
     levelMeta?.seo_description ??
     levelMeta?.description ??
-    (layer.description || `${title} — ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
+    (layer.description || `${title}: ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
   const description = baseDescription.slice(0, META_DESC_MAX);
   // Lifts terse base descriptions over Google Dataset Search's ≥50 floor and
   // seeds format/provenance words for SERP rich snippets.

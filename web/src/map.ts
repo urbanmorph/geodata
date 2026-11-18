@@ -1118,13 +1118,11 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     // without a level_meta entry (most standard admin levels resolve theirs only
     // on the edge via shared/level-meta.mjs) keep the level · source · rows line.
     const levelMeta = cat.level_meta?.[layerId];
-    const rowsLabel = layer.rows?.toLocaleString('en-IN') ?? '—';
+    const rowsPart = layer.rows != null ? ` · ${layer.rows.toLocaleString('en-IN')} ${layer.level ? 'rows' : 'features'}` : '';
     const friendly = (levelMeta?.label || levelMeta?.seo_title || layer.name || '').trim();
     opts.titleEl.textContent = friendly
       ? displayTitle({ id: layerId, name: layer.name }, levelMeta)
-      : layer.level
-        ? `${layer.level} · ${layer.source} · ${rowsLabel} rows`
-        : `${layer.source} · ${rowsLabel} features`;
+      : `${layer.level ? `${layer.level} · ` : ''}${layer.source}${rowsPart}`;
 
     wireFilterButton(layer).catch((e) => console.warn('wireFilterButton failed', e));
     wireDownloadButton(layer);

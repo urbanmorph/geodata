@@ -36,7 +36,7 @@ export function parseAdminUrl(input: string): ParseResult {
   if (!ID_RX.test(id)) return { ok: false, reason: 'not a submission URL' };
 
   const key = query.get('key') ?? '';
-  if (!key) return { ok: false, reason: 'missing key — paste the full admin URL' };
+  if (!key) return { ok: false, reason: 'missing key: paste the full admin URL' };
   if (!KEY_RX.test(key)) return { ok: false, reason: 'key does not look like an admin token' };
 
   return { ok: true, id, key };

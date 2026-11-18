@@ -198,7 +198,7 @@ export async function nearby(
   const layer = catalog.layers.find((l) => l.id === layerId) as CatalogLayer | undefined;
   if (!layer) throw new QueryInputError(`Layer ${layerId} not found`);
   if (!layer.parquet) {
-    throw new QueryInputError(`Layer ${layerId} has no parquet — nearby unsupported (only layers with geometry can be queried)`);
+    throw new QueryInputError(`Layer ${layerId} has no parquet, so nearby is unsupported (only layers with geometry can be queried)`);
   }
 
   const r2Key = r2KeyFromLayer(layer);

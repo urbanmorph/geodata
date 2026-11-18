@@ -67,7 +67,7 @@ export function renderViewPage(opts: RenderOpts): string {
 
   const description =
     s.description ||
-    `Community-submitted geo layer on bharatlas: ${s.name}. ${s.feature_count ?? '—'} features, ${fmtBytes(s.bytes)}.`;
+    `Community-submitted geo layer on bharatlas: ${s.name}. ${s.feature_count != null ? `${s.feature_count} features, ` : ''}${fmtBytes(s.bytes)}.`;
   // Google Dataset Search rejects descriptions under ~50 chars. Pad with a
   // contextual suffix so terse contributor-supplied descriptions still pass.
   const ldDescription = description.length >= 80
