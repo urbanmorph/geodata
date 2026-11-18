@@ -4,16 +4,18 @@
 // the home page. Known routes — prerendered pages, static assets, /view, /c,
 // /api, /embed, and the _redirects stubs — pass straight through untouched.
 // See lib/routes.ts for the allowlist (kept in sync with the build by a test).
+// (With dist/404.html in the build, Pages itself answers a missing file with a
+// 404; this still catches extensionless paths before Pages tries them.)
 import { isKnownRoute } from './lib/routes';
-import { SECURITY_HEADERS_HTML } from './lib/security-headers';
-import { notFoundHtml } from './lib/not-found';
+import { notFoundResponse } from './lib/not-found';
+import type { AssetCtx } from './lib/catalog-loader';
 
-const NOT_FOUND_HTML = notFoundHtml('page not found', "This page doesn't exist on bharatlas.");
+const PAGE_NOT_FOUND = {
+  title: 'Page not found',
+  message: "There's no page at this address. It may have moved, or the link has a typo.",
+};
 
 export const onRequest: PagesFunction = async (ctx) => {
   if (isKnownRoute(new URL(ctx.request.url).pathname)) return ctx.next();
-  return new Response(NOT_FOUND_HTML, {
-    status: 404,
-    headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML },
-  });
+  return notFoundResponse(ctx as unknown as AssetCtx, PAGE_NOT_FOUND);
 };

@@ -7,22 +7,20 @@ import { countVotes } from '../lib/ratings';
 import { renderViewPage } from '../lib/render-view';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import type { Env as MiddlewareEnv } from '../api/_middleware';
-import { notFoundHtml } from '../lib/not-found';
+import { notFoundResponse } from '../lib/not-found';
 
 type Env = MiddlewareEnv;
 type Params = { id: string };
 
-const NOT_FOUND_HTML = notFoundHtml('submission not found', "This submission doesn't exist, was retracted, or hasn't been accepted yet.");
+const NOT_FOUND = {
+  title: 'Submission not found',
+  message: "This submission doesn't exist, was withdrawn, or hasn't been accepted yet.",
+};
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const id = ctx.params.id as string;
 
-  if (!/^[A-Za-z0-9_-]{8,16}$/.test(id)) {
-    return new Response(NOT_FOUND_HTML, {
-      status: 404,
-      headers: { 'content-type': 'text/html; charset=utf-8', ...SECURITY_HEADERS_HTML },
-    });
-  }
+  if (!/^[A-Za-z0-9_-]{8,16}$/.test(id)) return notFoundResponse(ctx, NOT_FOUND);
 
   const [submission, tally] = await Promise.all([
     getSubmissionForView(ctx.env.DB, id),
@@ -33,14 +31,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const ratingsCount = tally.up;
 
   if (!submission) {
-    return new Response(NOT_FOUND_HTML, {
-      status: 404,
-      headers: {
-        'content-type': 'text/html; charset=utf-8',
-        'cache-control': 'public, max-age=60',
-        ...SECURITY_HEADERS_HTML,
-      },
-    });
+    return notFoundResponse(ctx, NOT_FOUND, { 'cache-control': 'public, max-age=60' });
   }
 
   const url = new URL(ctx.request.url);

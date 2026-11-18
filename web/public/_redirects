@@ -4,5 +4,7 @@
 
 # /embed/<layerId> serves the home page; main.ts detects the path and forces
 # embed mode (no chrome, layer auto-opened). Internal rewrite — URL stays
-# /embed/<id> in the browser. 200 = rewrite, not redirect.
-/embed/*    /index.html 200
+# /embed/<id> in the browser. 200 = rewrite, not redirect. The target is /, the
+# home page's served path: /index.html only redirects there, which a rewrite
+# can't follow, so it fell to the 404 page.
+/embed/*    /          200

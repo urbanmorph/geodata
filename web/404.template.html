@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Page not found · bharatlas</title>
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" sizes="any" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <style>
+      <!-- TOKENS -->
+      .nf-search { display: flex; gap: var(--sp-3); flex-wrap: wrap; max-width: 640px; margin: 0 0 var(--sp-7); }
+      .nf-search label {
+        display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-height: 52px; padding: 0 14px;
+        background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm);
+      }
+      .nf-search label:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
+      .nf-search input { flex: 1; min-width: 0; padding: 6px 0; font: inherit; font-size: var(--fs-md); color: var(--fg); background: transparent; border: none; outline: none; }
+      .nf-search input::placeholder { color: var(--muted); }
+      .nf-search .btn { min-height: 52px; }
+      .nf-links { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin: 0 0 var(--sp-7); }
+      .prose .nf-suggest { margin-bottom: var(--sp-6); }
+      .nf-suggest code { margin-left: var(--sp-2); }
+    </style>
+  </head>
+  <body class="page">
+    <!-- NAV -->
+    <main id="main" class="prose">
+      <h1 class="page-title"><!-- NF_TITLE -->Page not found<!-- /NF_TITLE --></h1>
+      <p class="page-lead"><!-- NF_MESSAGE -->There's no page at this address. It may have moved, or the link has a typo.<!-- /NF_MESSAGE --></p>
+      <!-- NF_EXTRA --><!-- /NF_EXTRA -->
+      <form class="nf-search" action="/layers" method="get" role="search">
+        <label>
+          <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" name="q" aria-label="Search layers" placeholder="Search layers or places" autocomplete="off" />
+        </label>
+        <button type="submit" class="btn btn--fill">Search</button>
+      </form>
+      <nav class="nf-links" aria-label="Where to go">
+        <a class="btn btn--line" href="/layers">All layers</a>
+        <a class="btn btn--line" href="/">Find my ward</a>
+        <a class="btn btn--line" href="/docs">API docs</a>
+      </nav>
+    </main>
+
+    <!-- FOOTER -->
+  </body>
+</html>
