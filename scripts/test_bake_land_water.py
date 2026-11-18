@@ -222,7 +222,8 @@ PARQUET_AND_TILES_ONLY = {'gsi_lithology_50k', 'bhuvan_geomorphology_50k'}
 
 
 def test_big_polygon_layers_skip_whole_layer_downloads_and_say_so(tmp_path, monkeypatch):
-    monkeypatch.setattr(ir, 'WHOLE_LAYER_MAX_MB', 0)  # their parquet is over the cap
+    import pipeline  # the cap lives in pipeline since #276; ingest_ramseraph only re-exports it
+    monkeypatch.setattr(pipeline, 'WHOLE_LAYER_MAX_MB', 0)  # their parquet is over the cap
     by_id = {d.id: d for d in blw.DATASETS}
     for lid in PARQUET_AND_TILES_ONLY:
         assert 'Filter & export' in by_id[lid].notes
