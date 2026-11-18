@@ -30,6 +30,13 @@ describe('toGeoJSON', () => {
 });
 
 describe('toCSV', () => {
+  it('defuses spreadsheet formulas in text cells, leaving numbers alone', () => {
+    const f = { geometry: { type: 'Point', coordinates: [-1.5, 12.98] }, properties: { name: '=HYPERLINK("http://x","c")', cond: '+1', tags: ['@a', 'b'], _contributor: '-x', _status: '\tz', _created_at: '\rq' } };
+    const row = toCSV([f], FIELDS).split('\n')[1];
+    expect(row.startsWith('-1.5,12.98,Point,')).toBe(true); // a negative number is not text
+    expect(row).toContain(`"'=HYPERLINK(""http://x"",""c"")"`);
+    expect(row).toContain(",'+1,'@a|b,'-x,,'\tz,\"'\rq\"");
+  });
   it('has a header + one row per feature, with representative lng/lat', () => {
     const rows = toCSV(FEATURES, FIELDS).split('\n');
     expect(rows[0]).toBe('lng,lat,geometry_type,name,cond,tags,contributor,source,status,added_at,state,district');
