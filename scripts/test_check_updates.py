@@ -275,6 +275,77 @@ def test_with_nothing_changed_the_issue_says_so():
     assert 'No source has changed' in body
 
 
+# ── due or overdue rebuilds ─────────────────────────────────────────────────
+
+def refreshed(lid, klass, rebuild, fetched_at):
+    return {'id': lid, 'fetched_at': fetched_at, 'refresh': {'class': klass, 'rebuild': rebuild}}
+
+
+def due_catalog():
+    return {'layers': [
+        refreshed('ir_stations', 'fast', 'monthly', '2026-10-01T00:00:00+00:00'),         # due 2026-11-01
+        refreshed('udise_schools', 'fast', 'monthly', '2026-11-15T00:00:00+00:00'),       # due 2026-12-15
+        refreshed('wards_pune', 'regular', 'monthly_if_changed', '2026-05-26T00:00:00+00:00'),
+        refreshed('wards_delhi', 'regular', 'monthly_if_changed', '2026-05-26T00:00:00+00:00'),
+        refreshed('lgd_states', 'slow', 'on_change', '2026-05-19T00:00:00+00:00'),
+        refreshed('state_finance', 'frozen', 'never', '2020-01-01T00:00:00+00:00'),
+        {'id': 'no_block', 'fetched_at': '2020-01-01T00:00:00+00:00'},
+    ]}
+
+
+def test_a_fast_layer_is_due_a_month_after_its_last_build_whatever_the_check_says():
+    due = cu.due_layers(due_catalog(), {}, None, '2026-11-18')
+    assert [d['id'] for d in due] == ['ir_stations']
+    assert due[0] == {'id': 'ir_stations', 'class': 'fast', 'rebuild': 'monthly', 'last_build': '2026-10-01',
+                      'next_due': '2026-11-01', 'days_over': 17}
+
+
+def test_a_regular_layer_is_due_only_when_its_source_changed_and_its_month_is_up():
+    status = {'wards_pune': {'status': 'changed'}, 'wards_delhi': {'status': 'unchanged'},
+              'lgd_states': {'status': 'changed'}}
+    ids = [d['id'] for d in cu.due_layers(due_catalog(), status, None, '2026-11-18')]
+    assert ids == ['wards_pune', 'ir_stations']        # most overdue first; slow layers go by the changed table
+
+
+def test_frozen_layers_are_never_due():
+    ids = [d['id'] for d in cu.due_layers(due_catalog(), {'state_finance': {'status': 'changed'}}, None, '2030-01-01')]
+    assert 'state_finance' not in ids and 'no_block' not in ids
+
+
+def test_a_release_after_fetched_at_counts_as_the_last_build():
+    releases = {'releases': [{'dataset': 'ir_stations', 'released': '2026-11-10'}]}
+    assert cu.due_layers(due_catalog(), {}, releases, '2026-11-18') == []
+    assert cu.due_layers(due_catalog(), {}, releases, '2026-12-10')[0]['last_build'] == '2026-11-10'
+
+
+def test_the_issue_has_a_due_or_overdue_table_and_the_summary_counts_it():
+    due = cu.due_layers(due_catalog(), {}, None, '2026-11-18')
+    body = cu.issue_body({'a': {'status': 'unchanged', 'checked_at': NOW}}, due_catalog(), due)
+    assert '### Due or overdue (1)' in body
+    assert '| ir_stations | fast | monthly | 2026-10-01 | 2026-11-01 | 17 |' in body
+    summary = json.loads(re.search(r'<!-- update-summary (.*) -->', body).group(1))
+    assert summary['due'] == ['ir_stations'] and summary['due_count'] == 1
+    assert summary['counts'] == {'unchanged': 1}
+
+
+def test_with_nothing_due_the_issue_says_so_and_the_summary_has_an_empty_due_list():
+    body = cu.issue_body({'a': {'status': 'unchanged', 'checked_at': NOW}}, {'layers': []}, [])
+    assert 'No layer is due for a rebuild.' in body
+    summary = json.loads(re.search(r'<!-- update-summary (.*) -->', body).group(1))
+    assert summary['due'] == [] and summary['due_count'] == 0
+
+
+def test_main_writes_the_due_table_into_the_issue_and_summary(tmp_path, monkeypatch):
+    cat = tmp_path / 'catalog.json'
+    cat.write_text(json.dumps(due_catalog()))
+    monkeypatch.setattr(cu, 'today', lambda: '2026-11-18')
+    out, summ = tmp_path / 'issue.md', tmp_path / 'summary.json'
+    assert cu.main(['--catalog', str(cat), '--status', str(tmp_path / 's.json'), '--releases',
+                    str(tmp_path / 'none.json'), '--issue-body', str(out), '--summary', str(summ)]) == 0
+    assert '| ir_stations | fast |' in out.read_text()
+    assert json.loads(summ.read_text())['due'] == ['ir_stations']
+
+
 # ── politeness ──────────────────────────────────────────────────────────────
 
 def test_requests_to_one_host_are_spaced_by_the_delay():
