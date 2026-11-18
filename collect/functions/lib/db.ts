@@ -69,19 +69,42 @@ export async function updateCollection(db: DB, id: string, col: Record<string, u
 
 // ---- tokens ----------------------------------------------------------------
 
-export async function addCollectionToken(
-  db: DB,
-  t: { collectionId: string; prefix: string; hash: string; permission: 'admin' | 'edit' | 'view'; label?: string | null },
-): Promise<string> {
+type NewToken = { collectionId: string; prefix: string; hash: string; permission: 'admin' | 'edit' | 'view'; label?: string | null };
+
+function insertToken(db: DB, t: NewToken): { id: string; stmt: D1PreparedStatement } {
   const id = crypto.randomUUID();
-  await db
+  const stmt = db
     .prepare(
       `INSERT INTO collection_tokens (id, collection_id, token_prefix, token_hash, permission, is_active, created_at, label)
        VALUES (?, ?, ?, ?, ?, 1, ?, ?)`,
     )
-    .bind(id, t.collectionId, t.prefix, t.hash, t.permission, now(), t.label ?? null)
-    .run();
+    .bind(id, t.collectionId, t.prefix, t.hash, t.permission, now(), t.label ?? null);
+  return { id, stmt };
+}
+
+export async function addCollectionToken(db: DB, t: NewToken): Promise<string> {
+  const { id, stmt } = insertToken(db, t);
+  await stmt.run();
   return id;
+}
+
+// Turn off every admin link of a map and add the new one, in one transaction:
+// either the map has exactly the new admin link, or nothing changed.
+export async function swapAdminToken(db: DB & Pick<D1Database, 'batch'>, collectionId: string, prefix: string, hash: string): Promise<void> {
+  await db.batch([
+    db.prepare(`UPDATE collection_tokens SET is_active = 0 WHERE collection_id = ? AND permission = 'admin'`).bind(collectionId),
+    insertToken(db, { collectionId, prefix, hash, permission: 'admin' }).stmt,
+  ]);
+}
+
+// Was this token a real link that has since been turned off? (Lets a 401 say
+// why, instead of a bare "unauthorised", to whoever still holds the old link.)
+export async function retiredTokens(db: DB, prefix: string): Promise<{ token_hash: string; permission: 'admin' | 'edit' | 'view' }[]> {
+  const res = await db
+    .prepare(`SELECT token_hash, permission FROM collection_tokens WHERE token_prefix = ? AND is_active = 0`)
+    .bind(prefix)
+    .all();
+  return (res.results ?? []) as unknown as { token_hash: string; permission: 'admin' | 'edit' | 'view' }[];
 }
 
 export async function tokensForCollection(

@@ -297,6 +297,31 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
 
 const LINK_LABEL_MAX = 60;
 
+// ---- POST /collections/:id/admin-link -----------------------------------------
+// Admin: replace the admin link (it leaked, or a device holding it is gone). A
+// new admin link is minted and every older one for this map stops working.
+
+export async function replaceAdminLink(env: Env, req: Request, id: string): Promise<Response> {
+  const perm = await permissionFor(env.DB, id, bearer(req));
+  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  const token = generateToken('admin');
+  await db.swapAdminToken(env.DB, id, tokenPrefix(token), await hashToken(token));
+  return json(200, { permission: 'admin', token, link: `${new URL(req.url).origin}/c/${id}/admin#${token}` });
+}
+
+// A refused call made with a link that was turned off (or an admin link that
+// was replaced) says so in plain words; any other 401 stays a bare refusal.
+export async function explainRefusal(env: Env, req: Request, res: Response): Promise<Response> {
+  const token = bearer(req);
+  if (res.status !== 401 || !token) return res;
+  for (const r of await db.retiredTokens(env.DB, tokenPrefix(token))) {
+    if (await verifyToken(token, r.token_hash)) {
+      return bad(401, r.permission === 'admin' ? 'this admin link was replaced or turned off' : 'this link was turned off by the map owner');
+    }
+  }
+  return res;
+}
+
 // ---- GET /collections/:id/tokens --------------------------------------------
 // Admin: every link with its label, state and how many records it added. The
 // token itself is hash-only and never returned here.

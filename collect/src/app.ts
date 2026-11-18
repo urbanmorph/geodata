@@ -22,7 +22,7 @@ import { escapeHtml, downloadText } from './util';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
 import type { Mapping } from './import/build';
-import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps, backLink } from './maps-store';
+import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps, backLink, replaceAdminLink } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
 import { fitsLocalPicker } from './schema/dates';
 import { wireSheetSwipe } from './sheet-swipe';
@@ -1322,7 +1322,7 @@ function pendingHint(): string {
 
 function renderShareTab(body: HTMLElement): void {
   const title = meta.name || 'bharatlas collect map';
-  const adminLink = location.href;
+  let adminLink = location.href;
   body.innerHTML = `
     ${pendingHint()}
     <p class="hint">Tap a link to open its copy options. No accounts, so the link is the key: whoever holds it can use it at that level.</p>
@@ -1334,6 +1334,8 @@ function renderShareTab(body: HTMLElement): void {
       <div class="linkrow__body" hidden></div>
     </div>`).join('')}
     <a class="btn wide" id="email-links" style="margin-top:12px">✉ Email these links to me</a>
+    <button type="button" class="linklike" id="replace-admin">Replace admin link</button>
+    <div id="ra-new"></div>
     <strong style="display:block;margin-top:18px">Collect and view links</strong>
     <p class="hint">Give a team or a person their own link. You'll see which points came through it, and can turn it off without changing anyone else's link.</p>
     <div class="row">
@@ -1365,6 +1367,37 @@ function renderShareTab(body: HTMLElement): void {
   };
 
   void wireNamedLinks(body, title);
+
+  // Replace the admin link (it leaked, or a device that had it is lost): two
+  // taps, then the new link is shown once and this page carries on with it.
+  const replaceBtn = body.querySelector<HTMLButtonElement>('#replace-admin')!;
+  let replaceArmed = false;
+  replaceBtn.onclick = async () => {
+    if (!replaceArmed) { replaceArmed = true; replaceBtn.textContent = 'Tap again to replace. The current admin link stops working everywhere.'; return; }
+    replaceBtn.disabled = true;
+    try {
+      const res = await apiJson<{ link: string; token: string }>(`/collections/${ctx.id}/admin-link`, ctx.token, { method: 'POST' });
+      replaceAdminLink(ctx.id, meta.name, adminLink, res.link); // syncs to the other devices when sync is on
+      ctx.token = res.token;
+      history.replaceState(null, '', res.link);
+      adminLink = res.link;
+      refreshEmail();
+      const adminBody = body.querySelector<HTMLElement>('.linkrow[data-role="admin"] .linkrow__body')!;
+      delete adminBody.dataset.filled; // the row shows the new link next time it opens
+      adminBody.setAttribute('hidden', '');
+      adminBody.previousElementSibling?.setAttribute('aria-expanded', 'false');
+      const out = body.querySelector<HTMLElement>('#ra-new')!;
+      out.innerHTML = shareItemHtml('admin-new', '🔑 New admin link', res.link,
+        'Save it now. The old admin link no longer works, on any device or tool that had it.');
+      wireShareItems(out, title);
+      replaceBtn.hidden = true;
+    } catch (e) {
+      toast((e as Error).message);
+      replaceArmed = false;
+      replaceBtn.textContent = 'Replace admin link';
+      replaceBtn.disabled = false;
+    }
+  };
 
   let busy = false; // a mint is in flight — block other taps (else double-mint / two rows open)
   LINK_ROWS.forEach((r) => {
