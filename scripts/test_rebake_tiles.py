@@ -161,6 +161,11 @@ def test_report_problems():
     assert len(problems) == 2
     assert 'decoded' in problems[0] and 'cover 50%' in problems[1]
     assert rt.report_problems(rows[2:], 11, 'polygon') == []
+    # A max-zoom shortfall the live tiles share (sub-pixel fragments tippecanoe
+    # drops at every zoom) is not new; a bigger one is.
+    live = [{**rows[0], 'decoded': 9}]
+    assert rt.report_problems(rows[:1], 11, 'polygon', live) == []
+    assert len(rt.report_problems(rows[:1], 11, 'polygon', [{**rows[0], 'decoded': 10}])) == 1
 
 
 def test_filter_stats_baked_first_else_probed_once_and_cached(tmp_path):

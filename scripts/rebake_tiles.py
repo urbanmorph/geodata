@@ -300,16 +300,19 @@ def worse_than(live: list[dict] | None, rows: list[dict], kind: str) -> list[str
     return out
 
 
-def report_problems(rows: list[dict], max_zoom: int, kind: str) -> list[str]:
-    """The max zoom keeps every feature at its true area; below it, polygons
-    still cover the ground (coalesced shapes do; a dropped one is a hole;
+def report_problems(rows: list[dict], max_zoom: int, kind: str, live: list[dict] | None = None) -> list[str]:
+    """The max zoom keeps every feature at its true area (a shortfall the
+    `live` tiles share at the same tile, such as sub-pixel fragments
+    tippecanoe drops at every zoom, is not new); below it, polygons still
+    cover the ground (coalesced shapes do; a dropped one is a hole;
     tippecanoe turns sub-pixel polygons into dust squares of about the same
     total area, hence the band)."""
+    shipped = {(r['z'], r['x'], r['y']): r['decoded'] for r in live or []}
     out = []
     for r in rows:
         tile = f"z{r['z']}/{r['x']}/{r['y']}"
         at_max = r['z'] == max_zoom
-        if at_max and r['decoded'] < r['parquet']:
+        if at_max and r['decoded'] < min(r['parquet'], shipped.get((r['z'], r['x'], r['y'])) or r['parquet']):
             out.append(f"{tile}: {r['decoded']:,} decoded < {r['parquet']:,} in the parquet")
         low, high = COVER_AT_MAX if at_max else COVER_BELOW_MAX
         if kind == 'polygon' and r['cover'] is not None and not low <= r['cover'] <= high:
@@ -396,7 +399,7 @@ def build(layer: dict, deadline: Deadline, catalog: dict | None = None) -> tuple
                 log(f'  {lid}: {pm.stat().st_size / 1e6:,.1f} MB of tiles in {time.monotonic() - t0:,.0f} s')
             deadline.check(f'{lid}: checks')
             checks, record = tile_checks(layer, pm, flat, con, kind, points, fields, narrowed,
-                                         work / f'checks{suffix}.json')
+                                         work / f'checks{suffix}.json', before)
             failed = checks['flags'] + checks['problems'] + worse_than(before, checks['tiles'], kind)
             if not failed:
                 return pm, checks
@@ -424,8 +427,8 @@ def live_report(layer: dict, work: Path, flat: Path, con, kind: str,
 
 
 def tile_checks(layer: dict, pm: Path, flat: Path, con, kind: str, points: list[tuple[float, float]],
-                fields: list[str], narrowed: bool,
-                record: Path) -> tuple[dict, Path]:
+                fields: list[str], narrowed: bool, record: Path,
+                live: list[dict] | None = None) -> tuple[dict, Path]:
     """The check record of one tiles file (written once), with today's rule applied."""
     if not record.exists():
         audit = at.audit_archive(at.file_reader(pm))
@@ -435,7 +438,7 @@ def tile_checks(layer: dict, pm: Path, flat: Path, con, kind: str, points: list[
     checks = json.loads(record.read_text())
     # The rule may have changed since the record was written: apply today's.
     checks['flags'] = at.flag(checks['audit'], layer.get('rows'))
-    checks['problems'] = report_problems(checks['tiles'], checks['audit']['max_zoom'], checks['kind'])
+    checks['problems'] = report_problems(checks['tiles'], checks['audit']['max_zoom'], checks['kind'], live)
     for r in checks['tiles']:
         log(f"    z{r['z']}/{r['x']}/{r['y']}: decoded {r['decoded']:,}  parquet {r['parquet']:,}  cover {r['cover']}")
     return checks, record
