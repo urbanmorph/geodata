@@ -64,12 +64,33 @@ def test_tippecanoe_args_full_detail_leaves_tippecanoes_default():
     args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', ['n'], 'polygon', 10, low_detail=None)
     assert not any(a.startswith('--low-detail') for a in args)
     assert f'--maximum-tile-bytes={rt.MAX_TILE_BYTES}' in args
+    args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', ['n'], 'line', 10,
+                              low_detail=None, max_tile_bytes=None)
+    assert not any(a.startswith(('--low-detail', '--maximum-tile-bytes')) for a in args)
 
 
-def test_detail_tries_lower_detail_first_then_full_detail_files():
+def test_tile_tries_smaller_tiles_first_then_tippecanoes_defaults():
     # Fine parcels in a small area turn to dust at country zoom with the lower
-    # detail; the second try keeps tippecanoe's default detail.
-    assert rt.DETAIL_TRIES == ((rt.LOW_DETAIL, ''), (None, '.full-detail'))
+    # detail; dense lines keep less length in the smaller budget. Each later try
+    # gives back one of tippecanoe's defaults.
+    assert rt.TILE_TRIES == ((rt.LOW_DETAIL, rt.MAX_TILE_BYTES, ''), (None, rt.MAX_TILE_BYTES, '.full-detail'),
+                             (None, None, '.default-budget'))
+
+
+def test_worse_than_the_live_tiles_per_shared_probe_tile():
+    def row(z, x, decoded, cover):
+        return {'z': z, 'x': x, 'y': 0, 'decoded': decoded, 'parquet': 10, 'cover': cover}
+    live = [row(3, 1, 300, 0.997), row(5, 1, 900, 0.999), row(8, 1, 50, 1.0), row(12, 1, 9, 1.0)]
+    # Polygons: further from the parquet's area than the live tiles were (beyond 1 point).
+    new = [row(3, 1, 18, 0.951), row(5, 1, 40, 0.995), row(8, 1, 50, 1.0), row(13, 1, 9, 1.0)]
+    assert rt.worse_than(live, new, 'polygon') == ["z3/1/0: polygons cover 95% of the parquet's area (live tiles 100%)"]
+    # Lines: shorter by more than 5 points; points: under 90% of the live count.
+    assert rt.worse_than([row(5, 1, 100, 0.8)], [row(5, 1, 50, 0.7)], 'line') == \
+        ["z5/1/0: lines keep 70% of the parquet's length (live tiles 80%)"]
+    assert rt.worse_than([row(5, 1, 100, None)], [row(5, 1, 89, None)], 'point') == \
+        ['z5/1/0: 89 points decoded (live tiles 100)']
+    assert rt.worse_than([row(5, 1, 100, None)], [row(5, 1, 95, None)], 'point') == []
+    assert rt.worse_than(None, new, 'polygon') == []  # no live tiles: nothing to compare
 
 
 def test_tippecanoe_args_no_fields_means_no_attributes():

@@ -14,8 +14,10 @@ Per layer:
      shapes still cover the ground), lines and points thin out
   4. checks, by decoding tiles (never by HTTP status or size): at a low,
      a mid and the max zoom, decoded features and the area (polygons) or
-     length (lines) they cover against the parquet; and the audit rule
-     (audit_tiles.flag) must pass on the new file
+     length (lines) they cover against the parquet, never worse than the
+     tiles being replaced cover them; and the audit rule (audit_tiles.flag)
+     must pass on the new file. A failing bake is tried again closer to
+     tippecanoe's defaults (TILE_TRIES)
   5. upload to a new, versioned key (<stem>.<md5[:8]>.pmtiles; the old key
      is cached immutable for 7 days, and stays until the deploy that stops
      using it), then patch catalog.json (and the ingest manifest) in place
@@ -97,10 +99,13 @@ MAX_TILE_BYTES = 300_000
 # Coordinates per tile edge below the max zoom: 2^10 = 1,024 is still finer
 # than the 512 px a tile is drawn at; the max zoom keeps tippecanoe's 4,096.
 LOW_DETAIL = 10
-# Detail settings tried in turn, with each try's file suffix: the lower detail
-# first; when its tiles fail the checks (fine parcels in a small area turn to
-# dust at country zoom), tippecanoe's default detail. Never worse coverage.
-DETAIL_TRIES = ((LOW_DETAIL, ''), (None, '.full-detail'))
+# (low detail, tile budget, file suffix) tried in turn until the tiles pass the
+# checks: the smaller tiles first; then tippecanoe's default detail (fine
+# parcels in a small area turn to dust at country zoom with the lower one);
+# then its default budget too (dense lines keep more length). Never worse
+# coverage than the tiles being replaced.
+TILE_TRIES = ((LOW_DETAIL, MAX_TILE_BYTES, ''), (None, MAX_TILE_BYTES, '.full-detail'),
+              (None, None, '.default-budget'))
 # Never bake fewer zooms than the tiles being replaced had (locate tests a
 # point at the max zoom), nor fewer than this for a layer that had none.
 MIN_MAX_ZOOM = 10
@@ -163,7 +168,8 @@ def filter_stats(baked: dict | None, src: Path, fmt: str, con, cache: Path) -> d
 # ── tiles ────────────────────────────────────────────────────────────────────
 
 def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], kind: str,
-                    min_max_zoom: int, low_detail: int | None = LOW_DETAIL) -> list[str]:
+                    min_max_zoom: int, low_detail: int | None = LOW_DETAIL,
+                    max_tile_bytes: int | None = MAX_TILE_BYTES) -> list[str]:
     """bake_formats.pmtiles_args (popup fields, -zg, extend zooms while
     still dropping) with a smaller tile budget and lower detail below the
     max zoom; polygons coalesce instead of dropping, so low zooms keep
@@ -178,9 +184,11 @@ def tippecanoe_args(src: Path, out: Path, layer: str, fields: list[str], kind: s
         args.insert(args.index('--force'), '-r1')
     if not fields:
         args.insert(args.index('--force'), '-X')  # no attributes at all (-y with none keeps every one)
-    extra = [f'--maximum-tile-bytes={MAX_TILE_BYTES}', f'--smallest-maximum-zoom-guess={min_max_zoom}']
+    extra = [f'--smallest-maximum-zoom-guess={min_max_zoom}']
+    if max_tile_bytes is not None:
+        extra.insert(0, f'--maximum-tile-bytes={max_tile_bytes}')
     if low_detail is not None:
-        extra.insert(1, f'--low-detail={low_detail}')
+        extra.append(f'--low-detail={low_detail}')
     if kind == 'polygon':
         extra.append('--detect-shared-borders')  # neighbours simplify alike: no slivers or gaps
     i = args.index('--force')
@@ -263,6 +271,31 @@ def tile_report(pm: Path, parquet: Path, con, kind: str) -> list[dict]:
     return rows
 
 
+def worse_than(live: list[dict] | None, rows: list[dict], kind: str) -> list[str]:
+    """Probe tiles (shared with the live tiles' report) the new tiles cover
+    worse: polygons further from the parquet's area (by over a point), lines
+    shorter (by over 5 points), points fewer (under 90%). Never ship worse
+    coverage than the tiles being replaced."""
+    before = {(r['z'], r['x'], r['y']): r for r in live or []}
+    out = []
+    for r in rows:
+        old = before.get((r['z'], r['x'], r['y']))
+        if not old:
+            continue
+        tile = f"z{r['z']}/{r['x']}/{r['y']}"
+        if kind == 'point':
+            if r['decoded'] < 0.9 * old['decoded']:
+                out.append(f"{tile}: {r['decoded']:,} points decoded (live tiles {old['decoded']:,})")
+        elif r['cover'] is not None and old['cover'] is not None:
+            if kind == 'polygon' and abs(r['cover'] - 1) > abs(old['cover'] - 1) + 0.01:
+                out.append(f"{tile}: polygons cover {r['cover']:.0%} of the parquet's area "
+                           f"(live tiles {old['cover']:.0%})")
+            if kind == 'line' and r['cover'] < old['cover'] - 0.05:
+                out.append(f"{tile}: lines keep {r['cover']:.0%} of the parquet's length "
+                           f"(live tiles {old['cover']:.0%})")
+    return out
+
+
 def report_problems(rows: list[dict], max_zoom: int, kind: str) -> list[str]:
     """The max zoom keeps every feature at its true area; below it, polygons
     still cover the ground (coalesced shapes do; a dropped one is a hole;
@@ -334,9 +367,11 @@ def build(layer: dict, deadline: Deadline, baked_stats: dict | None = None) -> t
     narrowed = bool(set(popup_fields('', columns, junk)) - set(fields))
     log(f'  {lid}: {kind}s, tile fields {fields}')
 
+    deadline.check(f'{lid}: live tiles report')
+    before = live_report(layer, work, flat, con, kind)
     seq = work / 'tiles.geojsonl'
     try:
-        for i, (detail, suffix) in enumerate(DETAIL_TRIES):
+        for i, (detail, budget, suffix) in enumerate(TILE_TRIES):
             pm = work / f'tiles{suffix}.pmtiles'
             if not pm.exists():
                 deadline.check(f'{lid}: GeoJSONSeq')
@@ -346,23 +381,39 @@ def build(layer: dict, deadline: Deadline, baked_stats: dict | None = None) -> t
                     f"TO '{p}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')"))
                 deadline.check(f'{lid}: tippecanoe')
                 min_max_zoom = max(live['max_zoom'] if live else 0, MIN_MAX_ZOOM)
-                log(f'  {lid}: tippecanoe, low detail {detail or "default"} ({seq.stat().st_size / 1e6:,.0f} MB in)')
+                log(f'  {lid}: tippecanoe, low detail {detail or "default"}, tile budget {budget or "default"} '
+                    f'({seq.stat().st_size / 1e6:,.0f} MB in)')
                 t0 = time.monotonic()
                 cached(pm, lambda p: subprocess.run(
-                    tippecanoe_args(seq, p, lid, fields, kind, min_max_zoom, detail), check=True, capture_output=True,
+                    tippecanoe_args(seq, p, lid, fields, kind, min_max_zoom, detail, budget),
+                    check=True, capture_output=True,
                     timeout=min(STEP_TIMEOUT_S, max(60, deadline.end - deadline.clock()))))
                 log(f'  {lid}: {pm.stat().st_size / 1e6:,.1f} MB of tiles in {time.monotonic() - t0:,.0f} s')
             deadline.check(f'{lid}: checks')
             checks, record = tile_checks(layer, pm, flat, con, kind, fields, narrowed, work / f'checks{suffix}.json')
-            failed = checks['flags'] + checks['problems']
+            failed = checks['flags'] + checks['problems'] + worse_than(before, checks['tiles'], kind)
             if not failed:
                 return pm, checks
-            if i + 1 < len(DETAIL_TRIES):
-                log(f'  {lid}: {failed}; trying the next detail setting')
+            if i + 1 < len(TILE_TRIES):
+                log(f'  {lid}: {failed}; trying the next tile settings')
         raise RuntimeError(f"{lid}: tiles fail the checks: {failed} (see {record})")
     finally:
         if not isinstance(sys.exc_info()[1], OutOfTime):  # a stopped run keeps it for the re-run
             seq.unlink(missing_ok=True)
+
+
+def live_report(layer: dict, work: Path, flat: Path, con, kind: str) -> list[dict] | None:
+    """tile_report of the tiles being replaced (None when there are none):
+    the baseline worse_than holds the new tiles to. Written once."""
+    url = (layer.get('pmtiles') or {}).get('url')
+    if not url:
+        return None
+    record = work / 'live_report.json'
+    if not record.exists():
+        pm = fetch(url, work / 'live.pmtiles')
+        cached(record, lambda p: p.write_text(json.dumps(tile_report(pm, flat, con, kind))))
+        pm.unlink()
+    return json.loads(record.read_text())
 
 
 def tile_checks(layer: dict, pm: Path, flat: Path, con, kind: str, fields: list[str], narrowed: bool,
