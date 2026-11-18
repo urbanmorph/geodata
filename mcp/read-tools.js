@@ -174,7 +174,7 @@ export const READ_TOOLS = [
         layers: {
           type: "array",
           items: { type: "string" },
-          description: "Specific layer IDs to check. Omit to use the default: 12 essential admin/zone layers PLUS the city ward layer(s) covering the point (for the ~30 cities with ward data). Passing this replaces the default entirely (no ward auto-include).",
+          description: "Specific layer IDs to check. Omit to use the default: 13 essential admin/zone layers PLUS the city ward layer(s) covering the point (for the ~30 cities with ward data). Passing this replaces the default entirely (no ward auto-include).",
         },
       },
       required: ["lat", "lng"],

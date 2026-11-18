@@ -75,7 +75,7 @@ describe('non-commercial layers', () => {
 
 describe('the published policy matches: NC layers are labelled, not left out', () => {
   const read = (f: string) => readFileSync(resolve(__dirname, '..', f), 'utf8');
-  for (const f of ['about.template.html', 'scripts/prerender.mjs', '../README.md']) {
+  for (const f of ['about.html', 'scripts/prerender.mjs', '../README.md']) {
     it(f, () => {
       const text = read(f);
       expect(text).toMatch(/Non-commercial only/);

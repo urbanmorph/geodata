@@ -54,9 +54,11 @@ describe('/about reformatted', () => {
     expect(css).toMatch(/@media \(max-width: 760px\) \{[^@]*\.prose \.pairs--verbs > li \{ grid-template-columns: 1fr; \}/);
   });
   it('the FAQ is question beside answer and keeps all 8 answers open', () => {
-    expect(main).toMatch(/<dl class="faq wide">/);
-    expect(main.match(/<dt[\s>]/g)?.length).toBe(8);
-    expect(main).not.toMatch(/<details/);
+    // The FAQ is filled in by the build (one list for the page and its FAQPage JSON-LD).
+    const built = mainOf(read('about.html'));
+    expect(built).toMatch(/<dl class="faq wide">/);
+    expect(built.match(/<dt[\s>]/g)?.length).toBe(8);
+    expect(built).not.toMatch(/<details/);
   });
 });
 

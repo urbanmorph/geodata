@@ -357,8 +357,8 @@ describe('SEO — /docs FAQPage + structured-data', () => {
 describe('SEO — BreadcrumbList on every prerendered page', () => {
   // Breadcrumbs reinforce site structure for Google (sitelinks breadcrumb
   // trail in SERPs) and give LLM crawlers a navigable hierarchy.
+  // Not the home page: it is the root, so it has no trail (tests/prerender-correctness).
   const PAGES = [
-    { file: 'index.html', last: 'All layers' },
     { file: 'layers.html', last: 'All layers' },
     { file: 'about.html', last: 'About' },
     { file: 'preview.html', last: 'Preview' },
