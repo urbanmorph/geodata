@@ -19,6 +19,7 @@ BAKED = ROOT / 'data' / 'baked'
 
 # Public base URL of the R2 bucket
 from pipeline import R2_PUBLIC as R2  # noqa: E402
+from tile_keys import keep_rebaked_pmtiles  # noqa: E402
 
 # Level metadata. `path` is the R2 key prefix (also the upstream release path).
 # `category` is the catalog facet (matches the home-page filter chips).
@@ -540,6 +541,9 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
     prev = prev_layers.get(layer['id'])
     if not prev:
         return
+    # Tiles bharatlas rebaked (versioned keys) win over the upstream-named key
+    # this build templates; the old key is deleted after a rebake's deploy.
+    keep_rebaked_pmtiles(layer, prev)
     if layer.get('parquet') and layer['parquet'].get('bytes') is None:
         layer['parquet']['bytes'] = (prev.get('parquet') or {}).get('bytes')
     if layer.get('pmtiles') and layer['pmtiles'].get('bytes') is None:
