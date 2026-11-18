@@ -4061,7 +4061,10 @@
       "source": "LGD",
       "rows": 1,
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.999f09a2.pmtiles",
+        "bytes": 746332
+      },
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.geojson",
         "bytes": 7528328
@@ -4142,7 +4145,10 @@
         "bytes": 46170854
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.466461ac.pmtiles",
+        "bytes": 1899106
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4167,7 +4173,10 @@
         "bytes": 48317735
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.87bacccd.pmtiles",
+        "bytes": 4632639
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4192,7 +4201,10 @@
         "bytes": 106291594
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.50b78dec.pmtiles",
+        "bytes": 11828870
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4217,7 +4229,10 @@
         "bytes": 110364589
       },
       "parquet": null,
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.c1550f23.pmtiles",
+        "bytes": 12205168
+      },
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
@@ -4443,7 +4458,10 @@
         "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/soil-health/SLUSI_SHC.parquet",
         "bytes": 315208629
       },
-      "pmtiles": null,
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/slusi-soil-health/SLUSI_SHC.4add9e5c.pmtiles",
+        "bytes": 241858251
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -4454,7 +4472,7 @@
       },
       "category": "agriculture",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI Soil Health Card layer. Parquet-only; pmtiles deferred (1.77 GB; oversized for the viewer).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI Soil Health Card layer. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": null,
       "kml": null,
       "shapefile": null,
@@ -5906,9 +5924,8 @@
         "bytes": 71062441
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Circles.pmtiles",
-        "bytes": 37761024
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.d4bad9ca.pmtiles",
+        "bytes": 15516268
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5920,7 +5937,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-circles/FSI_Circles.geojson",
         "bytes": 239119472
@@ -5946,9 +5963,8 @@
         "bytes": 172459428
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Divisions.pmtiles",
-        "bytes": 75523267
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.c2c0f1d5.pmtiles",
+        "bytes": 30862742
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -5960,7 +5976,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-divisions/FSI_Divisions.geojson",
         "bytes": 579142018
@@ -5986,9 +6002,8 @@
         "bytes": 144253317
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Ranges.pmtiles",
-        "bytes": 65999499
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.97f4af73.pmtiles",
+        "bytes": 27133139
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -6000,7 +6015,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-ranges/FSI_Ranges.geojson",
         "bytes": 503064663
@@ -6026,9 +6041,8 @@
         "bytes": 328028526
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.pmtiles",
-        "upstream_url": "https://github.com/ramSeraph/indian_admin_boundaries/releases/download/forests/FSI_Beats.pmtiles",
-        "bytes": 184052619
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.8357dbd8.pmtiles",
+        "bytes": 78318357
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -6040,7 +6054,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/fsi-beats/FSI_Beats.geojson",
         "bytes": 1424589326

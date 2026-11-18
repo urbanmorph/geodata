@@ -734,11 +734,11 @@
     "r2_prefix": "agriculture/slusi-soil-health",
     "parquet_file": "SLUSI_SHC.parquet",
     "parquet_bytes": 315208629,
-    "pmtiles_file": null,
-    "pmtiles_bytes": null,
+    "pmtiles_file": "SLUSI_SHC.4add9e5c.pmtiles",
+    "pmtiles_bytes": 241858251,
     "source_url": "https://slusi.dacnet.nic.in/",
     "source_org": "SLUSI (Soil & Land Use Survey of India)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from SLUSI Soil Health Card layer. Parquet-only; pmtiles deferred (1.77 GB; oversized for the viewer)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps from SLUSI Soil Health Card layer. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "vedas_power_plants",
@@ -1482,11 +1482,11 @@
     "r2_prefix": "environment/fsi-circles",
     "parquet_file": "FSI_Circles.parquet",
     "parquet_bytes": 71062441,
-    "pmtiles_file": "FSI_Circles.pmtiles",
-    "pmtiles_bytes": 37761024,
+    "pmtiles_file": "FSI_Circles.d4bad9ca.pmtiles",
+    "pmtiles_bytes": 15516268,
     "source_url": "https://fsi.nic.in/",
     "source_org": "Forest Survey of India (MoEFCC)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "fsi_divisions",
@@ -1501,11 +1501,11 @@
     "r2_prefix": "environment/fsi-divisions",
     "parquet_file": "FSI_Divisions.parquet",
     "parquet_bytes": 172459428,
-    "pmtiles_file": "FSI_Divisions.pmtiles",
-    "pmtiles_bytes": 75523267,
+    "pmtiles_file": "FSI_Divisions.c2c0f1d5.pmtiles",
+    "pmtiles_bytes": 30862742,
     "source_url": "https://fsi.nic.in/",
     "source_org": "Forest Survey of India (MoEFCC)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "fsi_ranges",
@@ -1520,11 +1520,11 @@
     "r2_prefix": "environment/fsi-ranges",
     "parquet_file": "FSI_Ranges.parquet",
     "parquet_bytes": 144253317,
-    "pmtiles_file": "FSI_Ranges.pmtiles",
-    "pmtiles_bytes": 65999499,
+    "pmtiles_file": "FSI_Ranges.97f4af73.pmtiles",
+    "pmtiles_bytes": 27133139,
     "source_url": "https://fsi.nic.in/",
     "source_org": "Forest Survey of India (MoEFCC)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "fsi_beats",
@@ -1539,11 +1539,11 @@
     "r2_prefix": "environment/fsi-beats",
     "parquet_file": "FSI_Beats.parquet",
     "parquet_bytes": 328028526,
-    "pmtiles_file": "FSI_Beats.pmtiles",
-    "pmtiles_bytes": 184052619,
+    "pmtiles_file": "FSI_Beats.8357dbd8.pmtiles",
+    "pmtiles_bytes": 78318357,
     "source_url": "https://fsi.nic.in/",
     "source_org": "Forest Survey of India (MoEFCC)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Forest Survey of India (MoEFCC). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads."
   },
   {
     "id": "wildlife_corridors",
