@@ -15,6 +15,7 @@ Usage:
     python3 scripts/build_api_indexes.py lgd_states    # single layer
 """
 from __future__ import annotations
+import contextlib
 import json
 import sys
 from pathlib import Path
@@ -23,6 +24,7 @@ ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
+from build_filter_stats import value_counts  # noqa: E402
 OUT = ROOT / 'web' / 'public' / 'api-data' / 'layers'
 
 MAX_DISTINCT_FOR_GROUPING = 200
@@ -33,9 +35,15 @@ find_parquet = pipeline.find_parquet  # tests patch this module attribute
 
 
 def compute_layer_stats(con, parquet_path: Path, layer_id: str) -> dict | None:
-    """Compute generic column stats for a single parquet file."""
+    """Generic column stats for one parquet file, in two scans: the row count
+    and every distinct count at once, then every groupable column's
+    value→count at once."""
+    src = str(parquet_path)
     try:
-        row_count = con.execute(f"SELECT COUNT(*) FROM '{parquet_path}'").fetchone()[0]
+        schema = con.execute(f"DESCRIBE SELECT * FROM '{src}'").fetchall()
+        types = {name: col_type for name, col_type, *_ in schema
+                 if not (name.lower().startswith('geom') or name.lower() == 'wkb_geometry')}
+        row_count, distinct = distinct_counts(con, src, list(types))
     except Exception as e:
         print(f'  {layer_id}: failed to read — {e}')
         return None
@@ -43,44 +51,39 @@ def compute_layer_stats(con, parquet_path: Path, layer_id: str) -> dict | None:
     if row_count == 0:
         return {'row_count': 0, 'columns': {}}
 
-    # Get column names and types
-    schema = con.execute(f"DESCRIBE SELECT * FROM '{parquet_path}'").fetchall()
-
-    columns: dict[str, dict] = {}
-    for col_name, col_type, *_ in schema:
-        if col_name.lower().startswith('geom') or col_name.lower() == 'wkb_geometry':
-            continue
-
-        try:
-            distinct = con.execute(
-                f'SELECT COUNT(DISTINCT "{col_name}") FROM \'{parquet_path}\''
-            ).fetchone()[0]
-        except Exception:
-            continue
-
-        col_info: dict = {
-            'type': simplify_type(col_type),
-            'distinct': distinct,
-            'row_count': row_count,
-        }
-
-        # Only pre-compute value→count for groupable columns
-        if 0 < distinct <= MAX_DISTINCT_FOR_GROUPING:
-            try:
-                rows = con.execute(f"""
-                    SELECT "{col_name}"::VARCHAR AS val, COUNT(*) AS n
-                    FROM '{parquet_path}'
-                    WHERE "{col_name}" IS NOT NULL
-                    GROUP BY 1 ORDER BY n DESC
-                    LIMIT {MAX_VALUES_PER_COLUMN}
-                """).fetchall()
-                col_info['values'] = {str(v): n for v, n in rows}
-            except Exception:
-                pass
-
-        columns[col_name] = col_info
+    columns: dict[str, dict] = {
+        c: {'type': simplify_type(types[c]), 'distinct': distinct[c], 'row_count': row_count}
+        for c in types if c in distinct}
+    # value→count for the groupable columns only, all in one scan
+    groupable = [c for c, info in columns.items() if 0 < info['distinct'] <= MAX_DISTINCT_FOR_GROUPING]
+    try:
+        counts = value_counts(con, src, groupable, MAX_VALUES_PER_COLUMN)
+    except Exception:  # one column breaks the merged scan: take them one at a time
+        counts = {}
+        for c in groupable:
+            with contextlib.suppress(Exception):
+                counts.update(value_counts(con, src, [c], MAX_VALUES_PER_COLUMN))
+    for c, rows in counts.items():
+        columns[c]['values'] = {str(v): n for v, n in rows}
 
     return {'row_count': row_count, 'columns': columns}
+
+
+def distinct_counts(con, src: str, cols: list[str]) -> tuple[int, dict[str, int]]:
+    """(row count, {column: distinct values}) in one scan; per column
+    (leaving out a column that fails) when the merged query fails."""
+    exprs = ''.join(', COUNT(DISTINCT "%s")' % c for c in cols)
+    try:
+        row = con.execute(f"SELECT COUNT(*){exprs} FROM '{src}'").fetchone()
+        return row[0], dict(zip(cols, row[1:]))
+    except Exception:
+        if not cols:
+            raise
+    out = {}
+    for c in cols:
+        with contextlib.suppress(Exception):
+            out[c] = con.execute(f'SELECT COUNT(DISTINCT "{c}") FROM \'{src}\'').fetchone()[0]
+    return con.execute(f"SELECT COUNT(*) FROM '{src}'").fetchone()[0], out
 
 
 def simplify_type(duckdb_type: str) -> str:
