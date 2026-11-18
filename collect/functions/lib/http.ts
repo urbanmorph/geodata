@@ -10,5 +10,4 @@ export const json = (status: number, body: unknown): Response =>
     },
   });
 
-export const ok = (body: unknown): Response => json(200, body);
 export const bad = (status: number, error: string): Response => json(status, { error });

@@ -50,6 +50,8 @@ const err = (msg: string): ValidateResult => ({ ok: false, error: msg });
 
 /** A photo id as the server issues it. */
 export const PHOTO_ID = /^ph_[A-Za-z0-9_-]{10,40}$/;
+/** A queued point's or photo's own random id from the phone (outbox newClientId). */
+export const CLIENT_ID = /^[A-Za-z0-9_-]{16,64}$/;
 
 export interface ValidateOptions {
   /** "Just photos" capture: only the photos are needed now; the other required

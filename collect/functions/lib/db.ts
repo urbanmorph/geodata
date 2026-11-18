@@ -225,11 +225,11 @@ export function recordImport(db: DB, r: NewRecordRow): D1PreparedStatement {
 }
 
 // A queued point already saved on this map (the offline queue may send it twice).
-export async function recordByClientKey(db: DB, collectionId: string, clientKeyHash: string): Promise<{ id: string; status: string } | null> {
+export async function recordByClientKey(db: DB, collectionId: string, clientKeyHash: string): Promise<{ id: string; status: string; properties: string } | null> {
   return (await db
-    .prepare(`SELECT id, status FROM records WHERE collection_id = ? AND client_key_hash = ?`)
+    .prepare(`SELECT id, status, properties FROM records WHERE collection_id = ? AND client_key_hash = ?`)
     .bind(collectionId, clientKeyHash)
-    .first()) as { id: string; status: string } | null;
+    .first()) as { id: string; status: string; properties: string } | null;
 }
 
 export async function setRecordTokenHash(db: DB, id: string, editTokenHash: string): Promise<void> {
@@ -266,10 +266,16 @@ export async function allRecordProperties(db: DB, collectionId: string): Promise
   }
 }
 
+/** Where a page of records ended: the last row's (created_at, id). */
+export interface RecordCursor { created_at: string; id: string }
+
+/** Newest first, ties broken by id, so the order is the same on every call and
+ *  pages never overlap or skip. `after` (keyset) continues past a cursor even
+ *  while new points arrive; `offset` is kept for older callers. */
 export async function listRecords(
   db: DB,
   collectionId: string,
-  opts: { status?: string; limit: number; offset: number },
+  opts: { status?: string; limit: number; offset?: number; after?: RecordCursor },
 ): Promise<RecordRow[]> {
   const parts = [`SELECT * FROM records WHERE collection_id = ?`];
   const binds: unknown[] = [collectionId];
@@ -277,8 +283,12 @@ export async function listRecords(
     parts.push(`AND status = ?`);
     binds.push(opts.status);
   }
-  parts.push(`ORDER BY created_at DESC LIMIT ? OFFSET ?`);
-  binds.push(opts.limit, opts.offset);
+  if (opts.after) {
+    parts.push(`AND (created_at < ? OR (created_at = ? AND id < ?))`);
+    binds.push(opts.after.created_at, opts.after.created_at, opts.after.id);
+  }
+  parts.push(`ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`);
+  binds.push(opts.limit, opts.after ? 0 : opts.offset ?? 0);
   const res = await db.prepare(parts.join(' ')).bind(...binds).all();
   return (res.results ?? []) as unknown as RecordRow[];
 }
@@ -310,6 +320,23 @@ export async function setRecordStatus(
   reason: string | null = null,
 ): Promise<void> {
   await db.prepare(`UPDATE records SET status = ?, rejection_reason = ? WHERE id = ?`).bind(status, reason, id).run();
+}
+
+/** Moves these records (all on one map, still in `from`) to `to`: one UPDATE
+ *  per few thousand ids (the ids ride as one JSON parameter, under D1's limit of
+ *  100 bound parameters), unrun, for one D1 batch, so it is all or nothing. */
+export function setStatusOfIds(
+  db: DB, collectionId: string, ids: string[], from: string, to: 'published' | 'rejected',
+): D1PreparedStatement[] {
+  const CHUNK = 5000;
+  const out: D1PreparedStatement[] = [];
+  for (let i = 0; i < ids.length; i += CHUNK) {
+    out.push(db
+      .prepare(`UPDATE records SET status = ?, rejection_reason = NULL
+                WHERE collection_id = ? AND status = ? AND id IN (SELECT value FROM json_each(?))`)
+      .bind(to, collectionId, from, JSON.stringify(ids.slice(i, i + CHUNK))));
+  }
+  return out;
 }
 
 // Bulk status move for one collection (the "Approve all" action). Returns the

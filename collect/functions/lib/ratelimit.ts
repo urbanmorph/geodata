@@ -1,62 +1,46 @@
-// Per-hashed-IP rate limits on the shared rate_limits table (spec → Anti-abuse:
-// 5 collections/day, 200 records/hour). collect uses a DISTINCT IP_SALT from web,
-// so its rows never collide with submit's. Records use the hour window; creates
-// use the day window — independent columns on the same row.
+// Rate limits on the shared rate_limits table (spec → Anti-abuse: 5 collections
+// per day per network, 200 records per hour per link and network). Keys are
+// hashed IPs (collect uses a DISTINCT IP_SALT from web, so its rows never
+// collide with submit's), optionally prefixed. Records use the hour window;
+// creates use the day window: independent columns on the same row.
 
 type DB = Pick<D1Database, 'prepare'>;
 
 const HOUR_MS = 3_600_000;
 const DAY_MS = 86_400_000;
 
-interface RLRow {
-  hour_window_start: string;
-  hour_count: number;
-  day_window_start: string;
-  day_count: number;
-}
+const WINDOWS = {
+  hour: { start: 'hour_window_start', count: 'hour_count', ms: HOUR_MS },
+  day: { start: 'day_window_start', count: 'day_count', ms: DAY_MS },
+} as const;
 
-async function bump(db: DB, ipHash: string, window: 'hour' | 'day', limit: number): Promise<boolean> {
+/** Takes one from the key's allowance in this window; false when it is used up.
+ *  One atomic upsert (no read-then-write), so two first requests at once both
+ *  count and neither fails on the insert. A window older than its length starts
+ *  again at 1. Times are ISO strings, which compare in time order. */
+async function bump(db: DB, key: string, window: 'hour' | 'day', limit: number): Promise<boolean> {
   const nowMs = Date.now();
   const nowIso = new Date(nowMs).toISOString();
-
-  const row = (await db
-    .prepare(`SELECT hour_window_start, hour_count, day_window_start, day_count FROM rate_limits WHERE ip_hash = ?`)
-    .bind(ipHash)
-    .first()) as RLRow | null;
-
-  if (!row) {
-    await db
-      .prepare(
-        `INSERT INTO rate_limits (ip_hash, hour_window_start, hour_count, day_window_start, day_count)
-         VALUES (?, ?, ?, ?, ?)`,
-      )
-      .bind(ipHash, nowIso, window === 'hour' ? 1 : 0, nowIso, window === 'day' ? 1 : 0)
-      .run();
-    return true;
-  }
-
-  let { hour_window_start, hour_count, day_window_start, day_count } = row;
-  if (nowMs - Date.parse(hour_window_start) >= HOUR_MS) { hour_window_start = nowIso; hour_count = 0; }
-  if (nowMs - Date.parse(day_window_start) >= DAY_MS) { day_window_start = nowIso; day_count = 0; }
-
-  const count = window === 'hour' ? hour_count : day_count;
-  const allowed = count < limit;
-  if (allowed) {
-    if (window === 'hour') hour_count += 1;
-    else day_count += 1;
-  }
-
-  await db
+  const expired = new Date(nowMs - WINDOWS[window].ms).toISOString();
+  const { start, count } = WINDOWS[window];
+  const r = await db
     .prepare(
-      `UPDATE rate_limits SET hour_window_start = ?, hour_count = ?, day_window_start = ?, day_count = ? WHERE ip_hash = ?`,
+      `INSERT INTO rate_limits (ip_hash, hour_window_start, hour_count, day_window_start, day_count)
+       VALUES (?1, ?2, ?4, ?2, ?5)
+       ON CONFLICT(ip_hash) DO UPDATE SET
+         ${count} = CASE WHEN ${start} <= ?3 THEN 1 ELSE ${count} + 1 END,
+         ${start} = CASE WHEN ${start} <= ?3 THEN ?2 ELSE ${start} END
+       WHERE ${start} <= ?3 OR ${count} < ?6`,
     )
-    .bind(hour_window_start, hour_count, day_window_start, day_count, ipHash)
+    .bind(key, nowIso, expired, window === 'hour' ? 1 : 0, window === 'day' ? 1 : 0, limit)
     .run();
-
-  return allowed;
+  return (r.meta?.changes ?? 0) > 0;
 }
 
-export const checkRecordRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, ipHash, 'hour', 200);
+/** Points per hour, per link and network: two teams behind one mobile carrier's
+ *  shared IP (CGNAT) don't eat each other's budget. */
+export const checkRecordRate = (db: DB, key: string): Promise<boolean> => bump(db, key, 'hour', 200);
+export const recordRateKey = (linkId: string, ipHash: string): string => `rec:${linkId}:${ipHash}`;
 export const checkCreateRate = (db: DB, ipHash: string): Promise<boolean> => bump(db, ipHash, 'day', 5);
 // Per-API-key day window (its own rate_limits row, keyed by the key hash).
 export const checkKeyDayRate = (db: DB, keyHash: string, limit: number): Promise<boolean> => bump(db, keyHash, 'day', limit);

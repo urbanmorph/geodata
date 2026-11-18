@@ -8,10 +8,10 @@ import type { Env } from '../types';
 import { bad, json } from './http';
 import { bearer, linkFor, atLeast } from './auth';
 import { hashToken, verifyToken } from './tokens';
-import { nanoid, ipHashFor } from './reuse';
+import { nanoid, collectIpHash } from './reuse';
 import { checkPhotoRate } from './ratelimit';
 import { isInIndia } from '../../src/geo/bounds';
-import { PHOTO_ID, type Field } from '../../src/schema/validate-record';
+import { PHOTO_ID, CLIENT_ID, type Field } from '../../src/schema/validate-record';
 
 export const MAX_PHOTO_BYTES = 2_000_000; // the phone sends ~300 KB; this is a safety cap
 // A phone can be offline for days after uploading a point's photos (the point
@@ -21,9 +21,7 @@ const ORPHAN_AGE_MS = 14 * 86_400_000;
 // collecting stays well under it; a script uploading photos it never attaches
 // is stopped before it fills storage.
 export const MAX_UNCLAIMED_PHOTOS_PER_DAY = 300;
-const CLIENT_ID = /^[A-Za-z0-9_-]{16,64}$/;
 
-const salt = (env: Env) => env.IP_SALT || 'collect-v1';
 const r2Key = (collectionId: string, id: string) => `collect/${collectionId}/photos/${id}.jpg`;
 export const photoUrl = (origin: string, id: string) => `${origin}/api/collect/v1/photos/${id}`;
 
@@ -77,7 +75,7 @@ export async function uploadPhoto(env: Env, req: Request, collectionId: string, 
   if (bytes.byteLength > MAX_PHOTO_BYTES) return bad(413, 'photo too large');
   if (bytes.byteLength < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) return bad(400, 'a photo must be a JPEG');
 
-  const ipHash = await ipHashFor(req, salt(env));
+  const ipHash = await collectIpHash(req, env);
   if (!(await checkPhotoRate(env.DB, ipHash))) return bad(429, 'rate limit: too many photos this hour');
 
   const id = `ph_${nanoid(16)}`;
