@@ -866,7 +866,7 @@ function renderPhotoBar(): void {
     <label class="btn primary photo-snap">📷 Take a photo<input type="file" accept="image/*" capture="environment" data-src="camera" hidden></label>
     <div class="row">
       <label class="btn photo-add--quiet" style="flex:1">From gallery<input type="file" accept="image/*" data-src="gallery" hidden></label>
-      <input id="contributor" autocomplete="name" placeholder="Your name (optional)" aria-label="Your name (optional, published with the data)" style="flex:1" />
+      <input id="contributor" autocomplete="name" maxlength="120" placeholder="Your name (optional)" aria-label="Your name (optional, published with the data)" style="flex:1" />
     </div>
     <div id="lastadded" class="hint" aria-live="polite">${lastAdded}</div>
     <div id="outbox"></div>
@@ -949,7 +949,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
       <div id="photo-place" aria-live="polite"></div>
       ${aiNote}
       <label for="contributor">Your name <span class="hint">(optional, published with the data, remembered on this device)</span></label>
-      <input id="contributor" autocomplete="name" />
+      <input id="contributor" autocomplete="name" maxlength="120" />
     </form>
     <div class="foot row">
       <button type="button" id="cancel">← Back</button>
