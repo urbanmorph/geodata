@@ -3,7 +3,7 @@ import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, QueryInputError } from '../../../../lib/parquet-query';
-import { parseQueryParams } from '../../../../lib/query-params';
+import { parseQueryParams, queryCacheUrl } from '../../../../lib/query-params';
 import { parseFilterParam } from '../../../../lib/parquet-export';
 import { apiError, safeStringify, serverError } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
@@ -41,7 +41,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     }
   };
 
-  // Aggregates (group_by) are small and asked again and again; row answers vary
-  // with every filter and can be large, so they are not kept.
-  return groupBy ? cached(ctx, cacheKey(version, url), EDGE_TTL.r2, run) : run();
+  // Every answer is kept in the colo: a filtered row answer (at most 1,000 rows)
+  // on a large layer is a whole-file scan (an Overture hospital query took 15 s
+  // every time). The key leaves out parameters that can't change the answer.
+  return cached(ctx, cacheKey(version, queryCacheUrl(url)), EDGE_TTL.r2, run);
 };

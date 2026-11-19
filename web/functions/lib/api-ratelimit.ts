@@ -65,8 +65,8 @@ export function apiRateKey(request: Request, salt?: string): Promise<string> {
 // The isolate answers first; D1 (the limit across isolates) is bumped after the
 // answer, and a key it reports over the limit is refused here until its window
 // ends. A token bucket per key catches a burst on one isolate before D1 has
-// answered. Both maps are keyed by limit too: locate (60) and the rest (120)
-// share one D1 row but not one verdict, as before.
+// answered. Locate has its own key (its own D1 row): sharing the general row
+// let 61 /query calls in a minute refuse the next locate.
 const STATE_MAX = 10_000;
 const blockedUntil = new Map<string, number>();
 const buckets = new Map<string, { tokens: number; at: number }>();
@@ -84,23 +84,9 @@ export function __resetApiLimiterForTest(): void {
 
 type Verdict = { ok: true } | { ok: false; retryAfter: number };
 
-/** Allow or refuse one call now; D1 is bumped in waitUntil (failures ignored). */
-export function apiLimit(opts: {
-  db: RunnableD1;
-  key: string;
-  limit: number;
-  waitUntil(p: Promise<unknown>): void;
-}): Verdict {
-  const { db, key, limit } = opts;
-  const id = `${limit}:${key}`;
-  const now = Date.now();
-
-  const until = blockedUntil.get(id);
-  if (until !== undefined) {
-    if (until > now) return { ok: false, retryAfter: Math.max(1, Math.ceil((until - now) / 1000)) };
-    blockedUntil.delete(id);
-  }
-
+/** This isolate's token bucket for `id` (`limit` a minute): take one token, or
+ *  the seconds until one is free. No D1: a per-isolate burst check. */
+export function takeToken(id: string, limit: number, now = Date.now()): Verdict {
   const perMs = limit / MINUTE_MS;
   const b = buckets.get(id);
   const tokens = b ? Math.min(limit, b.tokens + (now - b.at) * perMs) : limit;
@@ -109,11 +95,49 @@ export function apiLimit(opts: {
     return { ok: false, retryAfter: Math.max(1, Math.ceil((1 - tokens) / perMs / 1000)) };
   }
   remember(buckets, id, { tokens: tokens - 1, at: now });
+  return { ok: true };
+}
+
+/** Allow or refuse one call now; D1 is bumped in waitUntil (failures ignored). */
+export function apiLimit(opts: {
+  db: RunnableD1;
+  key: string;
+  limit: number;
+  waitUntil(p: Promise<unknown>): void;
+}): Verdict {
+  const { db, key, limit } = opts;
+  const now = Date.now();
+
+  const until = blockedUntil.get(key);
+  if (until !== undefined) {
+    if (until > now) return { ok: false, retryAfter: Math.max(1, Math.ceil((until - now) / 1000)) };
+    blockedUntil.delete(key);
+  }
+
+  const burst = takeToken(key, limit, now);
+  if (!burst.ok) return burst;
 
   opts.waitUntil(
     checkApiRateLimit(db, key, limit)
-      .then((r) => { if (!r.ok) remember(blockedUntil, id, Date.now() + r.retryAfter * 1000); })
+      .then((r) => { if (!r.ok) remember(blockedUntil, key, Date.now() + r.retryAfter * 1000); })
       .catch(() => {}), // a D1 failure should not block reads
   );
   return { ok: true };
+}
+
+/** Calls a minute per client: locate (point-in-polygon over many layers) and the rest. */
+export const API_LIMIT = 120;
+export const LOCATE_LIMIT = 60;
+
+/** The /api/v1 (and hosted MCP) limit for one request: locate counts on its own key. */
+export async function apiLimitFor(
+  request: Request,
+  env: { DB: RunnableD1; IP_SALT?: string },
+  isLocate: boolean,
+  waitUntil: (p: Promise<unknown>) => void,
+): Promise<Verdict> {
+  const key = await apiRateKey(request, env.IP_SALT);
+  return isLocate
+    ? apiLimit({ db: env.DB, key: `locate:${key}`, limit: LOCATE_LIMIT, waitUntil })
+    : apiLimit({ db: env.DB, key, limit: API_LIMIT, waitUntil });
 }

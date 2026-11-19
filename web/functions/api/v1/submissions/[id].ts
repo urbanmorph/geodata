@@ -1,12 +1,12 @@
 import type { Env } from '../../_middleware';
-import { SUBMISSION_DETAIL_SQL } from '../../../lib/submissions-sql';
+import { SUBMISSION_DETAIL_SQL, SUBMISSION_ID } from '../../../lib/submissions-sql';
 import { apiError, json } from '../../../lib/http';
 
 type Params = { id: string };
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const id = ctx.params.id as string;
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+  if (!SUBMISSION_ID.test(id)) {
     return apiError(400, 'Invalid submission ID');
   }
 

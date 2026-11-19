@@ -1,16 +1,11 @@
 import type { Env } from '../_middleware';
-import { apiLimit, apiRateKey } from '../../lib/api-ratelimit';
+import { apiLimitFor } from '../../lib/api-ratelimit';
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
   // The limit never waits on D1: the isolate decides, D1 follows in waitUntil
   // (lib/api-ratelimit.ts).
-  const rl = apiLimit({
-    db: ctx.env.DB,
-    key: await apiRateKey(ctx.request, ctx.env.IP_SALT),
-    limit: url.pathname.endsWith('/locate') ? 60 : 120,
-    waitUntil: (p) => ctx.waitUntil(p),
-  });
+  const rl = await apiLimitFor(ctx.request, ctx.env, url.pathname.endsWith('/locate'), (p) => ctx.waitUntil(p));
   if (!rl.ok) {
     return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: rl.retryAfter, status: 429 }), {
       status: 429,

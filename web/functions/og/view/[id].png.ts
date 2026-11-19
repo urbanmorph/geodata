@@ -8,6 +8,8 @@ import { ogError, PNG_HEADERS } from '../../lib/og-response';
 import { renderOgSvg } from '../../lib/og-template';
 import { loadCatalogVersioned } from '../../lib/catalog-loader';
 import { cached, cacheKey, EDGE_TTL } from '../../lib/edge-cache';
+import { LAYER_ID } from '../../lib/api-layer';
+import { retiredRedirect } from '../../lib/retired-layers';
 
 type Params = { id: string };
 
@@ -18,7 +20,9 @@ type Catalog = {
 
 export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return ogError(404, 'invalid layer id');
+  if (!LAYER_ID.test(id)) return ogError(404, 'invalid layer id');
+  const moved = retiredRedirect(new URL(ctx.request.url), id);
+  if (moved) return moved;
 
   // Cached per isolate (catalog.json only changes with a deploy).
   const loaded = await loadCatalogVersioned(ctx).catch(() => null);

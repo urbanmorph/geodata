@@ -1,6 +1,7 @@
 // API and MCP use per layer, beside downloads: proof that a layer is used.
-// Only calls that name a layer count (detail, query, schema, stats, nearby);
-// crawlers and our own smoke test don't. The bharatlas MCP sends
+// Only calls that name a layer count (detail, query, schema, counts, export,
+// nearby; not locate, which the viewer's button calls on every tap). Crawlers and
+// our own smoke test don't. The bharatlas MCP sends
 // "bharatlas-mcp/<version>" (mcp/index.js), which is how its calls are told apart.
 import { fmtCount } from '../../../shared/format.mjs';
 

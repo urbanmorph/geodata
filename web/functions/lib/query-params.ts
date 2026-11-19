@@ -55,3 +55,17 @@ export function parseQueryParams(sp: URLSearchParams): ParsedQueryParams {
     includeCentroid: sp.get('include_centroid') !== 'false',
   };
 }
+
+/** Options /query reads but that never change its answer (order_by is not
+ *  applied yet; format and estimate belong to /export), plus, for group_by,
+ *  the row-only ones: kept out of the edge-cache key so equal answers share one. */
+const UNUSED_OPTIONS = ['order_by', 'format', 'estimate'];
+const ROW_ONLY_OPTIONS = ['limit', 'select', 'include_centroid'];
+
+/** The /query URL with the parameters that cannot change its answer removed. */
+export function queryCacheUrl(url: URL): URL {
+  const out = new URL(url);
+  const drop = out.searchParams.get('group_by') ? [...UNUSED_OPTIONS, ...ROW_ONLY_OPTIONS] : UNUSED_OPTIONS;
+  for (const k of drop) out.searchParams.delete(k);
+  return out;
+}

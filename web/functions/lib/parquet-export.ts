@@ -16,6 +16,7 @@ import type { FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
 import {
+  BBOX_COLS,
   QueryInputError,
   READ_WINDOW_ROWS,
   assertFilterColumns,
@@ -43,7 +44,8 @@ export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
 const MAX_FILTERS = 20;
 const MAX_IN_VALUES = 500;
-const BBOX_COLS = new Set(['bbox', 'xmin', 'ymin', 'xmax', 'ymax']);
+/** Bounding-box columns: never written as properties (the shape carries them). */
+const NOT_PROPS = new Set(['bbox', ...BBOX_COLS]);
 
 /** `filter=` JSON -> FilterSpec[]; undefined when absent. Malformed input is a
  *  QueryInputError (HTTP 400) that says what a filter looks like. */
@@ -197,7 +199,7 @@ async function scan(file: AsyncBuffer, sel: Selection, keep: number) {
   const { perGroup, total } = await scanMatches(file, metadata, matchCols, rowMatcher(where, filters), keep);
 
   const geomCol = cols.find((c) => isGeomColumn(c.name))?.name;
-  const propCols = cols.map((c) => c.name).filter((n) => n !== geomCol && !BBOX_COLS.has(n));
+  const propCols = cols.map((c) => c.name).filter((n) => n !== geomCol && !NOT_PROPS.has(n));
   const hasBbox = ['xmin', 'ymin', 'xmax', 'ymax'].every((c) => cols.some((x) => x.name === c));
   const bboxCols = hasBbox ? ['xmin', 'ymin', 'xmax', 'ymax'] : [];
   const shapeCols = [...propCols, ...(geomCol ? [geomCol] : [])];

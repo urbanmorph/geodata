@@ -167,4 +167,18 @@ describe('/api/submit', () => {
     expect(String(a.detail)).toMatch(/^SyntaxError/);
     expect(String(a.detail)).not.toContain(secret);
   });
+
+  it('refuses a data year that is not a four-digit year from 1800 to next year', async () => {
+    const next = new Date().getUTCFullYear() + 1;
+    for (const y of ['20x9', '99', '1799', String(next + 1), '2019.5', '02019']) {
+      const db = sqliteD1();
+      const r = await call(form({ data_year: y }), { DB: db, R2: fakeR2() });
+      expect(r.status, y).toBe(400);
+      expect(String(r.body.error), y).toMatch(/data_year/);
+      expect(await count(db, 'submissions')).toBe(0);
+    }
+    const db = sqliteD1();
+    expect((await call(form({ data_year: String(next) }), { DB: db, R2: fakeR2() })).status).toBe(200);
+    expect(await db.prepare('SELECT data_year FROM submissions').first()).toEqual({ data_year: next });
+  });
 });

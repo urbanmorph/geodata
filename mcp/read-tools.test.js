@@ -62,3 +62,38 @@ test("a where column named like a query option travels inside where=", () => {
   assert.equal("format" in req.params, false);
   assert.equal("filter" in req.params, false);
 });
+
+// Review 2026-11-19: tool arguments are checked. A string where a list belongs
+// threw "select.join is not a function"; a where string became one filter per
+// character and answered a false "0 rows".
+test("a list argument may be a comma-separated string", () => {
+  const q = readToolRequest("query_layer", { layer_id: "lgd_states", select: "STNAME, State_LGD", sum: "area" });
+  assert.equal(q.params.select, "STNAME,State_LGD");
+  assert.equal(q.params.sum, "area");
+  const l = readToolRequest("locate", { lat: 12.9, lng: 77.5, layers: "lgd_states,lgd_districts" });
+  assert.equal(l.params.layers, "lgd_states,lgd_districts");
+  assert.equal(readToolRequest("query_layer", { layer_id: "x", select: ["a", "b"] }).params.select, "a,b");
+});
+
+test("a list argument of the wrong type is refused, by name", () => {
+  assert.throws(() => readToolRequest("query_layer", { layer_id: "x", select: 5 }), /select must be a list of column names/);
+  assert.throws(() => readToolRequest("query_layer", { layer_id: "x", select: [1, {}] }), /select must be a list of column names/);
+  assert.throws(() => readToolRequest("locate", { lat: 1, lng: 2, layers: { a: 1 } }), /layers must be a list of layer IDs/);
+});
+
+test("where as a col=value string is read as pairs, never per character", () => {
+  const q = readToolRequest("query_layer", { layer_id: "lgd_states", where: "STNAME=KERALA" });
+  assert.equal(q.params.STNAME, "KERALA");
+  assert.equal("0" in q.params, false);
+  const two = readToolRequest("query_layer", { layer_id: "x", where: "a=1, b=2" });
+  assert.equal(two.params.a, "1");
+  assert.equal(two.params.b, "2");
+});
+
+test("a where that is not an object or col=value pairs is refused with a clear message", () => {
+  for (const where of ["KERALA", ["STNAME", "KERALA"], 5, "=x", { a: { b: 1 } }]) {
+    assert.throws(() => readToolRequest("query_layer", { layer_id: "x", where }), /where must be an object of \{column: value\}/, JSON.stringify(where));
+  }
+  // Numbers and booleans are fine values.
+  assert.equal(readToolRequest("query_layer", { layer_id: "x", where: { code: 29, ok: true } }).params.code, 29);
+});

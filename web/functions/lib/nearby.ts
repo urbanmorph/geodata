@@ -28,7 +28,7 @@ import { parquetQuery, parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2';
-import { QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
+import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
@@ -53,7 +53,6 @@ export interface NearbyResult {
 }
 
 const KM_PER_DEG_LAT = 111.32;
-const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
 const MAX_FULLSCAN_BYTES = 10 * 1000 * 1000;
 
 /** Why a layer without bbox columns can't be scanned for nearby, or null if it can. */
@@ -160,7 +159,7 @@ export async function nearestRows(
   // nearest `limit` (the global top K is within their union) and a count.
   const perGroup = await mapConcurrent(spans, R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
-      file, metadata, compressors, columns: BBOX_COLS, rowStart: span.start, rowEnd: span.end,
+      file, metadata, compressors, columns: [...BBOX_COLS], rowStart: span.start, rowEnd: span.end,
     }) as Array<Record<string, unknown>>;
     const inRadius: Candidate[] = [];
     rows.forEach((row, i) => {
