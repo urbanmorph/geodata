@@ -1,5 +1,6 @@
 import { notFoundForUnmatched } from '../lib/api-not-found';
 import { SECURITY_HEADERS_NON_HTML } from '../lib/security-headers';
+import { serverError } from '../lib/http';
 
 // CORS preflight + shared environment shape.
 // Pages Functions read this from each /api/* handler via the `data` arg.
@@ -43,7 +44,14 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       status: 403, headers: { 'content-type': 'application/json', ...SECURITY_HEADERS_NON_HTML },
     });
   }
-  const resp = notFoundForUnmatched(await ctx.next(), new URL(ctx.request.url).pathname);
+  // A handler that throws would otherwise reach the caller as Cloudflare's HTML
+  // error page (1101): every /api answer is JSON {error, status}.
+  let resp: Response;
+  try {
+    resp = notFoundForUnmatched(await ctx.next(), new URL(ctx.request.url).pathname);
+  } catch (e) {
+    resp = serverError('Request', e);
+  }
   // CORS for reads, plus the shared security headers (nosniff, HSTS, ...)
   // where the handler didn't set its own.
   const headers = new Headers(resp.headers);

@@ -11,7 +11,7 @@ import type { Env } from '../api/_middleware';
 import {
   INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams,
 } from '../../../mcp/read-tools.js';
-import { apiLimit, apiRateKey } from './api-ratelimit';
+import { apiLimitFor } from './api-ratelimit';
 import { safeStringify } from './http';
 import { onRequestGet as layersIndex } from '../api/v1/layers/index';
 import { onRequestGet as layerDetail } from '../api/v1/layers/[id]';
@@ -68,11 +68,10 @@ export const API_ROUTES: ApiRoute[] = [
   [/^\/submissions$/, asHandler(submissions)],
 ];
 
-/** The API's own per-IP limit, shared with /api/v1 (same key, same D1 row, and
- *  the same non-blocking check): 120 calls a minute, locate 60. */
+/** The API's own per-IP limit, shared with /api/v1 (same keys, same D1 rows, and
+ *  the same non-blocking check): 120 calls a minute, locate 60 on its own key. */
 export function apiRateLimit(env: Env, waitUntil: WaitUntil): RateLimit {
-  return async (req, tool) =>
-    apiLimit({ db: env.DB, key: await apiRateKey(req, env.IP_SALT), limit: tool === 'locate' ? 60 : 120, waitUntil });
+  return (req, tool) => apiLimitFor(req, env, tool === 'locate', waitUntil);
 }
 
 const ok = (id: Id, result: unknown) => rpc({ jsonrpc: '2.0', id, result });
@@ -97,10 +96,12 @@ export async function handleMcp(req: Request, env: Env, deps: McpDeps): Promise<
   if (Number(req.headers.get('content-length') || 0) > MAX_BODY) {
     return new Response('Payload Too Large', { status: 413, headers: CORS });
   }
-  const raw = await req.text();
-  if (raw.length > MAX_BODY) return new Response('Payload Too Large', { status: 413, headers: CORS });
+  // Bytes, not string length: a 64 KiB string of Devanagari is ~190 KiB.
+  const bytes = await req.arrayBuffer();
+  if (bytes.byteLength > MAX_BODY) return new Response('Payload Too Large', { status: 413, headers: CORS });
+  const raw = new TextDecoder().decode(bytes);
 
-  let msg: { jsonrpc?: string; id?: Id; method?: string; params?: Record<string, unknown> };
+  let msg: { jsonrpc?: string; id?: Id; method?: string; params?: unknown };
   try {
     msg = JSON.parse(raw);
   } catch {
@@ -111,8 +112,11 @@ export async function handleMcp(req: Request, env: Env, deps: McpDeps): Promise<
     return err(msg?.id ?? null, INVALID_REQUEST, 'Invalid Request');
   }
 
-  const { id, method, params = {} } = msg;
+  const { id, method } = msg;
   if (id === undefined) return new Response(null, { status: 202, headers: CORS }); // notification
+  // params may be absent or null; anything else must be an object (by name).
+  const params = (msg.params ?? {}) as Record<string, unknown>;
+  if (typeof params !== 'object' || Array.isArray(params)) return err(id, INVALID_PARAMS, 'params must be an object');
 
   try {
     switch (method) {
@@ -131,8 +135,9 @@ export async function handleMcp(req: Request, env: Env, deps: McpDeps): Promise<
         return ok(id, { tools: READ_TOOLS });
       case 'tools/call': {
         const name = typeof params.name === 'string' ? params.name : '';
-        const args = (params.arguments as Record<string, unknown>) ?? {};
+        const args = (params.arguments ?? {}) as Record<string, unknown>;
         if (!READ_TOOLS.some((t) => t.name === name)) return err(id, INVALID_PARAMS, `Unknown tool: ${name}`);
+        if (typeof args !== 'object' || Array.isArray(args)) return err(id, INVALID_PARAMS, 'arguments must be an object');
         return ok(id, await callTool(req, env, deps, name, args));
       }
       default:

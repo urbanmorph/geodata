@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { checkApiRateLimit, apiRateKey, rateKeySource, apiLimit, __resetApiLimiterForTest } from '../functions/lib/api-ratelimit';
+import { checkApiRateLimit, apiRateKey, rateKeySource, apiLimit, apiLimitFor, __resetApiLimiterForTest } from '../functions/lib/api-ratelimit';
 import { onRequest as apiMiddleware } from '../functions/api/v1/_middleware';
 import { migratedDb, asD1 } from './helpers/sqlite-d1';
 
@@ -59,13 +59,20 @@ describe('apiLimit: the isolate answers, D1 follows in waitUntil', () => {
     expect(results.filter(Boolean)).toHaveLength(5);
   });
 
-  it('the locate limit (60) and the general one (120) are kept apart, as in D1', async () => {
+  it('locate (60) and the rest (120) are counted on separate keys, in D1 too', async () => {
+    const keys: string[] = [];
+    const db = { prepare: () => ({ bind: (k: string) => { keys.push(k); return { first: async () => ({ hour_window_start: new Date().toISOString(), hour_count: 90 }) }; } }) };
+    const req = new Request('https://bharatlas.com/api/v1/locate', { headers: { 'cf-connecting-ip': '198.51.100.4' } });
     const waited: Promise<unknown>[] = [];
-    const db = { prepare: () => ({ bind: () => ({ first: async () => ({ hour_window_start: new Date().toISOString(), hour_count: 90 }) }) }) };
-    apiLimit({ db: db as never, key: 'k4', limit: 60, waitUntil: (p) => { waited.push(p); } });
+    await apiLimitFor(req, { DB: db as never }, true, (p) => { waited.push(p); });
+    await apiLimitFor(req, { DB: db as never }, false, (p) => { waited.push(p); });
     await Promise.all(waited);
-    expect(apiLimit({ db: db as never, key: 'k4', limit: 60, waitUntil: () => {} }).ok).toBe(false);
-    expect(apiLimit({ db: db as never, key: 'k4', limit: 120, waitUntil: () => {} }).ok).toBe(true);
+    expect(keys).toHaveLength(2);
+    expect(keys[0]).toMatch(/^api:locate:/);
+    expect(keys[1]).not.toMatch(/locate/);
+    // 90 calls this minute: over locate's 60, under the general 120.
+    expect((await apiLimitFor(req, { DB: db as never }, true, () => {})).ok).toBe(false);
+    expect((await apiLimitFor(req, { DB: db as never }, false, () => {})).ok).toBe(true);
   });
 
   it('a D1 failure blocks nothing', async () => {
