@@ -58,12 +58,13 @@ from pipeline import (  # noqa: E402,F401
     row_group_size_for,
     slug,
     write_split_shapefiles,
+    work_dir,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-# Downloads and bakes are cached here (set RAMSERAPH_WORK for a durable disk);
-# created by ingest(), not at import.
-WORK = Path(os.environ.get('RAMSERAPH_WORK', '/tmp/ramseraph'))
+# Downloads and bakes are cached here (RAMSERAPH_WORK overrides); created by
+# ingest(), not at import.
+WORK = work_dir('ramseraph', 'RAMSERAPH_WORK', legacy='/tmp/ramseraph')
 
 
 @dataclass
@@ -785,11 +786,11 @@ def patch_catalog(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, fea
 
 
 def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, features: int,
-                    pmtiles_file: str | None = None) -> None:
+                    pmtiles_file: str | None = None, parquet_file: str | None = None) -> None:
     """Append (or replace) an entry in scripts/external-ingested.json so
     future build_catalog.py runs pick it up without manual editing.
-    `pmtiles_file`: the tiles' R2 name when it is not the upstream one
-    (a versioned key)."""
+    `pmtiles_file` / `parquet_file`: the R2 name when it is not the upstream
+    one (a versioned key)."""
     f = ROOT / 'scripts' / 'external-ingested.json'
     items = pipeline.upsert_by_id(json.loads(f.read_text()), {
         'id': d.id,
@@ -802,7 +803,7 @@ def append_manifest(d: Dataset, parquet_bytes: int, pmtiles_bytes: int | None, f
         'features': features,
         'license': d.license,
         'r2_prefix': d.r2_prefix,
-        'parquet_file': Path(d.parquet_url).name,
+        'parquet_file': parquet_file or Path(d.parquet_url).name,
         'parquet_bytes': parquet_bytes,
         'pmtiles_file': pmtiles_file or (Path(d.pmtiles_url).name if d.pmtiles_url else None),
         'pmtiles_bytes': pmtiles_bytes,

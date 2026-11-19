@@ -110,6 +110,7 @@ from pipeline import (  # noqa: E402
     write_json,
 )
 from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
+from pipeline import work_dir  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 COMMUNITY_PREFIX = 'community'
@@ -371,7 +372,7 @@ def main(argv: list[str]) -> int:
         return 2
 
     s3 = r2_client()
-    work = Path('/tmp/bake_community')
+    work = work_dir('bake_community', 'COMMUNITY_WORK')
     targets = [s['id'] for s in fetch_accepted_submissions(scope)] if do_all else ids
     if not targets:
         print('no submissions to bake')

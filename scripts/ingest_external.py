@@ -48,7 +48,7 @@ from pipeline import (  # noqa: E402
     run,
     write_json,
 )
-from rebake_locate_tiles import tippecanoe_cmd  # noqa: E402
+from bake_formats import pmtiles_args  # noqa: E402
 
 HOME = Path.home()
 ROOT = HERE.parent
@@ -752,8 +752,9 @@ def outputs(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
 
 
 def tippecanoe_args(gj: Path, out: Path, layer_name: str) -> list[str]:
-    """z0-z12 like every locate-able layer (rebake_locate_tiles), tileset named after the layer."""
-    return tippecanoe_cmd(gj, out, layer_name)  # tippecanoe_cmd already names the tileset (-n)
+    """z0-z12 like every locate-able layer (locate tests points at the max
+    zoom), every feature kept, tileset named after the layer (-n)."""
+    return pmtiles_args(gj, out, layer_name, (), max_zoom=12)
 
 
 def to_geojson(src: Path, out: Path) -> None:

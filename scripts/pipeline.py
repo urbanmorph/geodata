@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from collections.abc import Callable, Iterable, Iterator
 from datetime import datetime, timezone
@@ -34,6 +35,8 @@ CONTENT_TYPES = {
     '.kmz':     'application/vnd.google-earth.kmz',
     '.json':    'application/json',
     '.zip':     'application/zip',  # for *.shp.zip
+    '.csv':     'text/csv; charset=utf-8',
+    '.md':      'text/markdown; charset=utf-8',
 }
 
 # Whole-layer geojson/kml/shapefile bakes only run when the source parquet is
@@ -346,20 +349,38 @@ def r2_client(**config):
     )
 
 
-def _remote_has(s3, key: str, md5: str) -> bool:
-    """Skip only when the remote holds the same bytes. Sizes can't tell (a
-    lat,lon swap keeps the byte count) and a multipart ETag isn't an MD5,
-    so each upload stores its MD5 in metadata and that is compared."""
+class KeyTaken(RuntimeError):
+    """A new_only upload found other bytes already under its key."""
+
+
+def _remote_md5(s3, key: str) -> str | None:
+    """The remote object's md5 (None when there is no object). Sizes can't
+    tell (a lat,lon swap keeps the byte count) and a multipart ETag isn't an
+    MD5, so each upload stores its MD5 in metadata. Objects put by older
+    uploaders carry none; a single-part ETag is the body's MD5 (a multipart
+    one has a "-N" suffix, never matches, and so never counts as the same)."""
     try:
         head = s3.head_object(Bucket=BUCKET, Key=key)
     except s3.exceptions.ClientError:
-        return False
-    # Objects put by older uploaders carry no md5 metadata; a single-part
-    # ETag is the body's MD5 (a multipart one has a "-N" suffix and isn't).
-    remote = head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"')
+        return None
+    return _head_md5(head)
+
+
+def _head_md5(head: dict) -> str | None:
+    return head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"') or None
+
+
+def _remote_has(s3, key: str, md5: str, new_only: bool = False) -> bool:
+    """True (skip the upload) when the remote holds the same bytes. With
+    `new_only`, raise KeyTaken when it holds other bytes: the key is published
+    and served immutable, so it must never be overwritten."""
+    remote = _remote_md5(s3, key)
     if remote == md5:
         log(f'  R2 skip (md5 match): s3://{BUCKET}/{key}')
         return True
+    if new_only and remote is not None:
+        raise KeyTaken(f's3://{BUCKET}/{key} already holds other bytes (remote {remote}, local {md5}); '
+                       'refusing to overwrite a published key: publish under a new key')
     return False
 
 
@@ -375,27 +396,49 @@ def _put_args(local: Path, md5: str) -> dict:
     }
 
 
-def r2_upload(s3, local: Path, key: str) -> None:
+def r2_verify(s3, local: Path, key: str) -> None:
+    """Raise RuntimeError unless R2 holds `local`'s bytes at `key`: same size and md5."""
+    try:
+        head = s3.head_object(Bucket=BUCKET, Key=key)
+    except s3.exceptions.ClientError:
+        head = {}
+    size, remote, md5 = head.get('ContentLength'), _head_md5(head), file_md5(local)
+    if size != local.stat().st_size or remote != md5:
+        raise RuntimeError(f's3://{BUCKET}/{key} does not hold {local.name}: size {size} vs {local.stat().st_size}, '
+                           f'md5 {remote} vs {md5}')
+
+
+def r2_upload(s3, local: Path, key: str, new_only: bool = False) -> None:
+    """Upload `local` to `key` unless R2 holds the same bytes (md5), under the
+    host-wide upload lock. `new_only`: raise KeyTaken rather than overwrite
+    other bytes (for keys that are not content-versioned)."""
     from boto3.s3.transfer import TransferConfig
     md5 = file_md5(local)
-    if _remote_has(s3, key, md5):
+    if _remote_has(s3, key, md5, new_only):
         return
     transfer = TransferConfig(multipart_threshold=64 * 1024 * 1024, multipart_chunksize=64 * 1024 * 1024)
-    log(f'  uploading → s3://{BUCKET}/{key}  ({local.stat().st_size:,} bytes)')
-    s3.upload_file(str(local), BUCKET, key, ExtraArgs=_put_args(local, md5), Config=transfer)
+    with upload_lock(owner=key):
+        log(f'  uploading → s3://{BUCKET}/{key}  ({local.stat().st_size:,} bytes)')
+        s3.upload_file(str(local), BUCKET, key, ExtraArgs=_put_args(local, md5), Config=transfer)
 
 
 def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: int = 64 * 1024 * 1024,
-                        tries: int = 8, wait: Callable[[int], None] | None = None) -> None:
+                        tries: int = 8, wait: Callable[[int], None] | None = None, new_only: bool = False) -> None:
     """r2_upload for multi-GB files on a flaky link. The multipart upload id is
     saved in state_dir, so a dropped or killed run resumes from the parts R2
     already holds (list_parts) instead of starting over; each part retries with
-    backoff. Same md5 skip and object headers as r2_upload."""
-    from botocore.exceptions import BotoCoreError
-    wait = wait or (lambda n: time.sleep(min(10 * n, 120)))
+    backoff. Same md5 skip, `new_only`, lock and object headers as r2_upload."""
     md5 = file_md5(local)
-    if _remote_has(s3, key, md5):
+    if _remote_has(s3, key, md5, new_only):
         return
+    with upload_lock(owner=key):
+        _multipart_upload(s3, local, key, md5, state_dir, part_size, tries,
+                          wait or (lambda n: time.sleep(min(10 * n, 120))))
+
+
+def _multipart_upload(s3, local: Path, key: str, md5: str, state_dir: Path, part_size: int,
+                      tries: int, wait: Callable[[int], None]) -> None:
+    from botocore.exceptions import BotoCoreError
     size = local.stat().st_size
     n_parts = max(1, -(-size // part_size))
     assert n_parts <= 1000, 'list_parts reads one page of 1,000 parts'
@@ -443,6 +486,26 @@ def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: i
 
 UPLOAD_STATE = ROOT / 'data' / 'r2-uploads'  # multipart upload ids, so a killed upload resumes
 
+# Work folders (downloads, bakes, caches) live under data/work/ (gitignored),
+# not /tmp: macOS clears /tmp on reboot, and a resumable run lost its cache.
+WORK_ROOT = ROOT / 'data' / 'work'
+
+
+def work_dir(name: str, env: str | None = None, legacy: str | Path | None = None) -> Path:
+    """A script's work folder: $`env` when set, else WORK_ROOT/<name>. While
+    WORK_ROOT/<name> does not exist yet, an existing `legacy` folder (the old
+    /tmp default) is used, so a run cached there resumes. Nothing is created."""
+    if env and os.environ.get(env):
+        return Path(os.environ[env])
+    new = WORK_ROOT / name
+    if legacy is not None and not new.exists() and Path(legacy).is_dir():
+        return Path(legacy)
+    return new
+
+
+# rebake_tiles, audit_tiles and tile_filter_gaps share one tiles folder.
+TILES_WORK = work_dir('tiles', 'TILES_WORK', legacy='/tmp/ramseraph/tiles')
+
 
 def patient_r2_client():
     """r2_client for long runs on a flaky link: adaptive retries, ten attempts."""
@@ -450,14 +513,16 @@ def patient_r2_client():
 
 
 def r2_upload_retrying(s3, local: Path, key: str, state_dir: Path | None = None,
-                       retries: int = 5, backoff: float = 30.0) -> None:
+                       retries: int = 5, backoff: float = 30.0, new_only: bool = False) -> None:
     """r2_upload_resumable (md5-skips unchanged files; its multipart id saved so
     a killed run resumes from the parts R2 holds; logs each part) retried with
-    backoff: a dropped TLS connection mid-multipart killed a 316 MB upload once."""
+    backoff: a dropped TLS connection mid-multipart killed a 316 MB upload once.
+    KeyTaken (new_only) is not retried."""
     from botocore.exceptions import BotoCoreError, ClientError
+    kw = {'new_only': True} if new_only else {}
     for attempt in range(retries + 1):
         try:
-            return r2_upload_resumable(s3, local, key, state_dir or UPLOAD_STATE)
+            return r2_upload_resumable(s3, local, key, state_dir or UPLOAD_STATE, **kw)
         except (BotoCoreError, ClientError, OSError) as e:
             if attempt == retries:
                 raise
@@ -467,9 +532,15 @@ def r2_upload_retrying(s3, local: Path, key: str, state_dir: Path | None = None,
 
 
 # One upload at a time across the jobs on this host (bakes, tile rebakes), so
-# none starves the link. The lock is a directory (mkdir is atomic) holding an
-# owner file "<pid> <who>"; a lock whose pid is gone (kill -9) is taken over.
+# none starves the link: r2_upload and r2_upload_resumable take it themselves.
+# The lock is a directory (mkdir is atomic) holding an owner file "<pid> <who>";
+# a lock whose pid is gone (kill -9), or that got no owner file within
+# LOCK_NO_OWNER_S, is taken over. Re-entrant within a process (a job holding it
+# calls the uploads, which take it again).
 UPLOAD_LOCK = Path('/tmp/bharatlas-upload.lock')
+LOCK_NO_OWNER_S = 60
+_held_locks: dict[Path, int] = {}  # lock -> how many blocks in this process hold it
+_held_guard = threading.Lock()
 
 
 def _pid_alive(pid: int) -> bool:
@@ -496,34 +567,58 @@ def upload_lock(lock: Path | None = None, owner: str = '', wait_s: float = 30,
                 on_wait: Callable[[str], None] | None = None) -> Iterator[Path]:
     """Hold the host-wide upload lock (UPLOAD_LOCK); wait `wait_s` between tries
     while a live job holds it. Released on exit, an exception, or SIGTERM/SIGHUP
-    (turned into SystemExit so the `finally` runs)."""
+    (turned into SystemExit so the `finally` runs). Re-entrant: a block inside
+    another one in this process (any thread) joins it."""
     import shutil
     import signal
-    import threading
     lock = lock or UPLOAD_LOCK
     while True:
-        try:
-            lock.mkdir()
-            break
-        except FileExistsError:
-            pid, who = _lock_owner(lock)
-            if pid is not None and pid != os.getpid() and not _pid_alive(pid):
+        with _held_guard:
+            if _held_locks.get(lock):
+                _held_locks[lock] += 1
+                outer = False
+                break
+            try:
+                lock.mkdir()
+                (lock / 'owner').write_text(f'{os.getpid()} {owner}\n')
+                _held_locks[lock] = 1
+                outer = True
+                break
+            except FileExistsError:
+                pass
+        pid, who = _lock_owner(lock)
+        with _held_guard:  # no thread of this process takes the lock between the check and the removal
+            if _lock_is_stale(lock, pid):
                 log(f'  upload lock {lock}: its owner ({who}) is gone; taking it over')
                 shutil.rmtree(lock, ignore_errors=True)
                 continue
-            (on_wait or (lambda w: log(f'  upload lock held by {w}; retry in {wait_s:.0f} s')))(who)
-            time.sleep(wait_s)
-    (lock / 'owner').write_text(f'{os.getpid()} {owner}\n')
-    main = threading.current_thread() is threading.main_thread()
+        (on_wait or (lambda w: log(f'  upload lock held by {w}; retry in {wait_s:.0f} s')))(who)
+        time.sleep(wait_s)
+    main = outer and threading.current_thread() is threading.main_thread()
     old = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGHUP)} if main else {}
     for sig in old:
         signal.signal(sig, lambda n, _f: sys.exit(128 + n))
     try:
         yield lock
     finally:
-        shutil.rmtree(lock, ignore_errors=True)
+        with _held_guard:
+            _held_locks[lock] -= 1
+            if not _held_locks[lock]:
+                del _held_locks[lock]
+                shutil.rmtree(lock, ignore_errors=True)
         for sig, handler in old.items():
             signal.signal(sig, handler)
+
+
+def _lock_is_stale(lock: Path, pid: int | None) -> bool:
+    """Its owner is dead, is this process (which does not hold it: leaked), or
+    never wrote an owner file within LOCK_NO_OWNER_S."""
+    if pid is None:
+        try:
+            return time.time() - lock.stat().st_mtime > LOCK_NO_OWNER_S
+        except OSError:
+            return False  # released meanwhile: the next mkdir takes it
+    return (pid == os.getpid() and not _held_locks.get(lock)) or not _pid_alive(pid)
 
 
 # ── cached steps + time limit ────────────────────────────────────────────────
@@ -882,6 +977,14 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None, keep_struct: bool = Fals
     return n, non_geom
 
 
+def _is_row_number(con, relation: str, column: str) -> bool:
+    """True when `column` holds 0..n-1 or 1..n, one value per row: a reader's
+    feature number, not ids the source carried."""
+    n, lo, hi, distinct = con.execute(
+        f'SELECT count(*), min("{column}"), max("{column}"), count(DISTINCT "{column}") FROM {relation}').fetchone()
+    return n == 0 or (lo in (0, 1) and hi - lo == n - 1 and distinct == n)
+
+
 def geojson_to_parquet(gj: Path, out: Path, geometry_name: str | None = None, con=None) -> int:
     """GeoJSON -> parquet with flat bbox columns in Hilbert order (what
     /api/v1/nearby needs). ST_Read names the geometry `geom`; pass
@@ -890,11 +993,20 @@ def geojson_to_parquet(gj: Path, out: Path, geometry_name: str | None = None, co
         import duckdb
         con = duckdb.connect()
         con.execute('INSTALL spatial; LOAD spatial;')
-    # ST_Read (DuckDB 1.5) adds OGC_FID, a feature number that is not the source's data.
     read = f"ST_Read('{gj}')"
     cols = {r[0] for r in con.execute(f'DESCRIBE SELECT * FROM {read}').fetchall()}
     drop = [c for c in ('OGC_FID', 'geom' if geometry_name else None) if c in cols]
-    select = (f'* EXCLUDE ({", ".join(drop)})' if drop else '*') + (f', geom AS "{geometry_name}"' if geometry_name else '')
+    rename = ''
+    # ST_Read (DuckDB 1.5) adds OGC_FID: the row number, unless the Features
+    # carry integer "id"s, which it puts there. Those are source data: keep them
+    # (as `id` when no property is called that).
+    if 'OGC_FID' in cols and not _is_row_number(con, read, 'OGC_FID'):
+        drop.remove('OGC_FID')
+        if 'id' not in cols:
+            drop.append('OGC_FID')
+            rename = ', OGC_FID AS id'
+    select = (f'* EXCLUDE ({", ".join(drop)})' if drop else '*') + rename + \
+        (f', geom AS "{geometry_name}"' if geometry_name else '')
     raw = out.with_name(f'{out.stem}.raw.parquet')
     try:
         con.execute(f"COPY (SELECT {select} FROM {read}) TO '{raw}' (FORMAT PARQUET, COMPRESSION ZSTD)")

@@ -10,12 +10,15 @@ joinable on names, not just IDs. Rewrites PMGSY_Blocks.parquet in place.
 Idempotent — re-running just re-joins (same BLOCK_NAME column overwritten).
 
 Run after scripts/fetch.sh (which now also pulls PMGSY_Masterdata.csv).
+
+One-off (moved to scripts/oneoff/, Nov 2026): it rewrites a local source file
+once and is not part of any pipeline run.
 """
 from pathlib import Path
 import sys
 import duckdb
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parents[2]
 SRC = ROOT / 'sources' / 'india-geodata'
 PARQUET = SRC / 'PMGSY_Blocks.parquet'
 CSV = SRC / 'PMGSY_Masterdata.csv'

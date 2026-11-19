@@ -76,7 +76,8 @@ PERSONAL_COLUMNS = ('emails', 'phones', 'socials')
 LICENCE = 'CDLA-Permissive-2.0 / Apache-2.0'
 
 # Bump when re-baking a release that was already uploaded: R2 keys are
-# immutable-cached, so a new bake of the same release gets new keys.
+# immutable-cached, so a new bake of the same release gets new keys (an upload
+# that would put other bytes under an existing key raises pipeline.KeyTaken).
 BAKE_REVISION = 3
 
 FORMATS = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'shapefile': 'shp.zip'}
@@ -436,7 +437,7 @@ def upload(release: str, out: Path) -> None:
     summary = json.loads((out / 'summary.json').read_text())
     s3 = r2_client()
     for fmt, key in r2_keys(release).items():
-        r2_upload(s3, out / f'{LAYER_ID}.{FORMATS[fmt]}', key)
+        r2_upload(s3, out / f'{LAYER_ID}.{FORMATS[fmt]}', key, new_only=True)  # never overwrite a live key
 
     now = datetime.now(timezone.utc).isoformat()
     catalog = json.loads(CATALOG.read_text())

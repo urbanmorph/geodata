@@ -169,6 +169,42 @@ def test_download_accepts_a_part_that_already_holds_every_byte(tmp_path, server)
     assert dest.read_bytes() == _RangeHandler.body
 
 
+# ── work folders: durable, not /tmp ──────────────────────────────────────────
+
+def test_work_dirs_live_under_data_work_not_tmp(tmp_path, monkeypatch):
+    # macOS clears /tmp on reboot, losing hours of cached downloads and bakes.
+    assert pipeline.WORK_ROOT == pipeline.ROOT / 'data' / 'work'  # gitignored (data/)
+    monkeypatch.setattr(pipeline, 'WORK_ROOT', tmp_path / 'work')
+    monkeypatch.delenv('X_WORK', raising=False)
+    assert pipeline.work_dir('x', 'X_WORK') == tmp_path / 'work' / 'x'
+    assert not (tmp_path / 'work').exists()  # nothing made until a run writes there
+
+
+def test_a_work_dir_env_override_wins(tmp_path, monkeypatch):
+    monkeypatch.setenv('X_WORK', str(tmp_path / 'disk'))
+    assert pipeline.work_dir('x', 'X_WORK') == tmp_path / 'disk'
+
+
+def test_a_run_cached_in_the_old_tmp_folder_resumes_there(tmp_path, monkeypatch):
+    # A run in progress keeps its cache: the old /tmp folder is used until the new one exists.
+    monkeypatch.setattr(pipeline, 'WORK_ROOT', tmp_path / 'work')
+    old = tmp_path / 'tmp-x'
+    assert pipeline.work_dir('x', legacy=old) == tmp_path / 'work' / 'x'
+    old.mkdir()
+    assert pipeline.work_dir('x', legacy=old) == old
+    (tmp_path / 'work' / 'x').mkdir(parents=True)
+    assert pipeline.work_dir('x', legacy=old) == tmp_path / 'work' / 'x'
+
+
+def test_the_tile_scripts_share_one_tiles_work_folder():
+    import audit_tiles
+    import rebake_tiles
+    import tile_filter_gaps
+    assert rebake_tiles.WORK == pipeline.TILES_WORK
+    assert audit_tiles.CACHE == pipeline.TILES_WORK / 'audit'
+    assert tile_filter_gaps.WORK == pipeline.TILES_WORK / 'filter-gaps'
+
+
 # ── cached steps + time limit ────────────────────────────────────────────────
 
 def test_cached_step_runs_once_and_writes_atomically(tmp_path):
@@ -260,6 +296,37 @@ def test_a_lock_held_by_a_live_job_is_respected(tmp_path):
     with pipeline.upload_lock(lock, 'me', wait_s=0.05, on_wait=waited.append):
         pass
     assert waited and 'other' in waited[0]
+
+
+def test_a_lock_with_no_owner_for_a_minute_is_taken_over(tmp_path):
+    # A job killed between mkdir and writing its owner file left an empty lock
+    # that every later job waited on forever.
+    lock = tmp_path / 'upload.lock'
+    lock.mkdir()
+    old = lock.stat().st_mtime - 120
+    os.utime(lock, (old, old))
+    with pipeline.upload_lock(lock, 'me', wait_s=60):  # would hang if it waited
+        assert (lock / 'owner').read_text().startswith(f'{os.getpid()} ')
+    assert not lock.exists()
+
+
+def test_the_upload_lock_is_reentrant_within_a_process(tmp_path):
+    # Uploads take the lock themselves; a caller already holding it must not deadlock.
+    lock = tmp_path / 'upload.lock'
+    with pipeline.upload_lock(lock, 'outer', wait_s=60):
+        with pipeline.upload_lock(lock, 'inner', wait_s=60):
+            assert (lock / 'owner').read_text() == f'{os.getpid()} outer\n'
+        assert lock.is_dir()  # still held by the outer block
+    assert not lock.exists()
+
+
+def test_a_lock_naming_this_process_that_it_does_not_hold_is_taken_over(tmp_path):
+    lock = tmp_path / 'upload.lock'
+    lock.mkdir()
+    (lock / 'owner').write_text(f'{os.getpid()} leaked\n')
+    with pipeline.upload_lock(lock, 'me', wait_s=60):
+        assert (lock / 'owner').read_text() == f'{os.getpid()} me\n'
+    assert not lock.exists()
 
 
 # ── external tools: always a timeout, stderr in the error ────────────────────

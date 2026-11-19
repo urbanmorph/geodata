@@ -3,7 +3,8 @@
 Every published file goes to <stem>.<md5[:8]>.<ext> (versioned_key): R2 objects
 are served immutable, so a key never gets new bytes; the same content keeps its
 key, so a re-run uploads nothing. rebake_tiles.py publishes <stem>.<md5[:8]>.pmtiles,
-rebake_locate_tiles.py <stem>.z<N>.pmtiles and rebake_layer.py <stem>.<md5[:8]>.parquet.
+oneoff/rebake_locate_tiles.py published <stem>.z12.pmtiles (still recognised)
+and rebake_layer.py <stem>.<md5[:8]>.parquet.
 Old keys stay on R2: a published URL never breaks, and only r2_prune.py prunes
 (old tiles only). build_catalog.py, ingest_ramseraph.py and the bakes'
 register steps keep a rebaked block while the data under it is unchanged

@@ -64,14 +64,14 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import pipeline  # noqa: E402
-from pipeline import OutOfTime, cached, upload_lock  # noqa: E402
+from pipeline import OutOfTime, cached, upload_lock, work_dir  # noqa: E402
 from pipeline import atomic_output, log  # noqa: E402
 from tile_keys import versioned_key  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = HERE / 'external-ingested.json'
-WORK = Path(os.environ.get('TRANSIT_WORK', '/tmp/bharatlas-transit'))
+WORK = work_dir('transit', 'TRANSIT_WORK', legacy='/tmp/bharatlas-transit')
 CACHE_PREFIX = 'bake_transit'      # R2 cache/bake_transit/: the feeds and the OSM extracts
 R2_PREFIX = 'transport/transit'
 LOCK_OWNER = 'bake_transit (feat/transit-layers)'

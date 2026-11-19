@@ -20,7 +20,14 @@ with the code as the pin, `<code>+sha256:<hex>`.
 Idempotent: the same files under an existing code change nothing (a lost staged copy is restored). Different
 files under an existing code are refused (exit 1). No Zenodo and no DOI (deferred): the code, the checksum and
 bharatlas.com are the citation; the manifest names the w3id.org address the code will resolve through once it is
-registered. Nothing is uploaded: the R2 commands are printed for the owner.
+registered.
+
+Upload (--upload, R2 creds in the env: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY): each
+cut release's files go to R2 at releases/<code>/<file> by pipeline.r2_upload_retrying (resumable multipart, so a
+multi-GB file survives a dropped link or a kill; md5 in metadata, attachment Content-Disposition, immutable
+Cache-Control; under the host-wide upload lock), new_only: a key that already holds other bytes is refused, never
+overwritten. Each file is then checked on R2 (size and md5). Without --upload nothing is uploaded and the keys are
+printed: re-run the same command with --upload (the cut itself is idempotent; files already on R2 are skipped).
 
 A layer's release (--layer <id>): the dataset code is the layer id, and the files are the layer's parquet and its
 downloads (GeoJSON, KML, Shapefile; never its map tiles), fetched from the URLs catalog.json names, renamed
@@ -33,6 +40,7 @@ CHANGES.md and the R2 commands, writing nothing under web/public/releases/.
 Usage:
     python3 scripts/release.py data/release-staging/cw [--date 2026-11-15]
     python3 scripts/release.py --layer lgd_states [--dry-run] [--date 2026-12-01]
+    python3 -u scripts/release.py --layer lgd_states --upload            # cut (or keep) and upload to R2
     python3 scripts/release.py --index-only
 """
 from __future__ import annotations
@@ -57,8 +65,6 @@ W3ID = 'https://w3id.org/bharatlas/'           # proposed; not registered yet
 APP = 'bharatlas'
 BUCKET = 'geodata-data'
 META_FILE = 'release-meta.json'
-CONTENT_TYPES = {'.csv': 'text/csv; charset=utf-8', '.json': 'application/json',
-                 '.parquet': 'application/vnd.apache.parquet', '.md': 'text/markdown; charset=utf-8'}
 _CODE = re.compile(r'^bharatlas-([a-z0-9_]+)-(\d{4})\.(\d{2})$')
 # a layer's release files: catalog format -> file extension (map tiles are rebuilt from the parquet, never released)
 LAYER_FORMATS = {'parquet': 'parquet', 'geojson': 'geojson', 'kml': 'kml', 'shapefile': 'shp.zip'}
@@ -403,17 +409,28 @@ def write_index(meta_root: Path = META_ROOT) -> bool:
     return _write_if_changed(meta_root / 'index.json', json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
 
 
-def upload_commands(code: str, files_root: Path = FILES_ROOT) -> list[str]:
-    out = []
-    for p in sorted((files_root / code).iterdir()):
-        ct = CONTENT_TYPES.get(p.suffix, 'application/octet-stream')
-        out.append(f'npx wrangler r2 object put {BUCKET}/releases/{code}/{p.name} '
-                   f'--file data/baked/releases/{code}/{p.name} --content-type "{ct}" --remote')
-    return out
+def upload_keys(code: str, files_root: Path = FILES_ROOT) -> list[tuple[Path, str]]:
+    """(staged file, R2 key) for each of a release's files."""
+    return [(p, f'releases/{code}/{p.name}') for p in sorted((files_root / code).iterdir())]
 
 
-def _cut(src: Path, day: str, meta_root: Path = META_ROOT, files_root: Path = FILES_ROOT) -> str | None:
-    """Cut one staging folder and print what happened; the code, or None when the release is refused."""
+def upload_release(code: str, files_root: Path = FILES_ROOT, s3=None) -> int:
+    """Upload a release's files (new_only: a release key never gets other bytes), then check each on R2
+    by size and md5. Returns how many files were checked."""
+    import pipeline
+    s3 = s3 or pipeline.patient_r2_client()
+    keys = upload_keys(code, files_root)
+    for local, key in keys:
+        pipeline.r2_upload_retrying(s3, local, key, new_only=True)
+        pipeline.r2_verify(s3, local, key)
+        print(f'  on R2, verified: {key}', flush=True)
+    return len(keys)
+
+
+def _cut(src: Path, day: str, meta_root: Path = META_ROOT, files_root: Path = FILES_ROOT,
+         upload: bool = False) -> str | None:
+    """Cut one staging folder and print what happened (and upload it with `upload`); the code, or None
+    when the release is refused."""
     try:
         code, made = make_release(src, day, meta_root, files_root)
     except ReleaseChanged as e:
@@ -421,10 +438,12 @@ def _cut(src: Path, day: str, meta_root: Path = META_ROOT, files_root: Path = FI
         return None
     print(f'{code}: {"released" if made else "already released, unchanged"}  {_manifest(meta_root, code)["pin"]}',
           flush=True)
-    if made:
-        print('  upload to R2 (owner):', flush=True)
-        for c in upload_commands(code, files_root):
-            print(f'    {c}', flush=True)
+    if upload:
+        upload_release(code, files_root)
+    elif made:
+        print(f'  to upload, re-run with --upload (R2 creds in the env); keys in s3://{BUCKET}:', flush=True)
+        for _, key in upload_keys(code, files_root):
+            print(f'    {key}', flush=True)
     return code
 
 
@@ -435,13 +454,15 @@ def _layer(catalog: dict, layer_id: str) -> dict:
     return layer
 
 
-def release_layer(layer: dict, catalog: dict, day: str, dry_run: bool = False) -> str | None:
-    """Fetch, stage and cut a layer's release. A dry run cuts it into a temporary copy of the releases."""
+def release_layer(layer: dict, catalog: dict, day: str, dry_run: bool = False, upload: bool = False) -> str | None:
+    """Fetch, stage and cut a layer's release. A dry run cuts it into a temporary copy of the releases (and
+    never uploads)."""
     from pipeline import download
     code = release_code(layer['id'], day)
     src = fetch_layer(layer, STAGING_ROOT / layer['id'] / 'src')
     if not dry_run:
-        return _cut(stage_layer(layer, catalog, src, STAGING_ROOT / layer['id'] / code, day, fetch=download), day)
+        stage = stage_layer(layer, catalog, src, STAGING_ROOT / layer['id'] / code, day, fetch=download)
+        return _cut(stage, day, upload=upload)
     with tempfile.TemporaryDirectory() as tmp:
         meta_root, files_root = Path(tmp) / 'releases', Path(tmp) / 'files'
         shutil.copytree(META_ROOT, meta_root)
@@ -466,12 +487,15 @@ def main(argv=None) -> int:
     ap.add_argument('--dry-run', action='store_true', help='with --layer: cut into a temporary copy, write nothing')
     ap.add_argument('--date', default=datetime.now(timezone.utc).date().isoformat())
     ap.add_argument('--index-only', action='store_true')
+    ap.add_argument('--upload', action='store_true', help='upload each release cut (or already cut) to R2')
     args = ap.parse_args(argv)
+    upload = args.upload and not args.dry_run
     ok = True
     if not args.index_only:
-        ok = all([_cut(Path(src), args.date) for src in args.staging])
+        ok = all([_cut(Path(src), args.date, upload=upload) for src in args.staging])
         catalog = json.loads(CATALOG.read_text()) if args.layer else {}
-        ok = all([release_layer(_layer(catalog, lid), catalog, args.date, args.dry_run) for lid in args.layer]) and ok
+        ok = all([release_layer(_layer(catalog, lid), catalog, args.date, args.dry_run, upload)
+                  for lid in args.layer]) and ok
     if args.dry_run:
         return 0 if ok else 1
     print(f'index: {"written" if write_index() else "unchanged"}', flush=True)

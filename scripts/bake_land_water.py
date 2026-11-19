@@ -27,6 +27,9 @@ Run (R2 creds in the env: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACC
     python3 -u scripts/bake_land_water.py --no-upload         # build + check locally only
     python3 -u scripts/bake_land_water.py --no-upload --register  # + manifest and root catalog entry
     python3 -u scripts/bake_land_water.py --minutes 300       # stop cleanly after 5 h
+Every file (parquet, tiles, downloads) goes to a content-versioned key,
+<stem>.<md5[:8]>.<ext>: a refresh adds keys and never overwrites a published
+URL; the manifest and catalog name those keys (older fixed keys stay on R2).
 Uploads wait for the host-wide upload lock (pipeline.upload_lock, shared with
 the other upload jobs); a lock left by a killed job (kill -9) is taken over.
 """
@@ -58,12 +61,12 @@ from pipeline import (  # noqa: E402
     OutOfTime,
     cached,
     download,
-    file_md5,
     patient_r2_client,
     r2_upload_retrying,
     rebake_flatten_bbox,
     run,
     upload_lock,
+    versioned_names,
     write_json,
 )
 from bake_formats import pmtiles_args  # noqa: E402
@@ -461,8 +464,7 @@ def make_con(work: Path) -> duckdb.DuckDBPyConnection:
 
 
 def build(d: ir.Dataset, deadline: Deadline) -> dict:
-    """Every local file for one layer, each step cached. Returns
-    {'files': {local: r2 name}, 'features': n, 'bakes': {fmt: path}}."""
+    """Every local file for one layer, each step cached. Returns built_files()."""
     work = WORK / d.id
     pq_name, pm_name = Path(d.parquet_url).name, Path(d.pmtiles_url).name
     raw_pq = WORK / 'raw' / pq_name
@@ -501,49 +503,53 @@ def build(d: ir.Dataset, deadline: Deadline) -> dict:
     if not tiles_ok(rows, OVERVIEW_MAXZOOM + 1 if overview else zmax, polygons, overview is not None):
         raise RuntimeError(f'{d.id}: tiles lose features or leave holes; see {report}')
 
-    files = {flat: pq_name, pm: tiles_name(pm), **{p: p.name for p in bakes.values()}}
-    return {'files': files, 'features': features, 'bakes': bakes}
+    return built_files({'parquet': flat, 'pmtiles': pm, **bakes}, features)
 
 
-def tiles_name(pm: Path) -> str:
-    """The tiles' R2 name, <stem>.<md5[:8]>.pmtiles: R2 objects stay immutable
-    once a catalog points at them, so a rebuilt tileset gets a new key."""
-    return f'{pm.stem}.{file_md5(pm)[:8]}.pmtiles'
+def built_files(paths: dict[str, Path], features: int) -> dict:
+    """A build: {'paths': {fmt: local}, 'names': {fmt: R2 name}, 'features': n}.
+    Every file goes to <stem>.<md5[:8]>.<ext> (pipeline.versioned_names): R2
+    objects stay immutable once a catalog points at them, so a refresh adds new
+    keys and never overwrites a published URL (the old keys stay on R2)."""
+    return {'paths': paths, 'names': versioned_names(paths), 'features': features}
 
 
 CATALOG = ir.ROOT / 'catalog.json'
+BAKE_FORMATS = ('geojson', 'kml', 'shapefile')
 
 
-def patch_root_catalog(d: ir.Dataset, pq_bytes: int, pm_bytes: int, features: int,
-                       bakes: dict[str, Path], pm_name: str, catalog: Path | None = None) -> None:
+def patch_root_catalog(d: ir.Dataset, built: dict, catalog: Path | None = None) -> None:
     """Patch the repo-root catalog.json only: web/public/catalog.json is a
     gitignored copy the prerender overwrites on every build."""
     catalog = catalog or CATALOG
+    paths, names = built['paths'], built['names']
+    size = {fmt: p.stat().st_size for fmt, p in paths.items()}
     c = json.loads(catalog.read_text())
-    info = {fmt: {'name': p.name, 'bytes': p.stat().st_size} for fmt, p in bakes.items()}
-    ir.merge_layer_into_catalog(c, d, pq_bytes, pm_bytes, features, info)
-    # The tiles are baked here (popup fields), not the compiler's file, under a versioned name.
-    next(lyr for lyr in c['layers'] if lyr['id'] == d.id)['pmtiles'] = {
-        'url': f'{R2_PUBLIC}/{d.r2_prefix}/{pm_name}', 'bytes': pm_bytes}
+    info = {fmt: {'name': names[fmt], 'bytes': size[fmt]} for fmt in BAKE_FORMATS if fmt in paths}
+    ir.merge_layer_into_catalog(c, d, size['parquet'], size['pmtiles'], built['features'], info)
+    # The parquet (flat bbox, Hilbert order) and the tiles (popup fields) are
+    # baked here, not the compiler's files, and go out under versioned names.
+    layer = next(lyr for lyr in c['layers'] if lyr['id'] == d.id)
+    layer['parquet'] = {**layer['parquet'], 'url': f"{R2_PUBLIC}/{d.r2_prefix}/{names['parquet']}",
+                        'bytes': size['parquet']}
+    layer['pmtiles'] = {'url': f"{R2_PUBLIC}/{d.r2_prefix}/{names['pmtiles']}", 'bytes': size['pmtiles']}
     write_json(catalog, c)
 
 
 def publish(d: ir.Dataset, built: dict) -> None:
     s3 = patient_r2_client()
     with upload_lock(owner='bake_land_water'):
-        for local, name in built['files'].items():
-            r2_upload_retrying(s3, local, f'{d.r2_prefix}/{name}')
+        for fmt, local in built['paths'].items():
+            r2_upload_retrying(s3, local, f"{d.r2_prefix}/{built['names'][fmt]}")
     register(d, built)
 
 
 def register(d: ir.Dataset, built: dict) -> None:
     """The manifest row and the root catalog entry (both idempotent)."""
-    files = {name: local for local, name in built['files'].items()}
-    pq_bytes = files[Path(d.parquet_url).name].stat().st_size
-    pm_name = next(name for name in files if name.endswith('.pmtiles'))
-    pm_bytes = files[pm_name].stat().st_size
-    ir.append_manifest(d, pq_bytes, pm_bytes, built['features'], pm_name)
-    patch_root_catalog(d, pq_bytes, pm_bytes, built['features'], built['bakes'], pm_name)
+    paths, names = built['paths'], built['names']
+    ir.append_manifest(d, paths['parquet'].stat().st_size, paths['pmtiles'].stat().st_size, built['features'],
+                       names['pmtiles'], parquet_file=names['parquet'])
+    patch_root_catalog(d, built)
     print(f'  {d.id}: in the manifest and the root catalog', flush=True)
 
 

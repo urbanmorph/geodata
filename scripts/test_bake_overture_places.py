@@ -281,6 +281,22 @@ def test_fetched_at_changes_with_the_release_only():
     assert b.fetched_at_for(OLD_LAYER, '2026-09-23.1', 'NOW') == 'NOW'
 
 
+def test_upload_never_overwrites_a_published_release_key(tmp_path, monkeypatch):
+    # <release>-r<N>/ keys are not content-addressed: a re-run after a code
+    # change must refuse rather than put new bytes under a live URL.
+    import pipeline
+    for fmt, ext in b.FORMATS.items():
+        (tmp_path / f'{b.LAYER_ID}.{ext}').write_bytes(fmt.encode())
+    (tmp_path / 'summary.json').write_text('{"sizes": {}, "rows": 1}')
+    calls = []
+    monkeypatch.setattr(pipeline, 'r2_client', lambda: 'S3')
+    monkeypatch.setattr(pipeline, 'r2_upload', lambda s3, local, key, **kw: calls.append((key, kw)))
+    monkeypatch.setattr(b, 'CATALOG', tmp_path / 'missing.json')
+    with pytest.raises(FileNotFoundError):  # stops at the catalog patch; the uploads are what is checked
+        b.upload('2026-11-18.0', tmp_path)
+    assert len(calls) == len(b.FORMATS) and all(kw == {'new_only': True} for _, kw in calls)
+
+
 # ── download: parallel ranges, each cached, resumable ─────────────────────
 
 class _Ranges(__import__('http.server').server.BaseHTTPRequestHandler):

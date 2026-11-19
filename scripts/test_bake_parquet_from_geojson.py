@@ -71,3 +71,20 @@ def test_build_keeps_every_feature_and_property_and_adds_bbox(gj: Path, tmp_path
 def test_build_refuses_a_row_count_that_differs_from_the_catalog(gj: Path, tmp_path: Path):
     with pytest.raises(ValueError, match='2 rows, catalog says 3'):
         b.build(gj, tmp_path / 'IND_X.parquet', expected_rows=3)
+
+
+def test_a_cached_build_does_not_read_the_geojson_again(gj: Path, tmp_path: Path):
+    # Counting features re-read the whole GeoJSON (100+ MB) on every cached run.
+    out = tmp_path / 'IND_X.parquet'
+    b.build(gj, out, expected_rows=2)
+    gj.write_text('not geojson any more')
+    assert b.build(gj, out, expected_rows=2)['rows'] == 2
+
+
+def test_a_run_stops_cleanly_at_its_time_limit(tmp_path: Path, monkeypatch, capsys):
+    cat = tmp_path / 'catalog.json'
+    cat.write_text(json.dumps({'layers': [{'id': 'gb_adm1', 'geojson': {'url': 'u'}}]}))
+    monkeypatch.setattr(b, 'CATALOG', cat)
+    monkeypatch.setattr(b, 'bake', lambda *a, **k: pytest.fail('baked past the time limit'))
+    assert b.main(['gb_adm1', '--no-upload', '--max-minutes', '0']) == 3
+    assert 'STOPPED' in capsys.readouterr().out

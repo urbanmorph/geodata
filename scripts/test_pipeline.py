@@ -102,9 +102,7 @@ def test_failed_download_leaves_no_file_that_counts_as_done(tmp_path):
 
 def test_ingest_ramseraph_downloads_through_the_shared_helper():
     import ingest_ramseraph as ir
-    import rebake_locate_tiles as rt
     assert ir.http_download is pipeline.download
-    assert rt.download is pipeline.download
 
 
 # ── byte-stable zips (review item 5) ─────────────────────────────────────────
@@ -235,6 +233,49 @@ def test_geojson_to_parquet_adds_no_reader_column(tmp_path):
     pipeline.geojson_to_parquet(_tiny_geojson(tmp_path / 'i.geojson'), out, geometry_name='geometry')
     cols = [c[0] for c in pipeline.make_con().execute(f"DESCRIBE SELECT * FROM '{out}'").fetchall()]
     assert cols == ['name', 'geometry', 'xmin', 'ymin', 'xmax', 'ymax']
+
+
+def _ids_geojson(path: Path, ids: list, props: list[dict] | None = None) -> Path:
+    feats = [{'type': 'Feature', **({} if i is None else {'id': i}), 'properties': (props or [{}] * len(ids))[n],
+              'geometry': {'type': 'Point', 'coordinates': [77 + n, 12 + n]}} for n, i in enumerate(ids)]
+    path.write_text(json.dumps({'type': 'FeatureCollection', 'features': feats}))
+    return path
+
+
+def _parquet_rows(out: Path) -> tuple[list[str], list[tuple]]:
+    con = pipeline.make_con()
+    rows = con.execute(f"SELECT * EXCLUDE (geometry, xmin, ymin, xmax, ymax) FROM '{out}' ORDER BY xmin").fetchall()
+    return [d[0] for d in con.description], rows
+
+
+@pytest.mark.parametrize('ids', [[None, None, None], [0, 1, 2], [1, 2, 3]])
+def test_geojson_to_parquet_drops_row_numbers(tmp_path, ids):
+    # No feature ids: ST_Read's OGC_FID is just the row number, not source data.
+    out = tmp_path / 'o.parquet'
+    pipeline.geojson_to_parquet(_ids_geojson(tmp_path / 'i.geojson', ids, [{'n': 'a'}, {'n': 'b'}, {'n': 'c'}]),
+                                out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['n'], [('a',), ('b',), ('c',)])
+
+
+def test_geojson_to_parquet_keeps_integer_feature_ids_as_id(tmp_path):
+    # ST_Read puts a Feature's integer "id" into OGC_FID: that is source data.
+    out = tmp_path / 'o.parquet'
+    pipeline.geojson_to_parquet(_ids_geojson(tmp_path / 'i.geojson', [17, 42]), out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['id'], [(17,), (42,)])
+
+
+def test_geojson_to_parquet_keeps_integer_ids_beside_an_id_property(tmp_path):
+    out = tmp_path / 'o.parquet'
+    gj = _ids_geojson(tmp_path / 'i.geojson', [17, 42], [{'id': 'p1'}, {'id': 'p2'}])
+    pipeline.geojson_to_parquet(gj, out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['OGC_FID', 'id'], [(17, 'p1'), (42, 'p2')])
+
+
+def test_geojson_to_parquet_keeps_string_feature_ids(tmp_path):
+    # A string "id" comes through as an `id` column; OGC_FID is then row numbers.
+    out = tmp_path / 'o.parquet'
+    pipeline.geojson_to_parquet(_ids_geojson(tmp_path / 'i.geojson', ['x1', 'x2']), out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['id'], [('x1',), ('x2',)])
 
 
 def test_judiciary_parquet_gets_bbox_columns_for_nearby(tmp_path):
@@ -381,6 +422,43 @@ def test_resumable_upload_resumes_a_run_that_dropped_before_its_first_part(tmp_p
     s3.fail_parts.clear()
     pipeline.r2_upload_resumable(s3, f, 'k/big.geojson', state, part_size=1000, wait=lambda n: None)
     assert s3.sent == [1, 2, 3] and s3.objects['k/big.geojson']['body'] == f.read_bytes()
+
+
+def test_uploads_hold_the_host_wide_lock(tmp_path, monkeypatch):
+    lock = tmp_path / 'upload.lock'
+    monkeypatch.setattr(pipeline, 'UPLOAD_LOCK', lock)
+    f = tmp_path / 'a.parquet'
+    f.write_bytes(b'x')
+    held = []
+
+    class S3(FakeS3):
+        def upload_file(self, *a, **k):
+            held.append(lock.is_dir())
+    pipeline.r2_upload(S3(), f, 'k/a.parquet')
+    s3 = FakeMultipartS3()
+    orig = s3.upload_part
+    s3.upload_part = lambda **k: held.append(lock.is_dir()) or orig(**k)
+    pipeline.r2_upload_resumable(s3, f, 'k/b.parquet', tmp_path / 'state')
+    assert held == [True, True] and not lock.exists()
+
+
+def test_a_new_only_upload_refuses_to_overwrite_other_bytes(tmp_path):
+    # Fixed keys (Overture <release>-r<N>/, releases/) must never get new bytes.
+    f = tmp_path / 'a.parquet'
+    f.write_bytes(b'new bytes')
+    taken = FakeS3({'Metadata': {'md5': 'f' * 32}})
+    with pytest.raises(pipeline.KeyTaken, match='k/a.parquet'):
+        pipeline.r2_upload(taken, f, 'k/a.parquet', new_only=True)
+    assert taken.puts == []
+    s3 = FakeMultipartS3()
+    s3.objects['k/a.parquet'] = {'Metadata': {'md5': 'f' * 32}}
+    with pytest.raises(pipeline.KeyTaken):
+        pipeline.r2_upload_retrying(s3, f, 'k/a.parquet', tmp_path / 'state', new_only=True)
+    assert s3.sent == []
+    pipeline.r2_upload(FakeS3({'Metadata': {'md5': pipeline.file_md5(f)}}), f, 'k/a.parquet', new_only=True)
+    fresh = FakeS3()
+    pipeline.r2_upload(fresh, f, 'k/a.parquet', new_only=True)  # absent: uploads
+    assert [k for k, _ in fresh.puts] == ['k/a.parquet']
 
 
 def test_r2_upload_trusts_a_single_part_etag_when_no_md5_metadata(tmp_path):
