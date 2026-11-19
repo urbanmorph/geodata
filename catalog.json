@@ -5204,7 +5204,10 @@
       "level": "country",
       "source": "LGD",
       "rows": 1,
-      "parquet": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.463f149c.parquet",
+        "bytes": 3162117
+      },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/reference/india_boundary.999f09a2.pmtiles",
         "bytes": 746332
@@ -5321,7 +5324,10 @@
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM1/geoBoundaries-IND-ADM1.geojson",
         "bytes": 46170854
       },
-      "parquet": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.3f41867b.parquet",
+        "bytes": 14553804
+      },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.466461ac.pmtiles",
         "bytes": 1899106
@@ -5365,7 +5371,10 @@
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM2/geoBoundaries-IND-ADM2.geojson",
         "bytes": 48317735
       },
-      "parquet": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.d9b7c0f8.parquet",
+        "bytes": 10763924
+      },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.87bacccd.pmtiles",
         "bytes": 4632639
@@ -5409,7 +5418,10 @@
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM3/geoBoundaries-IND-ADM3.geojson",
         "bytes": 106291594
       },
-      "parquet": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.863f2b95.parquet",
+        "bytes": 21045956
+      },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.50b78dec.pmtiles",
         "bytes": 11828870
@@ -5453,7 +5465,10 @@
         "upstream_url": "https://github.com/wmgeolab/geoBoundaries/raw/9469f09/releaseData/gbOpen/IND/ADM4/geoBoundaries-IND-ADM4.geojson",
         "bytes": 110364589
       },
-      "parquet": null,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.ab9d8eed.parquet",
+        "bytes": 21815673
+      },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.c1550f23.pmtiles",
         "bytes": 12205168

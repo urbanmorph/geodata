@@ -41,6 +41,10 @@ export const TOKENS = `
     :root .maplibregl-ctrl-group button + button { border-top-color: var(--line); }
     :root .maplibregl-ctrl-group button:not(:disabled):hover { background-color: var(--bg-card); }
     :root .maplibregl-ctrl-group .maplibregl-ctrl-icon { filter: invert(1); }
+    /* The attribution (i) control: the same dark panel, readable credits, a light icon. */
+    :root .maplibregl-ctrl.maplibregl-ctrl-attrib, :root .maplibregl-ctrl-attrib.maplibregl-compact { background-color: var(--bg-elevated); color: var(--fg); }
+    :root .maplibregl-ctrl-attrib a { color: var(--muted-strong); }
+    :root .maplibregl-ctrl-attrib-button { background-color: transparent; filter: invert(1); }
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; color: var(--fg); }
