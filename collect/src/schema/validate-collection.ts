@@ -4,6 +4,7 @@
 // isOpenLicence is web's allow-list (web/functions/lib/licenses.ts), the same one
 // community submissions use.
 
+import { readDataYear } from './data-year';
 import { isOpenLicence } from '../../../web/functions/lib/licenses';
 import { validateRecordProperties, type Field } from './validate-record';
 import { isBasemapId } from '../basemap-ids';
@@ -172,12 +173,9 @@ export function validateCollectionEdit(
     col.description = d === '' ? null : d;
   }
   if (b.data_year !== undefined) {
-    if (b.data_year === null || b.data_year === '') col.data_year = null;
-    else {
-      const y = typeof b.data_year === 'number' ? b.data_year : Number(b.data_year);
-      if (!Number.isInteger(y) || y < 1800 || y > 2100) return fail('data_year must be a year 1800-2100');
-      col.data_year = y;
-    }
+    const y = readDataYear(b.data_year);
+    if (!y.ok) return fail('data_year must be a year 1800-2100');
+    col.data_year = y.value;
   }
   if (b.license !== undefined) {
     if (!isStr(b.license) || !isOpenLicence(b.license)) return fail('license must be an accepted open licence');
@@ -223,12 +221,9 @@ export function validateNewCollection(input: unknown): Result<NewCollection> {
 
   if (!isStr(b.license) || !isOpenLicence(b.license)) return fail('license must be an accepted open licence');
 
-  let dataYear: number | null = null;
-  if (b.data_year !== undefined && b.data_year !== null && b.data_year !== '') {
-    const y = typeof b.data_year === 'number' ? b.data_year : Number(b.data_year);
-    if (!Number.isInteger(y) || y < 1800 || y > 2100) return fail('data_year must be a year 1800-2100');
-    dataYear = y;
-  }
+  const year = readDataYear(b.data_year);
+  if (!year.ok) return fail('data_year must be a year 1800-2100');
+  const dataYear = year.value;
 
   const description = isStr(b.description) && b.description.trim() !== '' ? b.description.trim() : null;
   if (description && description.length > MAX_DESCRIPTION) return fail('description is too long');

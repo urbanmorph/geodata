@@ -34,6 +34,7 @@ import { linksMailtoHref, shareTabLinks, heldToken, type MapLinks, type LinkInfo
 import { shareItemHtml, wireShareItems } from './share-ui';
 import { startAutoSync } from './syncing';
 import { modeOf, photoFields } from './schema/modes';
+import { readDataYear } from './schema/data-year';
 import { modeChoices } from './create/plan';
 import { isInIndia } from './geo/bounds';
 import { metresBetween, ringArea, lineLength, formatArea, formatLength, simplify } from './geo/measure';
@@ -1103,13 +1104,14 @@ async function editSettings(): Promise<void> {
   (document.getElementById('e-save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
     if (!(document.getElementById('editform') as HTMLFormElement).reportValidity()) return;
-    const yr = (document.getElementById('e-year') as HTMLInputElement).value.trim();
+    const year = readDataYear((document.getElementById('e-year') as HTMLInputElement).value);
+    if (!year.ok) { toast(year.error); document.getElementById('e-year')!.focus(); return; }
     const patch: Record<string, unknown> = {
       name: (document.getElementById('e-name') as HTMLInputElement).value,
       purpose: (document.getElementById('e-purpose') as HTMLTextAreaElement).value,
       description: (document.getElementById('e-desc') as HTMLInputElement).value,
       category: (document.getElementById('e-category') as HTMLSelectElement).value,
-      data_year: yr === '' ? null : Number(yr),
+      data_year: year.value,
       mode: (document.getElementById('e-mode') as HTMLSelectElement).value,
       data_saver: (document.getElementById('e-saver') as HTMLInputElement).checked,
     };
