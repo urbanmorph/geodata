@@ -587,10 +587,11 @@ def upload_lock(lock: Path | None = None, owner: str = '', wait_s: float = 30,
             except FileExistsError:
                 pass
         pid, who = _lock_owner(lock)
-        if _lock_is_stale(lock, pid):
-            log(f'  upload lock {lock}: its owner ({who}) is gone; taking it over')
-            shutil.rmtree(lock, ignore_errors=True)
-            continue
+        with _held_guard:  # no thread of this process takes the lock between the check and the removal
+            if _lock_is_stale(lock, pid):
+                log(f'  upload lock {lock}: its owner ({who}) is gone; taking it over')
+                shutil.rmtree(lock, ignore_errors=True)
+                continue
         (on_wait or (lambda w: log(f'  upload lock held by {w}; retry in {wait_s:.0f} s')))(who)
         time.sleep(wait_s)
     main = outer and threading.current_thread() is threading.main_thread()
@@ -617,7 +618,7 @@ def _lock_is_stale(lock: Path, pid: int | None) -> bool:
             return time.time() - lock.stat().st_mtime > LOCK_NO_OWNER_S
         except OSError:
             return False  # released meanwhile: the next mkdir takes it
-    return pid == os.getpid() or not _pid_alive(pid)
+    return (pid == os.getpid() and not _held_locks.get(lock)) or not _pid_alive(pid)
 
 
 # ── cached steps + time limit ────────────────────────────────────────────────
