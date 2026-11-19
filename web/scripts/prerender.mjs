@@ -33,7 +33,7 @@ const ROOT = resolve(WEB, '..');
 
 const catalogPath = resolve(ROOT, 'catalog.json');
 if (!existsSync(catalogPath)) {
-  console.error('catalog.json not found at', catalogPath, '— run scripts/build_catalog.py first');
+  console.error('catalog.json not found at', catalogPath, '(run scripts/build_catalog.py first)');
   process.exit(1);
 }
 const catalog = JSON.parse(await readFile(catalogPath, 'utf8'));
@@ -297,7 +297,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   // line up vertically across rows.
   const countDisplay = primary.rows != null
     ? `<span class="row__num">${fmtInt(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
-    : '<span class="row__num">—</span>';
+    : '<span class="row__num">n/a</span>';
   // row__actions lives OUTSIDE <summary> so the interactive <a> links inside
   // don't violate HTML semantics (interactive descendants of an interactive
   // element). row__head is the visible grid: details on the left, actions on
@@ -459,7 +459,7 @@ function fetchCommunitySubmissions() {
     if (COMMUNITY_SCOPE === 'remote' && rows.length === 0) {
       console.warn(
         '[prerender] community fetch (remote) returned 0 rows. ' +
-        'If submissions exist in D1, this is a regression — check wrangler auth or the SQL.',
+        'If submissions exist in D1, this is a regression: check wrangler auth or the SQL.',
       );
     }
     return rows;
@@ -739,8 +739,8 @@ await writeFile(
   }),
 );
 await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));
-console.log(`prerendered /layers — ${sectionCats.length} themes, ${layerIndex.length} rows in the search index`);
-console.log(`prerendered home — ${sortedCats.length} categories, ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated levels, ${community.length} community`);
+console.log(`prerendered /layers: ${sectionCats.length} themes, ${layerIndex.length} rows in the search index`);
+console.log(`prerendered home: ${sortedCats.length} categories, ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated levels, ${community.length} community`);
 
 // Helper: prerender a page that just needs an SEO head.
 async function renderPage(name, seoOpts, extra = {}, navKey = name) {

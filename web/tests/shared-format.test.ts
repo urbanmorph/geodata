@@ -1,7 +1,7 @@
 // One implementation of escaping and number/date formatting, shared by the
 // prerender, the edge functions, the web app and collect (shared/format.mjs).
 import { describe, it, expect } from 'vitest';
-import { escapeHtml, fmtBytes, fmtCount, fmtDate } from '../../shared/format.mjs';
+import { escapeHtml, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 
 describe('escapeHtml', () => {
   it('escapes the five HTML-significant characters', () => {
@@ -15,12 +15,14 @@ describe('escapeHtml', () => {
 });
 
 describe('fmtBytes', () => {
-  it('formats B, whole KB, MB and GB; a dash when unknown', () => {
+  it('formats B, whole KB, MB and GB; n/a when unknown', () => {
     expect(fmtBytes(512)).toBe('512 B');
     expect(fmtBytes(226794)).toBe('221 KB');
     expect(fmtBytes(5 * 1024 * 1024)).toBe('5.0 MB');
     expect(fmtBytes(3 * 1024 ** 3)).toBe('3.00 GB');
-    expect(fmtBytes(null)).toBe('—');
+    expect(fmtBytes(null)).toBe('n/a');
+    expect(fmtInt(null)).toBe('n/a');
+    expect(fmtInt(2940912)).toBe('29,40,912');
   });
 });
 
