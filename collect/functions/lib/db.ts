@@ -35,15 +35,15 @@ export interface NewCollectionRow {
   ip_hash: string;
 }
 
-export async function createCollection(db: DB, c: NewCollectionRow): Promise<void> {
-  await db
+/** The INSERT for a new collection, unrun (createCollection batches it with its links). */
+export function collectionInsert(db: DB, c: NewCollectionRow): D1PreparedStatement {
+  return db
     .prepare(
       `INSERT INTO collections
        (id, created_at, updated_at, status, name, description, data_year, purpose, schema_doc, license, moderation, ip_hash)
        VALUES (?, ?, ?, 'open', ?, ?, ?, ?, ?, ?, ?, ?)`,
     )
-    .bind(c.id, now(), now(), c.name, c.description, c.data_year, c.purpose, c.schema_doc, c.license, c.moderation, c.ip_hash)
-    .run();
+    .bind(c.id, now(), now(), c.name, c.description, c.data_year, c.purpose, c.schema_doc, c.license, c.moderation, c.ip_hash);
 }
 
 export async function getCollection(db: DB, id: string): Promise<CollectionRow | null> {
@@ -71,7 +71,7 @@ export async function updateCollection(db: DB, id: string, col: Record<string, u
 
 type NewToken = { collectionId: string; prefix: string; hash: string; permission: 'admin' | 'edit' | 'view'; label?: string | null };
 
-function insertToken(db: DB, t: NewToken): { id: string; stmt: D1PreparedStatement } {
+export function insertToken(db: DB, t: NewToken): { id: string; stmt: D1PreparedStatement } {
   const id = crypto.randomUUID();
   const stmt = db
     .prepare(
@@ -252,17 +252,20 @@ export interface RecordRow {
   ai: string | null;
 }
 
-/** Every record's properties (only that column, page by page): what the form-edit check needs. */
-export async function allRecordProperties(db: DB, collectionId: string): Promise<Record<string, unknown>[]> {
-  const out: Record<string, unknown>[] = [];
+/** Every record's id and answers (only those columns, page by page), optionally
+ *  of one status: what the form-edit check and approve-all need, without loading
+ *  geometry, notes and the rest into memory. */
+export async function recordAnswers(db: DB, collectionId: string, status?: string): Promise<Array<{ id: string; properties: Record<string, unknown> }>> {
+  const out: Array<{ id: string; properties: Record<string, unknown> }> = [];
   const PAGE = 2000;
-  for (let offset = 0; ; offset += PAGE) {
+  for (let after = ''; ;) {
     const { results } = await db
-      .prepare(`SELECT properties FROM records WHERE collection_id = ? ORDER BY id LIMIT ? OFFSET ?`)
-      .bind(collectionId, PAGE, offset)
-      .all<{ properties: string }>();
-    for (const r of results) out.push(JSON.parse(r.properties) as Record<string, unknown>);
+      .prepare(`SELECT id, properties FROM records WHERE collection_id = ? AND id > ?${status ? ' AND status = ?' : ''} ORDER BY id LIMIT ?`)
+      .bind(collectionId, after, ...(status ? [status] : []), PAGE)
+      .all<{ id: string; properties: string }>();
+    for (const r of results) out.push({ id: r.id, properties: JSON.parse(r.properties) as Record<string, unknown> });
     if (results.length < PAGE) return out;
+    after = results[results.length - 1].id;
   }
 }
 
@@ -271,13 +274,14 @@ export interface RecordCursor { created_at: string; id: string }
 
 /** Newest first, ties broken by id, so the order is the same on every call and
  *  pages never overlap or skip. `after` (keyset) continues past a cursor even
- *  while new points arrive; `offset` is kept for older callers. */
+ *  while new points arrive; `offset` stays part of the public API. `geometryOnly`
+ *  reads just what a map needs to draw the records. */
 export async function listRecords(
   db: DB,
   collectionId: string,
-  opts: { status?: string; limit: number; offset?: number; after?: RecordCursor },
+  opts: { status?: string; limit: number; offset?: number; after?: RecordCursor; geometryOnly?: boolean },
 ): Promise<RecordRow[]> {
-  const parts = [`SELECT * FROM records WHERE collection_id = ?`];
+  const parts = [`SELECT ${opts.geometryOnly ? 'id, created_at, geometry' : '*'} FROM records WHERE collection_id = ?`];
   const binds: unknown[] = [collectionId];
   if (opts.status) {
     parts.push(`AND status = ?`);

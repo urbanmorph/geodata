@@ -98,7 +98,7 @@ const rows = (n: number) => `${n} row${n === 1 ? '' : 's'}`;
 export function importReportHtml(r: ImportReport): string {
   const ref = r.attemptId ? ` Reference: <code>${escapeHtml(r.attemptId)}</code>.` : '';
   if (r.unconfirmed) {
-    return `<div class="notice"><div><strong>We couldn't confirm the import</strong> (${escapeHtml(r.failed ?? '')}). Open the map and check how many points it has before importing again, so nothing is added twice.</div></div>`;
+    return `<div class="notice"><div><strong>We couldn't confirm the import</strong> (${escapeHtml(r.failed ?? '')}). Importing the same file again is safe: rows already on the map are not added twice.</div></div>`;
   }
   const headline = r.added === r.total ? `All ${rows(r.total)} added to the map.` : `${r.added} of ${rows(r.total)} added to the map.`;
   if (!r.notAdded.length && !r.failed) return `<p class="ok">✓ ${headline}${ref}</p>`;

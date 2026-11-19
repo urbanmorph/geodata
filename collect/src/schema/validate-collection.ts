@@ -1,17 +1,18 @@
 // Validate a new collection's metadata + its schema document (the "meta-schema"
 // check). Licence must be in the bharatlas-acceptable open set; the schema doc's
 // "geometry" array is the single source of truth for allowed geometry types.
-// Phase 1 imports isOpenLicence straight from web (promote to shared/ at Phase 2).
+// isOpenLicence is web's allow-list (web/functions/lib/licenses.ts), the same one
+// community submissions use.
 
 import { isOpenLicence } from '../../../web/functions/lib/licenses';
 import { validateRecordProperties, type Field } from './validate-record';
+import { isBasemapId } from '../basemap-ids';
 import { COLLECT_MODES, MAX_PHOTOS, modeOf, modeProblem, type CollectMode } from './modes';
 
 export const FIELD_TYPES = [
   'text', 'paragraph', 'number', 'select', 'multiselect', 'date', 'datetime', 'url', 'photo',
 ] as const;
 export const GEOMETRY_TYPES = ['point', 'line', 'polygon'] as const;
-export const BASEMAP_IDS = ['positron', 'satellite', 'topo'] as const;
 // Catalogue facets a published collection can slot into (mirrors catalog.json).
 export const CATEGORY_IDS = [
   'boundaries', 'city-wards', 'people', 'environment', 'water',
@@ -24,7 +25,7 @@ const MAX_HINT = 500;
 // No cap on the number of fields; only on the stored size of the whole form,
 // which a D1 row has to hold (a 200-field form is under 20 KB).
 const MAX_SCHEMA_BYTES = 256 * 1024;
-const MAX_REF_LAYERS = 3;
+const MAX_DESCRIPTION = 2000;
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -39,6 +40,16 @@ export interface NewCollection {
 
 const isStr = (v: unknown): v is string => typeof v === 'string';
 const fail = (error: string): { ok: false; error: string } => ({ ok: false, error });
+
+/** A reference layer as stored ({ id, https pmtiles_url } or null), undefined
+ *  when not given, false when malformed. */
+function referenceLayer(v: unknown): { id: string; pmtiles_url: string } | null | undefined | false {
+  if (v === undefined || v === null) return v;
+  if (typeof v !== 'object' || Array.isArray(v)) return false;
+  const r = v as Record<string, unknown>;
+  if (!isStr(r.id) || !isStr(r.pmtiles_url) || !r.pmtiles_url.startsWith('https://')) return false;
+  return { id: r.id, pmtiles_url: r.pmtiles_url };
+}
 
 export function validateSchemaDoc(input: unknown): Result<Record<string, unknown>> {
   if (!input || typeof input !== 'object' || Array.isArray(input)) return fail('schema_doc must be an object');
@@ -119,29 +130,22 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
   }
   if (doc.data_saver !== undefined && typeof doc.data_saver !== 'boolean') return fail('data_saver must be true or false');
 
-  const refs = doc.reference_layers;
-  if (refs !== undefined) {
-    if (!Array.isArray(refs) || !refs.every(isStr)) return fail('reference_layers must be a string array');
-    if (refs.length > MAX_REF_LAYERS) return fail(`too many reference layers (max ${MAX_REF_LAYERS})`);
-  }
-
   if (doc.category !== undefined && !CATEGORY_IDS.includes(doc.category as (typeof CATEGORY_IDS)[number])) {
     return fail(`unknown category: ${String(doc.category)}`);
   }
 
   // Map options (Phase 4/5): an author-chosen basemap + one bharatlas overlay.
-  if (doc.basemap !== undefined && !BASEMAP_IDS.includes(doc.basemap as (typeof BASEMAP_IDS)[number])) {
+  if (doc.basemap !== undefined && !isBasemapId(doc.basemap)) {
     return fail(`unknown basemap: ${String(doc.basemap)}`);
   }
-  const ref = doc.reference_layer;
-  if (ref !== undefined && ref !== null) {
-    if (typeof ref !== 'object' || Array.isArray(ref)) return fail('reference_layer must be an object');
-    const r = ref as Record<string, unknown>;
-    if (!isStr(r.id) || !isStr(r.pmtiles_url) || !r.pmtiles_url.startsWith('https://')) {
-      return fail('reference_layer needs id and an https pmtiles_url');
-    }
-  }
-  return { ok: true, value: { ...doc, fields: clean } };
+  const ref = referenceLayer(doc.reference_layer);
+  if (ref === false) return fail('reference_layer needs id and an https pmtiles_url');
+
+  // Only the settings collect knows are stored (and handed to every link holder).
+  const value: Record<string, unknown> = { version: 1, geometry: geom, fields: clean };
+  for (const k of ['mode', 'data_saver', 'category', 'basemap'] as const) if (doc[k] !== undefined) value[k] = doc[k];
+  if (ref !== undefined) value.reference_layer = ref;
+  return { ok: true, value };
 }
 
 // Validate a partial edit to an existing collection (admin "Edit map settings").
@@ -169,7 +173,7 @@ export function validateCollectionEdit(
   }
   if (b.description !== undefined) {
     const d = isStr(b.description) ? b.description.trim() : '';
-    if (d.length > 2000) return fail('description is too long');
+    if (d.length > MAX_DESCRIPTION) return fail('description is too long');
     col.description = d === '' ? null : d;
   }
   if (b.data_year !== undefined) {
@@ -190,18 +194,13 @@ export function validateCollectionEdit(
     schema.category = b.category;
   }
   if (b.basemap !== undefined) {
-    if (!BASEMAP_IDS.includes(b.basemap as (typeof BASEMAP_IDS)[number])) return fail(`unknown basemap: ${String(b.basemap)}`);
+    if (!isBasemapId(b.basemap)) return fail(`unknown basemap: ${String(b.basemap)}`);
     schema.basemap = b.basemap;
   }
   if (b.reference_layer !== undefined) {
-    if (b.reference_layer === null) schema.reference_layer = null;
-    else {
-      const r = b.reference_layer as Record<string, unknown>;
-      if (typeof r !== 'object' || Array.isArray(r) || !isStr(r.id) || !isStr(r.pmtiles_url) || !r.pmtiles_url.startsWith('https://')) {
-        return fail('reference_layer needs id and an https pmtiles_url');
-      }
-      schema.reference_layer = { id: r.id, pmtiles_url: r.pmtiles_url };
-    }
+    const ref = referenceLayer(b.reference_layer);
+    if (ref === false) return fail('reference_layer needs id and an https pmtiles_url');
+    schema.reference_layer = ref;
   }
   if (b.mode !== undefined) {
     if (!COLLECT_MODES.includes(b.mode as CollectMode)) return fail(`unknown mode: ${String(b.mode)}`);
@@ -237,6 +236,7 @@ export function validateNewCollection(input: unknown): Result<NewCollection> {
   }
 
   const description = isStr(b.description) && b.description.trim() !== '' ? b.description.trim() : null;
+  if (description && description.length > MAX_DESCRIPTION) return fail('description is too long');
 
   const sd = validateSchemaDoc(b.schema_doc);
   if (!sd.ok) return sd;

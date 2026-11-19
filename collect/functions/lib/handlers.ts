@@ -1,9 +1,9 @@
 // Handler functions for the collect API. The catch-all router ([[path]].ts)
 // parses the route and calls these. Each returns a Response.
 //
-// Phase 1 scope: create → contribute → (moderate) → publish, plus scoped reads.
-// Enrichment (admin_ctx) is Phase 4 → stored null here. Edit/delete/de-identify
-// endpoints are Phase 3.
+// Create → contribute → (moderate) → publish, scoped reads, record-owner edits
+// (rec_ token), import, links and the keyring store. A record's admin_ctx is
+// filled out of band after it is saved (enrich, below).
 
 import type { Env } from '../types';
 import { bad, json } from './http';
@@ -126,17 +126,11 @@ export async function createCollection(env: Env, req: Request, defer?: Defer): P
 
   const moderation = body.moderation === 0 || body.moderation === false ? 0 : 1;
   const id = nanoid(10);
-  await db.createCollection(env.DB, { id, ...v.value, moderation, ip_hash: ipHash });
-
   const tokens = { admin: generateToken('admin'), edit: generateToken('edit'), view: generateToken('view') } as const;
-  for (const [perm, tok] of Object.entries(tokens)) {
-    await db.addCollectionToken(env.DB, {
-      collectionId: id,
-      prefix: tokenPrefix(tok),
-      hash: await hashToken(tok),
-      permission: perm as 'admin' | 'edit' | 'view',
-    });
-  }
+  // The map and its three links in one transaction: a map is never left without them.
+  const links = await Promise.all((Object.entries(tokens) as Array<['admin' | 'edit' | 'view', string]>).map(async ([permission, tok]) =>
+    db.insertToken(env.DB, { collectionId: id, prefix: tokenPrefix(tok), hash: await hashToken(tok), permission }).stmt));
+  await env.DB.batch([db.collectionInsert(env.DB, { id, ...v.value, moderation, ip_hash: ipHash }), ...links]);
 
   deferLog(defer, env.DB, { event: 'create', outcome: 'ok', collection_id: id, ip_hash: ipHash });
   const origin = new URL(req.url).origin;
@@ -251,7 +245,7 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
   if (!body) return refuse(400, 'body', 'invalid JSON body');
 
   const doc = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string } & Record<string, unknown>;
-  const points = await db.allRecordProperties(env.DB, id);
+  const points = (await db.recordAnswers(env.DB, id)).map((r) => r.properties);
   const v = validateFormEdit(doc.fields, body.fields, points, doc.geometry, doc.mode);
   if (!v.ok) return refuse(400, v.problems ? 'points' : 'form', v.error, v.problems ? { problems: v.problems } : {});
   const schemaDoc = JSON.stringify({ ...doc, fields: v.fields });
@@ -379,7 +373,13 @@ export async function listRecords(env: Env, req: Request, id: string, defer?: De
   const afterParam = url.searchParams.get('after');
   const after = afterParam === null ? undefined : parseCursor(afterParam);
   if (after === null) return bad(400, 'after must be the next value from the previous page');
-  const rows = await db.listRecords(env.DB, id, { status, limit, offset, after });
+  // fields=geometry: just the shapes (the capture and view maps draw them), no answers.
+  const geometryOnly = url.searchParams.get('fields') === 'geometry';
+  const rows = await db.listRecords(env.DB, id, { status, limit, offset, after, geometryOnly });
+  const next = (): string | null => (rows.length === limit ? `${rows[rows.length - 1].created_at}~${rows[rows.length - 1].id}` : null);
+  if (geometryOnly) {
+    return json(200, { type: 'FeatureCollection', features: rows.map((r) => ({ type: 'Feature', id: r.id, geometry: JSON.parse(r.geometry), properties: {} })), next: next() });
+  }
   // Admin only: which link added each record (id + the admin's label for it).
   const isAdmin = atLeast(perm, 'admin');
   const labels = isAdmin ? await db.linkLabels(env.DB, id) : null;
@@ -416,8 +416,7 @@ export async function listRecords(env: Env, req: Request, id: string, defer?: De
   };
   });
   // `next`: pass it back as `after` for the following page (null = that was the last).
-  const last = rows.length === limit ? rows[rows.length - 1] : null;
-  return json(200, { type: 'FeatureCollection', features, next: last ? `${last.created_at}~${last.id}` : null });
+  return json(200, { type: 'FeatureCollection', features, next: next() });
 }
 
 /** A page cursor (`created_at~id`), or null when it isn't one. */
@@ -427,6 +426,18 @@ function parseCursor(v: string): db.RecordCursor | null {
 }
 
 // ---- POST /collections/:id/records -----------------------------------------
+
+const CONTRIBUTOR_MAX = 120;
+const REASON_MAX = 500;
+
+/** The contributor name sent with a record or import: trimmed, null when blank,
+ *  undefined when too long (refused). */
+function contributorOf(v: unknown): string | null | undefined {
+  const name = typeof v === 'string' ? v.trim() : '';
+  if (!name) return null;
+  return name.length <= CONTRIBUTOR_MAX ? name : undefined;
+}
+const CONTRIBUTOR_TOO_LONG = `contributor name must be at most ${CONTRIBUTOR_MAX} characters`;
 
 export async function addRecord(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const ipHash = await collectIpHash(req, env);
@@ -444,6 +455,8 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
     return bad(400, 'client_id must be 16 to 64 letters, digits, - or _');
   }
   const clientKey = typeof body.client_id === 'string' ? await hashToken(body.client_id) : null;
+  const contributor = contributorOf(body.contributor);
+  if (contributor === undefined) return bad(400, CONTRIBUTOR_TOO_LONG);
 
   if (!(await turnstileOk(env, body.turnstile_token))) {
     deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'captcha', collection_id: id, ip_hash: ipHash });
@@ -484,7 +497,6 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
     return bad(400, photoProblem);
   }
 
-  const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
   // The owner's own captures publish immediately; only contributor input is
   // moderated. A point the model fills in always waits for a person's check.
   const status = mode === 'photos_ai' ? 'pending' : recordStatusFor(atLeast(perm, 'admin'), c.moderation);
@@ -591,6 +603,7 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
     return bad(400, 'status must be published, rejected, or pending');
   }
   const reason = typeof body?.reason === 'string' ? body.reason : null;
+  if (reason && reason.length > REASON_MAX) return bad(400, `reason must be at most ${REASON_MAX} characters`);
   if (status === 'published') {
     // "Just photos" points are saved without their other answers: those must be
     // filled (from the model's notes, or by hand) before the point is approved,
@@ -619,8 +632,8 @@ export async function moderateAll(env: Env, req: Request, id: string): Promise<R
   if (to === 'published') {
     // Approve only points whose answers are all filled in ("just photos" points
     // wait for theirs; the map may have been switched out of that mode since).
-    const rows = await db.listRecords(env.DB, id, { status: from, limit: 100000, offset: 0 });
-    const ready = rows.filter((r) => validateRecordProperties(schema.fields, JSON.parse(r.properties)).ok).map((r) => r.id);
+    const rows = await db.recordAnswers(env.DB, id, from);
+    const ready = rows.filter((r) => validateRecordProperties(schema.fields, r.properties).ok).map((r) => r.id);
     // One transaction: every ready point is approved, or none is (one UPDATE per
     // point used to run past D1's query limit and stop part-way).
     const results = ready.length ? await env.DB.batch(db.setStatusOfIds(env.DB, id, ready, from, 'published')) : [];
@@ -796,7 +809,8 @@ async function importInto(
   if (source.length > 200) return refuse(400, 'source', 'source must be under 200 characters');
 
   const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
-  const contributor = typeof body.contributor === 'string' && body.contributor.trim() !== '' ? body.contributor.trim() : null;
+  const contributor = contributorOf(body.contributor);
+  if (contributor === undefined) return refuse(400, 'body', CONTRIBUTOR_TOO_LONG);
   // Import is admin-only, so this is always the owner's own data → published
   // immediately (no self-approval; that was the "bulk uploads stuck pending" bug).
   const status = recordStatusFor(true, c.moderation);
@@ -888,6 +902,9 @@ async function importInto(
 
 // ---- POST /collections/:id/publish -----------------------------------------
 
+/** The most approved points one publish takes (it builds the whole file in memory). */
+export const PUBLISH_MAX_POINTS = 100_000;
+
 type PublishLog = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms'>) => void;
 
 /** Publish a map to the catalog. Every exit is logged with a reference
@@ -922,8 +939,14 @@ async function publishMap(
   const c = await db.getCollection(env.DB, id);
   if (!c) return refuse(404, 'not_found', 'not found');
 
-  const rows = await db.listRecords(env.DB, id, { status: 'published', limit: 100000, offset: 0 });
-  if (rows.length === 0) return refuse(409, 'empty', 'nothing approved to publish yet');
+  // Every approved point goes into one file built in memory, so a map over the
+  // limit is refused rather than published with points cut off.
+  const { published } = await db.statusCounts(env.DB, id);
+  if (published === 0) return refuse(409, 'empty', 'nothing approved to publish yet');
+  if (published > PUBLISH_MAX_POINTS) {
+    return refuse(413, 'too_large', `too many approved points to publish at once (${published}; the limit is ${PUBLISH_MAX_POINTS}). Ask us to publish it for you.`);
+  }
+  const rows = await db.listRecords(env.DB, id, { status: 'published', limit: PUBLISH_MAX_POINTS });
   const fields = (JSON.parse(c.schema_doc) as { fields: Field[] }).fields;
   const hidden = new Set(fields.filter((f) => f.deleted).map((f) => f.key));
   const withoutHidden = (p: Record<string, unknown>) => Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k)));
@@ -1069,19 +1092,9 @@ const B64URL = /^[A-Za-z0-9_-]+$/;
 const KEYRING_MAX = 262_144;
 const KEYRING_TTL_MS = 365 * 86_400_000;
 
-const hashKey = (k: string): Promise<string> => sha256Hex(new TextEncoder().encode(k).buffer as ArrayBuffer);
-
 function keyringKey(req: Request): string | null {
   const k = bearer(req);
   return k && KEYRING_KEY.test(k) ? k : null;
-}
-
-// Constant-time hex compare (both are SHA-256 hex, same length when valid).
-function sameHash(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let diff = 0;
-  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  return diff === 0;
 }
 
 export async function getKeyring(env: Env, _req: Request, id: string): Promise<Response> {
@@ -1105,15 +1118,21 @@ export async function putKeyring(env: Env, req: Request, id: string): Promise<Re
   const base = typeof body?.base === 'string' ? body.base : null;
 
   await db.purgeStaleKeyrings(env.DB, new Date(Date.now() - KEYRING_TTL_MS).toISOString());
-  const hash = await hashKey(key);
   const row = await db.getKeyring(env.DB, id);
   if (!row) {
     // Writing against a version that no longer exists = sync was turned off
     // (or the keyring expired) elsewhere: tell the device to stop, don't revive it.
     if (base) return bad(410, 'this synced copy was deleted');
-    return json(200, { updated_at: await db.insertKeyring(env.DB, { id, write_hash: hash, blob }) });
+    try {
+      return json(200, { updated_at: await db.insertKeyring(env.DB, { id, write_hash: await hashToken(key), blob }) });
+    } catch (e) {
+      // Another device created it a moment ago: a conflict to merge, as for any stale write.
+      const now = await db.getKeyring(env.DB, id);
+      if (!now) throw e;
+      return json(409, { blob: now.blob, updated_at: now.updated_at });
+    }
   }
-  if (!sameHash(hash, row.write_hash)) return bad(401, 'unauthorised');
+  if (!(await verifyToken(key, row.write_hash))) return bad(401, 'unauthorised');
   const updated = base ? await db.updateKeyring(env.DB, id, blob, base) : null;
   if (!updated) return json(409, { blob: row.blob, updated_at: row.updated_at });
   return json(200, { updated_at: updated });
@@ -1123,7 +1142,7 @@ export async function deleteKeyring(env: Env, req: Request, id: string): Promise
   if (!KEYRING_ID.test(id)) return bad(400, 'bad keyring id');
   const key = keyringKey(req);
   const row = key ? await db.getKeyring(env.DB, id) : null;
-  if (!key || (row && !sameHash(await hashKey(key), row.write_hash))) return bad(401, 'unauthorised');
+  if (!key || (row && !(await verifyToken(key, row.write_hash)))) return bad(401, 'unauthorised');
   if (row) await db.deleteKeyring(env.DB, id);
   return json(200, { deleted: true });
 }
