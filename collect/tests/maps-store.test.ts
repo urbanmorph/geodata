@@ -30,7 +30,7 @@ describe('openLink', () => {
   });
 });
 
-import { applyRecord, dropRecord, capMaps, mergeMaps, recordLabel, MAX_SHARED } from '../src/maps-store';
+import { applyRecord, dropRecord, capMaps, mergeMaps, recordLabel, isCollectLink, MAX_SHARED } from '../src/maps-store';
 
 describe('applyRecord (a contributor keeps their own record edit link)', () => {
   it('adds the record under its map, creating a collect entry if the map is new', () => {
@@ -74,19 +74,39 @@ describe('capMaps', () => {
   });
 });
 
+// Real collect links: mergeMaps keeps only links that open a collect map.
+const C = 'https://collect.bharatlas.com/c/mapabc';
+const E = `${C}#edt_1`, A = `${C}/admin#adm_1`, L1 = `${C}/r/rec001#rec_1`, L2 = `${C}/r/rec002#rec_2`;
+
 describe('mergeMaps (restore from a saved file)', () => {
   it('unions links and records for the same map instead of keeping only one copy', () => {
-    const here: SavedMap = { id: 'm', name: 'Here', role: 'collect', links: { edit: 'E' }, records: [{ id: 'r1', label: '', link: 'L1', at: T }], at: T };
-    const file: SavedMap = { id: 'm', name: 'File', role: 'owner', links: { admin: 'A' }, records: [{ id: 'r2', label: '', link: 'L2', at: T }], at: T };
+    const here: SavedMap = { id: 'm', name: 'Here', role: 'collect', links: { edit: E }, records: [{ id: 'r1', label: '', link: L1, at: T }], at: T };
+    const file: SavedMap = { id: 'm', name: 'File', role: 'owner', links: { admin: A }, records: [{ id: 'r2', label: '', link: L2, at: T }], at: T };
     const [m] = mergeMaps([file], [here]);
     expect(m.role).toBe('owner');
-    expect(m.links).toEqual({ edit: 'E', admin: 'A' });
+    expect(m.links).toEqual({ edit: E, admin: A });
     expect(m.records!.map((r) => r.id).sort()).toEqual(['r1', 'r2']);
   });
   it('ignores malformed entries', () => {
     expect(mergeMaps([null, { foo: 1 }, { id: 'x', links: {} }] as unknown as SavedMap[], [])).toEqual([
       expect.objectContaining({ id: 'x', role: 'view' }),
     ]);
+  });
+  // A synced copy is data from elsewhere: a link in it that isn't a collect map
+  // link (another site, javascript:, a look-alike host) never becomes a button.
+  it('drops links and record links that do not open a collect map', () => {
+    const bad = ['https://evil.example/c/mapabc#edt_1', 'javascript:alert(1)', 'https://collect.bharatlas.com.evil.example/c/mapabc',
+      'https://collect.bharatlas.com/elsewhere', 'http://collect.bharatlas.com/c/mapabc#edt_1', 'not a url'];
+    for (const link of bad) {
+      const [m] = mergeMaps([{ id: 'm', name: 'X', role: 'owner', links: { edit: link, admin: A }, records: [{ id: 'r', label: '', link, at: T }], at: T }], []);
+      expect(m.links).toEqual({ admin: A });
+      expect(m.records).toEqual([]);
+    }
+  });
+  it('keeps this origin\'s own links (local development)', () => {
+    expect(isCollectLink('http://localhost:5173/c/mapabc/view#viw_1', 'localhost:5173')).toBe(true);
+    expect(isCollectLink('https://collect.bharatlas.com/c/mapabc/r/rec001#rec_1', 'localhost:5173')).toBe(true);
+    expect(isCollectLink('http://localhost:5173/c/mapabc#x', 'collect.bharatlas.com')).toBe(false);
   });
 });
 
@@ -116,36 +136,38 @@ import { applyAdminReplace } from '../src/maps-store';
 
 describe('a replaced admin link (Manage, Share, Replace admin link)', () => {
   const T0 = '2026-11-01T00:00:00Z';
+  const adm = (n: string) => `${C}/admin#adm_${n}`;
+  const [A0, A1, A2] = ['A0', 'A1', 'A2'].map(adm);
   const owned = (admin: string, retired?: string[]): SavedMap =>
-    ({ id: 'm', name: 'Trees', role: 'owner', links: { admin, edit: 'E' }, at: T0, ...(retired ? { retired } : {}) });
+    ({ id: 'm', name: 'Trees', role: 'owner', links: { admin, edit: E }, at: T0, ...(retired ? { retired } : {}) });
 
   it('saves the new admin link and remembers the old one as retired', () => {
-    const [m] = applyAdminReplace([owned('A1')], 'm', 'Trees', 'A1', 'A2', T);
-    expect(m.links).toEqual({ admin: 'A2', edit: 'E' });
+    const [m] = applyAdminReplace([owned(A1)], 'm', 'Trees', A1, A2, T);
+    expect(m.links).toEqual({ admin: A2, edit: E });
     expect(m.role).toBe('owner');
-    expect(m.retired).toEqual(['A1']);
+    expect(m.retired).toEqual([A1]);
   });
   it('retires the link this page was opened with even if another one was saved', () => {
-    const [m] = applyAdminReplace([owned('A0')], 'm', 'Trees', 'A1', 'A2', T);
-    expect(m.links.admin).toBe('A2');
-    expect(m.retired?.sort()).toEqual(['A0', 'A1']);
+    const [m] = applyAdminReplace([owned(A0)], 'm', 'Trees', A1, A2, T);
+    expect(m.links.admin).toBe(A2);
+    expect(m.retired?.sort()).toEqual([A0, A1]);
   });
   it('saves the map as owned when this device had not saved it', () => {
-    const [m] = applyAdminReplace([], 'm', 'Trees', 'A1', 'A2', T);
-    expect(m).toMatchObject({ id: 'm', role: 'owner', links: { admin: 'A2' }, retired: ['A1'] });
+    const [m] = applyAdminReplace([], 'm', 'Trees', A1, A2, T);
+    expect(m).toMatchObject({ id: 'm', role: 'owner', links: { admin: A2 }, retired: [A1] });
   });
   it('sync never brings the old link back: a retired link loses to the new one, whichever side has it', () => {
-    const here = applyAdminReplace([owned('A1')], 'm', 'Trees', 'A1', 'A2', T)[0];
-    const otherDevice = owned('A1');
+    const here = applyAdminReplace([owned(A1)], 'm', 'Trees', A1, A2, T)[0];
+    const otherDevice = owned(A1);
     for (const [a, b] of [[[otherDevice], [here]], [[here], [otherDevice]]] as SavedMap[][][]) {
       const [m] = mergeMaps(a, b);
-      expect(m.links.admin).toBe('A2');
-      expect(m.retired).toEqual(['A1']);
+      expect(m.links.admin).toBe(A2);
+      expect(m.retired).toEqual([A1]);
     }
   });
   it('a device that only has the old link drops it once it learns it was retired', () => {
-    const [m] = mergeMaps([{ ...owned('A1'), links: { edit: 'E' }, retired: ['A1'] }], [owned('A1')]);
+    const [m] = mergeMaps([{ ...owned(A1), links: { edit: E }, retired: [A1] }], [owned(A1)]);
     expect(m.links.admin).toBeUndefined();
-    expect(m.links.edit).toBe('E');
+    expect(m.links.edit).toBe(E);
   });
 });

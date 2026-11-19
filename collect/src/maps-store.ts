@@ -65,9 +65,26 @@ export function capMaps(maps: SavedMap[]): SavedMap[] {
   return maps.filter((m) => m.role === 'owner' || (m.records?.length ?? 0) > 0 || ++shared <= MAX_SHARED);
 }
 
+const COLLECT_HOST = 'collect.bharatlas.com';
+const MAP_PATH = /^\/c\/[A-Za-z0-9_-]{6,}(?:\/(?:admin|view)|\/r\/[A-Za-z0-9_-]{6,})?\/?$/;
+
+/** Whether a saved link opens a collect map: collect's own host (or this page's,
+ *  for a preview or local development), over https (http only on localhost),
+ *  and a /c/ map path. A synced copy is data from
+ *  elsewhere, so anything else (another site, javascript:) is dropped. */
+export function isCollectLink(link: unknown, here = typeof location === 'undefined' ? COLLECT_HOST : location.host): boolean {
+  if (typeof link !== 'string') return false;
+  let u: URL;
+  try { u = new URL(link); } catch { return false; }
+  const secure = u.protocol === 'https:' || (u.protocol === 'http:' && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(u.host));
+  const ours = secure && (u.host === COLLECT_HOST || u.host === here);
+  return ours && MAP_PATH.test(u.pathname);
+}
+
 // Restore from a saved file, or sync: union links and records per map (highest
 // role wins) rather than keeping whichever copy came first; a link retired on
-// any device is dropped everywhere. Malformed rows dropped.
+// any device is dropped everywhere. Malformed rows, and links that don't open a
+// collect map, are dropped.
 export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[] {
   const byId = new Map<string, SavedMap>();
   const candidates = new Map<string, SavedMap['links'][]>(); // every copy's links, first copy first
@@ -75,7 +92,7 @@ export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[
     if (!m || typeof m !== 'object' || typeof m.id !== 'string' || !m.id) continue;
     const links = m.links && typeof m.links === 'object' ? m.links : {};
     const role = m.role && RANK[m.role] ? m.role : roleFromLinks(links);
-    const records = Array.isArray(m.records) ? m.records.filter((r) => r && typeof r.id === 'string' && typeof r.link === 'string') : [];
+    const records = Array.isArray(m.records) ? m.records.filter((r) => r && typeof r.id === 'string' && isCollectLink(r.link)) : [];
     const retired = Array.isArray(m.retired) ? m.retired.filter((l) => typeof l === 'string') : [];
     candidates.set(m.id, [...(candidates.get(m.id) ?? []), links]);
     const e = byId.get(m.id);
@@ -91,7 +108,7 @@ export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[
     for (const links of candidates.get(e.id)!) {
       for (const slot of ['edit', 'admin', 'view'] as const) {
         const l = links[slot];
-        if (l && !e.links[slot] && !e.retired?.includes(l)) e.links[slot] = l;
+        if (isCollectLink(l) && !e.links[slot] && !e.retired?.includes(l!)) e.links[slot] = l;
       }
     }
   }

@@ -99,7 +99,7 @@ function fakeServer(): KeyringApi & { writes: number } {
   };
 }
 const M = (id: string, records: string[] = []): SavedMap => ({
-  id, name: id, role: 'collect', links: { edit: `E-${id}` }, records: records.map((r) => ({ id: r, label: r, link: `L-${r}`, at: 't' })), at: 't',
+  id, name: id, role: 'collect', links: { edit: `https://collect.bharatlas.com/c/map-${id}#edt_1` }, records: records.map((r) => ({ id: r, label: r, link: `https://collect.bharatlas.com/c/map-${id}/r/rec-${r}#rec_1`, at: 't' })), at: 't',
 });
 
 describe('syncNow', () => {
