@@ -43,8 +43,11 @@ INDIA_BBOX = (68.0, 6.0, 98.0, 38.0)  # xmin, ymin, xmax, ymax
 S3_BUCKET_URL = 'https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com'
 
 # Popup fields only: every extra tile attribute makes tippecanoe drop more
-# points at low zoom (see corestack_lulc_blocks, PR #187).
-TILE_FIELDS = ('id', 'name', 'basic_category', 'confidence', 'operating_status')
+# points at low zoom (see corestack_lulc_blocks, PR #187). Then the columns
+# the Filter panel filters on that the popup lacks (build_filter_stats.
+# tile_filter_columns), so the map draws every filter: `version` (16 values).
+# Checked 2026-11 by decoding: the same points at every probe tile as without it.
+TILE_FIELDS = ('id', 'name', 'basic_category', 'confidence', 'operating_status', 'version')
 
 # Shapefile: short DBF name -> SQL expression over the published parquet.
 SHP_FIELDS = {
@@ -137,8 +140,7 @@ def clip_sql(src_files: list[str], place_states: str) -> str:
         WHERE {_prefilter()}"""
 
 
-TILE_PROPS_SQL = ('struct_pack(id := id, name := name, basic_category := basic_category, '
-                  'confidence := confidence, operating_status := operating_status)')
+TILE_PROPS_SQL = 'struct_pack(' + ', '.join(f'{f} := {f}' for f in TILE_FIELDS) + ')'
 
 
 DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf over 2 GB
