@@ -30,6 +30,23 @@ function defaultStorage(): Storage | null {
   }
 }
 
+/** The .txt backup offered after a submission. There is no edit or delete
+ *  route: the token proves authorship, and changes go through the contact
+ *  address on /terms#contact. */
+export function tokenBackup(p: { id: string; share_url: string; admin_url: string; admin_token: string }): { filename: string; content: string } {
+  return {
+    filename: `bharatlas-${p.id}-token.txt`,
+    content:
+      `bharatlas · submission backup\n\n` +
+      `id:         ${p.id}\n` +
+      `share url:  ${p.share_url}\n` +
+      `admin url:  ${p.admin_url}\n` +
+      `admin token:${p.admin_token}\n\n` +
+      `KEEP THIS SAFE. The token proves you made this submission.\n` +
+      `To change or remove it, email sathya@urbanmorph.com with the token.\n`,
+  };
+}
+
 export function saveSubmission(rec: StoredSubmission, storage?: Storage | null): void {
   const s = storage ?? defaultStorage();
   if (!s) return;

@@ -165,7 +165,7 @@ describe('map startup order (map.ts)', () => {
 describe('main.ts: a failed layer open is caught', () => {
   it('wraps openLayer so an error shows instead of an unhandled rejection', () => {
     const MAIN = src('src/main.ts');
-    expect(MAIN).toMatch(/try \{\s*const m = await loadMap\(\);\s*await m\.openLayer\([\s\S]*?\} catch \(e\) \{[\s\S]*?showLayerError/);
+    expect(MAIN).toMatch(/try \{\s*const m = await loadMap\(\);\s*if \(show !== shows\) return;[^\n]*\s*await m\.openLayer\([\s\S]*?\} catch \(e\) \{[\s\S]*?showLayerError/);
   });
 });
 

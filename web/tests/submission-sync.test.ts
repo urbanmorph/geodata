@@ -3,7 +3,7 @@
 // unlocked by the same passkey) as collect's sync. The server can't read it.
 import { describe, it, expect } from 'vitest';
 import { deriveKeys, newSecret, type KeyringApi } from '../../shared/keyring';
-import { createSubmissionSync, mergeSubmissions, SUBMISSIONS_LABEL, syncSecretFrom } from '../src/submission-sync';
+import { createSubmissionSync, mergeSubmissions, SUBMISSIONS_LABEL } from '../src/submission-sync';
 import type { StoredSubmission } from '../src/my-submissions';
 
 const sub = (id: string, created_at = 1): StoredSubmission => ({ id, name: `Layer ${id}`, token: `adm_${id}xxxxxxxx`, created_at, permission: 'admin' });
@@ -59,15 +59,22 @@ describe('a separate keyring from collect\'s, from the same secret', () => {
 });
 
 describe('keeping submission links on all your devices', () => {
-  it('turned on here, joined there by the sync link: both have every link', async () => {
+  // Sync is passkey-only since #322: no sync link is shown or adopted.
+  it('has no sync link to show or join (passkey-only)', () => {
+    const { sync } = device(fakeServer());
+    expect('link' in sync).toBe(false);
+    expect('join' in sync).toBe(false);
+  });
+
+  it('turned on here, unlocked there with the passkey: both have every link', async () => {
     const server = fakeServer();
     const laptop = device(server);
     laptop.sync.saveLocal(sub('a', 1));
     await laptop.sync.turnOn();
+    await laptop.sync.addPasskey();
     const phone = device(server);
     phone.sync.saveLocal(sub('b', 2));
-    const secret = syncSecretFrom(new URL(laptop.sync.link('https://bharatlas.com')!).hash)!;
-    await phone.sync.join(secret);
+    await phone.sync.unlockWithPasskey();
     expect(phone.sync.list().map((s) => s.id)).toEqual(['b', 'a']);
     await laptop.sync.syncNow();
     expect(laptop.sync.list().map((s) => s.id)).toEqual(['b', 'a']);
@@ -116,20 +123,22 @@ describe('keeping submission links on all your devices', () => {
     const server = fakeServer();
     const laptop = device(server);
     await laptop.sync.turnOn();
+    await laptop.sync.addPasskey();
     const phone = device(server);
-    await phone.sync.join(laptop.sync.state()!.secret);
+    await phone.sync.unlockWithPasskey();
     await laptop.sync.turnOff();
     await expect(phone.sync.syncNow()).rejects.toThrow(/turned off/);
     expect(phone.sync.state()).toBeNull();
-    expect(server.rows.size).toBe(0);
+    expect(server.rows.size).toBe(1); // only the passkey's wrapped secret, which collect may use
   });
 
   it('two devices saving at once both keep their link (the conflict is merged)', async () => {
     const server = fakeServer();
     const a = device(server);
     await a.sync.turnOn();
+    await a.sync.addPasskey();
     const b = device(server);
-    await b.sync.join(a.sync.state()!.secret);
+    await b.sync.unlockWithPasskey();
     a.sync.saveLocal(sub('x', 5));
     b.sync.saveLocal(sub('y', 6));
     await a.sync.syncNow();

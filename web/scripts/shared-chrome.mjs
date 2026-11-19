@@ -47,6 +47,10 @@ export const TOKENS = `
     :root .maplibregl-ctrl-attrib-button { background-color: transparent; filter: invert(1); }
   }
   *, *::before, *::after { box-sizing: border-box; }
+  /* Reduced motion: nothing slides, pings or spins (a spinner stays a still ring). */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  }
   html, body { margin: 0; padding: 0; color: var(--fg); }
   /* Grid paper on the root, so it fills the window, not just body's column. */
   html {

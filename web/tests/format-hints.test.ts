@@ -72,7 +72,7 @@ describe('format-hints — availableDownloads', () => {
 });
 
 describe('format-hints — fmtBytes', () => {
-  it('formats null as em-dash', () => expect(fmtBytes(null)).toBe('—'));
+  it('formats null as n/a', () => expect(fmtBytes(null)).toBe('n/a'));
   it('formats < 1 KB in bytes', () => expect(fmtBytes(512)).toBe('512 B'));
   it('formats KB without decimals', () => expect(fmtBytes(2048)).toBe('2 KB'));
   it('formats MB with one decimal', () => expect(fmtBytes(2.5 * 1024 * 1024)).toBe('2.5 MB'));

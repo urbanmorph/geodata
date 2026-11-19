@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { featureFilter, validateStyleMin, type FilterSpecification, type StyleSpecification } from '@maplibre/maplibre-gl-style-spec';
 import { LIBERTY, trimLiberty } from '../../shared/liberty';
 import { LIBERTY_STYLE } from '../../shared/liberty-style';
@@ -65,5 +65,34 @@ describe('Liberty streets basemap, trimmed for India', () => {
     expect(again.layers.map((l) => l.id)).toEqual(LIBERTY.layers.map((l) => l.id));
     // Upstream is vendored as is: the trimming happens here, in one tested place.
     expect(LIBERTY_STYLE.layers.some((l) => l.id === 'boundary_2')).toBe(true);
+  });
+});
+
+// OSM features often lack a number Liberty compares (a POI with no rank):
+// MapLibre then logs "Expected value to be of type number, but found null"
+// (three times on /view/wards_chennai). The comparison is guarded so a missing
+// value is simply not matched, as before, without the warning.
+describe('numeric comparisons on missing properties', () => {
+  it('no layer filter warns on a feature without rank or ref_length', () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    try {
+      for (const l of layers) {
+        if (!l.filter) continue;
+        const f = featureFilter(l.filter);
+        for (const type of [1, 2, 3]) f.filter({ zoom: 14 }, { type, properties: { class: 'hospital', subclass: 'hospital' } } as never);
+      }
+      expect(warn).not.toHaveBeenCalled();
+    } finally {
+      warn.mockRestore();
+    }
+  });
+
+  it('a missing rank matches no rank bucket; a present one still matches', () => {
+    const poi = layers.filter((l) => l['source-layer'] === 'poi' && l.filter);
+    expect(poi.length).toBeGreaterThan(1);
+    const matches = (rank: number | undefined) => poi.filter((l) => featureFilter(l.filter!).filter({ zoom: 18 },
+      { type: 1, properties: { class: 'hospital', subclass: 'hospital', ...(rank == null ? {} : { rank }) } } as never)).length;
+    expect(matches(undefined)).toBe(0);
+    expect(matches(10)).toBe(1);
   });
 });

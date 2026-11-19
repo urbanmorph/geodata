@@ -43,7 +43,7 @@ export function refreshLiveCounts(): void {
 
       // Refill the search-meta running total from the live count. The baked value
       // is a build-time snapshot; #dl-total is its own slot so we replace just the
-      // " · <count> downloads" tail without touching the static prefix. The count
+      // " · <count> downloads" part (the API queries sit in #api-total). The count
       // is built from a number, so innerHTML here is safe (no user input).
       const total = typeof counts._total === 'number' ? counts._total : 0;
       const slot = document.getElementById('dl-total');

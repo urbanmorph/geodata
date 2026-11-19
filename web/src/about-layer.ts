@@ -46,5 +46,11 @@ export function aboutLayerHtml({ layer, meta, heading, wardIndex }: {
     (layer.licence ? `<p class="about-panel__lic">${licenceBadgeHtml(layer.licence, layerIsNonCommercial(layer))}</p>` : '') +
     (desc ? `<p class="about-panel__desc">${esc(desc)}</p>` : '') +
     (downloads ? `<h3 class="about-panel__h">Download</h3><div class="about-panel__dl">${downloads}</div>` : '') +
-    buildWardTable(wardIndex).html;
+    // Its own slot: the ward list arrives later and fills just this (focus stays put).
+    `<div data-ward-slot>${wardTableHtml(wardIndex)}</div>`;
+}
+
+/** The ward list (a ward map's index), or '' when there is none. */
+export function wardTableHtml(wardIndex?: WardIndex | null): string {
+  return buildWardTable(wardIndex).html;
 }

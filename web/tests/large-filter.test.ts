@@ -73,16 +73,24 @@ describe('loadBakedStats: the panel reads stats from the catalog, else the layer
   it('uses the catalog when it has them, without fetching', async () => {
     const { loadBakedStats } = await import('../src/filter-stats');
     const f = vi.fn();
-    expect(await loadBakedStats('a', { filter_stats: { a: s } }, f)).toBe(s);
+    expect(await loadBakedStats('a', { filter_stats: { a: s } }, true, f)).toBe(s);
     expect(f).not.toHaveBeenCalled();
   });
-  it('fetches /api-data/filter-stats/<id>.json otherwise; none when there is no file', async () => {
+  it('fetches /api-data/filter-stats/<id>.json for a large layer; none when there is no file', async () => {
     const { loadBakedStats } = await import('../src/filter-stats');
     const ok = vi.fn(async () => new Response(JSON.stringify(s)));
-    expect(await loadBakedStats('big', {}, ok)).toEqual(s);
+    expect(await loadBakedStats('big', {}, true, ok)).toEqual(s);
     expect(ok).toHaveBeenCalledWith('/api-data/filter-stats/big.json');
     const missing = vi.fn(async () => new Response('', { status: 404 }));
-    expect(await loadBakedStats('small', {}, missing)).toBeNull();
+    expect(await loadBakedStats('big2', {}, true, missing)).toBeNull();
+  });
+  // Only large layers have a stats file (the test above checks each has one),
+  // so a small layer goes straight to the probe instead of a 404 first.
+  it('never asks for a file for a small layer', async () => {
+    const { loadBakedStats } = await import('../src/filter-stats');
+    const f = vi.fn();
+    expect(await loadBakedStats('wards_chennai', {}, false, f)).toBeNull();
+    expect(f).not.toHaveBeenCalled();
   });
 });
 

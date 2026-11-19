@@ -1,13 +1,13 @@
 // @vitest-environment happy-dom
 // The "keep these links on all your devices" controls in "Your submissions".
 import { describe, it, expect, vi } from 'vitest';
-import { renderSubmissionSync } from '../src/submission-sync-ui';
+import { renderSubmissionSync, SYNC_LINK_NOTE } from '../src/submission-sync-ui';
 
 function fakeSync(on = false) {
   let state: { secret: string; synced_at?: string; passkey?: { id: string; writeKey: string } } | null = on ? { secret: 's', synced_at: '2026-10-23T10:00:00Z' } : null;
   return {
     state: () => state,
-    link: () => (state ? 'https://bharatlas.com/preview#sync=s' : null),
+
     turnOn: vi.fn(async () => { state = { secret: 's', synced_at: '2026-10-23T10:00:00Z' }; }),
     turnOff: vi.fn(async () => { state = null; }),
     addPasskey: vi.fn(async () => { state = { ...state!, passkey: { id: 'p', writeKey: 'w' } }; }),
@@ -28,7 +28,9 @@ describe('sync controls', () => {
     expect(text).toMatch(/collect/); // the passkey made in collect works here too
   });
 
-  it('turning on shows the private sync link, and a way to add a passkey', async () => {
+  // Sync is passkey-only (#322): no sync link is adopted, so none is shown (it
+  // would also put the secret on screen). The way to another device is the passkey.
+  it('turning on shows no sync link or secret, and points to the passkey', async () => {
     document.body.innerHTML = '<div id="box"></div>';
     const sync = fakeSync();
     const onChange = vi.fn();
@@ -37,9 +39,27 @@ describe('sync controls', () => {
     await flush();
     expect(sync.turnOn).toHaveBeenCalled();
     expect(onChange).toHaveBeenCalled();
-    expect((document.querySelector('#subs-sync-link') as HTMLInputElement).value).toBe('https://bharatlas.com/preview#sync=s');
-    expect(document.body.textContent).toContain('Anyone with it can manage your submissions');
+    expect(document.querySelector('#subs-sync-link')).toBeNull();
+    expect(document.querySelector('input')).toBeNull();
+    expect(document.body.textContent).not.toMatch(/sync link|open it on/i);
     expect(document.querySelector('#subs-pk-add')).not.toBeNull();
+    expect(document.body.textContent).toContain('Unlock with your passkey');
+  });
+
+  it('with a passkey added, says to unlock with it on another device', () => {
+    document.body.innerHTML = '<div id="box"></div>';
+    const sync = fakeSync(true);
+    sync.state()!.passkey = { id: 'p', writeKey: 'w' };
+    renderSubmissionSync(document.getElementById('box')!, sync as never, { passkeys: true, onChange: () => {} });
+    expect(document.body.textContent).toMatch(/On another device, choose Unlock with your passkey/);
+    expect(document.body.textContent).not.toMatch(/sync link/i);
+  });
+
+  it('an opened old sync link: says it no longer works and to use the passkey', () => {
+    document.body.innerHTML = '<div id="box"></div>';
+    renderSubmissionSync(document.getElementById('box')!, fakeSync() as never, { passkeys: true, onChange: () => {} }, SYNC_LINK_NOTE);
+    expect(document.querySelector('#subs-sync-note')!.textContent).toBe(SYNC_LINK_NOTE);
+    expect(SYNC_LINK_NOTE).toMatch(/passkey/);
   });
 
   it('turning off needs a second tap, then deletes the synced copy', async () => {

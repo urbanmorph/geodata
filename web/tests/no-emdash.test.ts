@@ -12,6 +12,8 @@ const files = [
   'functions/lib/licenses.ts',
   'functions/lib/nearby.ts',
   'functions/api/submit.ts',
+  '../shared/format.mjs',
+  'scripts/prerender.mjs',
 ];
 
 /** The code with comments removed, so only strings and code remain. */

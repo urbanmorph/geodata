@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import {
+  tokenBackup,
   saveSubmission,
   listSubmissions,
   getSubmission,
@@ -132,5 +135,37 @@ describe('my-submissions — hydrateLegacyTokens', () => {
     s.setItem('geodata:tokens:rich0000001', 'adm_xxxxxxxxxxxx');
     hydrateLegacyTokens(s, () => 12345);
     expect(getSubmission('rich0000001', s)?.name).toBe('Real name');
+  });
+});
+
+// There is no edit/delete route for submissions: the token proves authorship,
+// and changes go through the contact address (owner decision 2026-11-19).
+describe('tokenBackup', () => {
+  const payload = { id: 'Xa9Kp7nQ', share_url: 'https://bharatlas.com/c/Xa9Kp7nQ', admin_url: 'https://bharatlas.com/c/Xa9Kp7nQ?key=adm_x', admin_token: 'adm_x' };
+
+  it('is a bharatlas file named after the submission', () => {
+    const b = tokenBackup(payload);
+    expect(b.filename).toBe('bharatlas-Xa9Kp7nQ-token.txt');
+    expect(b.content.split('\n')[0]).toBe('bharatlas · submission backup');
+    expect(b.content).not.toMatch(/geodata/);
+  });
+
+  it('says the token proves authorship and to contact us to change or remove it, not that it edits or deletes', () => {
+    const b = tokenBackup(payload);
+    expect(b.content).toContain('adm_x');
+    expect(b.content).toMatch(/proves you made/);
+    expect(b.content).toContain('sathya@urbanmorph.com');
+    expect(b.content).not.toMatch(/edit or delete/i);
+  });
+});
+
+describe('token copy on the site', () => {
+  const read = (f: string) => readFileSync(resolve(__dirname, '..', f), 'utf8');
+  it('/preview and the /about FAQ do not promise the token edits or deletes a submission', () => {
+    for (const f of ['preview.template.html', 'scripts/prerender.mjs']) {
+      expect(read(f), f).not.toMatch(/edit or delete (that|your|this) submission/i);
+    }
+    expect(read('preview.template.html')).toMatch(/proves you made it[^<]*<a href="\/terms#contact">/);
+    expect(read('about.html')).toMatch(/proves you made it/);
   });
 });

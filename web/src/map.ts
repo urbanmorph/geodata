@@ -4,7 +4,7 @@ import { Protocol, PMTiles } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_ENGINE, VERBS_MAP } from './loading';
 import { getCatalog, type Layer } from './catalog';
-import { escapeHtml } from './util';
+import { escapeHtml, triggerDownload } from './util';
 import { popupValueHtml, popupEntries } from './popup-value';
 import {
   BASEMAPS, baseStyle, basemapById, basemapInsertBefore, basemapLayers, getStoredBasemap, minimalPaint, setStoredBasemap,
@@ -17,7 +17,7 @@ import {
 } from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
-import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
+import { imageFilename, captureMapPng } from './image-export';
 import { filterColumnsInTiles, filterSummary, matchCountText, type ActiveFilter, type MaplibreFilter } from './filter-where';
 import { featureCollectionBounds, INDIA_BBOX, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
@@ -29,12 +29,12 @@ import { arrivalZoom, resolveLocateConfig } from './locate-config';
 // user-gesture window, which mobile Chrome silently drops (no prompt, no sheet).
 // locate is tiny and folds into this already-lazy map chunk.
 import { openLocate, closeLocate } from './locate';
-import { aboutLayerHtml, downloadListHtml, type AboutMeta } from './about-layer';
+import { aboutLayerHtml, downloadListHtml, wardTableHtml, type AboutMeta } from './about-layer';
 import { usageLine, type Usage } from '../functions/lib/usage';
 import { confirmLargeLoad, clearLargeLoad } from './large-load';
 import { dlProxyUrl } from '../../shared/downloads.mjs';
 import { usesServerFilter } from '../../shared/large-load.mjs';
-import { fetchWardIndex, type WardIndexFile } from './ward-index';
+import { fetchWardIndex } from './ward-index';
 import { buildFeatureFilter, parseAtParam } from './locate-actions';
 import {
   fillColorExpr, noDataFilter, hatchPixels, legendHtml, combineFilters, type ChoroplethSpec,
@@ -384,6 +384,8 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
 
 const HL_LAYERS = ['locate-hl-fill', 'locate-hl-line', 'locate-hl-circle'];
 const HL_ACCENT = DATA_SELECTED;
+/** The pending "frame the feature once tiles settle" handler, if any. */
+let zoomFitOnIdle: (() => void) | null = null;
 
 function clearLocateHighlight(): void {
   if (!map) return;
@@ -421,8 +423,12 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
   // querySourceFeatures returns tile-clipped geometry, but the union bbox frames
   // the feature well when its tiles are loaded (they are, after the flyTo). A
   // point's bbox is ~zero-area, so we leave the flyTo zoom in that case.
+  // One pending fit: a second "Zoom to it" replaces the first's, not stacks on it.
+  if (zoomFitOnIdle) map.off('idle', zoomFitOnIdle);
+  zoomFitOnIdle = null;
   if (!filter) return;
-  map.once('idle', () => {
+  const fit = () => {
+    zoomFitOnIdle = null;
     if (!map) return;
     try {
       const feats = map.querySourceFeatures('layer', {
@@ -435,7 +441,9 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
       if (b[2] - b[0] < 1e-4 && b[3] - b[1] < 1e-4) return; // a point — already framed
       map.fitBounds(asBounds(b), { padding: panelAwarePadding(), maxZoom: 15, duration: 500 });
     } catch { /* query/fit is best-effort */ }
-  });
+  };
+  zoomFitOnIdle = fit;
+  map.once('idle', fit); // off() removes a once() listener too (MapLibre Evented)
 }
 
 // ---------------------------------------------------------------------------
@@ -597,8 +605,9 @@ async function loadFilterColumns(
 
   const { rankColumns, columnStatsSource } = await import('./filter-schema');
   const { loadBakedStats } = await import('./filter-stats');
-  const baked = await loadBakedStats(layer.id, await getCatalog());
-  const source = columnStatsSource(!!baked, usesServerFilter(layer));
+  const large = usesServerFilter(layer);
+  const baked = await loadBakedStats(layer.id, await getCatalog(), large);
+  const source = columnStatsSource(!!baked, large);
   if (source === 'none') {
     console.warn('no filter stats file for large layer', layer.id); // scripts/bake_large_filter_stats.py
     return null;
@@ -777,13 +786,7 @@ function wireDownloadButton(layer: Layer): void {
     const original = fmt?.textContent ?? '';
     if (fmt) fmt.textContent = 'Rendering…';
     try {
-      await new Promise<void>((resolve) => {
-        const m = map!;
-        m.once('idle', () => resolve());
-        m.triggerRepaint();
-      });
-      const url = map.getCanvas().toDataURL('image/png');
-      triggerDownload(dataUrlToBlob(url), imageFilename(layer.id));
+      triggerDownload(await captureMapPng(map), imageFilename(layer.id));
       if (fmt) {
         fmt.textContent = '✓ Saved';
         setTimeout(() => { if (original) fmt.textContent = original; }, 1400);
@@ -881,6 +884,8 @@ async function wireFilterButton(layer: Layer) {
   document.getElementById('map')?.appendChild(pill);
   const pillText = pill.querySelector<HTMLButtonElement>('.filter-pill__open')!;
   const filterPanel = () => document.querySelector<HTMLElement>('.filter-panel');
+  // Opening the panel takes focus into it (its heading), not left on the map.
+  const focusFilterPanel = () => filterPanel()?.querySelector<HTMLElement>('.filter-panel__title')?.focus({ preventScroll: true });
   const showFilterState = () => {
     if (active.length) {
       btn.dataset.filterCount = String(active.length);
@@ -940,6 +945,7 @@ async function wireFilterButton(layer: Layer) {
     if (existing) { // already built (open, or closed with its filter kept)
       existing.hidden = false;
       showFilterState();
+      focusFilterPanel();
       return;
     }
     const container = document.getElementById('map')!;
@@ -987,6 +993,7 @@ async function wireFilterButton(layer: Layer) {
           showFilterState();
         },
       });
+      focusFilterPanel();
       if (map) {
         requestAnimationFrame(() => {
           flyTo(layerBounds, { padding: panelAwarePadding(), duration: 300 });
@@ -1079,20 +1086,9 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, heading: LayerHeadi
   panel.id = 'map-about-panel';
   panel.hidden = true;
   panel.setAttribute('aria-labelledby', 'about-title');
-  // How much the layer is used (downloads, API and MCP queries): fetched once,
-  // kept, and put back each time the panel re-renders (the ward list arrives later).
-  let usage = '';
-  const fillUsage = () => {
-    const el = panel.querySelector<HTMLElement>('[data-usage]');
-    if (el && usage) { el.textContent = usage; el.hidden = false; }
-  };
-  const render = (wardIndex: WardIndexFile | null = null) => {
-    panel.innerHTML = `<button type="button" class="about-panel__close" aria-label="Close">×</button>` +
-      aboutLayerHtml({ layer, meta: levelMeta, heading, wardIndex });
-    panel.querySelector('.about-panel__close')?.addEventListener('click', () => dispatchOverlay({ type: 'close' }));
-    fillUsage();
-  };
-  render();
+  panel.innerHTML = `<button type="button" class="about-panel__close" aria-label="Close">×</button>` +
+    aboutLayerHtml({ layer, meta: levelMeta, heading });
+  panel.querySelector('.about-panel__close')?.addEventListener('click', () => dispatchOverlay({ type: 'close' }));
   container.appendChild(panel);
   // The usage line and the ward list are fetched the first time the panel shows
   // (closed by default on phones and narrow screens, where many never open it).
@@ -1105,9 +1101,17 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, heading: LayerHeadi
       asked = true;
       fetch(`/api/v1/usage?layer=${encodeURIComponent(layer.id)}`)
         .then((r) => (r.ok ? (r.json() as Promise<Usage>) : null))
-        .then((u) => { if (u) { usage = usageLine(u); fillUsage(); } })
+        .then((u) => {
+          // How much the layer is used (downloads, API and MCP queries).
+          const el = panel.querySelector<HTMLElement>('[data-usage]');
+          if (u && el) { el.textContent = usageLine(u); el.hidden = false; }
+        })
         .catch(() => {});
-      fetchWardIndex(layer.id).then((idx) => { if (idx && panel.isConnected) render(idx); });
+      // Fills only the ward slot: re-rendering the panel would drop the reader's focus.
+      fetchWardIndex(layer.id).then((idx) => {
+        const slot = panel.querySelector<HTMLElement>('[data-ward-slot]');
+        if (idx && slot && panel.isConnected) slot.innerHTML = wardTableHtml(idx);
+      });
     },
     hide: () => { panel.hidden = true; },
   };
@@ -1146,7 +1150,6 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     bounds: INDIA_BBOX,
     fitBoundsOptions: { padding: fitPadding() },
     attributionControl: false,
-    preserveDrawingBuffer: true,
   });
   map = m;
   const live = () => opens.isCurrent(gen) && map === m;

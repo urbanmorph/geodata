@@ -35,6 +35,24 @@ const RELIEF_CREDIT = 'Relief: <a href="https://www.naturalearthdata.com/" targe
 
 const notARegion = ['!', ['in', ['get', 'class'], ['literal', REGION_CLASSES]]];
 
+const ORDER_OPS = new Set(['<', '<=', '>', '>=']);
+const isGet = (e: unknown): e is ['get', string] => Array.isArray(e) && e[0] === 'get' && e.length === 2;
+
+/** `[">=", ["get", "rank"], 20]` on a feature with no rank makes MapLibre log
+ *  "Expected value to be of type number, but found null" (many OSM POIs have
+ *  none). Each such comparison is guarded by a type check, so a missing value
+ *  still matches nothing ('all' stops at the first false), without the warning. */
+export function guardNumericGets(expr: unknown): unknown {
+  if (!Array.isArray(expr)) return expr;
+  const out = expr.map(guardNumericGets);
+  if (ORDER_OPS.has(out[0] as string) && out.length === 3) {
+    const got = out.slice(1).find(isGet);
+    const num = out.slice(1).some((a) => typeof a === 'number');
+    if (got && num) return ['all', ['==', ['typeof', got], 'number'], out];
+  }
+  return out;
+}
+
 /** Liberty without its borders and region names, with every id prefixed so it can share one style with other basemaps. */
 export function trimLiberty(style: StyleLike): StyleLike {
   const sourceId = (id: string) => PREFIX + id;
@@ -49,7 +67,8 @@ export function trimLiberty(style: StyleLike): StyleLike {
     .map((l) => {
       const out: LayerLike = { ...l, id: PREFIX + l.id };
       if (l.source) out.source = sourceId(l.source);
-      if (l['source-layer'] === 'place') out.filter = l.filter ? ['all', l.filter, notARegion] : notARegion;
+      if (l.filter) out.filter = guardNumericGets(l.filter);
+      if (l['source-layer'] === 'place') out.filter = out.filter ? ['all', out.filter, notARegion] : notARegion;
       return out;
     });
   return { sources, layers, sprite: style.sprite, glyphs: style.glyphs };

@@ -4,7 +4,7 @@
 // Themed verb sets capture the "what's happening" feel of each phase so
 // long waits never feel dead. Pick a set or pass your own.
 
-import { escapeHtml } from './util';
+import { escapeHtml, reducedMotion } from './util';
 
 export const VERBS_MAP = [
   'Triangulating polygons…',
@@ -95,7 +95,8 @@ export function overlayLoader(container: HTMLElement, verbs: string[]): Handle {
   root.innerHTML = `<div class="map-loader__ring" aria-hidden="true"></div><div class="map-loader__verb" role="status" aria-live="polite">${escapeHtml(active[i])}</div>`;
   container.appendChild(root);
   const verbEl = root.querySelector('.map-loader__verb') as HTMLElement;
-  const timer = window.setInterval(() => {
+  // Under reduced motion the verb stays put (no text changing every 1.4 s).
+  const timer = reducedMotion() ? undefined : window.setInterval(() => {
     i = (i + 1) % active.length;
     verbEl.textContent = active[i];
   }, 1400);
@@ -119,7 +120,8 @@ export function inlineLoader(target: HTMLElement, verbs: string[]): Handle {
   let active = verbs;
   target.innerHTML = `<span class="il"><span class="il__ring" aria-hidden="true"></span><span class="il__verb" role="status" aria-live="polite">${escapeHtml(active[i])}</span></span>`;
   const verbEl = target.querySelector('.il__verb') as HTMLElement;
-  const timer = window.setInterval(() => {
+  // Under reduced motion the verb stays put (no text changing every 1.4 s).
+  const timer = reducedMotion() ? undefined : window.setInterval(() => {
     i = (i + 1) % active.length;
     verbEl.textContent = active[i];
   }, 1400);

@@ -6,6 +6,7 @@ import {
   typeaheadSQL,
   filterSummary,
   matchCountText,
+  resolveStateCodes,
   type ActiveFilter,
 } from '../src/filter-where';
 
@@ -259,5 +260,21 @@ describe('buildMaplibreFilter — composition', () => {
       ['in', ['get', 'zone'], ['literal', ['Adyar']]],
       ['==', ['get', 'approved'], true],
     ]);
+  });
+});
+
+// The pre-baked per-state extract is the whole state: it may stand in for the
+// filter only when every picked value is a known state (else the export narrows).
+describe('resolveStateCodes', () => {
+  const names = new Map([['kerala', 32], ['goa', 30]]);
+  const inF = (col: string, values: (string | number)[]): ActiveFilter[] => [{ kind: 'in', col, values }];
+  it('maps state names and codes', () => {
+    expect(resolveStateCodes(inF('stname', ['Kerala']), names)).toEqual([32]);
+    expect(resolveStateCodes(inF('state_lgd', ['32', 30]), names)).toEqual([32, 30]);
+  });
+  it('returns [] when any value does not map, instead of dropping it', () => {
+    expect(resolveStateCodes(inF('stname', ['Kerala', 'Atlantis']), names)).toEqual([]);
+    expect(resolveStateCodes(inF('state', ['Atlantis']), names)).toEqual([]);
+    expect(resolveStateCodes(inF('state_lgd', ['32', 'x']), names)).toEqual([]);
   });
 });

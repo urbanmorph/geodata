@@ -9,17 +9,17 @@ export function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
 
-/** "512 B", "221 KB", "5.0 MB", "3.00 GB"; "—" when unknown. */
+/** "512 B", "221 KB", "5.0 MB", "3.00 GB"; "n/a" when unknown. */
 export function fmtBytes(n) {
-  if (n == null) return '—';
+  if (n == null) return 'n/a';
   if (n < 1024) return n + ' B';
   if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
   if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
   return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
 }
 
-/** A whole number in Indian grouping (29,40,912); "—" when unknown, like fmtBytes. */
-export const fmtInt = (n) => (n == null ? '—' : n.toLocaleString('en-IN'));
+/** A whole number in Indian grouping (29,40,912); "n/a" when unknown, like fmtBytes. */
+export const fmtInt = (n) => (n == null ? 'n/a' : n.toLocaleString('en-IN'));
 
 /** Compact count: one decimal while it reads (9.3k, 22.1k), whole units after (250k), then M. */
 export function fmtCount(n) {

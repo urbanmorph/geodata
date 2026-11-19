@@ -15,7 +15,7 @@ describe('the search result line leads somewhere', () => {
     expect(matchSummaryHtml(1, '<b>x')).not.toContain('<b>');
   });
   it('the home search uses it', () => {
-    expect(readFileSync(resolve(__dirname, '../src/main.ts'), 'utf8')).toMatch(/searchMeta\.innerHTML = matchSummaryHtml\(/);
+    expect(readFileSync(resolve(__dirname, '../src/main.ts'), 'utf8')).toMatch(/searchMatch\.innerHTML = matchSummaryHtml\(/);
   });
 });
 

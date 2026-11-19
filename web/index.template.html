@@ -296,9 +296,9 @@
         box-shadow: var(--shadow); padding: 16px 18px;
       }
       .ls-kicker { font: 600 var(--fs-xs) var(--font-mono); color: var(--brand-green);
-        display: flex; align-items: center; gap: 7px; margin-bottom: 4px; }
+        display: flex; align-items: center; gap: 7px; margin-bottom: 4px; padding-right: 36px; }
       .ls-kicker svg { width: 14px; height: 14px; color: var(--accent); flex: 0 0 auto; }
-      .ls-name { font-size: var(--fs-2xl); font-weight: 850; letter-spacing: -.03em; margin: 0 0 4px; line-height: 1.15; }
+      .ls-name { font-size: var(--fs-2xl); font-weight: 850; letter-spacing: -.03em; margin: 0 0 4px; line-height: 1.15; padding-right: 36px; }
       .ls-sub { color: var(--muted); margin: 0; font-size: var(--fs-sm); }
       .ls-sky { margin-top: 14px; }
       .ls-sky__via { white-space: nowrap; color: var(--muted); }
@@ -313,7 +313,7 @@
         .ls-actions button:hover { background: var(--land); }
       }
       .ls-actions button.primary { background: var(--accent-fill); color: var(--on-accent-fill); box-shadow: var(--shadow-sm); }
-      .ls-close { position: absolute; top: 8px; right: 12px; background: none; border: none;
+      .ls-close { position: absolute; top: 4px; right: 4px; width: 44px; height: 44px; background: none; border: none; border-radius: var(--radius-sm);
         color: var(--muted); font-size: var(--fs-xl); line-height: 1; cursor: pointer; }
       .ls-msg { color: var(--muted); font-size: var(--fs-base); }
       .ls-spinner { display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px;
@@ -432,7 +432,7 @@
       @keyframes filter-slide { from { transform: translateX(8px); opacity: 0; } to { transform: none; opacity: 1; } }
       .filter-panel__head { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; border-bottom: 1px solid var(--line); }
       .filter-panel__title { font-weight: 600; font-size: var(--fs-base); }
-      .filter-panel__close { background: transparent; border: none; font-size: var(--fs-xl); line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
+      .filter-panel__close { min-width: 44px; min-height: 44px; background: transparent; border: none; font-size: var(--fs-xl); line-height: 1; color: var(--muted); cursor: pointer; padding: 0 4px; }
       .filter-panel__close:hover { color: var(--fg); }
       .filter-panel[hidden] { display: none; }
       .filter-panel__body { padding: 18px 18px 0; display: flex; flex-direction: column; gap: 16px; flex: 1; overflow-y: auto; }
@@ -556,9 +556,9 @@
       .filter-bool__btn:hover { border-color: var(--accent); color: var(--accent); }
       .filter-bool__btn.is-active { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 
-      /* Touch screens: 44 px to tap. Chips and the attribution (i) keep their look
+      /* Any touch input (touch laptops too): 44 px to tap. Chips and the attribution (i) keep their look
          and get an invisible hit area; MapLibre's zoom and compass grow to 44 px. */
-      @media (pointer: coarse) {
+      @media (any-pointer: coarse) {
         .filter-chips { gap: 18px 8px; }
         .filter-chip { position: relative; }
         .filter-chip::before { content: ""; position: absolute; inset: -9px -4px; }
@@ -833,7 +833,7 @@
         </div>
         <p class="find-ward__status" id="find-ward-status" role="status" hidden></p>
         <!-- QUICK_SEARCH -->
-        <p class="search-meta" id="search-meta"><span class="search-meta__layers"><!-- LAYER_TOTAL --> layers</span><span id="dl-total"><!-- DOWNLOAD_TOTAL --></span> · <span class="search-meta__updated">updated <!-- UPDATED --></span></p>
+        <p class="search-meta" id="search-meta"><span id="search-meta-idle"><span class="search-meta__layers"><!-- LAYER_TOTAL --> layers</span><span id="dl-total"><!-- DOWNLOAD_TOTAL --></span><span id="api-total"><!-- API_TOTAL --></span> · <span class="search-meta__updated">updated <!-- UPDATED --></span></span><span id="search-meta-match" hidden></span></p>
       </div>
       <!-- INDIA_MAP -->
     </section>
@@ -883,7 +883,7 @@
       </header>
       <div id="map"><div id="map-loading">loading map…</div></div>
       <div class="map-scrim" id="map-scrim" aria-hidden="true"></div>
-      <div class="locate-sheet" id="locate-sheet" role="dialog" aria-modal="false" aria-hidden="true"></div>
+      <div class="locate-sheet" id="locate-sheet" role="dialog" aria-label="Location details" aria-modal="false" aria-hidden="true"></div>
     </div>
 
     <script type="module" src="/src/main.ts"></script>

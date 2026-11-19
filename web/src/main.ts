@@ -50,14 +50,21 @@ const warmCatalog = () => void import('./catalog').then((m) => m.getCatalog()).c
 // without touching the URL so the canonical /view/<id> stays shareable.
 const viewProbe = isViewPath(location.pathname);
 
+// Each show and hide is a new generation: a show still waiting for the map's
+// code when the map is closed stops there (no layer opened in a hidden overlay).
+let shows = 0;
+
 async function showMap(layerId: string) {
+  const show = ++shows;
   overlay.classList.add('open');
   openDialog(overlay);
   document.body.style.overflow = 'hidden';
   try {
     const m = await loadMap();
+    if (show !== shows) return; // closed meanwhile
     await m.openLayer(layerId, { titleEl: mapTitle });
   } catch (e) {
+    if (show !== shows) return;
     // The map's own code is a separate download, and the catalog another: with no
     // connection they can't load, so say why instead of leaving "loading map…" up.
     showLayerError(document.getElementById('map')!, e);
@@ -70,6 +77,7 @@ async function showMap(layerId: string) {
 const HOME_TITLE = "India's open atlas: every boundary, one search away · bharatlas";
 
 async function hideMap() {
+  shows++; // a show still loading the map stops
   // Hands focus back to what opened the map (or out of it) before hiding it.
   closeDialog(overlay);
   overlay.classList.remove('open');
@@ -171,7 +179,8 @@ async function showWardAnswer(raw: string): Promise<void> {
 // /layers row (prerender builds it from those rows). Fetched the first time
 // the search is focused or hovered, so the home page carries no list.
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
-const searchMeta = document.getElementById('search-meta');
+const searchIdle = document.getElementById('search-meta-idle');
+const searchMatch = document.getElementById('search-meta-match');
 if (searchInput) {
   const pop = document.getElementById('search-pop');
   const resultsBox = document.getElementById('search-results');
@@ -195,16 +204,19 @@ if (searchInput) {
     searchInput.setAttribute('aria-expanded', String(open));
     if (!open) searchInput.removeAttribute('aria-activedescendant');
   };
-  // innerHTML, not textContent: the idle line carries the #dl-total slot and its
-  // emphasised count span, which a plain-text snapshot would flatten.
-  const idleMeta = searchMeta?.innerHTML ?? '';
+  // The idle line ("N layers · X downloads …") is hidden while a search shows
+  // its match line, never swapped out: live counts patched into it stay.
+  const showMatchLine = (on: boolean) => {
+    if (searchIdle) searchIdle.hidden = on;
+    if (searchMatch) searchMatch.hidden = !on;
+  };
 
   const run = async (): Promise<void> => {
     query = searchInput.value.trim().toLowerCase();
     document.body.classList.toggle('searching', !!query);
     if (!query) {
       setPop(false);
-      if (searchMeta) searchMeta.innerHTML = idleMeta;
+      showMatchLine(false);
       return;
     }
     const asked = query;
@@ -222,7 +234,8 @@ if (searchInput) {
     activeHit = -1;
     searchInput.removeAttribute('aria-activedescendant');
     setPop(true);
-    if (searchMeta) searchMeta.innerHTML = matchSummaryHtml(totalLayers, searchInput.value.trim());
+    if (searchMatch) searchMatch.innerHTML = matchSummaryHtml(totalLayers, searchInput.value.trim());
+    showMatchLine(true);
   };
 
   searchInput.addEventListener('input', () => {

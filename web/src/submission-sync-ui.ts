@@ -3,7 +3,10 @@
 import type { createSubmissionSync } from './submission-sync';
 import { isConnectionError } from '../../shared/connection';
 
-type Sync = Pick<ReturnType<typeof createSubmissionSync>, 'state' | 'link' | 'turnOn' | 'turnOff' | 'addPasskey' | 'unlockWithPasskey'>;
+type Sync = Pick<ReturnType<typeof createSubmissionSync>, 'state' | 'turnOn' | 'turnOff' | 'addPasskey' | 'unlockWithPasskey'>;
+
+/** Shown when an old sync link (#sync=…) was opened: links are no longer adopted. */
+export const SYNC_LINK_NOTE = 'Sync links no longer work. Use Unlock with your passkey instead.';
 
 const NOTICE =
   "Keeps an <strong>encrypted copy</strong> of these admin links on bharatlas, so you can manage your submissions from your other devices. bharatlas can't read it and doesn't know whose it is. It's deleted after <strong>12 months</strong> without use, or as soon as you turn sync off.";
@@ -52,18 +55,13 @@ export function renderSubmissionSync(box: HTMLElement, sync: Sync, opts: { passk
       : 'not yet';
     box.innerHTML =
       `<h3>Sync is on <span class="hint">(last synced ${when})</span></h3>` +
-      `<label class="hint" for="subs-sync-link">Your sync link (keep it private). Open it on your other device to bring these links there. Anyone with it can manage your submissions.</label>` +
-      `<input id="subs-sync-link" readonly>` +
       (opts.passkeys
         ? st.passkey
-          ? `<p class="hint">Passkey added. On a new device, choose <strong>Unlock with your passkey</strong> instead of opening the link.</p>`
-          : `<button type="button" class="btn btn--line" id="subs-pk-add">Add a passkey</button><p class="hint">Unlock on a new device with Face ID or fingerprint, no link needed.</p>`
-        : '') +
+          ? `<p class="hint">Passkey added. On another device, choose <strong>Unlock with your passkey</strong> to bring these links there.</p>`
+          : `<button type="button" class="btn btn--line" id="subs-pk-add">Add a passkey</button><p class="hint">Then, on another device, choose <strong>Unlock with your passkey</strong> (Face ID or fingerprint) to bring these links there.</p>`
+        : `<p class="hint">Other devices unlock the synced copy with a passkey, which this browser can't make. Add one from a browser that can.</p>`) +
       `<button type="button" class="btn btn--line" id="subs-sync-off">Turn off sync and delete the synced copy</button>` +
       noteHtml;
-    const link = box.querySelector<HTMLInputElement>('#subs-sync-link')!;
-    link.value = sync.link(location.origin) ?? '';
-    link.onfocus = () => link.select();
     const add = box.querySelector<HTMLButtonElement>('#subs-pk-add');
     if (add) act(add, () => sync.addPasskey());
     const off = box.querySelector<HTMLButtonElement>('#subs-sync-off')!;

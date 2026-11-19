@@ -2,8 +2,8 @@
 // browser (my-submissions.ts) are the only way to manage a published layer, so
 // losing the browser's storage used to lose them. This syncs them, end to end
 // encrypted, through the same keyring service as collect (shared/keyring.ts):
-// its own blob, derived from the same secret with its own label, so one sync link
-// or one passkey unlocks both apps and neither can overwrite the other's copy.
+// its own blob, derived from the same secret with its own label, so one
+// passkey unlocks both apps and neither can overwrite the other's copy.
 //
 // Turning it off here deletes only bharatlas's copy, never the passkey's stored
 // secret, which collect's sync may still use.
@@ -14,7 +14,6 @@ import {
 import { createPasskeyPrf, passkeyPrf, recoverSecret, storeWrappedSecret, type PasskeyHandle } from '../../shared/passkey';
 import { listSubmissions, saveSubmission, type StoredSubmission } from './my-submissions';
 
-export { syncSecretFrom } from '../../shared/keyring';
 
 export const SUBMISSIONS_LABEL = 'bharatlas-submissions';
 const STATE_KEY = 'bharatlas:keyring';
@@ -78,18 +77,8 @@ export function createSubmissionSync({ api, storage, passkey }: SubmissionSyncDe
     syncNow,
     /** Keep a new submission's link here (and in the synced copy at the next sync). */
     saveLocal: (s: StoredSubmission) => saveSubmission(s, storage),
-    /** This device's sync link (keep private), or null when sync is off. */
-    link: (origin: string) => {
-      const st = state();
-      return st ? `${origin}/preview#sync=${st.secret}` : null;
-    },
     async turnOn() {
       saveState({ secret: newSecret() });
-      await syncNow();
-    },
-    /** Opened a sync link here: adopt its secret and merge both lists. */
-    async join(secret: string) {
-      saveState({ secret });
       await syncNow();
     },
     async turnOff() {

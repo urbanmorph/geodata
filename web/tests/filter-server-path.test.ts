@@ -177,6 +177,48 @@ describe('shape exports on large layers (back on after the 18 Nov 2026 pause)', 
   });
 });
 
+describe('a stale count never gates a newer filter\'s export', () => {
+  it('the older, slower count arriving last does not replace the newer plan', async () => {
+    // KA: a slow count over the cap. SK: a fast count under it.
+    let releaseKA!: () => void;
+    fetchMock.mockImplementation(async (url: string) => {
+      const f = new URL(url, 'http://x').searchParams.get('filter')!;
+      if (f.includes('"KA"')) {
+        await new Promise<void>((r) => { releaseKA = r; });
+        return plan(60_000, 50 * MB);
+      }
+      return plan(5, 1 * MB);
+    });
+    mount(2300 * MB);
+    chip('sname', 'KA').click();
+    await vi.advanceTimersByTimeAsync(400); // KA's count is in flight
+    chip('sname', 'KA').click(); // off
+    chip('sname', 'SK').click();
+    await vi.advanceTimersByTimeAsync(400); // SK counted
+    releaseKA();
+    await vi.advanceTimersByTimeAsync(10); // KA's stale answer lands
+    document.querySelector<HTMLButtonElement>('[data-fmt="csv"]')!.click();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(document.querySelector('#filter-status')!.textContent).not.toMatch(/60,000/);
+    expect(clicked).toHaveLength(1);
+    expect(JSON.parse(new URL(clicked[0]).searchParams.get('filter')!)).toEqual([{ col: 'sname', kind: 'in', values: ['SK'] }]);
+  });
+});
+
+describe('a filtered export counts as a download of that layer and format', () => {
+  it('pings the /api/dl counter for the format\'s own file without following the redirect', async () => {
+    mount(29 * MB);
+    chip('sname', 'KA').click();
+    await vi.advanceTimersByTimeAsync(400);
+    document.querySelector<HTMLButtonElement>('[data-fmt="geojson"]')!.click();
+    await vi.advanceTimersByTimeAsync(10);
+    const pings = fetchMock.mock.calls.filter((c) => String(c[0]).startsWith('/api/dl/'));
+    expect(pings).toHaveLength(1);
+    expect(pings[0][0]).toBe('/api/dl/water/x.geojson.zip');
+    expect(pings[0][1]).toMatchObject({ redirect: 'manual', keepalive: true });
+  });
+});
+
 describe('a layer under LARGE_FILTER_BYTES', () => {
   it('keeps the in-browser DuckDB count and export', async () => {
     mount(29 * MB);

@@ -102,7 +102,7 @@ describe('reading width on docs and MCP', () => {
 // ── Design audit 2026-11-18 (fix 1): high-impact items and quick wins ──
 const tmplHome = read('index.template.html');
 const tmplLayers = read('layers.template.html');
-const coarse = (css: string) => [...css.matchAll(/@media \(pointer: coarse\) \{([\s\S]*?)\n\s*\}\n/g)].map((m) => m[1]).join('\n');
+const coarse = (css: string) => [...css.matchAll(/@media \((?:any-)?pointer: coarse\) \{([\s\S]*?)\n\s*\}\n/g)].map((m) => m[1]).join('\n');
 
 describe('H3. an active filter shows when the Filter panel is closed', () => {
   const map = read('src/map.ts');
@@ -135,6 +135,15 @@ describe('H4. map tap targets are 44 px on touch screens', () => {
   it('MapLibre zoom and compass buttons are 44 px; the attribution (i) gets a hit area', () => {
     expect(touch).toMatch(/\.maplibregl-ctrl-group button \{[^}]*width: 44px; height: 44px/);
     expect(touch).toMatch(/\.maplibregl-ctrl-attrib-button::before \{[^}]*inset: -10px/);
+  });
+  // A touch laptop's primary pointer is fine (a trackpad), so (pointer: coarse)
+  // missed it; any touch input now gets the map's 44 px targets.
+  it('the map targets apply on any device with touch, not only a coarse primary pointer', () => {
+    expect(tmplHome).toMatch(/@media \(any-pointer: coarse\) \{\s*\.filter-chips/);
+  });
+  it('the locate sheet and Filter panel close buttons are 44 x 44 everywhere', () => {
+    expect(tmplHome).toMatch(/\.ls-close \{[^}]*width: 44px; height: 44px;/);
+    expect(tmplHome).toMatch(/\.filter-panel__close \{[^}]*min-width: 44px; min-height: 44px;/);
   });
   it('licence badge links and the header Install app have a 44 px hit area', () => {
     const shared = coarse(TOKENS);

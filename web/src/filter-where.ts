@@ -87,15 +87,14 @@ export function resolveStateCodes(
   if (filters.length !== 1) return [];
   const f = filters[0];
   if (f.kind !== 'in') return [];
+  let codes: (number | undefined)[] = [];
   if (STATE_CODE_COL.test(f.col)) {
-    return f.values.map((v) => (typeof v === 'number' ? v : Number(v))).filter(Number.isFinite);
+    codes = f.values.map((v) => (typeof v === 'number' ? v : Number(v)));
+  } else if (STATE_NAME_COL.test(f.col)) {
+    codes = f.values.map((v) => stateNameToCode.get(String(v).toLowerCase()));
   }
-  if (STATE_NAME_COL.test(f.col)) {
-    return f.values
-      .map((v) => stateNameToCode.get(String(v).toLowerCase()))
-      .filter((c): c is number => c != null);
-  }
-  return [];
+  // All or nothing: dropping an unmapped value would silently narrow the export.
+  return codes.every((c) => c != null && Number.isFinite(c)) ? (codes as number[]) : [];
 }
 
 export type MaplibreFilter = FilterSpecification | null;
