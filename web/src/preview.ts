@@ -573,8 +573,8 @@ function renderSuccess(payload: SuccessPayload): void {
     created_at: Date.now(),
     permission: 'admin',
   });
-  // This admin link is the only way to manage the submission: ask the browser to
-  // keep this site's storage, and send it to the synced copy if sync is on.
+  // This token is the only proof the author made the submission: ask the browser
+  // to keep this site's storage, and send it to the synced copy if sync is on.
   void navigator.storage?.persist?.().catch(() => {});
   linksChanged();
 
