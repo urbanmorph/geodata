@@ -80,7 +80,7 @@ const MAX_ROWS = 1000;
 const MAX_GROUP_BY_VALUES = 500;
 const MAX_DISTINCT_SAMPLE = 20;
 /** Most distinct group keys one group_by holds while counting. Every key is an
- *  object entry (plus a sums record), so grouping 4.4M Overture names by name
+ *  object entry (plus a sums record), so grouping 4.8M Overture names by name
  *  would hold millions of them in a 128 MB Worker before the top 500 are cut. */
 export const MAX_GROUP_KEYS = 50_000;
 

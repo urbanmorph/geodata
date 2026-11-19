@@ -8,7 +8,7 @@ Adds 17 MCP tools in two halves:
 
 **Read (no auth):** query curated geo layers (state to village boundaries, city wards, forests, wildlife, rivers, reservoirs, hospitals, highways, airports, floods, seismic and eco zones, pincodes) and community submissions; locate any lat/lng across all admin levels and zones; find nearby features; download in Parquet, PMTiles, GeoJSON, KML or Shapefile.
 
-**Author (collect):** create a map online at collect.bharatlas.com, register its share link here, then review contributions and publish approved points into the bharatlas catalog. What you can do is set by the link scope (view / collect / admin).
+**Author (collect):** create a map online at collect.bharatlas.com, register its share link here, then review contributions and submit approved points to bharatlas as a layer (reviewed before it appears). What you can do is set by the link scope (view / collect / admin).
 
 Claude calls the tools automatically when you ask things like:
 

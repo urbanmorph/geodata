@@ -8,44 +8,44 @@ Status key: ✅ implemented · 🟡 partial · ⛳ gap, with intended direction.
 
 ## Scorecard
 
-### People before digital (rights and collective identity) — ✅
-We render upstream data unedited and never editorialize; disputes about the data belong with the source, not with us. Every layer and community submission carries its source, licence and vintage. Contributors own their data via a token and can edit or delete it at any time.
-Evidence: [/terms#liability](https://bharatlas.com/terms#liability), per-card attribution, the anonymous submit and owner-token flow.
+### People before digital (rights and collective identity): ✅
+We render upstream data unedited and never editorialize; disputes about the data belong with the source, not with us. Every layer and community submission carries its source, licence and vintage. Contributors keep the credit and the licence they chose. Each submission comes with a token that proves you made it; to change or remove a submission, contact us with that token. In collect, a map's admin controls their own map.
+Evidence: [/terms#liability](https://bharatlas.com/terms#liability), per-card attribution, the anonymous submit and token flow.
 
-### Transparency and accountability — ✅
-Open source (MIT), open repository, an open REST API with no key, a public single-source catalog, source and fetch-date on every layer, and this scorecard itself. Public disputes about rights or metadata go to GitHub issues, so the governance is an open, version-controlled record.
+### Transparency and accountability: ✅
+Open source (MIT), open repository, an open REST API with no key, a public single-source layer index (`catalog.json`), source and fetch-date on every layer, and this scorecard itself. Public disputes about rights or metadata go to GitHub issues, so the governance is an open, version-controlled record.
 Evidence: this repository, [/docs](https://bharatlas.com/docs), `catalog.json`, this file's git history.
 
-### Decentralisation and no lock-in — ✅
+### Decentralisation and no lock-in: ✅
 No account, no signup. Every layer downloads in full as open formats (Parquet, PMTiles, GeoJSON, KML, Shapefile), so nothing is trapped in the platform. The static architecture is self-hostable and forkable.
 Evidence: per-card downloads, the [MIT licence](./LICENSE), open formats.
 
-### Free software and the digital commons — ✅
-MIT code. Open data under open licences only: the submission form rejects proprietary or "all rights reserved" content at the door. Curated layers carry CC0, CC-BY or GODL-India.
+### Free software and the digital commons: ✅
+MIT code. Open data under open licences only: the submission form rejects proprietary or "all rights reserved" content at the door. Each curated layer keeps its source's open licence: CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, CC-BY-SA-2.5-IN, ODbL-1.0, GODL-India, MIT, or CDLA-Permissive-2.0 / Apache-2.0.
 Evidence: [LICENSE](./LICENSE), the open-licence allowlist in the submit flow.
 
-### Privacy — ✅
+### Privacy: ✅
 No ad-tech, no behavioural or cross-site tracking, no tracking cookies, no fingerprinting. The only measurement is Cloudflare Web Analytics: cookieless, aggregate page counts with no personal data, disclosed on the privacy page. Contribution is anonymous: no account, no email, no personal data collected.
 Evidence: [/privacy](https://bharatlas.com/privacy), the anonymous token flow.
 
-### Platform cooperativism — ✅
-Anyone can publish open geo data here for free and anonymously. Community layers are permanent and credited to the contributor, on their terms.
+### Platform cooperativism: ✅
+Anyone can submit open geo data here, free and anonymously, from the Contribute page or from a collect map. Submissions wait in a queue and are reviewed before they appear; once published, a community layer is credited to its contributor under the licence they chose.
 Evidence: the submit flow, community cards, contributor attribution.
 
-### Humans in the loop (AI does not cut people out) — ✅
+### Humans in the loop (AI does not cut people out): ✅
 The MCP server and REST API expose data to AI agents with their source and licence, and the published-page provenance lets answers trace back to the origin. The machine-readable rights signals now travel with the data: every /view page's Dataset JSON-LD carries `creditText` (the credit to reproduce), `conditionsOfAccess` and `usageInfo` (a link to the terms); `robots.txt` states the reuse-and-attribution norm for crawlers; and the MCP instructions tell agents to credit the source and honor the licence.
 Evidence: the /view page Dataset structured data, [/robots.txt](https://bharatlas.com/robots.txt), the MCP server instructions.
 
-### A non-digital alternative must exist — 🟡
+### A non-digital alternative must exist: 🟡
 Every layer is downloadable as files you can use offline and print, and view pages are plain HTML readable without JavaScript. But bharatlas is a data tool, not a citizen-facing service, so the true non-digital fallback for an end-need (for example, "which ward am I in") is the government office, not us.
 Direction: keep offering printable and exportable artifacts as the bridge, and never make a data path digital-only.
 
-### Grassroots and reaching the divide-affected — ⛳
+### Grassroots and reaching the divide-affected: ⛳
 Today's audience is English- and GIS-literate. Vernacular access is not built.
 Direction: not classic interface translation (the authoritative data is English-transliteration, and translating place names ourselves would breach faithful presentation), but conversational access: let the AI layer take a question in any Indian language, query the canonical data, and answer in that language.
 
-### Algorithmic fairness — mostly not applicable
-bharatlas runs no algorithm that makes decisions about people; it is a catalog. The one place it touches AI is access (the MCP), covered by the "humans in the loop" row above.
+### Algorithmic fairness: mostly not applicable
+bharatlas runs no algorithm that makes decisions about people; it is an atlas of open data layers. The one place it touches AI is access (the MCP), covered by the "humans in the loop" row above.
 
 ## Fork this
 

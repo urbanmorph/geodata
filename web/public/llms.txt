@@ -2,7 +2,7 @@
 
 > India's open atlas. View, query, and download open geo data from state to village.
 
-bharatlas is a visual catalog, REST API, and MCP server for India's geospatial data. Open-licensed layers covering admin boundaries (state, district, subdistrict, block, village), city wards, forests, wildlife sanctuaries, groundwater wells, rivers, reservoirs, dams, eco-sensitive zones, seismic zones, flood history, highways, airports, health facilities, pincodes, electoral constituencies, and community submissions.
+bharatlas is an atlas, REST API, and MCP server for India's geospatial data. Open-licensed layers covering admin boundaries (state, district, subdistrict, block, gram panchayat, village), city wards for 30+ cities, forests, wildlife sanctuaries, groundwater, rivers, canals, reservoirs, dams, water bodies, eco-sensitive zones, geology, seismic zones, flood history, highways, railways, metro and suburban rail stations and lines, bus stops, airports, hospitals, schools, pincodes, electoral constituencies, police jurisdictions, public finance, and community submissions. A layer total counts the curated layers plus the approved community submissions (one that has been baked into a curated layer counts once).
 
 ## MCP server
 
@@ -23,61 +23,67 @@ The server sends instructions at connection time that teach schema-first queryin
 
 ## REST API
 
-Base URL: https://bharatlas.com/api/v1
+Base URL: `https://bharatlas.com/api/v1`
 No auth. No API key. CORS enabled. Please send a `User-Agent` that names your app (for example `my-app/1.0`). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are.
 OpenAPI 3.1 description: https://bharatlas.com/api/v1/openapi.json
 Developer guide: https://bharatlas.com/docs
 Rate limits: 120 requests/minute per IP; 60/minute for the locate endpoints.
 
 Endpoints:
-- GET /api/v1/layers — list layers with ?category, ?level, ?source, ?q, ?limit, ?offset
-- GET /api/v1/layers/:id — single layer detail with download URLs
-- GET /api/v1/layers/:id/schema — column names, types (nested columns marked), distinct values
-- GET /api/v1/layers/:id/query — select any column; filter (exact, case-insensitive) and group_by on flat columns
-- GET /api/v1/layers/:id/counts — feature counts with optional grouping
-- GET /api/v1/locate — point-in-polygon across admin layers + zones, with LGD codes (and the city ward where covered)
-- GET /api/v1/layers/:id/locate — the feature of one layer containing, or nearest to, a point
-- GET /api/v1/nearby — find features within a radius (points, polygons, lines)
-- GET /api/v1/categories — data categories with layer counts
-- GET /api/v1/levels — admin hierarchy levels
-- GET /api/v1/downloads/counts — download statistics
-- GET /api/v1/submissions — community-contributed layers
-- GET /api/v1/submissions/:id — single submission detail
-- GET /api/v1/releases — dated, immutable releases (same as https://bharatlas.com/releases/index.json)
+- GET /api/v1/layers: list layers with ?category, ?level, ?source, ?q, ?limit, ?offset
+- GET /api/v1/layers/:id: single layer detail with download URLs, attribution, licence and dated versions to cite
+- GET /api/v1/layers/:id/schema: column names, types (nested columns marked), distinct values
+- GET /api/v1/layers/:id/query: select any column; filter (where for exact, case-insensitive matches; filter as a JSON list for in, range, search and bool) and group_by with sum on flat columns. An unknown column is a 400 that lists the layer's columns.
+- GET /api/v1/layers/:id/export: the rows matching a filter, with their shapes, as GeoJSON, KML or CSV (format=; estimate=1 for the count and size only; at most 50,000 rows)
+- GET /api/v1/layers/:id/counts: feature counts with optional grouping (deprecated: use /query with group_by)
+- GET /api/v1/locate: point-in-polygon across admin layers and zones, with LGD codes (and the city ward where covered); ids in layers= that are not layers come back in unknown_layers
+- GET /api/v1/layers/:id/locate: the feature of one layer containing, or nearest to, a point (mode=auto, contains or nearest)
+- GET /api/v1/nearby: find features within a radius (points, polygons, lines)
+- GET /api/v1/categories: themes (categories) with layer counts
+- GET /api/v1/levels: admin hierarchy levels
+- GET /api/v1/downloads/counts: download statistics
+- GET /api/v1/usage: per-layer use: downloads, and API and MCP calls that name the layer (?layer= for one)
+- GET /api/v1/submissions: approved community-contributed layers
+- GET /api/v1/submissions/:id: single submission detail
+- GET /api/v1/releases: dated, immutable releases (same as https://bharatlas.com/releases/index.json)
 
 Join on LGD codes: State_LGD (lgd_states), dist_lgd (lgd_districts), subdt_lgd (lgd_subdistricts), block_lgd (lgd_blocks), vil_lgd (lgd_villages). The LGD layers also carry Census 2011 codes (stcode11, dtcode11, sdtcode11).
 
 ## Releases and the Census 2011 ↔ LGD crosswalk
 
-Dated releases are named `bharatlas-<dataset>-<year>.<month>` (e.g. bharatlas-cw-2026.11), never reused, and pinned by SHA-256: cite `<code>+sha256:<hex>`. Each lives at https://bharatlas.com/releases/<code>/ with manifest.json (files, sha256, bytes, rows, licence, the source credited first and its version), CHANGES.md and SHA256SUMS. Index: https://bharatlas.com/releases/index.json.
+Dated releases are named `bharatlas-<dataset>-<year>.<month>` (e.g. bharatlas-cw-2026.11), never reused, and pinned by SHA-256: cite `<code>+sha256:<hex>`. Each lives at https://bharatlas.com/releases/<code>/ with manifest.json (files, sha256, bytes, rows, licence, the source credited first and its version), CHANGES.md and SHA256SUMS. Index: https://bharatlas.com/releases/index.json; browse at https://bharatlas.com/releases.
+
+Persistent addresses (w3id): https://w3id.org/bharatlas lists the releases; https://w3id.org/bharatlas/<dataset> lists one dataset's releases; https://w3id.org/bharatlas/<dataset>/latest is its newest manifest; https://w3id.org/bharatlas/<dataset>/<YYYY.MM>[/<file>] is one release (or one of its files). To cite: name the code and pin, and link the w3id address, e.g. "bharatlas-cw-2026.11+sha256:<hex>, https://w3id.org/bharatlas/cw/2026.11". The MCP get_layer_detail tool returns each layer's versions to cite.
 
 - bharatlas-cw-…: the Census 2011 ↔ LGD crosswalk, one table per level (cw_states, cw_districts, cw_subdistricts, cw_blocks, cw_villages; CSV and Parquet). Each row is an LGD code, its name, the Census 2011 code its LGD layer carries, and a relation (1:1, split, merge, split+merge, post-2011 code, no 2011 code, no LGD code). Districts made after 2011 carry a code past 640, not their parent's, so their parent is not in this data; splits show at the subdistrict, block and village levels. Each table keeps its LGD layer's licence.
 - bharatlas-catalog-…: the dated catalogue record: per layer the source, the source's version, fetch date, SHA-256 of the served file, licence and source link.
 
 ## What you can ask
 
-- "How many national parks vs wildlife sanctuaries?" — query_layer with group_by
-- "How many villages in Bengaluru Urban district?" — query_layer with where filter
+- "How many national parks vs wildlife sanctuaries?": query_layer with group_by
+- "How many villages in Bengaluru Urban district?": query_layer with where filter
 - "How much cropland does each district have?": query_layer on corestack_lulc_blocks with group_by=district and sum=cropland_ha
 - "How many tubewells does each state have?": query_layer on mi6_wells_districts with group_by=state and sum=shallow_tw,medium_tw,deep_tw
-- "Which airports in Karnataka are near water bodies?" — query_layer + nearby across layers
-- "What state, district, seismic zone is this point in?" — locate
-- "Reservoirs within 50km of Bengaluru?" — nearby
-- "How many health facilities in Bihar?" — query_layer with state filter
+- "Which airports in Karnataka are near water bodies?": query_layer and nearby across layers
+- "What state, district, seismic zone is this point in?": locate
+- "Reservoirs within 50km of Bengaluru?": nearby
+- "How many health facilities in Bihar?": query_layer with state filter
 
 ## Data sources
 
-LGD (Local Government Directory), SOI (Survey of India), Bhuvan (NRSC/ISRO), OpenCity/Oorvani Foundation, DataMeet, PMGSY, PM GatiShakti, Bharatmaps (NIC), bharatviz, geoBoundaries, CWC (Central Water Commission), Ministry of Jal Shakti (Minor Irrigation Census), Overture Maps Foundation, data.gov.in.
+LGD (Local Government Directory), SOI (Survey of India), Bhuvan and NDEM (NRSC/ISRO), OpenCity/Oorvani Foundation, DataMeet, PMGSY, PM GatiShakti, Bharatmaps (NIC), NIC HealthGIS, Forest Survey of India, Geological Survey of India, CGWB, CWC (India-WRIS), Ministry of Jal Shakti (Minor Irrigation and Water Bodies Census), SLUSI, ISRO VEDAS, Swachh Bharat Mission (Urban), UDISE, CityFinance, CoRE Stack, ramSeraph/indianopenmaps, OpenStreetMap contributors, Overture Maps Foundation, bharatviz, geoBoundaries, data.gov.in.
 
-All open-licensed: CC0, CC-BY, CC-BY-SA, ODbL, GODL-India, CDLA-Permissive, Apache-2.0, MIT.
+Each layer keeps its own open licence: CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, CC-BY-SA-2.5-IN, ODbL-1.0, GODL-India, MIT, CDLA-Permissive-2.0 / Apache-2.0 (some layers are dual-licensed, e.g. CC0-1.0 / CC-BY-4.0). Layers marked non_commercial are for non-commercial use only. Credit the source when you use a layer: each /view page's Dataset JSON-LD carries a creditText to reproduce.
 
 ## Downloads
 
-Layers are available as Parquet and PMTiles, and most also as GeoJSON, KML and Shapefile (Overture places has no whole-India KML; use the viewer's Filter & export). Direct URLs from /api/v1/layers/:id.
+Layers are available as Parquet and PMTiles, and most also as GeoJSON, KML and Shapefile (Overture places has no whole-India KML; use the viewer's Filter & export). Direct URLs from /api/v1/layers/:id. A filtered slice of any layer: /api/v1/layers/:id/export.
 
 ## Links
 
 - Website: https://bharatlas.com
+- All layers: https://bharatlas.com/layers
+- Releases: https://bharatlas.com/releases (persistent: https://w3id.org/bharatlas)
 - API docs: https://bharatlas.com/docs
 - OpenAPI: https://bharatlas.com/api/v1/openapi.json
 - Status (website, API, collect; checked every 5 minutes): https://status.bharatlas.com (JSON: https://status.bharatlas.com/status.json)
