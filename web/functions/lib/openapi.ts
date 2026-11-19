@@ -23,8 +23,11 @@ const ok = (description: string, schema: Record<string, unknown> = { type: 'obje
   headers: { 'x-api-version': ref('headers', 'ApiVersion') },
   content: { 'application/json': { schema } },
 });
-const errors = (...codes: Array<'400' | '404' | '429' | '500'>) =>
-  Object.fromEntries(codes.map((c) => [c, ref('responses', ({ '400': 'BadRequest', '404': 'NotFound', '429': 'TooManyRequests', '500': 'ServerError' })[c])]));
+const RESPONSES = {
+  '301': 'MovedPermanently', '400': 'BadRequest', '404': 'NotFound', '429': 'TooManyRequests', '500': 'ServerError', '503': 'Unavailable',
+} as const;
+const errors = (...codes: Array<keyof typeof RESPONSES>) =>
+  Object.fromEntries(codes.map((c) => [c, ref('responses', RESPONSES[c])]));
 
 const LAT = ref('parameters', 'Lat');
 const LNG = ref('parameters', 'Lng');
@@ -65,12 +68,12 @@ export const OPENAPI = {
           'Point-in-polygon across admin and zone layers in one call: state, district, sub-district, block, constituencies, pincode, seismic zone and more, each with its LGD or source codes. With no `layers`, the default set is used and the city ward layer covering the point is added automatically. Never cached.',
         parameters: [
           LAT, LNG,
-          q('layers', 'Comma-separated layer ids to test, used exactly as given. Omit for the default set plus any covering ward layer.', { type: 'string', examples: ['lgd_states,lgd_districts'] }),
+          q('layers', 'Comma-separated layer ids to test (at most 25). A retired id is tested as its successor; an id that is not a layer is listed in `unknown_layers`, and when none is a layer the answer is 400. Omit for the default set plus any covering ward layer.', { type: 'string', examples: ['lgd_states,lgd_districts'] }),
           q('zoom', 'Tile zoom used for the test: 4–16, default 14 (finer is more exact at boundaries).', { type: 'integer', minimum: 4, maximum: 16, default: 14 }),
         ],
         responses: {
           '200': ok('Matches grouped by category', ref('schemas', 'LocateResult')),
-          ...errors('400', '429'),
+          ...errors('400', '429', '500'),
         },
       },
     },
@@ -88,7 +91,7 @@ export const OPENAPI = {
         ],
         responses: {
           '200': ok('Features sorted by distance', ref('schemas', 'NearbyResult')),
-          ...errors('400', '429'),
+          ...errors('301', '400', '429', '500'),
         },
       },
     },
@@ -101,7 +104,7 @@ export const OPENAPI = {
           q('category', 'Only this category (see /categories), e.g. `boundaries`, `city-wards`.', { type: 'string' }),
           q('level', 'Only this level (see /levels), e.g. `district`.', { type: 'string' }),
           q('source', 'Only this source, e.g. `LGD`.', { type: 'string' }),
-          q('q', 'Text search over id, source and notes.', { type: 'string' }),
+          q('q', 'Text search (case-insensitive substring) over id, source, notes, category, level and tags.', { type: 'string' }),
           ref('parameters', 'Limit500'),
           ref('parameters', 'Offset'),
         ],
@@ -117,7 +120,7 @@ export const OPENAPI = {
         tags: ['Layers'],
         summary: 'One layer: source, licence, attribution and download links',
         parameters: [LAYER_ID],
-        responses: { '200': ok('The layer', data(ref('schemas', 'Layer'))), ...errors('400', '404', '429') },
+        responses: { '200': ok('The layer', data(ref('schemas', 'Layer'))), ...errors('301', '400', '404', '429') },
       },
     },
     '/layers/{id}/schema': {
@@ -135,7 +138,7 @@ export const OPENAPI = {
               columns: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, type: { type: 'string' }, distinct_values: { type: 'array', items: { type: 'string' } } } } },
             },
           })),
-          ...errors('400', '404', '429', '500'),
+          ...errors('301', '400', '404', '429', '500'),
         },
       },
     },
@@ -145,10 +148,10 @@ export const OPENAPI = {
         tags: ['Layers'],
         summary: 'Filter, select, group and total a layer’s rows',
         description:
-          'Reads the layer’s Parquet file. Filters are exact, case-insensitive matches on flat columns, given as `where=col=val,col2=val2` or as plain `col=val` parameters (any parameter that is not an option below is a filter; use that form when a value contains a comma). Geometry columns are never returned. With `group_by` the result is counts per value (and `sums` with `sum`); without it, rows. A filter that matches nothing returns `hints` with the column’s values.',
+          'Reads the layer’s Parquet file. Filters are exact, case-insensitive matches on flat columns, given as `where=col=val,col2=val2` or as plain `col=val` parameters (any parameter that is not an option below is a filter; use that form when a value contains a comma). Geometry columns are never returned. With `group_by` the result is counts per value (and `sums` with `sum`); without it, rows. An unknown column in `select`, `where`, `filter`, `group_by` or `sum` is a 400 that lists the columns, before any row is read. A filter that matches nothing returns `hints` with the column’s values. Answers are kept in the edge cache for up to an hour.',
         parameters: [
           LAYER_ID,
-          q('select', 'Comma-separated columns to return. Default: all flat, non-geometry columns.', { type: 'string' }),
+          q('select', 'Comma-separated columns to return. Default: every column except the geometry and the bounding-box columns (`xmin`, `ymin`, `xmax`, `ymax`; `_lat` and `_lng` carry the centre). An unknown column is a 400.', { type: 'string' }),
           q('where', 'Filters as `col=val,col2=val2` (exact, case-insensitive).', { type: 'string' }),
           q('group_by', 'Count rows per value of this column.', { type: 'string' }),
           q('sum', 'With `group_by`: comma-separated numeric columns to total per group. Percentages are not additive: sum the amounts and recompute shares.', { type: 'string' }),
@@ -168,7 +171,7 @@ export const OPENAPI = {
               timing_ms: { type: 'integer' },
             },
           }),
-          ...errors('400', '404', '429', '500'),
+          ...errors('301', '400', '404', '429', '500'),
         },
       },
     },
@@ -185,7 +188,7 @@ export const OPENAPI = {
           q('where', 'Filters as `col=val,col2=val2` (exact, case-insensitive).', { type: 'string' }),
           q('filter', 'Filters as a JSON list, for more than exact matches: `[{"col":"sname","kind":"in","values":["KA","TN"]}]`; kinds `in` (case-insensitive, any of the values), `range` (numeric `min` and/or `max`), `search` (case-insensitive substring `q`), `bool` (`v`). Combined with `where` (all must match).', { type: 'string' }),
         ],
-        responses: { '200': { description: 'The file, streamed' }, ...errors('400', '404', '429', '500') },
+        responses: { '200': { description: 'The file, streamed' }, ...errors('301', '400', '404', '429', '500') },
       },
     },
     '/layers/{id}/counts': {
@@ -194,14 +197,14 @@ export const OPENAPI = {
         tags: ['Layers'],
         deprecated: true,
         summary: 'Feature total, or counts per value of one column (deprecated: use /query with group_by)',
-        description: 'Deprecated, kept for existing callers: `/layers/{id}/query?group_by=<col>` gives the same counts, with `where`, `filter` and `sum`. Without `group_by`: the total and the columns with precomputed counts. With `group_by`: precomputed counts where they exist, otherwise counted from the Parquet file (the 500 largest groups).',
+        description: 'Deprecated, kept for existing callers: `/layers/{id}/query?group_by=<col>` gives the same counts, with `where`, `filter` and `sum`. Without `group_by`: the total and the columns with precomputed counts, or with `filter_col` and `filter_val` the total of matching rows. With `group_by`: precomputed counts where they exist, otherwise counted from the Parquet file (the 500 largest groups). An unknown filter column, or one of `filter_col` and `filter_val` without the other, is a 400.',
         parameters: [
           LAYER_ID,
           q('group_by', 'Column to count values of.', { type: 'string' }),
           q('filter_col', 'With `filter_val`, count only rows whose `filter_col` equals `filter_val` (exact, case-insensitive).', { type: 'string' }),
           q('filter_val', 'See `filter_col`.', { type: 'string' }),
         ],
-        responses: { '200': ok('Counts', data({ type: 'object' })), ...errors('400', '404', '429', '500') },
+        responses: { '200': ok('Counts', data({ type: 'object' })), ...errors('301', '400', '404', '429', '500') },
       },
     },
     '/layers/{id}/locate': {
@@ -217,7 +220,7 @@ export const OPENAPI = {
           q('radius_km', 'Search radius for nearest: 1–200, default 25.', { type: 'number', minimum: 1, maximum: 200, default: 25 }),
         ],
         responses: {
-          '200': ok('The feature, or `feature: null` (with `out_of_coverage` when nothing is within the radius)', {
+          '200': ok('The feature, or `feature: null` (with `out_of_coverage` when nothing is within the radius). Counts as a call that names the layer (see /usage).', {
             type: 'object',
             properties: {
               layer_id: { type: 'string' },
@@ -229,7 +232,7 @@ export const OPENAPI = {
               out_of_coverage: { type: 'boolean' },
             },
           }),
-          ...errors('400', '404', '429', '500'),
+          ...errors('301', '400', '404', '429', '500'),
         },
       },
     },
@@ -238,11 +241,11 @@ export const OPENAPI = {
         operationId: 'getUsage',
         tags: ['Catalogue'],
         summary: 'How much each layer is used: downloads, and API calls that name it (split api / mcp)',
-        description: 'Crawlers and the MCP smoke test are not counted. With ?layer=, one layer: { layer_id, downloads, api, mcp }; without it, { layers: { <id>: { downloads, api, mcp } }, total }.',
+        description: 'API calls count when they name one layer (its detail, schema, query, counts, export, nearby, or locate in that layer); the multi-layer /locate does not. Crawlers and the MCP smoke test are not counted. With ?layer=, one layer: { layer_id, downloads, api, mcp } (an id that is not a layer is a 404, a retired one a 301); without it, { layers: { <id>: { downloads, api, mcp } }, total }. Counts may lag a minute.',
         parameters: [q('layer', 'Layer id: one layer only.', { type: 'string' })],
         responses: {
           '200': ok('Usage counts', { type: 'object' }),
-          ...errors('400', '500'),
+          ...errors('301', '400', '404', '429', '500', '503'),
         },
       },
     },
@@ -269,7 +272,7 @@ export const OPENAPI = {
         summary: 'Downloads per layer and format, and the total',
         responses: {
           '200': ok('Counts', { type: 'object', properties: { data: { type: 'object', additionalProperties: { type: 'object', additionalProperties: { type: 'integer' } } }, total: { type: 'integer' } } }),
-          ...errors('429'),
+          ...errors('429', '503'),
         },
       },
     },
@@ -294,7 +297,7 @@ export const OPENAPI = {
         operationId: 'getSubmission',
         tags: ['Community'],
         summary: 'One accepted community layer',
-        parameters: [{ name: 'id', in: 'path', required: true, description: 'Submission id.', schema: { type: 'string', pattern: '^[a-zA-Z0-9_-]+$' } }],
+        parameters: [{ name: 'id', in: 'path', required: true, description: 'Submission id.', schema: { type: 'string', pattern: '^[A-Za-z0-9_-]{8,16}$' } }],
         responses: { '200': ok('The submission', data({ type: 'object' })), ...errors('400', '404', '429') },
       },
     },
@@ -324,6 +327,10 @@ export const OPENAPI = {
       ApiVersion: { description: 'Always `v1` on this version.', schema: { type: 'string', const: 'v1' } },
     },
     responses: {
+      MovedPermanently: {
+        description: 'The layer id was retired: the same request with its successor id (in the path, or in `layer=`) is in `location`.',
+        headers: { location: { description: 'The same URL with the successor id', schema: { type: 'string', format: 'uri' } } },
+      },
       BadRequest: { description: 'A parameter is missing or out of range', content: { 'application/json': { schema: ref('schemas', 'Error') } } },
       NotFound: { description: 'No such layer, submission or code', content: { 'application/json': { schema: ref('schemas', 'Error') } } },
       TooManyRequests: {
@@ -332,6 +339,11 @@ export const OPENAPI = {
         content: { 'application/json': { schema: ref('schemas', 'Error') } },
       },
       ServerError: { description: 'Reading the layer failed', content: { 'application/json': { schema: ref('schemas', 'Error') } } },
+      Unavailable: {
+        description: 'The counts store is unavailable; try again after `retry-after` seconds',
+        headers: { 'retry-after': { description: 'Seconds to wait', schema: { type: 'integer' } } },
+        content: { 'application/json': { schema: ref('schemas', 'Error') } },
+      },
     },
     schemas: {
       Error: { type: 'object', required: ['error', 'status'], properties: { error: { type: 'string' }, status: { type: 'integer' } } },
@@ -384,7 +396,7 @@ export const OPENAPI = {
                 pin: { type: 'string', description: '`<code>+sha256:<hex>`' },
                 url: { type: 'string', format: 'uri' },
                 manifest: { type: 'string', format: 'uri' },
-                w3id_proposed: { type: 'string', format: 'uri', description: 'The persistent address the code will resolve through once registered.' },
+                w3id_proposed: { type: 'string', format: 'uri', description: 'The persistent address of this release, live at w3id.org: `https://w3id.org/bharatlas/<dataset>/<YYYY.MM>[/<file>]`, and `https://w3id.org/bharatlas/<dataset>/latest` for the newest. The field keeps its first name for compatibility.' },
                 previous: { type: ['string', 'null'] },
                 files: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, url: { type: 'string', format: 'uri' }, sha256: { type: 'string' }, bytes: { type: 'integer' }, rows: { type: ['integer', 'null'] }, licence: { type: 'string' } } } },
               },
@@ -396,12 +408,15 @@ export const OPENAPI = {
         type: 'object',
         properties: {
           point: ref('schemas', 'Point'),
+          zoom: { type: 'integer', description: 'The tile zoom used.' },
           results: {
             type: 'object',
             description: 'Category → matches, e.g. `boundaries`, `people`, `environment`, `city-wards`.',
             additionalProperties: { type: 'array', items: { type: 'object', properties: { layer_id: { type: 'string' }, level: { type: 'string' }, feature: { type: 'object', properties: { properties: { type: 'object' } } } } } },
           },
           queried_layers: { type: 'array', items: { type: 'string' } },
+          failed_layers: { type: 'array', items: { type: 'string' }, description: 'Layers that could not be read: their absence from `results` says nothing about the point. Absent when every layer answered.' },
+          unknown_layers: { type: 'array', items: { type: 'string' }, description: 'Ids in `layers` that are not layers (not tested). Absent when every id was known.' },
           timing_ms: { type: 'integer' },
         },
       },
@@ -421,7 +436,7 @@ export const OPENAPI = {
           rows: { type: 'array', items: { type: 'object' } },
           total: { type: 'integer' },
           truncated: { type: 'boolean' },
-          hints: { type: 'object', description: 'On no match: values (or available columns) for the filtered columns.' },
+          hints: { type: 'object', description: 'On no match: sample values of each filtered column.' },
         },
       },
       QueryGroups: {

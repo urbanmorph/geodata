@@ -116,6 +116,36 @@ describe('a layer names its citable versions (spec-data-lifecycle 8.4)', () => {
   });
 });
 
+describe('matches the handlers after the 2026-11-19 review', () => {
+  const S = OPENAPI.components.schemas as any;
+  const P = OPENAPI.paths as any;
+  it('LocateResult carries zoom, failed_layers and unknown_layers', () => {
+    expect(Object.keys(S.LocateResult.properties)).toEqual(expect.arrayContaining(['zoom', 'failed_layers', 'unknown_layers']));
+  });
+  it('/locate can answer 500; /usage and /downloads/counts 429 and 503; /usage 404', () => {
+    expect(Object.keys(P['/locate'].get.responses)).toContain('500');
+    for (const path of ['/usage', '/downloads/counts']) {
+      expect(Object.keys(P[path].get.responses), path).toEqual(expect.arrayContaining(['429', '503']));
+    }
+    expect(Object.keys(P['/usage'].get.responses)).toContain('404');
+  });
+  it('documents the 301 for a retired layer id', () => {
+    expect(JSON.stringify(P['/layers/{id}'].get.responses)).toMatch(/301/);
+    expect(OPENAPI.components.responses).toHaveProperty('MovedPermanently');
+  });
+  it('/layers?q searches category, level and tags too', () => {
+    const qp = P['/layers'].get.parameters.find((p: any) => p.name === 'q');
+    expect(qp.description).toMatch(/category.*level.*tags/);
+  });
+  it('/query says unknown select, where and filter columns are a 400', () => {
+    expect(P['/layers/{id}/query'].get.description).toMatch(/unknown column.*400/i);
+  });
+  it('w3id is described as live, not pending registration', () => {
+    expect(JSON.stringify(OPENAPI)).not.toMatch(/once registered/);
+    expect(S.ReleaseIndex.properties.releases.items.properties.w3id_proposed.description).toMatch(/w3id\.org\/bharatlas/);
+  });
+});
+
 describe('GET /api/v1/openapi.json', () => {
   it('serves the description as JSON (CORS and x-api-version come from the api middlewares)', async () => {
     const res = await (onRequestGet as any)({ request: new Request('https://bharatlas.com/api/v1/openapi.json') });
