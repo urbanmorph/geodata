@@ -12,7 +12,8 @@ import {
 } from './basemaps';
 import { onFirstRender, openGenerations, framesFromFile } from './map-startup';
 import {
-  DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED, DATA_BASE_FILTERS, fillOutlineColor,
+  DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED, DATA_BASE_FILTERS, POLYGON_GEOM_FILTER,
+  fillOutlineColor,
 } from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
@@ -60,17 +61,19 @@ type Layer = {
 
 const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
 const MAX_POPUP_PROPS = 10;
-const DATA_LAYERS = ['fill', 'fill-nodata', 'line-halo', 'line', 'point'] as const;
-const INTERACTIVE_LAYERS = ['fill', 'point'] as const;
+const DATA_LAYERS = ['fill', 'fill-nodata', 'line-hit', 'line-halo', 'line', 'point'] as const;
+const INTERACTIVE_LAYERS = ['fill', 'line-hit', 'point'] as const;
 const POINT_GEOM_FILTER: maplibregl.FilterSpecification = DATA_BASE_FILTERS.point;
+// The width of a line feature's invisible click and hover target, in px.
+const LINE_HIT_WIDTH = 12;
 
 // ---------------------------------------------------------------------------
 // Module state
 // ---------------------------------------------------------------------------
 
 let map: MlMap | null = null;
-// A data layer's own filter, kept under any user filter (points only; the
-// no-data hatch of a value layer).
+// A data layer's own filter, kept under any user filter (each layer's geometry
+// type, overview pieces, the no-data hatch of a value layer).
 let baseFilters: Partial<Record<(typeof DATA_LAYERS)[number], maplibregl.FilterSpecification>> = {};
 let filterAbort: AbortController | null = null;
 let activeBasemap: BasemapId = 'minimal';
@@ -350,6 +353,7 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
   baseFilters = { ...DATA_BASE_FILTERS };
   map.addLayer({
     id: 'fill', type: 'fill', source: sourceId, ...common,
+    filter: baseFilters.fill,
     // A value layer is graded by its column, opaque so the shades read true.
     paint: choropleth
       ? { 'fill-color': fillColorExpr(choropleth) as maplibregl.ExpressionSpecification, 'fill-opacity': 1,
@@ -357,7 +361,9 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
       : { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY, 'fill-outline-color': fillOutlineColor(DATA_FILL) },
   });
   if (choropleth) {
-    baseFilters['fill-nodata'] = noDataFilter(choropleth) as maplibregl.FilterSpecification;
+    baseFilters['fill-nodata'] = combineFilters(
+      POLYGON_GEOM_FILTER, noDataFilter(choropleth) as maplibregl.FilterSpecification,
+    ) as maplibregl.FilterSpecification;
     if (!map.hasImage('nodata-hatch')) map.addImage('nodata-hatch', hatchPixels());
     map.addLayer({
       id: 'fill-nodata', type: 'fill', source: sourceId, ...common,
@@ -365,6 +371,11 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
       paint: { 'fill-pattern': 'nodata-hatch' },
     });
   }
+  map.addLayer({
+    id: 'line-hit', type: 'line', source: sourceId, ...common,
+    filter: baseFilters['line-hit'],
+    paint: { 'line-color': DATA_LINE, 'line-opacity': 0, 'line-width': LINE_HIT_WIDTH },
+  });
   map.addLayer({
     id: 'line-halo', type: 'line', source: sourceId, ...common,
     filter: baseFilters['line-halo'],
@@ -422,7 +433,8 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
   const filter = buildFeatureFilter(props, tilePropertyKeys());
   const common = currentSourceLayer ? { 'source-layer': currentSourceLayer } : {};
   if (filter) {
-    map.addLayer({ id: 'locate-hl-fill', type: 'fill', source: 'layer', ...common, filter: filter as never,
+    map.addLayer({ id: 'locate-hl-fill', type: 'fill', source: 'layer', ...common,
+      filter: ['all', POLYGON_GEOM_FILTER, ...filter.slice(1)] as never,
       paint: { 'fill-color': HL_ACCENT, 'fill-opacity': 0.3 } });
     map.addLayer({ id: 'locate-hl-line', type: 'line', source: 'layer', ...common, filter: filter as never,
       paint: { 'line-color': HL_ACCENT, 'line-opacity': 1,
