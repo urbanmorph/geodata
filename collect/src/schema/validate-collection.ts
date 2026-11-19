@@ -7,18 +7,13 @@
 import { isOpenLicence } from '../../../web/functions/lib/licenses';
 import { validateRecordProperties, type Field } from './validate-record';
 import { isBasemapId } from '../basemap-ids';
+import { CATEGORY_IDS } from '../options';
 import { COLLECT_MODES, MAX_PHOTOS, modeOf, modeProblem, type CollectMode } from './modes';
 
 export const FIELD_TYPES = [
   'text', 'paragraph', 'number', 'select', 'multiselect', 'date', 'datetime', 'url', 'photo',
 ] as const;
 export const GEOMETRY_TYPES = ['point', 'line', 'polygon'] as const;
-// Catalogue facets a published collection can slot into (mirrors catalog.json).
-export const CATEGORY_IDS = [
-  'boundaries', 'city-wards', 'people', 'environment', 'water',
-  'agriculture', 'transport', 'infrastructure', 'culture', 'health-edu', 'other',
-] as const;
-
 const KEY_RE = /^[a-z][a-z0-9_]*$/;
 const MAX_LABEL = 200;
 const MAX_HINT = 500;
@@ -130,7 +125,7 @@ export function validateSchemaDoc(input: unknown): Result<Record<string, unknown
   }
   if (doc.data_saver !== undefined && typeof doc.data_saver !== 'boolean') return fail('data_saver must be true or false');
 
-  if (doc.category !== undefined && !CATEGORY_IDS.includes(doc.category as (typeof CATEGORY_IDS)[number])) {
+  if (doc.category !== undefined && !CATEGORY_IDS.includes(doc.category as string)) {
     return fail(`unknown category: ${String(doc.category)}`);
   }
 
@@ -190,7 +185,7 @@ export function validateCollectionEdit(
     col.license = b.license;
   }
   if (b.category !== undefined) {
-    if (!CATEGORY_IDS.includes(b.category as (typeof CATEGORY_IDS)[number])) return fail(`unknown category: ${String(b.category)}`);
+    if (!CATEGORY_IDS.includes(b.category as string)) return fail(`unknown category: ${String(b.category)}`);
     schema.category = b.category;
   }
   if (b.basemap !== undefined) {

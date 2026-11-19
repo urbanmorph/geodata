@@ -5,12 +5,7 @@
 // the create form (landing entry) stays light.
 import { listLayers, type RefLayer } from './catalog';
 import { escapeHtml } from '../util';
-
-const CAT_LABEL: Record<string, string> = {
-  boundaries: 'Boundaries', 'city-wards': 'City wards', people: 'People', water: 'Water',
-  transport: 'Transport', environment: 'Environment', infrastructure: 'Infrastructure',
-  'health-edu': 'Health & education', agriculture: 'Agriculture', other: 'Other',
-};
+import { categoryLabel } from '../options';
 
 // Wire a search input + a results container into a browse-all picker. `onPick`
 // receives the chosen layer. Layers load lazily on first focus/typing.
@@ -30,7 +25,7 @@ export function mountLayerPicker(search: HTMLInputElement, results: HTMLElement,
     }
     results.innerHTML = [...groups.entries()]
       .map(([cat, ls]) =>
-        `<div class="ref-cat">${escapeHtml(CAT_LABEL[cat] || cat)}</div>` +
+        `<div class="ref-cat">${escapeHtml(categoryLabel(cat))}</div>` +
         ls.map((l) => `<button type="button" class="ref-opt" data-id="${escapeHtml(l.id)}">${escapeHtml(l.label)}</button>`).join(''))
       .join('');
     results.querySelectorAll<HTMLButtonElement>('.ref-opt').forEach((b) => {
