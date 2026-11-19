@@ -74,11 +74,21 @@ def test_catalog_layer_id_prefixes_submission() -> None:
     assert catalog_layer_id('nL7zNStsW3') == 'c_nL7zNStsW3'
 
 
-def test_baked_key_lives_under_community_prefix() -> None:
+def test_baked_key_is_versioned_by_the_file_md5() -> None:
+    # Spec rule 2: a changed file gets a new key <stem>.<md5[:8]>.<ext>; nothing is overwritten.
     from bake_community import baked_key
-    assert baked_key('nL7zNStsW3', 'parquet') == 'community/nL7zNStsW3/nL7zNStsW3.parquet'
-    assert baked_key('nL7zNStsW3', 'pmtiles') == 'community/nL7zNStsW3/nL7zNStsW3.pmtiles'
-    assert baked_key('nL7zNStsW3', 'geojson') == 'community/nL7zNStsW3/nL7zNStsW3.geojson'
+    md5 = '0a1b2c3d4e5f67890a1b2c3d4e5f6789'
+    assert baked_key('nL7zNStsW3', 'parquet', md5) == 'community/nL7zNStsW3/nL7zNStsW3.0a1b2c3d.parquet'
+    assert baked_key('nL7zNStsW3', 'pmtiles', md5) == 'community/nL7zNStsW3/nL7zNStsW3.0a1b2c3d.pmtiles'
+    assert baked_key('nL7zNStsW3', 'geojson', md5) == 'community/nL7zNStsW3/nL7zNStsW3.0a1b2c3d.geojson'
+    assert baked_key('nL7zNStsW3', 'shapefile', md5) == 'community/nL7zNStsW3/nL7zNStsW3.0a1b2c3d.shp.zip'
+
+
+def test_versioned_tiles_join_their_family_for_r2_prune() -> None:
+    # r2_prune keeps the current and previous tiles of a family; a community tile key must belong to one.
+    from bake_community import baked_key
+    from tile_keys import unversioned_name
+    assert unversioned_name(baked_key('nL7zNStsW3', 'pmtiles', 'f' * 32)) == 'nL7zNStsW3.pmtiles'
 
 
 # ---------- catalog entry shape ---------------------------------------------
@@ -187,6 +197,47 @@ def test_a_rebake_that_no_longer_makes_tiles_keeps_the_earlier_tiles_on_r2(tmp_p
     bc.bake('nL7zNStsW3', 'local', s3, tmp_path / 'work', dry_run=False)
     assert s3.deleted == []
     assert not hasattr(bc, 'orphan_keys')
+
+
+def _fake_bake(tmp_path, monkeypatch, content: str):
+    """Run bake() with the converters stubbed to write `content`; returns (uploaded keys, catalog entry)."""
+    import bake_community as bc
+
+    def write(*paths):
+        for p in paths:
+            Path(p).write_text(content)
+
+    meta = {'id': 'nL7zNStsW3', 'name': 'n', 'r2_key': 'submissions/nL7zNStsW3/raw.geojson', 'format': 'geojson'}
+    uploads: list[str] = []
+    monkeypatch.setattr(bc, 'fetch_submission', lambda sub_id, scope: dict(meta))
+    monkeypatch.setattr(bc, 'normalize_to_geojson', lambda raw, fmt, gj: write(gj))
+    monkeypatch.setattr(bc, 'geojson_to_parquet', lambda gj, pq: write(pq) or 779)
+    monkeypatch.setattr(bc, 'geojson_to_kml', lambda gj, kml: write(kml))
+    monkeypatch.setattr(bc, 'r2_upload', lambda s3, path, key: uploads.append(key))
+    catalog = tmp_path / 'catalog.json'
+    if not catalog.exists():
+        catalog.write_text('{"layers": []}')
+    monkeypatch.setattr(bc, 'CATALOG', catalog)
+    entry = bc.bake('nL7zNStsW3', 'local', _FakeS3(), tmp_path / 'work', dry_run=False)
+    return uploads, entry
+
+
+def test_a_bake_uploads_to_versioned_keys_and_the_catalog_points_at_them(tmp_path, monkeypatch) -> None:
+    import hashlib
+    from pipeline import R2_PUBLIC
+    uploads, entry = _fake_bake(tmp_path, monkeypatch, 'v1')
+    h = hashlib.md5(b'v1').hexdigest()[:8]
+    assert sorted(uploads) == sorted(f'community/nL7zNStsW3/nL7zNStsW3.{h}.{ext}' for ext in ('parquet', 'geojson', 'kml'))
+    assert entry['parquet']['url'] == f'{R2_PUBLIC}/community/nL7zNStsW3/nL7zNStsW3.{h}.parquet'
+
+
+def test_a_rebake_of_changed_data_gets_new_keys_and_same_data_the_same_keys(tmp_path, monkeypatch) -> None:
+    first, _ = _fake_bake(tmp_path, monkeypatch, 'v1')
+    again, _ = _fake_bake(tmp_path, monkeypatch, 'v1')
+    changed, entry = _fake_bake(tmp_path, monkeypatch, 'v2')
+    assert again == first                      # idempotent: same bytes, same keys (r2_upload md5-skips)
+    assert not set(changed) & set(first)       # a changed file never overwrites the published one
+    assert {entry[f]['url'].rsplit('/', 1)[-1] for f in ('parquet', 'geojson', 'kml')} == {k.rsplit('/', 1)[-1] for k in changed}
 
 
 # ---------- catalog merge (idempotent) --------------------------------------
