@@ -293,11 +293,12 @@ def due_catalog():
     ]}
 
 
-def test_a_fast_layer_is_due_a_month_after_its_last_build_whatever_the_check_says():
+def test_a_fast_layer_without_a_strong_check_is_due_a_month_after_its_last_build():
     due = cu.due_layers(due_catalog(), {}, None, '2026-11-18')
     assert [d['id'] for d in due] == ['ir_stations']
     assert due[0] == {'id': 'ir_stations', 'class': 'fast', 'rebuild': 'monthly', 'last_build': '2026-10-01',
-                      'next_due': '2026-11-01', 'days_over': 17}
+                      'last_identical': None, 'next_due': '2026-11-01', 'days_over': 17,
+                      'why': 'weak check: no machine check, checked by hand'}
 
 
 def test_a_regular_layer_is_due_only_when_its_source_changed_and_its_month_is_up():
@@ -318,11 +319,61 @@ def test_a_release_after_fetched_at_counts_as_the_last_build():
     assert cu.due_layers(due_catalog(), {}, releases, '2026-12-10')[0]['last_build'] == '2026-11-10'
 
 
+VEDAS = 'https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Wind_Farms.parquet'
+PBF = 'https://download.geofabrik.de/asia/india-latest.osm.pbf'
+
+
+def identical_catalog():
+    """Two fast layers built in May, one checked on a release asset (strong), one on an OSM extract (weak)."""
+    strong = refreshed('vedas_wind_farms', 'fast', 'monthly', '2026-05-28T14:34:08+00:00')
+    strong['source_check'] = sc('github_release', VEDAS, 'updated_at=2026-03-10T02:47:54Z size=6608')
+    weak = refreshed('urban_rail_stations', 'fast', 'monthly', '2026-05-17T00:00:00+00:00')
+    weak['source_check'] = sc('http', PBF, 'etag="a"')
+    return {'layers': [strong, weak]}
+
+
+def unchanged(check, at='2026-11-16T03:41:00Z', **kw):
+    return cu._entry(check, at, status='unchanged', new=check['fingerprint'], **kw)
+
+
+def test_a_strong_check_confirming_the_source_identical_counts_as_the_refresh_and_a_weak_one_does_not():
+    cat = identical_catalog()
+    status = {lyr['id']: unchanged(lyr['source_check']) for lyr in cat['layers']}
+    due = cu.due_layers(cat, status, None, '2026-11-19')
+    assert [d['id'] for d in due] == ['urban_rail_stations']
+    assert due[0]['last_identical'] is None and due[0]['why'].startswith('weak check: ')
+    # the strong layer is next due a month after the check that confirmed it identical
+    later = cu.due_layers(cat, status, None, '2026-12-16')
+    assert [(d['id'], d['next_due'], d['last_identical']) for d in later][-1] == \
+        ('vedas_wind_farms', '2026-12-16', '2026-11-16')
+
+
+def test_an_identical_check_counts_only_if_it_checked_the_current_source_and_fingerprint():
+    cat = identical_catalog()
+    check = cat['layers'][0]['source_check']
+    for stale in (unchanged(check) | {'url': 'https://elsewhere/x.parquet'}, unchanged(check) | {'old': 'older'}):
+        due = cu.due_layers(cat, {'vedas_wind_farms': stale}, None, '2026-11-19')
+        assert 'vedas_wind_farms' in [d['id'] for d in due]
+
+
+def test_a_strong_layer_whose_check_failed_or_changed_stays_due_and_says_why():
+    cat = identical_catalog()
+    check = cat['layers'][0]['source_check']
+    for entry, why in ((cu._entry(check, NOW, error='timeout'), 'source not confirmed identical (error)'),
+                       (cu._entry(check, NOW, status='changed', new='x'), 'source changed'),
+                       (None, 'source not confirmed identical (not checked yet)')):
+        due = cu.due_layers(cat, {'vedas_wind_farms': entry} if entry else {}, None, '2026-11-19')
+        assert next(d for d in due if d['id'] == 'vedas_wind_farms')['why'] == why
+
+
 def test_the_issue_has_a_due_or_overdue_table_and_the_summary_counts_it():
     due = cu.due_layers(due_catalog(), {}, None, '2026-11-18')
     body = cu.issue_body({'a': {'status': 'unchanged', 'checked_at': NOW}}, due_catalog(), due)
     assert '### Due or overdue (1)' in body
-    assert '| ir_stations | fast | monthly | 2026-10-01 | 2026-11-01 | 17 |' in body
+    assert 'confirmed its source identical' in body          # the rule, in one line under the heading
+    assert '| Layer | Class | Rebuild | Last build | Confirmed identical | Due | Days over | Why |' in body
+    assert '| ir_stations | fast | monthly | 2026-10-01 |  | 2026-11-01 | 17 | weak check: no machine check, ' \
+           'checked by hand |' in body
     summary = json.loads(re.search(r'<!-- update-summary (.*) -->', body).group(1))
     assert summary['due'] == ['ir_stations'] and summary['due_count'] == 1
     assert summary['counts'] == {'unchanged': 1}

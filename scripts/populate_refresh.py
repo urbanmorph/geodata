@@ -19,7 +19,10 @@ per-layer row-count tolerance with its reason, where the rules are wrong. Both a
 
 `next_due` is a month after the last build (fetched_at, or the layer's newest release if later) for monthly
 rebuilds, and null otherwise. check_updates.py recomputes it for the "Due or overdue" table in the Source updates
-issue. `audited_at` is kept from the catalog: it is recorded when a build's audit is done, never here.
+issue from the last refresh (last_refresh): the last build, or a later weekly check that found the source identical,
+when that check is strong (weak_check says which are not). The catalog's next_due stays build-only, because the
+check results live in data/update-status.json, not the catalog. `audited_at` is kept from the catalog: it is recorded
+when a build's audit is done, never here.
 
 Idempotent: the block depends only on the catalog and the release index, never on the day it runs; a second run
 writes nothing.
@@ -33,10 +36,12 @@ from __future__ import annotations
 import argparse
 import calendar
 import json
+import re
 import sys
 from collections import Counter
 from datetime import date
 from pathlib import Path
+from urllib.parse import urlparse
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -167,6 +172,58 @@ def last_build(layer: dict, releases: dict | None) -> str | None:
     if layer.get('fetched_at'):
         dates.append(layer['fetched_at'][:10])
     return max(dates) if dates else None
+
+
+# ── how much a source check proves ──────────────────────────────────────────
+#
+# The owner's decision of 19 Nov 2026: a weekly check that finds a layer's source identical counts as the layer's
+# refresh, but only when the check is STRONG, an exact fingerprint of the published data:
+#   github_release  a release asset's updated_at and size, or a repository's latest release tag
+#   github_commit   the sha of the latest commit touching the source folder
+#   ckan            the dataset record: data.gov.in's per-resource `changed`, or CKAN's metadata_modified
+#   http            the ETag / Last-Modified / length of a data file (a path ending in a data extension, such as
+#                   Overture's STAC catalog.json) or of a dataset's API record (a path under /api/, geoBoundaries)
+# A WEAK check says nothing reliable about the data, so the layer keeps its build-date schedule:
+#   http on a page  a landing page's headers change with the page, not with the data behind it
+#   OpenStreetMap   an extract (Geofabrik's .pbf) changes daily whatever happens to the features a layer keeps
+#   GTFS            a feed (method gtfs, or a feed's repository folder) is rebuilt and re-dated without the stops
+#                   changing, and bharatlas's transit layers also draw on OpenStreetMap
+#   manual or none  no machine check at all
+# WEAK_CHECKS names layers whose check looks strong but is not, with the reason.
+
+WEAK_CHECKS: dict[str, str] = {}
+DATA_FILE = re.compile(r'\.(parquet|geojson|json|zip|gpkg|shp|kml|kmz|csv|pmtiles|tiff?|gz|xlsx?)$', re.I)
+OSM_HOSTS = ('geofabrik.de', 'openstreetmap.org', 'openstreetmap.fr', 'overpass-api.de')
+STRONG_METHODS = ('github_release', 'github_commit', 'ckan')
+
+
+def weak_check(layer: dict) -> str | None:
+    """Why the layer's source check cannot confirm its data unchanged, or None when it can (a strong check)."""
+    if layer['id'] in WEAK_CHECKS:
+        return WEAK_CHECKS[layer['id']]
+    check = layer.get('source_check') or {}
+    method, url = check.get('method'), check.get('url') or ''
+    u = urlparse(url)
+    if method in (None, 'manual'):
+        return 'no machine check, checked by hand'
+    if method == 'gtfs' or 'gtfs' in url.lower():
+        return 'a GTFS feed is re-dated without its stops changing'
+    if u.netloc.endswith(OSM_HOSTS):
+        return 'an OpenStreetMap extract changes daily whatever happens to this layer\'s features'
+    if method in STRONG_METHODS:
+        return None
+    if method == 'http' and (DATA_FILE.search(u.path) or '/api/' in u.path):
+        return None
+    if method == 'http':
+        return 'the check reads a page, not the data file'
+    return f'unknown check method {method!r}'
+
+
+def last_refresh(layer: dict, releases: dict | None, identical_on: str | None) -> str | None:
+    """YYYY-MM-DD of the layer's last refresh: its last build, or `identical_on` (the day a check confirmed its
+    source identical to what bharatlas holds) if that is later and the check is strong."""
+    dates = [d for d in (last_build(layer, releases), None if weak_check(layer) else identical_on) if d]
+    return max(d[:10] for d in dates) if dates else None
 
 
 # ── the catalog ─────────────────────────────────────────────────────────────

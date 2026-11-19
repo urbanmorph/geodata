@@ -28,8 +28,13 @@ catalog.json is only written by --accept / --accept-all-unchanged:
     python3 scripts/check_updates.py --issue-body data/update-issue.md   # also write the GitHub issue text
 
 The issue also lists the layers due or overdue for a rebuild by their `refresh` block (scripts/populate_refresh.py):
-a fast layer a month after its last build (fetched_at, or its newest release), whatever the check says; a regular
-layer likewise, but only once its source has changed; slow layers go by the changed table; frozen layers never.
+a fast layer a month after its last refresh; a regular layer likewise, but only once its source has changed; slow
+layers go by the changed table; frozen layers never. The last refresh is the last build (fetched_at, or the newest
+release) or, if later, the last check that found the source unchanged, when that check is strong: an exact
+fingerprint of the data (a release asset, a commit, a dataset record, a data file's headers). A weak check (an
+OpenStreetMap extract, a GTFS feed, a landing page, a layer checked by hand) never counts: populate_refresh.weak_check
+lists the rule per method. The date comes from data/update-status.json, which CI restores between runs and this run
+has just refreshed.
 """
 from __future__ import annotations
 
@@ -53,7 +58,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from catalog_record import github_asset  # noqa: E402
 from pipeline import is_client_error, log, with_retries, write_json  # noqa: E402
-from populate_refresh import RELEASES, last_build, load_releases, next_due  # noqa: E402
+from populate_refresh import RELEASES, last_build, last_refresh, load_releases, next_due, weak_check  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -281,12 +286,16 @@ def save_status(path: Path, status: dict) -> None:
     os.replace(part, path)
 
 
+def _same_check(prev: dict, check: dict) -> bool:
+    """Did this status entry ask the layer's current source about its current recorded version?"""
+    return (prev.get('method'), prev.get('url'), prev.get('old')) == (
+        check.get('method'), check.get('url'), check.get('fingerprint'))
+
+
 def _fresh(prev: dict | None, check: dict, now: str, max_age_hours: float) -> bool:
     if not prev or not prev.get('checked_at'):
         return False
-    same = (prev.get('method'), prev.get('url'), prev.get('old')) == (
-        check.get('method'), check.get('url'), check.get('fingerprint'))
-    return same and parse_date(now) - parse_date(prev['checked_at']) < timedelta(hours=max_age_hours)
+    return _same_check(prev, check) and parse_date(now) - parse_date(prev['checked_at']) < timedelta(hours=max_age_hours)
 
 
 def _entry(check: dict, now: str, **kw) -> dict:
@@ -395,20 +404,43 @@ def accept_all_unchanged(catalog: dict, status: dict) -> list[str]:
 
 # ── rebuilds due by the refresh schedule ────────────────────────────────────
 
+def identical_on(layer: dict, entry: dict) -> str | None:
+    """YYYY-MM-DD of the check that found the layer's current source unchanged, or None."""
+    check = layer.get('source_check') or {}
+    if entry.get('status') == 'unchanged' and entry.get('checked_at') and _same_check(entry, check):
+        return entry['checked_at'][:10]
+    return None
+
+
+def _why(weak: str | None, entry: dict) -> str:
+    if weak:
+        return f'weak check: {weak}'
+    s = entry.get('status')
+    if s == 'changed':
+        return 'source changed'
+    if s == 'unchanged':
+        return 'a month since its source was last confirmed identical'
+    return f'source not confirmed identical ({s or "not checked yet"})'
+
+
 def due_layers(catalog: dict, status: dict, releases: dict | None, on: str) -> list[dict]:
-    """Layers whose scheduled rebuild is due on the day `on` (YYYY-MM-DD), most overdue first."""
+    """Layers whose scheduled rebuild is due on the day `on` (YYYY-MM-DD), most overdue first: a month after the
+    last refresh (populate_refresh.last_refresh), with why each is due."""
     out = []
     for lyr in catalog['layers']:
         r = lyr.get('refresh') or {}
         rebuild = r.get('rebuild')
-        if rebuild == 'monthly_if_changed' and (status.get(lyr['id']) or {}).get('status') != 'changed':
+        entry = status.get(lyr['id']) or {}
+        if rebuild == 'monthly_if_changed' and entry.get('status') != 'changed':
             continue
-        last = last_build(lyr, releases)
-        due = next_due(rebuild, last)
+        weak = weak_check(lyr)
+        same = None if weak else identical_on(lyr, entry)
+        due = next_due(rebuild, last_refresh(lyr, releases, same))
         if due and due <= on:
             days = (datetime.fromisoformat(on) - datetime.fromisoformat(due)).days
-            out.append({'id': lyr['id'], 'class': r.get('class'), 'rebuild': rebuild, 'last_build': last,
-                        'next_due': due, 'days_over': days})
+            out.append({'id': lyr['id'], 'class': r.get('class'), 'rebuild': rebuild,
+                        'last_build': last_build(lyr, releases), 'last_identical': same, 'next_due': due,
+                        'days_over': days, 'why': _why(weak, entry)})
     return sorted(out, key=lambda d: (-d['days_over'], d['id']))
 
 
@@ -461,10 +493,13 @@ def issue_body(status: dict, catalog: dict, due: list[dict] | None = None) -> st
         lines.append('')
     if due:
         lines += [f'### Due or overdue ({len(due)})', '',
-                  'Rebuilds due by each layer\'s refresh class, whether or not its source reported a change.', '',
-                  '| Layer | Class | Rebuild | Last build | Due | Days over |', '|---|---|---|---|---|---|']
-        lines += [f'| {d["id"]} | {d["class"]} | {d["rebuild"]} | {d["last_build"]} | {d["next_due"]} | '
-                  f'{d["days_over"]} |' for d in due]
+                  'Due a month after the layer\'s last build, or after the last weekly check that confirmed its '
+                  'source identical by an exact fingerprint (a release asset, a commit, a dataset record, a data '
+                  'file\'s headers); a weak check (OpenStreetMap, GTFS, a page, by hand) never counts.', '',
+                  '| Layer | Class | Rebuild | Last build | Confirmed identical | Due | Days over | Why |',
+                  '|---|---|---|---|---|---|---|---|']
+        lines += [f'| {d["id"]} | {d["class"]} | {d["rebuild"]} | {d["last_build"]} | {d["last_identical"] or ""} | '
+                  f'{d["next_due"]} | {d["days_over"]} | {_cell(d["why"])} |' for d in due]
         lines += ['', 'Rebuild with the layer\'s own bake script into versioned keys, then cut its release '
                       '(`python3 scripts/release.py --layer <layer id>`).', '']
     else:
