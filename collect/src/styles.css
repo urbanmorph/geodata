@@ -650,7 +650,13 @@ label.btn.primary { color: var(--on-accent-solid); }
   border: 1.5px solid var(--edge); border-radius: var(--radius); box-shadow: var(--shadow-sm); background: var(--card);
 }
 .maplibregl-map .maplibregl-ctrl-group button + button { border-top: 1px solid var(--line); }
-@media (prefers-color-scheme: dark) { .maplibregl-map .maplibregl-ctrl-icon { filter: invert(1); } } /* MapLibre's icons are dark */
+@media (prefers-color-scheme: dark) {
+  .maplibregl-map .maplibregl-ctrl-icon { filter: invert(1); } /* MapLibre's icons are dark */
+  /* the attribution (i) control: a card, readable credits, a light icon */
+  .maplibregl-map .maplibregl-ctrl.maplibregl-ctrl-attrib, .maplibregl-map .maplibregl-ctrl-attrib.maplibregl-compact { background-color: var(--card); color: var(--fg); }
+  .maplibregl-map .maplibregl-ctrl-attrib a { color: var(--muted); }
+  .maplibregl-map .maplibregl-ctrl-attrib-button { background-color: transparent; filter: invert(1); }
+}
 
 /* ── touch targets: at least 44 x 44 px on phones ──────────────────────────
    The compact controls grow a little; the icon ones (photo remove, the back

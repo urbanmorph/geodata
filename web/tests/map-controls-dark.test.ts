@@ -26,7 +26,13 @@ describe('map controls in dark mode', () => {
   it('the dark icons turn light', () => {
     expect(css).toMatch(/:root \.maplibregl-ctrl-group \.maplibregl-ctrl-icon \{[^}]*filter: invert\(1\)/);
   });
+  // The attribution (i) control stayed a white pill with a dark icon.
+  it('the attribution control is a dark panel with readable text and a light icon', () => {
+    expect(css).toMatch(/:root \.maplibregl-ctrl\.maplibregl-ctrl-attrib(, :root \.maplibregl-ctrl-attrib\.maplibregl-compact)? \{[^}]*background-color: var\(--bg-elevated\)[^}]*color: var\(--fg\)/);
+    expect(css).toMatch(/:root \.maplibregl-ctrl-attrib a \{[^}]*color: var\(--muted-strong\)/);
+    expect(css).toMatch(/:root \.maplibregl-ctrl-attrib-button \{[^}]*background-color: transparent[^}]*filter: invert\(1\)/);
+  });
   it('the light theme keeps MapLibre defaults', () => {
-    expect(TOKENS.slice(0, TOKENS.indexOf('@media (prefers-color-scheme: dark)'))).not.toContain('maplibregl-ctrl-group');
+    expect(TOKENS.slice(0, TOKENS.indexOf('@media (prefers-color-scheme: dark)'))).not.toContain('maplibregl-ctrl');
   });
 });

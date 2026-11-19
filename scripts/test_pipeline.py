@@ -229,6 +229,14 @@ def test_geojson_to_parquet_adds_the_nearby_bbox_columns(tmp_path):
     assert not list(tmp_path.glob('*.raw.parquet'))
 
 
+def test_geojson_to_parquet_adds_no_reader_column(tmp_path):
+    # DuckDB's ST_Read numbers features as OGC_FID; that is not the source's data.
+    out = tmp_path / 'o.parquet'
+    pipeline.geojson_to_parquet(_tiny_geojson(tmp_path / 'i.geojson'), out, geometry_name='geometry')
+    cols = [c[0] for c in pipeline.make_con().execute(f"DESCRIBE SELECT * FROM '{out}'").fetchall()]
+    assert cols == ['name', 'geometry', 'xmin', 'ymin', 'xmax', 'ymax']
+
+
 def test_judiciary_parquet_gets_bbox_columns_for_nearby(tmp_path):
     # bake_judiciary wrote plain ST_Read parquet: no bbox columns, no Hilbert order.
     import bake_judiciary as bj

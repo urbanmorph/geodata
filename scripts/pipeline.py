@@ -890,10 +890,14 @@ def geojson_to_parquet(gj: Path, out: Path, geometry_name: str | None = None, co
         import duckdb
         con = duckdb.connect()
         con.execute('INSTALL spatial; LOAD spatial;')
-    geom = f'* EXCLUDE (geom), geom AS "{geometry_name}"' if geometry_name else '*'
+    # ST_Read (DuckDB 1.5) adds OGC_FID, a feature number that is not the source's data.
+    read = f"ST_Read('{gj}')"
+    cols = {r[0] for r in con.execute(f'DESCRIBE SELECT * FROM {read}').fetchall()}
+    drop = [c for c in ('OGC_FID', 'geom' if geometry_name else None) if c in cols]
+    select = (f'* EXCLUDE ({", ".join(drop)})' if drop else '*') + (f', geom AS "{geometry_name}"' if geometry_name else '')
     raw = out.with_name(f'{out.stem}.raw.parquet')
     try:
-        con.execute(f"COPY (SELECT {geom} FROM ST_Read('{gj}')) TO '{raw}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        con.execute(f"COPY (SELECT {select} FROM {read}) TO '{raw}' (FORMAT PARQUET, COMPRESSION ZSTD)")
         n, _ = rebake_flatten_bbox(raw, out, con)
     finally:
         raw.unlink(missing_ok=True)
