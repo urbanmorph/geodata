@@ -27,46 +27,25 @@ env's CLOUDFLARE_API_TOKEN is R2-only it's dropped on a retry (same trick as
 bake_community.py), so oauth can handle D1.
 """
 import functools
-import json
 import os
-import subprocess
+import subprocess  # noqa: F401  (tests swap subprocess.run; d1 runs wrangler through it)
 import sys
 
-D1_DATABASE = 'geodata-submissions'
-
-
-@functools.cache
-def wrangler_bin() -> list[str]:
-    """`wrangler` only if it actually runs (a broken mise shim exists on PATH
-    but exits non-zero), else npx."""
-    try:
-        if subprocess.run(['wrangler', '--version'], capture_output=True, text=True).returncode == 0:
-            return ['wrangler']
-    except (FileNotFoundError, OSError):
-        pass
-    return ['npx', '--yes', 'wrangler@4']
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from d1 import D1Error, esc, wrangler_bin  # noqa: E402,F401  (wrangler_bin: probed once per process)
+import d1 as _d1  # noqa: E402
 
 
 def d1(sql: str) -> list[dict]:
-    cmd = [*wrangler_bin(), 'd1', 'execute', D1_DATABASE, '--remote', '--json', '--command', sql]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0 and 'CLOUDFLARE_API_TOKEN' in os.environ:
-        env = {k: v for k, v in os.environ.items() if k != 'CLOUDFLARE_API_TOKEN'}
-        proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
-    if proc.returncode != 0:
-        sys.exit(f'wrangler d1 execute failed (exit {proc.returncode}); is wrangler authed for --remote '
-                 f'with D1 access?\n{(proc.stderr or proc.stdout).strip()}')
-    data = json.loads(proc.stdout)
-    return data[0].get('results', []) if data else []
-
-
-def esc(s: str) -> str:
-    return s.replace("'", "''")
+    """Rows of `sql` on the remote D1 (scripts/d1.py: timeouts, pinned wrangler@4)."""
+    try:
+        return _d1.query(sql, 'remote')
+    except D1Error as e:
+        sys.exit(str(e))
 
 
 @functools.cache
 def _s3():
-    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
     from pipeline import r2_client
     return r2_client()
 

@@ -415,40 +415,18 @@ def build_state_bounds():
 
 
 def fetch_download_counts():
-    """Read download_counts from the live D1 via wrangler. Failures (offline,
-    unauthenticated build env) silently return an empty list — the home
-    page just renders without count badges."""
-    import json as _json
-    import subprocess
+    """Read download_counts from the live D1 (scripts/d1.py). On a failure
+    (offline, unauthenticated build env) the build keeps the previous
+    catalog's counts."""
+    import d1
     web_root = ROOT / 'web'
     if not (web_root / 'wrangler.toml').exists():
         return {}
-    import shutil
-    # Prefer a PATH-resolved wrangler (mise / homebrew) over npx, which
-    # has hit a workerd arch mismatch on this machine's npx cache.
-    wrangler_bin = shutil.which('wrangler') or 'npx'
-    wrangler_cmd = ([wrangler_bin] if wrangler_bin != 'npx'
-                    else ['npx', '--yes', 'wrangler@latest'])
     try:
-        out = subprocess.run(
-            [*wrangler_cmd, 'd1', 'execute',
-             'geodata-submissions', '--remote',
-             '--command', 'SELECT layer_id, state_code, format, count FROM download_counts',
-             '--json'],
-            cwd=str(web_root),
-            capture_output=True, text=True, timeout=30,
-        )
-    except (OSError, subprocess.SubprocessError) as e:
-        print(f'  download_counts: skipped — {e}')
-        return {}
-    if out.returncode != 0:
-        # Don't error the build — counts are nice-to-have.
-        return {}
-    try:
-        # wrangler --json wraps the result in [{ results: [...] }, ...]
-        parsed = _json.loads(out.stdout)
-        rows = parsed[0]['results'] if isinstance(parsed, list) else parsed.get('results', [])
-    except (ValueError, LookupError, AttributeError):
+        rows = d1.query('SELECT layer_id, state_code, format, count FROM download_counts', 'remote',
+                        cwd=web_root, timeout=60)
+    except (d1.D1Error, ValueError, LookupError, AttributeError) as e:
+        print(f'  download_counts: skipped (the previous catalog\'s counts are kept): {str(e)[:200]}')
         return {}
     counts = {}
     for r in rows:

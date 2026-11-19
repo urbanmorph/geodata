@@ -145,7 +145,7 @@ def test_whole_layer_shapefile_zip_is_byte_stable(tmp_path, monkeypatch):
             os.utime(p, (fake_ogr.stamp, fake_ogr.stamp))
         fake_ogr.stamp += 10_000_000
     fake_ogr.stamp = 1_000_000_000
-    monkeypatch.setattr(bwl.subprocess, 'run', fake_ogr)
+    monkeypatch.setattr(bwl, 'run', fake_ogr)
     a, b = _zip_twice(tmp_path, lambda d, out: bwl.write_shapefile_zip(d / 'x.geojson', 'x', out))
     assert a == b
 
@@ -257,7 +257,7 @@ def test_judiciary_and_community_tiles_carry_popup_fields_only(tmp_path, monkeyp
     import bake_formats
     import bake_judiciary as bj
     seen = []
-    monkeypatch.setattr(bj.subprocess, 'run', lambda cmd, *a, **k: seen.append(cmd))
+    monkeypatch.setattr(pipeline, 'run', lambda cmd, *a, **k: seen.append(cmd))
     monkeypatch.setattr(bc, '_run', lambda cmd: seen.append(cmd))
     gj, out = _popup_geojson(tmp_path / 'high_courts.geojson'), tmp_path / 'o.pmtiles'
     bj.geojson_to_pmtiles(gj, out)

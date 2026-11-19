@@ -247,3 +247,37 @@ def test_a_lock_held_by_a_live_job_is_respected(tmp_path):
     with pipeline.upload_lock(lock, 'me', wait_s=0.05, on_wait=waited.append):
         pass
     assert waited and 'other' in waited[0]
+
+
+# ── external tools: always a timeout, stderr in the error ────────────────────
+
+def test_run_returns_the_output():
+    assert pipeline.run([sys.executable, '-c', 'print("ok")'], timeout=30, text=True).stdout == 'ok\n'
+
+
+def test_a_failed_tool_says_why():
+    with pytest.raises(subprocess.CalledProcessError) as e:
+        pipeline.run([sys.executable, '-c', 'import sys; sys.exit("tippecanoe: bad -y field")'], timeout=30)
+    assert 'bad -y field' in str(e.value)
+
+
+def test_a_hung_tool_is_stopped():
+    with pytest.raises(subprocess.TimeoutExpired):
+        pipeline.run([sys.executable, '-c', 'import time; time.sleep(30)'], timeout=0.5)
+
+
+def test_no_script_runs_a_tool_without_a_timeout():
+    """Every subprocess.run / check_output / Popen in the pipeline names a
+    timeout, or goes through pipeline.run (which requires one)."""
+    import ast
+    missing = []
+    for path in sorted(HERE.glob('*.py')):
+        if path.name.startswith('test_'):
+            continue
+        for node in ast.walk(ast.parse(path.read_text())):
+            if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                    and isinstance(node.func.value, ast.Name) and node.func.value.id == 'subprocess'
+                    and node.func.attr in ('run', 'check_call', 'check_output', 'call')
+                    and not any(k.arg == 'timeout' for k in node.keywords)):
+                missing.append(f'{path.name}:{node.lineno}')
+    assert missing == []

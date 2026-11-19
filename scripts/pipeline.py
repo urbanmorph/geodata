@@ -168,6 +168,30 @@ def download(url: str, dest: Path, *, tries: int = 6, timeout: float = 300,
     return dest.stat().st_size
 
 
+# ── external tools ───────────────────────────────────────────────────────────
+
+TOOL_TIMEOUT_S = 6 * 3600  # tippecanoe / ogr2ogr on the biggest layers; a hang still ends
+
+
+class ToolFailed(subprocess.CalledProcessError):
+    """CalledProcessError whose message carries the end of the tool's stderr
+    (a bare "returned non-zero exit status 1" says nothing)."""
+
+    def __str__(self) -> str:
+        err = self.stderr.decode(errors='replace') if isinstance(self.stderr, bytes) else (self.stderr or '')
+        return f'{super().__str__()}\n{err.strip()[-2000:]}'
+
+
+def run(cmd: list[str], *, timeout: float, check: bool = True, capture_output: bool = True,
+        **kw) -> subprocess.CompletedProcess:
+    """subprocess.run with a required timeout; a failure raises ToolFailed
+    (still a CalledProcessError) with the tool's stderr in its message."""
+    proc = subprocess.run(cmd, timeout=timeout, capture_output=capture_output, **kw)
+    if check and proc.returncode != 0:
+        raise ToolFailed(proc.returncode, cmd, proc.stdout, proc.stderr)
+    return proc
+
+
 # ── files ────────────────────────────────────────────────────────────────────
 
 @contextlib.contextmanager

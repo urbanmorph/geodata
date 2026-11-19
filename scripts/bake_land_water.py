@@ -51,6 +51,7 @@ import ingest_ramseraph as ir  # noqa: E402
 from pipeline import (  # noqa: E402
     CHUNK,
     OGR_ENV,
+    TOOL_TIMEOUT_S,
     R2_PUBLIC,
     Deadline,
     OutOfTime,
@@ -60,6 +61,7 @@ from pipeline import (  # noqa: E402
     patient_r2_client,
     r2_upload_retrying,
     rebake_flatten_bbox,
+    run,
     upload_lock,
 )
 from bake_formats import pmtiles_args  # noqa: E402
@@ -211,8 +213,7 @@ def tile_for(lon: float, lat: float, z: int) -> tuple[int, int]:
 
 def decode_tile(pmtiles: Path, z: int, x: int, y: int, out: Path) -> int:
     """Write one decoded tile's features (lon,lat) to a GeoJSON file; return their count."""
-    text = subprocess.run(['tippecanoe-decode', '-c', str(pmtiles), str(z), str(x), str(y)],
-                          check=True, capture_output=True, text=True).stdout
+    text = run(['tippecanoe-decode', '-c', str(pmtiles), str(z), str(x), str(y)], timeout=600, text=True).stdout
     feats = [line.rstrip(',') for line in text.splitlines() if line.startswith('{ "type": "Feature"')]
     out.write_text('{"type": "FeatureCollection", "features": [' + ','.join(feats) + ']}')
     return len(feats)
@@ -408,7 +409,7 @@ def tippecanoe(args: list[str], log: Path) -> None:
     with log.open('a') as f:
         f.write(f'$ {" ".join(args)}\n')
         f.flush()
-        subprocess.run(args, check=True, stdout=f, stderr=subprocess.STDOUT)
+        run(args, timeout=TOOL_TIMEOUT_S, capture_output=False, stdout=f, stderr=subprocess.STDOUT)
 
 
 def bake_tiles(flat: Path, out: Path, layer: str, fields: list[str], polygons: bool,

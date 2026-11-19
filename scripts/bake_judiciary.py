@@ -18,7 +18,6 @@ nclt.gov.in — verified May 2026.
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -35,6 +34,7 @@ from bake_formats import geojson_popup_fields, pmtiles_args  # noqa: E402
 from bake_whole_layer import have_ogr2ogr, write_shapefile_zip  # noqa: E402
 from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
 from pipeline import make_con  # noqa: E402
+import pipeline  # noqa: E402
 
 # ── 25 High Courts ──────────────────────────────────────────────────────
 
@@ -157,8 +157,7 @@ def geojson_to_pmtiles(gj: Path, out: Path) -> None:
     """Convert GeoJSON to PMTiles via tippecanoe with the popup fields only;
     layer name = filename stem."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(pmtiles_args(gj, out, gj.stem, geojson_popup_fields(gj)), check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    pipeline.run(pmtiles_args(gj, out, gj.stem, geojson_popup_fields(gj)), timeout=pipeline.TOOL_TIMEOUT_S)
 
 
 def main() -> int:

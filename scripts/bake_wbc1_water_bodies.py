@@ -34,7 +34,6 @@ import math
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
@@ -534,7 +533,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
         args = bake_formats.pmtiles_args(seq, path['pmtiles'], LAYER_ID, TILE_FIELDS, parallel=True)
         args[args.index('-zg')] = f'-z{TILE_MAX_ZOOM}'
         path['pmtiles'].unlink(missing_ok=True)
-        subprocess.run(args, check=True, capture_output=True)
+        pipeline.run(args, timeout=pipeline.TOOL_TIMEOUT_S)
     finally:
         seq.unlink(missing_ok=True)
     log('pmtiles written')

@@ -385,8 +385,8 @@ def merge(cris: list[Pt], wd: list[WD]) -> tuple[list[dict], dict]:
 
 def _curl(args: list[str], dest: Path) -> None:
     with pipeline.atomic_output(dest) as part:
-        subprocess.run(['curl', '-sSfL', '--retry', '3', '--retry-delay', '5', '-m', '600',
-                        '-A', USER_AGENT, '-o', str(part), *args], check=True)
+        subprocess.run(['curl', '-sSfL', '--retry', '3', '--retry-delay', '5', '-m', '600',  # 3 tries x 600 s
+                        '-A', USER_AGENT, '-o', str(part), *args], check=True, timeout=2400)
         if dest.suffix == '.parquet' and pipeline.read_head(part, 4) != b'PAR1':
             raise ValueError(f'{dest.name}: not a parquet file')
         if dest.suffix == '.csv' and not part.read_text().startswith(','.join(WD_COLS)):

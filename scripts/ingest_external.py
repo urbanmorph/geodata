@@ -28,7 +28,6 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +42,8 @@ from pipeline import (  # noqa: E402
     r2_client,
     r2_upload,
     upsert_by_id,
+    TOOL_TIMEOUT_S,
+    run,
     write_json,
 )
 from rebake_locate_tiles import tippecanoe_cmd  # noqa: E402
@@ -756,11 +757,8 @@ def tippecanoe_args(gj: Path, out: Path, layer_name: str) -> list[str]:
 def to_geojson(src: Path, out: Path) -> None:
     """KML or GeoJSON -> GeoJSON in EPSG:4326 (GeoJSON is always written lon,lat)."""
     out.unlink(missing_ok=True)
-    subprocess.run(
-        ['ogr2ogr', '-f', 'GeoJSON', '-t_srs', 'EPSG:4326',
-         '-skipfailures', str(out), str(src)],
-        check=True, capture_output=True,
-    )
+    run(['ogr2ogr', '-f', 'GeoJSON', '-t_srs', 'EPSG:4326', '-skipfailures', str(out), str(src)],
+        timeout=TOOL_TIMEOUT_S)
 
 
 def to_parquet(gj: Path, out: Path) -> int:
@@ -770,7 +768,7 @@ def to_parquet(gj: Path, out: Path) -> int:
 
 def to_pmtiles(gj: Path, out: Path, layer_name: str) -> None:
     out.unlink(missing_ok=True)
-    subprocess.run(tippecanoe_args(gj, out, layer_name), check=True, capture_output=True)
+    run(tippecanoe_args(gj, out, layer_name), timeout=TOOL_TIMEOUT_S)
 
 
 def up_to_date(src: Path, files: dict[str, Path]) -> bool:

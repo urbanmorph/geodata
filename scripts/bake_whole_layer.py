@@ -55,7 +55,7 @@ from bake_extracts import (  # noqa: E402
     make_con,
     write_kml_from_geojson,
 )
-from pipeline import atomic_output, is_fresh, write_stable_zip  # noqa: E402
+from pipeline import TOOL_TIMEOUT_S, atomic_output, is_fresh, run, write_stable_zip  # noqa: E402
 
 OUT = ROOT / "data" / "baked"
 SRC = ROOT / "sources" / "india-geodata"
@@ -220,7 +220,7 @@ def write_shapefile_zip(geojson_path: Path, basename: str, out: Path) -> None:
         tmp_dir = Path(tmp)
         # ogr2ogr writes into a directory; the shapefile basename matches
         # the geojson basename for tool-friendly filenames after unzip.
-        subprocess.run(
+        run(
             [
                 "ogr2ogr",
                 "-f", "ESRI Shapefile",
@@ -231,9 +231,7 @@ def write_shapefile_zip(geojson_path: Path, basename: str, out: Path) -> None:
                 # what we can without truncation surprises.
                 "-lco", "ENCODING=UTF-8",
             ],
-            check=True,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.PIPE,
+            timeout=TOOL_TIMEOUT_S,
         )
         write_stable_zip(sorted(tmp_dir.iterdir()), out)
 

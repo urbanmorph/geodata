@@ -12,7 +12,11 @@ Usage:
 --remote needs wrangler auth (CLOUDFLARE_API_TOKEN with D1 scope).
 Migration 0009 must be applied to the target DB first.
 """
-import argparse, hashlib, os, subprocess, sys, uuid
+import argparse
+import hashlib
+import os
+import sys
+import uuid
 from datetime import datetime, timezone
 
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_"
@@ -41,12 +45,13 @@ def main() -> None:
         f"('{kid}','{key[:8]}','{hashlib.sha256(key.encode()).hexdigest()}',"
         f"'{label}',{args.daily},'{now}',0);"
     )
-    cmd = ["npx", "wrangler", "d1", "execute", "geodata-submissions",
-           "--remote" if args.remote else "--local", "--command", sql]
-    if args.persist_to:
-        cmd += ["--persist-to", args.persist_to]
-    if subprocess.run(cmd, cwd=COLLECT).returncode != 0:
-        sys.exit("failed to insert key")
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import d1
+    try:
+        d1.query(sql, "remote" if args.remote else "local", cwd=COLLECT,
+                 extra=("--persist-to", args.persist_to) if args.persist_to else ())
+    except d1.D1Error as e:
+        sys.exit(f"failed to insert key: {e}")
 
     print("\n=== collect API key — store securely, shown once ===")
     print(key)

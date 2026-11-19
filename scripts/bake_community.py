@@ -85,7 +85,6 @@ from __future__ import annotations
 
 import json
 import os
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -97,7 +96,9 @@ sys.path.insert(0, str(HERE))
 # Reuse the canonical bbox/Hilbert rebake + R2 helpers (scripts/pipeline.py,
 # side-effect free on import).
 from bake_formats import geojson_popup_fields, pmtiles_args  # noqa: E402
+import d1  # noqa: E402
 from pipeline import (  # noqa: E402
+    TOOL_TIMEOUT_S,
     BUCKET,
     R2_PUBLIC,
     file_md5,
@@ -105,12 +106,13 @@ from pipeline import (  # noqa: E402
     r2_client,
     r2_upload,
     row_group_size_for,
+    run,
+    write_json,
 )
 from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 COMMUNITY_PREFIX = 'community'
-D1_DATABASE = 'geodata-submissions'
 
 # pmtiles earns its keep only when the raw geojson is too heavy for the
 # browser to render directly. Below these, geojson draws instantly and tiles
@@ -226,44 +228,15 @@ _SUBMISSION_COLS = (
 )
 
 
-def _wrangler_bin() -> list[str]:
-    try:
-        subprocess.run(['which', 'wrangler'], check=True, capture_output=True)
-        return ['wrangler']
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return ['npx', '--yes', 'wrangler']
-
-
-def _d1_query(sql: str, scope: str) -> list[dict]:
-    cmd = [*_wrangler_bin(), 'd1', 'execute', D1_DATABASE, f'--{scope}', '--json', '--command', sql]
-    proc = subprocess.run(cmd, capture_output=True, text=True)
-    if proc.returncode != 0 and 'CLOUDFLARE_API_TOKEN' in os.environ:
-        # Common local trip-up: the env's CLOUDFLARE_API_TOKEN is R2-scoped and
-        # shadows `wrangler login` oauth (which has D1), so D1 fails auth 10000.
-        # Retry once without it so oauth handles D1. In CI the token has D1
-        # access and the first call already succeeds, so this never fires.
-        env = {k: v for k, v in os.environ.items() if k != 'CLOUDFLARE_API_TOKEN'}
-        proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
-    if proc.returncode != 0:
-        raise RuntimeError(
-            f'wrangler d1 execute failed (exit {proc.returncode}); is wrangler authed '
-            f'for --{scope} with D1 access? stderr:\n{(proc.stderr or proc.stdout).strip()}'
-        )
-    data = json.loads(proc.stdout)
-    return data[0].get('results', []) if data else []
-
-
 def fetch_submission(sub_id: str, scope: str) -> dict:
-    rows = _d1_query(
-        f"SELECT {_SUBMISSION_COLS} FROM submissions WHERE id='{sub_id}'", scope
-    )
+    rows = d1.query(f"SELECT {_SUBMISSION_COLS} FROM submissions WHERE id='{d1.esc(sub_id)}'", scope)
     if not rows:
         raise KeyError(f'submission {sub_id!r} not found in D1 ({scope})')
     return rows[0]
 
 
 def fetch_accepted_submissions(scope: str) -> list[dict]:
-    return _d1_query(
+    return d1.query(
         f"SELECT {_SUBMISSION_COLS} FROM submissions WHERE status='accepted' "
         "ORDER BY created_at DESC",
         scope,
@@ -271,7 +244,7 @@ def fetch_accepted_submissions(scope: str) -> list[dict]:
 
 
 def _run(cmd: list[str]) -> None:
-    subprocess.run(cmd, check=True, capture_output=True)
+    run(cmd, timeout=TOOL_TIMEOUT_S)
 
 
 def normalize_to_geojson(raw: Path, fmt: str, out_geojson: Path) -> None:
@@ -371,9 +344,9 @@ def bake(sub_id: str, scope: str, s3, work: Path, *, dry_run: bool) -> dict:
 
     catalog = json.loads(CATALOG.read_text())
     merge_community_entry(catalog, entry)
-    # Match build_catalog.py's writer exactly (indent=2, default ensure_ascii)
-    # so the patch is a clean single-entry diff, not a whole-file re-encode.
-    CATALOG.write_text(json.dumps(catalog, indent=2) + '\n')
+    # The house writer (indent=2, ASCII escapes, as build_catalog.py writes):
+    # the patch is a clean single-entry diff, not a whole-file re-encode.
+    write_json(CATALOG, catalog)
     print(f'✓ {sub_id}: baked → /view/{entry["id"]} · catalog patched')
     return entry
 
