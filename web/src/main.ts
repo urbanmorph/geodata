@@ -171,7 +171,8 @@ async function showWardAnswer(raw: string): Promise<void> {
 // /layers row (prerender builds it from those rows). Fetched the first time
 // the search is focused or hovered, so the home page carries no list.
 const searchInput = document.getElementById('catalog-search') as HTMLInputElement | null;
-const searchMeta = document.getElementById('search-meta');
+const searchIdle = document.getElementById('search-meta-idle');
+const searchMatch = document.getElementById('search-meta-match');
 if (searchInput) {
   const pop = document.getElementById('search-pop');
   const resultsBox = document.getElementById('search-results');
@@ -195,16 +196,19 @@ if (searchInput) {
     searchInput.setAttribute('aria-expanded', String(open));
     if (!open) searchInput.removeAttribute('aria-activedescendant');
   };
-  // innerHTML, not textContent: the idle line carries the #dl-total slot and its
-  // emphasised count span, which a plain-text snapshot would flatten.
-  const idleMeta = searchMeta?.innerHTML ?? '';
+  // The idle line ("N layers · X downloads …") is hidden while a search shows
+  // its match line, never swapped out: live counts patched into it stay.
+  const showMatchLine = (on: boolean) => {
+    if (searchIdle) searchIdle.hidden = on;
+    if (searchMatch) searchMatch.hidden = !on;
+  };
 
   const run = async (): Promise<void> => {
     query = searchInput.value.trim().toLowerCase();
     document.body.classList.toggle('searching', !!query);
     if (!query) {
       setPop(false);
-      if (searchMeta) searchMeta.innerHTML = idleMeta;
+      showMatchLine(false);
       return;
     }
     const asked = query;
@@ -222,7 +226,8 @@ if (searchInput) {
     activeHit = -1;
     searchInput.removeAttribute('aria-activedescendant');
     setPop(true);
-    if (searchMeta) searchMeta.innerHTML = matchSummaryHtml(totalLayers, searchInput.value.trim());
+    if (searchMatch) searchMatch.innerHTML = matchSummaryHtml(totalLayers, searchInput.value.trim());
+    showMatchLine(true);
   };
 
   searchInput.addEventListener('input', () => {

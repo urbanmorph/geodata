@@ -703,7 +703,9 @@ const out = fillTemplate(tmpl, {
   INDIA_MAP: indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog, cityCount: WARD_CITY_COUNT }),
   LAYER_TOTAL: String(totalLayers),
   UPDATED: updatedHtml,
-  DOWNLOAD_TOTAL: (homeDownloads > 0 ? ` · <span class="search-meta__count">${fmtCount(homeDownloads)}</span> downloads` : '') + homeUsageSuffix(apiUse),
+  DOWNLOAD_TOTAL: homeDownloads > 0 ? ` · <span class="search-meta__count">${fmtCount(homeDownloads)}</span> downloads` : '',
+  // Its own slot: the live refresh (live-counts.ts) rewrites #dl-total only.
+  API_TOTAL: homeUsageSuffix(apiUse),
 });
 
 await writeFile(resolve(WEB, 'index.html'), out);
