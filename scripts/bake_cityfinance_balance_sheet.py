@@ -268,7 +268,6 @@ def write_joined_parquet(base: Path, raw: Path, out: Path) -> dict:
 
 
 def bake(out_dir: Path, raw: Path = RAW) -> dict:
-    import duckdb
     from bake_extracts import write_kml_from_geojson
     from pipeline import rebake_flatten_bbox
 
@@ -281,9 +280,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
         parquet = out_dir / f'{BASENAME}.parquet'
         rows, prop_cols = rebake_flatten_bbox(joined, parquet)
 
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
-    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+    con = pipeline.make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     # Not RFC7946: GDAL's RFC7946 mode cuts invalid source polygons into

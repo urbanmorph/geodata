@@ -1,7 +1,7 @@
 """
 Generate catalog.json from local files. Single source of truth for the viewer.
 
-Run after scripts/fetch.sh + scripts/extract_per_state.py.
+Run after scripts/fetch.sh (and bake_extracts.py for the per-state extracts).
 """
 import json, sys
 from pathlib import Path
@@ -10,7 +10,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
 GB = ROOT / 'sources' / 'geoboundaries'
-DATA = ROOT / 'data' / 'boundaries'
 # Whole-layer baked downloads (geojson / kml / shp.zip). Produced by
 # scripts/bake_whole_layer.py. URLs are wired into each layer only when
 # the corresponding file actually exists on disk — so this script is a
@@ -19,6 +18,7 @@ BAKED = ROOT / 'data' / 'baked'
 
 # Public base URL of the R2 bucket
 from pipeline import R2_PUBLIC as R2  # noqa: E402
+from pipeline import write_json  # noqa: E402
 from tile_keys import keep_all_rebaked, unversioned_name  # noqa: E402
 
 # Level metadata. `path` is the R2 key prefix (also the upstream release path).
@@ -735,22 +735,6 @@ def build():
     # test_build_catalog_community.py.
     carry_forward_unbuilt(layers, prev_layers)
 
-    # per-state geojson extracts under data/boundaries/<level>/lgd_<level>_<state>.geojson
-    state_extracts = []
-    for level_dir in sorted(DATA.glob('*')):
-        if not level_dir.is_dir():
-            continue
-        for gj in sorted(level_dir.glob('*.geojson')):
-            stem = gj.stem
-            parts = stem.split('_')
-            state = parts[-1]
-            state_extracts.append({
-                'state': state,
-                'level': PLURAL_TO_SINGULAR.get(level_dir.name, level_dir.name),
-                'url': f'{R2}/boundaries/{level_dir.name}/{gj.name}',
-                'bytes': size_of(gj),
-            })
-
     # v4.2 commit 3: bake per-column filter stats for layers whose parquet
     # lives locally. External (R2-only) layers fall back to the browser's
     # live `describeParquet` probe in commit 4.
@@ -772,7 +756,9 @@ def build():
         'level_meta': EXTERNAL_LEVEL_META,  # prerender.mjs fallback for ingested levels
         'level_order': sorted(LEVELS.keys(), key=lambda k: LEVELS[k]['order']),
         'layers': layers,
-        'state_extracts': state_extracts,
+        # Always empty: the CG/JH/OD extracts (extract_per_state.py, removed) gave
+        # way to bake_extracts.py's 'extracts'. Kept so the catalog keeps its shape.
+        'state_extracts': [],
         'categories': CATEGORIES,
         'states': build_state_list(),
         'state_counts': build_state_counts(),
@@ -793,8 +779,8 @@ def build():
     catalog['generated'] = datetime.now(timezone.utc).isoformat()
 
     out = ROOT / 'catalog.json'
-    out.write_text(json.dumps(catalog, indent=2) + '\n')
-    print(f'wrote {out} ({len(layers)} layers, {len(state_extracts)} state extracts)')
+    write_json(out, catalog)
+    print(f'wrote {out} ({len(layers)} layers)')
 
 
 if __name__ == '__main__':

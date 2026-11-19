@@ -10,7 +10,7 @@ Where:
   level = districts | subdistricts | blocks | villages
   state_lgd_code = 2-digit zero-padded LGD code (e.g. '01', '29')
   state_abbr = lowercase 2-letter abbreviation (ISO 3166-2:IN style,
-               with two deviations to match scripts/extract_per_state.py:
+               with two deviations kept from the first CG/JH/OD extracts:
                Odisha -> 'od', Chhattisgarh -> 'cg')
 
 We skip the states layer (one feature per "state" — full parquet is ~7 MB
@@ -20,9 +20,9 @@ Idempotency: an output that exists, is non-empty and is newer than its
 source is skipped. Writers go through atomic_output, so a killed run never
 leaves a partial file that a later run would skip.
 
-GeoJSON path: we try duckdb-spatial's GDAL GeoJSON writer first; if that's
-unavailable in this Python build we fall back to building the
-FeatureCollection JSON manually from ST_AsGeoJSON(geometry) rows.
+GeoJSON path: duckdb-spatial's GDAL GeoJSON writer (streams; GDAL is
+required, as for every other format: the old hand-built fallback held the
+whole table in memory and dropped null properties).
 
 KML path: pure-Python translator mirroring web/src/db.ts's
 geoJSONFeaturesToKML. Streams the just-written geojson one feature at a
@@ -55,7 +55,7 @@ OUT = ROOT / "data" / "extracts"
 
 
 # Per-state LGD abbreviations. Mostly ISO 3166-2:IN, with two deviations
-# (od, cg) to stay consistent with scripts/extract_per_state.py's outputs.
+# (od, cg) to stay consistent with the first per-state extracts' URLs.
 STATE_ABBR: dict[int, str] = {
     1: "jk",   # Jammu & Kashmir
     2: "hp",   # Himachal Pradesh
@@ -77,8 +77,8 @@ STATE_ABBR: dict[int, str] = {
     18: "as",  # Assam
     19: "wb",  # West Bengal
     20: "jh",  # Jharkhand
-    21: "od",  # Odisha   (deviation from ISO 'or' to match extract_per_state.py)
-    22: "cg",  # Chhattisgarh (deviation from ISO 'ct' to match extract_per_state.py)
+    21: "od",  # Odisha   (deviation from ISO 'or', kept for published URLs)
+    22: "cg",  # Chhattisgarh (deviation from ISO 'ct', kept for published URLs)
     23: "mp",  # Madhya Pradesh
     24: "gj",  # Gujarat
     27: "mh",  # Maharashtra
@@ -153,53 +153,12 @@ def write_geojson_gdal(con: duckdb.DuckDBPyConnection, src: Path, col: str,
                        code: int, out: Path) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     # The GDAL GeoJSON writer reads from the `geometry` column. Reorder so
-    # geometry is last (matches scripts/extract_per_state.py convention).
+    # geometry is last.
     con.execute(
         f"COPY (SELECT * EXCLUDE geometry, geometry FROM '{src.as_posix()}' "
         f"WHERE {col} = {code}) TO '{out.as_posix()}' "
         f"WITH (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'RFC7946=YES')"
     )
-
-
-def write_geojson_manual(con: duckdb.DuckDBPyConnection, src: Path, col: str,
-                         code: int, out: Path) -> None:
-    """Fallback when GDAL GeoJSON driver isn't available — build the
-    FeatureCollection by selecting ST_AsGeoJSON(geometry) per row.
-    """
-    out.parent.mkdir(parents=True, exist_ok=True)
-
-    # Get all non-geometry columns
-    schema = con.execute(
-        f"DESCRIBE SELECT * FROM '{src.as_posix()}' LIMIT 0"
-    ).fetchall()
-    prop_cols = [r[0] for r in schema if r[0] != "geometry"]
-
-    select_props = ", ".join(f'"{c}"' for c in prop_cols)
-    rows = con.execute(
-        f"SELECT ST_AsGeoJSON(geometry) AS _geom, {select_props} "
-        f"FROM '{src.as_posix()}' WHERE {col} = {code}"
-    ).fetchall()
-
-    with out.open("w", encoding="utf-8") as f:
-        f.write('{"type":"FeatureCollection","features":[')
-        first = True
-        for r in rows:
-            geom_str = r[0]
-            if geom_str is None:
-                continue
-            props = {prop_cols[i]: r[i + 1] for i in range(len(prop_cols))}
-            # Drop nulls to keep file small + match GDAL behaviour roughly.
-            props = {k: v for k, v in props.items() if v is not None}
-            feat = {
-                "type": "Feature",
-                "geometry": json.loads(geom_str),
-                "properties": props,
-            }
-            if not first:
-                f.write(",")
-            f.write(json.dumps(feat, ensure_ascii=False, default=str))
-            first = False
-        f.write("]}")
 
 
 # ---------------------------------------------------------------------------
@@ -382,11 +341,6 @@ def write_kml_from_geojson(geojson_path: Path, layer_name: str, out: Path) -> No
 # Main
 # ---------------------------------------------------------------------------
 
-def should_skip(out: Path, *sources: Path) -> bool:
-    """Skip an output that is complete and newer than every source."""
-    return is_fresh(out, *sources)
-
-
 def main() -> int:
     con = make_con()
     gdal_ok = gdal_geojson_available(con)
@@ -430,7 +384,7 @@ def main() -> int:
 
             # parquet
             out = paths["parquet"]
-            if should_skip(out, src):
+            if is_fresh(out, src):
                 skipped += 1
                 print(f"skip  level={level} state={abbr} fmt=parquet size={out.stat().st_size}")
             else:
@@ -448,16 +402,13 @@ def main() -> int:
             # geojson
             out = paths["geojson"]
             geojson_path = out  # used by KML below
-            if should_skip(out, src):
+            if is_fresh(out, src):
                 skipped += 1
                 print(f"skip  level={level} state={abbr} fmt=geojson size={out.stat().st_size}")
             else:
                 try:
                     with atomic_output(out) as part:
-                        if gdal_ok:
-                            write_geojson_gdal(con, src, col, code, part)
-                        else:
-                            write_geojson_manual(con, src, col, code, part)
+                        write_geojson_gdal(con, src, col, code, part)
                     sz = out.stat().st_size
                     written += 1
                     print(f"level={level} state={abbr} fmt=geojson size={sz}")
@@ -468,7 +419,7 @@ def main() -> int:
 
             # kml — depends on geojson being present
             out = paths["kml"]
-            if should_skip(out, geojson_path):
+            if is_fresh(out, geojson_path):
                 skipped += 1
                 print(f"skip  level={level} state={abbr} fmt=kml size={out.stat().st_size}")
             else:

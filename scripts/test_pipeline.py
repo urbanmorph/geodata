@@ -204,14 +204,13 @@ def test_whole_layer_failure_leaves_no_partial_output(tmp_path, monkeypatch):
 
 
 def test_per_state_extract_skip_needs_a_fresh_output(tmp_path):
-    import bake_extracts
     src, out = tmp_path / 'src.parquet', tmp_path / 'out.parquet'
     src.write_bytes(b'x')
     out.write_bytes(b'y')
     os.utime(out, (1000, 1000))
-    assert not bake_extracts.should_skip(out, src)
+    assert not pipeline.is_fresh(out, src)
     os.utime(out, (src.stat().st_mtime + 10,) * 2)
-    assert bake_extracts.should_skip(out, src)
+    assert pipeline.is_fresh(out, src)
 
 
 # ── GeoJSON -> parquet / pmtiles converters (review items 13, 22) ────────────
@@ -702,3 +701,26 @@ def test_no_script_loads_a_whole_file_to_look_at_its_first_bytes():
     offenders = [p.name for p in here.glob('*.py')
                  if not p.name.startswith('test_') and 'read_bytes()[' in p.read_text()]
     assert offenders == []
+
+
+def test_judiciary_bake_fails_loudly_and_leaves_no_partial_file(tmp_path, monkeypatch):
+    """A failed format used to print FAIL and exit 0, so a partial bake looked done."""
+    import bake_judiciary as bj
+    src = tmp_path / 'LGD_States.parquet'
+    src.write_bytes(b'x')
+    monkeypatch.setattr(bj, 'SRC', src)
+    monkeypatch.setattr(bj, 'OUT', tmp_path / 'out')
+    monkeypatch.setattr(bj, 'make_con', lambda: None)
+    monkeypatch.setattr(bj, 'dissolve_layer', lambda con, s, lookup, kind, out: out.write_text('{}'))
+
+    def half_written(con, gj, out):
+        out.write_text('half')
+        raise RuntimeError('disk full')
+    monkeypatch.setattr(bj, 'geojson_to_parquet', half_written)
+    for name in ('geojson_to_pmtiles', 'write_shapefile_zip'):
+        monkeypatch.setattr(bj, name, lambda gj, *a: a[-1].write_text('ok'))
+    monkeypatch.setattr(bj, 'write_kml_from_geojson', lambda gj, name, out: out.write_text('ok'))
+    assert bj.main() == 1
+    out = tmp_path / 'out'
+    assert not list(out.glob('*.parquet')) and not list(out.glob('*.part*'))
+    assert (out / 'high_courts.kml').exists()

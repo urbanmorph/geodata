@@ -33,7 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
-from pipeline import atomic_output  # noqa: E402
+from pipeline import atomic_output, write_json  # noqa: E402
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 
@@ -411,12 +411,12 @@ def upload(release: str, out: Path) -> None:
         patched_layer(lyr, release, summary['sizes'], summary['rows'], fetched_at_for(lyr, release, now), R2_PUBLIC)
         if lyr['id'] == LAYER_ID else lyr for lyr in catalog['layers']]
     catalog['level_meta'][LAYER_ID] = patched_level_meta(catalog['level_meta'][LAYER_ID], release)
-    CATALOG.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
+    write_json(CATALOG, catalog)
 
     manifest = json.loads(MANIFEST.read_text())
     manifest = [patched_manifest_entry(e, release, summary['sizes'], summary['rows'])
                 if e['id'] == LAYER_ID else e for e in manifest]
-    MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
+    write_json(MANIFEST, manifest)
 
 
 def main() -> None:

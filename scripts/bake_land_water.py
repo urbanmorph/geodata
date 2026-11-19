@@ -48,6 +48,7 @@ import duckdb
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ingest_ramseraph as ir  # noqa: E402
+from pipeline import make_con as pipeline_make_con  # noqa: E402
 from pipeline import (  # noqa: E402
     CHUNK,
     OGR_ENV,
@@ -63,6 +64,7 @@ from pipeline import (  # noqa: E402
     rebake_flatten_bbox,
     run,
     upload_lock,
+    write_json,
 )
 from bake_formats import pmtiles_args  # noqa: E402
 
@@ -454,14 +456,8 @@ def bake_tiles(flat: Path, out: Path, layer: str, fields: list[str], polygons: b
 # ── pipeline ───────────────────────────────────────────────────────────
 
 def make_con(work: Path) -> duckdb.DuckDBPyConnection:
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
-    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
-    con.execute(f"SET temp_directory = '{work / 'duckdb_tmp'}'")
-    con.execute('SET preserve_insertion_order = false')
-    con.execute("SET memory_limit = '24GB'")
-    con.execute('SET enable_progress_bar = false')  # it floods a redirected log
-    return con
+    """pipeline.make_con sized for these layers: spill under `work`, 24 GB, streaming COPYs."""
+    return pipeline_make_con(temp_dir=work / 'duckdb_tmp', memory_limit='24GB', ordered=False)
 
 
 def build(d: ir.Dataset, deadline: Deadline) -> dict:
@@ -529,7 +525,7 @@ def patch_root_catalog(d: ir.Dataset, pq_bytes: int, pm_bytes: int, features: in
     # The tiles are baked here (popup fields), not the compiler's file, under a versioned name.
     next(lyr for lyr in c['layers'] if lyr['id'] == d.id)['pmtiles'] = {
         'url': f'{R2_PUBLIC}/{d.r2_prefix}/{pm_name}', 'bytes': pm_bytes}
-    catalog.write_text(json.dumps(c, indent=2) + '\n')
+    write_json(catalog, c)
 
 
 def publish(d: ir.Dataset, built: dict) -> None:

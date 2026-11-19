@@ -21,6 +21,9 @@ import math
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import write_json  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 CATALOG = ROOT / 'catalog.json'
 CLASSES = 5
@@ -103,7 +106,7 @@ def main(ids: list[str]) -> None:
         print(f'  {lid}.{cfg["column"]}: breaks {breaks[lid]}', flush=True)
     changed = patch_catalog(catalog, breaks)
     if changed:
-        CATALOG.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
+        write_json(CATALOG, catalog)
     print(f'catalog.json: {"updated " + ", ".join(changed) if changed else "unchanged"}', flush=True)
 
 

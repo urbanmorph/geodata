@@ -33,7 +33,7 @@ import duckdb
 import ingest_ramseraph as ir
 from bake_formats import write_pmtiles
 from ingest_ramseraph import Dataset, republished
-from pipeline import Deadline, OutOfTime, atomic_output, download, take_max_minutes
+from pipeline import Deadline, OutOfTime, atomic_output, download, make_con, take_max_minutes
 
 # Column names that hold people's details. Matched case-insensitively
 # against whole name parts, so record numbers (khatian, khasra) and place
@@ -68,9 +68,7 @@ def bake_popup_pmtiles(src: Path, out: Path, layer: str, fields: list[str]) -> N
     seq = out.with_suffix('.geojsonl')
     print(f'  baking {out.name} with popup fields {fields}', flush=True)
     with atomic_output(seq) as part:
-        con = duckdb.connect()
-        con.execute('INSTALL spatial; LOAD spatial;')
-        con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+        con = make_con()
         con.execute(f"COPY (SELECT {cols}, geometry FROM read_parquet('{src}')) "
                     f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')")
     with atomic_output(out) as part:

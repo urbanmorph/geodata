@@ -474,7 +474,7 @@ def patch_catalog(lid: str, key: str, nbytes: int, narrowed: bool, catalog: Path
     c = json.loads(catalog.read_text())
     c['layers'] = [patched_layer(layer, key, nbytes, narrowed) if layer['id'] == lid else layer
                    for layer in c['layers']]
-    catalog.write_text(json.dumps(c, indent=2) + '\n')
+    write_json(catalog, c)
     # build_catalog.py rebuilds ingested layers from this manifest: keep it in step.
     rows = json.loads(manifest.read_text())
     for r in rows:

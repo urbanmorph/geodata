@@ -315,3 +315,17 @@ def test_datagov_get_sends_the_key_and_params_and_gives_up_on_a_4xx(monkeypatch)
 def test_datagov_api_key_comes_from_the_environment(monkeypatch):
     monkeypatch.setenv('OGD_API_KEY', 'k1')
     assert pipeline.datagov_api_key() == 'k1'
+
+
+def test_make_con_keeps_lon_lat_and_takes_spill_settings(tmp_path):
+    con = pipeline.make_con(temp_dir=tmp_path / 'spill', memory_limit='1GB', ordered=False)
+    assert con.execute("SELECT current_setting('geometry_always_xy')").fetchone()[0] is True
+    assert con.execute("SELECT current_setting('temp_directory')").fetchone()[0].endswith('spill')
+    assert con.execute("SELECT current_setting('preserve_insertion_order')").fetchone()[0] is False
+
+
+def test_no_script_hand_rolls_a_spatial_connection():
+    """pipeline.make_con is the one place that loads spatial and sets lon,lat order."""
+    offenders = [p.name for p in HERE.glob('*.py') if not p.name.startswith('test_') and p.name != 'pipeline.py'
+                 and "INSTALL spatial; LOAD spatial" in p.read_text() and 'geometry_always_xy' in p.read_text()]
+    assert offenders == []

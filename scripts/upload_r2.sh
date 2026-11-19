@@ -42,8 +42,8 @@ pairs() {
     [ -e "$f" ] || continue
     pair "$f" "geoboundaries/$(basename "$f")"
   done
-  # per-state geojson extracts (legacy CG/JH/OD) and pre-baked per-state extracts
-  for f in "$ROOT"/data/boundaries/*/*.geojson "$ROOT"/data/extracts/*/*/*.*; do
+  # pre-baked per-state extracts
+  for f in "$ROOT"/data/extracts/*/*/*.*; do
     [ -e "$f" ] || continue
     pair "$f" "${f#"$ROOT"/data/}"
   done

@@ -297,14 +297,27 @@ def slug(value: str) -> str:
 
 # ── DuckDB ───────────────────────────────────────────────────────────────────
 
-def make_con():
-    """A DuckDB connection with spatial loaded and GDAL kept in lon,lat order."""
+def make_con(temp_dir: Path | None = None, memory_limit: str | None = None, threads: int | None = None,
+             ordered: bool = True):
+    """A DuckDB connection with spatial loaded and GDAL kept in lon,lat order;
+    for big layers, a spill folder, a memory limit, a thread count and
+    `ordered=False` (lets order-free COPYs stream), and no progress bar
+    (it floods a redirected log)."""
     import duckdb
     con = duckdb.connect()
     con.execute('INSTALL spatial; LOAD spatial')
     # GDAL writes EPSG:4326-tagged geometry as lat,lon unless told otherwise,
     # which put every city ward layer's downloads in the wrong place.
     con.execute('SET geometry_always_xy = true')
+    con.execute('SET enable_progress_bar = false')
+    if temp_dir is not None:
+        con.execute(f"SET temp_directory = '{temp_dir}'")
+    if memory_limit:
+        con.execute(f"SET memory_limit = '{memory_limit}'")
+    if threads:
+        con.execute(f'SET threads = {int(threads)}')
+    if not ordered:
+        con.execute('SET preserve_insertion_order = false')
     return con
 
 

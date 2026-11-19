@@ -43,6 +43,8 @@ from pipeline import (  # noqa: E402
     r2_upload,
     upsert_by_id,
     TOOL_TIMEOUT_S,
+    atomic_output,
+    is_fresh,
     run,
     write_json,
 )
@@ -771,17 +773,13 @@ def to_pmtiles(gj: Path, out: Path, layer_name: str) -> None:
     run(tippecanoe_args(gj, out, layer_name), timeout=TOOL_TIMEOUT_S)
 
 
-def up_to_date(src: Path, files: dict[str, Path]) -> bool:
-    return all(f.exists() and f.stat().st_mtime >= src.stat().st_mtime for f in files.values())
-
-
 def build(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
     """Build every format for one dataset under out_root; skip when already built from this source."""
     src = Path(ds.src)
     if not src.exists():
         raise FileNotFoundError(src)
     files = outputs(ds, out_root)
-    if up_to_date(src, files):
+    if all(is_fresh(f, src) for f in files.values()):
         print(f'    skip  {ds.id}: built and newer than its source', flush=True)
         return files
     folder = files['parquet'].parent
@@ -794,7 +792,8 @@ def build(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
     n = to_parquet(src_gj, files['parquet'])
     if ds.features and n != ds.features:
         print(f'    !!  feature count drifted: expected {ds.features}, got {n}', flush=True)
-    to_pmtiles(src_gj, files['pmtiles'], ds.id)
+    with atomic_output(files['pmtiles']) as part:
+        to_pmtiles(src_gj, part, ds.id)
     src_gj.unlink()
 
     baked = bake_whole_layer(ds, files['parquet'], bake_dir=folder, basename=ds.id)

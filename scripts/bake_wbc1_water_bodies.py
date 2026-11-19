@@ -324,7 +324,7 @@ def write_shapefile_zip(con, parquet: Path, out: Path, prop_cols: list[str]) -> 
     from pipeline import DBF_MAX_BYTES, slug
     names = bake_formats.short_field_names(prop_cols)
     select = ', '.join(f'"{long}" AS "{short}"' for long, short in names.items())
-    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+    con.execute('SET geometry_always_xy = true')  # a caller's own connection may lack it (lat,lon otherwise)
 
     def write(where: str, params: list, shp: Path) -> None:
         con.execute(f"COPY (SELECT {select}, geometry FROM read_parquet('{parquet}') {where}) TO '{shp}' "
@@ -446,7 +446,6 @@ def coverage(res: list[dict], metas: dict[str, dict]) -> tuple[list[str], dict[s
 
 
 def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
-    import duckdb
     import bake_formats
     from bake_extracts import gdal_geojson_available
     from bake_whole_layer import write_geojson_whole
@@ -481,9 +480,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
                 log(f'  read {r["state"]}: {n_in:,} rows so far')
         types = tracker.types()
         log(f'numeric columns: {len(types)} of {len(cols)}')
-        con = duckdb.connect()
-        con.execute('INSTALL spatial; LOAD spatial;')
-        con.execute(f"SET temp_directory = '{work}'")
+        con = pipeline.make_con(temp_dir=work)
         src_cols = '{' + ', '.join(f"'{n}': 'VARCHAR'" for n in cols) + '}'
         select = ', '.join(cast_sql(n, types.get(n)) for n in cols)
         joined = work / 'joined.parquet'
@@ -499,8 +496,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = pipeline.make_con()
     points = dict(con.execute(f"""SELECT {point_class_sql(coord_sql(LON), coord_sql(LAT))} AS c, count(*)
         FROM read_parquet('{parquet}') GROUP BY c""").fetchall())
     as_text = ' OR '.join(f"""({coord_sql(c)} IS NULL AND upper(trim("{c}"::VARCHAR)) NOT IN {NA_SQL})"""
