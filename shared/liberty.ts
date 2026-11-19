@@ -45,7 +45,7 @@ const isGet = (e: unknown): e is ['get', string] => Array.isArray(e) && e[0] ===
 export function guardNumericGets(expr: unknown): unknown {
   if (!Array.isArray(expr)) return expr;
   const out = expr.map(guardNumericGets);
-  if (ORDER_OPS.has(out[0]) && out.length === 3) {
+  if (ORDER_OPS.has(out[0] as string) && out.length === 3) {
     const got = out.slice(1).find(isGet);
     const num = out.slice(1).some((a) => typeof a === 'number');
     if (got && num) return ['all', ['==', ['typeof', got], 'number'], out];
