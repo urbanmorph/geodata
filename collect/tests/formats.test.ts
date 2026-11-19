@@ -59,6 +59,13 @@ describe('toKML', () => {
     expect(kml).toContain('Church St, &quot;the edge&quot;');
     expect(kml).toContain('<Data name="cond"><value>Good</value></Data>');
   });
+  it('writes an area with its holes (the shared KML writer, shared/kml.mjs)', () => {
+    const ring = [[77.6, 12.9], [77.7, 12.9], [77.7, 13], [77.6, 12.9]];
+    const hole = [[77.62, 12.92], [77.63, 12.92], [77.63, 12.93], [77.62, 12.92]];
+    const kml = toKML([{ geometry: { type: 'Polygon', coordinates: [ring, hole] }, properties: {} }], [], 'Areas');
+    expect(kml).toContain('<innerBoundaryIs><LinearRing><coordinates>77.62,12.92');
+    expect(kml.endsWith('</Document>\n</kml>')).toBe(true);
+  });
 });
 
 describe('photos, notes and areas in downloads', () => {

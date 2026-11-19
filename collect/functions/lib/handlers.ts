@@ -20,7 +20,7 @@ import { checkIndiaBounds } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
 import { composeAttribution } from '../../src/publish/attribution';
 import { modeOf, usesAi } from '../../src/schema/modes';
-import { ringArea } from '../../src/geo/measure';
+import { noteColumns, areaColumn, addedAt } from '../../src/export/derived';
 import { photoIdsIn, checkPhotos, setPhotos, deletePhotosOf, photoLinks, photoUrl } from './photos';
 import { runAi, drainAi, publicNotes } from './ai';
 
@@ -562,19 +562,11 @@ export function publishedAnswers(fields: Field[], props: Record<string, unknown>
   return out;
 }
 
-/** Columns collect adds to a published point: accepted notes from its photo,
- *  and an area's size in square metres (author fields of the same name win). */
-function derivedColumns(r: { ai: string | null; geometry: string }): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
-  const notes = publicNotes(r.ai);
-  if (notes) Object.assign(out, { photo_description: notes.description, photo_tags: notes.tags.join(' | '), photo_notes_model: notes.model });
-  const g = JSON.parse(r.geometry) as { type: string; coordinates: number[][][] };
-  if (g.type === 'Polygon') out.area_sq_m = Math.round(ringArea(g.coordinates[0] as [number, number][]));
-  return out;
-}
-
-/** When a point was added: the phone's capture time, else when it was saved. */
-const addedAt = (r: { captured_at: string | null; created_at: string }): string => r.captured_at ?? r.created_at;
+/** Columns collect adds to a published point (src/export/derived.ts, the same as
+ *  the owner's downloads): accepted notes from its photo, an area's size. Author
+ *  fields of the same name win. */
+const derivedColumns = (r: { ai: string | null; geometry: string }): Record<string, unknown> =>
+  ({ ...noteColumns(publicNotes(r.ai)), ...areaColumn(JSON.parse(r.geometry)) });
 
 // A queued point sent again (offline capture queue). Only the hash of its first
 // edit token is stored, so the phone gets a new one; the old one stops working.
@@ -960,7 +952,7 @@ async function publishMap(
     geometry: JSON.parse(r.geometry),
     // added_at: when the point was captured; an author field of that name wins.
     // Hidden fields stay in the map's data but are not published.
-    properties: { added_at: addedAt(r), ...derivedColumns(r), ...mergeAdminCtx(publishedAnswers(fields, withoutHidden(JSON.parse(r.properties)), origin), r.admin_ctx) },
+    properties: { added_at: addedAt(r.captured_at, r.created_at), ...derivedColumns(r), ...mergeAdminCtx(publishedAnswers(fields, withoutHidden(JSON.parse(r.properties)), origin), r.admin_ctx) },
   }));
   const fc = { type: 'FeatureCollection', features };
   const bytes = new TextEncoder().encode(JSON.stringify(fc));
