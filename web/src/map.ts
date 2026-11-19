@@ -384,6 +384,8 @@ function addDataLayers(sourceId: string, sourceLayer?: string, choropleth?: Chor
 
 const HL_LAYERS = ['locate-hl-fill', 'locate-hl-line', 'locate-hl-circle'];
 const HL_ACCENT = DATA_SELECTED;
+/** The pending "frame the feature once tiles settle" handler, if any. */
+let zoomFitOnIdle: (() => void) | null = null;
 
 function clearLocateHighlight(): void {
   if (!map) return;
@@ -421,8 +423,12 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
   // querySourceFeatures returns tile-clipped geometry, but the union bbox frames
   // the feature well when its tiles are loaded (they are, after the flyTo). A
   // point's bbox is ~zero-area, so we leave the flyTo zoom in that case.
+  // One pending fit: a second "Zoom to it" replaces the first's, not stacks on it.
+  if (zoomFitOnIdle) map.off('idle', zoomFitOnIdle);
+  zoomFitOnIdle = null;
   if (!filter) return;
-  map.once('idle', () => {
+  const fit = () => {
+    zoomFitOnIdle = null;
     if (!map) return;
     try {
       const feats = map.querySourceFeatures('layer', {
@@ -435,7 +441,9 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
       if (b[2] - b[0] < 1e-4 && b[3] - b[1] < 1e-4) return; // a point — already framed
       map.fitBounds(asBounds(b), { padding: panelAwarePadding(), maxZoom: 15, duration: 500 });
     } catch { /* query/fit is best-effort */ }
-  });
+  };
+  zoomFitOnIdle = fit;
+  map.once('idle', fit); // off() removes a once() listener too (MapLibre Evented)
 }
 
 // ---------------------------------------------------------------------------

@@ -50,14 +50,21 @@ const warmCatalog = () => void import('./catalog').then((m) => m.getCatalog()).c
 // without touching the URL so the canonical /view/<id> stays shareable.
 const viewProbe = isViewPath(location.pathname);
 
+// Each show and hide is a new generation: a show still waiting for the map's
+// code when the map is closed stops there (no layer opened in a hidden overlay).
+let shows = 0;
+
 async function showMap(layerId: string) {
+  const show = ++shows;
   overlay.classList.add('open');
   openDialog(overlay);
   document.body.style.overflow = 'hidden';
   try {
     const m = await loadMap();
+    if (show !== shows) return; // closed meanwhile
     await m.openLayer(layerId, { titleEl: mapTitle });
   } catch (e) {
+    if (show !== shows) return;
     // The map's own code is a separate download, and the catalog another: with no
     // connection they can't load, so say why instead of leaving "loading map…" up.
     showLayerError(document.getElementById('map')!, e);
@@ -70,6 +77,7 @@ async function showMap(layerId: string) {
 const HOME_TITLE = "India's open atlas: every boundary, one search away · bharatlas";
 
 async function hideMap() {
+  shows++; // a show still loading the map stops
   // Hands focus back to what opened the map (or out of it) before hiding it.
   closeDialog(overlay);
   overlay.classList.remove('open');
