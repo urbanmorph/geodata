@@ -82,7 +82,7 @@ import { submissionSync } from './submission-sync';
 import { dropSyncFragment } from '../../shared/keyring';
 import { renderSubmissionSync, SYNC_LINK_NOTE } from './submission-sync-ui';
 import { passkeysAvailable } from '../../shared/passkey';
-import { submitErrorText } from './submit-error';
+import { submitErrorText, submitNetworkErrorText, urlFetchErrorText } from './submit-error';
 const darkScheme = matchMedia('(prefers-color-scheme: dark)');
 const mapScheme = (): 'light' | 'dark' => (darkScheme.matches ? 'dark' : 'light');
 
@@ -219,7 +219,7 @@ async function maybeFetchUrlParam(): Promise<void> {
     await handleFile(new File([blob], name));
   } catch (e) {
     fetchLoader.dismiss();
-    renderReport([{ k: `fetch failed: ${(e as Error).message}`, level: 'err' }]);
+    renderReport([{ k: urlFetchErrorText(e), level: 'err' }]);
   }
 }
 
@@ -322,7 +322,6 @@ function resetState(): void {
   selectedFile = null;
   selectedFC = null;
   selectedFormat = null;
-  turnstileToken = null;
   reportEl.innerHTML = '';
   hideForm();
   hidePublishCTA();
@@ -333,11 +332,7 @@ function resetState(): void {
   fileInput.value = '';
   for (const id of ['c-fill', 'c-line', 'c-pt']) if (map.getLayer(id)) map.removeLayer(id);
   if (map.getSource('v')) map.removeSource('v');
-  if (turnstileWidgetId != null) {
-    // @ts-expect-error global turnstile from CF script
-    window.turnstile?.reset?.(turnstileWidgetId);
-    turnstileToken = null;
-  }
+  resetCaptcha();
   map.fitBounds(INDIA_BBOX, { padding: 24, duration: 0 });
 }
 
@@ -457,6 +452,9 @@ function updateSubmitEnabled(): void {
   const fileOk = !!(selectedFile && selectedFC && selectedFormat);
   const captchaOk = !!turnstileToken;
   submitBtn.disabled = !(fileOk && captchaOk);
+  // A failed submit's message stays (the fresh captcha re-enables the button)
+  // until the next attempt clears it.
+  if (fileOk && statusEl.classList.contains('err')) return;
   if (submitBtn.disabled) {
     statusEl.classList.remove('err');
     if (!fileOk) statusEl.textContent = 'drop a file first';
@@ -526,9 +524,7 @@ form.addEventListener('submit', async (e) => {
   try {
     resp = await fetch('/api/submit', { method: 'POST', body: fd });
   } catch (err) {
-    statusEl.classList.add('err');
-    statusEl.textContent = `network error: ${(err as Error).message}`;
-    submitBtn.disabled = false;
+    submitFailed(submitNetworkErrorText(err));
     return;
   }
 
@@ -536,24 +532,32 @@ form.addEventListener('submit', async (e) => {
   try {
     body = await resp.json();
   } catch {
-    statusEl.classList.add('err');
-    statusEl.textContent = submitErrorText(resp.status, {});
-    submitBtn.disabled = false;
+    submitFailed(submitErrorText(resp.status, {}));
     return;
   }
 
   if (!resp.ok) {
-    statusEl.classList.add('err');
-    statusEl.textContent = submitErrorText(resp.status, body as { error?: string; attempt_id?: string });
-    submitBtn.disabled = false;
-    // @ts-expect-error reset captcha so user can re-attempt
-    window.turnstile?.reset?.(turnstileWidgetId);
-    turnstileToken = null;
+    submitFailed(submitErrorText(resp.status, body as { error?: string; attempt_id?: string }));
     return;
   }
 
   renderSuccess(body as SuccessPayload);
 });
+
+/** A Turnstile token is single use: after any failure, reset it (the button
+ *  comes back when the new token arrives) and show what went wrong. */
+function submitFailed(message: string): void {
+  resetCaptcha();
+  submitBtn.disabled = true;
+  statusEl.classList.add('err');
+  statusEl.textContent = message;
+}
+
+function resetCaptcha(): void {
+  turnstileToken = null;
+  // @ts-expect-error global turnstile from CF script
+  if (turnstileWidgetId != null) window.turnstile?.reset?.(turnstileWidgetId);
+}
 
 function renderSuccess(payload: SuccessPayload): void {
   hideForm();
