@@ -169,6 +169,42 @@ def test_download_accepts_a_part_that_already_holds_every_byte(tmp_path, server)
     assert dest.read_bytes() == _RangeHandler.body
 
 
+# ── work folders: durable, not /tmp ──────────────────────────────────────────
+
+def test_work_dirs_live_under_data_work_not_tmp(tmp_path, monkeypatch):
+    # macOS clears /tmp on reboot, losing hours of cached downloads and bakes.
+    assert pipeline.WORK_ROOT == pipeline.ROOT / 'data' / 'work'  # gitignored (data/)
+    monkeypatch.setattr(pipeline, 'WORK_ROOT', tmp_path / 'work')
+    monkeypatch.delenv('X_WORK', raising=False)
+    assert pipeline.work_dir('x', 'X_WORK') == tmp_path / 'work' / 'x'
+    assert not (tmp_path / 'work').exists()  # nothing made until a run writes there
+
+
+def test_a_work_dir_env_override_wins(tmp_path, monkeypatch):
+    monkeypatch.setenv('X_WORK', str(tmp_path / 'disk'))
+    assert pipeline.work_dir('x', 'X_WORK') == tmp_path / 'disk'
+
+
+def test_a_run_cached_in_the_old_tmp_folder_resumes_there(tmp_path, monkeypatch):
+    # A run in progress keeps its cache: the old /tmp folder is used until the new one exists.
+    monkeypatch.setattr(pipeline, 'WORK_ROOT', tmp_path / 'work')
+    old = tmp_path / 'tmp-x'
+    assert pipeline.work_dir('x', legacy=old) == tmp_path / 'work' / 'x'
+    old.mkdir()
+    assert pipeline.work_dir('x', legacy=old) == old
+    (tmp_path / 'work' / 'x').mkdir(parents=True)
+    assert pipeline.work_dir('x', legacy=old) == tmp_path / 'work' / 'x'
+
+
+def test_the_tile_scripts_share_one_tiles_work_folder():
+    import audit_tiles
+    import rebake_tiles
+    import tile_filter_gaps
+    assert rebake_tiles.WORK == pipeline.TILES_WORK
+    assert audit_tiles.CACHE == pipeline.TILES_WORK / 'audit'
+    assert tile_filter_gaps.WORK == pipeline.TILES_WORK / 'filter-gaps'
+
+
 # ── cached steps + time limit ────────────────────────────────────────────────
 
 def test_cached_step_runs_once_and_writes_atomically(tmp_path):

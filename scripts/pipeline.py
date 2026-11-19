@@ -486,6 +486,26 @@ def _multipart_upload(s3, local: Path, key: str, md5: str, state_dir: Path, part
 
 UPLOAD_STATE = ROOT / 'data' / 'r2-uploads'  # multipart upload ids, so a killed upload resumes
 
+# Work folders (downloads, bakes, caches) live under data/work/ (gitignored),
+# not /tmp: macOS clears /tmp on reboot, and a resumable run lost its cache.
+WORK_ROOT = ROOT / 'data' / 'work'
+
+
+def work_dir(name: str, env: str | None = None, legacy: str | Path | None = None) -> Path:
+    """A script's work folder: $`env` when set, else WORK_ROOT/<name>. While
+    WORK_ROOT/<name> does not exist yet, an existing `legacy` folder (the old
+    /tmp default) is used, so a run cached there resumes. Nothing is created."""
+    if env and os.environ.get(env):
+        return Path(os.environ[env])
+    new = WORK_ROOT / name
+    if legacy is not None and not new.exists() and Path(legacy).is_dir():
+        return Path(legacy)
+    return new
+
+
+# rebake_tiles, audit_tiles and tile_filter_gaps share one tiles folder.
+TILES_WORK = work_dir('tiles', 'TILES_WORK', legacy='/tmp/ramseraph/tiles')
+
 
 def patient_r2_client():
     """r2_client for long runs on a flaky link: adaptive retries, ten attempts."""

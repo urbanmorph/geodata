@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -37,10 +36,10 @@ sys.path.insert(0, str(HERE))
 import audit_tiles as at  # noqa: E402
 from build_filter_stats import (  # noqa: E402
     is_unoffered_name, normalise_type, panel_stats, stats_for_parquet, tile_filter_columns)
-from pipeline import make_con, write_json  # noqa: E402
+from pipeline import make_con, write_json, TILES_WORK  # noqa: E402
 
 ROOT = HERE.parent
-WORK = Path(os.environ.get('TILES_WORK', '/tmp/bharatlas-tiles')) / 'filter-gaps'
+WORK = TILES_WORK / 'filter-gaps'
 
 
 def unseen_columns(schema: list[tuple[str, str]], tile_fields: list[str]) -> list[str]:

@@ -28,7 +28,6 @@ from __future__ import annotations
 
 import gzip
 import json
-import os
 import struct
 import sys
 import time
@@ -40,8 +39,11 @@ from dataclasses import dataclass
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+from pipeline import TILES_WORK  # noqa: E402
+
 ROOT = HERE.parent
-CACHE = Path(os.environ.get('TILES_WORK', '/tmp/ramseraph/tiles')) / 'audit'
+CACHE = TILES_WORK / 'audit'
 
 # About 500 KB: tippecanoe's default budget is 500,000 bytes a tile, and a
 # low-zoom tile filled to within a few percent of it was cut down to fit.

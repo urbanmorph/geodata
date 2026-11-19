@@ -58,12 +58,13 @@ from pipeline import (  # noqa: E402,F401
     row_group_size_for,
     slug,
     write_split_shapefiles,
+    work_dir,
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-# Downloads and bakes are cached here (set RAMSERAPH_WORK for a durable disk);
-# created by ingest(), not at import.
-WORK = Path(os.environ.get('RAMSERAPH_WORK', '/tmp/ramseraph'))
+# Downloads and bakes are cached here (RAMSERAPH_WORK overrides); created by
+# ingest(), not at import.
+WORK = work_dir('ramseraph', 'RAMSERAPH_WORK', legacy='/tmp/ramseraph')
 
 
 @dataclass

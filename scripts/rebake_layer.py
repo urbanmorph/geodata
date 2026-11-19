@@ -49,12 +49,13 @@ sys.path.insert(0, str(HERE))
 from pipeline import (  # noqa: E402
     R2_PUBLIC, Deadline, OutOfTime, _remote_has, cached, download, file_md5, log, make_con, patient_r2_client,
     r2_upload_retrying, rebake_flatten_bbox, upload_lock, write_json,
+    work_dir,
 )
 from tile_keys import versioned_key  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = HERE / 'external-ingested.json'
-WORK = Path(os.environ.get('REBAKE_WORK', '/tmp/rebake_layer'))
+WORK = work_dir('rebake_layer', 'REBAKE_WORK', legacy='/tmp/rebake_layer')
 LOCK_OWNER = 'rebake_layer (fix/parquet-bbox-rebake)'
 BBOX = ('xmin', 'ymin', 'xmax', 'ymax')
 CRS84 = "GEOMETRY('OGC:CRS84')"

@@ -50,12 +50,13 @@ from pipeline import (  # noqa: E402
     r2_client,
     r2_upload,
     write_json,
+    work_dir,
 )
 from tile_keys import is_rebaked, versioned_key  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
-WORK = Path('/tmp/rebake_locate_tiles')
+WORK = work_dir('rebake_locate_tiles', legacy='/tmp/rebake_locate_tiles')
 MAX_ZOOM = 12
 
 # Polygon layers whose tiles stop below z10 (audit, Nov 2026).

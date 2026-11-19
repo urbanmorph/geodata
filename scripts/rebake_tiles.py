@@ -77,13 +77,14 @@ from pipeline import (  # noqa: E402
     read_head,
     upload_lock,
     write_json,
+    TILES_WORK,
 )
 import tile_keys  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = HERE / 'external-ingested.json'
-WORK = Path(os.environ.get('TILES_WORK', '/tmp/ramseraph/tiles'))
+WORK = TILES_WORK
 LOCK_OWNER = f'rebake_tiles pid {os.getpid()}'
 
 # tippecanoe's default budget is 500,000 bytes a tile, and dense layers fill
