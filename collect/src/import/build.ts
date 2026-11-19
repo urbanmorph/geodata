@@ -6,6 +6,7 @@ import { validateRecordProperties, type Field } from '../schema/validate-record'
 import { checkIndiaBounds } from '../geo/bounds';
 import { isDate, datePart } from '../schema/dates';
 import type { ParsedFeature } from './parse';
+import { csvCell } from '../../../shared/csv.mjs';
 
 export interface Mapping {
   fields: Record<string, string>; // fieldKey -> source column
@@ -126,11 +127,7 @@ export function buildRecords(
 export function errorsToCSV(errors: ImportError[]): string {
   if (!errors.length) return '';
   const cols = [...new Set(errors.flatMap((e) => Object.keys(e.source)))];
-  const cell = (v: unknown): string => {
-    const s = String(v ?? '');
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-  };
-  const lines = [[...cols, 'why'].map(cell).join(',')];
-  for (const e of errors) lines.push([...cols.map((c) => e.source[c] ?? ''), e.error].map(cell).join(','));
+  const lines = [[...cols, 'why'].map(csvCell).join(',')];
+  for (const e of errors) lines.push([...cols.map((c) => e.source[c] ?? ''), e.error].map(csvCell).join(','));
   return lines.join('\n');
 }

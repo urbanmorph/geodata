@@ -27,6 +27,7 @@ import {
 import { byteArrayColumnRows } from './parquet-column-stream';
 import { wkbToText } from './wkb-geojson';
 import { kmlHead, kmlPlacemarkHead, KML_TAIL } from '../../../shared/kml.mjs';
+import { csvCell as sharedCsvCell } from '../../../shared/csv.mjs';
 import { FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, FILTER_EXPORT_MAX_SHAPE_BYTES } from '../../../shared/large-load.mjs';
 
 export const EXPORT_MAX_ROWS = FILTER_EXPORT_MAX_ROWS;
@@ -93,11 +94,8 @@ function plain(v: unknown): unknown {
 
 const jsonSafe = (v: unknown) => JSON.stringify(v, (_k, x) => plain(x));
 
-function csvCell(v: unknown): string {
-  if (v == null) return '';
-  const s = typeof v === 'object' ? jsonSafe(v) : String(plain(v));
-  return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
+// Nested values as JSON; every cell through the shared writer (formula-safe).
+const csvCell = (v: unknown): string => sharedCsvCell(v != null && typeof v === 'object' ? jsonSafe(v) : plain(v));
 
 /** Output bytes per uncompressed parquet byte of the exported columns, by
  *  format (text coordinates and JSON/XML keys inflate binary columns; CSV has
