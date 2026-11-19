@@ -92,3 +92,10 @@ def test_layers_are_credited_and_unique():
         assert 'DataMeet' in d.notes and d.source_org in d.notes
         assert d.parquet_url.startswith('https://github.com/ramSeraph/')
         assert d.kml_name_field
+
+
+def test_a_run_stops_cleanly_at_its_own_time_limit(monkeypatch):
+    seen = []
+    monkeypatch.setattr(bl, 'prefetch', lambda d: seen.append(d.id))
+    assert bl.main(['x', '--no-upload', '--max-minutes', '0']) == 3
+    assert seen == []

@@ -25,6 +25,7 @@ Run:
     python3 scripts/ingest_ramseraph.py vedas               # category prefix
     python3 scripts/ingest_ramseraph.py                     # all layers
     python3 scripts/ingest_ramseraph.py sbm --no-upload     # build locally, touch nothing live
+    python3 scripts/ingest_ramseraph.py --max-minutes 120   # stop cleanly between layers (default 300)
 
 Idempotent: skips each R2 upload whose stored md5 matches the local file
 (sizes alone miss a lat,lon swap); manifest and catalog merges are id-keyed.
@@ -889,7 +890,8 @@ def ingest(d: Dataset, upload: bool = True) -> None:
 def main(argv: list[str]) -> int:
     sys.stdout.reconfigure(line_buffering=True)  # progress lines show as they happen
     upload = '--no-upload' not in argv
-    argv = [a for a in argv if a != '--no-upload']
+    argv, minutes = pipeline.take_max_minutes([a for a in argv if a != '--no-upload'], 300)
+    deadline = pipeline.Deadline(minutes)
     for key in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
         if upload and key not in os.environ:
             print(f'ERROR: {key} not set in env')
@@ -905,6 +907,11 @@ def main(argv: list[str]) -> int:
 
     failed = []
     for d in targets:
+        try:
+            deadline.check(d.id)
+        except pipeline.OutOfTime as e:
+            print(f'STOPPED: {e} (--max-minutes {minutes:g}); finished layers are done, re-run to continue')
+            return 3
         try:
             ingest(d, upload=upload)
         except Exception as e:  # noqa: BLE001  (one bad source must not stop the rest)

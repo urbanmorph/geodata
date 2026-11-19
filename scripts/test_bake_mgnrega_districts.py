@@ -8,6 +8,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import pytest
+
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import bake_mgnrega_districts as m  # noqa: E402
@@ -48,6 +50,19 @@ def test_pull_resumes_after_a_failure(tmp_path):
 
     assert len(m.pull_pages(tmp_path, {}, ok, limit=3)) == 7
     assert done == [0, 3, 6]  # the total probe, then only the pages not yet cached
+
+
+def test_pull_stops_at_its_own_time_limit_and_keeps_finished_pages(tmp_path):
+    import pipeline
+    clock = iter([0.0, 10.0, 100.0, 100.0])
+    deadline = pipeline.Deadline(minutes=1, clock=lambda: next(clock))
+
+    def fetch(offset, limit, filters):
+        return {'total': 7, 'records': [{'i': i} for i in range(offset, min(offset + limit, 7))]}
+
+    with pytest.raises(pipeline.OutOfTime):
+        m.pull_pages(tmp_path, {}, fetch, limit=3, deadline=deadline)
+    assert [p.name for p in sorted(tmp_path.glob('offset_*'))] == ['offset_0000000.json.gz']
 
 
 # ── latest cumulative snapshot per district-year ─────────────────────────────

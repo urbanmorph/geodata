@@ -17,6 +17,7 @@ Run:
     set -a; source web/.dev.vars; set +a          # CLOUDFLARE_ACCOUNT_ID + R2 keys
     python3 scripts/ingest_big_layers.py cadastrals_puducherry --no-upload
     python3 scripts/ingest_big_layers.py cadastrals_puducherry
+    python3 scripts/ingest_big_layers.py --max-minutes 120   # stop cleanly between layers (default 300)
 
 Idempotent: finished downloads are kept, R2 uploads skip on md5 match and the
 manifest + catalog merges are id-keyed.
@@ -32,7 +33,7 @@ import duckdb
 import ingest_ramseraph as ir
 from bake_formats import write_pmtiles
 from ingest_ramseraph import Dataset, republished
-from pipeline import atomic_output, download
+from pipeline import Deadline, OutOfTime, atomic_output, download, take_max_minutes
 
 # Column names that hold people's details. Matched case-insensitively
 # against whole name parts, so record numbers (khatian, khasra) and place
@@ -166,15 +167,21 @@ TILE_FIELDS: dict[str, list[str]] = {
 
 def main(argv: list[str]) -> int:
     upload = '--no-upload' not in argv
-    args = [a for a in argv[1:] if a != '--no-upload']
+    args, minutes = take_max_minutes([a for a in argv[1:] if a != '--no-upload'], 300)
+    deadline = Deadline(minutes)
     targets = [d for d in DATASETS if not args or args[0] in d.id]
     if not targets:
         print(f'No dataset matched {args[0]!r}. Available: {[d.id for d in DATASETS]}')
         return 2
-    for d in targets:
-        print(f'\n== {d.id}', flush=True)
-        prefetch(d)
-        assert_no_personal_data(d.id, ir.WORK / f'_raw_{d.id}.parquet')
+    try:
+        for d in targets:
+            deadline.check(f'fetching {d.id}')
+            print(f'\n== {d.id}', flush=True)
+            prefetch(d)
+            assert_no_personal_data(d.id, ir.WORK / f'_raw_{d.id}.parquet')
+    except OutOfTime as e:
+        print(f'STOPPED: {e}; finished downloads are kept, re-run to continue', flush=True)
+        return 3
     if upload:
         missing = [k for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY')
                    if k not in os.environ]
@@ -182,6 +189,11 @@ def main(argv: list[str]) -> int:
             print(f'ERROR: {missing} not set in env')
             return 2
     for d in targets:
+        try:
+            deadline.check(f'ingesting {d.id}')
+        except OutOfTime as e:
+            print(f'STOPPED: {e}; finished layers are done, re-run to continue', flush=True)
+            return 3
         ir.ingest(d, upload=upload)
     return 0
 

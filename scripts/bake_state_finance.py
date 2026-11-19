@@ -32,8 +32,6 @@ import gzip
 import json
 import sys
 import time
-import urllib.parse
-import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
@@ -41,8 +39,8 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
 
-from bake_mgnrega_districts import api_key, norm, num  # noqa: E402
-from pipeline import cache_backup, log, make_con, with_retries  # noqa: E402
+from bake_mgnrega_districts import norm, num  # noqa: E402
+from pipeline import cache_backup, log, make_con  # noqa: E402
 
 RAW = ROOT / 'data' / 'raw' / 'state-finance'
 LAYER_ID = 'state_finance'
@@ -152,17 +150,8 @@ class TimeLimit(Exception):
 
 
 def api_fetch(tries: int = 6) -> Callable[[str], dict]:
-    key = api_key()
-
-    def fetch(rid: str) -> dict:
-        q = urllib.parse.urlencode({'api-key': key, 'format': 'json', 'limit': 1000})
-        req = urllib.request.Request(f'https://api.data.gov.in/resource/{rid}?{q}', headers={'User-Agent': 'curl/8'})
-
-        def once() -> dict:
-            with urllib.request.urlopen(req, timeout=180) as r:
-                return json.load(r)
-        return with_retries(once, tries)
-    return fetch
+    key = pipeline.datagov_api_key()
+    return lambda rid: pipeline.datagov_get(rid, key, tries=tries, limit=1000)
 
 
 def pull_resources(cache: Path, ids: list[str], fetch: Callable[[str], dict] | None, refresh: bool = False,

@@ -281,3 +281,37 @@ def test_no_script_runs_a_tool_without_a_timeout():
                     and not any(k.arg == 'timeout' for k in node.keywords)):
                 missing.append(f'{path.name}:{node.lineno}')
     assert missing == []
+
+
+# ── data.gov.in ──────────────────────────────────────────────────────────────
+
+def test_datagov_get_sends_the_key_and_params_and_gives_up_on_a_4xx(monkeypatch):
+    import io
+    import json
+    import urllib.error
+    import urllib.request
+    seen = []
+
+    def urlopen(req, timeout):
+        seen.append(req.full_url)
+        if len(seen) == 1:
+            raise urllib.error.URLError('reset')  # retried
+        return io.BytesIO(json.dumps({'total': 1, 'records': [{'a': 1}]}).encode())
+    monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
+    got = pipeline.datagov_get('abc-123', 'KEY', offset=10, limit=5, wait=no_wait)
+    assert got['records'] == [{'a': 1}] and len(seen) == 2
+    assert seen[0].startswith('https://api.data.gov.in/resource/abc-123?api-key=KEY&format=json&offset=10&limit=5')
+
+    def forbidden(req, timeout):
+        seen.append(req.full_url)
+        raise urllib.error.HTTPError(req.full_url, 403, 'Forbidden', {}, None)
+    monkeypatch.setattr(urllib.request, 'urlopen', forbidden)
+    seen.clear()
+    with pytest.raises(urllib.error.HTTPError):
+        pipeline.datagov_get('abc-123', 'KEY', wait=no_wait)
+    assert len(seen) == 1
+
+
+def test_datagov_api_key_comes_from_the_environment(monkeypatch):
+    monkeypatch.setenv('OGD_API_KEY', 'k1')
+    assert pipeline.datagov_api_key() == 'k1'

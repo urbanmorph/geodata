@@ -31,12 +31,9 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
-import os
 import re
 import sys
 import unicodedata
-import urllib.parse
-import urllib.request
 from collections.abc import Callable
 from pathlib import Path
 
@@ -52,8 +49,6 @@ from pipeline import (  # noqa: E402,F401  (re-exported for bake_state_finance)
 )
 
 RESOURCE = 'ee03643a-ee4c-48c2-ac30-9f2ff26ab722'
-API = f'https://api.data.gov.in/resource/{RESOURCE}'
-ENV_FILE = Path.home() / 'Projects/rural/shc/.env'
 RAW = ROOT / 'data' / 'raw' / 'mgnrega'
 LIMIT = 5000
 YEAR = '2025-2026'                    # latest complete financial year (snapshot runs to March 2026)
@@ -80,41 +75,33 @@ Fetcher = Callable[[int, int, dict], dict]
 
 # ── pull ─────────────────────────────────────────────────────────────────────
 
-def api_key() -> str:
-    if os.environ.get('OGD_API_KEY'):
-        return os.environ['OGD_API_KEY']
-    for line in ENV_FILE.read_text().splitlines():
-        if line.startswith('OGD_API_KEY='):
-            return line.split('=', 1)[1].strip().strip('"\'')
-    raise SystemExit('no OGD_API_KEY in the environment or ~/Projects/rural/shc/.env')
+api_key = pipeline.datagov_api_key  # old name, kept for other branches
 
 
 def api_fetch(fields: list[str] | None = None, tries: int = 6) -> Fetcher:
-    key = api_key()
+    key = pipeline.datagov_api_key()
 
     def fetch(offset: int, limit: int, filters: dict) -> dict:
-        q = {'api-key': key, 'format': 'json', 'offset': offset, 'limit': limit,
-             **{f'filters[{k}]': v for k, v in filters.items()}}
+        params = {'offset': offset, 'limit': limit, **{f'filters[{k}]': v for k, v in filters.items()}}
         if fields:
-            q['fields'] = ','.join(fields)
-        req = urllib.request.Request(f'{API}?{urllib.parse.urlencode(q)}', headers={'User-Agent': 'curl/8'})
-
-        def once() -> dict:
-            with urllib.request.urlopen(req, timeout=180) as r:
-                return json.load(r)
-        return with_retries(once, tries)
+            params['fields'] = ','.join(fields)
+        return pipeline.datagov_get(RESOURCE, key, tries=tries, **params)
     return fetch
 
 
-def pull_pages(cache: Path, filters: dict, fetch: Fetcher, limit: int = LIMIT, refresh: bool = False) -> list[dict]:
+def pull_pages(cache: Path, filters: dict, fetch: Fetcher, limit: int = LIMIT, refresh: bool = False,
+               deadline: pipeline.Deadline | None = None) -> list[dict]:
     """All records for `filters`, one cached gzip page per offset (saved as it
-    arrives). A rerun reads the cache and asks the API only for the total."""
+    arrives). A rerun reads the cache and asks the API only for the total.
+    Stops with OutOfTime at `deadline` (finished pages stay cached)."""
     cache.mkdir(parents=True, exist_ok=True)
     total = int(fetch(0, 1, filters)['total'])
     records: list[dict] = []
     for offset in range(0, total, limit):
         page = cache / f'offset_{offset:07d}.json.gz'
         if refresh or not page.exists():
+            if deadline:
+                deadline.check(f'{cache.name} offset {offset:,}')
             recs = fetch(offset, limit, filters)['records']
             with atomic_output(page) as part:
                 part.write_bytes(gzip.compress(json.dumps(recs).encode(), mtime=0))
@@ -393,10 +380,12 @@ def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
 
 
-def pull(refresh: bool = False) -> tuple[list[dict], list[dict]]:
-    """The full source rows for YEAR, and the trend fields for every year."""
-    full = pull_pages(RAW / f'full_{YEAR}', {'fin_year': YEAR}, api_fetch(), refresh=refresh)
-    trend = pull_pages(RAW / 'trend_all_years', {}, api_fetch(TREND_FIELDS), refresh=refresh)
+def pull(refresh: bool = False, max_minutes: float = 50) -> tuple[list[dict], list[dict]]:
+    """The full source rows for YEAR, and the trend fields for every year.
+    Stops cleanly after `max_minutes` (pages so far are cached; rerun to continue)."""
+    deadline = pipeline.Deadline(max_minutes)
+    full = pull_pages(RAW / f'full_{YEAR}', {'fin_year': YEAR}, api_fetch(), refresh=refresh, deadline=deadline)
+    trend = pull_pages(RAW / 'trend_all_years', {}, api_fetch(TREND_FIELDS), refresh=refresh, deadline=deadline)
     log(f'pulled {len(full):,} rows for {YEAR}; {len(trend):,} trend rows')
     return full, trend
 
@@ -405,10 +394,15 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
     ap.add_argument('--refresh', action='store_true', help='refetch every page (the source updates daily)')
+    ap.add_argument('--max-minutes', type=float, default=50, help='pull stops cleanly after this long')
     a = ap.parse_args()
     if a.step == 'pull':
-        with cache_backup(RAW, 'bake_mgnrega_districts'):
-            pull(a.refresh)
+        try:
+            with cache_backup(RAW, 'bake_mgnrega_districts'):
+                pull(a.refresh, a.max_minutes)
+        except pipeline.OutOfTime as e:
+            log(f'STOPPED: {e}; finished pages are cached, rerun to continue')
+            sys.exit(3)
     elif a.step == 'bake':
         bake()
     elif a.step == 'upload':

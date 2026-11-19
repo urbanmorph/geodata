@@ -315,3 +315,14 @@ def test_one_failing_layer_does_not_stop_the_rest(monkeypatch, capsys):
     monkeypatch.setattr(ir, 'DATASETS', [_ds({'id': 'boom'}), _ds({'id': 'ok'})])
     assert ir.main(['x', '--no-upload']) == 1
     assert done == ['ok'] and 'boom' in capsys.readouterr().out
+
+
+def test_a_run_stops_cleanly_at_its_own_time_limit(monkeypatch):
+    """--max-minutes: the run stops between layers (finished ones are on R2 and
+    in the manifest), so a re-run continues instead of hitting the job limit."""
+    done = []
+    monkeypatch.setattr(ir, 'ingest', lambda d, upload: done.append(d.id))
+    assert ir.main(['x', '--no-upload', '--max-minutes', '0']) == 3
+    assert done == []
+    assert ir.main(['x', '--no-upload', '--max-minutes', '60', ir.DATASETS[0].id]) == 0
+    assert done == [ir.DATASETS[0].id]

@@ -37,7 +37,6 @@ import shutil
 import sys
 import tempfile
 import time
-import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -47,7 +46,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from pipeline import log  # noqa: E402
 import pipeline  # noqa: E402
-from bake_mgnrega_districts import api_key, with_retries  # noqa: E402
+from pipeline import with_retries  # noqa: E402
 from pipeline import cache_backup  # noqa: E402
 
 CATALOG_UUID = '32f2ec95-ddca-4254-86c6-449d4471efe1'
@@ -110,15 +109,7 @@ def resources(listing: dict) -> list[dict]:
 
 def api_fetch(uuid: str, key: str, tries: int = 10) -> Fetcher:
     """Big pages (~13 MB) are often cut off mid-transfer (IncompleteRead), hence the many tries."""
-    def fetch(offset: int, limit: int) -> dict:
-        q = urllib.parse.urlencode({'api-key': key, 'format': 'json', 'offset': offset, 'limit': limit})
-        req = urllib.request.Request(f'https://api.data.gov.in/resource/{uuid}?{q}', headers={'User-Agent': 'curl/8'})
-
-        def once() -> dict:
-            with urllib.request.urlopen(req, timeout=300) as r:
-                return json.load(r)
-        return with_retries(once, tries)
-    return fetch
+    return lambda offset, limit: pipeline.datagov_get(uuid, key, tries=tries, timeout=300, offset=offset, limit=limit)
 
 
 def _write_atomic(path: Path, data: bytes) -> None:
@@ -184,7 +175,7 @@ def pull(refresh: bool = False, max_minutes: float = 50, workers: int = 4) -> No
                 return r.read()
         _write_atomic(listing_path, with_retries(listing))
     res = resources(json.loads(listing_path.read_text()))
-    key = api_key()
+    key = pipeline.datagov_api_key()
 
     def one(r: dict) -> int:
         n = pull_resource(RAW / r['uuid'], api_fetch(r['uuid'], key), refresh=refresh, deadline=deadline)

@@ -192,6 +192,40 @@ def run(cmd: list[str], *, timeout: float, check: bool = True, capture_output: b
     return proc
 
 
+# ── data.gov.in (OGD) API ────────────────────────────────────────────────────
+
+DATAGOV_API = 'https://api.data.gov.in/resource'
+DATAGOV_ENV_FILE = Path.home() / 'Projects/rural/shc/.env'
+
+
+def datagov_api_key() -> str:
+    """OGD_API_KEY from the environment, else from DATAGOV_ENV_FILE."""
+    if os.environ.get('OGD_API_KEY'):
+        return os.environ['OGD_API_KEY']
+    if DATAGOV_ENV_FILE.exists():
+        for line in DATAGOV_ENV_FILE.read_text().splitlines():
+            if line.startswith('OGD_API_KEY='):
+                return line.split('=', 1)[1].strip().strip('"\'')
+    raise SystemExit(f'no OGD_API_KEY in the environment or {DATAGOV_ENV_FILE}')
+
+
+def datagov_get(resource: str, key: str, *, tries: int = 6, timeout: float = 180,
+                wait: Callable[[int], None] | None = None, **params) -> dict:
+    """One JSON answer of a data.gov.in resource (`params`: offset, limit,
+    fields, filters[...]). Retries network errors and cut-off answers (big
+    pages often are), gives up at once on a 4xx; the URL (with the key) is
+    never logged."""
+    import urllib.parse
+    import urllib.request
+    url = f'{DATAGOV_API}/{resource}?' + urllib.parse.urlencode({'api-key': key, 'format': 'json', **params})
+    req = urllib.request.Request(url, headers={'User-Agent': 'curl/8'})
+
+    def once() -> dict:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.load(r)
+    return with_retries(once, tries, wait, give_up=is_client_error)
+
+
 # ── files ────────────────────────────────────────────────────────────────────
 
 @contextlib.contextmanager
@@ -483,6 +517,14 @@ def cached(out: Path, build: Callable[[Path], object]) -> Path:
 
 class OutOfTime(Exception):
     pass
+
+
+def take_max_minutes(argv: list[str], default: float) -> tuple[list[str], float]:
+    """Split `--max-minutes N` off a plain argv list: (the other args, N or `default`)."""
+    if '--max-minutes' not in argv:
+        return argv, default
+    i = argv.index('--max-minutes')
+    return argv[:i] + argv[i + 2:], float(argv[i + 1])
 
 
 class Deadline:
