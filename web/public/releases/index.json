@@ -3,6 +3,7 @@
  "latest": {
   "catalog": "bharatlas-catalog-2026.11",
   "cw": "bharatlas-cw-2026.11",
+  "mgnrega_districts": "bharatlas-mgnrega_districts-2026.11",
   "overture_places_india": "bharatlas-overture_places_india-2026.11"
  },
  "releases": [
@@ -41,6 +42,52 @@
      "bytes": 537050094,
      "rows": null,
      "licence": "CDLA-Permissive-2.0 / Apache-2.0"
+    }
+   ]
+  },
+  {
+   "code": "bharatlas-mgnrega_districts-2026.11",
+   "dataset": "mgnrega_districts",
+   "title": "MGNREGA by District (2025-26), MoRD",
+   "released": "2026-11-19",
+   "sha256": "04549ecc4c73f52dcfb8bcac4cedc5a4671e4d18931bb6a6ed73cf93b87a4b7e",
+   "pin": "bharatlas-mgnrega_districts-2026.11+sha256:04549ecc4c73f52dcfb8bcac4cedc5a4671e4d18931bb6a6ed73cf93b87a4b7e",
+   "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/",
+   "w3id_proposed": "https://w3id.org/bharatlas/mgnrega_districts/2026.11",
+   "manifest": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/manifest.json",
+   "previous": null,
+   "files": [
+    {
+     "name": "mgnrega_districts.geojson",
+     "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.geojson",
+     "sha256": "63b786b856e9492cf4389d1b32d9e84ffb90a0b68150c4e5d9fb9b9378516f78",
+     "bytes": 94213743,
+     "rows": null,
+     "licence": "GODL-India"
+    },
+    {
+     "name": "mgnrega_districts.kml",
+     "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.kml",
+     "sha256": "6ecb44764ed27b799a2422e08d467a398bebcd5ea14a8383f7d40eea743d99a4",
+     "bytes": 75385397,
+     "rows": null,
+     "licence": "GODL-India"
+    },
+    {
+     "name": "mgnrega_districts.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.parquet",
+     "sha256": "37034c3a6c808d4f10b2961bc3c9cb37181c69ec7e9c499b68f91ce5ea28600f",
+     "bytes": 24229000,
+     "rows": 785,
+     "licence": "GODL-India"
+    },
+    {
+     "name": "mgnrega_districts.shp.zip",
+     "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.shp.zip",
+     "sha256": "743062a293b14c53e4075b658ade2072c8dd20092a720f30bca506582525589c",
+     "bytes": 39491753,
+     "rows": null,
+     "licence": "GODL-India"
     }
    ]
   },
