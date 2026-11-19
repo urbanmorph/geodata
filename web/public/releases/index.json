@@ -2,9 +2,48 @@
  "note": "bharatlas releases: each code is immutable and pinned by its SHA-256. Data from others keeps its source's licence; credit the source first.",
  "latest": {
   "catalog": "bharatlas-catalog-2026.11",
-  "cw": "bharatlas-cw-2026.11"
+  "cw": "bharatlas-cw-2026.11",
+  "overture_places_india": "bharatlas-overture_places_india-2026.11"
  },
  "releases": [
+  {
+   "code": "bharatlas-overture_places_india-2026.11",
+   "dataset": "overture_places_india",
+   "title": "Places (Overture Maps, Nov 2026), Overture",
+   "released": "2026-11-19",
+   "sha256": "db66a4bdb5886c5b3737af8801be36fca5c5db18aed8d34c186e296a6fa52dfc",
+   "pin": "bharatlas-overture_places_india-2026.11+sha256:db66a4bdb5886c5b3737af8801be36fca5c5db18aed8d34c186e296a6fa52dfc",
+   "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/",
+   "w3id_proposed": "https://w3id.org/bharatlas/overture_places_india/2026.11",
+   "manifest": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/manifest.json",
+   "previous": null,
+   "files": [
+    {
+     "name": "overture_places_india.geojson",
+     "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/overture_places_india.geojson",
+     "sha256": "f67602918eeecc951e009f300a3c8e260270c21439d8eb08c49ff4d3e4ea4a43",
+     "bytes": 6361537063,
+     "rows": null,
+     "licence": "CDLA-Permissive-2.0 / Apache-2.0"
+    },
+    {
+     "name": "overture_places_india.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/overture_places_india.parquet",
+     "sha256": "aa99daa251374f2bdf425b60fe268e4401e770020f57aab28bfc8ba97a366571",
+     "bytes": 482353155,
+     "rows": 4758311,
+     "licence": "CDLA-Permissive-2.0 / Apache-2.0"
+    },
+    {
+     "name": "overture_places_india.shp.zip",
+     "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/overture_places_india.shp.zip",
+     "sha256": "ed4f8156ee37dd0f6aa425a0a93f91582a8808a8759df9bedf4b9da37aabe26b",
+     "bytes": 537050094,
+     "rows": null,
+     "licence": "CDLA-Permissive-2.0 / Apache-2.0"
+    }
+   ]
+  },
   {
    "code": "bharatlas-cw-2026.11",
    "dataset": "cw",

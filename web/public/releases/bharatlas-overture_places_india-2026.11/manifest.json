@@ -1,0 +1,129 @@
+{
+ "code": "bharatlas-overture_places_india-2026.11",
+ "dataset": "overture_places_india",
+ "title": "Places (Overture Maps, Nov 2026), Overture",
+ "description": "Overture Maps Foundation places, release 2026-11-18.0, clipped to India (inside an LGD district polygon). Overture columns are kept as published except contact details (below), and `name` is a copy of names.primary added for search and simple queries. Contact emails, phone numbers and social media links are removed (personal data of sole traders). Names, addresses, sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a flat subset (see columns.txt in the zip). For KML, use Filter & export on a category or area. Licences follow the source of each record (listed in `sources`): Meta, Microsoft and other contributors CDLA-Permissive-2.0, Foursquare Apache-2.0, AllThePlaces CC0-1.0.",
+ "released": "2026-11-19",
+ "sha256": "db66a4bdb5886c5b3737af8801be36fca5c5db18aed8d34c186e296a6fa52dfc",
+ "sha256_of": "SHA256SUMS",
+ "pin": "bharatlas-overture_places_india-2026.11+sha256:db66a4bdb5886c5b3737af8801be36fca5c5db18aed8d34c186e296a6fa52dfc",
+ "files": [
+  {
+   "name": "overture_places_india.geojson",
+   "sha256": "f67602918eeecc951e009f300a3c8e260270c21439d8eb08c49ff4d3e4ea4a43",
+   "bytes": 6361537063,
+   "rows": null,
+   "licence": "CDLA-Permissive-2.0 / Apache-2.0",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-11-18.0-r3/overture_places_india.geojson",
+   "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/overture_places_india.geojson"
+  },
+  {
+   "name": "overture_places_india.parquet",
+   "sha256": "aa99daa251374f2bdf425b60fe268e4401e770020f57aab28bfc8ba97a366571",
+   "bytes": 482353155,
+   "rows": 4758311,
+   "licence": "CDLA-Permissive-2.0 / Apache-2.0",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-11-18.0-r3/overture_places_india.parquet",
+   "columns": [
+    {
+     "name": "id",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "geometry",
+     "type": "GEOMETRY"
+    },
+    {
+     "name": "confidence",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "websites",
+     "type": "VARCHAR[]"
+    },
+    {
+     "name": "brand",
+     "type": "STRUCT(wikidata VARCHAR, \"names\" STRUCT(\"primary\" VARCHAR, common MAP(VARCHAR, VARCHAR), rules STRUCT(variant VARCHAR, \"language\" VARCHAR, perspectives STRUCT(\"mode\" VARCHAR, countries VARCHAR[]), \"value\" VARCHAR, \"between\" DOUBLE[], side VARCHAR)[]))"
+    },
+    {
+     "name": "addresses",
+     "type": "STRUCT(freeform VARCHAR, locality VARCHAR, postcode VARCHAR, region VARCHAR, country VARCHAR)[]"
+    },
+    {
+     "name": "names",
+     "type": "STRUCT(\"primary\" VARCHAR, common MAP(VARCHAR, VARCHAR), rules STRUCT(variant VARCHAR, \"language\" VARCHAR, perspectives STRUCT(\"mode\" VARCHAR, countries VARCHAR[]), \"value\" VARCHAR, \"between\" DOUBLE[], side VARCHAR)[])"
+    },
+    {
+     "name": "sources",
+     "type": "STRUCT(property VARCHAR, dataset VARCHAR, license VARCHAR, record_id VARCHAR, update_time VARCHAR, confidence DOUBLE, \"between\" DOUBLE[], provider VARCHAR, resource VARCHAR, \"version\" VARCHAR)[]"
+    },
+    {
+     "name": "operating_status",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "basic_category",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "taxonomy",
+     "type": "STRUCT(\"primary\" VARCHAR, hierarchy VARCHAR[], alternates VARCHAR[])"
+    },
+    {
+     "name": "version",
+     "type": "INTEGER"
+    },
+    {
+     "name": "xmin",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ymin",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "xmax",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ymax",
+     "type": "DOUBLE"
+    }
+   ],
+   "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/overture_places_india.parquet"
+  },
+  {
+   "name": "overture_places_india.shp.zip",
+   "sha256": "ed4f8156ee37dd0f6aa425a0a93f91582a8808a8759df9bedf4b9da37aabe26b",
+   "bytes": 537050094,
+   "rows": null,
+   "licence": "CDLA-Permissive-2.0 / Apache-2.0",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-11-18.0-r3/overture_places_india.shp.zip",
+   "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/overture_places_india.shp.zip"
+  }
+ ],
+ "licence": "CDLA-Permissive-2.0 / Apache-2.0",
+ "attribution": {
+  "sources": [
+   {
+    "name": "Overture Maps Foundation",
+    "url": "https://overturemaps.org/",
+    "fetched": "2026-11-19T02:11:53.414293+00:00",
+    "version": "etag=W/\"36764e97f4e0f42b820777449f3c2001\" last-modified=Wed, 18 Nov 2026 17:16:58 GMT"
+   }
+  ],
+  "compiled_by": "bharatlas (https://bharatlas.com; https://github.com/urbanmorph/geodata)"
+ },
+ "citation": "Overture Maps Foundation. Places (Overture Maps, Nov 2026), Overture, as released by bharatlas: bharatlas-overture_places_india-2026.11 (sha256:db66a4bdb5886c5b3737af8801be36fca5c5db18aed8d34c186e296a6fa52dfc). https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/",
+ "url": "https://bharatlas.com/releases/bharatlas-overture_places_india-2026.11/",
+ "w3id_proposed": "https://w3id.org/bharatlas/overture_places_india/2026.11",
+ "previous": null,
+ "layer": {
+  "id": "overture_places_india",
+  "view": "https://bharatlas.com/view/overture_places_india"
+ }
+}
