@@ -53,9 +53,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   obj.writeHttpMetadata(headers);
   headers.set('etag', obj.httpEtag);
   headers.set('cache-control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400');
-  // Same origin in practice (we mount this under /api), but tag CORS just in
-  // case future tools fetch it from a different host.
-  headers.set('access-control-allow-origin', '*');
+  // CORS (*, for reads) is added by api/_middleware.ts.
 
   return new Response(obj.body, { headers });
 };

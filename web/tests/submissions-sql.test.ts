@@ -3,7 +3,7 @@
 // list/detail queries selected a missing `useful_count`, failed on every
 // request and silently fell back to a query without data_year or votes).
 import { describe, it, expect, beforeAll } from 'vitest';
-import { submissionListSql, submissionCountSql, SUBMISSION_DETAIL_SQL, SUBMISSION_VIEW_SQL } from '../functions/lib/submissions-sql';
+import { submissionListSql, submissionCountSql, SUBMISSION_DETAIL_SQL, SUBMISSION_VIEW_SQL, containsPattern, SEARCH_WHERE, MAX_SEARCH_CHARS } from '../functions/lib/submissions-sql';
 
 import { migratedDb, type SqliteDb } from './helpers/sqlite-d1';
 
@@ -41,5 +41,20 @@ describe('submissions SQL', () => {
 
   it('the /c/<id> page query carries data_year (its "Data year" line)', () => {
     expect(db.prepare(SUBMISSION_VIEW_SQL).get('aaa')).toMatchObject({ id: 'aaa', data_year: 2019, is_original: expect.anything() });
+  });
+});
+
+describe('search text is matched literally', () => {
+  const search = (q: string) => (db.prepare(submissionListSql(`status = 'accepted'${SEARCH_WHERE}`, 'newest'))
+    .all(containsPattern(q), containsPattern(q), 10, 0) as { id: string }[]).map((r) => r.id);
+  it('% and _ are characters, not wildcards', () => {
+    expect(search('liked')).toEqual(['bbb', 'aaa']);
+    expect(search('%')).toEqual([]);
+    expect(search('_')).toEqual([]);
+    expect(search('Older, liked')).toEqual(['aaa']);
+  });
+  it('is cut to MAX_SEARCH_CHARS', () => {
+    expect(containsPattern('x'.repeat(500))).toHaveLength(MAX_SEARCH_CHARS + 2);
+    expect(containsPattern('a%b_c\\')).toBe('%a\\%b\\_c\\\\%');
   });
 });

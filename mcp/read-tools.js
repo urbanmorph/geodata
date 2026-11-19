@@ -251,9 +251,10 @@ export const READ_TOOLS = [
 
 const READ_NAMES = new Set(READ_TOOLS.map((t) => t.name));
 
-// Mirrors RESERVED in web/functions/lib/query-params.ts: these names are query
-// options, so a where column with one of them must go inside where=.
-const QUERY_RESERVED = new Set(["select", "group_by", "sum", "limit", "where", "order_by", "include_centroid"]);
+// Mirrors QUERY_OPTIONS in web/functions/lib/query-params.ts (a web test holds
+// the two equal): these names are query options, so a where column with one of
+// them must go inside where=.
+export const QUERY_RESERVED = new Set(["select", "group_by", "sum", "limit", "where", "order_by", "include_centroid", "filter", "format", "estimate"]);
 
 const LAYER_ID = /^[a-zA-Z0-9_-]+$/;
 /** A value going into a URL path (e.g. a collect record id): letters, digits, _ and -

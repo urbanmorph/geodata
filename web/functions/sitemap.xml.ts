@@ -8,6 +8,7 @@
 import type { Env } from './api/_middleware';
 import { SECURITY_HEADERS_NON_HTML } from './lib/security-headers';
 import { loadCatalog } from './lib/catalog-loader';
+import { cachedLive } from './lib/edge-cache';
 
 const ORIGIN = 'https://bharatlas.com';
 
@@ -33,7 +34,10 @@ export function lastmodLine(date?: string | null): string {
   return /^\d{4}-\d{2}-\d{2}$/.test(d) ? `\n    <lastmod>${d}</lastmod>` : '';
 }
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+// Kept an hour in the colo: one D1 read per colo per hour, not one per crawl.
+export const onRequestGet: PagesFunction<Env> = (ctx) => cachedLive(ctx, () => render(ctx), 3600);
+
+async function render(ctx: Parameters<PagesFunction<Env>>[0]): Promise<Response> {
   let community: Array<{ id: string; created_at: string; updated_at: string | null }> = [];
   try {
     const r = await ctx.env.DB.prepare(
@@ -92,4 +96,4 @@ ${urls.join('\n')}
       ...SECURITY_HEADERS_NON_HTML,
     },
   });
-};
+}

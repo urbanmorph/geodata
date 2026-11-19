@@ -1,6 +1,5 @@
 import type { Env } from '../../../_middleware';
 import { SERVER_SHAPE_EXPORT } from '../../../../../../shared/large-load.mjs';
-import { loadCatalogVersioned } from '../../../../lib/catalog-loader';
 import { countApiUse } from '../../../../lib/usage';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { QueryInputError } from '../../../../lib/parquet-query';
@@ -9,7 +8,9 @@ import {
   type ExportFormat,
 } from '../../../../lib/parquet-export';
 import { parseQueryParams } from '../../../../lib/query-params';
-import { json } from '../../../../lib/http';
+import { apiError, json, serverError } from '../../../../lib/http';
+import { resolveLayer } from '../../../../lib/api-layer';
+import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
 const CONTENT_TYPES: Record<ExportFormat, string> = {
   geojson: 'application/geo+json',
@@ -25,7 +26,9 @@ function downloadsHint(layer: { geojson?: { url?: string } | null }): string {
     : 'download the whole layer from its files';
 }
 
-/** When shape exports are switched off (SERVER_SHAPE_EXPORT, shared/large-load.mjs), why a GeoJSON/KML request is refused; null otherwise. */
+/** When shape exports are switched off (SERVER_SHAPE_EXPORT, shared/large-load.mjs), why a GeoJSON/KML request is refused; null otherwise.
+ *  SERVER_SHAPE_EXPORT is on; this branch is the kill switch kept for a hotfix
+ *  (#315 used it): set the flag false and GeoJSON/KML answer 400 while CSV still works. */
 export function shapeExportRefusal(format: string): string | null {
   if (SERVER_SHAPE_EXPORT || format === 'csv') return null;
   return `${format === 'kml' ? 'KML' : 'GeoJSON'} export of filtered rows is paused while we fix it. Use format=csv `
@@ -59,46 +62,50 @@ export function exportBody(chunks: AsyncIterable<string>): ReadableStream<Uint8A
 }
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  const id = (ctx.params as { id: string }).id;
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return json(400, { error: 'Invalid layer ID', status: 400 });
-
   const url = new URL(ctx.request.url);
   const format = (url.searchParams.get('format') || (SERVER_SHAPE_EXPORT ? 'geojson' : 'csv')).toLowerCase() as ExportFormat;
   if (!EXPORT_FORMATS.includes(format)) {
-    return json(400, { error: `format must be one of ${EXPORT_FORMATS.join(', ')}`, status: 400 });
+    return apiError(400, `format must be one of ${EXPORT_FORMATS.join(', ')}`);
   }
   const paused = shapeExportRefusal(format);
-  if (paused) return json(400, { error: paused, status: 400 });
-  const { catalog } = await loadCatalogVersioned(ctx);
-  const layer = catalog.layers.find((l) => l.id === id);
-  if (!layer) return json(404, { error: 'Layer not found', status: 404 });
+  if (paused) return apiError(400, paused);
+  const r = await resolveLayer(ctx);
+  if (r instanceof Response) return r;
+  const { layer, version } = r;
   const r2Key = r2KeyFromLayer(layer);
-  if (!r2Key) return json(404, { error: 'No parquet file for this layer', status: 404 });
-  countApiUse(ctx, id);
+  if (!r2Key) return apiError(404, 'No parquet file for this layer');
+  countApiUse(ctx, layer.id);
 
+  const fail = (e: unknown) => (e instanceof QueryInputError ? apiError(400, e.message) : serverError('Export', e));
   try {
     const filters = parseFilterParam(url.searchParams.get('filter'));
     const { where } = parseQueryParams(url.searchParams);
-    const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
     if (url.searchParams.get('estimate') === '1') {
-      const plan = await planExport(file, { where, filters });
-      return json(200, { data: {
-        total: plan.total, estimated_bytes: plan.estimatedBytes, max_rows: EXPORT_MAX_ROWS, max_bytes: EXPORT_MAX_BYTES,
-        shape_bytes: plan.shapeBytes, max_shape_bytes: EXPORT_MAX_SHAPE_BYTES,
-      } });
+      // The Filter panel asks this on every filter change, then exports: the
+      // answer depends only on the deploy, the file and the query, so the colo keeps it.
+      return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
+        try {
+          const plan = await planExport(await asyncBufferFromR2(ctx.env.R2, r2Key), { where, filters });
+          return json(200, { data: {
+            total: plan.total, estimated_bytes: plan.estimatedBytes, max_rows: EXPORT_MAX_ROWS, max_bytes: EXPORT_MAX_BYTES,
+            shape_bytes: plan.shapeBytes, max_shape_bytes: EXPORT_MAX_SHAPE_BYTES,
+          } }, { 'cache-control': 'public, max-age=300' });
+        } catch (e) {
+          return fail(e);
+        }
+      });
     }
-    const out = await exportRows(file, { where, filters, format, name: id, tooManyHint: downloadsHint(layer) });
+    const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
+    const out = await exportRows(file, { where, filters, format, name: layer.id, tooManyHint: downloadsHint(layer) });
     return new Response(exportBody(out.chunks), {
       headers: {
         'content-type': CONTENT_TYPES[format],
-        'content-disposition': `attachment; filename="${id}.${format}"`,
+        'content-disposition': `attachment; filename="${layer.id}.${format}"`,
         'cache-control': 'no-store',
         'x-match-count': String(out.total),
       },
     });
   } catch (e) {
-    const msg = (e as Error).message;
-    if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
-    return json(500, { error: `Export failed: ${msg}`, status: 500 });
+    return fail(e);
   }
 };

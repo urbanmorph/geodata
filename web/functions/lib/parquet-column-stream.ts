@@ -82,64 +82,83 @@ async function readPageHeader(file: AsyncBuffer, pos: number, chunkEnd: number):
   }
 }
 
-/** Pull-based reader over a stream of byte pieces. */
-class Bytes {
-  private buf = new Uint8Array(0);
-  private off = 0;
+/** Pull-based reader over a stream of byte pieces. Pieces are queued, not
+ *  joined: joining what was left onto each new piece copied a value spread
+ *  over k pieces k times (a 10 MB shape in 64 KB pieces: ~800 MB of copying). */
+export class Bytes {
+  private chunks: Uint8Array[] = [];
+  private off = 0; // read position in chunks[0]
+  private have = 0; // unread bytes queued
   constructor(private readonly src: AsyncIterator<Uint8Array>) {}
 
-  private async more(): Promise<boolean> {
+  private async more(): Promise<void> {
     const { value, done } = await this.src.next();
-    if (done) return false;
-    const rest = this.buf.subarray(this.off);
-    if (!rest.length) this.buf = value;
-    else {
-      const joined = new Uint8Array(rest.length + value.length);
-      joined.set(rest);
-      joined.set(value, rest.length);
-      this.buf = joined;
+    if (done) throw new Error('parquet page ended early');
+    if (value.length) {
+      this.chunks.push(value);
+      this.have += value.length;
     }
-    this.off = 0;
-    return true;
+  }
+
+  private async fill(n: number): Promise<void> {
+    while (this.have < n) await this.more();
+  }
+
+  /** Drop n queued bytes (n <= have). */
+  private consume(n: number): void {
+    this.have -= n;
+    while (n > 0) {
+      const left = this.chunks[0].length - this.off;
+      if (n < left) { this.off += n; return; }
+      n -= left;
+      this.chunks.shift();
+      this.off = 0;
+    }
   }
 
   /** The next n bytes (a copy, safe to keep). */
   async take(n: number): Promise<Uint8Array> {
-    while (this.buf.length - this.off < n) {
-      if (!(await this.more())) throw new Error('parquet page ended early');
+    await this.fill(n);
+    const first = this.chunks[0];
+    if (first && first.length - this.off >= n) {
+      const out = first.slice(this.off, this.off + n);
+      this.consume(n);
+      return out;
     }
-    const out = this.buf.slice(this.off, this.off + n);
-    this.off += n;
+    const out = new Uint8Array(n);
+    let at = 0;
+    for (let i = 0; at < n; i++) {
+      const c = i === 0 ? this.chunks[0].subarray(this.off) : this.chunks[i];
+      const part = c.subarray(0, n - at);
+      out.set(part, at);
+      at += part.length;
+    }
+    this.consume(n);
     return out;
   }
 
   async u32(): Promise<number> {
-    while (this.buf.length - this.off < 4) {
-      if (!(await this.more())) throw new Error('parquet page ended early');
-    }
-    const b = this.buf;
-    const o = this.off;
-    this.off += 4;
-    return (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
+    const b = await this.take(4);
+    return (b[0] | (b[1] << 8) | (b[2] << 16) | (b[3] << 24)) >>> 0;
   }
 
   async skip(n: number): Promise<void> {
-    for (;;) {
-      const have = this.buf.length - this.off;
-      if (have >= n) { this.off += n; return; }
-      n -= have;
-      this.buf = new Uint8Array(0);
-      this.off = 0;
-      if (!(await this.more())) throw new Error('parquet page ended early');
+    while (n > 0) {
+      if (!this.have) await this.more();
+      const k = Math.min(n, this.have);
+      this.consume(k);
+      n -= k;
     }
   }
 
   /** What is left: the buffered bytes, then the rest of the source. */
   async* rest(): AsyncGenerator<Uint8Array> {
     try {
-      if (this.off < this.buf.length) yield this.buf.subarray(this.off);
-      this.buf = new Uint8Array(0);
+      const queued = this.chunks.map((c, i) => (i === 0 ? c.subarray(this.off) : c));
+      this.chunks = [];
       this.off = 0;
+      this.have = 0;
+      for (const c of queued) if (c.length) yield c;
       for (;;) {
         const { value, done } = await this.src.next();
         if (done) return;

@@ -79,6 +79,26 @@ export function rowMatcher(where: Array<[string, string]>, filters: FilterSpec[]
 const MAX_ROWS = 1000;
 const MAX_GROUP_BY_VALUES = 500;
 const MAX_DISTINCT_SAMPLE = 20;
+/** Most distinct group keys one group_by holds while counting. Every key is an
+ *  object entry (plus a sums record), so grouping 4.4M Overture names by name
+ *  would hold millions of them in a 128 MB Worker before the top 500 are cut. */
+export const MAX_GROUP_KEYS = 50_000;
+
+/** Most consecutive row numbers one read covers. A row group's matches were
+ *  read in one go (up to 20,000 rows with every column and the shapes) and a
+ *  41,448-row export ran a local Worker out of heap; production has 128 MB. */
+export const READ_WINDOW_ROWS = 1000;
+
+/** Sorted row numbers -> runs whose first and last are within `span` rows. */
+export function readWindows(idxs: number[], span: number): number[][] {
+  const out: number[][] = [];
+  for (const i of idxs) {
+    const cur = out[out.length - 1];
+    if (cur && i - cur[0] < span) cur.push(i);
+    else out.push([i]);
+  }
+  return out;
+}
 
 
 function isJunkColumn(name: string): boolean {
@@ -134,7 +154,21 @@ export function assertFilterColumns(cols: ReturnType<typeof topLevelColumns>, na
   }
 }
 
-// FIX #5: sample from distinct values, not first N rows
+/** Rows sampled per row group, and how many row groups (spread through the
+ *  file) are sampled, for each column's distinct values. Files are often
+ *  sorted by state or region, so the first rows alone show one state's values. */
+const SAMPLE_ROWS_PER_GROUP = 50;
+const SAMPLE_GROUPS = 4;
+
+/** Up to SAMPLE_GROUPS row groups spread through the file (first, last and
+ *  between), SAMPLE_ROWS_PER_GROUP rows from the start of each. */
+export function sampleSpans(metadata: FileMetaData): Array<{ start: number; end: number }> {
+  const spans = rowGroupSpans(metadata).filter((s) => s.end > s.start);
+  const n = Math.min(SAMPLE_GROUPS, spans.length);
+  const picks = new Set(Array.from({ length: n }, (_, i) => (n === 1 ? 0 : Math.round((i * (spans.length - 1)) / (n - 1)))));
+  return [...picks].map((i) => ({ start: spans[i].start, end: Math.min(spans[i].end, spans[i].start + SAMPLE_ROWS_PER_GROUP) }));
+}
+
 export async function getSchema(file: AsyncBuffer): Promise<{
   row_count: number;
   columns: ColumnSchema[];
@@ -148,22 +182,21 @@ export async function getSchema(file: AsyncBuffer): Promise<{
     columns.push({ name, type: nested ? 'nested' : schemaType(el.type, el.converted_type) });
   }
 
-  // Read a sample of rows spread across the dataset for distinct value discovery
+  // Distinct-value samples from a few row groups spread through the file
   // (flat columns only: nested values would stringify as "[object Object]").
   const flatCols = columns.filter((c) => c.type !== 'nested');
   if (rowCount > 0 && flatCols.length > 0) {
     const colNames = flatCols.map((c) => c.name);
-    const sampleSize = Math.min(200, rowCount);
-    const sampleRows = await parquetReadObjects({
-      file, metadata, compressors, columns: colNames, rowStart: 0, rowEnd: sampleSize,
-    });
+    const sampleRows = (await mapConcurrent(sampleSpans(metadata), R2_CONCURRENCY, (span) => parquetReadObjects({
+      file, metadata, compressors, columns: colNames, rowStart: span.start, rowEnd: span.end,
+    }) as Promise<Record<string, unknown>[]>)).flat();
 
     for (const col of flatCols) {
       const distinct = new Set<string>();
-      for (const r of sampleRows as Record<string, unknown>[]) {
+      for (const r of sampleRows) {
         const v = r[col.name];
         if (v !== null && v !== undefined) distinct.add(String(v));
-        if (distinct.size >= MAX_DISTINCT_SAMPLE) break;
+        if (distinct.size > MAX_DISTINCT_SAMPLE) break;
       }
       if (distinct.size > 0 && distinct.size <= MAX_DISTINCT_SAMPLE) {
         col.distinct_values = [...distinct].sort();
@@ -185,6 +218,8 @@ export async function query(
     limit?: number;
     includeCentroid?: boolean;
     filters?: FilterSpec[];
+    /** Distinct-group cap (default MAX_GROUP_KEYS); tests lower it. */
+    maxGroupKeys?: number;
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await cachedMetadata(file);
@@ -192,6 +227,12 @@ export async function query(
   const allCols = cols.map((c) => c.name);
   assertFlat(cols, [...Object.keys(opts.where ?? {}), ...(opts.groupBy ? [opts.groupBy] : [])]);
   assertFilterColumns(cols, (opts.filters ?? []).map((f) => f.col));
+  // A shape per row (decoded to GeoJSON) for up to 1,000 rows of state or
+  // block polygons is a one-request Worker kill: shapes come from downloads.
+  const geomSelected = (opts.select ?? []).filter((c) => isGeomColumn(c) && allCols.includes(c));
+  if (geomSelected.length) {
+    throw new QueryInputError(`Column "${geomSelected[0]}" is the geometry and can't be selected. For a point per row use include_centroid=true; for shapes use the layer's downloads or /export.`);
+  }
 
   const sumCols = opts.sum?.length ? opts.sum : [];
   if (sumCols.length && !opts.groupBy) {
@@ -202,7 +243,7 @@ export async function query(
     if (sumCols.length) {
       validateSumColumns(sumCols, Object.fromEntries(cols.map((c) => [c.name, c.nested ? undefined : c.element.type])));
     }
-    return groupByQuery(file, metadata, allCols, opts.groupBy, opts.where, sumCols, opts.filters);
+    return groupByQuery(file, metadata, allCols, opts.groupBy, opts.where, sumCols, opts.filters, opts.maxGroupKeys);
   }
 
   return selectQuery(file, metadata, allCols, opts);
@@ -229,21 +270,30 @@ export function validateSumColumns(
 }
 
 /**
- * Group rows by `groupCol`: a row count per group (largest first, capped at
+ * Incremental group-by: add() batches of (already filtered) rows, then
+ * result(): a row count per group (largest first, capped at
  * MAX_GROUP_BY_VALUES), plus per-group totals of `sumCols` when asked. INT64
  * values arrive from hyparquet as BigInt, so they are converted; null/undefined
- * are skipped; float noise is rounded to 6 decimals.
+ * are skipped; float noise is rounded to 6 decimals. More than `maxKeys`
+ * distinct groups is a QueryInputError (see MAX_GROUP_KEYS).
  */
-/** Incremental group-by: add() batches of (already filtered) rows, then result(). */
-export function groupAccumulator(groupCol: string, sumCols: string[] = []) {
-  const counts: Record<string, number> = {};
-  const sums: Record<string, Record<string, number>> = {};
+export function groupAccumulator(groupCol: string, sumCols: string[] = [], maxKeys = MAX_GROUP_KEYS) {
+  // No prototype: a group named "constructor" or "__proto__" is just a key.
+  const counts: Record<string, number> = Object.create(null);
+  const sums: Record<string, Record<string, number>> = Object.create(null);
   let total = 0;
+  let keys = 0;
   return {
     add(rows: Record<string, unknown>[]): void {
       total += rows.length;
       for (const row of rows) {
         const key = String(row[groupCol] ?? '(null)');
+        if (counts[key] === undefined && ++keys > maxKeys) {
+          throw new QueryInputError(
+            `Column "${groupCol}" has more than ${maxKeys.toLocaleString('en-US')} distinct values: too many to group. `
+            + 'Group by a coarser column, or narrow the rows with a where filter first.',
+          );
+        }
         counts[key] = (counts[key] || 0) + 1;
         if (!sumCols.length) continue;
         if (!sums[key]) sums[key] = Object.fromEntries(sumCols.map((c) => [c, 0]));
@@ -275,17 +325,6 @@ export function groupAccumulator(groupCol: string, sumCols: string[] = []) {
   };
 }
 
-export function aggregateGroups(
-  rows: Record<string, unknown>[],
-  groupCol: string,
-  sumCols: string[] = [],
-): { counts: Record<string, number>; total: number; sums?: Record<string, Record<string, number>> } {
-  const acc = groupAccumulator(groupCol, sumCols);
-  acc.add(rows);
-  return acc.result();
-}
-
-// FIX #3: centroid support via bbox columns
 const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
 
 /** Row range of each row group. */
@@ -418,8 +457,11 @@ async function selectQuery(
     kept += idxs.length;
   }
 
-  // Pass 2: selected columns only for the kept rows, in row order.
-  const shaped = await mapConcurrent(hitGroups, R2_CONCURRENCY, async (idxs) => {
+  // Pass 2: selected columns only for the kept rows, in row order, in windows
+  // of at most READ_WINDOW_ROWS rows: sparse matches across a row group must
+  // not decode every row between the first and the last.
+  const windows = hitGroups.flatMap((idxs) => readWindows(idxs, READ_WINDOW_ROWS));
+  const shaped = await mapConcurrent(windows, R2_CONCURRENCY, async (idxs) => {
     const lo = idxs[0];
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: [...readCols], rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
@@ -441,6 +483,7 @@ async function groupByQuery(
   whereObj?: Record<string, string>,
   sumCols: string[] = [],
   filters: FilterSpec[] = [],
+  maxKeys = MAX_GROUP_KEYS,
 ): Promise<GroupByResult> {
   if (!allCols.includes(groupCol)) {
     const available = allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c));
@@ -452,7 +495,7 @@ async function groupByQuery(
   const filtered = where.length > 0 || filters.length > 0;
   const match = rowMatcher(where, filters);
   const colList = [...readCols].filter((c) => allCols.includes(c));
-  const acc = groupAccumulator(groupCol, sumCols);
+  const acc = groupAccumulator(groupCol, sumCols, maxKeys);
   let sample: Record<string, string[]> | undefined;
   await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({

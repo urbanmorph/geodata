@@ -9,7 +9,7 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "test": "node --test import-records.test.js read-tools.test.js version.test.js",
+    "test": "node --test collect-links.test.js import-records.test.js read-tools.test.js version.test.js",
     "test:live": "node test.js"
   },
   "bin": {

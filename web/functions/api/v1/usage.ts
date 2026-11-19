@@ -1,14 +1,16 @@
 // GET /api/v1/usage[?layer=<id>]: how much each layer is used. Downloads (every
 // format and state, from /api/dl) and API calls that name the layer, split into
 // api and mcp (the bharatlas MCP). Crawlers and the MCP smoke test are not counted.
-import type { Env } from '../../_middleware';
-import { json } from '../../lib/http';
+import type { Env } from '../_middleware';
+import { apiError, json } from '../../lib/http';
+import { LAYER_ID } from '../../lib/api-layer';
 import { shapeUsage } from '../../lib/usage';
+import { cachedLive } from '../../lib/edge-cache';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const layer = new URL(ctx.request.url).searchParams.get('layer');
-  if (layer !== null && !/^[a-zA-Z0-9_-]+$/.test(layer)) return json(400, { error: 'Invalid layer ID', status: 400 });
-  try {
+  if (layer !== null && !LAYER_ID.test(layer)) return apiError(400, 'Invalid layer ID');
+  return cachedLive(ctx, async () => {
     const where = layer ? ' WHERE layer_id = ?' : '';
     const bind = layer ? [layer] : [];
     const [dl, api] = await Promise.all([
@@ -20,14 +22,6 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     ]);
     const usage = shapeUsage(dl.results ?? [], api.results ?? []);
     const body = layer ? { layer_id: layer, ...(usage.layers[layer] ?? { downloads: 0, api: 0, mcp: 0 }) } : usage;
-    return new Response(JSON.stringify(body), {
-      headers: {
-        'content-type': 'application/json',
-        'access-control-allow-origin': '*',
-        'cache-control': 'public, max-age=60, stale-while-revalidate=300',
-      },
-    });
-  } catch {
-    return json(500, { error: 'Usage counts are unavailable right now', status: 500 });
-  }
+    return json(200, body, { 'cache-control': 'public, max-age=60, stale-while-revalidate=300' });
+  });
 };

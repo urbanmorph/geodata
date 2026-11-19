@@ -192,15 +192,16 @@ export const OPENAPI = {
       get: {
         operationId: 'countLayer',
         tags: ['Layers'],
-        summary: 'Feature total, or precomputed counts per value of one column',
-        description: 'Without `group_by`: the total and the columns that can be grouped. Counts come from precomputed statistics, so they cover single columns only; for cross-filters use /query or the Parquet download.',
+        deprecated: true,
+        summary: 'Feature total, or counts per value of one column (deprecated: use /query with group_by)',
+        description: 'Deprecated, kept for existing callers: `/layers/{id}/query?group_by=<col>` gives the same counts, with `where`, `filter` and `sum`. Without `group_by`: the total and the columns with precomputed counts. With `group_by`: precomputed counts where they exist, otherwise counted from the Parquet file (the 500 largest groups).',
         parameters: [
           LAYER_ID,
-          q('group_by', 'Column to count values of (one listed in `groupable_columns`).', { type: 'string' }),
-          q('filter_col', 'Not applied: precomputed counts are single-column. With `filter_val` the response carries `filter_note` saying so.', { type: 'string' }),
+          q('group_by', 'Column to count values of.', { type: 'string' }),
+          q('filter_col', 'With `filter_val`, count only rows whose `filter_col` equals `filter_val` (exact, case-insensitive).', { type: 'string' }),
           q('filter_val', 'See `filter_col`.', { type: 'string' }),
         ],
-        responses: { '200': ok('Counts', data({ type: 'object' })), ...errors('400', '404', '429') },
+        responses: { '200': ok('Counts', data({ type: 'object' })), ...errors('400', '404', '429', '500') },
       },
     },
     '/layers/{id}/locate': {

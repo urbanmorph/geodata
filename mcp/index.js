@@ -11,6 +11,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
 import { withClientIds, importSummary } from "./import-records.js";
+import { parseShareLink, atLeastScope } from "./collect-links.js";
 
 /** One version for the server and its user agent; bump with every release (version.test.js). */
 const VERSION = "1.6.1";
@@ -189,10 +190,6 @@ async function callApi(path, params = {}) {
 }
 
 // ---- collect: local credential store + scoped auth --------------------------
-const SCOPE_BY_PREFIX = { adm: "admin", edt: "edit", viw: "view" };
-const SCOPE_RANK = { view: 0, edit: 1, admin: 2 };
-const scopeOfToken = (t) => SCOPE_BY_PREFIX[String(t || "").slice(0, 3)] || null;
-const atLeastScope = (have, need) => (SCOPE_RANK[have] ?? -1) >= SCOPE_RANK[need];
 
 function loadStore() {
   try { return existsSync(COLLECT_STORE) ? JSON.parse(readFileSync(COLLECT_STORE, "utf8")) : { maps: {} }; }
@@ -207,7 +204,10 @@ function saveStore(s) {
 }
 function rememberMap(id, entry) { const s = loadStore(); s.maps[id] = { ...s.maps[id], ...entry }; saveStore(s); }
 function mapEntry(id) {
-  const m = loadStore().maps[id];
+  // An id goes into collect API paths: letters, digits, _ and - only (idSegment),
+  // and only one this store holds (never an inherited key such as "__proto__").
+  const maps = loadStore().maps;
+  const m = Object.hasOwn(maps, idSegment(id, "id")) ? maps[id] : undefined;
   if (!m) throw new Error(`map ${id} is not registered. Create it online at collect.bharatlas.com, then register_map with its share link.`);
   return m;
 }
@@ -218,19 +218,6 @@ function tokenFor(id, need) {
   }
   return m.token;
 }
-function parseShareLink(link) {
-  let u;
-  try { u = new URL(String(link).trim()); } catch { throw new Error("not a valid URL — paste the whole collect share link"); }
-  const token = (u.hash || "").replace(/^#/, "");
-  const scope = scopeOfToken(token);
-  if (!scope) throw new Error("no token found in the link #fragment (expected #adm_… / #edt_… / #viw_…)");
-  const parts = u.pathname.split("/").filter(Boolean); // ["c", "<id>", "admin"?]
-  const ci = parts.indexOf("c");
-  const id = ci >= 0 ? parts[ci + 1] : null;
-  if (!id) throw new Error("could not find the map id in the link path (expected /c/<id>…)");
-  return { id, token, scope, link: u.toString() };
-}
-
 // ---- collect: HTTP (GET/POST/PATCH with auth headers): request() above ------
 function collectApi(method, path, { token, apiKey, body } = {}) {
   const headers = {};
@@ -297,7 +284,8 @@ async function handleTool(name, args) {
 
     case "edit_map": {
       const { id, ...patch } = args;
-      return collectApi("PATCH", `/collections/${id}`, { token: tokenFor(id, "admin"), body: patch });
+      const token = tokenFor(id, "admin"); // checks the id first
+      return collectApi("PATCH", `/collections/${id}`, { token, body: patch });
     }
 
     case "publish":

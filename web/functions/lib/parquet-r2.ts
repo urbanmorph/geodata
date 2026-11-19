@@ -5,6 +5,7 @@
 import { parquetMetadataAsync } from 'hyparquet';
 import type { FileMetaData } from 'hyparquet';
 import type { CatalogLayer } from './catalog-api';
+import { r2KeyFromUrl } from './r2-keys';
 
 export interface AsyncBuffer {
   byteLength: number;
@@ -44,10 +45,8 @@ export function cachedMetadata(file: AsyncBuffer): Promise<FileMetaData> {
   return p;
 }
 
-export function r2KeyFromLayer(layer: CatalogLayer): string | null {
-  const url = layer.parquet?.url;
-  if (!url) return null;
-  return url.replace(/^https:\/\/[^/]+\//, '');
+export function r2KeyFromLayer(layer: Pick<CatalogLayer, 'parquet'>): string | null {
+  return r2KeyFromUrl(layer.parquet?.url);
 }
 
 // R2 heads (size + etag) per key, for a few minutes: every schema, query and

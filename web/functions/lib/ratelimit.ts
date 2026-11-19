@@ -1,76 +1,28 @@
-// Sliding-window rate-limit per hashed IP. Hour window + day window.
-// One row per IP in `rate_limits`; SELECT-then-UPDATE-or-INSERT.
+// Submission rate limit per hashed IP: 5 an hour and 20 a day, on the shared
+// rate_limits table. Each window is one atomic upsert (shared/rate-window.ts);
+// the old SELECT-then-UPDATE let a parallel burst past the limit.
+import { bumpWindow, WINDOW_MS, type RateWindow } from '../../../shared/rate-window';
 
 type RunnableD1 = Pick<D1Database, 'prepare'>;
 
-const HOUR_MS = 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
 const HOUR_LIMIT = 5;
 const DAY_LIMIT = 20;
-
-type Row = {
-  hour_window_start: string;
-  hour_count: number;
-  day_window_start: string;
-  day_count: number;
-};
 
 export async function checkRateLimit(
   db: RunnableD1,
   ipHash: string,
   now: () => Date = () => new Date(),
 ): Promise<{ ok: true } | { ok: false; retryAfter: number }> {
-  const t = now();
-  const tIso = t.toISOString();
-
-  const cur = (await db
-    .prepare(
-      'SELECT hour_window_start, hour_count, day_window_start, day_count FROM rate_limits WHERE ip_hash = ?',
-    )
-    .bind(ipHash)
-    .first()) as Row | null;
-
-  if (!cur) {
-    await db
-      .prepare(
-        'INSERT INTO rate_limits (ip_hash, hour_window_start, hour_count, day_window_start, day_count) VALUES (?, ?, ?, ?, ?)',
-      )
-      .bind(ipHash, tIso, 1, tIso, 1)
-      .run();
-    return { ok: true };
-  }
-
-  const tMs = t.getTime();
-  let hourStart = new Date(cur.hour_window_start).getTime();
-  let hourCount = cur.hour_count;
-  let dayStart = new Date(cur.day_window_start).getTime();
-  let dayCount = cur.day_count;
-
-  if (tMs - hourStart >= HOUR_MS) {
-    hourStart = tMs;
-    hourCount = 0;
-  }
-  if (tMs - dayStart >= DAY_MS) {
-    dayStart = tMs;
-    dayCount = 0;
-  }
-
-  if (hourCount >= HOUR_LIMIT) {
-    return { ok: false, retryAfter: Math.max(1, Math.ceil((hourStart + HOUR_MS - tMs) / 1000)) };
-  }
-  if (dayCount >= DAY_LIMIT) {
-    return { ok: false, retryAfter: Math.max(1, Math.ceil((dayStart + DAY_MS - tMs) / 1000)) };
-  }
-
-  hourCount++;
-  dayCount++;
-
-  await db
-    .prepare(
-      'UPDATE rate_limits SET hour_window_start = ?, hour_count = ?, day_window_start = ?, day_count = ? WHERE ip_hash = ?',
-    )
-    .bind(new Date(hourStart).toISOString(), hourCount, new Date(dayStart).toISOString(), dayCount, ipHash)
-    .run();
-
+  const t = now().getTime();
+  if (!(await bumpWindow(db, ipHash, 'hour', HOUR_LIMIT, t))) return refused(db, ipHash, 'hour', t);
+  if (!(await bumpWindow(db, ipHash, 'day', DAY_LIMIT, t))) return refused(db, ipHash, 'day', t);
   return { ok: true };
+}
+
+/** A refusal with the seconds until the full window ends (read only on refusal). */
+async function refused(db: RunnableD1, ipHash: string, window: RateWindow, t: number): Promise<{ ok: false; retryAfter: number }> {
+  const col = window === 'hour' ? 'hour_window_start' : 'day_window_start';
+  const row = await db.prepare(`SELECT ${col} AS start FROM rate_limits WHERE ip_hash = ?`).bind(ipHash).first<{ start: string }>();
+  const start = row ? new Date(row.start).getTime() : t;
+  return { ok: false, retryAfter: Math.max(1, Math.ceil((start + WINDOW_MS[window] - t) / 1000)) };
 }

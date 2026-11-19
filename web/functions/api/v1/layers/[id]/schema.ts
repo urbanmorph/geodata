@@ -1,28 +1,22 @@
 import type { Env } from '../../../_middleware';
-import { loadCatalogVersioned } from '../../../../lib/catalog-loader';
 import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
-import { json, safeStringify } from '../../../../lib/http';
+import { apiError, safeStringify, serverError } from '../../../../lib/http';
+import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  const id = (ctx.params as { id: string }).id;
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return json(400, { error: 'Invalid layer ID', status: 400 });
-  }
-
-  const url = new URL(ctx.request.url);
-  const { catalog, version } = await loadCatalogVersioned(ctx);
-  const layer = catalog.layers.find((l) => l.id === id);
-  if (!layer) return json(404, { error: 'Layer not found', status: 404 });
-  countApiUse(ctx, id);
+  const r = await resolveLayer(ctx);
+  if (r instanceof Response) return r;
+  const { layer, version, url } = r;
+  countApiUse(ctx, layer.id);
 
   const r2Key = r2KeyFromLayer(layer);
-  if (!r2Key) return json(404, { error: 'No parquet file for this layer', status: 404 });
+  if (!r2Key) return apiError(404, 'No parquet file for this layer');
 
   return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
     try {
@@ -32,7 +26,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         headers: { 'content-type': 'application/json', 'cache-control': CACHE, etag: `"${version}-${file.etag}"` },
       });
     } catch (e) {
-      return json(500, { error: `Schema read failed: ${(e as Error).message}`, status: 500 });
+      return serverError('Schema read', e);
     }
   });
 };

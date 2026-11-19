@@ -3,28 +3,14 @@
 // counts are always live (no catalog.json drift).
 //
 // Response shape: { "lgd_states": { "parquet": 86, "geojson": 12 }, ... }
-// Plus a _total key with the grand total.
+// Plus a _total key with the grand total. A D1 failure is a 503 (the page
+// keeps its baked counts), never zeros.
 
-import type { Env } from '../../_middleware';
-import { shapeDownloadCounts } from '../../lib/counters';
+import type { Env } from '../_middleware';
+import { downloadCounts } from '../../lib/counters';
+import { json } from '../../lib/http';
+import { cachedLive } from '../../lib/edge-cache';
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  try {
-    const rows = await ctx.env.DB.prepare(
-      'SELECT layer_id, format, count FROM download_counts',
-    ).all<{ layer_id: string; format: string; count: number }>();
-
-    return new Response(JSON.stringify(shapeDownloadCounts(rows.results ?? [])), {
-      headers: {
-        'content-type': 'application/json',
-        'access-control-allow-origin': '*',
-        'cache-control': 'public, max-age=30, stale-while-revalidate=120',
-      },
-    });
-  } catch (e) {
-    return new Response(JSON.stringify({ _total: 0 }), {
-      status: 200,
-      headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
-    });
-  }
-};
+export const onRequestGet: PagesFunction<Env> = (ctx) =>
+  cachedLive(ctx, async () =>
+    json(200, await downloadCounts(ctx.env.DB), { 'cache-control': 'public, max-age=30, stale-while-revalidate=120' }));

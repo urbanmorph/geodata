@@ -1,28 +1,22 @@
 import type { Env } from '../../../_middleware';
-import { loadCatalogVersioned } from '../../../../lib/catalog-loader';
 import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, QueryInputError } from '../../../../lib/parquet-query';
 import { parseQueryParams } from '../../../../lib/query-params';
 import { parseFilterParam } from '../../../../lib/parquet-export';
-import { json, safeStringify } from '../../../../lib/http';
+import { apiError, safeStringify, serverError } from '../../../../lib/http';
+import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  const id = (ctx.params as { id: string }).id;
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return json(400, { error: 'Invalid layer ID', status: 400 });
-  }
-
-  const url = new URL(ctx.request.url);
-  const { catalog, version } = await loadCatalogVersioned(ctx);
-  const layer = catalog.layers.find((l) => l.id === id);
-  if (!layer) return json(404, { error: 'Layer not found', status: 404 });
-  countApiUse(ctx, id);
+  const r = await resolveLayer(ctx);
+  if (r instanceof Response) return r;
+  const { layer, version, url } = r;
+  countApiUse(ctx, layer.id);
 
   const r2Key = r2KeyFromLayer(layer);
-  if (!r2Key) return json(404, { error: 'No parquet file for this layer', status: 404 });
+  if (!r2Key) return apiError(404, 'No parquet file for this layer');
 
   const { select, groupBy, sum, limit, where, includeCentroid } = parseQueryParams(url.searchParams);
 
@@ -34,7 +28,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters });
       const timing = Date.now() - start;
 
-      return new Response(safeStringify({ data: result, layer_id: id, ...ncFields(layer), timing_ms: timing }), {
+      return new Response(safeStringify({ data: result, layer_id: layer.id, ...ncFields(layer), timing_ms: timing }), {
         headers: {
           'content-type': 'application/json',
           'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
@@ -42,9 +36,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         },
       });
     } catch (e) {
-      const msg = (e as Error).message;
-      if (e instanceof QueryInputError) return json(400, { error: msg, status: 400 });
-      return json(500, { error: `Query failed: ${msg}`, status: 500 });
+      if (e instanceof QueryInputError) return apiError(400, e.message);
+      return serverError('Query', e);
     }
   };
 

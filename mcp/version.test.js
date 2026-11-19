@@ -8,7 +8,7 @@ import { readFileSync } from "node:fs";
 const read = (p) => readFileSync(new URL(p, import.meta.url), "utf8");
 const json = (p) => JSON.parse(read(p));
 
-test("package, lockfile, server.json, Server(), plugin, plugin pin, skill and /.well-known agree", () => {
+test("package, lockfile, server.json, Server(), plugin, plugin pin, skill, /.well-known and the hosted server agree", () => {
   const v = json("./package.json").version;
   const found = {
     "package-lock.json": json("./package-lock.json").version,
@@ -20,6 +20,7 @@ test("package, lockfile, server.json, Server(), plugin, plugin pin, skill and /.
     ".mcp.json pin": read("../plugins/claude-code/.mcp.json").match(/bharatlas-mcp@([0-9.]+)/)[1],
     "SKILL.md": read("../plugins/claude-code/skills/bharatlas/SKILL.md").match(/^version: (.+)$/m)[1],
     "/.well-known/mcp.json": json("../web/public/.well-known/mcp.json").version,
+    "hosted /mcp SERVER_INFO": read("../web/functions/lib/mcp.ts").match(/const SERVER_INFO = \{[^}]*version: '([^']+)'/)[1],
   };
   for (const [where, got] of Object.entries(found)) assert.equal(got, v, where);
 });

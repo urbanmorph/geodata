@@ -11,6 +11,12 @@
 /** Public base URL of the geodata-data R2 bucket. */
 export const R2_PUBLIC_BASE = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
 
+/** The R2 object key of a public file URL (everything after the host), or null. */
+export function r2KeyFromUrl(url: string | null | undefined): string | null {
+  const m = url?.match(/^https?:\/\/[^/]+\/(.+)$/);
+  return m ? m[1] : null;
+}
+
 export type Classified = {
   layer_id: string;
   state_code: string;    // '' for pan-India / non-state slicing
@@ -79,7 +85,7 @@ export function classifyKey(key: string): Classified | null {
 // aren't listed in the catalog, so their key shapes still apply. Anything else
 // (scanner probes like .php, unknown files) is not a download and isn't counted.
 
-type CatalogLike = { layers: Array<Record<string, unknown> & { id: string }> };
+type CatalogLike = { layers: ReadonlyArray<{ id: string }> };
 const DOWNLOAD_FORMATS = ['parquet', 'geojson', 'kml', 'shapefile', 'pmtiles'] as const;
 const EXTRA_FORMATS: Record<string, string> = { parquet: 'parquet', geojson: 'geojson', kml: 'kml', zip: 'shapefile', csv: 'csv' };
 const byCatalog = new WeakMap<object, Map<string, Classified>>();
@@ -90,9 +96,8 @@ function catalogIndex(catalog: CatalogLike): Map<string, Classified> {
   idx = new Map();
   for (const l of catalog.layers) {
     for (const format of DOWNLOAD_FORMATS) {
-      const url = (l[format] as { url?: string } | null | undefined)?.url;
-      const m = url?.match(/^https?:\/\/[^/]+\/(.+)$/);
-      if (m) idx.set(m[1], { layer_id: l.id, state_code: '', format });
+      const key = r2KeyFromUrl(((l as Record<string, unknown>)[format] as { url?: string } | null | undefined)?.url);
+      if (key) idx.set(key, { layer_id: l.id, state_code: '', format });
     }
   }
   byCatalog.set(catalog, idx);

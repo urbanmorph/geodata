@@ -9,10 +9,13 @@ type RunnableD1 = Pick<D1Database, 'prepare' | 'batch'>;
 
 const NOT_COUNTED = /bharatlas-mcp-test|bot\b|bot\/|crawler|spider|slurp|facebookexternalhit/i;
 
+/** Crawlers, bots and our own smoke test: their calls and downloads are not counted. */
+export const isNotCounted = (userAgent: string | null): boolean => NOT_COUNTED.test(userAgent ?? '');
+
 /** Which channel a request counts under, or null when it shouldn't count. */
 export function usageChannel(userAgent: string | null): Channel | null {
   const ua = userAgent ?? '';
-  if (NOT_COUNTED.test(ua)) return null;
+  if (isNotCounted(ua)) return null;
   return /^bharatlas-mcp\//.test(ua) ? 'mcp' : 'api';
 }
 

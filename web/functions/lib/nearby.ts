@@ -24,11 +24,11 @@
 // The PMTiles-based path that lived here through PR #83 is gone: pmtiles drop
 // features at lower zooms (designed for display), which gave wrong results on
 // dense layers like hospitals and POIs. See issue #100.
-import { parquetQuery, parquetReadObjects, parquetSchema } from 'hyparquet';
+import { parquetQuery, parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2';
-import { QueryInputError } from './parquet-query';
+import { QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
@@ -81,9 +81,10 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** The geometry column, by exact name (parquet-query's isGeomColumn): "any
+ *  name containing geom" also caught source columns such as GEOM_UNIT. */
 function pickGeomCol(cols: string[]): string | null {
-  for (const c of ['geometry', 'wkb_geometry', 'geom']) if (cols.includes(c)) return c;
-  return cols.find((c) => c.toLowerCase().includes('geom')) ?? null;
+  return cols.find(isGeomColumn) ?? null;
 }
 
 function cleanProps(row: Record<string, unknown>, skip: Set<string>): Record<string, unknown> {
@@ -152,7 +153,7 @@ export async function nearestRows(
   file: AsyncBuffer, metadata: FileMetaData, cols: string[], geomCol: string,
   lat: number, lng: number, radiusKm: number, limit: number,
 ): Promise<{ winners: BboxWinner[]; total: number; rowsScanned: number }> {
-  type Candidate = { idx: number; span: RowSpan; cLat: number; cLng: number; d: number };
+  type Candidate = { idx: number; cLat: number; cLng: number; d: number };
   const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
 
   // Pass 1, row groups in parallel (bounded): each group keeps only its own
@@ -166,7 +167,7 @@ export async function nearestRows(
       const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
       const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
       const d = haversineKm(lat, lng, cLat, cLng);
-      if (d <= radiusKm) inRadius.push({ idx: span.start + i, span, cLat, cLng, d });
+      if (d <= radiusKm) inRadius.push({ idx: span.start + i, cLat, cLng, d });
     });
     const count = inRadius.length;
     inRadius.sort((a, b) => a.d - b.d);
@@ -177,17 +178,21 @@ export async function nearestRows(
   const rowsScanned = perGroup.reduce((n, g) => n + g.scanned, 0);
   const candidates = perGroup.flatMap((g) => g.top).sort((a, b) => a.d - b.d).slice(0, limit);
 
-  // Pass 2: full columns only for the winners' row spans, in parallel.
+  // Pass 2: full columns only for the winners' rows, in parallel, in windows
+  // of at most READ_WINDOW_ROWS rows (winners far apart in one row group must
+  // not decode every row between them).
   const readCols = cols.filter((c) => c !== geomCol);
-  const bySpan = [...new Set(candidates.map((c) => c.span))]
-    .map((span) => candidates.filter((c) => c.span === span));
-  const found = await mapConcurrent(bySpan, R2_CONCURRENCY, async (inSpan) => {
-    const lo = Math.min(...inSpan.map((c) => c.idx));
-    const hi = Math.max(...inSpan.map((c) => c.idx)) + 1;
+  const byIdx = new Map(candidates.map((c) => [c.idx, c]));
+  const windows = readWindows([...byIdx.keys()].sort((a, b) => a - b), READ_WINDOW_ROWS);
+  const found = await mapConcurrent(windows, R2_CONCURRENCY, async (idxs) => {
+    const lo = idxs[0];
     const rows = await parquetReadObjects({
-      file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: hi,
+      file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
     }) as Array<Record<string, unknown>>;
-    return inSpan.map((c): BboxWinner => ({ row: rows[c.idx - lo], cLat: c.cLat, cLng: c.cLng, d: c.d }));
+    return idxs.map((i): BboxWinner => {
+      const c = byIdx.get(i)!;
+      return { row: rows[i - lo], cLat: c.cLat, cLng: c.cLng, d: c.d };
+    });
   });
   return { winners: topKByDistance(found.flat(), limit), total, rowsScanned };
 }
@@ -212,7 +217,7 @@ export async function nearby(
   const metadata = await cachedMetadata(file);
   // Top-level fields only; a flat schema.slice(1) would false-match struct
   // children like `bbox.{xmin,ymin,xmax,ymax}` as top-level cols.
-  const allCols = parquetSchema(metadata).children.map((c) => c.element.name);
+  const allCols = topLevelColumns(metadata).map((c) => c.name);
   const geomCol = pickGeomCol(allCols);
   if (!geomCol) throw new QueryInputError(`Layer ${layerId} parquet has no geometry column`);
 
@@ -231,16 +236,12 @@ export async function nearby(
   } else {
     const refusal = fullScanRefusal(layerId, layer.parquet.bytes ?? 0);
     if (refusal) throw new QueryInputError(refusal);
-    const rows = await parquetQuery({
-      compressors,
-      file,
-      columns: allCols,
-      rowFormat: 'object',
-      geoparquet: false,
-    }) as Record<string, unknown>[];
+    // The parsed footer is passed in (never fetched again); its geometry may
+    // decode to GeoJSON or stay WKB, and extractCentroid takes either.
+    const rows = await parquetQuery({ compressors, file, metadata, columns: allCols }) as Record<string, unknown>[];
     rowsScanned = rows.length;
     skip = new Set([geomCol]);
-    // Scan path computes the centroid from WKB per row (no bbox cols).
+    // Scan path computes the centroid from the geometry per row (no bbox cols).
     // Same top-K shape as the bbox path; just a different distance source.
     total = 0;
     const allWinners: BboxWinner[] = [];

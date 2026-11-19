@@ -4,33 +4,23 @@
 
 import type { Env } from '../../_middleware';
 import { getSubmissionForView } from '../../../lib/submissions';
+import { SUBMISSION_ID } from '../../../lib/submissions-sql';
+import { json } from '../../../lib/http';
 
 type Params = { id: string };
 
-const notFound = () => new Response(
-  JSON.stringify({ error: 'not found' }),
-  { status: 404, headers: { 'content-type': 'application/json' } },
-);
+const notFound = () => json(404, { error: 'not found' });
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const id = ctx.params.id as string;
-  if (!/^[A-Za-z0-9_-]{8,16}$/.test(id)) return notFound();
+  if (!SUBMISSION_ID.test(id)) return notFound();
 
   const row = await getSubmissionForView(ctx.env.DB, id);
   if (!row) return notFound();
 
-  return new Response(
-    JSON.stringify({
-      id: row.id,
-      name: row.name,
-      status: row.status,
-      created_at: row.created_at,
-    }),
-    {
-      headers: {
-        'content-type': 'application/json',
-        'cache-control': 'public, max-age=30, stale-while-revalidate=300',
-      },
-    },
+  return json(
+    200,
+    { id: row.id, name: row.name, status: row.status, created_at: row.created_at },
+    { 'cache-control': 'public, max-age=30, stale-while-revalidate=300' },
   );
 };

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { nanoid, sha256Hex, sanitizeFilename, ipHashFor } from '../functions/lib/submit-helpers';
 
 describe('nanoid', () => {
@@ -110,5 +110,32 @@ describe('ipHashFor', () => {
     const r = reqWith({});
     const h = await ipHashFor(r, 'salt', () => new Date('2026-05-20T10:00:00Z'));
     expect(h).toMatch(/^[0-9a-f]{64}$/);
+  });
+});
+
+describe('IP hashes: one IPv6 /64 is one client', () => {
+  const req = (ip: string) => new Request('https://bharatlas.com/', { headers: { 'cf-connecting-ip': ip } });
+  const day = () => new Date('2026-11-19T10:00:00Z');
+  it('two addresses in one /64 hash alike (daily and stable); another /64 does not', async () => {
+    const { ipHashFor, ipHashStable } = await import('../functions/lib/submit-helpers');
+    const a = '2001:db8:1:2::1', b = '2001:db8:1:2:abcd::99', c = '2001:db8:1:3::1';
+    expect(await ipHashFor(req(a), 's', day)).toBe(await ipHashFor(req(b), 's', day));
+    expect(await ipHashFor(req(a), 's', day)).not.toBe(await ipHashFor(req(c), 's', day));
+    expect(await ipHashStable(req(a), 's')).toBe(await ipHashStable(req(b), 's'));
+    expect(await ipHashFor(req('1.2.3.4'), 's', day)).not.toBe(await ipHashFor(req('1.2.3.5'), 's', day));
+  });
+});
+
+describe('ipSalt', () => {
+  it('uses the secret, else the fallback, and logs an unset secret once', async () => {
+    const { ipSalt } = await import('../functions/lib/submit-helpers');
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(ipSalt('secret', 'fb-test')).toBe('secret');
+    expect(err).not.toHaveBeenCalled();
+    expect(ipSalt(undefined, 'fb-test')).toBe('fb-test');
+    expect(ipSalt('', 'fb-test')).toBe('fb-test');
+    expect(err).toHaveBeenCalledTimes(1);
+    expect(String(err.mock.calls[0][0])).toMatch(/IP_SALT is not set/);
+    err.mockRestore();
   });
 });

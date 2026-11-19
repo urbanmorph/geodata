@@ -56,11 +56,13 @@ export function renderViewPage(opts: RenderOpts): string {
   // browser against the page's actual origin (5173 in dev, bharatlas.com in
   // prod). The ?url= form signals view-only to /preview so the publish CTA
   // stays hidden — you can't re-submit something already in the catalog.
-  const r2Path = `/api/r2/${s.r2_key}`;
+  // Each key segment encoded: a filename with "#" or "?" otherwise cut the link short (404).
+  const keyPath = s.r2_key.split('/').map(encodeURIComponent).join('/');
+  const r2Path = `/api/r2/${keyPath}`;
   const verifyUrl = `/preview?url=${encodeURIComponent(r2Path)}`;
   // CANONICAL paths for SEO/OG meta — always the public origin, never the
   // port-bound dev URL.
-  const r2Url = `${PUBLIC_ORIGIN}/api/r2/${s.r2_key}`;
+  const r2Url = `${PUBLIC_ORIGIN}${r2Path}`;
   const canonical = `${PUBLIC_ORIGIN}/c/${s.id}`;
   const licenseUrl = licenceUrl(s.license) ?? s.license;
   const filename = s.r2_key.split('/').pop() || 'download';

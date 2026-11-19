@@ -30,7 +30,7 @@ export function asD1(db: SqliteDb) {
         bind(...a: unknown[]) { args = a; return this; },
         async first() { d1.statements++; return (stmt.get(...args) as unknown) ?? null; },
         async all() { d1.statements++; return { results: stmt.all(...args) }; },
-        async run() { d1.statements++; stmt.run(...args); return { success: true }; },
+        async run() { d1.statements++; const r = stmt.run(...args) as { changes?: number | bigint }; return { success: true, meta: { changes: Number(r?.changes ?? 0) } }; },
       };
     },
   };

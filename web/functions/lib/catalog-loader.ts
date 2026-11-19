@@ -3,6 +3,7 @@
 // same-origin fetch went out through the zone and back in through the root
 // _middleware, and could answer with another deployment's file.
 import type { CatalogData } from './catalog-api';
+import { sha256Hex } from './crypto';
 
 type Assets = { fetch(input: Request | string, init?: RequestInit): Promise<Response> };
 /** What a handler has: its request (for the origin) and, on Pages, env.ASSETS. */
@@ -54,6 +55,5 @@ export function __resetCatalogForTest(): void {
 
 /** First 12 hex characters of the SHA-256 of `text`. */
 export async function shortHash(text: string): Promise<string> {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
-  return [...new Uint8Array(buf).slice(0, 6)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  return (await sha256Hex(text)).slice(0, 12);
 }

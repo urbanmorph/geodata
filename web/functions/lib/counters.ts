@@ -1,4 +1,4 @@
-// D1 helpers for download_counts + submission_ratings.
+// D1 helpers for download_counts.
 // Functions kept tiny so the tests can mock D1 with a fake `prepare`.
 
 type RunnableD1 = Pick<D1Database, 'prepare'>;
@@ -34,4 +34,11 @@ export function shapeDownloadCounts(
     total += r.count;
   }
   return { ...counts, _total: total };
+}
+
+/** Every download count from D1, shaped by shapeDownloadCounts (throws on a D1 failure). */
+export async function downloadCounts(db: Pick<D1Database, 'prepare'>): Promise<Record<string, Record<string, number> | number>> {
+  const rows = await db.prepare('SELECT layer_id, format, count FROM download_counts')
+    .all<{ layer_id: string; format: string; count: number }>();
+  return shapeDownloadCounts(rows.results ?? []);
 }

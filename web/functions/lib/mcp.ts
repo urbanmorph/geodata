@@ -24,7 +24,8 @@ import { onRequestGet as submissions } from '../api/v1/submissions/index';
 
 const PROTOCOL_VERSION = '2025-06-18';
 const SUPPORTED_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
-const SERVER_INFO = { name: 'bharatlas', title: "bharatlas: India's open geo data", version: '1.4.0' };
+// The same version as the npm package (mcp/version.test.js holds them equal).
+const SERVER_INFO = { name: 'bharatlas', title: "bharatlas: India's open geo data", version: '1.6.1' };
 const MAX_BODY = 64 * 1024;
 
 export const INSTRUCTIONS = `bharatlas MCP server (hosted, read-only). India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, rivers, canals, groundwater, agro-climatic zones, floods, seismic zones) plus community submissions.
@@ -137,7 +138,8 @@ export async function handleMcp(req: Request, env: Env, deps: McpDeps): Promise<
       default:
         return err(id, METHOD_NOT_FOUND, `Method not found: ${method}`);
     }
-  } catch {
+  } catch (e) {
+    console.error(`mcp ${method} failed:`, e instanceof Error ? e.stack || e.message : e);
     return err(id, INTERNAL_ERROR, 'Internal error');
   }
 }
@@ -155,24 +157,36 @@ async function callTool(req: Request, env: Env, deps: McpDeps, name: string, arg
     return toolText({ error: `Rate limit exceeded. Try again in ${limit.retryAfter} s.` }, true);
   }
 
-  const route = deps.routes.find(([re]) => re.test(call.path));
-  if (!route) return toolText({ error: `No API route for ${call.path}` }, true);
-  const layerId = route[0].exec(call.path)?.[1];
-
-  const url = new URL(`/api/v1${call.path}`, req.url);
-  url.search = toSearchParams(call.params).toString();
   try {
-    const res = await route[1]({
-      // The API counts this call as MCP use (usage.ts reads the bharatlas-mcp/ user agent).
-      request: new Request(url, { headers: { accept: 'application/json', 'user-agent': 'bharatlas-mcp/hosted' } }),
-      env,
-      params: layerId ? { id: layerId } : {},
-      waitUntil: deps.waitUntil,
-    });
-    const body = await res.json().catch(() => ({ error: `API ${res.status}` }));
-    if (!res.ok) return toolText({ error: (body as { error?: string }).error || `API ${res.status}` }, true);
+    let res = await runRoute(req, env, deps, call.path, toSearchParams(call.params));
+    // A retired layer id answers 301 to its successor: follow it once, in-process.
+    const moved = res.status === 301 ? res.headers.get('location') : null;
+    if (moved) {
+      const to = new URL(moved, req.url);
+      res = await runRoute(req, env, deps, to.pathname.replace(/^\/api\/v1/, ''), to.searchParams);
+    }
+    const status = res.status;
+    const body = await res.json().catch(() => ({ error: `API ${status}` }));
+    if (!res.ok) return toolText({ error: (body as { error?: string }).error || `API ${status}` }, true);
     return toolText(shapeReadResult(name, body));
   } catch (e) {
-    return toolText({ error: `The ${name} tool failed: ${(e as Error).message}` }, true);
+    console.error(`mcp tool ${name} failed:`, e instanceof Error ? e.stack || e.message : e);
+    return toolText({ error: `The ${name} tool failed. Please try again.` }, true);
   }
+}
+
+/** Run the /api/v1 handler for `path` in-process (no fetch back to bharatlas.com). */
+async function runRoute(req: Request, env: Env, deps: McpDeps, path: string, search: URLSearchParams): Promise<Response> {
+  const route = deps.routes.find(([re]) => re.test(path));
+  if (!route) return new Response(JSON.stringify({ error: `No API route for ${path}` }), { status: 404 });
+  const layerId = route[0].exec(path)?.[1];
+  const url = new URL(`/api/v1${path}`, req.url);
+  url.search = search.toString();
+  return route[1]({
+    // The API counts this call as MCP use (usage.ts reads the bharatlas-mcp/ user agent).
+    request: new Request(url, { headers: { accept: 'application/json', 'user-agent': 'bharatlas-mcp/hosted' } }),
+    env,
+    params: layerId ? { id: layerId } : {},
+    waitUntil: deps.waitUntil,
+  });
 }

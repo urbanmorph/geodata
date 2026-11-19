@@ -1,20 +1,14 @@
-// Tiny helpers used by the /api/submit endpoint. Pure functions where possible
-// so they unit-test without a live request / D1.
+// Tiny helpers used by the /api/submit endpoint (and collect, via its
+// reuse.ts). Pure functions where possible so they unit-test without a live
+// request / D1.
+import { randomUrlSafe, sha256Hex } from './crypto';
 
-const URLSAFE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+export { ipSalt } from './crypto';
+import { rateKeySource } from './api-ratelimit';
 
-export function nanoid(length: number): string {
-  const bytes = new Uint8Array(length);
-  crypto.getRandomValues(bytes);
-  let out = '';
-  for (const b of bytes) out += URLSAFE[b & 0x3f];
-  return out;
-}
+export { sha256Hex };
 
-export async function sha256Hex(bytes: ArrayBuffer): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
-}
+export const nanoid = (length: number): string => randomUrlSafe(length);
 
 const FALLBACK_NAME = 'upload.bin';
 const MAX_NAME_LEN = 100;
@@ -33,9 +27,11 @@ export function sanitizeFilename(name: string): string {
   return stem + ext;
 }
 
-function todayUTC(now: () => Date): string {
-  const d = now();
-  return d.toISOString().slice(0, 10);
+/** The client (CF-Connecting-IP only, never X-Forwarded-For), as one IPv4
+ *  address or one IPv6 /64: a host holds a whole /64, so hashing the full
+ *  address let it mint new rate-limit buckets. */
+function clientOf(request: Request): string {
+  return rateKeySource(request.headers.get('cf-connecting-ip') || 'unknown');
 }
 
 export async function ipHashFor(
@@ -43,19 +39,15 @@ export async function ipHashFor(
   salt: string,
   now: () => Date = () => new Date(),
 ): Promise<string> {
-  // CF-Connecting-IP only — never trust X-Forwarded-For. On Cloudflare Pages
-  // CF-Connecting-IP is always set; the missing case falls through to
-  // 'unknown' so a single shared bucket absorbs any anomaly rather than
-  // attackers minting fresh hashes via XFF rotation.
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-  const material = `${ip}|${todayUTC(now)}|${salt}`;
-  return sha256Hex(new TextEncoder().encode(material).buffer as ArrayBuffer);
+  // On Cloudflare Pages CF-Connecting-IP is always set; the missing case falls
+  // through to 'unknown' so a single shared bucket absorbs any anomaly rather
+  // than attackers minting fresh hashes via XFF rotation.
+  return sha256Hex(`${clientOf(request)}|${now().toISOString().slice(0, 10)}|${salt}`);
 }
 
 /** The same IP hash without the date: for one vote per IP for good (ratings).
  *  ipHashFor's daily hash is for daily limits; reused for votes, it let the
  *  same IP vote again every day (review 2026-11-18). */
 export async function ipHashStable(request: Request, salt: string): Promise<string> {
-  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
-  return sha256Hex(new TextEncoder().encode(`${ip}|vote|${salt}`).buffer as ArrayBuffer);
+  return sha256Hex(`${clientOf(request)}|vote|${salt}`);
 }

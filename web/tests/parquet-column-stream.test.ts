@@ -116,3 +116,35 @@ describe('byteArrayColumnRows', () => {
     expect(f.reads).toEqual([]);
   });
 });
+
+describe('Bytes (pull reader)', () => {
+  async function* pieces(total: number, size: number) {
+    for (let p = 0; p < total; p += size) {
+      const n = Math.min(size, total - p);
+      yield Uint8Array.from({ length: n }, (_, i) => (p + i) & 0xff);
+    }
+  }
+
+  it('reads values across piece boundaries exactly', async () => {
+    const { Bytes } = await import('../functions/lib/parquet-column-stream');
+    const b = new Bytes(pieces(20, 3)[Symbol.asyncIterator]());
+    expect([...(await b.take(5))]).toEqual([0, 1, 2, 3, 4]);
+    await b.skip(4);
+    expect(await b.u32()).toBe((9 | (10 << 8) | (11 << 16) | (12 << 24)) >>> 0);
+    const rest: number[] = [];
+    for await (const c of b.rest()) rest.push(...c);
+    expect(rest).toEqual([13, 14, 15, 16, 17, 18, 19]);
+    await expect(new Bytes(pieces(3, 3)[Symbol.asyncIterator]()).take(4)).rejects.toThrow(/ended early/);
+  });
+
+  it('takes a large value spread over many small pieces in linear time', async () => {
+    const { Bytes } = await import('../functions/lib/parquet-column-stream');
+    const n = 8 * 1024 * 1024;
+    const b = new Bytes(pieces(n, 1024)[Symbol.asyncIterator]());
+    const t = performance.now();
+    const v = await b.take(n);
+    expect(v.length).toBe(n);
+    expect(v[n - 1]).toBe((n - 1) & 0xff);
+    expect(performance.now() - t).toBeLessThan(2000); // joining per piece copied ~32 GB here
+  });
+});
