@@ -131,6 +131,56 @@ def test_the_last_build_is_the_newer_of_fetched_at_and_the_layers_newest_release
     assert pr.last_build(layer('x', fetched_at=None), None) is None
 
 
+# ── how strong a layer's source check is ────────────────────────────────────
+
+def checked(method, url, lid='x'):
+    return layer(lid, source_check={'method': method, 'url': url})
+
+
+def test_release_assets_commits_and_dataset_records_are_strong_checks():
+    yash = 'https://github.com/yashveeeeeeer/india-geodata/releases/download/infra/national-highways/GS.parquet'
+    assert pr.weak_check(checked('github_release', yash)) is None
+    assert pr.weak_check(checked('github_release', 'https://github.com/owner/repo')) is None
+    assert pr.weak_check(checked('github_commit', 'https://github.com/datameet/Municipal_Spatial_Data/tree/master/'
+                                                  'Delhi')) is None
+    assert pr.weak_check(checked('ckan', 'https://www.data.gov.in/backend/dmspublic/v1/resources?x=1')) is None
+
+
+def test_an_http_check_is_strong_on_a_data_file_or_an_api_record_and_weak_on_a_page():
+    assert pr.weak_check(checked('http', 'https://stac.overturemaps.org/catalog.json')) is None
+    assert pr.weak_check(checked('http', 'https://example.org/data/wards.geojson')) is None
+    assert pr.weak_check(checked('http', 'https://www.geoboundaries.org/api/current/gbOpen/IND/ADM1/')) is None
+    assert 'page' in pr.weak_check(checked('http', 'https://example.gov.in/dataset/wards'))
+    assert 'page' in pr.weak_check(checked('http', 'https://example.gov.in/maps.html'))
+
+
+def test_osm_extracts_gtfs_feeds_and_hand_checks_are_weak():
+    assert 'OpenStreetMap' in pr.weak_check(checked('http', 'https://download.geofabrik.de/asia/india-latest.osm.pbf'))
+    assert 'GTFS' in pr.weak_check(checked('github_commit', 'https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs'))
+    assert 'GTFS' in pr.weak_check(checked('gtfs', 'https://example.org/feed.zip'))
+    assert 'by hand' in pr.weak_check(checked('manual', 'https://data.gov.in/'))
+    assert 'by hand' in pr.weak_check(layer('no_check'))
+
+
+def test_a_layer_override_marks_its_check_weak_with_a_reason(monkeypatch):
+    monkeypatch.setitem(pr.WEAK_CHECKS, 'x', 'the check follows one of several sources')
+    assert pr.weak_check(checked('github_release', 'https://github.com/owner/repo')) == \
+        'the check follows one of several sources'
+
+
+def test_the_last_refresh_is_the_later_of_the_build_and_a_strong_check_confirming_the_source_identical():
+    strong = checked('github_release', 'https://github.com/owner/repo', lid='vedas_wind_farms')
+    strong['fetched_at'] = '2026-05-28T14:34:08+00:00'
+    assert pr.last_refresh(strong, None, '2026-11-19') == '2026-11-19'
+    assert pr.last_refresh(strong, None, '2026-05-01') == '2026-05-28'      # a check before the build
+    assert pr.last_refresh(strong, None, None) == '2026-05-28'
+    weak = checked('http', 'https://download.geofabrik.de/asia/india-latest.osm.pbf')
+    weak['fetched_at'] = '2026-11-17'
+    assert pr.last_refresh(weak, None, '2026-11-19') == '2026-11-17'       # a weak check never counts
+    assert pr.last_refresh(checked('github_release', 'https://github.com/o/r') | {'fetched_at': None}, None,
+                           '2026-11-19') == '2026-11-19'
+
+
 def test_populate_writes_the_block_at_the_end_of_every_layer_and_keeps_audited_at():
     cat = {'layers': [layer('ir_stations', 'transport', fetched_at='2026-11-17T00:00:00+00:00'),
                       layer('state_finance', 'economy')]}
