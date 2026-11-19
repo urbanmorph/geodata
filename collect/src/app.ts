@@ -43,7 +43,7 @@ import { createTrace, averageFix, type Trace, type Fix } from './capture/trace';
 import { saveWalk, loadWalk, clearWalk } from './capture/walk-store';
 import { keepScreenOn, watchFixes } from './capture/gps';
 import { preparePhoto } from './photos/prepare';
-import { mountPhotoField, authedSrc, openViewer, type PhotoField, type PhotoFieldOptions, type PhotoItem } from './photos/widget';
+import { mountPhotoField, authedSrc, releasePhotos, openViewer, type PhotoField, type PhotoFieldOptions, type PhotoItem } from './photos/widget';
 import { newClientId, stuckReason } from './outbox';
 import { uploadPhoto } from './send-queue';
 import { aiNotesHtml, type Notes } from './review-ai';
@@ -1215,6 +1215,7 @@ const minted: { edit?: string; view?: string } = {};
  *  the title, a control (Back from a sheet opened here), or a point's row. */
 async function manageSheet(focus: false | string | { row: string } = ''): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
+  releasePhotos(); // ...and lets go of its private photos
   // Leaving capture mid-walk or mid-corner: stop the GPS and let the screen sleep.
   stopRecording();
   trace = null;
@@ -1810,6 +1811,7 @@ function openReview(idx: number): void {
 
   const c = representativeCoord(f.geometry);
   clearHighlight();
+  releasePhotos(); // the previous point's photos are no longer shown
   selectReviewFeature(idx); // emphasise the same feature on the map
   if (c) {
     reviewMarker = new maplibregl.Marker({ color: '#d97706' }).setLngLat(c).addTo(map);

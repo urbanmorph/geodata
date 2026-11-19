@@ -107,30 +107,32 @@ export function mountPhotoField(host: HTMLElement, field: Field, opts: PhotoFiel
 
 // ── private photos, and the full-screen viewer ─────────────────────────────
 
-// The last few private photos, kept in memory; older ones are let go, so
-// reviewing hundreds of points doesn't fill a phone's memory.
+// Private photos fetched for the sheet now showing, kept in memory while it
+// shows them (a blob: URL let go too early turns its <img> blank). The sheet
+// lets them all go when it closes (releasePhotos), so reviewing hundreds of
+// points doesn't fill a phone's memory.
 const srcCache = new Map<string, Promise<string>>();
-const KEEP = 40;
 
 /** An <img> src for a photo: public ones as they are; private ones fetched
  *  with the token (it can't ride in the URL) and shown from memory. */
 export function authedSrc(url: string, token?: string): Promise<string> {
   if (!token) return Promise.resolve(url);
   let p = srcCache.get(url);
-  if (p) srcCache.delete(url); // most recently used goes last
-  else {
+  if (!p) {
     p = fetch(url, { headers: { authorization: `Bearer ${token}` } })
       .then((r) => (r.ok ? r.blob() : Promise.reject(new Error(`HTTP ${r.status}`))))
       .then((b) => URL.createObjectURL(b));
     p.catch(() => srcCache.delete(url));
-  }
-  srcCache.set(url, p);
-  while (srcCache.size > KEEP) {
-    const [oldest, gone] = srcCache.entries().next().value!;
-    srcCache.delete(oldest);
-    void gone.then((u) => URL.revokeObjectURL(u), () => {});
+    srcCache.set(url, p);
   }
   return p.catch(() => '');
+}
+
+/** Lets go of every private photo fetched so far: call when the sheet showing
+ *  them closes (one still loading is let go once it arrives). */
+export function releasePhotos(): void {
+  for (const p of srcCache.values()) void p.then((u) => URL.revokeObjectURL(u), () => {});
+  srcCache.clear();
 }
 
 /** Photos full screen: swipe-free buttons (Previous / Next / Close) and the keyboard.
