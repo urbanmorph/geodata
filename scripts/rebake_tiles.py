@@ -41,22 +41,18 @@ an md5 match, and the catalog patch is by layer id.
 """
 from __future__ import annotations
 
-import contextlib
 import json
 import os
-import re
-import shutil
-import signal
 import subprocess
 import sys
 import time
-from collections.abc import Iterator
 from pathlib import Path
 
 import duckdb
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from pipeline import log  # noqa: E402
 import audit_tiles as at  # noqa: E402
 from bake_formats import (  # noqa: E402
     BBOX,
@@ -66,30 +62,28 @@ from bake_formats import (  # noqa: E402
     tile_fields,
 )
 from build_filter_stats import panel_stats, stats_for_parquet, tile_filter_columns  # noqa: E402
-from bake_land_water import (  # noqa: E402
-    Deadline,
-    OutOfTime,
-    cached,
-    decode_tile,
-    fetch,
-    r2_client,
-    tile_bounds,
-    tile_for,
-    upload,
-)
+from bake_land_water import decode_tile, tile_bounds, tile_for  # noqa: E402
 from pipeline import (  # noqa: E402
     R2_PUBLIC,
+    Deadline,
+    OutOfTime,
     _remote_has,
+    cached,
+    download,
     file_md5,
     make_con,
+    patient_r2_client,
+    r2_upload_retrying,
+    read_head,
+    upload_lock,
     write_json,
 )
+import tile_keys  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = HERE / 'external-ingested.json'
 WORK = Path(os.environ.get('TILES_WORK', '/tmp/ramseraph/tiles'))
-LOCK = Path('/tmp/bharatlas-upload.lock')
 LOCK_OWNER = f'rebake_tiles pid {os.getpid()}'
 
 # tippecanoe's default budget is 500,000 bytes a tile, and dense layers fill
@@ -127,10 +121,6 @@ POPUP_FIELDS: dict[str, list[str]] = {
     'fsi_circles': ['Circle_Nam', 'ST_Name'],
     'slusi_soil_health': ['VILLAGE', 'DISTRICT', 'STATE', 'cycle', 'N', 'P', 'K', 'pH', 'EC', 'OC'],
 }
-
-
-def log(*msg: object) -> None:
-    print(*msg, flush=True)
 
 
 # ── fields ───────────────────────────────────────────────────────────────────
@@ -250,7 +240,7 @@ def tile_report(pm: Path, parquet: Path, con, kind: str, points: list[tuple[floa
     parquet features meeting the tile, and the area (polygons) or length
     (lines) each covers inside it. Points compare counts only."""
     measured = kind in ('polygon', 'line')
-    max_zoom = at.parse_header(pm.read_bytes()[:127]).max_zoom
+    max_zoom = at.parse_header(read_head(pm, 127)).max_zoom
     tmp = pm.with_name(f'{pm.stem}.decoded.geojson')
     rows, seen = [], set()
     for lon, lat in points:
@@ -353,7 +343,8 @@ def build(layer: dict, deadline: Deadline, catalog: dict | None = None) -> tuple
     lid = layer['id']
     work = WORK / lid
     url, fmt = source_of(layer)
-    src = fetch(url, work / f'source.{fmt}')
+    src = work / f'source.{fmt}'
+    download(url, src)
     con = make_con()
     con.execute(f"SET temp_directory = '{work / 'duckdb_tmp'}'")
     con.execute('SET preserve_insertion_order = false')
@@ -420,7 +411,8 @@ def live_report(layer: dict, work: Path, flat: Path, con, kind: str,
         return None
     record = work / 'live_report.json'
     if not record.exists():
-        pm = fetch(url, work / 'live.pmtiles')
+        pm = work / 'live.pmtiles'
+        download(url, pm)
         cached(record, lambda p: p.write_text(json.dumps(tile_report(pm, flat, con, kind, points))))
         pm.unlink()
     return json.loads(record.read_text())
@@ -456,9 +448,7 @@ def versioned_key(layer: dict, md5: str) -> str:
     """<stem>.<md5[:8]>.pmtiles next to the current tiles, or next to the
     file the tiles were made from when the layer had none."""
     url = (layer.get('pmtiles') or {}).get('url') or source_of(layer)[0]
-    key = url.split('.r2.dev/', 1)[1]
-    stem = re.sub(r'(\.[0-9a-f]{8})?\.(pmtiles|parquet|geojson)$', '', key)
-    return f'{stem}.{md5[:8]}.pmtiles'
+    return tile_keys.versioned_key(url.split('.r2.dev/', 1)[1], md5, 'pmtiles')
 
 
 def with_note(notes: str | None) -> str:
@@ -484,7 +474,7 @@ def patch_catalog(lid: str, key: str, nbytes: int, narrowed: bool, catalog: Path
     c = json.loads(catalog.read_text())
     c['layers'] = [patched_layer(layer, key, nbytes, narrowed) if layer['id'] == lid else layer
                    for layer in c['layers']]
-    catalog.write_text(json.dumps(c, indent=2) + '\n')
+    write_json(catalog, c)
     # build_catalog.py rebuilds ingested layers from this manifest: keep it in step.
     rows = json.loads(manifest.read_text())
     for r in rows:
@@ -495,34 +485,13 @@ def patch_catalog(lid: str, key: str, nbytes: int, narrowed: bool, catalog: Path
     write_json(manifest, rows)
 
 
-@contextlib.contextmanager
-def upload_lock(lock: Path = LOCK, owner: str = LOCK_OWNER, wait_s: float = 30) -> Iterator[None]:
-    """One upload at a time across agents: mkdir is atomic. Released on any
-    exit, SIGTERM included."""
-    while True:
-        try:
-            lock.mkdir()
-            break
-        except FileExistsError:
-            who = (lock / 'owner').read_text().strip() if (lock / 'owner').exists() else '?'
-            log(f'  upload lock held by {who}; retry in {wait_s:.0f} s')
-            time.sleep(wait_s)
-    (lock / 'owner').write_text(owner + '\n')
-    previous = signal.signal(signal.SIGTERM, lambda *_: sys.exit(143))
-    try:
-        yield
-    finally:
-        shutil.rmtree(lock, ignore_errors=True)
-        signal.signal(signal.SIGTERM, previous)
-
-
 def publish(layer: dict, pm: Path, checks: dict) -> str:
     md5 = file_md5(pm)
     key = versioned_key(layer, md5)
-    s3 = r2_client()
+    s3 = patient_r2_client()
     if not _remote_has(s3, key, md5):  # the md5 skip, before taking the upload lock
-        with upload_lock():
-            upload(s3, pm, key)
+        with upload_lock(owner=LOCK_OWNER):
+            r2_upload_retrying(s3, pm, key)
     patch_catalog(layer['id'], key, pm.stat().st_size, checks['narrowed'])
     return key
 

@@ -1,16 +1,16 @@
 """
 Generate catalog.json from local files. Single source of truth for the viewer.
 
-Run after scripts/fetch.sh + scripts/extract_per_state.py.
+Run after scripts/fetch.sh (and bake_extracts.py for the per-state extracts).
 """
-import json, sys
+import json
+import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 ROOT = Path(__file__).resolve().parent.parent
 SRC = ROOT / 'sources' / 'india-geodata'
 GB = ROOT / 'sources' / 'geoboundaries'
-DATA = ROOT / 'data' / 'boundaries'
 # Whole-layer baked downloads (geojson / kml / shp.zip). Produced by
 # scripts/bake_whole_layer.py. URLs are wired into each layer only when
 # the corresponding file actually exists on disk — so this script is a
@@ -19,6 +19,7 @@ BAKED = ROOT / 'data' / 'baked'
 
 # Public base URL of the R2 bucket
 from pipeline import R2_PUBLIC as R2  # noqa: E402
+from pipeline import write_json  # noqa: E402
 from tile_keys import keep_all_rebaked, unversioned_name  # noqa: E402
 
 # Level metadata. `path` is the R2 key prefix (also the upstream release path).
@@ -32,7 +33,7 @@ LEVELS = {
     'village':                {'order': 6,  'plural': 'villages',                               'path': 'admin/villages',        'category': 'boundaries'},
 
     # Electoral
-    'parliament_constituency':{'order': 10, 'plural': 'parliament constituencies',              'path': 'electoral/constituencies', 'category': 'people'},
+    'parliament_constituency': {'order': 10, 'plural': 'parliament constituencies',              'path': 'electoral/constituencies', 'category': 'people'},
     'assembly_constituency':  {'order': 11, 'plural': 'assembly constituencies',                'path': 'electoral/constituencies', 'category': 'people'},
 
     # Postal
@@ -92,7 +93,7 @@ ATTR = {
     'Bhuvan':        {'name': 'NRSC/ISRO Bhuvan',            'url': 'https://bhuvanpanchayat.nrsc.gov.in/'},
     'PMGSY':         {'name': 'PMGSY (Rural Roads)',         'url': 'https://omms.nic.in/'},
     'geoBoundaries': {'name': 'geoBoundaries',               'url': 'https://www.geoboundaries.org/'},
-    'data.gov.in':   {'name': 'Open Government Data (India)','url': 'https://data.gov.in/'},
+    'data.gov.in':   {'name': 'Open Government Data (India)', 'url': 'https://data.gov.in/'},
     'GatiShakti':    {'name': 'PM GatiShakti',               'url': 'https://gis.pmgatishakti.gov.in/'},
     'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
@@ -314,6 +315,7 @@ if EXTERNAL_MANIFEST.exists():
 def provenance_for(layer_id: str) -> str:
     return EXTERNAL_PROVENANCE.get(layer_id, 'curated')
 
+
 # Reverse map: directory uses plural ("districts"), catalog uses singular ("district").
 # Computed once after LEVELS is finalised (including external-ingested additions).
 PLURAL_TO_SINGULAR = {v['plural']: k for k, v in LEVELS.items()}
@@ -409,46 +411,24 @@ def build_state_bounds():
                for code, minx, miny, maxx, maxy in rows}
         print(f'  state_bounds: {len(out)} states')
         return out
-    except Exception as e:
+    except duckdb.Error as e:
         print(f'  state_bounds: failed — {e}')
         return {}
 
 
 def fetch_download_counts():
-    """Read download_counts from the live D1 via wrangler. Failures (offline,
-    unauthenticated build env) silently return an empty list — the home
-    page just renders without count badges."""
-    import json as _json
-    import subprocess
+    """Read download_counts from the live D1 (scripts/d1.py). On a failure
+    (offline, unauthenticated build env) the build keeps the previous
+    catalog's counts."""
+    import d1
     web_root = ROOT / 'web'
     if not (web_root / 'wrangler.toml').exists():
         return {}
-    import shutil
-    # Prefer a PATH-resolved wrangler (mise / homebrew) over npx, which
-    # has hit a workerd arch mismatch on this machine's npx cache.
-    wrangler_bin = shutil.which('wrangler') or 'npx'
-    wrangler_cmd = ([wrangler_bin] if wrangler_bin != 'npx'
-                    else ['npx', '--yes', 'wrangler@latest'])
     try:
-        out = subprocess.run(
-            [*wrangler_cmd, 'd1', 'execute',
-             'geodata-submissions', '--remote',
-             '--command', 'SELECT layer_id, state_code, format, count FROM download_counts',
-             '--json'],
-            cwd=str(web_root),
-            capture_output=True, text=True, timeout=30,
-        )
-    except Exception as e:
-        print(f'  download_counts: skipped — {e}')
-        return {}
-    if out.returncode != 0:
-        # Don't error the build — counts are nice-to-have.
-        return {}
-    try:
-        # wrangler --json wraps the result in [{ results: [...] }, ...]
-        parsed = _json.loads(out.stdout)
-        rows = parsed[0]['results'] if isinstance(parsed, list) else parsed.get('results', [])
-    except Exception:
+        rows = d1.query('SELECT layer_id, state_code, format, count FROM download_counts', 'remote',
+                        cwd=web_root, timeout=60)
+    except (d1.D1Error, ValueError, LookupError, AttributeError) as e:
+        print(f'  download_counts: skipped (the previous catalog\'s counts are kept): {str(e)[:200]}')
         return {}
     counts = {}
     for r in rows:
@@ -529,7 +509,7 @@ def build_state_counts():
             ).fetchall()
             out[layer_id] = {int(code): int(n) for code, n in rows}
             print(f'  state_counts[{layer_id}]: {len(out[layer_id])} states, {sum(out[layer_id].values()):,} total rows')
-        except Exception as e:
+        except duckdb.Error as e:
             print(f'  state_counts[{layer_id}]: failed — {e}')
     return out
 
@@ -542,7 +522,7 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
     if not prev:
         return
     # Tiles and parquet bharatlas rebaked (versioned keys) win over the upstream-named
-    # key this build templates; the old key is deleted after a rebake's deploy.
+    # key this build templates (old keys stay on R2; r2_prune.py prunes old tiles only).
     keep_all_rebaked(layer, prev)
     if layer.get('parquet') and layer['parquet'].get('bytes') is None:
         layer['parquet']['bytes'] = (prev.get('parquet') or {}).get('bytes')
@@ -588,8 +568,10 @@ def _load_prev_catalog() -> dict:
         return {}
     try:
         return json.loads(prev_path.read_text())
-    except Exception:
-        return {}
+    except json.JSONDecodeError as e:
+        # Never treat it as empty: carry-forward would drop every community and
+        # bake-script layer and the download counts.
+        raise SystemExit(f'{prev_path} is not valid JSON ({e}); fix it before rebuilding the catalog') from e
 
 
 def build():
@@ -755,22 +737,6 @@ def build():
     # test_build_catalog_community.py.
     carry_forward_unbuilt(layers, prev_layers)
 
-    # per-state geojson extracts under data/boundaries/<level>/lgd_<level>_<state>.geojson
-    state_extracts = []
-    for level_dir in sorted(DATA.glob('*')):
-        if not level_dir.is_dir():
-            continue
-        for gj in sorted(level_dir.glob('*.geojson')):
-            stem = gj.stem
-            parts = stem.split('_')
-            state = parts[-1]
-            state_extracts.append({
-                'state': state,
-                'level': PLURAL_TO_SINGULAR.get(level_dir.name, level_dir.name),
-                'url': f'{R2}/boundaries/{level_dir.name}/{gj.name}',
-                'bytes': size_of(gj),
-            })
-
     # v4.2 commit 3: bake per-column filter stats for layers whose parquet
     # lives locally. External (R2-only) layers fall back to the browser's
     # live `describeParquet` probe in commit 4.
@@ -792,7 +758,9 @@ def build():
         'level_meta': EXTERNAL_LEVEL_META,  # prerender.mjs fallback for ingested levels
         'level_order': sorted(LEVELS.keys(), key=lambda k: LEVELS[k]['order']),
         'layers': layers,
-        'state_extracts': state_extracts,
+        # Always empty: the CG/JH/OD extracts (extract_per_state.py, removed) gave
+        # way to bake_extracts.py's 'extracts'. Kept so the catalog keeps its shape.
+        'state_extracts': [],
         'categories': CATEGORIES,
         'states': build_state_list(),
         'state_counts': build_state_counts(),
@@ -813,8 +781,8 @@ def build():
     catalog['generated'] = datetime.now(timezone.utc).isoformat()
 
     out = ROOT / 'catalog.json'
-    out.write_text(json.dumps(catalog, indent=2) + '\n')
-    print(f'wrote {out} ({len(layers)} layers, {len(state_extracts)} state extracts)')
+    write_json(out, catalog)
+    print(f'wrote {out} ({len(layers)} layers)')
 
 
 if __name__ == '__main__':

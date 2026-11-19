@@ -34,11 +34,9 @@ import math
 import os
 import re
 import shutil
-import subprocess
 import sys
 import tempfile
 import time
-import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,7 +44,9 @@ from typing import Callable, Iterable, Iterator
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from bake_mgnrega_districts import api_key, with_retries  # noqa: E402
+from pipeline import log  # noqa: E402
+import pipeline  # noqa: E402
+from pipeline import with_retries  # noqa: E402
 from pipeline import cache_backup  # noqa: E402
 
 CATALOG_UUID = '32f2ec95-ddca-4254-86c6-449d4471efe1'
@@ -94,11 +94,6 @@ OFFICIAL = {'West Bengal': 747_480, 'Uttar Pradesh': 245_087, 'Andhra Pradesh': 
 Fetcher = Callable[[int, int], dict]
 
 
-def log(msg: str) -> None:
-    sys.stdout.write(msg + '\n')  # one write per line: pull threads never interleave
-    sys.stdout.flush()
-
-
 class TimeUp(Exception):
     """The pull reached its own time limit; every page so far is saved."""
 
@@ -114,15 +109,7 @@ def resources(listing: dict) -> list[dict]:
 
 def api_fetch(uuid: str, key: str, tries: int = 10) -> Fetcher:
     """Big pages (~13 MB) are often cut off mid-transfer (IncompleteRead), hence the many tries."""
-    def fetch(offset: int, limit: int) -> dict:
-        q = urllib.parse.urlencode({'api-key': key, 'format': 'json', 'offset': offset, 'limit': limit})
-        req = urllib.request.Request(f'https://api.data.gov.in/resource/{uuid}?{q}', headers={'User-Agent': 'curl/8'})
-
-        def once() -> dict:
-            with urllib.request.urlopen(req, timeout=300) as r:
-                return json.load(r)
-        return with_retries(once, tries)
-    return fetch
+    return lambda offset, limit: pipeline.datagov_get(uuid, key, tries=tries, timeout=300, offset=offset, limit=limit)
 
 
 def _write_atomic(path: Path, data: bytes) -> None:
@@ -188,7 +175,7 @@ def pull(refresh: bool = False, max_minutes: float = 50, workers: int = 4) -> No
                 return r.read()
         _write_atomic(listing_path, with_retries(listing))
     res = resources(json.loads(listing_path.read_text()))
-    key = api_key()
+    key = pipeline.datagov_api_key()
 
     def one(r: dict) -> int:
         n = pull_resource(RAW / r['uuid'], api_fetch(r['uuid'], key), refresh=refresh, deadline=deadline)
@@ -334,10 +321,10 @@ def write_shapefile_zip(con, parquet: Path, out: Path, prop_cols: list[str]) -> 
     """One shapefile; per-state shapefiles if its .dbf would reach 2 GB. Short
     DBF names with a columns.txt key. Returns the .shp names written."""
     import bake_formats
-    from ingest_ramseraph import DBF_MAX_BYTES, slug
+    from pipeline import DBF_MAX_BYTES, slug
     names = bake_formats.short_field_names(prop_cols)
     select = ', '.join(f'"{long}" AS "{short}"' for long, short in names.items())
-    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+    con.execute('SET geometry_always_xy = true')  # a caller's own connection may lack it (lat,lon otherwise)
 
     def write(where: str, params: list, shp: Path) -> None:
         con.execute(f"COPY (SELECT {select}, geometry FROM read_parquet('{parquet}') {where}) TO '{shp}' "
@@ -405,24 +392,26 @@ TAGS = ['water bodies', 'ponds', 'tanks', 'lakes', 'reservoirs', 'check dams', '
         'encroachment', 'irrigation', 'Jal Shakti', 'minor irrigation']
 
 
-def catalog_entry(s: dict, fetched_at: str, r2_public: str) -> dict:
+def catalog_entry(s: dict, fetched_at: str, r2_public: str, names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     from build_catalog import ATTR
     entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': s['rows']}
     for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{BASENAME}.{ext}', 'bytes': s['sizes'][fmt]}
+        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': s['sizes'][fmt]}
     entry.update({'licence': 'GODL-India', 'attribution': {'primary': dict(ATTR[SOURCE]), 'publisher': dict(PUBLISHER)},
                   'category': 'water', 'provenance': 'curated', 'fetched_at': fetched_at,
                   'notes': notes(s), 'tags': TAGS})
     return entry
 
 
-def manifest_entry(s: dict) -> dict:
+def manifest_entry(s: dict, names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     from build_catalog import ATTR
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'water',
             'source': SOURCE, 'description': description(), 'unit': 'water bodies', 'features': s['rows'],
             'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-            'parquet_file': f'{BASENAME}.parquet', 'parquet_bytes': s['sizes']['parquet'],
-            'pmtiles_file': f'{BASENAME}.pmtiles', 'pmtiles_bytes': s['sizes']['pmtiles'],
+            'parquet_file': names['parquet'], 'parquet_bytes': s['sizes']['parquet'],
+            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': s['sizes']['pmtiles'],
             'source_url': CATALOG_PAGE, 'source_org': ATTR[SOURCE]['name'], 'notes': notes(s), 'tags': TAGS}
 
 
@@ -431,11 +420,11 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent.
     Run only once every file is on R2 (the upload step)."""
     from build_catalog import ATTR
-    from pipeline import R2_PUBLIC, register_layer
     s = json.loads(summary_path.read_text())
-    entry = catalog_entry(s, s['fetched_at'], r2_public or R2_PUBLIC)
-    register_layer(catalog_path, manifest_path, entry, manifest_entry(s), level_meta(),
-                   attribution=(SOURCE, ATTR[SOURCE]))
+    names = pipeline.summary_names(s)
+    entry = catalog_entry(s, s['fetched_at'], r2_public or pipeline.R2_PUBLIC, names=names)
+    pipeline.register_layer(catalog_path, manifest_path, entry, manifest_entry(s, names=names), level_meta(),
+                            attribution=(SOURCE, ATTR[SOURCE]))
 
 
 # ── bake ─────────────────────────────────────────────────────────────────────
@@ -457,11 +446,10 @@ def coverage(res: list[dict], metas: dict[str, dict]) -> tuple[list[str], dict[s
 
 
 def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
-    import duckdb
     import bake_formats
     from bake_extracts import gdal_geojson_available
     from bake_whole_layer import write_geojson_whole
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     res = resources(json.loads((RAW / 'listing.json').read_text()))
     metas = {r['uuid']: json.loads((RAW / r['uuid'] / 'meta.json').read_text()) for r in res}
@@ -469,7 +457,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     if not force and SUMMARY.exists() and all(p.exists() for p in path.values()):
         prev = json.loads(SUMMARY.read_text())
-        if prev.get('fingerprint') == fingerprint:
+        if prev.get('fingerprint') == fingerprint and prev.get('names'):  # names: the published keys
             log('inputs unchanged and every output exists: nothing to do (--force rebakes)')
             return prev
 
@@ -492,9 +480,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
                 log(f'  read {r["state"]}: {n_in:,} rows so far')
         types = tracker.types()
         log(f'numeric columns: {len(types)} of {len(cols)}')
-        con = duckdb.connect()
-        con.execute('INSTALL spatial; LOAD spatial;')
-        con.execute(f"SET temp_directory = '{work}'")
+        con = pipeline.make_con(temp_dir=work)
         src_cols = '{' + ', '.join(f"'{n}': 'VARCHAR'" for n in cols) + '}'
         select = ', '.join(cast_sql(n, types.get(n)) for n in cols)
         joined = work / 'joined.parquet'
@@ -510,8 +496,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     finally:
         shutil.rmtree(work, ignore_errors=True)
 
-    con = duckdb.connect()
-    con.execute('INSTALL spatial; LOAD spatial;')
+    con = pipeline.make_con()
     points = dict(con.execute(f"""SELECT {point_class_sql(coord_sql(LON), coord_sql(LAT))} AS c, count(*)
         FROM read_parquet('{parquet}') GROUP BY c""").fetchall())
     as_text = ' OR '.join(f"""({coord_sql(c)} IS NULL AND upper(trim("{c}"::VARCHAR)) NOT IN {NA_SQL})"""
@@ -535,7 +520,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
         args = bake_formats.pmtiles_args(seq, path['pmtiles'], LAYER_ID, TILE_FIELDS, parallel=True)
         args[args.index('-zg')] = f'-z{TILE_MAX_ZOOM}'
         path['pmtiles'].unlink(missing_ok=True)
-        subprocess.run(args, check=True, capture_output=True)
+        pipeline.run(args, timeout=pipeline.TOOL_TIMEOUT_S)
     finally:
         seq.unlink(missing_ok=True)
     log('pmtiles written')
@@ -546,19 +531,24 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
                'numeric_columns': sorted(types), 'shapefiles': shp_files, 'fingerprint': fingerprint,
                'fetched_at': datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                'resources': {r['state']: r['uuid'] for r in res},
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
+               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
+               'names': pipeline.versioned_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     log(json.dumps({k: v for k, v in summary.items() if k not in ('resources', 'numeric_columns')}, indent=2))
     return summary
 
 
-def upload(out_dir: Path = OUT_DIR) -> None:
-    """Resumable multipart uploads: the multi-GB GeoJSON/KML kept losing the
-    connection, and a plain upload starts over each time."""
-    from pipeline import r2_client, r2_upload_resumable
-    s3 = r2_client(read_timeout=300, connect_timeout=60, retries={'max_attempts': 5, 'mode': 'standard'})
-    for ext in EXT.values():
-        r2_upload_resumable(s3, out_dir / f'{BASENAME}.{ext}', f'{R2_PREFIX}/{BASENAME}.{ext}', WORK / 'r2-uploads')
+def local_paths(out_dir: Path) -> dict[str, Path]:
+    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+
+
+def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
+    """Every format to its content-versioned key, by resumable multipart uploads:
+    the multi-GB GeoJSON/KML kept losing the connection, and a plain upload
+    starts over each time."""
+    s3 = pipeline.r2_client(read_timeout=300, connect_timeout=60, retries={'max_attempts': 5, 'mode': 'standard'})
+    return pipeline.upload_versioned(s3, local_paths(out_dir), R2_PREFIX, put=lambda s3, local, key:
+                                     pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads'))
 
 
 def main() -> None:

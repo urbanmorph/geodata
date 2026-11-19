@@ -6,10 +6,9 @@ ramSeraph GitHub releases, through the shared ingest_ramseraph pipeline
 upload, manifest + in-place catalog patch).
 
 What this script adds on top:
-  - fetch_resumable(): the release assets run to hundreds of MB, so they are
-    pulled with curl into a `.part` file that a killed run resumes; the file
-    is renamed only when complete, so the shared downloader (which trusts any
-    non-empty file) never sees a partial one.
+  - prefetch(): the release assets run to hundreds of MB, so they come down
+    through pipeline.download (a `.part` file that a killed run resumes,
+    renamed only once its size and checksum are right).
   - assert_no_personal_data(): a layer whose columns name people (owners,
     occupants, phone numbers) is refused before anything is baked. Columns
     are never dropped (bake rule), so such a source is skipped outright.
@@ -18,6 +17,7 @@ Run:
     set -a; source web/.dev.vars; set +a          # CLOUDFLARE_ACCOUNT_ID + R2 keys
     python3 scripts/ingest_big_layers.py cadastrals_puducherry --no-upload
     python3 scripts/ingest_big_layers.py cadastrals_puducherry
+    python3 scripts/ingest_big_layers.py --max-minutes 120   # stop cleanly between layers (default 300)
 
 Idempotent: finished downloads are kept, R2 uploads skip on md5 match and the
 manifest + catalog merges are id-keyed.
@@ -26,16 +26,14 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 import duckdb
 import ingest_ramseraph as ir
-from bake_formats import atomic_output, write_pmtiles
+from bake_formats import write_pmtiles
 from ingest_ramseraph import Dataset, republished
-
-USER_AGENT = 'Mozilla/5.0 (compatible; geodata-ingest)'
+from pipeline import Deadline, OutOfTime, atomic_output, download, make_con, take_max_minutes
 
 # Column names that hold people's details. Matched case-insensitively
 # against whole name parts, so record numbers (khatian, khasra) and place
@@ -59,19 +57,6 @@ def assert_no_personal_data(layer_id: str, parquet: Path) -> None:
         sys.exit(f'{layer_id}: refused, personal data columns {found}; skip this source')
 
 
-def fetch_resumable(url: str, dest: Path) -> None:
-    """Download url to dest via dest.part, resuming a partial file."""
-    if dest.exists() and dest.stat().st_size > 0:
-        print(f'  have {dest.name} ({dest.stat().st_size:,} bytes)', flush=True)
-        return
-    part = Path(f'{dest}.part')
-    print(f'  fetching {url}' + (f' (resuming at {part.stat().st_size:,})' if part.exists() else ''),
-          flush=True)
-    subprocess.run(['curl', '-fsSL', '--retry', '5', '--retry-delay', '10', '-C', '-',
-                    '-A', USER_AGENT, '-o', str(part), url], check=True)
-    part.rename(dest)
-
-
 def bake_popup_pmtiles(src: Path, out: Path, layer: str, fields: list[str]) -> None:
     """PMTiles carrying only the popup `fields` (the upstream tiles carry every
     column, which makes tippecanoe drop parcels at mid zooms). Skips an
@@ -83,9 +68,7 @@ def bake_popup_pmtiles(src: Path, out: Path, layer: str, fields: list[str]) -> N
     seq = out.with_suffix('.geojsonl')
     print(f'  baking {out.name} with popup fields {fields}', flush=True)
     with atomic_output(seq) as part:
-        con = duckdb.connect()
-        con.execute('INSTALL spatial; LOAD spatial;')
-        con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+        con = make_con()
         con.execute(f"COPY (SELECT {cols}, geometry FROM read_parquet('{src}')) "
                     f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSONSeq')")
     with atomic_output(out) as part:
@@ -97,7 +80,7 @@ def prefetch(d: Dataset) -> None:
     """Put the source parquet and our popup-field PMTiles where ir.ingest()
     looks, so its downloader skips both."""
     raw = ir.WORK / f'_raw_{d.id}.parquet'
-    fetch_resumable(d.parquet_url, raw)
+    download(d.parquet_url, raw)
     bake_popup_pmtiles(raw, ir.WORK / f'{d.id}.pmtiles', d.id, TILE_FIELDS[d.id])
 
 
@@ -182,15 +165,21 @@ TILE_FIELDS: dict[str, list[str]] = {
 
 def main(argv: list[str]) -> int:
     upload = '--no-upload' not in argv
-    args = [a for a in argv[1:] if a != '--no-upload']
+    args, minutes = take_max_minutes([a for a in argv[1:] if a != '--no-upload'], 300)
+    deadline = Deadline(minutes)
     targets = [d for d in DATASETS if not args or args[0] in d.id]
     if not targets:
         print(f'No dataset matched {args[0]!r}. Available: {[d.id for d in DATASETS]}')
         return 2
-    for d in targets:
-        print(f'\n== {d.id}', flush=True)
-        prefetch(d)
-        assert_no_personal_data(d.id, ir.WORK / f'_raw_{d.id}.parquet')
+    try:
+        for d in targets:
+            deadline.check(f'fetching {d.id}')
+            print(f'\n== {d.id}', flush=True)
+            prefetch(d)
+            assert_no_personal_data(d.id, ir.WORK / f'_raw_{d.id}.parquet')
+    except OutOfTime as e:
+        print(f'STOPPED: {e}; finished downloads are kept, re-run to continue', flush=True)
+        return 3
     if upload:
         missing = [k for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY')
                    if k not in os.environ]
@@ -198,6 +187,11 @@ def main(argv: list[str]) -> int:
             print(f'ERROR: {missing} not set in env')
             return 2
     for d in targets:
+        try:
+            deadline.check(f'ingesting {d.id}')
+        except OutOfTime as e:
+            print(f'STOPPED: {e}; finished layers are done, re-run to continue', flush=True)
+            return 3
         ir.ingest(d, upload=upload)
     return 0
 

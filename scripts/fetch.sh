@@ -1,8 +1,8 @@
 #!/bin/bash
 # Pull India admin-boundary parquets and PMTiles from yashveeeeeeer/india-geodata
 # (https://github.com/yashveeeeeeer/india-geodata, CC-BY-4.0).
-# All files dropped flat into sources/india-geodata/ for compatibility with
-# scripts/extract_per_state.py.
+# All files dropped flat into sources/india-geodata/ (build_catalog.py,
+# bake_extracts.py and bake_whole_layer.py read them there).
 set -e
 HERE="$(cd "$(dirname "$0")" && pwd)"
 OUT="$HERE/../sources/india-geodata"

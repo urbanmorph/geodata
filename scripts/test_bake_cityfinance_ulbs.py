@@ -321,7 +321,7 @@ def test_register_keeps_the_first_fetched_at_and_the_layer_s_place(tmp_path):
     cat.write_text(json.dumps({'layers': [{'id': 'a'}], 'level_meta': {}, 'level_order': ['a'],
                                'attribution': {}}))
     man.write_text('[]')
-    summ.write_text(json.dumps({'rows': 5, 'sizes': {f: 1 for f in b.EXT}}))
+    summ.write_text(json.dumps({'rows': 5, 'sizes': {f: 1 for f in b.EXT}, 'names': {f: f'X.{f}' for f in b.EXT}}))
     b.register(cat, man, summ, 'https://r2.example')
     c = json.loads(cat.read_text())
     c['layers'] = [c['layers'][1], c['layers'][0]]  # the layer now stands first

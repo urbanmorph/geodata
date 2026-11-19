@@ -301,8 +301,8 @@ def test_audit_compares_each_system_on_its_reference_basis_and_flags_differences
 # ── publish + catalog ───────────────────────────────────────────────────────
 
 def test_versioned_key_puts_the_md5_before_the_full_extension():
-    assert b.versioned_key('Bus_Stops.shp.zip', '0123456789abcdef') == 'transport/transit/Bus_Stops.01234567.shp.zip'
-    assert b.versioned_key('Bus_Stops.parquet', 'fedcba9876543210') == 'transport/transit/Bus_Stops.fedcba98.parquet'
+    key = b.versioned_key(f'{b.R2_PREFIX}/Bus_Stops.shp.zip', '0123456789abcdef')
+    assert key == 'transport/transit/Bus_Stops.01234567.shp.zip'
 
 
 UPLOADED = {lid: {fmt: {'key': f'transport/transit/{lid}.{n:08x}.{ext}', 'bytes': 100 + n}

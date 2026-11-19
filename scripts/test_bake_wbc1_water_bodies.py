@@ -133,7 +133,6 @@ def test_numeric_columns_need_every_value_numeric_ignoring_na_and_blank():
     assert t.numeric() == ['a']
 
 
-
 def test_whole_number_columns_become_integers_others_doubles():
     t = w.NumericTracker(['year', 'area'])
     for r in [{'year': '2010', 'area': '1.5'}, {'year': 1998.0, 'area': 'NA'}]:
@@ -144,7 +143,8 @@ def test_whole_number_columns_become_integers_others_doubles():
 def test_cast_sql_turns_na_into_null():
     import duckdb
     sql = w.cast_sql('v', 'BIGINT')
-    got = [duckdb.sql(f"SELECT {sql} FROM (SELECT ?::VARCHAR AS v)", params=[x]).fetchone()[0] for x in ('NA', '2010.0', ' ', 'NULL')]
+    got = [duckdb.sql(f"SELECT {sql} FROM (SELECT ?::VARCHAR AS v)", params=[x]).fetchone()[0]
+           for x in ('NA', '2010.0', ' ', 'NULL')]
     assert got == [None, 2010, None, None]
 
 
@@ -204,7 +204,8 @@ def test_split_needed_only_when_a_dbf_reaches_the_limit():
 SUMMARY = {'rows': 1000, 'points': {'india': 990, 'outside': 5, 'zero': 2, 'null': 3, 'invalid': 4}, 'text_coords': 7,
            'states': 32, 'missing': ['Tripura'], 'fetched_at': '2026-11-15T15:19:45+00:00',
            'partial': {'West Bengal': [54876, 747480]},
-           'sizes': {'parquet': 1, 'pmtiles': 2, 'geojson': 3, 'kml': 4, 'shapefile': 5}}
+           'sizes': {'parquet': 1, 'pmtiles': 2, 'geojson': 3, 'kml': 4, 'shapefile': 5},
+           'names': {f: f'X.{f}' for f in w.EXT}}
 
 
 def test_catalog_entry_shape():
@@ -264,6 +265,8 @@ def test_upload_is_resumable_with_a_patient_client(monkeypatch, tmp_path):
     monkeypatch.setattr(ir, 'r2_client', lambda **kw: seen.setdefault('kw', kw) and 'S3')
     monkeypatch.setattr(ir, 'r2_upload_resumable',
                         lambda s3, local, key, state_dir: seen.setdefault('keys', []).append(key))
+    for f in w.local_paths(tmp_path).values():
+        f.write_bytes(b'x')
     w.upload(tmp_path)
     assert seen['kw']['read_timeout'] >= 300
-    assert seen['keys'][2] == 'water/wbc1-water-bodies/WBC1_Water_Bodies_2017_18.geojson'
+    assert seen['keys'][2] == 'water/wbc1-water-bodies/WBC1_Water_Bodies_2017_18.9dd4e461.geojson'  # md5 of b'x'

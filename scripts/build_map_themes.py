@@ -24,13 +24,15 @@ import json
 import math
 import sys
 import time
-import urllib.request
 from pathlib import Path
 
 import duckdb
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pipeline  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
-R2 = "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/"
+R2 = pipeline.R2_PUBLIC + "/"
 CACHE = ROOT / "data" / "map-themes"
 OUT = ROOT / "web" / "public" / "map-themes.json"
 SHADES = 4
@@ -72,9 +74,7 @@ def source(key, local=False):
     f = CACHE / Path(key).name
     if not f.exists():
         log("downloading", key)
-        tmp = f.with_name(f.name + ".tmp")
-        urllib.request.urlretrieve(R2 + key, tmp)
-        tmp.replace(f)
+        pipeline.download(R2 + key, f)
     return str(f)
 
 

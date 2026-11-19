@@ -28,7 +28,6 @@ from __future__ import annotations
 import json
 import os
 import shutil
-import subprocess
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -43,6 +42,10 @@ from pipeline import (  # noqa: E402
     r2_client,
     r2_upload,
     upsert_by_id,
+    TOOL_TIMEOUT_S,
+    atomic_output,
+    is_fresh,
+    run,
     write_json,
 )
 from rebake_locate_tiles import tippecanoe_cmd  # noqa: E402
@@ -756,11 +759,8 @@ def tippecanoe_args(gj: Path, out: Path, layer_name: str) -> list[str]:
 def to_geojson(src: Path, out: Path) -> None:
     """KML or GeoJSON -> GeoJSON in EPSG:4326 (GeoJSON is always written lon,lat)."""
     out.unlink(missing_ok=True)
-    subprocess.run(
-        ['ogr2ogr', '-f', 'GeoJSON', '-t_srs', 'EPSG:4326',
-         '-skipfailures', str(out), str(src)],
-        check=True, capture_output=True,
-    )
+    run(['ogr2ogr', '-f', 'GeoJSON', '-t_srs', 'EPSG:4326', '-skipfailures', str(out), str(src)],
+        timeout=TOOL_TIMEOUT_S)
 
 
 def to_parquet(gj: Path, out: Path) -> int:
@@ -770,11 +770,7 @@ def to_parquet(gj: Path, out: Path) -> int:
 
 def to_pmtiles(gj: Path, out: Path, layer_name: str) -> None:
     out.unlink(missing_ok=True)
-    subprocess.run(tippecanoe_args(gj, out, layer_name), check=True, capture_output=True)
-
-
-def up_to_date(src: Path, files: dict[str, Path]) -> bool:
-    return all(f.exists() and f.stat().st_mtime >= src.stat().st_mtime for f in files.values())
+    run(tippecanoe_args(gj, out, layer_name), timeout=TOOL_TIMEOUT_S)
 
 
 def build(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
@@ -783,7 +779,7 @@ def build(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
     if not src.exists():
         raise FileNotFoundError(src)
     files = outputs(ds, out_root)
-    if up_to_date(src, files):
+    if all(is_fresh(f, src) for f in files.values()):
         print(f'    skip  {ds.id}: built and newer than its source', flush=True)
         return files
     folder = files['parquet'].parent
@@ -796,7 +792,8 @@ def build(ds: Dataset, out_root: Path = OUT) -> dict[str, Path]:
     n = to_parquet(src_gj, files['parquet'])
     if ds.features and n != ds.features:
         print(f'    !!  feature count drifted: expected {ds.features}, got {n}', flush=True)
-    to_pmtiles(src_gj, files['pmtiles'], ds.id)
+    with atomic_output(files['pmtiles']) as part:
+        to_pmtiles(src_gj, part, ds.id)
     src_gj.unlink()
 
     baked = bake_whole_layer(ds, files['parquet'], bake_dir=folder, basename=ds.id)

@@ -18,7 +18,6 @@ nclt.gov.in — verified May 2026.
 from __future__ import annotations
 
 import json
-import subprocess
 import sys
 from pathlib import Path
 
@@ -32,9 +31,10 @@ OUT = ROOT / "data" / "baked" / "judiciary"
 sys.path.insert(0, str(HERE))
 from bake_extracts import write_kml_from_geojson  # noqa: E402
 from bake_formats import geojson_popup_fields, pmtiles_args  # noqa: E402
-from bake_whole_layer import have_ogr2ogr, write_shapefile_zip  # noqa: E402
+from bake_whole_layer import write_shapefile_zip  # noqa: E402
 from pipeline import geojson_to_parquet as pipeline_geojson_to_parquet  # noqa: E402
-from pipeline import make_con  # noqa: E402
+from pipeline import atomic_output, make_con  # noqa: E402
+import pipeline  # noqa: E402
 
 # ── 25 High Courts ──────────────────────────────────────────────────────
 
@@ -157,8 +157,7 @@ def geojson_to_pmtiles(gj: Path, out: Path) -> None:
     """Convert GeoJSON to PMTiles via tippecanoe with the popup fields only;
     layer name = filename stem."""
     out.parent.mkdir(parents=True, exist_ok=True)
-    subprocess.run(pmtiles_args(gj, out, gj.stem, geojson_popup_fields(gj)), check=True,
-                   stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+    pipeline.run(pmtiles_args(gj, out, gj.stem, geojson_popup_fields(gj)), timeout=pipeline.TOOL_TIMEOUT_S)
 
 
 def main() -> int:
@@ -167,53 +166,37 @@ def main() -> int:
         return 1
 
     con = make_con()
-    ogr2ogr_ok = have_ogr2ogr()
-    import shutil
-    tippecanoe_ok = shutil.which('tippecanoe') is not None
     OUT.mkdir(parents=True, exist_ok=True)
-
     layers = [
         ('high_courts', HIGH_COURTS, 'High Court'),
         ('ngt_zones', NGT_ZONES, 'NGT'),
         ('nclt_benches', NCLT_BENCHES, 'NCLT'),
     ]
-
+    errors = []
     for basename, lookup, court_type in layers:
         gj = OUT / f'{basename}.geojson'
         print(f"\n=== {basename} ({len(lookup)} jurisdictions) ===")
-        dissolve_layer(con, SRC, lookup, court_type, gj)
-
-        pq = OUT / f'{basename}.parquet'
-        try:
-            geojson_to_parquet(con, gj, pq)
-            print(f"  wrote {pq.name}: {pq.stat().st_size:,} bytes")
-        except Exception as e:
-            print(f"  FAIL parquet: {e}")
-
-        pmt = OUT / f'{basename}.pmtiles'
-        if tippecanoe_ok:
+        with atomic_output(gj) as part:
+            dissolve_layer(con, SRC, lookup, court_type, part)
+        steps = [
+            ('parquet', lambda part: geojson_to_parquet(con, gj, part)),
+            ('pmtiles', lambda part: geojson_to_pmtiles(gj, part)),
+            ('kml', lambda part, name=basename: write_kml_from_geojson(gj, name, part)),
+            ('shp.zip', lambda part, name=basename: write_shapefile_zip(gj, name, part)),
+        ]
+        for ext, write in steps:
+            out = OUT / f'{basename}.{ext}'
             try:
-                geojson_to_pmtiles(gj, pmt)
-                print(f"  wrote {pmt.name}: {pmt.stat().st_size:,} bytes")
-            except Exception as e:
-                print(f"  FAIL pmtiles: {e}")
-
-        kml = OUT / f'{basename}.kml'
-        try:
-            write_kml_from_geojson(gj, basename, kml)
-            print(f"  wrote {kml.name}: {kml.stat().st_size:,} bytes")
-        except Exception as e:
-            print(f"  FAIL kml: {e}")
-
-        shp = OUT / f'{basename}.shp.zip'
-        if ogr2ogr_ok:
-            try:
-                write_shapefile_zip(gj, basename, shp)
-                print(f"  wrote {shp.name}: {shp.stat().st_size:,} bytes")
-            except Exception as e:
-                print(f"  FAIL shp: {e}")
-
-    return 0
+                # Every writer goes through a temporary name: a failure leaves no partial file.
+                with atomic_output(out) as part:
+                    write(part)
+                print(f"  wrote {out.name}: {out.stat().st_size:,} bytes")
+            except Exception as e:  # noqa: BLE001  (collected; the run fails at the end)
+                errors.append(f'{out.name}: {e}')
+                print(f"  FAIL {out.name}: {e}")
+    if errors:
+        print(f"\n{len(errors)} file(s) failed; the bake is incomplete:\n  " + '\n  '.join(errors))
+    return 1 if errors else 0
 
 
 if __name__ == '__main__':

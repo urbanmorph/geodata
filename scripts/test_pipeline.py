@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import http.server
+import json
 import os
 import subprocess
 import sys
@@ -144,7 +145,7 @@ def test_whole_layer_shapefile_zip_is_byte_stable(tmp_path, monkeypatch):
             os.utime(p, (fake_ogr.stamp, fake_ogr.stamp))
         fake_ogr.stamp += 10_000_000
     fake_ogr.stamp = 1_000_000_000
-    monkeypatch.setattr(bwl.subprocess, 'run', fake_ogr)
+    monkeypatch.setattr(bwl, 'run', fake_ogr)
     a, b = _zip_twice(tmp_path, lambda d, out: bwl.write_shapefile_zip(d / 'x.geojson', 'x', out))
     assert a == b
 
@@ -203,14 +204,13 @@ def test_whole_layer_failure_leaves_no_partial_output(tmp_path, monkeypatch):
 
 
 def test_per_state_extract_skip_needs_a_fresh_output(tmp_path):
-    import bake_extracts
     src, out = tmp_path / 'src.parquet', tmp_path / 'out.parquet'
     src.write_bytes(b'x')
     out.write_bytes(b'y')
     os.utime(out, (1000, 1000))
-    assert not bake_extracts.should_skip(out, src)
+    assert not pipeline.is_fresh(out, src)
     os.utime(out, (src.stat().st_mtime + 10,) * 2)
-    assert bake_extracts.should_skip(out, src)
+    assert pipeline.is_fresh(out, src)
 
 
 # ── GeoJSON -> parquet / pmtiles converters (review items 13, 22) ────────────
@@ -256,7 +256,7 @@ def test_judiciary_and_community_tiles_carry_popup_fields_only(tmp_path, monkeyp
     import bake_formats
     import bake_judiciary as bj
     seen = []
-    monkeypatch.setattr(bj.subprocess, 'run', lambda cmd, *a, **k: seen.append(cmd))
+    monkeypatch.setattr(pipeline, 'run', lambda cmd, *a, **k: seen.append(cmd))
     monkeypatch.setattr(bc, '_run', lambda cmd: seen.append(cmd))
     gj, out = _popup_geojson(tmp_path / 'high_courts.geojson'), tmp_path / 'o.pmtiles'
     bj.geojson_to_pmtiles(gj, out)
@@ -482,6 +482,43 @@ def test_upsert_layer_keeps_position_and_first_fetched_at():
     assert list(catalog['categories']) == ['a', 'economy', 'other']  # 'other' stays last
 
 
+def test_register_layer_keeps_rebaked_tiles_on_a_rerun(tmp_path):
+    """Re-registering a bake (same data) must not point the layer back at the
+    bake's own tiles: rebake_tiles.py's tiles carry the Filter panel's columns."""
+    r2 = 'https://pub.r2.dev'
+    rebaked = {'url': f'{r2}/e/X.c08c0de4.pmtiles', 'bytes': 7}
+    parquet = {'url': f'{r2}/e/X.11111111.parquet', 'bytes': 3}
+    catalog, manifest = tmp_path / 'catalog.json', tmp_path / 'manifest.json'
+    catalog.write_text(json.dumps({'layers': [{'id': 'x', 'parquet': parquet, 'pmtiles': rebaked,
+                                               'fetched_at': '2026-01-01'}]}))
+    manifest.write_text('[]')
+    entry = {'id': 'x', 'parquet': dict(parquet), 'pmtiles': {'url': f'{r2}/e/X.99999999.pmtiles', 'bytes': 9}}
+    pipeline.register_layer(catalog, manifest, entry, {'id': 'x'}, {'label': 'X'})
+    layer = json.loads(catalog.read_text())['layers'][0]
+    assert layer['pmtiles'] == rebaked
+    assert layer['fetched_at'] == '2026-01-01'
+
+
+def test_versioned_names_name_each_file_by_its_content(tmp_path):
+    a, b = tmp_path / 'X.parquet', tmp_path / 'X.shp.zip'
+    a.write_bytes(b'one')
+    b.write_bytes(b'two')
+    names = pipeline.versioned_names({'parquet': a, 'shapefile': b})
+    assert names == {'parquet': f'X.{pipeline.file_md5(a)[:8]}.parquet',
+                     'shapefile': f'X.{pipeline.file_md5(b)[:8]}.shp.zip'}
+
+
+def test_upload_versioned_names_each_key_by_content_and_is_stable(tmp_path):
+    a = tmp_path / 'X.parquet'
+    a.write_bytes(b'one')
+    keys = []
+    names = pipeline.upload_versioned('S3', {'parquet': a}, 'e/x', put=lambda s3, p, k: keys.append(k))
+    assert keys == [f'e/x/{names["parquet"]}'] and names['parquet'] == f'X.{pipeline.file_md5(a)[:8]}.parquet'
+    assert pipeline.upload_versioned('S3', {'parquet': a}, 'e/x', put=lambda s3, p, k: keys.append(k)) == names
+    a.write_bytes(b'two')  # new content, new key
+    assert pipeline.upload_versioned('S3', {'parquet': a}, 'e/x', put=lambda *_: None) != names
+
+
 def test_upsert_layer_stamps_a_new_layer_once():
     catalog = {'layers': []}
     pipeline.upsert_layer(catalog, {'id': 'n'}, level_meta={})
@@ -621,7 +658,7 @@ def test_fetch_osm_areas_runs_inside_a_cache_backup(monkeypatch, tmp_path):
     assert seen == [('enter', fetch_osm_areas.CACHE, 'fetch_osm_areas'), ('exit',)]
 
 
-@pytest.mark.parametrize('name', ['bake_pmtiles', 'fix_r2_content_disposition'])
+@pytest.mark.parametrize('name', ['bake_pmtiles'])
 def test_one_off_scripts_still_import_from_scripts_oneoff(name):
     # Importing runs nothing; it checks their paths into scripts/ still resolve.
     code = (f'import importlib.util as u; s = u.spec_from_file_location("m", "{HERE}/oneoff/{name}.py"); '
@@ -631,6 +668,19 @@ def test_one_off_scripts_still_import_from_scripts_oneoff(name):
     assert r.returncode == 0, r.stderr
 
 
+def test_the_content_disposition_backfill_refuses_to_run():
+    """Its job is done (pipeline._put_args sets the header on every upload), and a
+    re-run would copy_object(MetadataDirective='REPLACE') over published keys,
+    dropping their md5 metadata and immutable Cache-Control. It must stop before
+    it imports boto3 or reads credentials."""
+    code = ('import sys; sys.modules["boto3"] = None; '
+            f'exec(compile(open("{HERE}/oneoff/fix_r2_content_disposition.py").read(), "f", "exec"), '
+            '{"__name__": "__main__"})')
+    env = {**os.environ, 'CLOUDFLARE_ACCOUNT_ID': 'x', 'R2_ACCESS_KEY_ID': 'x', 'R2_SECRET_ACCESS_KEY': 'x'}
+    r = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, env=env)
+    assert r.returncode == 1 and 'refuses to run' in r.stderr, r.stderr
+
+
 def test_cache_backup_without_r2_credentials_is_local_only(tmp_path, monkeypatch):
     for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
         monkeypatch.delenv(k, raising=False)
@@ -638,3 +688,39 @@ def test_cache_backup_without_r2_credentials_is_local_only(tmp_path, monkeypatch
     with pipeline.cache_backup(d, 'job'):
         (d / 'x.json').write_text('{}')
     assert (d / 'x.json').exists()
+
+
+def test_read_head_reads_only_the_first_bytes(tmp_path):
+    f = tmp_path / 'x.pmtiles'
+    f.write_bytes(b'PMTiles' + b'\0' * 1000)
+    assert pipeline.read_head(f, 7) == b'PMTiles'
+
+
+def test_no_script_loads_a_whole_file_to_look_at_its_first_bytes():
+    here = Path(__file__).resolve().parent
+    offenders = [p.name for p in here.glob('*.py')
+                 if not p.name.startswith('test_') and 'read_bytes()[' in p.read_text()]
+    assert offenders == []
+
+
+def test_judiciary_bake_fails_loudly_and_leaves_no_partial_file(tmp_path, monkeypatch):
+    """A failed format used to print FAIL and exit 0, so a partial bake looked done."""
+    import bake_judiciary as bj
+    src = tmp_path / 'LGD_States.parquet'
+    src.write_bytes(b'x')
+    monkeypatch.setattr(bj, 'SRC', src)
+    monkeypatch.setattr(bj, 'OUT', tmp_path / 'out')
+    monkeypatch.setattr(bj, 'make_con', lambda: None)
+    monkeypatch.setattr(bj, 'dissolve_layer', lambda con, s, lookup, kind, out: out.write_text('{}'))
+
+    def half_written(con, gj, out):
+        out.write_text('half')
+        raise RuntimeError('disk full')
+    monkeypatch.setattr(bj, 'geojson_to_parquet', half_written)
+    for name in ('geojson_to_pmtiles', 'write_shapefile_zip'):
+        monkeypatch.setattr(bj, name, lambda gj, *a: a[-1].write_text('ok'))
+    monkeypatch.setattr(bj, 'write_kml_from_geojson', lambda gj, name, out: out.write_text('ok'))
+    assert bj.main() == 1
+    out = tmp_path / 'out'
+    assert not list(out.glob('*.parquet')) and not list(out.glob('*.part*'))
+    assert (out / 'high_courts.kml').exists()

@@ -21,7 +21,9 @@ Run:
     python3 scripts/oneoff/bake_pmtiles.py bhuvan     # filter by substring
 """
 from __future__ import annotations
-import os, subprocess, sys, time
+import subprocess
+import sys
+import time
 from pathlib import Path
 import duckdb
 
@@ -56,7 +58,7 @@ def bake(parquet_name: str, layer: str, pmtiles_name: str, con: duckdb.DuckDBPyC
     gj = WORK / f'{layer}.geojson'
     pmt_out = SRC / pmtiles_name
 
-    if gj.exists(): gj.unlink()
+    gj.unlink(missing_ok=True)
     t0 = time.time()
     con.execute(f"""
         COPY (SELECT * FROM '{src}')
@@ -67,7 +69,7 @@ def bake(parquet_name: str, layer: str, pmtiles_name: str, con: duckdb.DuckDBPyC
     gj_mb = gj.stat().st_size / 1024 / 1024
     print(f'    geojson: {gj_mb:.1f} MB, {rows:,} rows  ({time.time()-t0:.1f}s)')
 
-    if pmt_out.exists(): pmt_out.unlink()
+    pmt_out.unlink(missing_ok=True)
     t0 = time.time()
     subprocess.run(pmtiles_args(gj, pmt_out, layer, ()), check=True, capture_output=True)
     pmt_mb = pmt_out.stat().st_size / 1024 / 1024

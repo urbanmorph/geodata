@@ -63,10 +63,10 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import bake_land_water as lw  # noqa: E402
 import pipeline  # noqa: E402
-from bake_land_water import OutOfTime, cached  # noqa: E402,F401  (OutOfTime is part of this API)
+from pipeline import OutOfTime, cached, upload_lock  # noqa: E402
 from pipeline import atomic_output, log  # noqa: E402
+from tile_keys import versioned_key  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -129,8 +129,8 @@ def haversine_m(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
     return 2 * 6_371_008.8 * math.asin(math.sqrt(a))
 
 
-class Deadline(lw.Deadline):
-    """bake_land_water's run limit (stop between steps, finished steps kept),
+class Deadline(pipeline.Deadline):
+    """pipeline's run limit (stop between steps, finished steps kept),
     plus a limit per step (STEP_MINUTES), so one slow step can't eat the run."""
 
     def __init__(self, minutes: float, clock=time.monotonic):
@@ -837,17 +837,9 @@ def bake(sources: dict, deadline: Deadline) -> dict:
     return summary
 
 
-def versioned_key(name: str, md5: str) -> str:
-    """transport/transit/<stem>.<md5[:8]>.<ext>: a changed file gets a new key
-    (a published URL never changes what it serves)."""
-    stem, ext = name.split('.', 1)
-    return f'{R2_PREFIX}/{stem}.{md5[:8]}.{ext}'
-
-
 def upload(summary_path: Path, uploaded_path: Path) -> dict:
     """Every built file to its versioned key, holding the shared upload lock;
     a file R2 already holds (same md5) is skipped. Records the keys for register."""
-    from rebake_tiles import upload_lock
     summary = json.loads(summary_path.read_text())
     s3 = pipeline.r2_client()
     uploaded = {}
@@ -855,7 +847,7 @@ def upload(summary_path: Path, uploaded_path: Path) -> dict:
         for lid, built in summary['layers'].items():
             uploaded[lid] = {}
             for fmt, f in built['files'].items():
-                key = versioned_key(Path(f['path']).name, f['md5'])
+                key = versioned_key(f"{R2_PREFIX}/{Path(f['path']).name}", f['md5'])
                 pipeline.r2_upload(s3, Path(f['path']), key)
                 uploaded[lid][fmt] = {'key': key, 'bytes': f['bytes'], 'md5': f['md5']}
     with atomic_output(uploaded_path) as part:

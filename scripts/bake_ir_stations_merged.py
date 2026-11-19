@@ -56,9 +56,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import log  # noqa: E402
+import pipeline  # noqa: E402
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
-from tile_keys import keep_rebaked  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
@@ -109,10 +110,6 @@ TILE_FIELDS = ('stn_code', 'sttnname', 'label', 'sttntype', 'railway', 'division
                'source', 'match_confidence')
 TILE_MAXZOOM = 12  # -zg guessed z4 (600 m steps); z12 is ~2 m
 PERSONAL = re.compile(r'mobile|phone|email|e_mail|aadhaar|contact', re.I)
-
-
-def log(msg: str) -> None:
-    print(msg, flush=True)
 
 
 # ── pure helpers ─────────────────────────────────────────────────────────
@@ -386,15 +383,11 @@ def merge(cris: list[Pt], wd: list[WD]) -> tuple[list[dict], dict]:
 
 # ── pull ─────────────────────────────────────────────────────────────────
 
-def _md5(p: Path) -> str:
-    return hashlib.md5(p.read_bytes()).hexdigest()
-
-
 def _curl(args: list[str], dest: Path) -> None:
-    with bake_formats.atomic_output(dest) as part:
-        subprocess.run(['curl', '-sSfL', '--retry', '3', '--retry-delay', '5', '-m', '600',
-                        '-A', USER_AGENT, '-o', str(part), *args], check=True)
-        if dest.suffix == '.parquet' and part.read_bytes()[:4] != b'PAR1':
+    with pipeline.atomic_output(dest) as part:
+        subprocess.run(['curl', '-sSfL', '--retry', '3', '--retry-delay', '5', '-m', '600',  # 3 tries x 600 s
+                        '-A', USER_AGENT, '-o', str(part), *args], check=True, timeout=2400)
+        if dest.suffix == '.parquet' and pipeline.read_head(part, 4) != b'PAR1':
             raise ValueError(f'{dest.name}: not a parquet file')
         if dest.suffix == '.csv' and not part.read_text().startswith(','.join(WD_COLS)):
             raise ValueError(f'{dest.name}: not the Wikidata CSV answer')
@@ -415,7 +408,7 @@ def pull(raw: Path = RAW) -> dict:
             continue
         log(f'fetching {name} -> {fname}')
         _curl(args, dest)
-        meta[name] = {'file': fname, 'url': args[-1], 'md5': _md5(dest),
+        meta[name] = {'file': fname, 'url': args[-1], 'md5': pipeline.file_md5(dest),
                       'fetched_at': datetime.now(timezone.utc).date().isoformat()}
         meta_path.write_text(json.dumps(meta, indent=2) + '\n')  # saved after every file
     return meta
@@ -517,7 +510,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
     import tempfile
     from bake_extracts import gdal_geojson_available, make_con, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     inputs = hashlib.md5((raw / 'sources.json').read_bytes() + Path(__file__).read_bytes()).hexdigest()
@@ -542,7 +535,8 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
             os.replace(p, path[fmt])
 
     summary = {'rows': rows, 'inputs': inputs, **stats, 'sources': json.loads((raw / 'sources.json').read_text()),
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
+               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
+               'names': pipeline.versioned_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2) + '\n')
     return summary
 
@@ -598,10 +592,12 @@ def level_meta() -> dict:
     return {'label': 'Railway stations', 'unit': 'stations', 'description': description()}
 
 
-def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str) -> dict:
+def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str,
+                  names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
     for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{BASENAME}.{ext}', 'bytes': sizes[fmt]}
+        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
     entry.update({
         'licence': 'CC-BY-4.0',
         'attribution': {'primary': dict(ATTRIBUTION), 'publisher': dict(PUBLISHER)},
@@ -614,67 +610,51 @@ def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: 
     return entry
 
 
-def manifest_entry(rows: int, sizes: dict[str, int]) -> dict:
+def manifest_entry(rows: int, sizes: dict[str, int], names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     return {
         'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'transport',
         'source': SOURCE, 'description': description(), 'unit': 'stations', 'features': rows,
         'license': 'CC-BY-4.0', 'r2_prefix': R2_PREFIX,
-        'parquet_file': f'{BASENAME}.parquet', 'parquet_bytes': sizes['parquet'],
-        'pmtiles_file': f'{BASENAME}.pmtiles', 'pmtiles_bytes': sizes['pmtiles'],
+        'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
+        'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
         'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
         'notes': notes(), 'tags': TAGS,
     }
 
 
-def upload(out_dir: Path) -> None:
-    """Upload every format to R2, skipping files whose stored md5 matches."""
-    from ingest_ramseraph import r2_client, r2_upload
-    s3 = r2_client()
-    for ext in EXT.values():
-        r2_upload(s3, out_dir / f'{BASENAME}.{ext}', f'{R2_PREFIX}/{BASENAME}.{ext}')
+def local_paths(out_dir: Path) -> dict[str, Path]:
+    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+
+
+def upload(out_dir: Path) -> dict[str, str]:
+    """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
+    changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
+    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summary_path: Path = SUMMARY,
              r2_public: str | None = None, fetched_at: str | None = None) -> None:
     """Patch catalog.json + external-ingested.json in place (never rebuild the
-    catalog). Idempotent: re-running replaces this layer's entries."""
-    if r2_public is None:
-        from ingest_ramseraph import R2_PUBLIC as r2_public
+    catalog). Idempotent: the layer keeps its place and any rebaked tiles
+    (pipeline.register_layer); the retired ids are dropped. fetched_at is the
+    sources' fetch date (the data's vintage), set on every run."""
     summary = json.loads(summary_path.read_text())
     if fetched_at is None:
         fetched_at = min(s['fetched_at'] for s in summary['sources'].values())
+    names = pipeline.summary_names(summary)
+    entry = catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public or pipeline.R2_PUBLIC, names=names)
     catalog = json.loads(catalog_path.read_text())
-    entry = catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public)
-    keep_rebaked(entry, next((e for e in catalog['layers'] if e.get('id') == LAYER_ID), None), 'pmtiles')
-    catalog['layers'] = _replace_in_place(catalog['layers'], entry)
+    catalog['layers'] = [e for e in catalog['layers'] if e.get('id') not in RETIRED_IDS]
     for rid in RETIRED_IDS:
         catalog['level_meta'].pop(rid, None)
-    catalog['level_meta'][LAYER_ID] = level_meta()
     catalog['level_order'] = [lvl for lvl in catalog['level_order'] if lvl not in RETIRED_IDS]
-    if LAYER_ID not in catalog['level_order']:
-        catalog['level_order'].append(LAYER_ID)
-    catalog['attribution'][SOURCE] = dict(ATTRIBUTION)
-    catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
-
-    manifest = _replace_in_place(json.loads(manifest_path.read_text()), manifest_entry(summary['rows'], summary['sizes']))
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
-
-
-def _replace_in_place(entries: list[dict], new: dict) -> list[dict]:
-    """Put `new` where the LAYER_ID entry was (else at the end) and drop retired ids."""
-    out, placed = [], False
-    for e in entries:
-        if e.get('id') in RETIRED_IDS:
-            continue
-        if e.get('id') == LAYER_ID:
-            if not placed:
-                out.append(new)
-                placed = True
-            continue
-        out.append(e)
-    if not placed:
-        out.append(new)
-    return out
+    pipeline.upsert_layer(catalog, entry, level_meta(), attribution=(SOURCE, ATTRIBUTION))
+    next(e for e in catalog['layers'] if e['id'] == LAYER_ID)['fetched_at'] = fetched_at
+    pipeline.write_json(catalog_path, catalog)
+    manifest = [e for e in json.loads(manifest_path.read_text()) if e.get('id') not in RETIRED_IDS]
+    row = manifest_entry(summary['rows'], summary['sizes'], names=names)
+    pipeline.write_json(manifest_path, pipeline.upsert_by_id(manifest, row))
 
 
 def main() -> None:

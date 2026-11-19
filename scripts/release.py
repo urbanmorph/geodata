@@ -84,6 +84,15 @@ def _sha(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def _sha_file(path: Path) -> str:
+    """SHA-256 of a file read in 1 MB chunks (release files can be several GB)."""
+    h = hashlib.sha256()
+    with path.open('rb') as f:
+        for chunk in iter(lambda: f.read(1 << 20), b''):
+            h.update(chunk)
+    return h.hexdigest()
+
+
 def _write_if_changed(path: Path, text: str) -> bool:
     if path.exists() and path.read_text(encoding='utf-8') == text:
         return False
@@ -154,8 +163,8 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
     meta = json.loads((src / META_FILE).read_text(encoding='utf-8'))
     code = release_code(meta['dataset'], day)
     names = sorted(p.name for p in src.iterdir() if p.is_file() and p.name != META_FILE)
-    blobs = {n: (src / n).read_bytes() for n in names}
-    sums = ''.join(f'{_sha(blobs[n])}  {n}\n' for n in names)
+    shas = {n: _sha_file(src / n) for n in names}
+    sums = ''.join(f'{shas[n]}  {n}\n' for n in names)
     digest = _sha(sums.encode('utf-8'))
     meta_dir, files_dir = meta_root / code, files_root / code
 
@@ -168,7 +177,7 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
         for n in names:                      # restore a lost staged copy (same bytes, so the same release)
             if not (files_dir / n).exists():
                 files_dir.mkdir(parents=True, exist_ok=True)
-                (files_dir / n).write_bytes(blobs[n])
+                shutil.copyfile(src / n, files_dir / n)
         return code, False
 
     previous = previous_release(meta_root, meta['dataset'], code)
@@ -176,7 +185,7 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
     files = []
     for n in names:
         info = meta.get('files', {}).get(n, {})
-        files.append({'name': n, 'sha256': _sha(blobs[n]), 'bytes': len(blobs[n]),
+        files.append({'name': n, 'sha256': shas[n], 'bytes': (src / n).stat().st_size,
                       **{k: info.get(k) for k in FILE_INFO}, 'url': f'{SITE}/releases/{code}/{n}'})
         files[-1] = {k: v for k, v in files[-1].items() if v is not None or k == 'rows'}
     manifest = {
@@ -204,7 +213,7 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
 
     files_dir.mkdir(parents=True, exist_ok=True)
     for n in names:
-        (files_dir / n).write_bytes(blobs[n])
+        shutil.copyfile(src / n, files_dir / n)
     _write_if_changed(meta_dir / 'SHA256SUMS', sums)
     _write_if_changed(meta_dir / 'CHANGES.md', _changes(code, meta, files, previous, prev_manifest, digest, day))
     _write_if_changed(meta_dir / 'manifest.json', json.dumps(manifest, indent=1, ensure_ascii=False) + '\n')

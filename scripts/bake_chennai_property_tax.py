@@ -21,7 +21,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -31,6 +30,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import log  # noqa: E402
+import pipeline  # noqa: E402
 import bake_formats  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
@@ -67,10 +68,6 @@ ATTRIBUTION = {'name': ('Greater Chennai Corporation / Chennai Smart City Ltd, '
                'url': 'https://smartcities.data.gov.in/catalog/property-tax-chennai'}
 
 
-def log(msg: str) -> None:
-    print(msg, flush=True)
-
-
 # ── pure helpers ─────────────────────────────────────────────────────────
 
 def source_ward_no(raw) -> int | None:
@@ -90,10 +87,6 @@ def join_problems(figures: dict[int, object], polygons: dict[int, object]) -> li
     if missing := sorted(set(polygons) - set(figures)):
         out.append(f'polygons with no figures: {missing}')
     return out
-
-
-def file_md5(path: Path) -> str:
-    return hashlib.md5(path.read_bytes()).hexdigest()
 
 
 # ── bake ─────────────────────────────────────────────────────────────────
@@ -125,11 +118,10 @@ def write_joined_parquet(wards: Path, src: Path, out: Path) -> dict:
 
 
 def bake(out_dir: Path, src: Path = SRC) -> dict:
-    import duckdb
     from bake_extracts import write_kml_from_geojson
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
-    if file_md5(src) != SRC_MD5:
+    if pipeline.file_md5(src) != SRC_MD5:
         raise SystemExit(f'{src.name}: md5 differs from the checked source file')
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='chennai_ptax_') as tmp:
@@ -140,9 +132,7 @@ def bake(out_dir: Path, src: Path = SRC) -> dict:
         parquet = out_dir / f'{BASENAME}.parquet'
         rows, prop_cols = rebake_flatten_bbox(joined, parquet)
 
-    con = duckdb.connect()
-    con.execute('LOAD spatial;')
-    con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
+    con = pipeline.make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     path['geojson'].unlink(missing_ok=True)
     # Not RFC7946: GDAL's RFC7946 mode cuts invalid source polygons into
@@ -154,7 +144,8 @@ def bake(out_dir: Path, src: Path = SRC) -> dict:
         raise SystemExit(f'columns changed: {prop_cols}')
     bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], SHP_NAMES)
     bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
-    summary = {'rows': rows, **stats, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
+    summary = {'rows': rows, **stats, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
+               'names': pipeline.versioned_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     return summary
 
@@ -188,10 +179,12 @@ def level_meta() -> dict:
     return {'label': 'Chennai Property Tax by Ward (2013-18)', 'unit': 'wards', 'description': description()}
 
 
-def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str) -> dict:
+def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str,
+                  names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
     for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{BASENAME}.{ext}', 'bytes': sizes[fmt]}
+        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
     entry.update({
         'licence': 'GODL-India',
         'attribution': {'primary': dict(ATTRIBUTION),
@@ -207,44 +200,41 @@ def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: 
     return entry
 
 
-def manifest_entry(rows: int, sizes: dict[str, int]) -> dict:
+def manifest_entry(rows: int, sizes: dict[str, int], names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     return {
         'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'economy',
         'source': SOURCE, 'description': description(), 'unit': 'wards', 'features': rows,
         'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-        'parquet_file': f'{BASENAME}.parquet', 'parquet_bytes': sizes['parquet'],
-        'pmtiles_file': f'{BASENAME}.pmtiles', 'pmtiles_bytes': sizes['pmtiles'],
+        'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
+        'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
         'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
         'notes': notes(), 'tags': TAGS,
     }
 
 
-def upload(out_dir: Path) -> None:
-    from ingest_ramseraph import r2_client, r2_upload
-    s3 = r2_client()
-    for ext in EXT.values():
-        r2_upload(s3, out_dir / f'{BASENAME}.{ext}', f'{R2_PREFIX}/{BASENAME}.{ext}')
+def local_paths(out_dir: Path) -> dict[str, Path]:
+    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+
+
+def upload(out_dir: Path) -> dict[str, str]:
+    """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
+    changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
+    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
              summary_path: Path = SUMMARY, r2_public: str | None = None) -> None:
-    """Patch catalog.json + external-ingested.json in place. Idempotent; keeps the first fetched_at."""
-    if r2_public is None:
-        from ingest_ramseraph import R2_PUBLIC as r2_public
+    """Patch catalog.json + external-ingested.json in place (never rebuild the
+    catalog). Idempotent: the layer keeps its place, its first fetched_at and
+    any rebaked tiles (pipeline.register_layer)."""
     summary = json.loads(summary_path.read_text())
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((x for x in catalog['layers'] if x['id'] == LAYER_ID), {})
-    fetched_at = prev.get('fetched_at') or datetime.now(timezone.utc).date().isoformat()
-    catalog['layers'] = [x for x in catalog['layers'] if x['id'] != LAYER_ID]
-    catalog['layers'].append(catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public))
-    catalog['level_meta'][LAYER_ID] = level_meta()
-    if LAYER_ID not in catalog['level_order']:
-        catalog['level_order'].append(LAYER_ID)
-    catalog['attribution'][SOURCE] = dict(ATTRIBUTION)
-    catalog_path.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
-    manifest = [e for e in json.loads(manifest_path.read_text()) if e['id'] != LAYER_ID]
-    manifest.append(manifest_entry(summary['rows'], summary['sizes']))
-    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
+    names = pipeline.summary_names(summary)
+    fetched_at = datetime.now(timezone.utc).date().isoformat()
+    entry = catalog_entry(summary['rows'], summary['sizes'], fetched_at, r2_public or pipeline.R2_PUBLIC, names=names)
+    pipeline.register_layer(catalog_path, manifest_path, entry,
+                            manifest_entry(summary['rows'], summary['sizes'], names=names),
+                            level_meta(), attribution=(SOURCE, ATTRIBUTION))
 
 
 def main() -> None:

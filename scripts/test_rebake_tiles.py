@@ -144,14 +144,6 @@ def test_patch_catalog_and_manifest_in_place_idempotent(tmp_path):
     assert json.loads(first[1])[0]['pmtiles_file'] == 'A.0badf00d.pmtiles'
 
 
-def test_upload_lock_is_exclusive_and_released_on_error(tmp_path):
-    lock = tmp_path / 'lock'
-    with pytest.raises(RuntimeError), rt.upload_lock(lock, 'me'):
-        assert (lock / 'owner').read_text() == 'me\n'
-        raise RuntimeError('upload failed')
-    assert not lock.exists()
-
-
 def test_report_problems():
     rows = [{'z': 11, 'x': 1, 'y': 1, 'decoded': 9, 'parquet': 10, 'cover': 1.0},
             {'z': 5, 'x': 1, 'y': 1, 'decoded': 3, 'parquet': 900, 'cover': 0.5},

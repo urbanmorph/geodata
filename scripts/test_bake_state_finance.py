@@ -172,6 +172,7 @@ def test_every_output_column_names_its_year_or_date():
 # ── catalog registration ─────────────────────────────────────────────────────
 
 SIZES = {'parquet': 1, 'pmtiles': 2, 'geojson': 3, 'kml': 4, 'shapefile': 5}
+NAMES = {f: f'X.{f}' for f in SIZES}
 
 
 def test_catalog_entry_is_complete_and_honest():
@@ -188,7 +189,7 @@ def test_register_is_idempotent_and_patches_in_place(tmp_path):
     cat.write_text(json.dumps({'layers': [{'id': 'lgd_states'}], 'level_meta': {}, 'level_order': ['state'],
                                'attribution': {}, 'categories': {'economy': 'Economy & finance', 'other': 'Other'}}))
     man.write_text('[]')
-    summ.write_text(json.dumps({'rows': 36, 'sizes': SIZES, 'unmatched': []}))
+    summ.write_text(json.dumps({'rows': 36, 'sizes': SIZES, 'names': NAMES, 'unmatched': []}))
     m.register(cat, man, summ, 'https://r2.example')
     first = cat.read_text()
     m.register(cat, man, summ, 'https://r2.example')

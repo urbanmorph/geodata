@@ -71,6 +71,23 @@ def test_cutting_a_release_writes_manifest_sums_changes_and_stages_the_files(tmp
     assert not (meta_dir / 'cw_states.csv').exists()                    # data files are not committed
 
 
+def test_release_files_are_hashed_and_copied_without_loading_them_whole(tmp_path, monkeypatch):
+    """A layer release holds multi-GB parquet and GeoJSON: never read_bytes() them."""
+    src = staging(tmp_path)
+    real = Path.read_bytes
+
+    def guarded(self):
+        assert self.parent != src, f'{self.name} loaded whole'
+        return real(self)
+    monkeypatch.setattr(Path, 'read_bytes', guarded)
+    code, made = rel.make_release(src, '2026-11-15', **roots(tmp_path))
+    assert made
+    staged = roots(tmp_path)['files_root'] / code
+    for f in src.iterdir():
+        if f.name != rel.META_FILE:
+            assert real(staged / f.name) == real(f)
+
+
 def test_a_second_run_with_the_same_files_changes_nothing(tmp_path):
     src = staging(tmp_path)
     rel.make_release(src, '2026-11-15', **roots(tmp_path))

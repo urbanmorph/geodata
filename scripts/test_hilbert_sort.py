@@ -12,7 +12,6 @@ import sys
 from pathlib import Path
 
 import duckdb
-import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / 'scripts'))
@@ -64,7 +63,8 @@ def mean_random_pair_distance(path: Path, sample: int = 500) -> float:
     con.execute('INSTALL spatial; LOAD spatial;')
     row = con.execute(f"""
         WITH pts AS (SELECT xmin AS x, ymin AS y FROM read_parquet('{path}') USING SAMPLE {sample} ROWS),
-             pairs AS (SELECT a.x AS ax, a.y AS ay, b.x AS bx, b.y AS byy FROM pts a CROSS JOIN pts b WHERE a.x <> b.x OR a.y <> b.y)
+             pairs AS (SELECT a.x AS ax, a.y AS ay, b.x AS bx, b.y AS byy FROM pts a CROSS JOIN pts b
+                       WHERE a.x <> b.x OR a.y <> b.y)
         SELECT avg(sqrt((ax - bx) * (ax - bx) + (ay - byy) * (ay - byy))) FROM pairs
     """).fetchone()
     return float(row[0])
@@ -210,7 +210,8 @@ def test_rebake_accepts_a_caller_connection(tmp_path):
     src = tmp_path / 'src.parquet'
     con = duckdb.connect()
     con.execute('INSTALL spatial; LOAD spatial;')
-    con.execute(f"COPY (SELECT i AS id, ST_Point(70 + i / 100.0, 10 + i / 100.0) AS geometry FROM range(50) t(i)) TO '{src}' (FORMAT PARQUET)")
+    con.execute(f"COPY (SELECT i AS id, ST_Point(70 + i / 100.0, 10 + i / 100.0) AS geometry FROM range(50) t(i)) "
+                f"TO '{src}' (FORMAT PARQUET)")
     n, cols = rebake_flatten_bbox(src, tmp_path / 'dst.parquet', con=con)
     assert n == 50 and {'xmin', 'ymin', 'xmax', 'ymax'} <= set(cols)
     assert con.execute('SELECT 1').fetchone() == (1,)  # caller's connection still usable

@@ -53,12 +53,17 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from pipeline import log  # noqa: E402
 import bake_land_water as blw  # noqa: E402
 import bake_large_filter_stats  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
 import rebake_tiles as rt  # noqa: E402
 from bake_formats import shapefile_key, short_field_names  # noqa: E402
-from pipeline import OGR_ENV, R2_PUBLIC, _remote_has, file_md5, slug, upsert_by_id, write_json  # noqa: E402
+from pipeline import (  # noqa: E402
+    CHUNK, OGR_ENV, R2_PUBLIC, Deadline, OutOfTime, _remote_has, atomic_output, cached, download, file_md5,
+    patient_r2_client, r2_upload_retrying, rebake_flatten_bbox, slug, upload_lock, upsert_by_id, write_json,
+)
+from tile_keys import versioned_key  # noqa: E402
 
 WORK = blw.WORK / 'states'
 CATALOG = ir.ROOT / 'catalog.json'
@@ -123,10 +128,6 @@ LAYERS: list[StateSplit] = [
 ]
 
 
-def log(*msg: object) -> None:
-    print(*msg, flush=True)
-
-
 # ── national parquet ─────────────────────────────────────────────────────────
 
 def national_parquet(shards: list[Path], out: Path, work: Path, con) -> int:
@@ -138,11 +139,11 @@ def national_parquet(shards: list[Path], out: Path, work: Path, con) -> int:
     combined = work / 'combined.parquet'
     if not out.exists():
         con.execute('SET preserve_insertion_order = true')
-        blw.cached(combined, lambda part: con.execute(
+        cached(combined, lambda part: con.execute(
             f"COPY (SELECT * FROM read_parquet([{files}], union_by_name = true)) TO '{part}' "
             f"(FORMAT PARQUET, COMPRESSION ZSTD)"))
         con.execute('SET preserve_insertion_order = false')
-        blw.cached(out, lambda part: ir.rebake_flatten_bbox(combined, part, con))
+        cached(out, lambda part: rebake_flatten_bbox(combined, part, con))
     combined.unlink(missing_ok=True)
     return con.execute(f"SELECT count(*) FROM read_parquet('{out}')").fetchone()[0]
 
@@ -187,11 +188,11 @@ def write_state_files(parquet: Path, column: str, value, out_dir: Path, basename
     params = {} if value is None else {'v': value}
 
     geojson = out_dir / f'{stem}.geojson'
-    blw.cached(geojson, lambda part: con.execute(
+    cached(geojson, lambda part: con.execute(
         f"COPY (SELECT * FROM {src} WHERE {cond}) TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')", params))
 
     kml = out_dir / f'{stem}.kml'
-    blw.cached(kml, lambda part: subprocess.run(
+    cached(kml, lambda part: subprocess.run(
         ['ogr2ogr', '-f', 'KML', *(['-dsco', f'NameField={kml_name_field}'] if kml_name_field else []),
          str(part), str(geojson)], check=True, capture_output=True, timeout=KML_TIMEOUT_S, env=OGR_ENV))
 
@@ -255,18 +256,13 @@ def check_counts(fmt: str, expected: dict, got: dict, total: int) -> None:
 def stable_zip(files: list[Path], out: Path) -> None:
     """Zip `files` flat, sorted by name, with a fixed timestamp: the same
     inputs give the same bytes. Streams each file (they run to GBs)."""
-    with blw.atomic_output(out) as part, zipfile.ZipFile(part, 'w', allowZip64=True) as zf:
+    with atomic_output(out) as part, zipfile.ZipFile(part, 'w', allowZip64=True) as zf:
         for f in sorted(files, key=lambda p: p.name):
             info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
             with f.open('rb') as src, zf.open(info, 'w', force_zip64=True) as dst:
-                shutil.copyfileobj(src, dst, blw.CHUNK)
-
-
-def versioned_name(name: str, md5: str) -> str:
-    stem, ext = name.split('.', 1)
-    return f'{stem}.{md5[:8]}.{ext}'
+                shutil.copyfileobj(src, dst, CHUNK)
 
 
 # ── catalog ──────────────────────────────────────────────────────────────────
@@ -304,7 +300,7 @@ def query_check_passed(record: Path) -> bool:
 
 # ── pipeline ─────────────────────────────────────────────────────────────────
 
-def build_states(layer: StateSplit, pq: Path, total: int, work: Path, deadline: blw.Deadline) -> dict[str, Path]:
+def build_states(layer: StateSplit, pq: Path, total: int, work: Path, deadline: Deadline) -> dict[str, Path]:
     """Per-state files in parallel, every count checked; then a zip per format."""
     lid = layer.d.id
     counts = state_counts(_con('8GB', threads=8), pq, layer.state_column)
@@ -344,12 +340,14 @@ def build_states(layer: StateSplit, pq: Path, total: int, work: Path, deadline: 
     return zips
 
 
-def build(layer: StateSplit, deadline: blw.Deadline) -> dict:
+def build(layer: StateSplit, deadline: Deadline) -> dict:
     lid = layer.d.id
     work = WORK / lid
     shards = []
     for url in layer.shards:
-        shards.append(blw.fetch(url, blw.WORK / 'raw' / Path(url).name))
+        shard = blw.WORK / 'raw' / Path(url).name
+        download(url, shard)
+        shards.append(shard)
     deadline.check(f'{lid}: national parquet')
     pq = work / f'{layer.stem}.parquet'
     total = national_parquet(shards, pq, work / 'tmp', _con('24GB', threads=os.cpu_count() or 8))
@@ -371,16 +369,16 @@ def publish(layer: StateSplit, built: dict) -> dict[str, tuple[str, int]]:
     """Upload each file to its versioned key; record {fmt: (name, bytes)}."""
     lid = layer.d.id
     record = WORK / lid / 'published.json'
-    s3 = blw.r2_client()
+    s3 = patient_r2_client()
     out = {}
     for fmt, local in built['files'].items():
         name = local.name if fmt != 'pmtiles' else f'{layer.stem}.pmtiles'
         md5 = file_md5(local)
-        name = versioned_name(name, md5)
+        name = versioned_key(name, md5)
         key = f'{layer.d.r2_prefix}/{name}'
         if not _remote_has(s3, key, md5):  # the md5 skip, before taking the lock
-            with rt.upload_lock(owner=LOCK_OWNER):
-                blw.upload(s3, local, key)
+            with upload_lock(owner=LOCK_OWNER):
+                r2_upload_retrying(s3, local, key)
         out[fmt] = (name, local.stat().st_size)
         log(f'  {lid}: {fmt} on R2 as {key} (md5 {md5})')
     record.write_text(json.dumps(out, indent=1))
@@ -402,7 +400,7 @@ def main(argv: list[str]) -> int:
         if missing:
             log(f'ERROR: not set in env: {missing}')
             return 2
-    deadline = blw.Deadline(minutes)
+    deadline = Deadline(minutes)
     for layer in [x for x in LAYERS if not ids or x.d.id in ids]:
         lid = layer.d.id
         log(f'\n-> {lid}')
@@ -420,7 +418,7 @@ def main(argv: list[str]) -> int:
                 # The Filter panel's stats, a static file per layer (never in the catalog).
                 bake_large_filter_stats.bake()
                 log(f'  {lid}: in catalog.json and the manifest')
-        except blw.OutOfTime as e:
+        except OutOfTime as e:
             log(f'STOPPED: {e}; finished steps are cached, re-run to continue')
             return 3
     return 0

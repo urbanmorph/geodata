@@ -14,6 +14,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from collections.abc import Callable, Iterable, Iterator
 from datetime import datetime, timezone
@@ -51,7 +52,9 @@ DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf of 2 GB or more
 # ── logging + retries ────────────────────────────────────────────────────────
 
 def log(*msg: Any) -> None:
-    print(*msg, flush=True)
+    """Unbuffered, one write per line (lines from worker threads never interleave)."""
+    sys.stdout.write(' '.join(map(str, msg)) + '\n')
+    sys.stdout.flush()
 
 
 def with_retries(fn: Callable[[], Any], tries: int = 6, wait: Callable[[int], None] | None = None,
@@ -81,27 +84,156 @@ def is_client_error(e: Exception) -> bool:
     return isinstance(e, urllib.error.HTTPError) and 400 <= e.code < 500 and e.code not in (408, 429)
 
 
-def download(url: str, dest: Path, *, tries: int = 4, timeout: float = 300,
-             wait: Callable[[int], None] | None = None) -> int:
+CHUNK = 1 << 20
+PROGRESS_EVERY = 200 * CHUNK
+_MD5 = re.compile(r'^[0-9a-f]{32}$')
+
+
+def part_path(dest: Path) -> Path:
+    """Where a download or build of `dest` is written until it is complete
+    (the real extension stays last, as in atomic_output)."""
+    return dest.with_name(f'{dest.stem}.part{dest.suffix}')
+
+
+def _total_size(resp, start: int) -> int | None:
+    cr = resp.headers.get('Content-Range')
+    if cr and '/' in cr and not cr.endswith('/*'):
+        return int(cr.rsplit('/', 1)[1])
+    cl = resp.headers.get('Content-Length')
+    return start + int(cl) if cl is not None else None
+
+
+# Hosts whose single-part ETag is the body's MD5 (S3 semantics). Elsewhere an
+# ETag is opaque, even when it happens to look like 32 hex digits.
+MD5_ETAG_HOSTS = ('.r2.dev', '.r2.cloudflarestorage.com', '.amazonaws.com')
+
+
+def _served_md5(resp, url: str) -> str | None:
+    """The body's MD5 when the server states it: our uploads' md5 metadata, or
+    an S3/R2 single-part ETag (a multipart one has a "-N" suffix and is no MD5)."""
+    from urllib.parse import urlsplit
+    meta = resp.headers.get('x-amz-meta-md5')
+    if meta and _MD5.match(meta):
+        return meta
+    etag = (resp.headers.get('ETag') or '').strip('"')
+    host = urlsplit(url).hostname or ''
+    if _MD5.match(etag) and any(host.endswith(h) or host == h.lstrip('.') for h in MD5_ETAG_HOSTS):
+        return etag
+    return None
+
+
+def download(url: str, dest: Path, *, tries: int = 6, timeout: float = 300,
+             wait: Callable[[int], None] | None = None, md5: str | None = None) -> int:
     """Stream `url` to `dest` unless it is already there; returns its size.
-    The body goes to a .part file renamed into place only when complete, so
-    a killed or failed run never leaves a truncated file that counts as done.
-    Retries network errors and 5xx/429 with backoff; a 4xx fails at once."""
-    import shutil
+
+    The body goes to part_path(dest), renamed into place only when it is
+    complete: as many bytes as the server said (Content-Length/Content-Range)
+    and, when the caller gives `md5` or the server states one (our md5
+    metadata, or an S3/R2 single-part ETag), the right checksum. A cut-off answer
+    raises, also when the connection just ended early without an error (an R2
+    download once stopped at 232 of 455 MB), and the next try resumes from the
+    bytes already on disk (HTTP Range), as does a later run after a kill.
+    Retries network errors and 5xx/429 with backoff; a 4xx fails at once.
+    Progress lines go to the log every 200 MB."""
+    import urllib.error
     import urllib.request
     if dest.exists():
         return dest.stat().st_size
     dest.parent.mkdir(parents=True, exist_ok=True)
+    part = part_path(dest)
+
+    def finish(expected_md5: str | None) -> None:
+        if expected_md5 and file_md5(part) != expected_md5:
+            part.unlink()
+            raise OSError(f'{dest.name}: md5 does not match {expected_md5}; deleted, the next try starts over')
+        os.replace(part, dest)
 
     def once() -> None:
-        log(f'  fetching {url}')
-        req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-        with atomic_output(dest) as part, urllib.request.urlopen(req, timeout=timeout) as r, \
-                part.open('wb') as f:
-            shutil.copyfileobj(r, f, 1 << 20)
+        start = part.stat().st_size if part.exists() else 0
+        headers = {'User-Agent': USER_AGENT, **({'Range': f'bytes={start}-'} if start else {})}
+        log(f'  fetching {dest.name}' + (f' (resuming at {start:,} bytes)' if start else ''))
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as r:
+                if start and r.status != 206:
+                    start = 0  # the server ignored the Range: start over
+                total, served = _total_size(r, start), _served_md5(r, url)
+                with part.open('ab' if start else 'wb') as f:
+                    n, mark = start, start
+                    while chunk := r.read(CHUNK):
+                        f.write(chunk)
+                        n += len(chunk)
+                        if n - mark >= PROGRESS_EVERY:
+                            log(f'    {dest.name}: {n / 1e6:,.0f} / {(total or 0) / 1e6:,.0f} MB')
+                            mark = n
+        except urllib.error.HTTPError as e:
+            if e.code == 416 and part.exists():  # the part already holds every byte
+                return finish(md5)
+            raise
+        size = part.stat().st_size
+        if total is not None and size != total:
+            raise OSError(f'{dest.name}: short read, {size:,} of {total:,} bytes; the next try resumes')
+        finish(md5 or served)
 
     with_retries(once, tries, wait, give_up=is_client_error)
     return dest.stat().st_size
+
+
+# ── external tools ───────────────────────────────────────────────────────────
+
+TOOL_TIMEOUT_S = 6 * 3600  # tippecanoe / ogr2ogr on the biggest layers; a hang still ends
+
+
+class ToolFailed(subprocess.CalledProcessError):
+    """CalledProcessError whose message carries the end of the tool's stderr
+    (a bare "returned non-zero exit status 1" says nothing)."""
+
+    def __str__(self) -> str:
+        err = self.stderr.decode(errors='replace') if isinstance(self.stderr, bytes) else (self.stderr or '')
+        return f'{super().__str__()}\n{err.strip()[-2000:]}'
+
+
+def run(cmd: list[str], *, timeout: float, check: bool = True, capture_output: bool = True,
+        **kw) -> subprocess.CompletedProcess:
+    """subprocess.run with a required timeout; a failure raises ToolFailed
+    (still a CalledProcessError) with the tool's stderr in its message."""
+    proc = subprocess.run(cmd, timeout=timeout, capture_output=capture_output, **kw)
+    if check and proc.returncode != 0:
+        raise ToolFailed(proc.returncode, cmd, proc.stdout, proc.stderr)
+    return proc
+
+
+# ── data.gov.in (OGD) API ────────────────────────────────────────────────────
+
+DATAGOV_API = 'https://api.data.gov.in/resource'
+DATAGOV_ENV_FILE = Path.home() / 'Projects/rural/shc/.env'
+
+
+def datagov_api_key() -> str:
+    """OGD_API_KEY from the environment, else from DATAGOV_ENV_FILE."""
+    if os.environ.get('OGD_API_KEY'):
+        return os.environ['OGD_API_KEY']
+    if DATAGOV_ENV_FILE.exists():
+        for line in DATAGOV_ENV_FILE.read_text().splitlines():
+            if line.startswith('OGD_API_KEY='):
+                return line.split('=', 1)[1].strip().strip('"\'')
+    raise SystemExit(f'no OGD_API_KEY in the environment or {DATAGOV_ENV_FILE}')
+
+
+def datagov_get(resource: str, key: str, *, tries: int = 6, timeout: float = 180,
+                wait: Callable[[int], None] | None = None, **params) -> dict:
+    """One JSON answer of a data.gov.in resource (`params`: offset, limit,
+    fields, filters[...]). Retries network errors and cut-off answers (big
+    pages often are), gives up at once on a 4xx; the URL (with the key) is
+    never logged."""
+    import urllib.parse
+    import urllib.request
+    url = f'{DATAGOV_API}/{resource}?' + urllib.parse.urlencode({'api-key': key, 'format': 'json', **params})
+    req = urllib.request.Request(url, headers={'User-Agent': 'curl/8'})
+
+    def once() -> dict:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.load(r)
+    return with_retries(once, tries, wait, give_up=is_client_error)
 
 
 # ── files ────────────────────────────────────────────────────────────────────
@@ -127,6 +259,12 @@ def file_md5(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b''):
             h.update(chunk)
     return h.hexdigest()
+
+
+def read_head(path: Path, n: int) -> bytes:
+    """The first `n` bytes of a file (a header or magic number), without loading the rest."""
+    with path.open('rb') as f:
+        return f.read(n)
 
 
 def is_fresh(out: Path, *sources: Path) -> bool:
@@ -169,14 +307,27 @@ def slug(value: str) -> str:
 
 # ── DuckDB ───────────────────────────────────────────────────────────────────
 
-def make_con():
-    """A DuckDB connection with spatial loaded and GDAL kept in lon,lat order."""
+def make_con(temp_dir: Path | None = None, memory_limit: str | None = None, threads: int | None = None,
+             ordered: bool = True):
+    """A DuckDB connection with spatial loaded and GDAL kept in lon,lat order;
+    for big layers, a spill folder, a memory limit, a thread count and
+    `ordered=False` (lets order-free COPYs stream), and no progress bar
+    (it floods a redirected log)."""
     import duckdb
     con = duckdb.connect()
     con.execute('INSTALL spatial; LOAD spatial')
     # GDAL writes EPSG:4326-tagged geometry as lat,lon unless told otherwise,
     # which put every city ward layer's downloads in the wrong place.
     con.execute('SET geometry_always_xy = true')
+    con.execute('SET enable_progress_bar = false')
+    if temp_dir is not None:
+        con.execute(f"SET temp_directory = '{temp_dir}'")
+    if memory_limit:
+        con.execute(f"SET memory_limit = '{memory_limit}'")
+    if threads:
+        con.execute(f'SET threads = {int(threads)}')
+    if not ordered:
+        con.execute('SET preserve_insertion_order = false')
     return con
 
 
@@ -288,6 +439,133 @@ def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: i
     s3.complete_multipart_upload(Bucket=BUCKET, Key=key, UploadId=state['upload_id'], MultipartUpload={
         'Parts': [{'PartNumber': n, 'ETag': done[n]} for n in sorted(done)]})
     state_path.unlink()
+
+
+UPLOAD_STATE = ROOT / 'data' / 'r2-uploads'  # multipart upload ids, so a killed upload resumes
+
+
+def patient_r2_client():
+    """r2_client for long runs on a flaky link: adaptive retries, ten attempts."""
+    return r2_client(retries={'max_attempts': 10, 'mode': 'adaptive'})
+
+
+def r2_upload_retrying(s3, local: Path, key: str, state_dir: Path | None = None,
+                       retries: int = 5, backoff: float = 30.0) -> None:
+    """r2_upload_resumable (md5-skips unchanged files; its multipart id saved so
+    a killed run resumes from the parts R2 holds; logs each part) retried with
+    backoff: a dropped TLS connection mid-multipart killed a 316 MB upload once."""
+    from botocore.exceptions import BotoCoreError, ClientError
+    for attempt in range(retries + 1):
+        try:
+            return r2_upload_resumable(s3, local, key, state_dir or UPLOAD_STATE)
+        except (BotoCoreError, ClientError, OSError) as e:
+            if attempt == retries:
+                raise
+            wait = backoff * 2 ** attempt
+            log(f'  upload {key}: {e.__class__.__name__}; retry {attempt + 1}/{retries} in {wait:.0f} s')
+            time.sleep(wait)
+
+
+# One upload at a time across the jobs on this host (bakes, tile rebakes), so
+# none starves the link. The lock is a directory (mkdir is atomic) holding an
+# owner file "<pid> <who>"; a lock whose pid is gone (kill -9) is taken over.
+UPLOAD_LOCK = Path('/tmp/bharatlas-upload.lock')
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _lock_owner(lock: Path) -> tuple[int | None, str]:
+    try:
+        text = (lock / 'owner').read_text().strip()
+    except OSError:
+        return None, '?'  # just created: its owner is still writing the file
+    pid = text.split(' ', 1)[0]
+    return (int(pid) if pid.isdigit() else None), text
+
+
+@contextlib.contextmanager
+def upload_lock(lock: Path | None = None, owner: str = '', wait_s: float = 30,
+                on_wait: Callable[[str], None] | None = None) -> Iterator[Path]:
+    """Hold the host-wide upload lock (UPLOAD_LOCK); wait `wait_s` between tries
+    while a live job holds it. Released on exit, an exception, or SIGTERM/SIGHUP
+    (turned into SystemExit so the `finally` runs)."""
+    import shutil
+    import signal
+    import threading
+    lock = lock or UPLOAD_LOCK
+    while True:
+        try:
+            lock.mkdir()
+            break
+        except FileExistsError:
+            pid, who = _lock_owner(lock)
+            if pid is not None and pid != os.getpid() and not _pid_alive(pid):
+                log(f'  upload lock {lock}: its owner ({who}) is gone; taking it over')
+                shutil.rmtree(lock, ignore_errors=True)
+                continue
+            (on_wait or (lambda w: log(f'  upload lock held by {w}; retry in {wait_s:.0f} s')))(who)
+            time.sleep(wait_s)
+    (lock / 'owner').write_text(f'{os.getpid()} {owner}\n')
+    main = threading.current_thread() is threading.main_thread()
+    old = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGHUP)} if main else {}
+    for sig in old:
+        signal.signal(sig, lambda n, _f: sys.exit(128 + n))
+    try:
+        yield lock
+    finally:
+        shutil.rmtree(lock, ignore_errors=True)
+        for sig, handler in old.items():
+            signal.signal(sig, handler)
+
+
+# ── cached steps + time limit ────────────────────────────────────────────────
+
+def cached(out: Path, build: Callable[[Path], object]) -> Path:
+    """Run `build(part)` only when `out` does not exist yet; `out` appears
+    only if the build finished, so a killed run redoes just this step."""
+    if not out.exists():
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with atomic_output(out) as part:
+            build(part)
+    return out
+
+
+class OutOfTime(Exception):
+    pass
+
+
+def take_max_minutes(argv: list[str], default: float) -> tuple[list[str], float]:
+    """Split `--max-minutes N` off a plain argv list: (the other args, N or `default`)."""
+    if '--max-minutes' not in argv:
+        return argv, default
+    i = argv.index('--max-minutes')
+    return argv[:i] + argv[i + 2:], float(argv[i + 1])
+
+
+class Deadline:
+    """A run's own time limit, inside the host's job limit: stop between steps
+    once `minutes` have passed (everything finished so far is cached, so the
+    next run continues from there)."""
+
+    def __init__(self, minutes: float, clock: Callable[[], float] = time.monotonic):
+        self.clock = clock
+        self.end = clock() + minutes * 60
+
+    def left(self) -> float:
+        """Seconds left (negative once over)."""
+        return self.end - self.clock()
+
+    def check(self, step: str) -> None:
+        if self.clock() > self.end:
+            raise OutOfTime(f'time limit reached before {step}')
 
 
 # ── durable caches: R2 under cache/<prefix>/ ─────────────────────────────────
@@ -442,13 +720,16 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
                  category: tuple[str, str] | None = None) -> dict:
     """Patch one layer into a catalog dict in place (never rebuild the catalog).
 
-    Idempotent: the layer keeps its place and its first `fetched_at` (the
+    Idempotent: the layer keeps its place, its rebaked tiles and parquet
+    (tile_keys.keep_all_rebaked) and its first `fetched_at` (the
     card's "Updated" date), so a second run with the same inputs changes
     nothing. Also sets level_meta[level], appends the level to level_order
     (the home page iterates it), and adds the attribution and the category
     (before 'other', which stays last) when given."""
-    prev = next((l for l in catalog.setdefault('layers', []) if l.get('id') == entry['id']), {})
+    from tile_keys import keep_all_rebaked
+    prev = next((x for x in catalog.setdefault('layers', []) if x.get('id') == entry['id']), {})
     entry = {**entry, 'fetched_at': prev.get('fetched_at') or entry.get('fetched_at') or now_iso()}
+    keep_all_rebaked(entry, prev)  # rebaked tiles (filter columns) stay while the data is unchanged
     catalog['layers'] = upsert_by_id(catalog['layers'], entry)
     level = level or entry.get('level') or entry['id']
     catalog.setdefault('level_meta', {})[level] = level_meta
@@ -465,6 +746,37 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
             if other is not None:
                 cats['other'] = other
     return catalog
+
+
+def versioned_names(paths: dict[str, Path]) -> dict[str, str]:
+    """{format: <stem>.<md5[:8]>.<ext>}: the content-versioned file name each
+    local file is published under (tile_keys.versioned_key)."""
+    from tile_keys import versioned_key
+    return {fmt: versioned_key(p.name, file_md5(p)) for fmt, p in paths.items()}
+
+
+def plain_names(basename: str, exts: dict[str, str]) -> dict[str, str]:
+    """{format: <basename>.<ext>}: the local file names a bake writes."""
+    return {fmt: f'{basename}.{ext}' for fmt, ext in exts.items()}
+
+
+def upload_versioned(s3, paths: dict[str, Path], prefix: str, put: Callable | None = None) -> dict[str, str]:
+    """Upload each file to <prefix>/<its content-versioned name> (md5-skipped by
+    `put`, r2_upload by default) and return the names: a changed file gets a new
+    key, an unchanged one keeps its key, so a re-run uploads nothing."""
+    names = versioned_names(paths)
+    for fmt, path in paths.items():
+        (put or r2_upload)(s3, path, f'{prefix}/{names[fmt]}')
+    return names
+
+
+def summary_names(summary: dict) -> dict[str, str]:
+    """The content-versioned names the bake step recorded and the upload step
+    used. A summary without them came from an older bake whose files went to
+    fixed keys: refuse, so the catalog never names a key that was not uploaded."""
+    if not summary.get('names'):
+        raise ValueError('the bake summary records no published names: re-run the bake and upload steps')
+    return summary['names']
 
 
 def register_layer(catalog_path: Path, manifest_path: Path, entry: dict, manifest_row: dict,
@@ -491,9 +803,9 @@ def row_group_size_for(feature_count: int) -> int | None:
     and Delhi Overture queries 503-ing because 5-6 row groups matched
     their bbox including a Hilbert outlier spanning half of west India.
     """
-    if feature_count < 10_000:    return None
-    if feature_count < 100_000:   return 5_000
-    return 20_000
+    if feature_count < 10_000:
+        return None
+    return 5_000 if feature_count < 100_000 else 20_000
 
 
 def rebake_flatten_bbox(src: Path, dst: Path, con=None, keep_struct: bool = False) -> tuple[int, list[str]]:

@@ -40,3 +40,21 @@ def test_carry_forward_does_not_clobber_rebuilt_layers() -> None:
     out = build_catalog.carry_forward_unbuilt(built, prev)
     # The fresh build wins for ids it produced; prev is only a fallback.
     assert [l['rows'] for l in out if l['id'] == 'lgd_states'] == [36]
+
+
+def test_an_unreadable_previous_catalog_stops_the_build(tmp_path, monkeypatch):
+    """A half-written or conflicted catalog.json must not read as "no previous
+    catalog": carry-forward would then drop every community and bake-script
+    layer, and the download counts."""
+    import pytest
+    import build_catalog
+    (tmp_path / 'catalog.json').write_text('{"layers": [<<<<<<< HEAD')
+    monkeypatch.setattr(build_catalog, 'ROOT', tmp_path)
+    with pytest.raises(SystemExit, match='catalog.json'):
+        build_catalog._load_prev_catalog()
+
+
+def test_no_previous_catalog_is_an_empty_one(tmp_path, monkeypatch):
+    import build_catalog
+    monkeypatch.setattr(build_catalog, 'ROOT', tmp_path)
+    assert build_catalog._load_prev_catalog() == {}

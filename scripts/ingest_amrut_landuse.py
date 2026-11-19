@@ -38,7 +38,8 @@ import duckdb
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from ingest_ramseraph import ROOT, WORK, Dataset, http_download, ingest, republished  # noqa: E402
+from ingest_ramseraph import ROOT, WORK, Dataset, ingest, republished  # noqa: E402
+from pipeline import download, write_json  # noqa: E402
 
 RELEASE = 'indian_land_features/urban-land-use'
 BHUVAN = ('Bhuvan', 'https://bhuvan.nrsc.gov.in/',
@@ -118,7 +119,7 @@ def normalise_fetched_at(ids: set[str]) -> None:
     for layer in c['layers']:
         if layer['id'] in ids and layer.get('fetched_at'):
             layer['fetched_at'] = date_only(layer['fetched_at'])
-    f.write_text(json.dumps(c, indent=2) + '\n')
+    write_json(f, c)
 
 
 def main(argv: list[str]) -> int:
@@ -130,7 +131,7 @@ def main(argv: list[str]) -> int:
     todo = [d for d in DATASETS if not args or args[0] in d.id]
     for d in todo:
         raw = WORK / f'_raw_{d.id}.parquet'
-        http_download(d.parquet_url, raw)
+        download(d.parquet_url, raw)
         ingest(with_cities(d, raw), upload=upload)
     if upload:
         normalise_fetched_at({d.id for d in todo})

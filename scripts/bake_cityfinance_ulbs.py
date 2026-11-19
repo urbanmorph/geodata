@@ -38,6 +38,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pipeline  # noqa: E402
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
 from pipeline import cache_backup, is_client_error, log, make_con, with_retries  # noqa: E402
@@ -477,7 +478,7 @@ def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
 def bake(out_dir: Path, raw: Path = RAW) -> dict:
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='cityfinance_') as tmp:
@@ -496,7 +497,8 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
     bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
     bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
 
-    summary = {'rows': rows, **stats, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
+    summary = {'rows': rows, **stats, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
+               'names': pipeline.versioned_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     return summary
 
@@ -536,10 +538,12 @@ def level_meta() -> dict:
     return {'label': 'City Finances (CityFinance.in)', 'unit': 'ULBs', 'description': description()}
 
 
-def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str) -> dict:
+def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str,
+                  names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
     for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{BASENAME}.{ext}', 'bytes': sizes[fmt]}
+        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
     entry.update({
         'licence': 'GODL-India',
         'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
@@ -552,34 +556,39 @@ def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: 
     return entry
 
 
-def manifest_entry(rows: int, sizes: dict[str, int]) -> dict:
+def manifest_entry(rows: int, sizes: dict[str, int], names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     return {
         'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'economy',
         'source': SOURCE, 'description': description(), 'unit': 'ULBs', 'features': rows,
         'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-        'parquet_file': f'{BASENAME}.parquet', 'parquet_bytes': sizes['parquet'],
-        'pmtiles_file': f'{BASENAME}.pmtiles', 'pmtiles_bytes': sizes['pmtiles'],
+        'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
+        'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
         'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
         'notes': notes(), 'tags': TAGS,
     }
 
 
-def upload(out_dir: Path) -> None:
-    """Upload every format to R2, skipping files whose stored md5 matches."""
-    from ingest_ramseraph import r2_client, r2_upload
-    s3 = r2_client()
-    for ext in EXT.values():
-        r2_upload(s3, out_dir / f'{BASENAME}.{ext}', f'{R2_PREFIX}/{BASENAME}.{ext}')
+def local_paths(out_dir: Path) -> dict[str, Path]:
+    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+
+
+def upload(out_dir: Path) -> dict[str, str]:
+    """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
+    changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
+    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
              summary_path: Path = SUMMARY, r2_public: str | None = None) -> None:
     """Patch catalog.json + external-ingested.json in place (never rebuild the
     catalog). Idempotent: the layer keeps its place and first fetched_at."""
-    import pipeline
     summary = json.loads(summary_path.read_text())
-    entry = catalog_entry(summary['rows'], summary['sizes'], pipeline.now_iso(), r2_public or pipeline.R2_PUBLIC)
-    pipeline.register_layer(catalog_path, manifest_path, entry, manifest_entry(summary['rows'], summary['sizes']),
+    names = pipeline.summary_names(summary)
+    entry = catalog_entry(summary['rows'], summary['sizes'], pipeline.now_iso(), r2_public or pipeline.R2_PUBLIC,
+                          names=names)
+    pipeline.register_layer(catalog_path, manifest_path, entry,
+                            manifest_entry(summary['rows'], summary['sizes'], names=names),
                             level_meta(), attribution=(SOURCE, ATTRIBUTION))
 
 

@@ -26,6 +26,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from pipeline import log  # noqa: E402
 import build_filter_stats as fs  # noqa: E402
 from pipeline import atomic_output, write_json  # noqa: E402
 
@@ -33,10 +34,6 @@ ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
 STATS_DIR = ROOT / 'web' / 'public' / 'api-data' / 'filter-stats'
 SHARED_RULE = ROOT / 'shared' / 'large-load.mjs'
-
-
-def log(*msg: object) -> None:
-    print(*msg, flush=True)
 
 
 def large_filter_bytes(src: Path = SHARED_RULE) -> int:

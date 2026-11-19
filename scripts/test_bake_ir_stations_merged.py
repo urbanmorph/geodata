@@ -249,7 +249,7 @@ def test_register_patches_in_place_and_is_idempotent(tmp_path):
         'level_order': ['ir_stations', 'ir_stations_merged'],
         'attribution': {}}))
     man.write_text(json.dumps([{'id': 'ir_stations'}, {'id': 'ir_tracks'}, {'id': 'ir_stations_merged'}]))
-    summ.write_text(json.dumps({'rows': 9, 'sizes': {f: 2 for f in b.EXT}}))
+    summ.write_text(json.dumps({'rows': 9, 'sizes': {f: 2 for f in b.EXT}, 'names': {f: f'X.{f}' for f in b.EXT}}))
     for _ in range(2):
         b.register(cat, man, summ, r2_public='https://r2.example', fetched_at='2026-11-17')
     c = json.loads(cat.read_text())
@@ -275,6 +275,6 @@ def test_register_keeps_rebaked_tiles(tmp_path):
     cat.write_text(json.dumps({'layers': [{'id': 'ir_stations', 'pmtiles': rebaked}], 'level_meta': {},
                                'level_order': [], 'attribution': {}}))
     man.write_text('[]')
-    summ.write_text(json.dumps({'rows': 9, 'sizes': {f: 2 for f in b.EXT}}))
+    summ.write_text(json.dumps({'rows': 9, 'sizes': {f: 2 for f in b.EXT}, 'names': {f: f'X.{f}' for f in b.EXT}}))
     b.register(cat, man, summ, r2_public='https://r2.example', fetched_at='2026-11-17')
     assert json.loads(cat.read_text())['layers'][0]['pmtiles'] == rebaked
