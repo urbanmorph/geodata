@@ -6,7 +6,7 @@
 
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
 import { getCatalog, type Layer } from './catalog';
-import { escapeHtml } from './util';
+import { escapeHtml, downloadHref, triggerDownload } from './util';
 import {
   usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, FILTER_EXPORT_MAX_SHAPE_BYTES, SERVER_SHAPE_EXPORT,
 } from '../../shared/large-load.mjs';
@@ -221,7 +221,7 @@ export function mountFilterPanel(
       return;
     }
     const filename = `${layer.id}.${fmt}`;
-    downloadUrl(`/api/v1/layers/${encodeURIComponent(layer.id)}/export?format=${fmt}&filter=${filterParam(active)}`, filename);
+    downloadHref(`/api/v1/layers/${encodeURIComponent(layer.id)}/export?format=${fmt}&filter=${filterParam(active)}`, filename);
     status.innerHTML = `<span class="filter-panel__ok">Downloading ${escapeHtml(filename)} (${n.toLocaleString('en-US')} rows) from the server.</span>`;
   }
 
@@ -240,7 +240,7 @@ export function mountFilterPanel(
         const bake = extracts[String(code)]?.[fmt];
         if (bake?.url) {
           const fn = `${layer.id}__state${code}.${fmt}`;
-          downloadUrl(bake.url, fn);
+          downloadHref(bake.url, fn);
           status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(fn)} (${fmtBytes(bake.bytes)}, pre-baked).</span>`;
           return;
         }
@@ -272,7 +272,7 @@ export function mountFilterPanel(
         } else {
           blob = await exportFilteredKML(parquetUrl, where, filename);
         }
-        downloadBlob(blob, filename);
+        triggerDownload(blob, filename);
         clearTimeout(warmTimer);
         loader.dismiss();
         engineWarm = true;
@@ -599,18 +599,3 @@ function setPressed(btn: HTMLElement, on: boolean): void {
   btn.setAttribute('aria-pressed', String(on));
 }
 
-function downloadUrl(url: string, filename: string): void {
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-}
-
-function downloadBlob(blob: Blob, filename: string): void {
-  const url = URL.createObjectURL(blob);
-  downloadUrl(url, filename);
-  setTimeout(() => URL.revokeObjectURL(url), 30000);
-}

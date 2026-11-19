@@ -782,7 +782,7 @@ const faqPage = (items) => ({
 const ABOUT_FAQ = [
   {
     q: `Do I need to sign up?`,
-    a: `No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a <code>.txt</code> backup) that you keep forever to edit or delete that submission.`,
+    a: `No. Viewing, slicing, downloading and contributing all work without an account. When you publish a layer you receive a one-time admin token (also downloadable as a <code>.txt</code> backup) to keep: it proves you made it. To change or remove that submission, <a href="/terms#contact">contact us</a> with the token.`,
   },
   {
     q: `What data sources does bharatlas use?`,

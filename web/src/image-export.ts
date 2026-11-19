@@ -20,15 +20,3 @@ export function dataUrlToBlob(dataUrl: string): Blob {
   for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
   return new Blob([bytes], { type: m[1] });
 }
-
-export function triggerDownload(blob: Blob, filename: string, doc: Document = document): void {
-  const url = URL.createObjectURL(blob);
-  const a = doc.createElement('a');
-  a.href = url;
-  a.download = filename;
-  doc.body.appendChild(a);
-  a.click();
-  doc.body.removeChild(a);
-  // Defer revoke so Safari has time to start the download.
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}

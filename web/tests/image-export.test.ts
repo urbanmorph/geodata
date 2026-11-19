@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { imageFilename, dataUrlToBlob } from '../src/image-export';
 
 describe('image-export — imageFilename', () => {
@@ -34,5 +36,15 @@ describe('image-export — dataUrlToBlob', () => {
 
   it('throws on a non-base64 data URL', () => {
     expect(() => dataUrlToBlob('not-a-data-url')).toThrow();
+  });
+});
+
+// One download helper for the map PNG, filtered exports and the token backup.
+describe('one download helper (util.triggerDownload)', () => {
+  const src = (f: string) => readFileSync(resolve(__dirname, '..', 'src', f), 'utf8');
+  it('no module keeps its own copy of the anchor-click download', () => {
+    for (const f of ['filter.ts', 'preview.ts', 'map.ts', 'image-export.ts']) {
+      expect(src(f), f).not.toMatch(/\.download\s*=/);
+    }
   });
 });

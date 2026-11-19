@@ -22,7 +22,9 @@ import { popHandoff } from './handoff';
 import { fmtBytes } from './format-hints';
 import { overlayLoader, VERBS_VERIFY_RENDER, VERBS_VERIFY_FETCH, VERBS_ENGINE, inlineLoader } from './loading';
 import { escapeHtml } from './util';
+import { triggerDownload } from './util';
 import {
+  tokenBackup,
   saveSubmission,
   listSubmissions,
   getSubmission,
@@ -595,22 +597,8 @@ function renderSuccess(payload: SuccessPayload): void {
   };
 
   document.getElementById('download-token')!.onclick = () => {
-    const content =
-      `geodata · submission backup\n\n` +
-      `id:         ${payload.id}\n` +
-      `share url:  ${payload.share_url}\n` +
-      `admin url:  ${payload.admin_url}\n` +
-      `admin token:${payload.admin_token}\n\n` +
-      `KEEP THIS SAFE. Lose this file and you cannot edit or delete this submission.\n`;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `geodata-${payload.id}-token.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    const { filename, content } = tokenBackup(payload);
+    triggerDownload(new Blob([content], { type: 'text/plain' }), filename);
   };
 
   (document.getElementById('goto-submission') as HTMLAnchorElement).href = '/layers';

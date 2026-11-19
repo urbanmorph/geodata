@@ -4,7 +4,7 @@ import { Protocol, PMTiles } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { overlayLoader, VERBS_ENGINE, VERBS_MAP } from './loading';
 import { getCatalog, type Layer } from './catalog';
-import { escapeHtml } from './util';
+import { escapeHtml, triggerDownload } from './util';
 import { popupValueHtml, popupEntries } from './popup-value';
 import {
   BASEMAPS, baseStyle, basemapById, basemapInsertBefore, basemapLayers, getStoredBasemap, minimalPaint, setStoredBasemap,
@@ -17,7 +17,7 @@ import {
 } from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
-import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
+import { imageFilename, dataUrlToBlob } from './image-export';
 import { filterColumnsInTiles, filterSummary, matchCountText, type ActiveFilter, type MaplibreFilter } from './filter-where';
 import { featureCollectionBounds, INDIA_BBOX, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
