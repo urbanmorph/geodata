@@ -2,6 +2,7 @@
 // place and time kept, the time in a form the server reads the same way.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { fitWithin, sizeFor, photoMeta, preparePhoto } from '../src/photos/prepare';
+import { readExif, writeExif } from '../src/photos/exif';
 
 // Low-end phones ran out of memory decoding a 12 MP photo at full size, once a
 // round, into a new canvas each time. Now the browser decodes it already
@@ -59,6 +60,21 @@ describe('decoding a photo on a phone with little memory', () => {
     expect(draws).toHaveLength(1);
     expect(draws[0]).not.toBeNull();
     expect(canvases[0].width).toBe(0);
+  });
+
+  // The photo turns public once its point is approved: its GPS must not be in
+  // the file unless the point was put where the photo was taken (the server
+  // writes it back then). The place still travels alongside, for the offer.
+  it('keeps the time in the file but not the GPS; the place travels alongside', async () => {
+    stubBrowser(undefined);
+    blobSizes = [1000];
+    const withGps = writeExif(JPEG, { lat: 12.97, lng: 77.59, takenAt: '2026-10-24T09:15:00+05:30' });
+    const out = await preparePhoto(new File([withGps.slice().buffer as ArrayBuffer], 'a.jpg', { type: 'image/jpeg' }), { dataSaver: false, source: 'camera' });
+    const kept = readExif(out.bytes);
+    expect(kept.lat).toBeUndefined();
+    expect(kept.lng).toBeUndefined();
+    expect(kept.takenAt).toBe('2026-10-24T09:15:00+05:30');
+    expect(out.meta).toMatchObject({ lat: expect.closeTo(12.97, 4), lng: expect.closeTo(77.59, 4) });
   });
 
   it('a decoded copy the wrong way round (orientation not applied) is not used', async () => {

@@ -15,7 +15,11 @@ export interface QueuedPhoto {
   client_id: string;
   field: string; // the Photo question it answers
   bytes: ArrayBuffer;
-  meta: { lat?: number; lng?: number; taken_at?: string; source?: 'camera' | 'gallery' };
+  meta: {
+    lat?: number; lng?: number; taken_at?: string; source?: 'camera' | 'gallery';
+    /** The point was put where the photo was taken: its GPS may stay in the file. */
+    placed?: boolean;
+  };
   id?: string;
 }
 

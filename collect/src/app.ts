@@ -906,7 +906,7 @@ function renderPhotoBar(): void {
           const saved = await savePoint({
             collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: {}, contributor,
             label: 'Photo', noun: 'point', captured_at: earlierThanNow(pm.taken_at),
-            photos: [{ client_id: newClientId(), field: field.key, bytes, meta: pm }],
+            photos: [{ client_id: newClientId(), field: field.key, bytes, meta: fromPhoto ? { ...pm, placed: true } : pm }],
           }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
           if (saved.state === 'refused') {
             last.innerHTML = `<span class="warn">Couldn't save: ${escapeHtml(saved.error)}.</span> <button type="button" class="ghost" id="photo-retry">Try again</button>`;
@@ -962,6 +962,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   // A point can move to where its photo was taken (and take the photo's time).
   let place = geometry;
   let capturedAt: string | undefined;
+  let placedFrom: string | undefined; // the photo the point was moved to (its GPS may stay in the file)
   const placeBox = document.getElementById('photo-place')!;
   const offerPhotoPlace = (item: PhotoItem): void => {
     if (geometry.type !== 'Point' || item.meta.lat === undefined || item.meta.lng === undefined || !isInIndia(item.meta.lng, item.meta.lat)) return;
@@ -972,6 +973,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     document.getElementById('use-photo-place')!.onclick = () => {
       place = { type: 'Point', coordinates: at };
       capturedAt = earlierThanNow(item.meta.taken_at);
+      placedFrom = item.client_id;
       placeBox.innerHTML = '<p class="ok">✓ The point is where the photo was taken.</p>';
       map.easeTo({ center: at, offset: crosshairScreenOffset(), duration: 300 });
     };
@@ -1000,7 +1002,10 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     const saved = await savePoint({
       collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry: place, properties: valid.properties,
       contributor, label: recordLabel(valid.properties, noun), noun, captured_at: capturedAt,
-      photos: photos.flatMap((p) => p.items().map((it) => ({ client_id: it.client_id, field: p.field.key, bytes: it.bytes!, meta: it.meta }))),
+      photos: photos.flatMap((p) => p.items().map((it) => ({
+        client_id: it.client_id, field: p.field.key, bytes: it.bytes!,
+        meta: it.client_id === placedFrom ? { ...it.meta, placed: true } : it.meta,
+      }))),
     }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
     if (saved.state === 'refused') {
       toast(`Couldn't save: ${saved.error}. Your details are kept, tap Save to retry.`);
