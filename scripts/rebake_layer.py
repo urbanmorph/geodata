@@ -36,7 +36,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -51,6 +50,7 @@ from bake_land_water import Deadline, OutOfTime, cached, r2_client, upload  # no
 from pipeline import (  # noqa: E402
     R2_PUBLIC, _remote_has, download, file_md5, log, make_con, rebake_flatten_bbox, write_json,
 )
+from tile_keys import versioned_key  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = HERE / 'external-ingested.json'
@@ -74,12 +74,6 @@ def r2_key_from_url(url: str) -> str:
     if not url.startswith(prefix):
         raise ValueError(f'not an R2 public URL: {url}')
     return url[len(prefix):]
-
-
-def versioned_key(key: str, md5: str) -> str:
-    """<stem>.<md5[:8]>.parquet next to `key` (replacing an earlier rebake's suffix)."""
-    stem = re.sub(r'(\.[0-9a-f]{8})?\.parquet$', '', key)
-    return f'{stem}.{md5[:8]}.parquet'
 
 
 # ── checks ───────────────────────────────────────────────────────────────────

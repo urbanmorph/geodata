@@ -42,6 +42,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pipeline  # noqa: E402
 from pipeline import (  # noqa: E402,F401  (re-exported for bake_state_finance)
     atomic_output,
     cache_backup,
@@ -296,22 +297,25 @@ TAGS = ['MGNREGA', 'NREGA', 'rural employment', 'jobs scheme', 'wages', 'persond
         'rural development', 'public spending', 'district', 'economy', 'finance']
 
 
-def catalog_entry(rows: int, sizes: dict, fetched_at: str, r2_public: str, unmatched: list[str]) -> dict:
+def catalog_entry(rows: int, sizes: dict, fetched_at: str, r2_public: str, unmatched: list[str],
+                  names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
     for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{BASENAME}.{ext}', 'bytes': sizes[fmt]}
+        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
     entry.update({'licence': 'GODL-India', 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
                   'category': CATEGORY[0], 'provenance': 'curated', 'fetched_at': fetched_at,
                   'notes': notes(unmatched), 'tags': TAGS})
     return entry
 
 
-def manifest_entry(rows: int, sizes: dict, unmatched: list[str]) -> dict:
+def manifest_entry(rows: int, sizes: dict, unmatched: list[str], names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': CATEGORY[0],
             'source': SOURCE, 'description': description(), 'unit': 'districts', 'features': rows,
             'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-            'parquet_file': f'{BASENAME}.parquet', 'parquet_bytes': sizes['parquet'],
-            'pmtiles_file': f'{BASENAME}.pmtiles', 'pmtiles_bytes': sizes['pmtiles'],
+            'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
+            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
             'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
             'notes': notes(unmatched), 'tags': TAGS}
 
@@ -319,14 +323,13 @@ def manifest_entry(rows: int, sizes: dict, unmatched: list[str]) -> dict:
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
              summary_path: Path = SUMMARY, r2_public: str | None = None) -> None:
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent."""
-    import pipeline
     summ = json.loads(summary_path.read_text())
+    names = pipeline.summary_names(summ)
     entry = catalog_entry(summ['rows'], summ['sizes'], pipeline.now_iso(), r2_public or pipeline.R2_PUBLIC,
-                          summ['unmatched'])
+                          summ['unmatched'], names=names)
     pipeline.register_layer(catalog_path, manifest_path, entry,
-                            manifest_entry(summ['rows'], summ['sizes'], summ['unmatched']),
+                            manifest_entry(summ['rows'], summ['sizes'], summ['unmatched'], names=names),
                             level_meta(), attribution=(SOURCE, ATTRIBUTION), category=CATEGORY)
-
 
 
 # ── bake ─────────────────────────────────────────────────────────────────────
@@ -373,17 +376,21 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
     bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
     summary = {'rows': n, 'districts_with_values': filled, 'unmatched': [f'{s} / {d}' for s, d in unmatched],
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
+               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
+               'names': pipeline.versioned_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     log(json.dumps(summary, indent=2))
     return summary
 
 
-def upload(out_dir: Path = OUT_DIR) -> None:
-    from ingest_ramseraph import r2_client, r2_upload
-    s3 = r2_client()
-    for ext in EXT.values():
-        r2_upload(s3, out_dir / f'{BASENAME}.{ext}', f'{R2_PREFIX}/{BASENAME}.{ext}')
+def local_paths(out_dir: Path) -> dict[str, Path]:
+    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+
+
+def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
+    """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
+    changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
+    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
 
 
 def pull(refresh: bool = False) -> tuple[list[dict], list[dict]]:

@@ -6,6 +6,7 @@ from __future__ import annotations
 
 import contextlib
 import http.server
+import json
 import os
 import subprocess
 import sys
@@ -480,6 +481,43 @@ def test_upsert_layer_keeps_position_and_first_fetched_at():
     assert catalog['level_order'] == ['x', 'y'] and catalog['level_meta']['x'] == {'label': 'X'}
     assert catalog['attribution']['S'] == {'name': 's'}
     assert list(catalog['categories']) == ['a', 'economy', 'other']  # 'other' stays last
+
+
+def test_register_layer_keeps_rebaked_tiles_on_a_rerun(tmp_path):
+    """Re-registering a bake (same data) must not point the layer back at the
+    bake's own tiles: rebake_tiles.py's tiles carry the Filter panel's columns."""
+    r2 = 'https://pub.r2.dev'
+    rebaked = {'url': f'{r2}/e/X.c08c0de4.pmtiles', 'bytes': 7}
+    parquet = {'url': f'{r2}/e/X.11111111.parquet', 'bytes': 3}
+    catalog, manifest = tmp_path / 'catalog.json', tmp_path / 'manifest.json'
+    catalog.write_text(json.dumps({'layers': [{'id': 'x', 'parquet': parquet, 'pmtiles': rebaked,
+                                               'fetched_at': '2026-01-01'}]}))
+    manifest.write_text('[]')
+    entry = {'id': 'x', 'parquet': dict(parquet), 'pmtiles': {'url': f'{r2}/e/X.99999999.pmtiles', 'bytes': 9}}
+    pipeline.register_layer(catalog, manifest, entry, {'id': 'x'}, {'label': 'X'})
+    layer = json.loads(catalog.read_text())['layers'][0]
+    assert layer['pmtiles'] == rebaked
+    assert layer['fetched_at'] == '2026-01-01'
+
+
+def test_versioned_names_name_each_file_by_its_content(tmp_path):
+    a, b = tmp_path / 'X.parquet', tmp_path / 'X.shp.zip'
+    a.write_bytes(b'one')
+    b.write_bytes(b'two')
+    names = pipeline.versioned_names({'parquet': a, 'shapefile': b})
+    assert names == {'parquet': f'X.{pipeline.file_md5(a)[:8]}.parquet',
+                     'shapefile': f'X.{pipeline.file_md5(b)[:8]}.shp.zip'}
+
+
+def test_upload_versioned_names_each_key_by_content_and_is_stable(tmp_path):
+    a = tmp_path / 'X.parquet'
+    a.write_bytes(b'one')
+    keys = []
+    names = pipeline.upload_versioned('S3', {'parquet': a}, 'e/x', put=lambda s3, p, k: keys.append(k))
+    assert keys == [f'e/x/{names["parquet"]}'] and names['parquet'] == f'X.{pipeline.file_md5(a)[:8]}.parquet'
+    assert pipeline.upload_versioned('S3', {'parquet': a}, 'e/x', put=lambda s3, p, k: keys.append(k)) == names
+    a.write_bytes(b'two')  # new content, new key
+    assert pipeline.upload_versioned('S3', {'parquet': a}, 'e/x', put=lambda *_: None) != names
 
 
 def test_upsert_layer_stamps_a_new_layer_once():

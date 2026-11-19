@@ -59,6 +59,7 @@ import ingest_ramseraph as ir  # noqa: E402
 import rebake_tiles as rt  # noqa: E402
 from bake_formats import shapefile_key, short_field_names  # noqa: E402
 from pipeline import OGR_ENV, R2_PUBLIC, _remote_has, file_md5, slug, upsert_by_id, write_json  # noqa: E402
+from tile_keys import versioned_key  # noqa: E402
 
 WORK = blw.WORK / 'states'
 CATALOG = ir.ROOT / 'catalog.json'
@@ -264,11 +265,6 @@ def stable_zip(files: list[Path], out: Path) -> None:
                 shutil.copyfileobj(src, dst, blw.CHUNK)
 
 
-def versioned_name(name: str, md5: str) -> str:
-    stem, ext = name.split('.', 1)
-    return f'{stem}.{md5[:8]}.{ext}'
-
-
 # ── catalog ──────────────────────────────────────────────────────────────────
 
 def notes_for(layer: StateSplit, states: int) -> str:
@@ -376,7 +372,7 @@ def publish(layer: StateSplit, built: dict) -> dict[str, tuple[str, int]]:
     for fmt, local in built['files'].items():
         name = local.name if fmt != 'pmtiles' else f'{layer.stem}.pmtiles'
         md5 = file_md5(local)
-        name = versioned_name(name, md5)
+        name = versioned_key(name, md5)
         key = f'{layer.d.r2_prefix}/{name}'
         if not _remote_has(s3, key, md5):  # the md5 skip, before taking the lock
             with rt.upload_lock(owner=LOCK_OWNER):

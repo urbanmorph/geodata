@@ -181,6 +181,7 @@ def test_yearly_spend_sums_units_that_share_a_district():
 # ── catalog registration ─────────────────────────────────────────────────────
 
 SIZES = {'parquet': 1, 'pmtiles': 2, 'geojson': 3, 'kml': 4, 'shapefile': 5}
+NAMES = {f: f'X.{f}' for f in SIZES}
 
 
 def test_catalog_entry_is_complete_and_honest():
@@ -199,7 +200,7 @@ def test_register_adds_the_economy_category_and_is_idempotent(tmp_path):
     cat.write_text(json.dumps({'layers': [], 'level_meta': {}, 'level_order': [], 'attribution': {},
                                'categories': {'health-edu': 'Health & education', 'other': 'Other'}}))
     man.write_text('[]')
-    summ.write_text(json.dumps({'rows': 785, 'sizes': SIZES, 'unmatched': []}))
+    summ.write_text(json.dumps({'rows': 785, 'sizes': SIZES, 'names': NAMES, 'unmatched': []}))
     for _ in range(2):
         m.register(cat, man, summ, 'https://r2.example')
     c = json.loads(cat.read_text())

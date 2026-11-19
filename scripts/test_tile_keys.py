@@ -155,3 +155,49 @@ def test_ingest_skips_upstream_tiles_when_the_catalog_has_rebaked_ones(monkeypat
     monkeypatch.setattr(ir, 'current_catalog_layer', lambda layer_id: None)
     assert ir.wants_upstream_pmtiles(d) is True
     assert ir.wants_upstream_pmtiles(_ds({'pmtiles_url': ''})) is False
+
+
+# ── one content-versioned key for every bake ──────────────────────────────────
+
+def test_versioned_key_puts_the_md5_before_the_whole_extension():
+    md5 = '0a1b2c3d' + '0' * 24
+    assert tile_keys.versioned_key('economy/x/X_2025_26.parquet', md5) == 'economy/x/X_2025_26.0a1b2c3d.parquet'
+    assert tile_keys.versioned_key('X_2025_26.shp.zip', md5) == 'X_2025_26.0a1b2c3d.shp.zip'
+    assert tile_keys.versioned_key('a/X.geojson', md5) == 'a/X.0a1b2c3d.geojson'
+    assert tile_keys.versioned_key('a/X.kml', md5) == 'a/X.0a1b2c3d.kml'
+    assert tile_keys.versioned_key('Bhuvan_X.geojson.zip', md5) == 'Bhuvan_X.0a1b2c3d.geojson.zip'
+
+
+def test_versioned_key_replaces_an_earlier_version_and_can_change_the_extension():
+    md5 = 'ffffffff' + '0' * 24
+    assert tile_keys.versioned_key('a/X.0a1b2c3d.parquet', md5) == 'a/X.ffffffff.parquet'
+    assert tile_keys.versioned_key('a/X.0a1b2c3d.parquet', md5, 'pmtiles') == 'a/X.ffffffff.pmtiles'
+    assert tile_keys.versioned_key('2026-09-23.1-r3/o.pmtiles', md5) == '2026-09-23.1-r3/o.ffffffff.pmtiles'
+
+
+def test_versioned_key_is_stable_for_the_same_content():
+    md5 = '12345678' + 'a' * 24
+    once = tile_keys.versioned_key('a/X.parquet', md5)
+    assert tile_keys.versioned_key(once, md5) == once
+
+
+def test_keep_rebaked_gives_way_when_the_data_changed():
+    """A bake's new parquet (a new content key) makes its own fresh tiles current:
+    tiles rebaked from the old data no longer match it."""
+    prev = {'parquet': {'url': f'{R2}/a/X.11111111.parquet'}, 'pmtiles': {'url': f'{R2}/a/X.c08c0de4.pmtiles'}}
+    layer = {'parquet': {'url': f'{R2}/a/X.22222222.parquet'}, 'pmtiles': {'url': f'{R2}/a/X.33333333.pmtiles'}}
+    assert tile_keys.keep_all_rebaked(layer, prev) == []
+    assert layer['pmtiles']['url'].endswith('X.33333333.pmtiles')
+
+
+def test_keep_rebaked_keeps_tiles_when_the_data_is_the_same_or_unknown():
+    rebaked = {'url': f'{R2}/a/X.c08c0de4.pmtiles'}
+    same = {'parquet': {'url': f'{R2}/a/X.11111111.parquet'}, 'pmtiles': rebaked}
+    layer = {'parquet': {'url': f'{R2}/a/X.11111111.parquet'}, 'pmtiles': {'url': f'{R2}/a/X.33333333.pmtiles'}}
+    assert tile_keys.keep_all_rebaked(layer, same) == ['pmtiles', 'parquet']
+    assert layer['pmtiles'] == rebaked
+    # an unversioned (upstream-named or legacy fixed) parquet can't tell: keep, as before
+    legacy = {'parquet': {'url': f'{R2}/a/X.parquet'}, 'pmtiles': rebaked}
+    layer = {'parquet': {'url': f'{R2}/a/X.22222222.parquet'}, 'pmtiles': {'url': f'{R2}/a/X.33333333.pmtiles'}}
+    assert 'pmtiles' in tile_keys.keep_all_rebaked(layer, legacy)
+    assert layer['pmtiles'] == rebaked

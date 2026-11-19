@@ -442,13 +442,16 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
                  category: tuple[str, str] | None = None) -> dict:
     """Patch one layer into a catalog dict in place (never rebuild the catalog).
 
-    Idempotent: the layer keeps its place and its first `fetched_at` (the
+    Idempotent: the layer keeps its place, its rebaked tiles and parquet
+    (tile_keys.keep_all_rebaked) and its first `fetched_at` (the
     card's "Updated" date), so a second run with the same inputs changes
     nothing. Also sets level_meta[level], appends the level to level_order
     (the home page iterates it), and adds the attribution and the category
     (before 'other', which stays last) when given."""
-    prev = next((l for l in catalog.setdefault('layers', []) if l.get('id') == entry['id']), {})
+    from tile_keys import keep_all_rebaked
+    prev = next((x for x in catalog.setdefault('layers', []) if x.get('id') == entry['id']), {})
     entry = {**entry, 'fetched_at': prev.get('fetched_at') or entry.get('fetched_at') or now_iso()}
+    keep_all_rebaked(entry, prev)  # rebaked tiles (filter columns) stay while the data is unchanged
     catalog['layers'] = upsert_by_id(catalog['layers'], entry)
     level = level or entry.get('level') or entry['id']
     catalog.setdefault('level_meta', {})[level] = level_meta
@@ -465,6 +468,37 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
             if other is not None:
                 cats['other'] = other
     return catalog
+
+
+def versioned_names(paths: dict[str, Path]) -> dict[str, str]:
+    """{format: <stem>.<md5[:8]>.<ext>}: the content-versioned file name each
+    local file is published under (tile_keys.versioned_key)."""
+    from tile_keys import versioned_key
+    return {fmt: versioned_key(p.name, file_md5(p)) for fmt, p in paths.items()}
+
+
+def plain_names(basename: str, exts: dict[str, str]) -> dict[str, str]:
+    """{format: <basename>.<ext>}: the local file names a bake writes."""
+    return {fmt: f'{basename}.{ext}' for fmt, ext in exts.items()}
+
+
+def upload_versioned(s3, paths: dict[str, Path], prefix: str, put: Callable | None = None) -> dict[str, str]:
+    """Upload each file to <prefix>/<its content-versioned name> (md5-skipped by
+    `put`, r2_upload by default) and return the names: a changed file gets a new
+    key, an unchanged one keeps its key, so a re-run uploads nothing."""
+    names = versioned_names(paths)
+    for fmt, path in paths.items():
+        (put or r2_upload)(s3, path, f'{prefix}/{names[fmt]}')
+    return names
+
+
+def summary_names(summary: dict) -> dict[str, str]:
+    """The content-versioned names the bake step recorded and the upload step
+    used. A summary without them came from an older bake whose files went to
+    fixed keys: refuse, so the catalog never names a key that was not uploaded."""
+    if not summary.get('names'):
+        raise ValueError('the bake summary records no published names: re-run the bake and upload steps')
+    return summary['names']
 
 
 def register_layer(catalog_path: Path, manifest_path: Path, entry: dict, manifest_row: dict,
@@ -491,9 +525,9 @@ def row_group_size_for(feature_count: int) -> int | None:
     and Delhi Overture queries 503-ing because 5-6 row groups matched
     their bbox including a Hilbert outlier spanning half of west India.
     """
-    if feature_count < 10_000:    return None
-    if feature_count < 100_000:   return 5_000
-    return 20_000
+    if feature_count < 10_000:
+        return None
+    return 5_000 if feature_count < 100_000 else 20_000
 
 
 def rebake_flatten_bbox(src: Path, dst: Path, con=None, keep_struct: bool = False) -> tuple[int, list[str]]:

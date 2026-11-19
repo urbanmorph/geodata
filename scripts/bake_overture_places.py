@@ -190,7 +190,8 @@ def fetched_at_for(layer: dict, release: str, now: str) -> str:
 
 def notes_for(release: str) -> str:
     return (f'Overture Maps Foundation places, release {release}, clipped to India (inside an LGD district '
-            'polygon). Overture columns are kept as published except contact details (below), and `name` is a copy of names.primary '
+            'polygon). Overture columns are kept as published except contact details (below), and `name` is a copy of '
+            'names.primary '
             'added for search and simple queries. Contact emails, phone numbers and social media '
             'links are removed (personal data of sole traders). Names, addresses, '
             'sources and taxonomy stay nested in the Parquet and GeoJSON. The shapefile carries a '
@@ -406,8 +407,8 @@ def upload(release: str, out: Path) -> None:
     now = datetime.now(timezone.utc).isoformat()
     catalog = json.loads(CATALOG.read_text())
     catalog['layers'] = [
-        patched_layer(l, release, summary['sizes'], summary['rows'], fetched_at_for(l, release, now), R2_PUBLIC)
-        if l['id'] == LAYER_ID else l for l in catalog['layers']]
+        patched_layer(lyr, release, summary['sizes'], summary['rows'], fetched_at_for(lyr, release, now), R2_PUBLIC)
+        if lyr['id'] == LAYER_ID else lyr for lyr in catalog['layers']]
     catalog['level_meta'][LAYER_ID] = patched_level_meta(catalog['level_meta'][LAYER_ID], release)
     CATALOG.write_text(json.dumps(catalog, indent=2, ensure_ascii=True) + '\n')
 

@@ -163,10 +163,10 @@ def test_stable_zip_streams_and_is_byte_stable(tmp_path):
         assert z.read('a.geojson') == (src / 'a.geojson').read_bytes()
 
 
-def test_versioned_name():
-    assert s.versioned_name('Bhuvan_X.geojson.zip', 'abcdef0123456789') == 'Bhuvan_X.abcdef01.geojson.zip'
-    assert s.versioned_name('Bhuvan_X.parquet', 'abcdef0123456789') == 'Bhuvan_X.abcdef01.parquet'
-    assert s.versioned_name('Bhuvan_X.shp.zip', '0123456789abcdef') == 'Bhuvan_X.01234567.shp.zip'
+def test_versioned_key():
+    assert s.versioned_key('Bhuvan_X.geojson.zip', 'abcdef0123456789') == 'Bhuvan_X.abcdef01.geojson.zip'
+    assert s.versioned_key('Bhuvan_X.parquet', 'abcdef0123456789') == 'Bhuvan_X.abcdef01.parquet'
+    assert s.versioned_key('Bhuvan_X.shp.zip', '0123456789abcdef') == 'Bhuvan_X.01234567.shp.zip'
 
 
 # ── catalog ────────────────────────────────────────────────────────────────

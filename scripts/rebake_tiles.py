@@ -44,7 +44,6 @@ from __future__ import annotations
 import contextlib
 import json
 import os
-import re
 import shutil
 import signal
 import subprocess
@@ -84,6 +83,7 @@ from pipeline import (  # noqa: E402
     make_con,
     write_json,
 )
+import tile_keys  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -456,9 +456,7 @@ def versioned_key(layer: dict, md5: str) -> str:
     """<stem>.<md5[:8]>.pmtiles next to the current tiles, or next to the
     file the tiles were made from when the layer had none."""
     url = (layer.get('pmtiles') or {}).get('url') or source_of(layer)[0]
-    key = url.split('.r2.dev/', 1)[1]
-    stem = re.sub(r'(\.[0-9a-f]{8})?\.(pmtiles|parquet|geojson)$', '', key)
-    return f'{stem}.{md5[:8]}.pmtiles'
+    return tile_keys.versioned_key(url.split('.r2.dev/', 1)[1], md5, 'pmtiles')
 
 
 def with_note(notes: str | None) -> str:

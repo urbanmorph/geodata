@@ -46,6 +46,7 @@ from typing import Callable, Iterable, Iterator
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pipeline  # noqa: E402
 from bake_mgnrega_districts import api_key, with_retries  # noqa: E402
 from pipeline import cache_backup  # noqa: E402
 
@@ -405,24 +406,26 @@ TAGS = ['water bodies', 'ponds', 'tanks', 'lakes', 'reservoirs', 'check dams', '
         'encroachment', 'irrigation', 'Jal Shakti', 'minor irrigation']
 
 
-def catalog_entry(s: dict, fetched_at: str, r2_public: str) -> dict:
+def catalog_entry(s: dict, fetched_at: str, r2_public: str, names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     from build_catalog import ATTR
     entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': s['rows']}
     for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{BASENAME}.{ext}', 'bytes': s['sizes'][fmt]}
+        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': s['sizes'][fmt]}
     entry.update({'licence': 'GODL-India', 'attribution': {'primary': dict(ATTR[SOURCE]), 'publisher': dict(PUBLISHER)},
                   'category': 'water', 'provenance': 'curated', 'fetched_at': fetched_at,
                   'notes': notes(s), 'tags': TAGS})
     return entry
 
 
-def manifest_entry(s: dict) -> dict:
+def manifest_entry(s: dict, names: dict[str, str] | None = None) -> dict:
+    names = names or pipeline.plain_names(BASENAME, EXT)
     from build_catalog import ATTR
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'water',
             'source': SOURCE, 'description': description(), 'unit': 'water bodies', 'features': s['rows'],
             'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-            'parquet_file': f'{BASENAME}.parquet', 'parquet_bytes': s['sizes']['parquet'],
-            'pmtiles_file': f'{BASENAME}.pmtiles', 'pmtiles_bytes': s['sizes']['pmtiles'],
+            'parquet_file': names['parquet'], 'parquet_bytes': s['sizes']['parquet'],
+            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': s['sizes']['pmtiles'],
             'source_url': CATALOG_PAGE, 'source_org': ATTR[SOURCE]['name'], 'notes': notes(s), 'tags': TAGS}
 
 
@@ -431,11 +434,11 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent.
     Run only once every file is on R2 (the upload step)."""
     from build_catalog import ATTR
-    from pipeline import R2_PUBLIC, register_layer
     s = json.loads(summary_path.read_text())
-    entry = catalog_entry(s, s['fetched_at'], r2_public or R2_PUBLIC)
-    register_layer(catalog_path, manifest_path, entry, manifest_entry(s), level_meta(),
-                   attribution=(SOURCE, ATTR[SOURCE]))
+    names = pipeline.summary_names(s)
+    entry = catalog_entry(s, s['fetched_at'], r2_public or pipeline.R2_PUBLIC, names=names)
+    pipeline.register_layer(catalog_path, manifest_path, entry, manifest_entry(s, names=names), level_meta(),
+                            attribution=(SOURCE, ATTR[SOURCE]))
 
 
 # ── bake ─────────────────────────────────────────────────────────────────────
@@ -469,7 +472,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     if not force and SUMMARY.exists() and all(p.exists() for p in path.values()):
         prev = json.loads(SUMMARY.read_text())
-        if prev.get('fingerprint') == fingerprint:
+        if prev.get('fingerprint') == fingerprint and prev.get('names'):  # names: the published keys
             log('inputs unchanged and every output exists: nothing to do (--force rebakes)')
             return prev
 
@@ -546,19 +549,24 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
                'numeric_columns': sorted(types), 'shapefiles': shp_files, 'fingerprint': fingerprint,
                'fetched_at': datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                'resources': {r['state']: r['uuid'] for r in res},
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
+               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
+               'names': pipeline.versioned_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     log(json.dumps({k: v for k, v in summary.items() if k not in ('resources', 'numeric_columns')}, indent=2))
     return summary
 
 
-def upload(out_dir: Path = OUT_DIR) -> None:
-    """Resumable multipart uploads: the multi-GB GeoJSON/KML kept losing the
-    connection, and a plain upload starts over each time."""
-    from pipeline import r2_client, r2_upload_resumable
-    s3 = r2_client(read_timeout=300, connect_timeout=60, retries={'max_attempts': 5, 'mode': 'standard'})
-    for ext in EXT.values():
-        r2_upload_resumable(s3, out_dir / f'{BASENAME}.{ext}', f'{R2_PREFIX}/{BASENAME}.{ext}', WORK / 'r2-uploads')
+def local_paths(out_dir: Path) -> dict[str, Path]:
+    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+
+
+def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
+    """Every format to its content-versioned key, by resumable multipart uploads:
+    the multi-GB GeoJSON/KML kept losing the connection, and a plain upload
+    starts over each time."""
+    s3 = pipeline.r2_client(read_timeout=300, connect_timeout=60, retries={'max_attempts': 5, 'mode': 'standard'})
+    return pipeline.upload_versioned(s3, local_paths(out_dir), R2_PREFIX, put=lambda s3, local, key:
+                                     pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads'))
 
 
 def main() -> None:

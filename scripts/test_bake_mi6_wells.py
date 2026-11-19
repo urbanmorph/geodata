@@ -85,6 +85,7 @@ def test_shapefile_names_cover_every_output_column():
 # ── catalog registration ─────────────────────────────────────────────────
 
 SIZES = {'parquet': 1, 'pmtiles': 2, 'geojson': 3, 'kml': 4, 'shapefile': 5}
+NAMES = {f: f'X.{f}' for f in SIZES}
 
 
 def test_catalog_entry_is_complete_and_honest():
@@ -143,7 +144,7 @@ def test_register_patches_catalog_and_manifest_idempotently(tmp_path):
     cat.write_text(json.dumps({'layers': [{'id': 'lgd_districts'}], 'level_meta': {},
                                'level_order': ['lgd_districts'], 'attribution': {}}))
     man.write_text('[]')
-    summ.write_text(json.dumps({'rows': 785, 'wells': 21_931_924, 'sizes': SIZES}))
+    summ.write_text(json.dumps({'rows': 785, 'wells': 21_931_924, 'sizes': SIZES, 'names': NAMES}))
     for _ in range(2):  # re-running must not duplicate anything
         b.register(cat, man, summ, R2)
     c, m = json.loads(cat.read_text()), json.loads(man.read_text())
@@ -159,7 +160,7 @@ def test_register_twice_changes_nothing(tmp_path):
     cat, man, summ = tmp_path / 'catalog.json', tmp_path / 'm.json', tmp_path / 's.json'
     cat.write_text(json.dumps({'layers': [], 'level_meta': {}, 'level_order': [], 'attribution': {}}))
     man.write_text('[]')
-    summ.write_text(json.dumps({'rows': 785, 'wells': 1, 'sizes': SIZES}))
+    summ.write_text(json.dumps({'rows': 785, 'wells': 1, 'sizes': SIZES, 'names': NAMES}))
     b.register(cat, man, summ, R2)
     before = cat.read_text(), man.read_text()
     b.register(cat, man, summ, R2)  # a new timestamp here rewrote catalog.json
