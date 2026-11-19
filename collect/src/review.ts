@@ -24,6 +24,30 @@ export function countsOf(feats: WithStatus[]): { published: number; pending: num
   return c;
 }
 
+// ── a big map's list, a page at a time ─────────────────────────────────────
+
+/** Rows the Review list adds per "Show more". */
+export const REVIEW_PAGE = 200;
+
+/** How many rows to show: what was shown (at least a page), grown by whole
+ *  pages to include row `mustShow` (Back from a point), never more than there are. */
+export function rowsToShow(shown: number, total: number, mustShow = -1): number {
+  const want = Math.max(shown, REVIEW_PAGE, Math.ceil((mustShow + 1) / REVIEW_PAGE) * REVIEW_PAGE);
+  return Math.min(want, total);
+}
+
+/** A short fingerprint of the points and their statuses (FNV-1a), so the
+ *  background refresh can tell "nothing changed" without joining 100k ids. */
+export function reviewSignature(feats: Array<WithStatus & { id?: string | number }>): string {
+  let h = 0x811c9dc5;
+  const mix = (s: string): void => {
+    for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 0x01000193);
+    h = Math.imul(h ^ 0x2c, 0x01000193); // a separator, so "ab"+"c" differs from "a"+"bc"
+  };
+  for (const f of feats) { mix(String(f.id)); mix(statusOf(f)); }
+  return `${feats.length}:${(h >>> 0).toString(36)}`;
+}
+
 // The "who" prefix for a record's meta line. Imported data credits its source; a
 // contributor who typed a name is shown; an unnamed capture returns '' so the UI
 // shows nothing — with no accounts, "by anonymous" is noise on every record.

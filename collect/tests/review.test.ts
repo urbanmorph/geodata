@@ -131,3 +131,36 @@ describe('changing the cached review list in place', () => {
     expect(discarded[0].properties).toMatchObject({ _status: 'pending', _ai: { review: 'discarded', description: 'tree' } });
   });
 });
+
+import { REVIEW_PAGE, rowsToShow, reviewSignature } from '../src/review';
+
+// A map can hold 100,000 points: the list shows a page at a time ("Show more"),
+// and the background refresh compares a short signature, not a joined string.
+describe('the review list, a page at a time', () => {
+  it('shows one page to start, never more than there are', () => {
+    expect(rowsToShow(0, 100_000)).toBe(REVIEW_PAGE);
+    expect(rowsToShow(0, 12)).toBe(12);
+  });
+  it('keeps what was shown, and grows to include a row it must show (Back from a point)', () => {
+    expect(rowsToShow(400, 100_000)).toBe(400);
+    expect(rowsToShow(REVIEW_PAGE, 100_000, 950)).toBe(1000);
+    expect(rowsToShow(REVIEW_PAGE, 960, 950)).toBe(960);
+  });
+});
+
+describe('reviewSignature', () => {
+  const R = (id: string, status?: string) => ({ id, ...F(status) });
+  it('is the same for the same points and statuses', () => {
+    expect(reviewSignature([R('a'), R('b', 'pending')])).toBe(reviewSignature([R('a'), R('b', 'pending')]));
+  });
+  it('changes when a point is added, removed, or its status changes', () => {
+    const base = reviewSignature([R('a'), R('b', 'pending')]);
+    expect(reviewSignature([R('a'), R('b', 'published')])).not.toBe(base);
+    expect(reviewSignature([R('a')])).not.toBe(base);
+    expect(reviewSignature([R('a'), R('c', 'pending')])).not.toBe(base);
+  });
+  it('stays short for a big map', () => {
+    const many = Array.from({ length: 100_000 }, (_, i) => R(`rec${i}`));
+    expect(reviewSignature(many).length).toBeLessThan(32);
+  });
+});

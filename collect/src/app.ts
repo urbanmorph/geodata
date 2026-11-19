@@ -17,7 +17,8 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace, withStatus, withoutRecord, withAiReview } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace, withStatus, withoutRecord, withAiReview, rowsToShow, reviewSignature } from './review';
+import { focusSheet, SHEET_TITLE } from './sheet-focus';
 import { escapeHtml, downloadText } from './util';
 import { toast } from './toast';
 import { linkProblemHtml, isLinkProblem } from './link-problem';
@@ -343,8 +344,8 @@ async function boot(): Promise<void> {
     };
     if (isAdmin) {
       // Admin lands on Manage (review + CRUD + publish); the ⚙ button returns here.
-      (document.getElementById('manage') as HTMLButtonElement).onclick = manageSheet;
-      void manageSheet();
+      (document.getElementById('manage') as HTMLButtonElement).onclick = () => void manageSheet();
+      void manageSheet(false); // on load, focus stays at the top of the page
     } else {
       captureSheet();
     }
@@ -701,7 +702,7 @@ function keepWalk(): void {
   else saveWalk(sessionStorage, ctx.id, { mode: drawMode, how: drawHow, verts, walking: !!trace });
 }
 
-function renderPlaceBar(modes: GeomMode[]): void {
+function renderPlaceBar(modes: GeomMode[], focus?: string): void {
   const panel = document.getElementById('panel')!;
   const seg = modes.length > 1
     ? `<div class="seg" id="modesw" role="group" aria-label="What to add">${modes.map((m) => `<button type="button" data-m="${m}" aria-pressed="${m === drawMode}"${m === drawMode ? ' class="on"' : ''}>${cap(NOUN[m])}</button>`).join('')}</div>`
@@ -738,7 +739,10 @@ function renderPlaceBar(modes: GeomMode[]): void {
     vadd.textContent = how === 'map' ? '+ Add point here'
       : how === 'walk' ? (trace ? (trace.paused() ? 'Resume' : 'Pause') : verts.length ? 'Walk it again' : 'Start walking')
       : cornerTimer ? `Hold still… ${cornerLeft}` : drawMode === 'polygon' ? '+ Add this corner' : '+ Add this point';
-    document.getElementById('vcount')!.textContent = shapeSummary();
+    const vcount = document.getElementById('vcount')!;
+    // Quiet while a walk records (it changes on every GPS reading); it speaks once paused or stopped.
+    vcount.setAttribute('aria-live', trace && !trace.paused() ? 'off' : 'polite');
+    vcount.textContent = shapeSummary();
     document.querySelectorAll('#modesw button').forEach((b) => setPressed(b, (b as HTMLElement).dataset.m === drawMode));
     const ch = document.querySelector('.crosshair');
     ch?.classList.toggle('crosshair--draw', shape);
@@ -854,6 +858,7 @@ function renderPlaceBar(modes: GeomMode[]): void {
     clearVertexMarkers();
     detailsSheet(geometry, modes);
   };
+  if (focus) focusSheet(panel, focus);
 }
 
 // "Just photos": each photo becomes a point where it was taken (the photo's own
@@ -944,7 +949,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
     <form class="body" id="capform">
-      <strong>${cap(noun)} details</strong>
+      <strong ${SHEET_TITLE}>${cap(noun)} details</strong>
       <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
       ${fieldsHtml(fields)}
       <div id="photo-place" aria-live="polite"></div>
@@ -958,6 +963,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     </div>
   </div>`;
   (document.getElementById('contributor') as HTMLInputElement).value = loadContributorName();
+  focusSheet(panel);
   panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => setPressed(c, !c.classList.contains('on')); });
 
   // A point can move to where its photo was taken (and take the photo's time).
@@ -982,7 +988,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   const photos = mountPhotoFields(panel, fields, !!meta.schema.data_saver, () => ({ onAdded: offerPhotoPlace }));
 
   // Back keeps a line/area's vertices so drawing work isn't lost.
-  (document.getElementById('cancel') as HTMLButtonElement).onclick = () => { photos.forEach((p) => p.dispose()); renderPlaceBar(modes); };
+  (document.getElementById('cancel') as HTMLButtonElement).onclick = () => { photos.forEach((p) => p.dispose()); renderPlaceBar(modes, '#place'); };
 
   (document.getElementById('save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
@@ -1064,7 +1070,7 @@ async function editSettings(): Promise<void> {
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
     <form class="body" id="editform">
-      <strong>Edit map settings</strong>
+      <strong ${SHEET_TITLE}>Edit map settings</strong>
       <label for="e-name">Name</label><input id="e-name" maxlength="120" value="${escapeHtml(meta.name)}" required />
       <label for="e-purpose">What's it for?</label><textarea id="e-purpose" maxlength="2000">${escapeHtml(meta.purpose)}</textarea>
       <label for="e-desc">Description <span class="hint">(optional)</span></label><input id="e-desc" maxlength="2000" value="${escapeHtml(meta.description || '')}" />
@@ -1087,6 +1093,8 @@ async function editSettings(): Promise<void> {
     </div>
   </div>`;
 
+  focusSheet(panel);
+
   // reference change: undefined = leave as-is; null = remove; RefLayer = replace
   let refChange: RefLayer | null | undefined;
   const refNow = document.getElementById('e-refnow')!;
@@ -1100,7 +1108,7 @@ async function editSettings(): Promise<void> {
     refNow.innerHTML = `<div class="link-box"><code>${escapeHtml(l.label)}</code></div>`;
   });
 
-  (document.getElementById('e-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
+  (document.getElementById('e-cancel') as HTMLButtonElement).onclick = () => void manageSheet('#edit-settings');
   (document.getElementById('e-save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
     if (!(document.getElementById('editform') as HTMLFormElement).reportValidity()) return;
@@ -1158,7 +1166,7 @@ async function editFormSheet(): Promise<void> {
   panel.innerHTML = `<div class="sheet">
     ${GRAB}
     <div class="body">
-      <strong>Edit form</strong>
+      <strong ${SHEET_TITLE}>Edit form</strong>
       <p class="hint">${n ? `Checked against the map's ${n} point${n === 1 ? '' : 's'}. You can add options and fields; options the points use stay, and a field can be hidden (its data is kept) but not removed.` : 'The map has no points yet, so the form can change freely.'}</p>
       <div id="ef-builder"></div>
       <div id="ef-result" aria-live="polite"></div>
@@ -1172,7 +1180,8 @@ async function editFormSheet(): Promise<void> {
     data: { noun: 'point', values: (f) => valuesOf(f.key) },
     existing: n > 0,
   });
-  (document.getElementById('ef-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
+  focusSheet(panel);
+  (document.getElementById('ef-cancel') as HTMLButtonElement).onclick = () => void manageSheet('#edit-form');
   (document.getElementById('ef-save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
     const out = document.getElementById('ef-result')!;
@@ -1202,7 +1211,9 @@ let manageTab: ManageTab = 'review';
 // Links minted this session, so re-opening a link row returns the same one.
 const minted: { edit?: string; view?: string } = {};
 
-async function manageSheet(): Promise<void> {
+/** focus: false on page load (focus stays put), else what to focus once drawn:
+ *  the title, a control (Back from a sheet opened here), or a point's row. */
+async function manageSheet(focus: false | string | { row: string } = ''): Promise<void> {
   clearHighlight(); // leaving a review detail clears the map highlight
   // Leaving capture mid-walk or mid-corner: stop the GPS and let the screen sleep.
   stopRecording();
@@ -1216,18 +1227,18 @@ async function manageSheet(): Promise<void> {
     ${GRAB}
     <div class="body">
       <div class="row" style="justify-content:space-between;align-items:center">
-        <strong>Manage map</strong>
+        <strong ${SHEET_TITLE}>Manage map</strong>
         <span class="row" style="gap:6px">
           <button id="edit-form" class="btn-sm">✎ Form</button>
           <button id="edit-settings" class="btn-sm">✎ Settings</button>
         </span>
       </div>
-      <div class="tabs" id="mtabs" role="tablist" aria-label="Manage sections">
-        <button type="button" role="tab" data-t="review">Review${c.pending ? ` · ${c.pending}` : ''}</button>
-        <button type="button" role="tab" data-t="share">Share</button>
-        <button type="button" role="tab" data-t="data">Data</button>
+      <div class="tabs" id="mtabs" role="group" aria-label="Manage sections">
+        <button type="button" data-t="review">Review${c.pending ? ` · ${c.pending}` : ''}</button>
+        <button type="button" data-t="share">Share</button>
+        <button type="button" data-t="data">Data</button>
       </div>
-      <div id="tabbody" role="tabpanel" tabindex="0"></div>
+      <div id="tabbody"></div>
     </div>
     <div class="foot row">
       <button id="back">+ Add points</button>
@@ -1241,26 +1252,24 @@ async function manageSheet(): Promise<void> {
   document.querySelectorAll<HTMLButtonElement>('#mtabs button').forEach((b) => {
     b.onclick = () => { manageTab = b.dataset.t as ManageTab; renderManageTab(); };
   });
-  renderManageTab();
+  const row = typeof focus === 'object' ? focus.row : undefined;
+  renderManageTab(row);
+  if (focus !== false) focusSheet(panel, row ? `.point-row[data-id="${CSS.escape(row)}"]` : typeof focus === 'string' && focus ? focus : undefined);
 }
 
-function renderManageTab(): void {
-  document.querySelectorAll<HTMLElement>('#mtabs button').forEach((b) => {
-    const on = b.dataset.t === manageTab;
-    b.classList.toggle('on', on);
-    b.setAttribute('aria-selected', String(on));
-  });
+function renderManageTab(revealRow?: string): void {
+  document.querySelectorAll<HTMLElement>('#mtabs button').forEach((b) => setPressed(b, b.dataset.t === manageTab));
   const body = document.getElementById('tabbody');
   if (!body) return;
   if (manageTab !== 'review') clearSelection(); // don't leave a tooltip/highlight behind
   if (manageTab === 'share') return renderShareTab(body);
   if (manageTab === 'data') return renderDataTab(body);
-  return renderReviewTab(body);
+  return renderReviewTab(body, revealRow);
 }
 
 // Review: moderate the points. The records are fetched ONCE (ensureReviewData);
 // the filter chips slice that cache in memory, so a chip tap is instant.
-function renderReviewTab(body: HTMLElement): void {
+function renderReviewTab(body: HTMLElement, revealRow?: string): void {
   const c = reviewLoaded ? countsOf(allFeats) : meta.counts;
   body.innerHTML = `
     <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
@@ -1289,11 +1298,12 @@ function renderReviewTab(body: HTMLElement): void {
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
       document.querySelectorAll('#pfilter .chip').forEach((x) => setPressed(x, x === b));
+      reviewShown = 0; // a new filter starts at its first page
       renderPoints(); // in-memory filter — instant, no network
     };
   });
   if (reviewLoaded) {
-    renderPoints();      // instant from the cache
+    renderPoints(revealRow); // instant from the cache
     revalidateReview();  // quietly pull fresh data so submissions from elsewhere show up
   } else {
     void ensureReviewData().then(() => {
@@ -1309,15 +1319,12 @@ function renderReviewTab(body: HTMLElement): void {
 // refetches (throttled) so points added or moderated elsewhere appear without a
 // manual reload. It only re-renders when the record set actually changed, so it
 // never yanks the list out from under the admin mid-scroll.
-function reviewSig(): string {
-  return `${allFeats.length}|${allFeats.map((f) => `${f.id}:${statusOf(f)}`).join(',')}`;
-}
 const REVALIDATE_MS = 30_000;
 function revalidateReview(): void {
   if (Date.now() - lastReviewFetch < REVALIDATE_MS) return; // fetched recently: changes made here are already in the cache
-  const before = reviewSig();
+  const before = reviewSignature(allFeats);
   void ensureReviewData(true).then(() => {
-    if (reviewSig() !== before) { updateReviewCounts(meta.counts); renderPoints(); }
+    if (reviewSignature(allFeats) !== before) { updateReviewCounts(meta.counts); renderPoints(); }
   });
 }
 
@@ -1704,11 +1711,16 @@ function cardTitle(props: Record<string, unknown>): string {
 // truncate). Per-point actions live in the review detail, not the row.
 // Render the current filter's rows from the in-memory cache (no network). The
 // records are loaded once by ensureReviewData; chip taps just re-run this.
-function renderPoints(): void {
+// A page of rows at a time: a map can hold 100k points, and one innerHTML of
+// them all froze phones. revealRow (Back from a point) shows enough to include it.
+let reviewShown = 0;
+function renderPoints(revealRow?: string): void {
   const q = document.getElementById('points');
   if (!q) return;
   const status = activeFilter();
   reviewFeats = filterByStatus(allFeats, status);
+  const at = revealRow ? reviewFeats.findIndex((f) => String(f.id) === revealRow) : -1;
+  reviewShown = rowsToShow(reviewShown, reviewFeats.length, at);
   clearSelection();     // the previous selection points at stale indices
   syncReviewLayer();    // redraw the clickable markers for this filter
   fitToFeatures(reviewFeats);
@@ -1718,18 +1730,43 @@ function renderPoints(): void {
       : '<p class="empty">No points here yet. Share the collect link and they will show up as people add them.</p>';
     return;
   }
-  q.innerHTML = reviewFeats.map((f, i) => {
+  q.innerHTML = pointRowsHtml(0, reviewShown) + showMoreHtml();
+  wirePointRows(q);
+}
+
+function pointRowsHtml(from: number, to: number): string {
+  return reviewFeats.slice(from, to).map((f, k) => {
     const st = statusOf(f);
     const geom = f.geometry?.type && f.geometry.type !== 'Point' ? `${nounFor(f.geometry.type)} · ` : '';
-    return `<button type="button" class="point-row" data-idx="${i}">
+    return `<button type="button" class="point-row" data-idx="${from + k}" data-id="${escapeHtml(String(f.id))}">
       <span class="point-row__title">${escapeHtml(geom)}${escapeHtml(cardTitle(f.properties))}</span>
       <span class="badge badge--${st}">${st}</span>
       <span class="point-row__chev" aria-hidden="true">›</span>
     </button>`;
   }).join('');
-  q.querySelectorAll<HTMLButtonElement>('.point-row').forEach((b) => {
+}
+
+function showMoreHtml(): string {
+  const left = reviewFeats.length - reviewShown;
+  return left > 0 ? `<button type="button" class="wide" id="points-more">Show more (${left.toLocaleString('en-IN')} left)</button>` : '';
+}
+
+// Rows are wired once each; "Show more" appends the next page in place and
+// moves focus to its first row (the button it was on goes away).
+function wirePointRows(q: HTMLElement): void {
+  q.querySelectorAll<HTMLButtonElement>('.point-row:not([data-wired])').forEach((b) => {
+    b.dataset.wired = '';
     b.onclick = () => openReview(Number(b.dataset.idx));
   });
+  const more = q.querySelector<HTMLButtonElement>('#points-more');
+  if (more) more.onclick = () => {
+    const from = reviewShown;
+    reviewShown = rowsToShow(reviewShown + 1, reviewFeats.length, from);
+    more.insertAdjacentHTML('beforebegin', pointRowsHtml(from, reviewShown));
+    more.outerHTML = showMoreHtml();
+    wirePointRows(q);
+    q.querySelector<HTMLElement>(`.point-row[data-idx="${from}"]`)?.focus();
+  };
 }
 
 const photoCount = (v: unknown): string => {
@@ -1788,7 +1825,7 @@ function openReview(idx: number): void {
     ${GRAB}
     <div class="body">
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px">
-        <strong style="flex:1">${escapeHtml(cardTitle(p))}</strong>
+        <strong ${SHEET_TITLE} style="flex:1">${escapeHtml(cardTitle(p))}</strong>
         <span class="badge badge--${st}">${st}</span>
       </div>
       ${meta ? `<p class="hint">${meta}</p>` : ''}
@@ -1810,7 +1847,9 @@ function openReview(idx: number): void {
     </div>
   </div>`;
 
-  const back = () => { clearHighlight(); void manageSheet(); };
+  focusSheet(panel);
+  // Back to the list, focus on this point's row (the title, if it has gone).
+  const back = () => { clearHighlight(); void manageSheet({ row: String(f.id) }); };
   (document.getElementById('rv-back') as HTMLButtonElement).onclick = back;
   if (p._photos?.length) showReviewPhotos(document.getElementById('rv-photos')!, p._photos.map((x) => x.url));
   // A point filled in from its photo is approved with its notes ("Looks right, approve").
