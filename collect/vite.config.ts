@@ -27,6 +27,11 @@ export default defineConfig({
         app: resolve(__dirname, 'c.html'),
         notFound: resolve(__dirname, '404.html'),
       },
+      output: {
+        // MapLibre in its own chunk: an app change leaves its file (and every
+        // phone's cached copy of it) untouched, so a deploy doesn't resend it.
+        manualChunks: (id: string) => (/[\\/]node_modules[\\/]maplibre-gl[\\/]/.test(id) ? 'maplibre' : undefined),
+      },
     },
   },
   // Two-process local dev: `vite` here + `wrangler pages dev` (functions/D1/R2).

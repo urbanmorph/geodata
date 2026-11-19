@@ -99,3 +99,18 @@ describe('the photo viewer', () => {
     esc();
   });
 });
+
+describe('memory', () => {
+  it('dispose() lets go of the thumbnails of photos made on this phone', async () => {
+    const revoked: string[] = [];
+    let n = 0;
+    URL.createObjectURL = () => `blob:${++n}`;
+    URL.revokeObjectURL = (u: string) => { revoked.push(u); };
+    const host = document.getElementById('h')!;
+    const pf = mountPhotoField(host, { key: 'pic', label: 'Photo', type: 'photo', max_photos: 3 }, { dataSaver: false });
+    await pick(host, 'camera');
+    await pick(host, 'gallery');
+    pf.dispose();
+    expect(revoked.sort()).toEqual(['blob:1', 'blob:2']);
+  });
+});

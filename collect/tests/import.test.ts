@@ -109,3 +109,10 @@ describe('client_id on imported rows (a re-import adds nothing)', () => {
     expect(new Set(a).size).toBe(3);
   });
 });
+
+describe('a CSV saved by Excel (byte order mark)', () => {
+  it('reads the first column name without the mark (trim drops it), so lng/lat still auto-map', () => {
+    const p = csv('﻿lng,lat,name\n77.5,12.9,Neem');
+    expect(p.columns[0]).toBe('lng');
+  });
+});

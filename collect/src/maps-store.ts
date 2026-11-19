@@ -202,6 +202,8 @@ export function rememberMap(id: string, name: string, role: MapRole, link: strin
 }
 
 export function rememberRecord(mapId: string, mapName: string, rec: Omit<SavedRecord, 'at'>): void {
+  // The owner editing a point opens it with the admin link: that isn't one of their additions.
+  if (/#adm_/.test(rec.link)) return;
   write(applyRecord(myMaps(), mapId, mapName, rec, new Date().toISOString()));
   keepStorage();
 }

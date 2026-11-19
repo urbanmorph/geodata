@@ -1,21 +1,13 @@
-// Reuse web's token primitives unchanged (Phase 1 → promote to shared/ at
-// Phase 2). Adds the record-scoped `rec_` token used for edit / delete /
-// de-identify of one's own contribution.
+// web's token primitives (web/functions/lib/tokens.ts), used unchanged, plus the
+// record-scoped `rec_` token that edits, deletes or de-identifies one's own
+// contribution.
+
+import { generateToken } from '../../../web/functions/lib/tokens';
 
 export { generateToken, tokenPrefix, hashToken, verifyToken } from '../../../web/functions/lib/tokens';
 export type { Permission } from '../../../web/functions/lib/tokens';
 
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-
-/** `rec_` + 32 URL-safe chars (~192 bits), same shape as the collection tokens. */
+/** `rec_` + 32 URL-safe chars (~192 bits): web's generator, under its own prefix. */
 export function generateRecordToken(): string {
-  return randomToken('rec');
-}
-
-function randomToken(prefix: string): string {
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  let out = '';
-  for (const b of bytes) out += ALPHABET[b & 0x3f];
-  return `${prefix}_${out}`;
+  return `rec_${generateToken('edit').slice('edt_'.length)}`;
 }

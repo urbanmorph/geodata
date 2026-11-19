@@ -33,8 +33,6 @@ export function recordWho(source?: string | null, contributor?: string | null): 
   return '';
 }
 
-// The admin's name for the link that added a record ("via Ward 12 team"), from
-// the admin-only _link_label. Unlabelled links show nothing.
 /** "added 24 Oct 2026, 10:40 am": the phone's capture time, else when it was saved. */
 export function recordWhen(captured?: string | null, created?: string | null, timeZone?: string): string {
   const iso = captured || created;
@@ -45,6 +43,8 @@ export function recordWhen(captured?: string | null, created?: string | null, ti
   return `added ${fmt.format(d).replace(/\bAM\b/, 'am').replace(/\bPM\b/, 'pm')}`;
 }
 
+// The admin's name for the link that added a record ("via Ward 12 team"), from
+// the admin-only _link_label. Unlabelled links show nothing.
 export function recordVia(label?: string | null): string {
   return label && label.trim() ? `via ${label.trim()}` : '';
 }
@@ -74,4 +74,28 @@ export function popupActions(status: string): PopupAction[] {
     ];
   if (status === 'rejected') return [{ act: 'published', label: '✓ Approve', cls: 'pop-btn--approve' }, open];
   return [open];
+}
+
+// ── the admin's cached list, changed in place after one action ─────────────
+// (instead of fetching every record of the map again). Each returns a new list.
+
+type Rec = { id: string | number; properties: Record<string, unknown> };
+const patch = <T extends Rec>(feats: T[], id: string, fn: (p: Record<string, unknown>) => Record<string, unknown>): T[] =>
+  feats.map((f) => (String(f.id) === id ? { ...f, properties: fn(f.properties) } : f));
+
+export const withStatus = <T extends Rec>(feats: T[], id: string, status: string): T[] =>
+  patch(feats, id, (p) => ({ ...p, _status: status }));
+
+export const withoutRecord = <T extends Rec>(feats: T[], id: string): T[] => feats.filter((f) => String(f.id) !== id);
+
+/** A notes review as the server answered it (POST /records/:id/ai). */
+export function withAiReview<T extends Rec>(
+  feats: T[], id: string, reply: { review: string; status?: string; properties?: Record<string, unknown> }, description?: string,
+): T[] {
+  return patch(feats, id, (p) => ({
+    ...p,
+    ...(reply.properties ?? {}),
+    ...(reply.status ? { _status: reply.status } : {}),
+    _ai: { ...(p._ai as object | null), review: reply.review, ...(description !== undefined ? { description } : {}) },
+  }));
 }

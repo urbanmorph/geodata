@@ -105,3 +105,29 @@ describe('recordPlace', () => {
     expect(recordPlace({})).toBe('');
   });
 });
+
+import { withStatus, withoutRecord, withAiReview } from '../src/review';
+
+// After one approve, reject, delete or notes review, the admin's cached list is
+// changed in place instead of fetching every record of the map again.
+describe('changing the cached review list in place', () => {
+  const feats = [
+    { id: 'a', properties: { _status: 'pending', name: 'A', _ai: { status: 'done', description: 'tree', review: undefined } } },
+    { id: 'b', properties: { _status: 'pending', name: 'B' } },
+  ];
+  it('sets one record\'s status, leaving the list it came from as it was', () => {
+    const out = withStatus(feats, 'b', 'published');
+    expect(out.map(statusOf)).toEqual(['pending', 'published']);
+    expect(feats.map(statusOf)).toEqual(['pending', 'pending']);
+    expect(countsOf(out)).toMatchObject({ pending: 1, published: 1 });
+  });
+  it('drops a deleted record', () => {
+    expect(withoutRecord(feats, 'a').map((f) => f.id)).toEqual(['b']);
+  });
+  it('applies a notes review: the reply\'s answers and status, and the notes marked', () => {
+    const out = withAiReview(feats, 'a', { review: 'accepted', status: 'published', properties: { name: 'A', kind: 'Neem' } }, 'a neem tree');
+    expect(out[0].properties).toMatchObject({ _status: 'published', name: 'A', kind: 'Neem', _ai: { status: 'done', review: 'accepted', description: 'a neem tree' } });
+    const discarded = withAiReview(feats, 'a', { review: 'discarded' });
+    expect(discarded[0].properties).toMatchObject({ _status: 'pending', _ai: { review: 'discarded', description: 'tree' } });
+  });
+});

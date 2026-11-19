@@ -25,3 +25,16 @@ describe('saveOwnedMap when storage is full', () => {
     expect(saveOwnedMap('mapabc', 'Trees', LINKS)).toBe(false);
   });
 });
+
+import { rememberRecord } from '../src/maps-store';
+
+describe('rememberRecord', () => {
+  it("keeps a contributor's own edit link", () => {
+    rememberRecord('mapabc', 'Trees', { id: 'rec001', label: 'Neem', link: 'https://collect.bharatlas.com/c/mapabc/r/rec001#rec_1' });
+    expect(myMaps()[0].records?.map((r) => r.id)).toEqual(['rec001']);
+  });
+  it("doesn't add the owner's admin edits to Your additions", () => {
+    rememberRecord('mapabc', 'Trees', { id: 'rec002', label: 'Peepal', link: 'https://collect.bharatlas.com/c/mapabc/r/rec002#adm_x' });
+    expect(myMaps()).toEqual([]);
+  });
+});

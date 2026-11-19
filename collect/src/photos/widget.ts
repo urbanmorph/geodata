@@ -32,6 +32,8 @@ export interface PhotoField {
   field: Field;
   items(): PhotoItem[];
   busy(): boolean;
+  /** Let go of the thumbnails made on this phone (the form is closing). */
+  dispose(): void;
 }
 
 /** One Photo question's photos. */
@@ -99,7 +101,8 @@ export function mountPhotoField(host: HTMLElement, field: Field, opts: PhotoFiel
   }
 
   render();
-  return { field, items: () => items.slice(), busy: () => preparing > 0 };
+  const dispose = (): void => { for (const p of items) if (p.bytes) URL.revokeObjectURL(p.url); };
+  return { field, items: () => items.slice(), busy: () => preparing > 0, dispose };
 }
 
 // ── private photos, and the full-screen viewer ─────────────────────────────

@@ -17,8 +17,9 @@ import { validateRecordProperties, type Field } from './schema/validate-record';
 import { orderedModes, drawGeometry, type GeomMode, type Coord } from './geo/draw';
 import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
-import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace } from './review';
+import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace, withStatus, withoutRecord, withAiReview } from './review';
 import { escapeHtml, downloadText } from './util';
+import { toast } from './toast';
 import { linkProblemHtml, isLinkProblem } from './link-problem';
 import { fieldsHtml, setPressed } from './form-fields';
 import type { ExportFeature } from './export/formats';
@@ -101,17 +102,6 @@ function redrawDraw(): void {
   (map.getSource('draw') as maplibregl.GeoJSONSource | undefined)?.setData({ type: 'FeatureCollection', features });
 }
 
-function toast(msg: string): void {
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.setAttribute('role', 'status');
-  t.setAttribute('aria-live', 'polite');
-  t.textContent = msg;
-  document.body.appendChild(t);
-  requestAnimationFrame(() => t.classList.add('show'));
-  setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2400);
-}
-
 function marker(coords: number[], color = ACCENT): maplibregl.Marker | undefined {
   if (coords.length >= 2) return new maplibregl.Marker({ color }).setLngLat([coords[0], coords[1]]).addTo(map);
 }
@@ -133,7 +123,7 @@ async function showQueued(): Promise<void> {
 // Sent: its grey pin turns into a normal one. Discarded: the pin goes.
 function settlePins({ sent, discarded }: OutboxChange): void {
   for (const { client_id, link } of sent) {
-    if (lastQueued === client_id) lastAdded = `✓ Sent. <a href="${link}">edit it</a>`;
+    if (lastQueued === client_id) lastAdded = `✓ Sent. <a href="${escapeHtml(link)}">edit it</a>`;
     const grey = pendingPins.get(client_id);
     if (!grey) continue;
     pendingPins.delete(client_id);
@@ -195,7 +185,8 @@ function installSheetMetrics(): void {
   if (sheetMetricsInstalled) return;
   sheetMetricsInstalled = true;
   const appEl = document.getElementById('app')!;
-  new MutationObserver(() => requestAnimationFrame(updateSheetMetrics)).observe(appEl, { childList: true, subtree: true });
+  // Only the panel's content changes the sheet's height (not the map's own DOM).
+  new MutationObserver(() => requestAnimationFrame(updateSheetMetrics)).observe(document.getElementById('panel') ?? appEl, { childList: true, subtree: true });
   const toggleSheet = (grab: Element): void => {
     const sheet = grab.closest('.sheet');
     const collapsed = sheet?.classList.toggle('collapsed') ?? false;
@@ -495,16 +486,24 @@ async function moderateFromMap(id: string, status: string): Promise<void> {
   try {
     await apiJson(`/records/${id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status }) });
     toast(status === 'published' ? 'Approved ✓' : 'Rejected');
-    await refreshReviewSurfaces();
+    patchReview(withStatus(allFeats, id, status));
+    refreshReviewSurfaces();
   } catch (e) { toast((e as Error).message); }
+}
+
+// One record changed here (approved, rejected, deleted, notes reviewed): the
+// cached list takes the change in place instead of fetching every record again.
+// A fetch already in flight is discarded, as it predates the change.
+function patchReview(next: Feature[]): void {
+  allFeats = next;
+  meta.counts = countsOf(allFeats);
+  reviewGen++;
 }
 
 // Repaint whatever review surfaces are live after a mutation: always the map
 // layer, plus the list + counts when the manage sheet is showing. Clears the
 // tooltip/highlight so the just-moderated point doesn't keep a stale popup.
-async function refreshReviewSurfaces(): Promise<void> {
-  invalidateReview();
-  await ensureReviewData(true);
+function refreshReviewSurfaces(): void {
   if (document.getElementById('points')) {
     updateReviewCounts(meta.counts);
     renderPoints();            // recomputes reviewFeats for the active filter + repaints the layer (also clears the selection)
@@ -558,7 +557,7 @@ async function loadRecords(): Promise<void> {
     // Every published record, not just the server's first page.
     const { data: fc } = await jsonWithOfflineCopy<{ features: Feature[] }>(
       `collect:records:${ctx.id}`,
-      async () => new Response(JSON.stringify({ features: await allRecords<Feature>('published') })),
+      async () => new Response(JSON.stringify({ features: await allRecords<Feature>('published', true) })),
       localStorage, 500_000);
     recordShapes = [];
     for (const f of fc.features || []) {
@@ -901,18 +900,27 @@ function renderPhotoBar(): void {
         const geometry: GeoJSON.Point = { type: 'Point', coordinates: where };
         const contributor = who.value.trim();
         saveContributorName(contributor);
-        const saved = await savePoint({
-          collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: {}, contributor,
-          label: 'Photo', noun: 'point', captured_at: earlierThanNow(pm.taken_at),
-          photos: [{ client_id: newClientId(), field: field.key, bytes, meta: pm }],
-        }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
-        if (saved.state === 'refused') { last.textContent = `Couldn't save: ${saved.error}`; return; }
-        pin(geometry, saved.state === 'waiting' ? saved.client_id : undefined);
         const placed = fromPhoto ? 'where the photo was taken' : fromPhone ? 'at your location' : 'at the crosshair (no location in the photo or from the phone)';
-        lastAdded = saved.state === 'sent' ? `✓ Added ${placed}. <a href="${saved.link}">edit it</a>` : `✓ Saved on this phone ${placed}, waiting to send.`;
-        if (saved.state === 'waiting') lastQueued = saved.client_id;
-        last.innerHTML = lastAdded;
-        toast(saved.state === 'sent' ? 'Photo added ✓' : "Saved on this phone ✓ It'll be sent when you're back online.");
+        // A refused save keeps the photo made ready here, with a way to try again.
+        const attempt = async (): Promise<void> => {
+          const saved = await savePoint({
+            collection_id: ctx.id, map_name: meta.name, token: ctx.token, geometry, properties: {}, contributor,
+            label: 'Photo', noun: 'point', captured_at: earlierThanNow(pm.taken_at),
+            photos: [{ client_id: newClientId(), field: field.key, bytes, meta: pm }],
+          }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
+          if (saved.state === 'refused') {
+            last.innerHTML = `<span class="warn">Couldn't save: ${escapeHtml(saved.error)}.</span> <button type="button" class="ghost" id="photo-retry">Try again</button>`;
+            const retry = last.querySelector<HTMLButtonElement>('#photo-retry')!;
+            retry.onclick = () => { retry.disabled = true; last.textContent = 'Trying again…'; void attempt(); };
+            return;
+          }
+          pin(geometry, saved.state === 'waiting' ? saved.client_id : undefined);
+          lastAdded = saved.state === 'sent' ? `✓ Added ${placed}. <a href="${escapeHtml(saved.link)}">edit it</a>` : `✓ Saved on this phone ${placed}, waiting to send.`;
+          if (saved.state === 'waiting') lastQueued = saved.client_id;
+          last.innerHTML = lastAdded;
+          toast(saved.state === 'sent' ? 'Photo added ✓' : "Saved on this phone ✓ It'll be sent when you're back online.");
+        };
+        await attempt();
       } catch (e) {
         last.textContent = (e as Error).message;
       }
@@ -971,7 +979,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   const photos = mountPhotoFields(panel, fields, !!meta.schema.data_saver, () => ({ onAdded: offerPhotoPlace }));
 
   // Back keeps a line/area's vertices so drawing work isn't lost.
-  (document.getElementById('cancel') as HTMLButtonElement).onclick = () => renderPlaceBar(modes);
+  (document.getElementById('cancel') as HTMLButtonElement).onclick = () => { photos.forEach((p) => p.dispose()); renderPlaceBar(modes); };
 
   (document.getElementById('save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
@@ -1004,13 +1012,14 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     if (ctx.mode !== 'admin' || saved.state === 'waiting') pin(place, saved.state === 'waiting' ? saved.client_id : undefined);
     if (saved.state === 'sent') {
       toast(meta.moderation ? 'Added, pending review ✓' : 'Added ✓');
-      lastAdded = `✓ Added. <a href="${saved.link}">edit this ${noun}</a>`;
+      lastAdded = `✓ Added. <a href="${escapeHtml(saved.link)}">edit this ${noun}</a>`;
     } else {
       toast("Saved on this phone ✓ It'll be sent when you're back online.");
       lastAdded = `✓ Saved on this phone, waiting to send.`;
       lastQueued = saved.client_id;
     }
     verts = []; redrawDraw();
+    photos.forEach((p) => p.dispose()); // the bytes are kept with the point; the thumbnails go
     renderPlaceBar(modes); // back to the map, ready for the next one
   };
 }
@@ -1296,8 +1305,9 @@ function renderReviewTab(body: HTMLElement): void {
 function reviewSig(): string {
   return `${allFeats.length}|${allFeats.map((f) => `${f.id}:${statusOf(f)}`).join(',')}`;
 }
+const REVALIDATE_MS = 30_000;
 function revalidateReview(): void {
-  if (Date.now() - lastReviewFetch < 3000) return; // just fetched — don't spam the network
+  if (Date.now() - lastReviewFetch < REVALIDATE_MS) return; // fetched recently: changes made here are already in the cache
   const before = reviewSig();
   void ensureReviewData(true).then(() => {
     if (reviewSig() !== before) { updateReviewCounts(meta.counts); renderPoints(); }
@@ -1509,11 +1519,12 @@ function renderDataTab(body: HTMLElement): void {
 
 const slug = (s: string): string => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'collect-map';
 
-// Every record of the map, optionally one status only, page by page (the server
+// Every record of the map, optionally one status only (or just their shapes),
+// page by page (the server
 // returns at most 2000 a request), following its cursor so points that arrive
 // meanwhile never repeat or push another off the end.
-function allRecords<T>(status?: string): Promise<T[]> {
-  const q = status ? `&status=${status}` : '';
+function allRecords<T>(status?: string, geometryOnly = false): Promise<T[]> {
+  const q = (status ? `&status=${status}` : '') + (geometryOnly ? '&fields=geometry' : '');
   return fetchAllPages(async (limit, after) => {
     const r = await apiJson<{ features?: T[]; next?: string | null }>(
       `/collections/${ctx.id}/records?limit=${limit}${after ? `&after=${encodeURIComponent(after)}` : ''}${q}`, ctx.token);
@@ -1800,7 +1811,7 @@ function openReview(idx: number): void {
   wireAiReview(String(f.id), back);
   (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = `/c/${ctx.id}/r/${f.id}#${ctx.token}`; };
   const moderate = async (s: string) => {
-    try { await apiJson(`/records/${f.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: s }) }); await refreshCounts(); back(); }
+    try { await apiJson(`/records/${f.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: s }) }); patchReview(withStatus(allFeats, String(f.id), s)); back(); }
     catch (e) { toast((e as Error).message); }
   };
   document.getElementById('rv-approve')?.addEventListener('click', () => void moderate('published'));
@@ -1809,7 +1820,7 @@ function openReview(idx: number): void {
   (document.getElementById('rv-delete') as HTMLButtonElement).onclick = async (ev) => {
     const b = ev.currentTarget as HTMLButtonElement;
     if (!armed) { armed = true; b.textContent = 'Tap to confirm'; return; }
-    try { await apiJson(`/records/${f.id}`, ctx.token, { method: 'DELETE' }); await refreshCounts(); back(); }
+    try { await apiJson(`/records/${f.id}`, ctx.token, { method: 'DELETE' }); patchReview(withoutRecord(allFeats, String(f.id))); back(); }
     catch (e) { toast((e as Error).message); }
   };
 }
@@ -1833,8 +1844,8 @@ function wireAiReview(id: string, back: () => void): void {
     const desc = document.getElementById('ai-desc') as HTMLTextAreaElement | null;
     if (desc && body.action === 'accept') body.description = desc.value;
     try {
-      await apiJson(`/records/${id}/ai`, ctx.token, { method: 'POST', body: JSON.stringify(body) });
-      await refreshCounts();
+      const reply = await apiJson<{ review: string; status?: string; properties?: Record<string, unknown> }>(`/records/${id}/ai`, ctx.token, { method: 'POST', body: JSON.stringify(body) });
+      patchReview(withAiReview(allFeats, id, reply, body.description as string | undefined));
       return true;
     } catch (e) { toast((e as Error).message); return false; }
   };

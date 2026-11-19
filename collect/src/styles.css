@@ -524,7 +524,7 @@ html:has(#app > .map), html:has(#app > .map) body { overflow: hidden; overscroll
   transform: translate(-50%, 8px); background: var(--fg); color: var(--bg);
   padding: 11px 18px; border-radius: var(--radius-pill); box-shadow: var(--shadow-pop);
   font-size: var(--fs-base); font-weight: 500; max-width: min(90vw, 420px); text-align: center;
-  z-index: 20; opacity: 0; transition: opacity .2s ease, transform .2s ease;
+  z-index: 20; opacity: 0; transition: opacity .2s ease, transform .2s ease; pointer-events: none;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
