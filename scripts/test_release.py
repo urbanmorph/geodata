@@ -142,13 +142,62 @@ def test_the_index_lists_every_release_newest_first_with_the_latest_per_dataset(
     assert rel.write_index(r['meta_root']) is False                     # unchanged: not rewritten
 
 
-def test_upload_commands_name_each_staged_file_once(tmp_path):
+def test_upload_keys_name_each_staged_file_once(tmp_path):
     r = roots(tmp_path)
     code, _ = rel.make_release(staging(tmp_path), '2026-11-15', **r)
-    cmds = rel.upload_commands(code, r['files_root'])
-    assert cmds == [(f'npx wrangler r2 object put geodata-data/releases/{code}/cw_states.csv '
-                     f'--file data/baked/releases/{code}/cw_states.csv --content-type "text/csv; charset=utf-8" '
-                     f'--remote')]
+    assert rel.upload_keys(code, r['files_root']) == [
+        (r['files_root'] / code / 'cw_states.csv', f'releases/{code}/cw_states.csv')]
+
+
+class _Bucket:
+    """R2 stand-in: head_object reports what put stored."""
+    class exceptions:  # noqa: N801
+        ClientError = KeyError
+
+    def __init__(self):
+        self.objects = {}
+
+    def head_object(self, Bucket, Key):  # noqa: N803
+        return self.objects[Key]
+
+
+def test_upload_release_puts_new_only_then_verifies_size_and_md5(tmp_path, monkeypatch):
+    # wrangler's r2 object put caps at ~300 MiB, sets no md5 or headers and would
+    # overwrite a release: uploads go through the resumable md5 uploader instead.
+    import pipeline
+    r = roots(tmp_path)
+    code, _ = rel.make_release(staging(tmp_path), '2026-11-15', **r)
+    s3, calls = _Bucket(), []
+
+    def put(s3, local, key, new_only=False):
+        calls.append((key, new_only))
+        s3.objects[key] = {'ContentLength': local.stat().st_size, 'Metadata': {'md5': pipeline.file_md5(local)}}
+    monkeypatch.setattr(pipeline, 'r2_upload_retrying', put)
+    assert rel.upload_release(code, r['files_root'], s3) == 1
+    assert calls == [(f'releases/{code}/cw_states.csv', True)]
+
+
+def test_upload_release_fails_when_r2_does_not_hold_the_bytes(tmp_path, monkeypatch):
+    import pipeline
+    r = roots(tmp_path)
+    code, _ = rel.make_release(staging(tmp_path), '2026-11-15', **r)
+    s3 = _Bucket()
+    monkeypatch.setattr(pipeline, 'r2_upload_retrying', lambda s3, local, key, new_only=False: s3.objects.update(
+        {key: {'ContentLength': 1, 'Metadata': {'md5': pipeline.file_md5(local)}}}))
+    with pytest.raises(RuntimeError, match='cw_states.csv'):
+        rel.upload_release(code, r['files_root'], s3)
+
+
+def test_a_cut_prints_how_to_upload_and_uploads_only_when_asked(tmp_path, monkeypatch, capsys):
+    r = roots(tmp_path)
+    uploaded = []
+    monkeypatch.setattr(rel, 'upload_release', lambda code, files_root: uploaded.append(code) or 1)
+    code = rel._cut(staging(tmp_path), '2026-11-15', **r)
+    out = capsys.readouterr().out
+    assert '--upload' in out and f'releases/{code}/cw_states.csv' in out and 'wrangler' not in out
+    assert uploaded == []
+    assert rel._cut(staging(tmp_path), '2026-11-15', **r, upload=True) == code  # unchanged: still uploads
+    assert uploaded == [code]
 
 
 # ── layer releases: the dataset is a layer id ───────────────────────────────
@@ -287,7 +336,7 @@ def test_a_layer_dry_run_prints_the_release_and_writes_nothing_under_the_release
     assert rel.main(['--layer', 'ngt_zones', '--dry-run', '--date', '2026-11-20']) == 0
     out = capsys.readouterr().out
     assert 'bharatlas-ngt_zones-2026.11: released' in out and '# bharatlas-ngt_zones-2026.11' in out
-    assert 'npx wrangler r2 object put geodata-data/releases/bharatlas-ngt_zones-2026.11/ngt_zones.parquet' in out
+    assert 'releases/bharatlas-ngt_zones-2026.11/ngt_zones.parquet' in out
     assert sorted(p.name for p in r['meta_root'].iterdir()) == before
     assert not r['files_root'].exists()
 

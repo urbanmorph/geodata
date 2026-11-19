@@ -35,6 +35,8 @@ CONTENT_TYPES = {
     '.kmz':     'application/vnd.google-earth.kmz',
     '.json':    'application/json',
     '.zip':     'application/zip',  # for *.shp.zip
+    '.csv':     'text/csv; charset=utf-8',
+    '.md':      'text/markdown; charset=utf-8',
 }
 
 # Whole-layer geojson/kml/shapefile bakes only run when the source parquet is
@@ -361,7 +363,11 @@ def _remote_md5(s3, key: str) -> str | None:
         head = s3.head_object(Bucket=BUCKET, Key=key)
     except s3.exceptions.ClientError:
         return None
-    return head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"')
+    return _head_md5(head)
+
+
+def _head_md5(head: dict) -> str | None:
+    return head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"') or None
 
 
 def _remote_has(s3, key: str, md5: str, new_only: bool = False) -> bool:
@@ -388,6 +394,18 @@ def _put_args(local: Path, md5: str) -> dict:
         'CacheControl': 'public, max-age=604800, immutable',
         'Metadata': {'md5': md5},
     }
+
+
+def r2_verify(s3, local: Path, key: str) -> None:
+    """Raise RuntimeError unless R2 holds `local`'s bytes at `key`: same size and md5."""
+    try:
+        head = s3.head_object(Bucket=BUCKET, Key=key)
+    except s3.exceptions.ClientError:
+        head = {}
+    size, remote, md5 = head.get('ContentLength'), _head_md5(head), file_md5(local)
+    if size != local.stat().st_size or remote != md5:
+        raise RuntimeError(f's3://{BUCKET}/{key} does not hold {local.name}: size {size} vs {local.stat().st_size}, '
+                           f'md5 {remote} vs {md5}')
 
 
 def r2_upload(s3, local: Path, key: str, new_only: bool = False) -> None:
