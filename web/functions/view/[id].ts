@@ -13,6 +13,7 @@ import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundResponse, suggestLayers } from '../lib/not-found';
 import { escapeHtml as esc } from '../../../shared/format.mjs';
 import { retiredRedirect } from '../lib/retired-layers';
+import { LAYER_ID } from '../lib/api-layer';
 
 type Params = { id: string };
 
@@ -48,7 +49,7 @@ function layerNotFound(ctx: AssetCtx, id: string, catalog: Catalog): Promise<Res
 
 export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) return notFoundResponse(ctx, LAYER_NOT_FOUND);
+  if (!LAYER_ID.test(id)) return notFoundResponse(ctx, LAYER_NOT_FOUND);
   const moved = retiredRedirect(new URL(ctx.request.url), id);
   if (moved) return moved;
 

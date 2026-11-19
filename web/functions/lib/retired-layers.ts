@@ -6,13 +6,18 @@ export const RETIRED_LAYERS: Readonly<Record<string, string>> = {
   ir_stations_merged: 'ir_stations',
 };
 
+/** The successor of a retired id, or undefined for a live (or unknown) one. */
+export const successorOf = (id: string): string | undefined =>
+  (Object.hasOwn(RETIRED_LAYERS, id) ? RETIRED_LAYERS[id] : undefined);
+
 /** A 301 to the same URL with the retired id swapped for its successor (in the
- *  path, or in query parameter `param`), or null for a live id. */
+ *  path, e.g. /view/<id> or /og/view/<id>.png, or in query parameter `param`),
+ *  or null for a live id. */
 export function retiredRedirect(url: URL, id: string, param?: string): Response | null {
-  const to = Object.hasOwn(RETIRED_LAYERS, id) ? RETIRED_LAYERS[id] : undefined;
+  const to = successorOf(id);
   if (!to) return null;
   const next = new URL(url);
   if (param) next.searchParams.set(param, to);
-  else next.pathname = url.pathname.replace(new RegExp(`/${id}(?=/|$)`), `/${to}`);
+  else next.pathname = url.pathname.replace(new RegExp(`/${id}(?=[/.]|$)`), `/${to}`);
   return Response.redirect(next.toString(), 301);
 }

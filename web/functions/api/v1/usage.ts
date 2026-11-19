@@ -2,14 +2,18 @@
 // format and state, from /api/dl) and API calls that name the layer, split into
 // api and mcp (the bharatlas MCP). Crawlers and the MCP smoke test are not counted.
 import type { Env } from '../_middleware';
-import { apiError, json } from '../../lib/http';
-import { LAYER_ID } from '../../lib/api-layer';
+import { json } from '../../lib/http';
+import { resolveLayer } from '../../lib/api-layer';
 import { shapeUsage } from '../../lib/usage';
 import { cachedLive } from '../../lib/edge-cache';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const layer = new URL(ctx.request.url).searchParams.get('layer');
-  if (layer !== null && !LAYER_ID.test(layer)) return apiError(400, 'Invalid layer ID');
+  // A named layer must exist (404, not zeros); a retired id answers 301.
+  if (layer !== null) {
+    const r = await resolveLayer(ctx, { param: 'layer' });
+    if (r instanceof Response) return r;
+  }
   return cachedLive(ctx, async () => {
     const where = layer ? ' WHERE layer_id = ?' : '';
     const bind = layer ? [layer] : [];

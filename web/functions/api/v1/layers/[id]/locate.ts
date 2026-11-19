@@ -15,7 +15,8 @@ import { locate } from '../../../../lib/locate';
 import { nearby } from '../../../../lib/nearby';
 import { QueryInputError } from '../../../../lib/parquet-query';
 import { pickContains, bearingLabel } from '../../../../lib/locate-layer';
-import { apiError, serverError } from '../../../../lib/http';
+import { apiError, json, serverError } from '../../../../lib/http';
+import { countApiUse } from '../../../../lib/usage';
 import { clampNum } from '../../../../lib/query-params';
 import { parseIndiaPoint, resolveLayer } from '../../../../lib/api-layer';
 
@@ -38,6 +39,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   if (r instanceof Response) return r;
   const { layer, catalog } = r;
   const id = layer.id;
+  countApiUse(ctx, id);
 
   const base = { layer_id: id, point: { lat, lng } };
 
@@ -86,8 +88,4 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   return ok({ ...base, mode: mode === 'auto' ? 'contains' : mode, feature: null });
 };
 
-function ok(body: unknown) {
-  return new Response(JSON.stringify(body), {
-    headers: { 'content-type': 'application/json', 'cache-control': 'private, no-store' },
-  });
-}
+const ok = (body: unknown) => json(200, body, { 'cache-control': 'private, no-store' });

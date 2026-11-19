@@ -3,8 +3,9 @@ import { clampNum } from '../../lib/query-params';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { locate, DEFAULT_LOCATE_LAYERS } from '../../lib/locate';
 import { resolveLocateLayers, wardFallbackNeeded, mergeLocateResults, fallbackWardLayers, MAX_LOCATE_LAYERS } from '../../lib/ward-locate';
-import { apiError } from '../../lib/http';
+import { apiError, json } from '../../lib/http';
 import { parseIndiaPoint } from '../../lib/api-layer';
+import { successorOf } from '../../lib/retired-layers';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -15,31 +16,40 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const zoom = clampNum(url.searchParams.get('zoom'), 14, 4, 16, true);
 
   // Default path auto-includes the city ward layer(s) covering the point (ward
-  // lookup is the top demand); an explicit `layers=` is honoured verbatim.
-  const layerIds = resolveLocateLayers(
-    url.searchParams.get('layers'), lng, lat, DEFAULT_LOCATE_LAYERS,
-  );
+  // lookup is the top demand); an explicit `layers=` is honoured as given.
+  const layersParam = url.searchParams.get('layers');
+  let layerIds = resolveLocateLayers(layersParam, lng, lat, DEFAULT_LOCATE_LAYERS);
 
   if (layerIds.length > MAX_LOCATE_LAYERS) {
     return apiError(400, `ask at most ${MAX_LOCATE_LAYERS} layers at once`);
   }
 
   const catalog = await loadCatalog(ctx);
+
+  // An explicit list: a retired id is asked as its successor, an unknown one is
+  // reported (it used to vanish, answering an empty 200 that looked like "no
+  // feature here"); none known at all is a 400.
+  let unknown: string[] = [];
+  if (layersParam?.trim()) {
+    const known = new Set(catalog.layers.map((l) => l.id));
+    const mapped = [...new Set(layerIds.map((id) => successorOf(id) ?? id))];
+    unknown = mapped.filter((id) => !known.has(id));
+    layerIds = mapped.filter((id) => known.has(id));
+    if (!layerIds.length) {
+      return apiError(400, `No such layer: ${unknown.join(', ')}. See /api/v1/layers for layer ids.`);
+    }
+  }
+
   const result = await locate(lat, lng, layerIds, zoom, catalog, ctx.env.R2);
 
   // A city ward layer chosen by bbox can miss the point (Jaipur's layer is
   // Greater Jaipur only): ask the national SBM ward layer as a second pass.
-  if (wardFallbackNeeded(url.searchParams.get('layers'), layerIds, result.results)) {
+  if (wardFallbackNeeded(layersParam, layerIds, result.results)) {
     const extra = await locate(lat, lng, fallbackWardLayers(lng, lat), zoom, catalog, ctx.env.R2);
     result.results = mergeLocateResults(result.results, extra.results);
     result.queried_layers = [...result.queried_layers, ...extra.queried_layers];
     if (extra.failed_layers) result.failed_layers = [...(result.failed_layers ?? []), ...extra.failed_layers];
   }
 
-  return new Response(JSON.stringify(result), {
-    headers: {
-      'content-type': 'application/json',
-      'cache-control': 'private, no-store',
-    },
-  });
+  return json(200, unknown.length ? { ...result, unknown_layers: unknown } : result, { 'cache-control': 'private, no-store' });
 };
