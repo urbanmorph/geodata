@@ -84,3 +84,28 @@ describe('buildRecords with dates', () => {
     expect(r.records[0].properties).toEqual({ day: '2026-05-04' });
   });
 });
+
+import { buildRecords as build } from '../src/import/build';
+import { parseCSV as csv, parseGeoJSON as gj } from '../src/import/parse';
+
+describe('client_id on imported rows (a re-import adds nothing)', () => {
+  const fields = [{ key: 'name', label: 'Name', type: 'text' as const }];
+  const map = { fields: { name: 'name' }, lng: 'lng', lat: 'lat' };
+  it('uses an id column when the file has one', () => {
+    const out = build(csv('ID,name,lng,lat\nT-1,Neem,77.5,12.9\nT-2,Peepal,77.6,12.9').features, map, fields, ['point']);
+    expect(out.records.map((r) => r.client_id)).toEqual(['T-1', 'T-2']);
+  });
+  it("uses a GeoJSON feature's own id", () => {
+    const fc = { type: 'FeatureCollection', features: [{ type: 'Feature', id: 7, geometry: { type: 'Point', coordinates: [77.5, 12.9] }, properties: { name: 'a' } }] };
+    expect(build(gj(JSON.stringify(fc)).features, { fields: { name: 'name' } }, fields, ['point']).records[0].client_id).toBe('7');
+  });
+  it('otherwise fingerprints the row: stable across runs, numbered when a row repeats', () => {
+    const text = 'name,lng,lat\nNeem,77.5,12.9\nNeem,77.5,12.9\nPeepal,77.6,12.9';
+    const a = build(csv(text).features, map, fields, ['point']).records.map((r) => r.client_id);
+    const b = build(csv(text).features, map, fields, ['point']).records.map((r) => r.client_id);
+    expect(a).toEqual(b);
+    expect(a[0]).toMatch(/^row-[0-9a-f]{16}$/);
+    expect(a[1]).toBe(`${a[0]}~2`);
+    expect(new Set(a).size).toBe(3);
+  });
+});

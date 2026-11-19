@@ -1,6 +1,8 @@
 // Client-side helpers: parse the collection id + mode + token from the URL
 // (token rides the fragment, never sent in a request line), and call the API.
 
+import { keepOfflineCopy } from './offline-copies';
+
 export type Mode = 'capture' | 'admin' | 'view' | 'record';
 
 export interface Ctx {
@@ -74,11 +76,9 @@ export async function jsonWithOfflineCopy<T>(
   const keep = async (res: Response): Promise<T> => {
     const data = await readJson<T>(res);
     const copy = JSON.stringify(data);
-    try {
-      // Too big to keep: drop any older copy too, so offline never shows an outdated one as current.
-      if (copy.length > maxChars) store.removeItem(key);
-      else store.setItem(key, copy);
-    } catch { /* storage full: still works online */ }
+    // Too big to keep: drop any older copy too, so offline never shows an outdated one as current.
+    if (copy.length > maxChars) { try { store.removeItem(key); } catch { /* blocked storage */ } }
+    else keepOfflineCopy(store, key, copy);
     return data;
   };
   const fresh = request().then(keep);

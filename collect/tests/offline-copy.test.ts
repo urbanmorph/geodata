@@ -85,3 +85,43 @@ describe('jsonWithOfflineCopy on a stalled connection', () => {
   });
 });
 
+
+import { keepOfflineCopy, dropOfflineCopies, MAX_OFFLINE_COPIES } from '../src/offline-copies';
+
+// localStorage also holds "Your maps", the only copy of a map's admin link, so
+// the offline copies of maps are bounded and give way to it.
+describe('offline copies are bounded', () => {
+  it(`keeps only the ${MAX_OFFLINE_COPIES} most recently used copies`, () => {
+    const store = memoryStorage();
+    for (let i = 0; i < MAX_OFFLINE_COPIES + 3; i++) keepOfflineCopy(store, `collect:records:m${i}`, `{"i":${i}}`);
+    expect(store.getItem('collect:records:m0')).toBeNull();
+    expect(store.getItem('collect:records:m2')).toBeNull();
+    expect(store.getItem(`collect:records:m${MAX_OFFLINE_COPIES + 2}`)).not.toBeNull();
+    keepOfflineCopy(store, 'collect:records:m3', '{}'); // used again: now the newest
+    keepOfflineCopy(store, 'collect:records:new', '{}');
+    expect(store.getItem('collect:records:m3')).not.toBeNull();
+    expect(store.getItem('collect:records:m4')).toBeNull();
+  });
+  it('when storage is full, drops the other copies and keeps the new one', () => {
+    const store = memoryStorage();
+    store.setItem('collect:maps', '[]');
+    keepOfflineCopy(store, 'collect:meta:a', 'x'.repeat(10));
+    keepOfflineCopy(store, 'collect:records:a', 'x'.repeat(10));
+    const set = store.setItem.bind(store);
+    store.setItem = (k, v) => { if (k === 'collect:records:b' && store.getItem('collect:records:a') !== null) throw new DOMException('full', 'QuotaExceededError'); set(k, v); };
+    keepOfflineCopy(store, 'collect:records:b', 'y');
+    expect(store.getItem('collect:records:b')).toBe('y');
+    expect(store.getItem('collect:records:a')).toBeNull();
+    expect(store.getItem('collect:maps')).toBe('[]');
+  });
+  it('dropOfflineCopies leaves everything else alone', () => {
+    const store = memoryStorage();
+    store.setItem('collect:maps', '[]');
+    store.setItem('collect:contributor', 'A');
+    keepOfflineCopy(store, 'collect:meta:a', '{}');
+    dropOfflineCopies(store);
+    expect(store.getItem('collect:meta:a')).toBeNull();
+    expect(store.getItem('collect:maps')).toBe('[]');
+    expect(store.getItem('collect:contributor')).toBe('A');
+  });
+});

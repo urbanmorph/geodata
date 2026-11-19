@@ -4,6 +4,8 @@
 // edit links of records you added (their rec_ token is the only way back to
 // edit, delete or de-identify them — there are no accounts).
 
+import { dropOfflineCopies } from './offline-copies';
+
 export type MapRole = 'owner' | 'collect' | 'view';
 export interface SavedRecord { id: string; label: string; link: string; at: string; }
 export interface SavedMap {
@@ -155,10 +157,18 @@ export function myMaps(): SavedMap[] {
 
 export const MAPS_CHANGED = 'collect:maps-changed';
 
-function write(maps: SavedMap[]): void {
-  try { localStorage.setItem(KEY, JSON.stringify(capMaps(maps))); } catch { /* per-device convenience only */ }
+/** Saves the list; false when this device's storage refused it. The offline
+ *  copies of maps give way first: this list is the only copy of admin links. */
+function write(maps: SavedMap[]): boolean {
+  const json = JSON.stringify(capMaps(maps));
+  let ok = false;
+  try {
+    try { localStorage.setItem(KEY, json); } catch { dropOfflineCopies(localStorage); localStorage.setItem(KEY, json); }
+    ok = true;
+  } catch { /* storage blocked or still full: the caller says so where it matters */ }
   // Lets keyring sync (when the user turned it on) push the change.
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event(MAPS_CHANGED));
+  if (ok && typeof window !== 'undefined') window.dispatchEvent(new Event(MAPS_CHANGED));
+  return ok;
 }
 export function replaceMaps(maps: SavedMap[]): void { write(maps); }
 
@@ -169,13 +179,16 @@ function keepStorage(): void {
   try { void navigator.storage?.persist?.(); } catch { /* unsupported */ }
 }
 
-// Owner creating a map (all three links).
-export function saveOwnedMap(id: string, name: string, links: { edit?: string; admin?: string; view?: string }): void {
-  const prev = myMaps().find((m) => m.id === id);
-  const maps = myMaps().filter((m) => m.id !== id);
+// Owner creating a map (all three links). False when it couldn't be saved on
+// this device: the page then shows the admin link to keep by hand.
+export function saveOwnedMap(id: string, name: string, links: { edit?: string; admin?: string; view?: string }): boolean {
+  const all = myMaps();
+  const prev = all.find((m) => m.id === id);
+  const maps = all.filter((m) => m.id !== id);
   maps.unshift({ id, name: name || 'Untitled map', role: 'owner', links, records: prev?.records, at: new Date().toISOString() });
-  write(maps);
+  const ok = write(maps);
   keepStorage();
+  return ok;
 }
 
 export function replaceAdminLink(id: string, name: string, oldLink: string, newLink: string): void {

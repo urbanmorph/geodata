@@ -294,7 +294,10 @@ export function startCreate(host: WizardHost): void {
           turnstile_token,
         }),
       });
-      // The map exists now; whatever happens to the rows is reported, never dropped quietly.
+      // The map exists now: keep its links before anything else (the admin link
+      // is shown only once, and a long import can be cut short). Whatever happens
+      // to the rows is reported, never dropped quietly.
+      const saved = saveOwnedMap(res.id, name, res.links); // syncs to the other devices when sync is on
       let report: ImportReport | undefined;
       if (s.seed) {
         const plan = planSeed(s);
@@ -304,8 +307,7 @@ export function startCreate(host: WizardHost): void {
         }));
         report = importReport(s.seed.parsed.features, plan, reply);
       }
-      saveOwnedMap(res.id, name, res.links); // syncs to the other devices when sync is on
-      ready(host, { id: res.id, name, links: res.links, admin: res.tokens.admin, report });
+      ready(host, { id: res.id, name, links: res.links, admin: res.tokens.admin, report, unsaved: !saved });
     } catch (e) {
       btn.disabled = false;
       stop((e as Error).message);
@@ -361,7 +363,7 @@ function renderSeedSummary(app: HTMLElement, s: State): void {
 
 // ── Ready ─────────────────────────────────────────────────────────────────
 
-interface Made { id: string; name: string; links: Record<string, string>; admin: string; report?: ImportReport; }
+interface Made { id: string; name: string; links: Record<string, string>; admin: string; report?: ImportReport; unsaved?: boolean; }
 
 export function ready(host: WizardHost, m: Made): void {
   const { app } = host;
@@ -372,9 +374,11 @@ export function ready(host: WizardHost, m: Made): void {
       <svg class="ready-mark" width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>
       <h1>${escapeHtml(m.name)} is ready</h1>
       ${m.report ? importReportHtml(m.report) : ''}
-      <p class="hint">${synced
-        ? "Saved to Your maps on this device. Sync is on, so it's on your other devices too."
-        : 'Saved to Your maps on this device. Want it on your other devices too? <a href="#" id="rd-sync">Set up sync</a>'}</p>
+      ${m.unsaved
+        ? `<div class="notice" id="rd-unsaved"><div><p class="warn">This device couldn't save this map to Your maps (its storage is full or blocked). Keep the admin link now: it is shown only this once.</p>${shareItemHtml('admin', 'Admin link', m.links.admin)}</div></div>`
+        : `<p class="hint">${synced
+          ? "Saved to Your maps on this device. Sync is on, so it's on your other devices too."
+          : 'Saved to Your maps on this device. Want it on your other devices too? <a href="#" id="rd-sync">Set up sync</a>'}</p>`}
       <section class="card invite">
         <div class="invite__head"><strong>Invite people to collect</strong><span class="hint">optional</span></div>
         <p class="hint">Each person gets their own link. You'll see who added what, and can switch one link off. You can do this any time from <strong>Manage → Share</strong>.</p>
@@ -392,6 +396,7 @@ export function ready(host: WizardHost, m: Made): void {
 
   app.querySelector<HTMLAnchorElement>('#rd-home')!.onclick = (e) => { e.preventDefault(); host.home(); };
   app.querySelector<HTMLAnchorElement>('#rd-sync')?.addEventListener('click', (e) => { e.preventDefault(); host.home(true); });
+  if (m.unsaved) wireShareItems(app.querySelector<HTMLElement>('#rd-unsaved')!, m.name);
   const dl = app.querySelector<HTMLButtonElement>('#dl-not-added');
   if (dl && m.report) dl.onclick = () => downloadText(errorsToCSV(m.report!.notAdded), 'rows-not-added.csv', 'text/csv');
 
