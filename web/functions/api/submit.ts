@@ -19,7 +19,7 @@ import { json as j } from '../lib/http';
 import { findDuplicateByHash } from '../lib/submissions';
 import { persistSubmission } from '../lib/persist-submission';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
-import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, ipSalt } from '../lib/submit-helpers';
+import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, ipSalt, parseDataYear } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
 import { attemptRowFromResult, attemptRowReject, logAttempt, parseErrorSummary, type AttemptRow } from '../lib/submit-log';
 
@@ -102,8 +102,12 @@ async function handleSubmit(
   const license = f('license');
   const attribution = f('attribution');
   const sourceUrl = f('source_url');
-  const dataYear = f('data_year') ? parseInt(f('data_year')!, 10) : null;
+  const dataYear = parseDataYear(f('data_year'));
   const isOriginal = f('is_original') === '1';
+  if (dataYear instanceof Error) {
+    log(attemptRowReject('fields', dataYear.message, { ipHash }));
+    return reply(400, { error: dataYear.message });
+  }
 
   const filename = sanitizeFilename(file.name);
   const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';

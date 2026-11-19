@@ -51,3 +51,12 @@ export async function ipHashFor(
 export async function ipHashStable(request: Request, salt: string): Promise<string> {
   return sha256Hex(`${clientOf(request)}|vote|${salt}`);
 }
+
+/** The optional "Data year" field: a four-digit year from 1800 to next year,
+ *  null when blank, or an Error saying what is wrong (parseInt took "20x9" as 20). */
+export function parseDataYear(raw: string, now = new Date()): number | null | Error {
+  if (!raw) return null;
+  const max = now.getUTCFullYear() + 1;
+  const y = /^\d{4}$/.test(raw) ? Number(raw) : NaN;
+  return y >= 1800 && y <= max ? y : new Error(`data_year must be a year from 1800 to ${max}`);
+}
