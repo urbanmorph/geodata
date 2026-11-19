@@ -58,3 +58,22 @@ describe('/api/dl/counts adds up every row for a layer and format', () => {
     expect(out).toEqual({ lgd_districts: { parquet: 8 }, wris_dams: { geojson: 7 }, _total: 15 });
   });
 });
+
+describe('the download route does not count crawlers', () => {
+  it('a bot is redirected without a count; a person is counted', async () => {
+    const { onRequestGet } = await import('../functions/api/dl/[[path]]');
+    const run = async (ua: string) => {
+      const waits: Promise<unknown>[] = [];
+      const r = await onRequestGet({
+        request: new Request('https://bharatlas.com/api/dl/admin/states/LGD_States.parquet', { headers: { 'user-agent': ua } }),
+        params: { path: ['admin', 'states', 'LGD_States.parquet'] },
+        env: { DB: {}, ASSETS: { fetch: async () => new Response('{"layers":[]}') } },
+        waitUntil: (p: Promise<unknown>) => waits.push(p),
+      } as never);
+      expect(r.status).toBe(302);
+      return waits.length;
+    };
+    expect(await run('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')).toBe(0);
+    expect(await run('Mozilla/5.0 (Macintosh) Firefox/130')).toBe(1);
+  });
+});

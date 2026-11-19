@@ -75,6 +75,12 @@ describe('renderViewPage', () => {
     expect(html).toMatch(/href="\/api\/r2\/community\/rT0I6Kgo9X\/file\.geojson"/);
   });
 
+  it('encodes each key segment, so "#", "?" and spaces in a filename keep the link whole', () => {
+    const html = renderViewPage({ submission: row({ r2_key: 'community/rT0I6Kgo9X/A #1 ?.kml' }), ratingsCount: 0 });
+    expect(html).toContain('href="/api/r2/community/rT0I6Kgo9X/A%20%231%20%3F.kml"');
+    expect(html).toContain('download="A #1 ?.kml"');
+  });
+
   it('renders the "View map" CTA that points at /preview with url param', () => {
     const html = renderViewPage({ submission: row(), ratingsCount: 0 });
     expect(html).toContain('href="/preview?url=');

@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import {
   query,
-  aggregateGroups,
+  groupAccumulator,
   validateSumColumns,
   QueryInputError,
   type GroupByResult,
@@ -24,7 +24,14 @@ const file = {
     buf.buffer.slice(buf.byteOffset + start, buf.byteOffset + (end ?? buf.byteLength)) as ArrayBuffer,
 };
 
-describe('aggregateGroups (pure)', () => {
+/** One batch through the accumulator. */
+function aggregateGroups(rows: Record<string, unknown>[], g: string, sumCols: string[] = []) {
+  const acc = groupAccumulator(g, sumCols);
+  acc.add(rows);
+  return acc.result();
+}
+
+describe('groupAccumulator (pure)', () => {
   const rows = [
     { g: 'A', v: 1.5, n: 10n },
     { g: 'A', v: 2.5, n: 5n },

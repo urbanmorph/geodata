@@ -164,6 +164,29 @@ describe('/mcp tools/call', () => {
     expect(json.result.content[0].text).toContain('Layer not found');
   });
 
+  it('a retired layer id follows its 301 to the successor, in-process', async () => {
+    const seen: string[] = [];
+    const handler = async (ctx: { request: Request; params: Record<string, string> }) => {
+      seen.push(new URL(ctx.request.url).pathname);
+      return ctx.params.id === 'old'
+        ? Response.redirect(`${ORIGIN}/api/v1/layers/new/schema`, 301)
+        : new Response(JSON.stringify({ data: { id: ctx.params.id } }));
+    };
+    const { json } = await rpc(call('get_layer_schema', { layer_id: 'old' }), { routes: [[/^\/layers\/([^/]+)\/schema$/, handler]] });
+    expect(seen).toEqual(['/api/v1/layers/old/schema', '/api/v1/layers/new/schema']);
+    expect(JSON.parse(json.result.content[0].text)).toEqual({ data: { id: 'new' } });
+  });
+
+  it('a handler that throws is a tool error that names no internals', async () => {
+    const boom = async () => { throw new Error('R2 key not found: secret/key.parquet'); };
+    const err = (await import('vitest')).vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { json } = await rpc(call('get_layer_schema', { layer_id: 'x' }), { routes: [[/^\/layers\/([^/]+)\/schema$/, boom]] });
+    expect(json.result.isError).toBe(true);
+    expect(json.result.content[0].text).not.toContain('secret/key');
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
+
   it('a layer id that is not a plain id never reaches the API', async () => {
     const { routes, seen } = stubRoutes();
     const { json } = await rpc(call('get_layer_schema', { layer_id: '../submissions' }), { routes });

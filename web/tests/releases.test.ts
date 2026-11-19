@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
-import { releaseRoute } from '../functions/lib/releases';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { releaseRoute, __resetReleaseIndexForTest } from '../functions/lib/releases';
+
+beforeEach(() => __resetReleaseIndexForTest());
 import { onRequestGet as releasesFn, onRequestHead as releasesHead } from '../functions/releases/[[path]]';
 import { onRequestGet as apiReleases } from '../functions/api/v1/releases';
 import { isKnownRoute } from '../functions/lib/routes';

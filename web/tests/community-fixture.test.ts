@@ -12,7 +12,7 @@ const fixture = JSON.parse(read('tests/fixtures/community.json')) as { id: strin
 
 describe('npm test uses the fixture', () => {
   it('for both the prerender and the test run', () => {
-    expect(JSON.parse(read('package.json')).scripts.test).toBe("COMMUNITY_FROM=fixture sh -c 'node scripts/prerender.mjs && vitest run'");
+    expect(JSON.parse(read('package.json')).scripts.test).toBe("COMMUNITY_FROM=fixture sh -c 'node scripts/prerender.mjs && vitest run' && npm run typecheck");
   });
 });
 

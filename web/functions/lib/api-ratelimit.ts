@@ -9,6 +9,8 @@
  * round trips before every API call.
  */
 
+import { ipSalt, sha256Hex } from './crypto';
+
 type RunnableD1 = Pick<D1Database, 'prepare'>;
 
 const MINUTE_MS = 60 * 1000;
@@ -54,10 +56,10 @@ export function rateKeySource(ip: string): string {
 
 /** The hashed rate-limit key for a request: CF-Connecting-IP only (never
  *  X-Forwarded-For, which a client sets), salted with IP_SALT when it is set. */
-export async function apiRateKey(request: Request, salt?: string): Promise<string> {
+export function apiRateKey(request: Request, salt?: string): Promise<string> {
   const source = rateKeySource(request.headers.get('cf-connecting-ip') || 'unknown');
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt ? `${source}|${salt}` : source));
-  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+  const s = ipSalt(salt, ''); // unsalted (as before) when unset, and said so in the log
+  return sha256Hex(s ? `${source}|${s}` : source);
 }
 
 // The isolate answers first; D1 (the limit across isolates) is bumped after the

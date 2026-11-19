@@ -13,7 +13,7 @@ type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void };
 /** How long the colo keeps an answer (seconds). Catalog answers can't go stale
  *  (the key moves with the catalog); R2 answers allow for an object replaced
  *  under the same key. */
-export const EDGE_TTL = { catalog: 86_400, r2: 3_600, page: 86_400 } as const;
+export const EDGE_TTL = { catalog: 86_400, r2: 3_600, page: 86_400, live: 60 } as const;
 
 const KEY_ORIGIN ='https://bharatlas.com/__cache/';
 // Restores the handler's own cache-control on a hit: the stored copy carries
@@ -103,4 +103,28 @@ export async function cached(
     ctx.waitUntil(cache.put(key, stored).catch(() => {}));
   }
   return notModified(ctx.request, res);
+}
+
+/**
+ * A D1-backed answer (counts, votes, the sitemap): kept `ttl` seconds in the
+ * colo (default EDGE_TTL.live, so counts may lag a minute) instead of a D1 read
+ * per request. The key is the URL alone (D1 does not change with a deploy). A
+ * failure is a 503 the colo does not keep, never a cached "zero".
+ */
+export function cachedLive(
+  ctx: CacheCtx,
+  compute: () => Promise<Response>,
+  ttl: number = EDGE_TTL.live,
+  cache: EdgeCache | null = defaultCache(),
+): Promise<Response> {
+  return cached(ctx, cacheKey('live', new URL(ctx.request.url)), ttl, async () => {
+    try {
+      return await compute();
+    } catch (e) {
+      console.error(`${new URL(ctx.request.url).pathname} failed:`, (e as Error)?.message ?? e);
+      return new Response(JSON.stringify({ error: 'Temporarily unavailable, please try again', status: 503 }), {
+        status: 503, headers: { 'content-type': 'application/json', 'retry-after': '30' },
+      });
+    }
+  }, cache);
 }

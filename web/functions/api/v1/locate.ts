@@ -3,23 +3,14 @@ import { clampNum } from '../../lib/query-params';
 import { loadCatalog } from '../../lib/catalog-loader';
 import { locate, DEFAULT_LOCATE_LAYERS } from '../../lib/locate';
 import { resolveLocateLayers, wardFallbackNeeded, mergeLocateResults, fallbackWardLayers, MAX_LOCATE_LAYERS } from '../../lib/ward-locate';
-import { json } from '../../lib/http';
+import { apiError } from '../../lib/http';
+import { parseIndiaPoint } from '../../lib/api-layer';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
-  const latStr = url.searchParams.get('lat');
-  const lngStr = url.searchParams.get('lng');
-
-  if (!latStr || !lngStr) {
-    return json(400, { error: 'lat and lng query params are required', status: 400 });
-  }
-
-  const lat = parseFloat(latStr);
-  const lng = parseFloat(lngStr);
-
-  if (isNaN(lat) || isNaN(lng) || lat < 6 || lat > 38 || lng < 68 || lng > 98) {
-    return json(400, { error: 'lat must be 6-38, lng must be 68-98 (India bounding box)', status: 400 });
-  }
+  const pt = parseIndiaPoint(url.searchParams);
+  if ('error' in pt) return apiError(400, pt.error);
+  const { lat, lng } = pt;
 
   const zoom = clampNum(url.searchParams.get('zoom'), 14, 4, 16, true);
 
@@ -30,7 +21,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   );
 
   if (layerIds.length > MAX_LOCATE_LAYERS) {
-    return json(400, { error: `ask at most ${MAX_LOCATE_LAYERS} layers at once`, status: 400 });
+    return apiError(400, `ask at most ${MAX_LOCATE_LAYERS} layers at once`);
   }
 
   const catalog = await loadCatalog(ctx);
@@ -42,6 +33,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const extra = await locate(lat, lng, fallbackWardLayers(lng, lat), zoom, catalog, ctx.env.R2);
     result.results = mergeLocateResults(result.results, extra.results);
     result.queried_layers = [...result.queried_layers, ...extra.queried_layers];
+    if (extra.failed_layers) result.failed_layers = [...(result.failed_layers ?? []), ...extra.failed_layers];
   }
 
   return new Response(JSON.stringify(result), {

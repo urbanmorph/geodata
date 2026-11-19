@@ -1,6 +1,7 @@
 import type { Env } from '../../_middleware';
+import { json } from '../../../lib/http';
 import { clampNum } from '../../../lib/query-params';
-import { submissionCountSql, submissionListSql, type SubmissionSort } from '../../../lib/submissions-sql';
+import { containsPattern, SEARCH_WHERE, submissionCountSql, submissionListSql, type SubmissionSort } from '../../../lib/submissions-sql';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -18,8 +19,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     binds.push(category);
   }
   if (q) {
-    where += ' AND (name LIKE ? OR description LIKE ?)';
-    binds.push(`%${q}%`, `%${q}%`);
+    where += SEARCH_WHERE;
+    binds.push(containsPattern(q), containsPattern(q));
   }
 
   // One round trip: the total and the page together.
@@ -29,15 +30,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   ]);
   const total = (countRes.results?.[0] as { n?: number } | undefined)?.n ?? 0;
 
-  return new Response(JSON.stringify({
-    data: rows.results ?? [],
-    total,
-    limit,
-    offset,
-  }), {
-    headers: {
-      'content-type': 'application/json',
-      'cache-control': 'public, max-age=60, stale-while-revalidate=300',
-    },
+  return json(200, { data: rows.results ?? [], total, limit, offset }, {
+    'cache-control': 'public, max-age=60, stale-while-revalidate=300',
   });
 };

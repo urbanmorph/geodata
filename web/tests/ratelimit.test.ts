@@ -1,60 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { checkRateLimit } from '../functions/lib/ratelimit';
+import { asD1, migratedDb } from './helpers/sqlite-d1';
 
-type Row = {
-  ip_hash: string;
-  hour_window_start: string;
-  hour_count: number;
-  day_window_start: string;
-  day_count: number;
-};
-
+// A real SQLite database from the migrations: the limiter is SQL (an atomic
+// upsert), so it is tested as SQL.
+type Row = { hour_window_start: string; hour_count: number; day_window_start: string; day_count: number };
 function fakeD1() {
-  const rows = new Map<string, Row>();
-  return {
-    rows,
-    prepare(sql: string) {
-      let args: unknown[] = [];
-      return {
-        bind(...a: unknown[]) {
-          args = a;
-          return this;
-        },
-        async first() {
-          if (/SELECT .* FROM rate_limits WHERE ip_hash/.test(sql)) {
-            const [ip_hash] = args as [string];
-            return rows.get(ip_hash) ?? null;
-          }
-          return null;
-        },
-        async run() {
-          if (/INSERT INTO rate_limits/.test(sql)) {
-            const [ip_hash, hour_window_start, hour_count, day_window_start, day_count] = args as [
-              string,
-              string,
-              number,
-              string,
-              number,
-            ];
-            rows.set(ip_hash, { ip_hash, hour_window_start, hour_count, day_window_start, day_count });
-          } else if (/UPDATE rate_limits/.test(sql)) {
-            const [hour_window_start, hour_count, day_window_start, day_count, ip_hash] = args as [
-              string,
-              number,
-              string,
-              number,
-              string,
-            ];
-            const cur = rows.get(ip_hash);
-            if (cur) rows.set(ip_hash, { ...cur, hour_window_start, hour_count, day_window_start, day_count });
-          }
-          return { success: true };
-        },
-      };
-    },
-  };
+  const sql = migratedDb();
+  const rows = { get: (k: string) => sql.prepare('SELECT * FROM rate_limits WHERE ip_hash = ?').get(k) as Row | undefined };
+  return Object.assign(asD1(sql), { rows });
 }
-
 const at = (iso: string) => () => new Date(iso);
 
 describe('checkRateLimit', () => {
@@ -128,5 +83,14 @@ describe('checkRateLimit', () => {
     for (let i = 0; i < 5; i++) await checkRateLimit(db as never, 'A', at('2026-05-20T10:00:00.000Z'));
     const r = await checkRateLimit(db as never, 'B', at('2026-05-20T10:00:00.000Z'));
     expect(r.ok).toBe(true);
+  });
+});
+
+describe('checkRateLimit under a parallel burst', () => {
+  it('lets exactly 5 of 12 simultaneous first submissions through', async () => {
+    const db = fakeD1();
+    const now = at('2026-05-20T10:00:00.000Z');
+    const results = await Promise.all(Array.from({ length: 12 }, () => checkRateLimit(db as never, 'burst', now)));
+    expect(results.filter((r) => r.ok)).toHaveLength(5);
   });
 });

@@ -3,7 +3,7 @@
 // in the compact layer list and tells the model what they mean.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { shapeReadResult, INSTRUCTIONS_CORE } from "./read-tools.js";
+import { shapeReadResult, INSTRUCTIONS_CORE, readToolRequest } from "./read-tools.js";
 
 test("list_layers keeps the non-commercial flag and notice", () => {
   const out = shapeReadResult("list_layers", {
@@ -53,4 +53,12 @@ test("agents are told get_layer_detail lists the citable versions", async () => 
 test("get_layer_detail passes the versions through unchanged", () => {
   const versions = [{ code: "bharatlas-lgd_states-2026.12", released: "2026-12-01", sha256: "ab", w3id: "https://w3id.org/bharatlas/lgd_states/2026.12", url: "https://bharatlas.com/releases/bharatlas-lgd_states-2026.12/" }];
   assert.deepEqual(shapeReadResult("get_layer_detail", { data: { id: "lgd_states", versions } }).data.versions, versions);
+});
+
+test("a where column named like a query option travels inside where=", () => {
+  const req = readToolRequest("query_layer", { layer_id: "x", where: { format: "pdf", filter: "a", estimate: "1", state: "KA" } });
+  assert.equal(req.params.where, "format=pdf,filter=a,estimate=1");
+  assert.equal(req.params.state, "KA");
+  assert.equal("format" in req.params, false);
+  assert.equal("filter" in req.params, false);
 });

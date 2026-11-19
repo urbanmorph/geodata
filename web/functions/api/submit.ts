@@ -19,7 +19,7 @@ import { json as j } from '../lib/http';
 import { findDuplicateByHash } from '../lib/submissions';
 import { persistSubmission } from '../lib/persist-submission';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
-import { nanoid, sha256Hex, sanitizeFilename, ipHashFor } from '../lib/submit-helpers';
+import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, ipSalt } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
 import { attemptRowFromResult, attemptRowReject, logAttempt, parseErrorSummary, type AttemptRow } from '../lib/submit-log';
 
@@ -71,7 +71,7 @@ async function handleSubmit(
   log: (row: AttemptRow) => void,
   reply: (status: number, body: Record<string, unknown>) => Response,
 ): Promise<Response> {
-  const ipHash = await ipHashFor(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
+  const ipHash = await ipHashFor(ctx.request, ipSalt(ctx.env.IP_SALT, 'geodata-v1'));
   // Refuse an oversized body by its declared length before reading any of it
   // (the multipart envelope adds a little; 1 MB of slack covers the form fields).
   const declared = Number(ctx.request.headers.get('content-length') || 0);
@@ -87,7 +87,8 @@ async function handleSubmit(
     return reply(400, { error: 'invalid multipart body' });
   }
 
-  const file = form.get('file');
+  // workers-types declares FormData.get as string-only; a multipart file part is a File.
+  const file = form.get('file') as unknown;
   if (!(file instanceof File)) {
     log(attemptRowReject('file', 'missing file', { ipHash }));
     return reply(400, { error: 'missing file' });
@@ -140,7 +141,7 @@ async function handleSubmit(
       fc = normaliseFC(rawJson);
     } else {
       // Browser parsed it; trust the FC the client sent.
-      const fcField = form.get('fc_json');
+      const fcField = form.get('fc_json') as unknown;
       const fcText =
         fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
       if (!fcText) {

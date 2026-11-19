@@ -7,28 +7,21 @@
 // (brigading risk on an open-contribution platform with no moderation
 // team) — see task #61 for the migration rationale.
 
-import type { Env as MiddlewareEnv } from '../../_middleware';
+import type { Env } from '../../_middleware';
 import { getSubmissionForView } from '../../../lib/submissions';
+import { SUBMISSION_ID } from '../../../lib/submissions-sql';
 import { recordVote, countVotes, getMyVote, type Vote } from '../../../lib/ratings';
-import { ipHashStable } from '../../../lib/submit-helpers';
+import { ipHashStable, ipSalt } from '../../../lib/submit-helpers';
+import { json as j } from '../../../lib/http';
 
-type Env = MiddlewareEnv & { IP_SALT?: string };
 type Params = { id: string };
-
-const j = (status: number, body: unknown) =>
-  new Response(JSON.stringify(body), {
-    status,
-    headers: { 'content-type': 'application/json' },
-  });
-
-const validId = (id: string) => /^[A-Za-z0-9_-]{8,16}$/.test(id);
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const id = ctx.params.id as string;
-  if (!validId(id)) return j(404, { error: 'not found' });
+  if (!SUBMISSION_ID.test(id)) return j(404, { error: 'not found' });
   const sub = await getSubmissionForView(ctx.env.DB, id);
   if (!sub) return j(404, { error: 'not found' });
-  const ipHash = await ipHashStable(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
+  const ipHash = await ipHashStable(ctx.request, ipSalt(ctx.env.IP_SALT, 'geodata-v1'));
   const [tally, myVote] = await Promise.all([
     countVotes(ctx.env.DB, id),
     getMyVote(ctx.env.DB, id, ipHash),
@@ -38,7 +31,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
 
 export const onRequestPost: PagesFunction<Env, keyof Params> = async (ctx) => {
   const id = ctx.params.id as string;
-  if (!validId(id)) return j(404, { error: 'not found' });
+  if (!SUBMISSION_ID.test(id)) return j(404, { error: 'not found' });
 
   let body: { vote?: unknown };
   try {
@@ -54,7 +47,7 @@ export const onRequestPost: PagesFunction<Env, keyof Params> = async (ctx) => {
   const sub = await getSubmissionForView(ctx.env.DB, id);
   if (!sub) return j(404, { error: 'not found' });
 
-  const ipHash = await ipHashStable(ctx.request, ctx.env.IP_SALT || 'geodata-v1');
+  const ipHash = await ipHashStable(ctx.request, ipSalt(ctx.env.IP_SALT, 'geodata-v1'));
   const result = await recordVote(ctx.env.DB, id, ipHash, vote as Vote);
   return j(200, result);
 };

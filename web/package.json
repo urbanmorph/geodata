@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "node scripts/prerender.mjs && vitest run && vite build",
     "preview": "vite preview",
-    "test": "COMMUNITY_FROM=fixture sh -c 'node scripts/prerender.mjs && vitest run'",
+    "test": "COMMUNITY_FROM=fixture sh -c 'node scripts/prerender.mjs && vitest run' && npm run typecheck",
+    "typecheck": "tsc -p tsconfig.functions.json",
     "test:watch": "vitest"
   },
   "dependencies": {

@@ -17,8 +17,10 @@ import { compressors } from 'hyparquet-compressors';
 import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
 import {
   QueryInputError,
+  READ_WINDOW_ROWS,
   assertFilterColumns,
   isGeomColumn,
+  readWindows,
   rowMatcher,
   scanMatches,
   topLevelColumns,
@@ -29,6 +31,8 @@ import { wkbToText } from './wkb-geojson';
 import { kmlHead, kmlPlacemarkHead, KML_TAIL } from '../../../shared/kml.mjs';
 import { csvCell as sharedCsvCell } from '../../../shared/csv.mjs';
 import { FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, FILTER_EXPORT_MAX_SHAPE_BYTES } from '../../../shared/large-load.mjs';
+
+export { READ_WINDOW_ROWS, readWindows } from './parquet-query';
 
 export const EXPORT_MAX_ROWS = FILTER_EXPORT_MAX_ROWS;
 export const EXPORT_MAX_BYTES = FILTER_EXPORT_MAX_BYTES;
@@ -141,22 +145,6 @@ export function estimateExportBytes(
 export interface ExportResult {
   total: number;
   chunks: AsyncIterable<string>;
-}
-
-/** Most consecutive row numbers one read covers. A row group's matches were
- *  read in one go (up to 20,000 rows with every column and the shapes) and a
- *  41,448-row export ran a local Worker out of heap; production has 128 MB. */
-export const READ_WINDOW_ROWS = 1000;
-
-/** Sorted row numbers -> runs whose first and last are within `span` rows. */
-export function readWindows(idxs: number[], span: number): number[][] {
-  const out: number[][] = [];
-  for (const i of idxs) {
-    const cur = out[out.length - 1];
-    if (cur && i - cur[0] < span) cur.push(i);
-    else out.push([i]);
-  }
-  return out;
 }
 
 /** The attribute columns an export reads per window: CSV adds the bbox for

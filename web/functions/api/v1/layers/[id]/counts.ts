@@ -1,28 +1,32 @@
+// GET /api/v1/layers/{id}/counts[?group_by=col[&filter_col=c&filter_val=v]]
+// Deprecated (kept for old callers): /layers/{id}/query?group_by=col does the
+// same for every layer. Pre-computed stats (/api-data/layers/<id>.json) exist
+// for a few ward layers only; any other group_by is counted from the parquet
+// by the query engine, and filter_col/filter_val narrow it as a where filter.
 import type { Env } from '../../../_middleware';
-import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../../../../lib/catalog-loader';
+import { fetchAsset, type AssetCtx } from '../../../../lib/catalog-loader';
 import type { CatalogLayer } from '../../../../lib/catalog-api';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 import { countApiUse } from '../../../../lib/usage';
-import { json } from '../../../../lib/http';
+import { apiError, json, serverError } from '../../../../lib/http';
+import { resolveLayer } from '../../../../lib/api-layer';
+import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
+import { query, QueryInputError, type GroupByResult } from '../../../../lib/parquet-query';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
+type CountsCtx = AssetCtx & { env: { R2: R2Bucket } };
+
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  const id = (ctx.params as { id: string }).id;
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return json(400, { error: 'Invalid layer ID', status: 400 });
-  }
+  const r = await resolveLayer(ctx);
+  if (r instanceof Response) return r;
+  const { layer, version, url } = r;
+  countApiUse(ctx, layer.id);
 
-  const url = new URL(ctx.request.url);
-  const { catalog, version } = await loadCatalogVersioned(ctx);
-  const layer = catalog.layers.find((l) => l.id === id);
-  if (!layer) return json(404, { error: 'Layer not found', status: 404 });
-  countApiUse(ctx, id);
-
-  return cached(ctx, cacheKey(version, url), EDGE_TTL.catalog, () => answer(ctx, layer, url.searchParams));
+  return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, () => answer(ctx, layer, url.searchParams));
 };
 
-async function answer(ctx: AssetCtx, layer: CatalogLayer, params: URLSearchParams): Promise<Response> {
+async function answer(ctx: CountsCtx, layer: CatalogLayer, params: URLSearchParams): Promise<Response> {
   const id = layer.id;
   const groupBy = params.get('group_by');
   const filterCol = params.get('filter_col');
@@ -46,33 +50,23 @@ async function answer(ctx: AssetCtx, layer: CatalogLayer, params: URLSearchParam
     return respond({ layer_id: id, total, groupable_columns: groupable });
   }
 
-  // group_by specified: return value→count from pre-computed stats
-  if (!stats) {
-    return respond({ layer_id: id, total: layer.rows ?? null, group_by: groupBy, counts: null, detail: 'No pre-computed stats. Run scripts/build_api_indexes.py.' });
+  const filtered = !!(filterCol && filterVal);
+  const col = stats?.columns[groupBy];
+  if (stats && col?.values && !filtered) {
+    return respond({ layer_id: id, total: stats.row_count, group_by: groupBy, counts: col.values });
   }
 
-  const col = stats.columns[groupBy];
-  if (!col || !col.values) {
-    const available = Object.keys(stats.columns).filter((c) => stats!.columns[c].values);
-    return json(400, { error: `Column "${groupBy}" not available for grouping. Available: ${available.join(', ')}`, status: 400 });
+  // Everything else from the parquet: any column, with the filter applied.
+  const r2Key = r2KeyFromLayer(layer);
+  if (!r2Key) return apiError(404, 'No parquet file for this layer');
+  try {
+    const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
+    const g = await query(file, { groupBy, where: filtered ? { [filterCol!]: filterVal! } : undefined }) as GroupByResult;
+    return respond({ layer_id: id, total: g.total, group_by: groupBy, counts: g.counts });
+  } catch (e) {
+    if (e instanceof QueryInputError) return apiError(400, e.message);
+    return serverError('Counts', e);
   }
-
-  const counts = col.values;
-
-  // Optional cross-filter: when filter_col + filter_val are provided,
-  // we can't cross-filter from pre-computed single-column stats.
-  // Return what we have and note the limitation.
-  if (filterCol && filterVal) {
-    return respond({
-      layer_id: id,
-      total: stats.row_count,
-      group_by: groupBy,
-      counts,
-      filter_note: 'Cross-column filtering requires client-side DuckDB on the parquet file. Pre-computed stats are single-column only.',
-    });
-  }
-
-  return respond({ layer_id: id, total: stats.row_count, group_by: groupBy, counts });
 }
 
 const respond = (data: unknown) => json(200, { data }, { 'cache-control': CACHE });

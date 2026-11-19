@@ -5,26 +5,13 @@
 //
 // Response shape: { "<submission_id>": <up_count>, ... }
 // Submissions with zero up votes are omitted — the client treats missing
-// entries as 0 (the baked default).
+// entries as 0 (the baked default). A D1 failure is a 503.
 
-import type { Env } from '../../_middleware';
+import type { Env } from '../_middleware';
 import { countAllUpVotes } from '../../lib/ratings';
+import { json } from '../../lib/http';
+import { cachedLive } from '../../lib/edge-cache';
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  try {
-    const tally = await countAllUpVotes(ctx.env.DB);
-    const body = Object.fromEntries(tally);
-    return new Response(JSON.stringify(body), {
-      headers: {
-        'content-type': 'application/json',
-        'access-control-allow-origin': '*',
-        'cache-control': 'public, max-age=30, stale-while-revalidate=120',
-      },
-    });
-  } catch {
-    return new Response('{}', {
-      status: 200,
-      headers: { 'content-type': 'application/json', 'access-control-allow-origin': '*' },
-    });
-  }
-};
+export const onRequestGet: PagesFunction<Env> = (ctx) =>
+  cachedLive(ctx, async () =>
+    json(200, Object.fromEntries(await countAllUpVotes(ctx.env.DB)), { 'cache-control': 'public, max-age=30, stale-while-revalidate=120' }));

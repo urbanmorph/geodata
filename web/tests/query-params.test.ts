@@ -21,3 +21,11 @@ describe('parseQueryParams limit', () => {
     expect(parseQueryParams(new URLSearchParams('limit=abc')).limit).toBe(100);
   });
 });
+
+describe('the MCP keeps the same option names', () => {
+  it('mcp/read-tools.js QUERY_RESERVED equals QUERY_OPTIONS', async () => {
+    const { QUERY_OPTIONS } = await import('../functions/lib/query-params');
+    const { QUERY_RESERVED } = await import('../../mcp/read-tools.js');
+    expect([...QUERY_RESERVED].sort()).toEqual([...QUERY_OPTIONS].sort());
+  });
+});

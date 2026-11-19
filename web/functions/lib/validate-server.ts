@@ -33,9 +33,11 @@ export type GateResult = {
 
 export type ValidationReport = Record<string, GateResult>;
 
+export type Rejection = { accept: false; report: ValidationReport; reason: string };
+
 export type ValidationResult =
   | { accept: true; report: ValidationReport }
-  | { accept: false; report: ValidationReport; reason: string };
+  | Rejection;
 
 export type ValidationDeps = {
   verifyCaptcha: (token: string) => Promise<boolean>;
@@ -68,7 +70,7 @@ function hasControlChars(s: string): boolean {
   return /[\x00-\x1F\x7F]/.test(s);
 }
 
-function reject(report: ValidationReport, gate: string, reason: string): ValidationResult {
+function reject(report: ValidationReport, gate: string, reason: string): Rejection {
   report[gate] = { ...(report[gate] ?? { ok: false }), ok: false, reason };
   return { accept: false, report, reason };
 }
@@ -79,7 +81,7 @@ function reject(report: ValidationReport, gate: string, reason: string): Validat
 export async function gateSubmission(
   input: Pick<SubmissionInput, 'turnstileToken' | 'ipHash' | 'bytes'>,
   deps: Pick<ValidationDeps, 'verifyCaptcha' | 'checkRate'>,
-): Promise<{ rejected: ValidationResult } | { passed: ValidationReport }> {
+): Promise<{ rejected: Rejection } | { passed: ValidationReport }> {
   const report: ValidationReport = {};
   const captchaOk = await deps.verifyCaptcha(input.turnstileToken);
   report.captcha = { ok: captchaOk };

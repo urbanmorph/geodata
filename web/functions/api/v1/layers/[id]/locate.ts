@@ -11,48 +11,44 @@
 // location-specific + privacy-sensitive, so it is never cached.
 
 import type { Env } from '../../../_middleware';
-import { loadCatalog } from '../../../../lib/catalog-loader';
 import { locate } from '../../../../lib/locate';
 import { nearby } from '../../../../lib/nearby';
+import { QueryInputError } from '../../../../lib/parquet-query';
 import { pickContains, bearingLabel } from '../../../../lib/locate-layer';
-import { json } from '../../../../lib/http';
+import { apiError, serverError } from '../../../../lib/http';
 import { clampNum } from '../../../../lib/query-params';
+import { parseIndiaPoint, resolveLayer } from '../../../../lib/api-layer';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
-  const id = (ctx.params as { id: string }).id;
-  if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
-    return json(400, { error: 'Invalid layer ID', status: 400 });
-  }
-
   const url = new URL(ctx.request.url);
-  const lat = parseFloat(url.searchParams.get('lat') || '');
-  const lng = parseFloat(url.searchParams.get('lng') || '');
-  if (Number.isNaN(lat) || Number.isNaN(lng)) {
-    return json(400, { error: 'lat and lng query params are required', status: 400 });
-  }
-  if (lat < 6 || lat > 38 || lng < 68 || lng > 98) {
-    return json(400, { error: 'lat must be 6-38, lng must be 68-98 (India bounding box)', status: 400 });
-  }
+  const pt = parseIndiaPoint(url.searchParams);
+  if ('error' in pt) return apiError(400, pt.error);
+  const { lat, lng } = pt;
 
   // clampNum turns NaN into the default: radius_km=x made the bbox NaN, and NaN
   // comparisons matched every row group, so the whole layer was read.
   const mode = url.searchParams.get('mode') || 'auto';
   if (mode !== 'auto' && mode !== 'contains' && mode !== 'nearest') {
-    return json(400, { error: 'mode must be auto, contains or nearest', status: 400 });
+    return apiError(400, 'mode must be auto, contains or nearest');
   }
   const zoom = clampNum(url.searchParams.get('zoom'), 14, 4, 16, true);
   const radiusKm = clampNum(url.searchParams.get('radius_km'), 25, 1, 200);
 
-  const catalog = await loadCatalog(ctx);
-  const layer = catalog.layers.find((l) => l.id === id);
-  if (!layer) return json(404, { error: 'Layer not found', status: 404 });
+  const r = await resolveLayer(ctx);
+  if (r instanceof Response) return r;
+  const { layer, catalog } = r;
+  const id = layer.id;
 
   const base = { layer_id: id, point: { lat, lng } };
 
   // CONTAINS — point-in-polygon. Tried unless the caller forced nearest.
   if (mode !== 'nearest' && layer.pmtiles) {
-    try {
-      const resp = await locate(lat, lng, [id], zoom, catalog, ctx.env.R2);
+    const resp = await locate(lat, lng, [id], zoom, catalog, ctx.env.R2);
+    // A layer that couldn't be read says nothing about the point: explicit
+    // contains is a 500 (not "outside this layer's area"); auto tries nearest.
+    if (resp.failed_layers?.includes(id)) {
+      if (mode === 'contains') return serverError('Locate', new Error(`${id}: tiles could not be read`));
+    } else {
       const feature = pickContains(resp, id);
       // A hit ends it. A miss ends it too when contains was explicit (so the UI
       // can say "outside this layer's area" rather than jumping to a far-away
@@ -60,17 +56,14 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       if (feature || mode === 'contains') {
         return ok({ ...base, mode: 'contains', feature });
       }
-    } catch (e) {
-      if (mode === 'contains') return json(500, { error: (e as Error).message, status: 500 });
-      // auto: fall through to nearest
     }
   }
 
   // NEAREST — closest feature within radius, with distance + compass bearing.
   if (mode !== 'contains' && layer.parquet) {
     try {
-      const r = await nearby(lat, lng, radiusKm, id, catalog, ctx.env.R2, 1);
-      const f = r.features[0];
+      const n = await nearby(lat, lng, radiusKm, id, catalog, ctx.env.R2, 1);
+      const f = n.features[0];
       if (!f) {
         return ok({ ...base, mode: 'nearest', feature: null, out_of_coverage: true, searched_radius_km: radiusKm });
       }
@@ -83,7 +76,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         bearing: bearingLabel(lat, lng, f._lat, f._lng),
       });
     } catch (e) {
-      return json(400, { error: (e as Error).message, status: 400 });
+      if (e instanceof QueryInputError) return apiError(400, e.message);
+      return serverError('Locate', e);
     }
   }
 

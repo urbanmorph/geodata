@@ -5,6 +5,8 @@
 // suffix is 32 random URL-safe characters (~192 bits of entropy).
 // Server stores token_prefix (first 8) + sha256(token); plaintext never persisted.
 
+import { randomUrlSafe, sha256Hex } from './crypto';
+
 export type Permission = 'admin' | 'edit' | 'view';
 
 const PREFIX_MAP: Record<Permission, string> = {
@@ -13,28 +15,18 @@ const PREFIX_MAP: Record<Permission, string> = {
   view: 'viw',
 };
 
-const ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
-
 export function generateToken(permission: Permission): string {
   const prefix = PREFIX_MAP[permission];
   if (!prefix) throw new Error('unknown permission: ' + permission);
-  const bytes = new Uint8Array(32);
-  crypto.getRandomValues(bytes);
-  let out = '';
-  // 6 bits per char from a 64-char alphabet — convert each byte to a char.
-  // We just take the low 6 bits of each random byte. ~192 bits of entropy total.
-  for (const b of bytes) out += ALPHABET[b & 0x3f];
-  return `${prefix}_${out}`;
+  return `${prefix}_${randomUrlSafe(32)}`; // 32 x 6 bits: ~192 bits of entropy
 }
 
 export function tokenPrefix(token: string): string {
   return token.length > 8 ? token.slice(0, 8) : token;
 }
 
-export async function hashToken(token: string): Promise<string> {
-  const bytes = new TextEncoder().encode(token);
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
+export function hashToken(token: string): Promise<string> {
+  return sha256Hex(token);
 }
 
 /**
