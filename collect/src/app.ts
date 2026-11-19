@@ -335,10 +335,10 @@ async function boot(): Promise<void> {
   if (!isView) {
     const locate = document.getElementById('locate') as HTMLButtonElement;
     locate.onclick = () => {
-      if (!navigator.geolocation) return toast('Location not available');
+      if (!navigator.geolocation) return toast('Location not available', 'error');
       navigator.geolocation.getCurrentPosition(
         (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }),
-        () => toast("Couldn't get your location"),
+        () => toast("Couldn't get your location", 'error'),
         { enableHighAccuracy: true, timeout: 8000 },
       );
     };
@@ -490,7 +490,7 @@ async function moderateFromMap(id: string, status: string): Promise<void> {
     toast(status === 'published' ? 'Approved ✓' : 'Rejected');
     patchReview(withStatus(allFeats, id, status));
     refreshReviewSurfaces();
-  } catch (e) { toast((e as Error).message); }
+  } catch (e) { toast((e as Error).message, 'error'); }
 }
 
 // One record changed here (approved, rejected, deleted, notes reviewed): the
@@ -798,14 +798,14 @@ function renderPlaceBar(modes: GeomMode[], focus?: string): void {
         if (drawMode === 'polygon' && trace.closed()) { finishWalk(); toast('Back at the start: the area is closed ✓'); return; }
       }
       syncDrawUI();
-    }, toast);
+    }, (m) => toast(m, 'error'));
     stopGps = () => { stopWatch(); sleep(); };
   };
 
   const addCorner = (): void => {
     const fixes: Fix[] = [];
     const sleep = keepScreenOn();
-    const stopWatch = watchFixes((f) => { fixes.push(f); lastFix = f; }, toast);
+    const stopWatch = watchFixes((f) => { fixes.push(f); lastFix = f; }, (m) => toast(m, 'error'));
     stopGps = () => { stopWatch(); sleep(); };
     cornerLeft = CORNER_SECONDS;
     cornerTimer = setInterval(() => {
@@ -813,7 +813,7 @@ function renderPlaceBar(modes: GeomMode[], focus?: string): void {
       if (cornerLeft > 0) { syncDrawUI(); return; }
       stopRecording();
       const c = averageFix(fixes);
-      if (!c) toast('No good GPS reading here. Step into the open and try again.');
+      if (!c) toast('No good GPS reading here. Step into the open and try again.', 'error');
       else {
         verts.push([c.lng, c.lat]);
         lastFix = c;
@@ -853,7 +853,7 @@ function renderPlaceBar(modes: GeomMode[], focus?: string): void {
   (document.getElementById('place') as HTMLButtonElement).onclick = () => {
     if (trace) finishWalk();
     const geometry = drawGeometry(drawMode, verts, crosshairLngLat());
-    if (!geometry) { toast(`A ${NOUN[drawMode]} needs ${drawMode === 'line' ? '2' : '3'} points or more`); return; }
+    if (!geometry) { toast(`A ${NOUN[drawMode]} needs ${drawMode === 'line' ? '2' : '3'} points or more`, 'error'); return; }
     stopRecording();
     clearVertexMarkers();
     detailsSheet(geometry, modes);
@@ -997,9 +997,9 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
     if (photos.some((p) => p.busy())) { toast('One moment: a photo is still being made ready'); return; }
     const raw = readAnswers(panel, fields);
     const valid = validateRecordProperties(fields.filter((f) => f.type !== 'photo'), raw);
-    if (!valid.ok) { toast(valid.error); return; }
+    if (!valid.ok) { toast(valid.error, 'error'); return; }
     const missing = photos.find((p) => p.field.required && !p.items().length);
-    if (missing) { toast(`${missing.field.label}: add a photo`); return; }
+    if (missing) { toast(`${missing.field.label}: add a photo`, 'error'); return; }
     btn.disabled = true;
     const contributor = (document.getElementById('contributor') as HTMLInputElement).value.trim();
     saveContributorName(contributor);
@@ -1015,7 +1015,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
       }))),
     }).catch((e: Error | null): Saved => ({ state: 'refused', error: e?.message || "couldn't keep it on this phone" }));
     if (saved.state === 'refused') {
-      toast(`Couldn't save: ${saved.error}. Your details are kept, tap Save to retry.`);
+      toast(`Couldn't save: ${saved.error}. Your details are kept, tap Save to retry.`, 'error');
       btn.disabled = false;
       return;
     }
@@ -1039,7 +1039,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
 // The Photo questions on a form, each mounted into its placeholder.
 function mountPhotoFields(root: HTMLElement, fields: Field[], dataSaver: boolean, per: (f: Field) => Partial<PhotoFieldOptions> = () => ({})): PhotoField[] {
   return fields.filter((f) => f.type === 'photo').map((f) =>
-    mountPhotoField(root.querySelector<HTMLElement>(`[data-k="${f.key}"]`)!, f, { dataSaver, onError: toast, ...per(f) }));
+    mountPhotoField(root.querySelector<HTMLElement>(`[data-k="${f.key}"]`)!, f, { dataSaver, onError: (m) => toast(m, 'error'), ...per(f) }));
 }
 
 // The non-photo answers on a form, as typed.
@@ -1113,7 +1113,7 @@ async function editSettings(): Promise<void> {
     const btn = ev.currentTarget as HTMLButtonElement;
     if (!(document.getElementById('editform') as HTMLFormElement).reportValidity()) return;
     const year = readDataYear((document.getElementById('e-year') as HTMLInputElement).value);
-    if (!year.ok) { toast(year.error); document.getElementById('e-year')!.focus(); return; }
+    if (!year.ok) { toast(year.error, 'error'); document.getElementById('e-year')!.focus(); return; }
     const patch: Record<string, unknown> = {
       name: (document.getElementById('e-name') as HTMLInputElement).value,
       purpose: (document.getElementById('e-purpose') as HTMLTextAreaElement).value,
@@ -1140,7 +1140,7 @@ async function editSettings(): Promise<void> {
       if (nameEl) nameEl.textContent = meta.name;
       rememberMap(ctx.id, meta.name, 'owner', location.href);
       void manageSheet();
-    } catch (e) { toast((e as Error).message); btn.disabled = false; }
+    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
   };
 }
 
@@ -1155,7 +1155,7 @@ async function editFormSheet(): Promise<void> {
   let points: Record<string, unknown>[];
   try {
     points = (await allRecords<{ properties: Record<string, unknown> }>()).map((f) => f.properties);
-  } catch (e) { toast(loadErrorText(e)); void manageSheet(); return; }
+  } catch (e) { toast(loadErrorText(e), 'error'); void manageSheet(); return; }
   const n = points.length;
   const byKey = new Map<string, unknown[]>(); // each field's values, read once
   const valuesOf = (k: string): unknown[] => {
@@ -1293,7 +1293,7 @@ function renderReviewTab(body: HTMLElement, revealRow?: string): void {
       await ensureReviewData(true);
       toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
       renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
-    } catch (e) { toast((e as Error).message); approveAll.disabled = false; }
+    } catch (e) { toast((e as Error).message, 'error'); approveAll.disabled = false; }
   };
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
@@ -1391,7 +1391,7 @@ function renderShareTab(body: HTMLElement): void {
       rememberMap(ctx.id, meta.name, perm === 'edit' ? 'collect' : 'view', res.link);
       refreshEmail();
       return res.link;
-    } catch (e) { toast((e as Error).message); return null; }
+    } catch (e) { toast((e as Error).message, 'error'); return null; }
   };
 
   void wireNamedLinks(body, title);
@@ -1420,7 +1420,7 @@ function renderShareTab(body: HTMLElement): void {
       wireShareItems(out, title);
       replaceBtn.hidden = true;
     } catch (e) {
-      toast((e as Error).message);
+      toast((e as Error).message, 'error');
       replaceArmed = false;
       replaceBtn.textContent = 'Replace admin link';
       replaceBtn.disabled = false;
@@ -1477,7 +1477,7 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
           if (!armed) { armed = true; b.textContent = 'Tap again to turn off'; return; }
           b.disabled = true;
           try { await apiJson(`/collections/${ctx.id}/tokens/${b.dataset.revoke}`, ctx.token, { method: 'DELETE' }); await render(); }
-          catch (e) { toast((e as Error).message); b.disabled = false; }
+          catch (e) { toast((e as Error).message, 'error'); b.disabled = false; }
         };
       });
     } catch (e) {
@@ -1500,7 +1500,7 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
       wireShareItems(fresh, title);
       input.value = '';
       await render();
-    } catch (e) { toast((e as Error).message); }
+    } catch (e) { toast((e as Error).message, 'error'); }
     make.disabled = false;
   };
   await render();
@@ -1561,7 +1561,7 @@ async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
     downloadText(content, `${slug(meta.name)}.${ext}`, mime);
     toast(`Downloaded ${features.length} point${features.length === 1 ? '' : 's'} as ${ext.toUpperCase()}`);
   } catch (e) {
-    toast((e as Error).message);
+    toast((e as Error).message, 'error');
   }
 }
 
@@ -1633,8 +1633,8 @@ async function importFlow(file: File): Promise<void> {
     const btn = ev.currentTarget as HTMLButtonElement;
     const source = (document.getElementById('imp-source') as HTMLInputElement).value.trim();
     const rights = (document.getElementById('imp-rights') as HTMLInputElement).checked;
-    if (!rights) { toast('Tick the box: you can publish this under the map licence'); return; }
-    if (!source) { toast('Name where this data comes from'); return; }
+    if (!rights) { toast('Tick the box: you can publish this under the map licence', 'error'); return; }
+    if (!source) { toast('Name where this data comes from', 'error'); return; }
     const plan = buildRecords(parsed.features, readMapping(), fields, meta.schema.geometry);
     const result = document.getElementById('import-result')!;
     btn.disabled = true;
@@ -1858,7 +1858,7 @@ function openReview(idx: number): void {
   (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = `/c/${ctx.id}/r/${f.id}#${ctx.token}`; };
   const moderate = async (s: string) => {
     try { await apiJson(`/records/${f.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: s }) }); patchReview(withStatus(allFeats, String(f.id), s)); back(); }
-    catch (e) { toast((e as Error).message); }
+    catch (e) { toast((e as Error).message, 'error'); }
   };
   document.getElementById('rv-approve')?.addEventListener('click', () => void moderate('published'));
   document.getElementById('rv-reject')?.addEventListener('click', () => void moderate('rejected'));
@@ -1867,7 +1867,7 @@ function openReview(idx: number): void {
     const b = ev.currentTarget as HTMLButtonElement;
     if (!armed) { armed = true; b.textContent = 'Tap to confirm'; return; }
     try { await apiJson(`/records/${f.id}`, ctx.token, { method: 'DELETE' }); patchReview(withoutRecord(allFeats, String(f.id))); back(); }
-    catch (e) { toast((e as Error).message); }
+    catch (e) { toast((e as Error).message, 'error'); }
   };
 }
 
@@ -1893,7 +1893,7 @@ function wireAiReview(id: string, back: () => void): void {
       const reply = await apiJson<{ review: string; status?: string; properties?: Record<string, unknown> }>(`/records/${id}/ai`, ctx.token, { method: 'POST', body: JSON.stringify(body) });
       patchReview(withAiReview(allFeats, id, reply, body.description as string | undefined));
       return true;
-    } catch (e) { toast((e as Error).message); return false; }
+    } catch (e) { toast((e as Error).message, 'error'); return false; }
   };
   document.getElementById('ai-discard')?.addEventListener('click', async () => { if (await send({ action: 'discard' })) { toast('Notes discarded'); reopen(id, back); } });
   document.getElementById('ai-accept')?.addEventListener('click', async () => { if (await send({ action: 'accept' })) { toast('Notes accepted ✓'); reopen(id, back); } });
@@ -1951,7 +1951,7 @@ async function runPublish(btn: HTMLButtonElement): Promise<void> {
       </div><div class="foot"><button id="back">← Back to manage</button></div></div>`;
     (document.getElementById('back') as HTMLButtonElement).onclick = () => void manageSheet();
   } catch (e) {
-    toast((e as Error).message);
+    toast((e as Error).message, 'error');
     btn.disabled = false;
   }
 }
@@ -2045,10 +2045,10 @@ async function recordEditor(): Promise<void> {
 
   const locateBtn = document.getElementById('locate') as HTMLButtonElement | null;
   if (locateBtn) locateBtn.onclick = () => {
-    if (!navigator.geolocation) return toast('Location not available');
+    if (!navigator.geolocation) return toast('Location not available', 'error');
     navigator.geolocation.getCurrentPosition(
       (pos) => { moved = true; map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }); },
-      () => toast("Couldn't get your location"), { enableHighAccuracy: true, timeout: 8000 },
+      () => toast("Couldn't get your location", 'error'), { enableHighAccuracy: true, timeout: 8000 },
     );
   };
 
@@ -2071,14 +2071,14 @@ async function recordEditor(): Promise<void> {
         if (ids.length) raw[p.field.key] = ids;
       }
       const valid = validateRecordProperties(fields, raw, { photosOnly: !isAdmin && modeOf(rec.schema) === 'photos_ai' });
-      if (!valid.ok) { toast(valid.error); btn.disabled = false; return; }
+      if (!valid.ok) { toast(valid.error, 'error'); btn.disabled = false; return; }
       // Points can be repositioned by panning; shapes edit properties only. Only
       // write geometry when the user actually moved the map (else leave it put).
       const body: Record<string, unknown> = { properties: valid.properties };
       if (isPoint && moved) body.geometry = { type: 'Point', coordinates: crosshairLngLat() };
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'PATCH', body: JSON.stringify(body) });
       toast('Saved ✓');
-    } catch (e) { toast((e as Error).message); }
+    } catch (e) { toast((e as Error).message, 'error'); }
     btn.disabled = false;
   };
 
@@ -2088,7 +2088,7 @@ async function recordEditor(): Promise<void> {
     try {
       await apiJson(`/records/${ctx.recordId}/deidentify`, ctx.token, { method: 'POST' });
       toast('Your name was removed ✓');
-    } catch (e) { toast((e as Error).message); btn.disabled = false; }
+    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
   };
 
   let delArmed = false;
@@ -2100,7 +2100,7 @@ async function recordEditor(): Promise<void> {
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
       forgetRecord(ctx.id, ctx.recordId!);
       app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
-    } catch (e) { toast((e as Error).message); btn.disabled = false; }
+    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
   };
 }
 

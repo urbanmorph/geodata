@@ -6,6 +6,7 @@
 import { escapeHtml } from './util';
 import { shareOrCopy } from './share';
 import { qrSvg } from './qr';
+import { toast } from './toast';
 
 // One link block. `key` disambiguates items; `note` is an optional caption.
 export function shareItemHtml(key: string, label: string, url: string, note?: string): string {
@@ -50,10 +51,15 @@ export function wireShareItems(root: ParentNode, title: string): void {
   root.querySelectorAll<HTMLElement>('.share-item').forEach((item) => {
     const url = item.querySelector('code')?.textContent || '';
     const copy = item.querySelector<HTMLButtonElement>('[data-act="copy"]');
+    // writeText runs in the tap itself (no await before it: iOS drops it).
+    // The ✓ shows only once the browser has copied.
     if (copy) copy.onclick = () => {
-      void navigator.clipboard?.writeText(url).catch(() => {});
-      copy.textContent = '✓';
-      setTimeout(() => { copy.textContent = 'Copy'; }, 1400);
+      const copied = navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject(new Error('no clipboard'));
+      copied.then(() => {
+        copy.textContent = '✓';
+        toast('Link copied ✓');
+        setTimeout(() => { copy.textContent = 'Copy'; }, 1400);
+      }, () => toast("Couldn't copy, long-press the link to copy it.", 'error'));
     };
     const share = item.querySelector<HTMLButtonElement>('[data-act="share"]');
     if (share) share.onclick = () => { void shareOrCopy(url, title); };
