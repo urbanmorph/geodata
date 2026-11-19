@@ -176,8 +176,9 @@ describe('locate: explicit layers', () => {
   });
 });
 
-describe('per-layer locate counts as a call that names the layer', () => {
-  it('bumps api_usage', async () => {
+// Not counted: the viewer's locate button calls it on every tap, and each count is a D1 write.
+describe('per-layer locate is not counted in /usage', () => {
+  it('writes nothing to api_usage', async () => {
     const counted: string[] = [];
     const db = {
       prepare: (sql: string) => ({ bind: (...a: unknown[]) => ({ run: async () => { if (/INTO api_usage \(/.test(sql)) counted.push(String(a[0])); } }) }),
@@ -188,7 +189,7 @@ describe('per-layer locate counts as a call that names the layer', () => {
     const r = await layerLocateRoute(c);
     await Promise.all(waits);
     expect(r.status).toBe(200);
-    expect(counted).toEqual(['ir_stations']);
+    expect(counted).toEqual([]);
   });
 });
 

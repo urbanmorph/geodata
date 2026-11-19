@@ -16,7 +16,6 @@ import { nearby } from '../../../../lib/nearby';
 import { QueryInputError } from '../../../../lib/parquet-query';
 import { pickContains, bearingLabel } from '../../../../lib/locate-layer';
 import { apiError, json, serverError } from '../../../../lib/http';
-import { countApiUse } from '../../../../lib/usage';
 import { clampNum } from '../../../../lib/query-params';
 import { parseIndiaPoint, resolveLayer } from '../../../../lib/api-layer';
 
@@ -38,8 +37,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
   const { layer, catalog } = r;
-  const id = layer.id;
-  countApiUse(ctx, id);
+  const id = layer.id; // not counted in /usage: the viewer's locate button calls it on every tap
 
   const base = { layer_id: id, point: { lat, lng } };
 

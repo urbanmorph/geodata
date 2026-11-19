@@ -241,7 +241,7 @@ export const OPENAPI = {
         operationId: 'getUsage',
         tags: ['Catalogue'],
         summary: 'How much each layer is used: downloads, and API calls that name it (split api / mcp)',
-        description: 'API calls count when they name one layer (its detail, schema, query, counts, export, nearby, or locate in that layer); the multi-layer /locate does not. Crawlers and the MCP smoke test are not counted. With ?layer=, one layer: { layer_id, downloads, api, mcp } (an id that is not a layer is a 404, a retired one a 301); without it, { layers: { <id>: { downloads, api, mcp } }, total }. Counts may lag a minute.',
+        description: 'API calls count when they name one layer (its detail, schema, query, counts, export or nearby); locate, in one layer or many, does not. Crawlers and the MCP smoke test are not counted. With ?layer=, one layer: { layer_id, downloads, api, mcp } (an id that is not a layer is a 404, a retired one a 301); without it, { layers: { <id>: { downloads, api, mcp } }, total }. Counts may lag a minute.',
         parameters: [q('layer', 'Layer id: one layer only.', { type: 'string' })],
         responses: {
           '200': ok('Usage counts', { type: 'object' }),
