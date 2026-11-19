@@ -17,7 +17,7 @@ import {
 } from './map-paint';
 import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
-import { imageFilename, dataUrlToBlob } from './image-export';
+import { imageFilename, captureMapPng } from './image-export';
 import { filterColumnsInTiles, filterSummary, matchCountText, type ActiveFilter, type MaplibreFilter } from './filter-where';
 import { featureCollectionBounds, INDIA_BBOX, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
@@ -785,13 +785,7 @@ function wireDownloadButton(layer: Layer): void {
     const original = fmt?.textContent ?? '';
     if (fmt) fmt.textContent = 'Rendering…';
     try {
-      await new Promise<void>((resolve) => {
-        const m = map!;
-        m.once('idle', () => resolve());
-        m.triggerRepaint();
-      });
-      const url = map.getCanvas().toDataURL('image/png');
-      triggerDownload(dataUrlToBlob(url), imageFilename(layer.id));
+      triggerDownload(await captureMapPng(map), imageFilename(layer.id));
       if (fmt) {
         fmt.textContent = '✓ Saved';
         setTimeout(() => { if (original) fmt.textContent = original; }, 1400);
@@ -1154,7 +1148,6 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
     bounds: INDIA_BBOX,
     fitBoundsOptions: { padding: fitPadding() },
     attributionControl: false,
-    preserveDrawingBuffer: true,
   });
   map = m;
   const live = () => opens.isCurrent(gen) && map === m;
