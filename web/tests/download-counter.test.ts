@@ -29,9 +29,21 @@ describe('classifyDownload', () => {
   it('shapefiles count as "shapefile", the name the pages read', () => {
     expect(classifyDownload('admin/states/LGD_States.shp.zip', catalog)).toEqual({ layer_id: 'lgd_states', state_code: '', format: 'shapefile' });
   });
-  it('per-state extracts and community uploads, which the catalog does not list, still count', () => {
+  it('per-state extracts and other files of a baked community layer, which the catalog does not list, still count', () => {
     expect(classifyDownload('extracts/districts/29/districts_ka.parquet', catalog)).toEqual({ layer_id: 'lgd_districts', state_code: '29', format: 'parquet' });
-    expect(classifyDownload('community/Xa9Kp7nB/bike_lanes.geojson', catalog)).toEqual({ layer_id: 'c_Xa9Kp7nB', state_code: '', format: 'geojson' });
+    expect(classifyDownload('extracts/villages/07/villages_dl.shp.zip', catalog)).toEqual({ layer_id: 'lgd_villages', state_code: '07', format: 'shapefile' });
+    const cat = { layers: [...catalog.layers, { id: 'c_Xa9Kp7nB' }] };
+    expect(classifyDownload('community/Xa9Kp7nB/bike_lanes.csv', cat)).toEqual({ layer_id: 'c_Xa9Kp7nB', state_code: '', format: 'csv' });
+  });
+  it('made-up community ids and extract paths are not counted (no junk rows)', () => {
+    for (const k of [
+      'community/Xa9Kp7nB/bike_lanes.geojson', // not a layer
+      'community/a/x.geojson', // not even a submission id
+      'extracts/districts/99/x.parquet', // no such state
+      'extracts/districts/123456/x.parquet',
+      'extracts/districts/00/x.parquet',
+      'extracts/widgets/29/x.parquet', // no lgd_widgets layer
+    ]) expect(classifyDownload(k, catalog), k).toBeNull();
   });
   it('a rebaked, versioned parquet key counts for its layer (scripts/rebake_layer.py)', () => {
     const cat = { layers: [{ id: 'soi_states', parquet: { url: 'https://pub-x.r2.dev/admin/states/SOI_States.0a1b2c3d.parquet' } }] };
@@ -75,5 +87,28 @@ describe('the download route does not count crawlers', () => {
     };
     expect(await run('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')).toBe(0);
     expect(await run('Mozilla/5.0 (Macintosh) Firefox/130')).toBe(1);
+  });
+
+  it('one address is counted at most DL_COUNT_PER_MINUTE times a minute; it is still redirected', async () => {
+    const { onRequestGet } = await import('../functions/api/dl/[[path]]');
+    const { DL_COUNT_PER_MINUTE } = await import('../functions/lib/counters');
+    const { __resetApiLimiterForTest } = await import('../functions/lib/api-ratelimit');
+    __resetApiLimiterForTest();
+    (await import('../functions/lib/catalog-loader')).__resetCatalogForTest();
+    const cat = { layers: [{ id: 'lgd_states', parquet: { url: 'https://pub-x.r2.dev/admin/states/LGD_States.parquet' } }] };
+    let bumps = 0;
+    const db = { prepare: () => ({ bind: () => ({ run: async () => { bumps++; } }) }) };
+    for (let i = 0; i < DL_COUNT_PER_MINUTE + 5; i++) {
+      const waits: Promise<unknown>[] = [];
+      const r = await onRequestGet({
+        request: new Request('https://bharatlas.com/api/dl/admin/states/LGD_States.parquet', { headers: { 'user-agent': 'Firefox/130', 'cf-connecting-ip': '203.0.113.50' } }),
+        params: { path: ['admin', 'states', 'LGD_States.parquet'] },
+        env: { DB: db, ASSETS: { fetch: async () => new Response(JSON.stringify(cat)) } },
+        waitUntil: (p: Promise<unknown>) => waits.push(p),
+      } as never);
+      await Promise.all(waits);
+      expect(r.status).toBe(302);
+    }
+    expect(bumps).toBe(DL_COUNT_PER_MINUTE);
   });
 });

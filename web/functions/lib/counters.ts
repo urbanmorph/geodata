@@ -3,6 +3,9 @@
 
 type RunnableD1 = Pick<D1Database, 'prepare'>;
 
+/** Downloads one address can add to the counts in a minute (more still download). */
+export const DL_COUNT_PER_MINUTE = 30;
+
 export async function incrementDownload(
   db: RunnableD1,
   layer_id: string,
