@@ -19,6 +19,14 @@ def test_pmtiles_args_keeps_only_named_fields_in_order():
                     '-y', 'a', '-y', 'b', '--force', '--no-progress-indicator', 'in.geojson']
 
 
+def test_tile_fields_add_the_filter_columns_to_the_popup_fields():
+    schema = [('name', 'VARCHAR'), ('corporation', 'VARCHAR'), ('zone', 'VARCHAR'), ('code', 'INTEGER')]
+    # Popup order kept; filter columns the popup lacks follow, once; a name not in the source is ignored.
+    assert f.tile_fields(['name', 'code'], ['zone', 'code', 'corporation', 'gone'], schema) == \
+        ['name', 'code', 'zone', 'corporation']
+    assert f.tile_fields([], [], schema) == []
+
+
 def test_pmtiles_args_parallel_reads_line_delimited_input():
     args = f.pmtiles_args(Path('in.geojsons'), Path('o.pmtiles'), 'l', ('a',), parallel=True)
     assert args[:9] == ['tippecanoe', '-o', 'o.pmtiles', '-l', 'l', '-n', 'l', '-zg', '-P']

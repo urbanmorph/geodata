@@ -58,6 +58,15 @@ describe('filterColumnsInTiles: whether the map can draw the filter', () => {
   it('true while no tile has loaded (unknown), so the filter is kept', () => {
     expect(filterColumnsInTiles(f, null)).toBe(true);
   });
+  // Tiles now carry the panel's low-cardinality columns (scripts/rebake_tiles.py,
+  // build_filter_stats.tile_filter_columns): e.g. state_finance's State_LGD, a
+  // facet once missing from its tiles. A feature omits a null property, so the
+  // keys are the union over the sampled features, as map.ts tilePropertyKeys builds them.
+  it('true for a facet column the rebaked tiles carry, even if some features omit it', () => {
+    const feats = [{ STNAME: 'Goa' }, { STNAME: 'Kerala', State_LGD: 32 }];
+    const keys = new Set(feats.flatMap((p) => Object.keys(p)));
+    expect(filterColumnsInTiles([{ col: 'State_LGD', kind: 'in', values: [32] }], keys)).toBe(true);
+  });
 });
 
 describe('typeaheadSQL: the search box suggestions', () => {

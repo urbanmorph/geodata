@@ -1,9 +1,11 @@
 """Run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest scripts/test_build_filter_stats.py -q"""
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
+import duckdb
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -76,3 +78,48 @@ def test_value_counts_one_scan_nulls_left_out_ties_by_value(fixture_parquet):
                    'nested': [("{'k': 0}", 30), ("{'k': 1}", 30)],
                    'never': []}
     assert con.scans == 1
+
+
+# ── the Filter panel's columns, for the map tiles ───────────────────────────
+
+CASES = json.loads((Path(__file__).resolve().parent.parent / 'web' / 'tests' / 'fixtures'
+                    / 'filter-columns.json').read_text())['cases']
+
+
+@pytest.mark.parametrize('case', CASES, ids=[c['name'] for c in CASES])
+def test_rank_columns_matches_the_panel(case):
+    # Same cases as web/tests/filter-schema.test.ts (rankColumns).
+    grouped = {m for g in case.get('column_groups', []) for m in g['members'] if m != g['canonical']}
+    cols = [c for c in case['columns'] if c['name'] not in grouped]
+    assert [c['name'] for c in fs.rank_columns(cols, case['row_count'])] == case['ranked']
+
+
+@pytest.mark.parametrize('case', CASES, ids=[c['name'] for c in CASES])
+def test_tile_filter_columns_are_the_panels_low_cardinality_columns(case):
+    assert fs.tile_filter_columns(case) == case['tile']
+
+
+def test_panel_stats_come_from_where_the_viewer_reads_them(tmp_path):
+    # web/src/filter-stats.ts loadBakedStats, then filter-schema.ts columnStatsSource.
+    inline, filed, probed = ({'row_count': n, 'columns': []} for n in (1, 2, 3))
+    (tmp_path / 'big.json').write_text(json.dumps(filed))
+
+    def stats(lid, nbytes, catalog=None):
+        layer = {'id': lid, 'parquet': {'url': 'https://r2/x.parquet', 'bytes': nbytes}}
+        return fs.panel_stats(layer, catalog or {}, lambda: probed, stats_dir=tmp_path, threshold=100)
+
+    assert stats('small', 10, {'filter_stats': {'small': inline}}) == inline   # the catalog's
+    assert stats('big', 500) == filed                                           # the layer's file
+    assert stats('other_big', 500) is None      # large, no file: no panel, so no columns
+    assert stats('small', 10) == probed         # the browser's probe
+    assert fs.panel_stats({'id': 'x', 'parquet': None}, {}, lambda: probed, tmp_path, 100) is None
+
+
+def test_probe_stats_skip_columns_the_panel_never_offers(tmp_path):
+    # Mirrors web/src/filter-probe.ts, which the viewer runs for layers without baked stats.
+    src = tmp_path / 'p.parquet'
+    con = duckdb.connect()
+    con.execute(f"COPY (SELECT range AS gid, chr(65 + range::INT % 3) AS zone FROM range(10)) TO '{src}'")
+    s = fs.stats_for_parquet(src, con, probe=True)
+    assert [(c['name'], c['distinct']) for c in s['columns']] == [('gid', -1), ('zone', 3)]
+    assert fs.tile_filter_columns(s) == ['zone']

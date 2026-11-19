@@ -1,0 +1,60 @@
+{
+  "_about": "The Filter panel's column pick, checked by both web/tests/filter-schema.test.ts (rankColumns) and scripts/test_build_filter_stats.py (rank_columns, tile_filter_columns), so the map tiles carry exactly the columns the panel can filter on. Columns are in catalog filter_stats form. ranked: rankColumns order. tile: the ranked columns at or under the facet cap (50 distinct), after column_groups drop non-canonical members.",
+  "cases": [
+    {
+      "name": "city wards: corporation facet, ward name search, ids and geometry dropped",
+      "row_count": 369,
+      "columns": [
+        {"name": "geometry", "type": "geometry", "distinct": -1, "null_frac": 0},
+        {"name": "ward_id", "type": "int", "distinct": 369, "null_frac": 0, "min": 1, "max": 369},
+        {"name": "ward_name", "type": "string", "distinct": 369, "null_frac": 0, "min": "A", "max": "Z"},
+        {"name": "corporation", "type": "string", "distinct": 5, "null_frac": 0,
+         "top_values": [{"v": "Bengaluru West", "n": 112}, {"v": "Bengaluru South", "n": 72}]},
+        {"name": "Shape_Area", "type": "float", "distinct": 369, "null_frac": 0, "min": 0.1, "max": 9.5},
+        {"name": "xmin", "type": "float", "distinct": 369, "null_frac": 0, "min": 77.4, "max": 77.8}
+      ],
+      "ranked": ["corporation", "ward_name"],
+      "tile": ["corporation"]
+    },
+    {
+      "name": "boolean by values, numeric facet, range, near-constant numeric dropped",
+      "row_count": 1000,
+      "columns": [
+        {"name": "is_urban", "type": "string", "distinct": 2, "null_frac": 0,
+         "top_values": [{"v": "Yes", "n": 600}, {"v": "No", "n": 400}]},
+        {"name": "flag01", "type": "float", "distinct": 2, "null_frac": 0,
+         "top_values": [{"v": 1.0, "n": 600}, {"v": 0.0, "n": 400}]},
+        {"name": "tessellate", "type": "int", "distinct": 3, "null_frac": 0,
+         "top_values": [{"v": -1, "n": 900}, {"v": 0, "n": 50}, {"v": 1, "n": 50}]},
+        {"name": "cycle", "type": "int", "distinct": 12, "null_frac": 0.1, "min": 1, "max": 12,
+         "top_values": [{"v": 1, "n": 100}]},
+        {"name": "rank30", "type": "int", "distinct": 30, "null_frac": 0, "min": 1, "max": 30},
+        {"name": "area_km2", "type": "float", "distinct": 999, "null_frac": 0, "min": 0.5, "max": 99.5},
+        {"name": "population", "type": "float", "distinct": 400, "null_frac": 0, "min": 10, "max": 9000},
+        {"name": "_internal", "type": "string", "distinct": 4, "null_frac": 0}
+      ],
+      "ranked": ["cycle", "is_urban", "flag01", "rank30", "population"],
+      "tile": ["cycle", "is_urban", "flag01", "rank30"]
+    },
+    {
+      "name": "capped at six, mostly-null and all-same dropped, groups keep the canonical",
+      "row_count": 500,
+      "column_groups": [{"canonical": "STNAME", "members": ["STNAME", "state_lgd"]}],
+      "columns": [
+        {"name": "STNAME", "type": "string", "distinct": 30, "null_frac": 0},
+        {"name": "state_lgd", "type": "int", "distinct": 30, "null_frac": 0, "min": 1, "max": 38},
+        {"name": "a", "type": "string", "distinct": 10, "null_frac": 0.2},
+        {"name": "b", "type": "string", "distinct": 10, "null_frac": 0.1},
+        {"name": "c", "type": "string", "distinct": 10, "null_frac": 0.3},
+        {"name": "d", "type": "string", "distinct": 10, "null_frac": 0.4},
+        {"name": "e", "type": "string", "distinct": 10, "null_frac": 0.5},
+        {"name": "f", "type": "string", "distinct": 10, "null_frac": 0.6},
+        {"name": "sparse", "type": "string", "distinct": 10, "null_frac": 0.97},
+        {"name": "same", "type": "string", "distinct": 1, "null_frac": 0},
+        {"name": "village", "type": "string", "distinct": 450, "null_frac": 0}
+      ],
+      "ranked": ["STNAME", "b", "a", "c", "d", "e"],
+      "tile": ["STNAME", "b", "a", "c", "d", "e"]
+    }
+  ]
+}

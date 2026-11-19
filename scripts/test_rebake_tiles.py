@@ -60,6 +60,39 @@ def test_tippecanoe_args_points_and_lines_thin(kind):
     assert ('-r1' in args) == (kind == 'point')
 
 
+def test_tippecanoe_args_full_detail_leaves_tippecanoes_default():
+    args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', ['n'], 'polygon', 10, low_detail=None)
+    assert not any(a.startswith('--low-detail') for a in args)
+    assert f'--maximum-tile-bytes={rt.MAX_TILE_BYTES}' in args
+    args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', ['n'], 'line', 10,
+                              low_detail=None, max_tile_bytes=None)
+    assert not any(a.startswith(('--low-detail', '--maximum-tile-bytes')) for a in args)
+
+
+def test_tile_tries_smaller_tiles_first_then_tippecanoes_defaults():
+    # Fine parcels in a small area turn to dust at country zoom with the lower
+    # detail; dense lines keep less length in the smaller budget. Each later try
+    # gives back one of tippecanoe's defaults.
+    assert rt.TILE_TRIES == ((rt.LOW_DETAIL, rt.MAX_TILE_BYTES, ''), (None, rt.MAX_TILE_BYTES, '.full-detail'),
+                             (None, None, '.default-budget'))
+
+
+def test_worse_than_the_live_tiles_per_shared_probe_tile():
+    def row(z, x, decoded, cover):
+        return {'z': z, 'x': x, 'y': 0, 'decoded': decoded, 'parquet': 10, 'cover': cover}
+    live = [row(3, 1, 300, 0.997), row(5, 1, 900, 0.999), row(8, 1, 50, 1.0), row(12, 1, 9, 1.0)]
+    # Polygons: further from the parquet's area than the live tiles were (beyond 1 point).
+    new = [row(3, 1, 18, 0.951), row(5, 1, 40, 0.995), row(8, 1, 50, 1.0), row(13, 1, 9, 1.0)]
+    assert rt.worse_than(live, new, 'polygon') == ["z3/1/0: polygons cover 95% of the parquet's area (live tiles 100%)"]
+    # Lines: shorter by more than 5 points; points: under 90% of the live count.
+    assert rt.worse_than([row(5, 1, 100, 0.8)], [row(5, 1, 50, 0.7)], 'line') == \
+        ["z5/1/0: lines keep 70% of the parquet's length (live tiles 80%)"]
+    assert rt.worse_than([row(5, 1, 100, None)], [row(5, 1, 89, None)], 'point') == \
+        ['z5/1/0: 89 points decoded (live tiles 100)']
+    assert rt.worse_than([row(5, 1, 100, None)], [row(5, 1, 95, None)], 'point') == []
+    assert rt.worse_than(None, new, 'polygon') == []  # no live tiles: nothing to compare
+
+
 def test_tippecanoe_args_no_fields_means_no_attributes():
     args = rt.tippecanoe_args(Path('a.geojsonl'), Path('a.pmtiles'), 'lyr', [], 'point', 10)
     assert '--detect-shared-borders' not in args
@@ -128,6 +161,36 @@ def test_report_problems():
     assert len(problems) == 2
     assert 'decoded' in problems[0] and 'cover 50%' in problems[1]
     assert rt.report_problems(rows[2:], 11, 'polygon') == []
+    # A max-zoom shortfall the live tiles share (sub-pixel fragments tippecanoe
+    # drops at every zoom) is not new; a bigger one is.
+    live = [{**rows[0], 'decoded': 9}]
+    assert rt.report_problems(rows[:1], 11, 'polygon', live) == []
+    assert len(rt.report_problems(rows[:1], 11, 'polygon', [{**rows[0], 'decoded': 10}])) == 1
+
+
+def test_filter_stats_baked_first_else_probed_once_and_cached(tmp_path):
+    import duckdb
+    src = tmp_path / 'source.parquet'
+    con = duckdb.connect()
+    con.execute(f"COPY (SELECT range AS fid, chr(65 + range::INT % 4) AS corporation FROM range(40)) TO '{src}'")
+    layer = {'id': 'wards_x', 'parquet': {'url': 'https://r2/wards_x.parquet', 'bytes': 1000}}
+    baked = {'row_count': 1, 'columns': []}
+    assert rt.filter_stats(layer, {'filter_stats': {'wards_x': baked}}, src, con, tmp_path / 'fs.json') is baked
+    probed = rt.filter_stats(layer, {}, src, con, tmp_path / 'fs.json')
+    assert rt.tile_filter_columns(probed) == ['corporation']
+    src.unlink()  # the second run reads the cache, not the parquet
+    assert rt.filter_stats(layer, {}, src, con, tmp_path / 'fs.json') == probed
+    # No parquet, no Filter panel: nothing to add.
+    assert rt.filter_stats({'id': 'g', 'geojson': {'url': 'x'}}, {}, src, con, tmp_path / 'g.json') is None
+
+
+def test_probes_are_picked_once_so_live_and_new_tiles_meet_the_same_tiles(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(rt, 'probe_points', lambda con, parquet: calls.append(1) or [(77.5, 12.9), (88.3, 22.5)])
+    first = rt.probes(None, tmp_path / 'p.parquet', tmp_path / 'probes.json')
+    assert first == [(77.5, 12.9), (88.3, 22.5)]
+    assert rt.probes(None, tmp_path / 'p.parquet', tmp_path / 'probes.json') == first
+    assert len(calls) == 1
 
 
 def test_geometry_column_by_type_not_name():
