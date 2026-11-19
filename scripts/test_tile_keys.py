@@ -1,11 +1,11 @@
 """Rebaked map tiles survive a catalog rebuild or a re-ingest.
 
 rebake_tiles.py (<stem>.<md5[:8]>.pmtiles) and rebake_locate_tiles.py
-(<stem>.z12.pmtiles) publish tiles under new keys and the old keys are deleted
-after deploy. build_catalog.py and ingest_ramseraph.py template the tile URL
-from the upstream file name, so without this rule a rerun would point a layer
-back at a deleted file (and the ingest would re-upload the heavy upstream
-tiles).
+(<stem>.z12.pmtiles) publish tiles under new keys (the old keys stay; only
+r2_prune.py prunes old tiles). build_catalog.py, ingest_ramseraph.py and the
+bakes' register steps template the tile URL from their own files, so without
+this rule a rerun would point a layer back at tiles without the rebake's
+fixes (and the ingest would re-upload the heavy upstream tiles).
 
 Run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest scripts/test_tile_keys.py -q
 """

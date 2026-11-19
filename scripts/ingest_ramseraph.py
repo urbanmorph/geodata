@@ -823,9 +823,9 @@ def current_catalog_layer(layer_id: str) -> dict | None:
 
 def wants_upstream_pmtiles(d: Dataset) -> bool:
     """Download and upload ramSeraph's tiles, unless the layer opted out or
-    the catalog already serves tiles bharatlas rebaked (their upstream-named
-    key is deleted after the rebake, and re-uploading it would bring back the
-    heavy low-zoom tiles the rebake replaced)."""
+    the catalog already serves tiles bharatlas rebaked (re-uploading the
+    upstream tiles would only bring back the heavy low-zoom tiles the rebake
+    replaced; the old key stays on R2 until r2_prune.py prunes it)."""
     if not d.pmtiles_url:
         return False
     return not is_rebaked((current_catalog_layer(d.id) or {}).get('pmtiles'))

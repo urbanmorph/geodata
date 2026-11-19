@@ -19,8 +19,8 @@ runs out of Worker CPU (Cloudflare 1102). Per layer:
 The source data is never changed: no column is dropped, renamed or cleaned.
 A GeoParquet `bbox` struct stays; the flat columns are copied from it.
 build_catalog.py and ingest_ramseraph.py keep the versioned key on a rebuild
-(scripts/tile_keys.py). The old keys stay on R2 until the deploy that stops
-using them; delete them by hand after that.
+(scripts/tile_keys.py). The old keys stay on R2: a published URL never
+breaks, and parquet is never pruned (r2_prune.py prunes old tiles only).
 
 Run (R2 creds in the env: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY):
     python3 -u scripts/rebake_layer.py --missing             # every layer without bbox columns

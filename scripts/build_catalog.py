@@ -542,7 +542,7 @@ def carry_forward_from_prev(layer: dict, prev_layers: dict[str, dict]) -> None:
     if not prev:
         return
     # Tiles and parquet bharatlas rebaked (versioned keys) win over the upstream-named
-    # key this build templates; the old key is deleted after a rebake's deploy.
+    # key this build templates (old keys stay on R2; r2_prune.py prunes old tiles only).
     keep_all_rebaked(layer, prev)
     if layer.get('parquet') and layer['parquet'].get('bytes') is None:
         layer['parquet']['bytes'] = (prev.get('parquet') or {}).get('bytes')
