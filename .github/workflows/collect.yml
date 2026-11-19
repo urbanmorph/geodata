@@ -49,6 +49,10 @@ on:
       - 'web/tests/helpers/manifest-checks.ts'
   workflow_dispatch:
 
+# The GITHUB_TOKEN only reads the repo: deploys use the Cloudflare token.
+permissions:
+  contents: read
+
 # One run at a time per branch: two merges close together otherwise deploy in
 # parallel and the older build can finish last (web/tests/deploy-order.test.ts).
 concurrency:
@@ -58,13 +62,14 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: collect
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09  # v5.1.0
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444  # v5.0.0
         with:
           node-version: 24
           cache: npm
@@ -88,4 +93,5 @@ jobs:
         env:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: npx wrangler pages deploy dist --project-name=collect --branch=main
+        # wrangler is not in the lockfile: pin it, so a new release never deploys untested.
+        run: npx --yes wrangler@4.165.0 pages deploy dist --project-name=collect --branch=main
