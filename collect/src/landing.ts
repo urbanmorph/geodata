@@ -3,7 +3,6 @@
 import { apiJson } from './api';
 import { escapeHtml } from './util';
 import { myMaps, openLink, type SavedMap, type MapRole } from './maps-store';
-import { startCreate } from './create/wizard';
 import { mountInstallButton } from '../../web/src/install-button';
 import { collectTopbarHtml } from './topbar';
 import { footerLinksHtml } from '../../shared/footer.mjs';
@@ -83,7 +82,13 @@ function home(focusSync = false) {
       </footer>
     </div>`;
   app.querySelector('#install-slot')!.replaceWith(installBtn);
-  app.querySelector<HTMLButtonElement>('#start')!.onclick = () => startCreate({ app, home });
+  // The guided flow is fetched when tapped: most visits only reopen a map.
+  app.querySelector<HTMLButtonElement>('#start')!.onclick = async () => {
+    try { (await import('./create/wizard')).startCreate({ app, home }); } catch {
+      const note = app.querySelector('#outbox-note');
+      if (note) note.textContent = "Couldn't open the new-map form. Check your connection and try again.";
+    }
+  };
   void fillMasthead();
   void renderQueueNote();
   renderSync();
@@ -163,7 +168,7 @@ async function bootSync(): Promise<void> {
   try {
     if (syncState()) {
       await syncDevice();
-      home();
+      refreshHomeLists();
     }
     if (fromLink) renderSync(SYNC_LINK_NOTE);
   } catch (e) {
@@ -171,6 +176,15 @@ async function bootSync(): Promise<void> {
       : e instanceof TypeError ? "You're offline. Your maps will sync when you're back online."
       : `Couldn't sync: ${(e as Error).message}`);
   }
+}
+
+// After a sync: the home screen's lists redrawn in place, and only while home
+// is showing (a half-filled "Make a new map" stays as it is).
+function refreshHomeLists(): void {
+  const list = app.querySelector('#mymaps');
+  if (!list) return;
+  list.innerHTML = mapsSection();
+  renderSync();
 }
 
 // Points kept on this phone (offline capture). Once one is sent, its edit link
