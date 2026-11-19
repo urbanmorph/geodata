@@ -148,12 +148,32 @@ describe('export size cap on a large layer', () => {
   });
 });
 
-describe('shape exports paused on large layers (production cut GeoJSON/KML streams off, 18 Nov 2026)', () => {
-  it('the large-layer panel offers CSV only', async () => {
+describe('shape exports on large layers (back on after the 18 Nov 2026 pause)', () => {
+  it('the large-layer panel offers CSV, GeoJSON and KML, and GeoJSON streams from /export', async () => {
     mount(2300 * MB);
-    expect(document.querySelector('[data-fmt="csv"]')).not.toBeNull();
-    expect(document.querySelector('[data-fmt="geojson"]')).toBeNull();
-    expect(document.querySelector('[data-fmt="kml"]')).toBeNull();
+    for (const f of ['csv', 'geojson', 'kml']) expect(document.querySelector(`[data-fmt="${f}"]`), f).not.toBeNull();
+    chip('sname', 'SK').click();
+    await vi.advanceTimersByTimeAsync(400);
+    document.querySelector<HTMLButtonElement>('[data-fmt="geojson"]')!.click();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(clicked).toHaveLength(1);
+    expect(new URL(clicked[0]).searchParams.get('format')).toBe('geojson');
+  });
+
+  it('shapes spread over too much of the layer: GeoJSON is refused with CSV offered, CSV still exports', async () => {
+    fetchMock.mockImplementation(async () => new Response(JSON.stringify({ data: {
+      total: 900, estimated_bytes: { geojson: 5 * MB, kml: 5 * MB, csv: MB }, shape_bytes: 3 * 1024 * MB,
+    } }), { status: 200 }));
+    mount(2300 * MB);
+    chip('sname', 'SK').click();
+    await vi.advanceTimersByTimeAsync(400);
+    document.querySelector<HTMLButtonElement>('[data-fmt="geojson"]')!.click();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(clicked).toHaveLength(0);
+    expect(document.querySelector('#filter-status')!.textContent).toMatch(/CSV/);
+    document.querySelector<HTMLButtonElement>('[data-fmt="csv"]')!.click();
+    await vi.advanceTimersByTimeAsync(10);
+    expect(clicked).toHaveLength(1);
   });
 });
 

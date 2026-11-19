@@ -57,14 +57,20 @@ export function kmlHead(layerName) {
 export const KML_TAIL = `</Document>
 </kml>`;
 
-export function kmlPlacemark(f) {
-  const props = f.properties || {};
+/** A placemark up to its geometry: name and attributes (the API's export
+ *  writes the geometry after it in pieces, then </Placemark>). */
+export function kmlPlacemarkHead(properties) {
+  const props = properties || {};
   const name = NAME_KEYS.map((k) => props[k]).find((v) => v != null) ?? '';
   const extData = Object.entries(props)
     .filter(([, v]) => v != null && v !== '')
     .map(([k, v]) => `<Data name="${escXml(k)}"><value>${escXml(typeof v === 'object' ? JSON.stringify(v) : String(v))}</value></Data>`)
     .join('');
-  return `<Placemark><name>${escXml(String(name))}</name><ExtendedData>${extData}</ExtendedData>${geometryToKML(f.geometry)}</Placemark>`;
+  return `<Placemark><name>${escXml(String(name))}</name><ExtendedData>${extData}</ExtendedData>`;
+}
+
+export function kmlPlacemark(f) {
+  return `${kmlPlacemarkHead(f.properties)}${geometryToKML(f.geometry)}</Placemark>`;
 }
 
 export function featuresToKML(feats, layerName) {

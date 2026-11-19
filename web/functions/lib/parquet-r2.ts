@@ -13,6 +13,9 @@ export interface AsyncBuffer {
   cacheKey?: string;
   /** The R2 object's etag, when read from R2. */
   etag?: string;
+  /** Bytes [start, end) as a stream of pieces, in one request: for reading a
+   *  large page without holding it (parquet-column-stream.ts). */
+  stream?(start: number, end: number): AsyncIterable<Uint8Array>;
 }
 
 // Parsed parquet footers, per object version (key + size + etag), kept for
@@ -83,6 +86,20 @@ export async function asyncBufferFromR2(r2: R2Bucket, key: string): Promise<Asyn
       const obj = await r2.get(key, { range: { offset: start, length } });
       if (!obj) throw new Error(`R2 range read failed: ${key} [${start}:${start + length}]`);
       return obj.arrayBuffer();
+    },
+    async* stream(start: number, end: number): AsyncGenerator<Uint8Array> {
+      const obj = await r2.get(key, { range: { offset: start, length: end - start } });
+      if (!obj) throw new Error(`R2 range read failed: ${key} [${start}:${end}]`);
+      const reader = obj.body.getReader();
+      try {
+        for (;;) {
+          const { value, done } = await reader.read();
+          if (done) return;
+          yield value;
+        }
+      } finally {
+        await reader.cancel().catch(() => {}); // stopped early: let go of the rest of the body
+      }
     },
   };
 }

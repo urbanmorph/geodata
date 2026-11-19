@@ -3,6 +3,7 @@
 // cap; DuckDB's eh blob is ~34 MiB) — only the JS shim is bundled with our site.
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { featuresToKML } from '../../shared/kml.mjs';
+import { parseWKB } from '../functions/lib/wkb-geojson';
 
 let dbPromise: Promise<duckdb.AsyncDuckDB> | null = null;
 
@@ -108,89 +109,8 @@ function toUint8Array(v: unknown): Uint8Array | null {
   return null;
 }
 
-// ----- WKB → GeoJSON parser (ISO WKB, the format DuckDB uses for geometry blobs) -----
-
-type Geometry =
-  | { type: 'Point'; coordinates: [number, number] }
-  | { type: 'LineString'; coordinates: [number, number][] }
-  | { type: 'Polygon'; coordinates: [number, number][][] }
-  | { type: 'MultiPoint'; coordinates: [number, number][] }
-  | { type: 'MultiLineString'; coordinates: [number, number][][] }
-  | { type: 'MultiPolygon'; coordinates: [number, number][][][] }
-  | { type: 'GeometryCollection'; geometries: Geometry[] };
-
-export function parseWKB(buf: Uint8Array): Geometry {
-  const dv = new DataView(buf.buffer, buf.byteOffset, buf.byteLength);
-  let p = 0;
-  function readGeom(): Geometry {
-    const le = dv.getUint8(p) === 1; p += 1;
-    const typeWithFlags = dv.getUint32(p, le); p += 4;
-    // Strip Z/M flags. Two encodings in the wild:
-    //   ISO WKB:  base type + 1000*Z + 2000*M + 3000*ZM    (e.g. 1001 = Point Z)
-    //   EWKB:     base type | 0x80000000 (Z) | 0x40000000 (M) | 0x20000000 (SRID)
-    const isEWKB = (typeWithFlags & 0xE0000000) !== 0;
-    const t = isEWKB ? typeWithFlags & 0x0fff : typeWithFlags % 1000 || typeWithFlags;
-    const hasZ = isEWKB
-      ? (typeWithFlags & 0x80000000) !== 0
-      : ((typeWithFlags % 4000) >= 1000 && (typeWithFlags % 4000) < 2000) || typeWithFlags >= 3000;
-    const hasM = isEWKB
-      ? (typeWithFlags & 0x40000000) !== 0
-      : ((typeWithFlags % 4000) >= 2000 && (typeWithFlags % 4000) < 3000) || typeWithFlags >= 3000;
-    const hasSRID = isEWKB && (typeWithFlags & 0x20000000) !== 0;
-    if (hasSRID) p += 4; // skip the SRID int
-    const ptStride = 2 + (hasZ ? 1 : 0) + (hasM ? 1 : 0);
-    function pt(): [number, number] {
-      const x = dv.getFloat64(p, le); p += 8;
-      const y = dv.getFloat64(p, le); p += 8;
-      p += 8 * (ptStride - 2); // skip Z/M doubles
-      return [x, y];
-    }
-    function line(): [number, number][] {
-      const n = dv.getUint32(p, le); p += 4;
-      const out: [number, number][] = [];
-      for (let i = 0; i < n; i++) out.push(pt());
-      return out;
-    }
-    function poly(): [number, number][][] {
-      const rn = dv.getUint32(p, le); p += 4;
-      const rings: [number, number][][] = [];
-      for (let r = 0; r < rn; r++) rings.push(line());
-      return rings;
-    }
-    switch (t) {
-      case 1: return { type: 'Point', coordinates: pt() };
-      case 2: return { type: 'LineString', coordinates: line() };
-      case 3: return { type: 'Polygon', coordinates: poly() };
-      case 4: {
-        const n = dv.getUint32(p, le); p += 4;
-        const coords: [number, number][] = [];
-        for (let i = 0; i < n; i++) coords.push((readGeom() as { coordinates: [number, number] }).coordinates);
-        return { type: 'MultiPoint', coordinates: coords };
-      }
-      case 5: {
-        const n = dv.getUint32(p, le); p += 4;
-        const lines: [number, number][][] = [];
-        for (let i = 0; i < n; i++) lines.push((readGeom() as { coordinates: [number, number][] }).coordinates);
-        return { type: 'MultiLineString', coordinates: lines };
-      }
-      case 6: {
-        const n = dv.getUint32(p, le); p += 4;
-        const polys: [number, number][][][] = [];
-        for (let i = 0; i < n; i++) polys.push((readGeom() as { coordinates: [number, number][][] }).coordinates);
-        return { type: 'MultiPolygon', coordinates: polys };
-      }
-      case 7: {
-        const n = dv.getUint32(p, le); p += 4;
-        const geoms: Geometry[] = [];
-        for (let i = 0; i < n; i++) geoms.push(readGeom());
-        return { type: 'GeometryCollection', geometries: geoms };
-      }
-      default:
-        throw new Error('unsupported WKB type ' + t);
-    }
-  }
-  return readGeom();
-}
+// WKB -> GeoJSON lives with the server code; the filtered export uses it too.
+export { parseWKB };
 
 export async function exportFilteredGeoJSON(
   parquetUrl: string,

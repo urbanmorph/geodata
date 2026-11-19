@@ -3,11 +3,13 @@
  * streamed as GeoJSON, KML or CSV. The Filter panel uses it for layers too
  * large to filter in the browser (shared/large-load.mjs LARGE_FILTER_BYTES).
  *
- * Pass 1 reads only the filter columns and counts every match; above the cap
- * nothing more is read and the caller gets a 400 with guidance. Pass 2 reads
- * the matching rows' columns one row group at a time, so memory stays at one
- * group whatever the export size. hyparquet decodes GeoParquet geometry to
- * GeoJSON itself.
+ * Pass 1 reads only the filter columns and counts every match; above the
+ * caps (rows, estimated bytes, shape decoding) nothing more is read and the
+ * caller gets a 400 with guidance. Pass 2 reads the matching rows' attribute
+ * columns in small windows, and their shapes as WKB from a streamed geometry
+ * page (parquet-column-stream.ts), converting only those rows to GeoJSON: a
+ * DuckDB geometry page is up to ~100 MB, and decoding it whole (with every
+ * row's shape) is what stopped production exports on 18 Nov 2026.
  */
 import { parquetReadObjects } from 'hyparquet';
 import type { FileMetaData } from 'hyparquet';
@@ -22,11 +24,15 @@ import {
   topLevelColumns,
   type FilterSpec,
 } from './parquet-query';
-import { kmlHead, kmlPlacemark, KML_TAIL } from '../../../shared/kml.mjs';
-import { FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS } from '../../../shared/large-load.mjs';
+import { byteArrayColumnRows } from './parquet-column-stream';
+import { wkbToText } from './wkb-geojson';
+import { kmlHead, kmlPlacemarkHead, KML_TAIL } from '../../../shared/kml.mjs';
+import { FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, FILTER_EXPORT_MAX_SHAPE_BYTES } from '../../../shared/large-load.mjs';
 
 export const EXPORT_MAX_ROWS = FILTER_EXPORT_MAX_ROWS;
 export const EXPORT_MAX_BYTES = FILTER_EXPORT_MAX_BYTES;
+/** Shape decoding budget: see shared/large-load.mjs and shapeDecodeBytes. */
+export const EXPORT_MAX_SHAPE_BYTES = FILTER_EXPORT_MAX_SHAPE_BYTES;
 export const EXPORT_FORMATS = ['geojson', 'kml', 'csv'] as const;
 export type ExportFormat = (typeof EXPORT_FORMATS)[number];
 
@@ -155,15 +161,38 @@ export function readWindows(idxs: number[], span: number): number[][] {
   return out;
 }
 
-/** The columns an export reads: CSV writes no shape, so it never reads one. */
-export function readColumnsFor(format: ExportFormat, propCols: string[], geomCol: string | undefined, bboxCols: string[]): string[] {
-  return [...propCols, ...(geomCol && format !== 'csv' ? [geomCol] : []), ...bboxCols];
+/** The attribute columns an export reads per window: CSV adds the bbox for
+ *  its centre point; shapes (GeoJSON, KML) are read on their own. */
+export function readColumnsFor(format: ExportFormat, propCols: string[], bboxCols: string[]): string[] {
+  return format === 'csv' ? [...propCols, ...bboxCols] : propCols;
+}
+
+/**
+ * Uncompressed geometry bytes a shape export streams: per row group with
+ * matches, its geometry chunk up to its last match (a page is read from its
+ * start; DuckDB writes one or two pages per group). From the footer only.
+ */
+export function shapeDecodeBytes(metadata: FileMetaData, perGroup: Array<{ last: number }>, geomCol: string): number {
+  let start = 0;
+  let bytes = 0;
+  metadata.row_groups.forEach((rg, i) => {
+    const rows = Number(rg.num_rows);
+    const last = perGroup[i]?.last ?? -1;
+    if (last >= 0 && rows) {
+      const chunk = rg.columns.find((c) => c.meta_data?.path_in_schema?.[0] === geomCol);
+      bytes += Number(chunk?.meta_data?.total_uncompressed_size ?? 0) * ((last - start + 1) / rows);
+    }
+    start += rows;
+  });
+  return Math.round(bytes);
 }
 
 export interface ExportPlan {
   total: number;
   /** Estimated output size per format (estimateExportBytes). */
   estimatedBytes: Record<ExportFormat, number>;
+  /** Uncompressed geometry a GeoJSON/KML export would stream (shapeDecodeBytes). */
+  shapeBytes: number;
 }
 
 type Selection = { where?: Record<string, string>; filters?: FilterSpec[] };
@@ -191,14 +220,15 @@ async function scan(file: AsyncBuffer, sel: Selection, keep: number) {
     kml: estimateExportBytes(metadata, perGroup, shapeCols, 'kml'),
     csv: estimateExportBytes(metadata, perGroup, [...propCols, ...bboxCols], 'csv'),
   };
-  return { metadata, perGroup, total, geomCol, propCols, hasBbox, bboxCols, estimatedBytes };
+  const shapeBytes = geomCol ? shapeDecodeBytes(metadata, perGroup, geomCol) : 0;
+  return { metadata, perGroup, total, geomCol, propCols, hasBbox, bboxCols, estimatedBytes, shapeBytes };
 }
 
 /** The match count and each format's estimated size (the panel asks this
  *  before exporting; /export?estimate=1). */
 export async function planExport(file: AsyncBuffer, sel: Selection): Promise<ExportPlan> {
-  const { total, estimatedBytes } = await scan(file, sel, 0);
-  return { total, estimatedBytes };
+  const { total, estimatedBytes, shapeBytes } = await scan(file, sel, 0);
+  return { total, estimatedBytes, shapeBytes };
 }
 
 const MB = (n: number) => `${Math.round(n / (1024 * 1024)).toLocaleString('en-US')} MB`;
@@ -219,11 +249,13 @@ export async function exportRows(
     maxBytes?: number;
     /** Said in the over-the-cap message, e.g. where whole-layer downloads are. */
     tooManyHint?: string;
+    /** Shape decoding budget (default EXPORT_MAX_SHAPE_BYTES); tests lower it. */
+    maxShapeBytes?: number;
   },
 ): Promise<ExportResult> {
   const maxRows = opts.maxRows ?? EXPORT_MAX_ROWS;
   const maxBytes = opts.maxBytes ?? EXPORT_MAX_BYTES;
-  const { metadata, perGroup, total, geomCol, propCols, hasBbox, bboxCols, estimatedBytes } = await scan(file, opts, maxRows);
+  const { metadata, perGroup, total, geomCol, propCols, hasBbox, bboxCols, estimatedBytes, shapeBytes } = await scan(file, opts, maxRows);
   const instead = `Narrow the filter${opts.tooManyHint ? `, or ${opts.tooManyHint}` : ''}.`;
   if (total > maxRows) {
     throw new QueryInputError(
@@ -239,33 +271,58 @@ export async function exportRows(
   }
 
   const format = opts.format;
-  const readCols = readColumnsFor(format, propCols, geomCol, bboxCols);
-  const windows = perGroup.flatMap((g) => readWindows(g.idxs, READ_WINDOW_ROWS));
+  const shapeCol = format === 'csv' ? undefined : geomCol;
+  if (shapeCol && shapeBytes > (opts.maxShapeBytes ?? EXPORT_MAX_SHAPE_BYTES)) {
+    throw new QueryInputError(
+      `${total.toLocaleString('en-US')} rows match, spread over too much of this layer to export their shapes in one go. `
+      + `${instead} Or export CSV (each row with its centre point).`,
+    );
+  }
+  const readCols = readColumnsFor(format, propCols, bboxCols);
 
   async function* rowsOf(): AsyncGenerator<Record<string, unknown>> {
-    for (const w of windows) { // one window in memory at a time
-      const lo = w[0];
-      const rows = await parquetReadObjects({
-        file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: w[w.length - 1] + 1,
-      }) as Record<string, unknown>[];
-      for (const i of w) yield rows[i - lo];
+    for (const [group, g] of perGroup.entries()) {
+      if (!g.idxs.length) continue;
+      const shapes = shapeCol ? byteArrayColumnRows(file, metadata, group, shapeCol, g.idxs, compressors) : undefined;
+      try {
+        for (const w of readWindows(g.idxs, READ_WINDOW_ROWS)) { // one window of attributes in memory at a time
+          const lo = w[0];
+          const rows = await parquetReadObjects({
+            file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: w[w.length - 1] + 1,
+          }) as Record<string, unknown>[];
+          for (const i of w) {
+            const row = rows[i - lo];
+            if (shapes) row[shapeCol!] = (await shapes.next()).value ?? null; // WKB, written out in pieces below
+            yield row;
+          }
+        }
+      } finally {
+        await shapes?.return(undefined);
+      }
     }
   }
   const props = (row: Record<string, unknown>) => Object.fromEntries(propCols.map((c) => [c, plain(row[c])]));
+  const shapeOf = (row: Record<string, unknown>) => (shapeCol ? row[shapeCol] as Uint8Array | null : null);
 
   async function* chunks(): AsyncGenerator<string> {
     if (format === 'geojson') {
       yield '{"type":"FeatureCollection","features":[';
       let first = true;
       for await (const row of rowsOf()) {
-        yield (first ? '\n' : ',\n') + jsonSafe({ type: 'Feature', geometry: geomCol ? row[geomCol] ?? null : null, properties: props(row) });
+        const wkb = shapeOf(row);
+        yield `${first ? '\n' : ',\n'}{"type":"Feature","geometry":`;
+        if (wkb) yield* wkbToText(wkb, 'geojson'); else yield 'null';
+        yield `,"properties":${jsonSafe(props(row))}}`;
         first = false;
       }
       yield '\n]}\n';
     } else if (format === 'kml') {
       yield kmlHead(opts.name ?? 'export');
       for await (const row of rowsOf()) {
-        yield kmlPlacemark({ geometry: geomCol ? row[geomCol] : null, properties: props(row) });
+        const wkb = shapeOf(row);
+        yield kmlPlacemarkHead(props(row));
+        if (wkb) yield* wkbToText(wkb, 'kml');
+        yield '</Placemark>';
       }
       yield KML_TAIL + '\n';
     } else {

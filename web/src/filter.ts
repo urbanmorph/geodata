@@ -14,7 +14,9 @@ import {
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
 import { getCatalog } from './catalog';
 import { escapeHtml } from './util';
-import { usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, SERVER_SHAPE_EXPORT } from '../../shared/large-load.mjs';
+import {
+  usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, FILTER_EXPORT_MAX_SHAPE_BYTES, SERVER_SHAPE_EXPORT,
+} from '../../shared/large-load.mjs';
 import { fmtBytes } from './format-hints';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
 import {
@@ -218,7 +220,7 @@ export function mountFilterPanel(
       }
     }
     const n = plan.total;
-    const refusal = overCapMessage(n, plan.estimated_bytes[fmt], fmt, active, !!layer.geojson?.url?.endsWith('.zip'));
+    const refusal = overCapMessage(n, plan.estimated_bytes[fmt], fmt, active, !!layer.geojson?.url?.endsWith('.zip'), plan.shape_bytes);
     if (refusal) {
       status.innerHTML = `<span class="filter-panel__err">${escapeHtml(refusal)}</span>`;
       return;
@@ -305,7 +307,7 @@ function filterParam(active: ActiveFilter[]): string {
 }
 
 type ExportFmt = 'geojson' | 'kml' | 'csv';
-type ExportPlan = { total: number; estimated_bytes: Record<ExportFmt, number> };
+type ExportPlan = { total: number; estimated_bytes: Record<ExportFmt, number>; shape_bytes?: number };
 
 /** The match count and each format's estimated export size, from
  *  /api/v1/layers/{id}/export?estimate=1 (reads only the filter columns). */
@@ -319,12 +321,13 @@ async function apiPlan(layerId: string, active: ActiveFilter[]): Promise<ExportP
 const MB = (n: number) => `${Math.round(n / (1024 * 1024)).toLocaleString('en-US')} MB`;
 const FMT_LABEL: Record<ExportFmt, string> = { geojson: 'GeoJSON', kml: 'KML', csv: 'CSV' };
 
-/** Above either export cap (rows, estimated bytes): what to say instead of
- *  exporting, the same as the API's 400; null when the export may go ahead.
+/** Above an export cap (rows, estimated bytes, or for GeoJSON/KML the shape
+ *  decoding): what to say instead of exporting, the same as the API's 400;
+ *  null when the export may go ahead.
  *  A single value on one column of a layer split per state (its GeoJSON is a
  *  zip of state files) points to that zip. */
 export function overCapMessage(
-  n: number, bytes: number, fmt: ExportFmt, active: ActiveFilter[], perStateZips: boolean,
+  n: number, bytes: number, fmt: ExportFmt, active: ActiveFilter[], perStateZips: boolean, shapeBytes = 0,
 ): string | null {
   const one = active.length === 1 && active[0].kind === 'in' && active[0].values.length === 1;
   const instead = perStateZips && one
@@ -335,6 +338,9 @@ export function overCapMessage(
   }
   if (bytes > FILTER_EXPORT_MAX_BYTES) {
     return `${n.toLocaleString('en-US')} match, an estimated ${MB(bytes)} as ${FMT_LABEL[fmt]}: more than one export holds (${MB(FILTER_EXPORT_MAX_BYTES)}). ${instead}`;
+  }
+  if (fmt !== 'csv' && shapeBytes > FILTER_EXPORT_MAX_SHAPE_BYTES) {
+    return `${n.toLocaleString('en-US')} match, spread over too much of this layer to export their shapes in one go. ${instead} Or export CSV (each row with its centre point).`;
   }
   return null;
 }

@@ -5,7 +5,8 @@ import { countApiUse } from '../../../../lib/usage';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { QueryInputError } from '../../../../lib/parquet-query';
 import {
-  exportRows, planExport, parseFilterParam, EXPORT_FORMATS, EXPORT_MAX_BYTES, EXPORT_MAX_ROWS, type ExportFormat,
+  exportRows, planExport, parseFilterParam, EXPORT_FORMATS, EXPORT_MAX_BYTES, EXPORT_MAX_ROWS, EXPORT_MAX_SHAPE_BYTES,
+  type ExportFormat,
 } from '../../../../lib/parquet-export';
 import { parseQueryParams } from '../../../../lib/query-params';
 import { json } from '../../../../lib/http';
@@ -24,11 +25,37 @@ function downloadsHint(layer: { geojson?: { url?: string } | null }): string {
     : 'download the whole layer from its files';
 }
 
-/** While shape exports are paused (shared/large-load.mjs), why a GeoJSON/KML request is refused; null for CSV. */
+/** When shape exports are switched off (SERVER_SHAPE_EXPORT, shared/large-load.mjs), why a GeoJSON/KML request is refused; null otherwise. */
 export function shapeExportRefusal(format: string): string | null {
   if (SERVER_SHAPE_EXPORT || format === 'csv') return null;
   return `${format === 'kml' ? 'KML' : 'GeoJSON'} export of filtered rows is paused while we fix it. Use format=csv `
     + '(each row with its centre point), or download the whole layer or a per-state file from the layer page.';
+}
+
+/**
+ * The export as a response body. A failure partway errors the stream, so the
+ * connection ends without its final chunk and the download shows as failed,
+ * never as a short file under a 200 (headers are sent before the rows are
+ * read). A client that goes away stops the export.
+ */
+export function exportBody(chunks: AsyncIterable<string>): ReadableStream<Uint8Array> {
+  const enc = new TextEncoder();
+  const iter = chunks[Symbol.asyncIterator]();
+  return new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      try {
+        const { value, done } = await iter.next();
+        if (done) controller.close();
+        else controller.enqueue(enc.encode(value));
+      } catch (e) {
+        console.error('export failed partway:', (e as Error).message);
+        controller.error(e);
+      }
+    },
+    async cancel() {
+      await iter.return?.(undefined);
+    },
+  });
 }
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
@@ -57,19 +84,11 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       const plan = await planExport(file, { where, filters });
       return json(200, { data: {
         total: plan.total, estimated_bytes: plan.estimatedBytes, max_rows: EXPORT_MAX_ROWS, max_bytes: EXPORT_MAX_BYTES,
+        shape_bytes: plan.shapeBytes, max_shape_bytes: EXPORT_MAX_SHAPE_BYTES,
       } });
     }
     const out = await exportRows(file, { where, filters, format, name: id, tooManyHint: downloadsHint(layer) });
-    const enc = new TextEncoder();
-    const iter = out.chunks[Symbol.asyncIterator]();
-    const body = new ReadableStream<Uint8Array>({
-      async pull(controller) {
-        const { value, done } = await iter.next();
-        if (done) controller.close();
-        else controller.enqueue(enc.encode(value));
-      },
-    });
-    return new Response(body, {
+    return new Response(exportBody(out.chunks), {
       headers: {
         'content-type': CONTENT_TYPES[format],
         'content-disposition': `attachment; filename="${id}.${format}"`,
