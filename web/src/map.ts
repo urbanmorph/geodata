@@ -605,8 +605,9 @@ async function loadFilterColumns(
 
   const { rankColumns, columnStatsSource } = await import('./filter-schema');
   const { loadBakedStats } = await import('./filter-stats');
-  const baked = await loadBakedStats(layer.id, await getCatalog());
-  const source = columnStatsSource(!!baked, usesServerFilter(layer));
+  const large = usesServerFilter(layer);
+  const baked = await loadBakedStats(layer.id, await getCatalog(), large);
+  const source = columnStatsSource(!!baked, large);
   if (source === 'none') {
     console.warn('no filter stats file for large layer', layer.id); // scripts/bake_large_filter_stats.py
     return null;
