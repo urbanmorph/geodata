@@ -21,7 +21,6 @@ Usage:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 import sys
@@ -31,6 +30,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import log  # noqa: E402
 import pipeline  # noqa: E402
 import bake_formats  # noqa: E402
 
@@ -68,10 +68,6 @@ ATTRIBUTION = {'name': ('Greater Chennai Corporation / Chennai Smart City Ltd, '
                'url': 'https://smartcities.data.gov.in/catalog/property-tax-chennai'}
 
 
-def log(msg: str) -> None:
-    print(msg, flush=True)
-
-
 # ── pure helpers ─────────────────────────────────────────────────────────
 
 def source_ward_no(raw) -> int | None:
@@ -91,10 +87,6 @@ def join_problems(figures: dict[int, object], polygons: dict[int, object]) -> li
     if missing := sorted(set(polygons) - set(figures)):
         out.append(f'polygons with no figures: {missing}')
     return out
-
-
-def file_md5(path: Path) -> str:
-    return hashlib.md5(path.read_bytes()).hexdigest()
 
 
 # ── bake ─────────────────────────────────────────────────────────────────
@@ -130,7 +122,7 @@ def bake(out_dir: Path, src: Path = SRC) -> dict:
     from bake_extracts import write_kml_from_geojson
     from ingest_ramseraph import rebake_flatten_bbox
 
-    if file_md5(src) != SRC_MD5:
+    if pipeline.file_md5(src) != SRC_MD5:
         raise SystemExit(f'{src.name}: md5 differs from the checked source file')
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='chennai_ptax_') as tmp:

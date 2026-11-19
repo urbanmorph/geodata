@@ -38,6 +38,7 @@ import json
 import math
 import os
 import re
+import shutil
 import signal
 import subprocess
 import sys
@@ -478,7 +479,8 @@ def dissolve_overview(flat: Path, out: Path, field: str, con: duckdb.DuckDBPyCon
     def join(part: Path) -> None:
         with part.open('wb') as f:
             for p in parts:
-                f.write(p.read_bytes())
+                with p.open('rb') as band:
+                    shutil.copyfileobj(band, f, CHUNK)
     cached(out, join)
     for p in parts:
         p.unlink()

@@ -56,6 +56,7 @@ import duckdb
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from pipeline import log  # noqa: E402
 import audit_tiles as at  # noqa: E402
 from bake_formats import (  # noqa: E402
     BBOX,
@@ -81,6 +82,7 @@ from pipeline import (  # noqa: E402
     _remote_has,
     file_md5,
     make_con,
+    read_head,
     write_json,
 )
 import tile_keys  # noqa: E402
@@ -127,10 +129,6 @@ POPUP_FIELDS: dict[str, list[str]] = {
     'fsi_circles': ['Circle_Nam', 'ST_Name'],
     'slusi_soil_health': ['VILLAGE', 'DISTRICT', 'STATE', 'cycle', 'N', 'P', 'K', 'pH', 'EC', 'OC'],
 }
-
-
-def log(*msg: object) -> None:
-    print(*msg, flush=True)
 
 
 # ── fields ───────────────────────────────────────────────────────────────────
@@ -250,7 +248,7 @@ def tile_report(pm: Path, parquet: Path, con, kind: str, points: list[tuple[floa
     parquet features meeting the tile, and the area (polygons) or length
     (lines) each covers inside it. Points compare counts only."""
     measured = kind in ('polygon', 'line')
-    max_zoom = at.parse_header(pm.read_bytes()[:127]).max_zoom
+    max_zoom = at.parse_header(read_head(pm, 127)).max_zoom
     tmp = pm.with_name(f'{pm.stem}.decoded.geojson')
     rows, seen = [], set()
     for lon, lat in points:

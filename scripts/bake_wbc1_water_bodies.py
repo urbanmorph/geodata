@@ -46,6 +46,7 @@ from typing import Callable, Iterable, Iterator
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import log  # noqa: E402
 import pipeline  # noqa: E402
 from bake_mgnrega_districts import api_key, with_retries  # noqa: E402
 from pipeline import cache_backup  # noqa: E402
@@ -93,11 +94,6 @@ OFFICIAL = {'West Bengal': 747_480, 'Uttar Pradesh': 245_087, 'Andhra Pradesh': 
             'Punjab': 16_012, 'Haryana': 14_898, 'Meghalaya': 13_332, 'Jammu and Kashmir': 9_765}
 
 Fetcher = Callable[[int, int], dict]
-
-
-def log(msg: str) -> None:
-    sys.stdout.write(msg + '\n')  # one write per line: pull threads never interleave
-    sys.stdout.flush()
 
 
 class TimeUp(Exception):

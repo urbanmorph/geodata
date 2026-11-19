@@ -5,7 +5,6 @@ catalog patch is idempotent under re-runs.
 Run: python3 -m pytest scripts/test_catalog_idempotent.py -v"""
 import copy
 import json
-import pytest
 from pathlib import Path
 from unittest.mock import patch
 

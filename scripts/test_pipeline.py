@@ -659,7 +659,7 @@ def test_fetch_osm_areas_runs_inside_a_cache_backup(monkeypatch, tmp_path):
     assert seen == [('enter', fetch_osm_areas.CACHE, 'fetch_osm_areas'), ('exit',)]
 
 
-@pytest.mark.parametrize('name', ['bake_pmtiles', 'fix_r2_content_disposition'])
+@pytest.mark.parametrize('name', ['bake_pmtiles'])
 def test_one_off_scripts_still_import_from_scripts_oneoff(name):
     # Importing runs nothing; it checks their paths into scripts/ still resolve.
     code = (f'import importlib.util as u; s = u.spec_from_file_location("m", "{HERE}/oneoff/{name}.py"); '
@@ -669,6 +669,19 @@ def test_one_off_scripts_still_import_from_scripts_oneoff(name):
     assert r.returncode == 0, r.stderr
 
 
+def test_the_content_disposition_backfill_refuses_to_run():
+    """Its job is done (pipeline._put_args sets the header on every upload), and a
+    re-run would copy_object(MetadataDirective='REPLACE') over published keys,
+    dropping their md5 metadata and immutable Cache-Control. It must stop before
+    it imports boto3 or reads credentials."""
+    code = ('import sys; sys.modules["boto3"] = None; '
+            f'exec(compile(open("{HERE}/oneoff/fix_r2_content_disposition.py").read(), "f", "exec"), '
+            '{"__name__": "__main__"})')
+    env = {**os.environ, 'CLOUDFLARE_ACCOUNT_ID': 'x', 'R2_ACCESS_KEY_ID': 'x', 'R2_SECRET_ACCESS_KEY': 'x'}
+    r = subprocess.run([sys.executable, '-c', code], capture_output=True, text=True, env=env)
+    assert r.returncode == 1 and 'refuses to run' in r.stderr, r.stderr
+
+
 def test_cache_backup_without_r2_credentials_is_local_only(tmp_path, monkeypatch):
     for k in ('CLOUDFLARE_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY'):
         monkeypatch.delenv(k, raising=False)
@@ -676,3 +689,16 @@ def test_cache_backup_without_r2_credentials_is_local_only(tmp_path, monkeypatch
     with pipeline.cache_backup(d, 'job'):
         (d / 'x.json').write_text('{}')
     assert (d / 'x.json').exists()
+
+
+def test_read_head_reads_only_the_first_bytes(tmp_path):
+    f = tmp_path / 'x.pmtiles'
+    f.write_bytes(b'PMTiles' + b'\0' * 1000)
+    assert pipeline.read_head(f, 7) == b'PMTiles'
+
+
+def test_no_script_loads_a_whole_file_to_look_at_its_first_bytes():
+    here = Path(__file__).resolve().parent
+    offenders = [p.name for p in here.glob('*.py')
+                 if not p.name.startswith('test_') and 'read_bytes()[' in p.read_text()]
+    assert offenders == []

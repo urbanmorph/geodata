@@ -9,13 +9,24 @@ Requires R2 S3-compatible keys in env (same as upload_r2_multipart.py):
   CLOUDFLARE_ACCOUNT_ID
   R2_ACCESS_KEY_ID
   R2_SECRET_ACCESS_KEY
-"""
-import os
-import sys
-from concurrent.futures import ThreadPoolExecutor
 
-import boto3
-from botocore.config import Config
+Kept as a record (#309). It refuses to run: the backfill is done
+(pipeline._put_args sets Content-Disposition on every upload), and a re-run
+would copy_object(MetadataDirective='REPLACE') over every published key in
+these prefixes, dropping the md5 metadata the uploaders skip on (multipart
+objects would all re-upload) and the immutable Cache-Control, and failing
+on objects over 5 GB.
+"""
+import sys
+
+sys.exit('fix_r2_content_disposition.py refuses to run: the one-time backfill is done, and a re-run would strip '
+         'md5 metadata and Cache-Control from published R2 objects (see the docstring).')
+
+import os  # noqa: E402
+from concurrent.futures import ThreadPoolExecutor  # noqa: E402
+
+import boto3  # noqa: E402
+from botocore.config import Config  # noqa: E402
 
 ACCOUNT_ID = os.environ.get('CLOUDFLARE_ACCOUNT_ID')
 ACCESS_KEY = os.environ.get('R2_ACCESS_KEY_ID')

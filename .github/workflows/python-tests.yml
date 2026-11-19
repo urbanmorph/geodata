@@ -1,0 +1,52 @@
+name: python tests
+
+# The data pipeline's tests (scripts/test_*.py) and the D1 migration check.
+# Nothing here touches R2 or D1: the tests use local files and fakes.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'web/migrations/**'
+      - '.github/workflows/python-tests.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/**'
+      - 'web/migrations/**'
+      - '.github/workflows/python-tests.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: install GDAL and tippecanoe
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq gdal-bin tippecanoe
+
+      - name: install Python packages
+        run: python3 -m pip install --quiet 'duckdb==1.5.2' boto3 pytest fonttools flake8
+
+      - name: lint
+        run: python3 -m flake8 --max-line-length 130 scripts
+
+      - name: tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: '1'
+        run: python3 -m pytest scripts -q -p no:cacheprovider
+
+      - name: D1 migrations apply cleanly
+        run: python3 scripts/verify_migrations.py

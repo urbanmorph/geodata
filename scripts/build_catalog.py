@@ -409,7 +409,7 @@ def build_state_bounds():
                for code, minx, miny, maxx, maxy in rows}
         print(f'  state_bounds: {len(out)} states')
         return out
-    except Exception as e:
+    except duckdb.Error as e:
         print(f'  state_bounds: failed — {e}')
         return {}
 
@@ -438,7 +438,7 @@ def fetch_download_counts():
             cwd=str(web_root),
             capture_output=True, text=True, timeout=30,
         )
-    except Exception as e:
+    except (OSError, subprocess.SubprocessError) as e:
         print(f'  download_counts: skipped — {e}')
         return {}
     if out.returncode != 0:
@@ -448,7 +448,7 @@ def fetch_download_counts():
         # wrangler --json wraps the result in [{ results: [...] }, ...]
         parsed = _json.loads(out.stdout)
         rows = parsed[0]['results'] if isinstance(parsed, list) else parsed.get('results', [])
-    except Exception:
+    except (ValueError, LookupError, AttributeError):
         return {}
     counts = {}
     for r in rows:
@@ -529,7 +529,7 @@ def build_state_counts():
             ).fetchall()
             out[layer_id] = {int(code): int(n) for code, n in rows}
             print(f'  state_counts[{layer_id}]: {len(out[layer_id])} states, {sum(out[layer_id].values()):,} total rows')
-        except Exception as e:
+        except duckdb.Error as e:
             print(f'  state_counts[{layer_id}]: failed — {e}')
     return out
 
@@ -588,8 +588,10 @@ def _load_prev_catalog() -> dict:
         return {}
     try:
         return json.loads(prev_path.read_text())
-    except Exception:
-        return {}
+    except json.JSONDecodeError as e:
+        # Never treat it as empty: carry-forward would drop every community and
+        # bake-script layer and the download counts.
+        raise SystemExit(f'{prev_path} is not valid JSON ({e}); fix it before rebuilding the catalog') from e
 
 
 def build():

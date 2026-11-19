@@ -53,6 +53,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+from pipeline import log  # noqa: E402
 import bake_land_water as blw  # noqa: E402
 import bake_large_filter_stats  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
@@ -122,10 +123,6 @@ LAYERS: list[StateSplit] = [
         'degradation', 'Bhuvan_Land_Degradation_50k_1516', ('000', '001', '010', '011'), 'lname',
         ['lname', 'LD_1516_L1', 'LD_1516_L2', 'DS_1516_L1', 'DS_1516_L2']),
 ]
-
-
-def log(*msg: object) -> None:
-    print(*msg, flush=True)
 
 
 # ── national parquet ─────────────────────────────────────────────────────────

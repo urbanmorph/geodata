@@ -14,6 +14,7 @@ import json
 import os
 import re
 import subprocess
+import sys
 import time
 from collections.abc import Callable, Iterable, Iterator
 from datetime import datetime, timezone
@@ -51,7 +52,9 @@ DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf of 2 GB or more
 # ── logging + retries ────────────────────────────────────────────────────────
 
 def log(*msg: Any) -> None:
-    print(*msg, flush=True)
+    """Unbuffered, one write per line (lines from worker threads never interleave)."""
+    sys.stdout.write(' '.join(map(str, msg)) + '\n')
+    sys.stdout.flush()
 
 
 def with_retries(fn: Callable[[], Any], tries: int = 6, wait: Callable[[int], None] | None = None,
@@ -127,6 +130,12 @@ def file_md5(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b''):
             h.update(chunk)
     return h.hexdigest()
+
+
+def read_head(path: Path, n: int) -> bytes:
+    """The first `n` bytes of a file (a header or magic number), without loading the rest."""
+    with path.open('rb') as f:
+        return f.read(n)
 
 
 def is_fresh(out: Path, *sources: Path) -> bool:

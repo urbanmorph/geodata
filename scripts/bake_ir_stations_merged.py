@@ -56,6 +56,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import log  # noqa: E402
 import pipeline  # noqa: E402
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
@@ -109,10 +110,6 @@ TILE_FIELDS = ('stn_code', 'sttnname', 'label', 'sttntype', 'railway', 'division
                'source', 'match_confidence')
 TILE_MAXZOOM = 12  # -zg guessed z4 (600 m steps); z12 is ~2 m
 PERSONAL = re.compile(r'mobile|phone|email|e_mail|aadhaar|contact', re.I)
-
-
-def log(msg: str) -> None:
-    print(msg, flush=True)
 
 
 # ── pure helpers ─────────────────────────────────────────────────────────
@@ -386,15 +383,11 @@ def merge(cris: list[Pt], wd: list[WD]) -> tuple[list[dict], dict]:
 
 # ── pull ─────────────────────────────────────────────────────────────────
 
-def _md5(p: Path) -> str:
-    return hashlib.md5(p.read_bytes()).hexdigest()
-
-
 def _curl(args: list[str], dest: Path) -> None:
     with bake_formats.atomic_output(dest) as part:
         subprocess.run(['curl', '-sSfL', '--retry', '3', '--retry-delay', '5', '-m', '600',
                         '-A', USER_AGENT, '-o', str(part), *args], check=True)
-        if dest.suffix == '.parquet' and part.read_bytes()[:4] != b'PAR1':
+        if dest.suffix == '.parquet' and pipeline.read_head(part, 4) != b'PAR1':
             raise ValueError(f'{dest.name}: not a parquet file')
         if dest.suffix == '.csv' and not part.read_text().startswith(','.join(WD_COLS)):
             raise ValueError(f'{dest.name}: not the Wikidata CSV answer')
@@ -415,7 +408,7 @@ def pull(raw: Path = RAW) -> dict:
             continue
         log(f'fetching {name} -> {fname}')
         _curl(args, dest)
-        meta[name] = {'file': fname, 'url': args[-1], 'md5': _md5(dest),
+        meta[name] = {'file': fname, 'url': args[-1], 'md5': pipeline.file_md5(dest),
                       'fetched_at': datetime.now(timezone.utc).date().isoformat()}
         meta_path.write_text(json.dumps(meta, indent=2) + '\n')  # saved after every file
     return meta
