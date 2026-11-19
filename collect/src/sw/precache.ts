@@ -3,9 +3,14 @@ import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { join, relative, resolve } from 'node:path';
 import type { Plugin } from 'vite';
 
+/** Where the worker saves the map app shell. Bare /c/ is collect's 404 page; this
+ *  parses as a map address (src/map-path.ts), so functions/c/[[path]].ts serves the
+ *  shell, and no real map has it (ids are 10 characters). */
+export const APP_SHELL = '/c/_shell';
+
 /**
  * What the offline worker saves on install: the landing page, the map app shell
- * (c.html, served for every /c/… link, so saved as /c/), every hashed build file
+ * (c.html, served for every /c/… link, so saved as APP_SHELL), every hashed build file
  * and the loose files listed (the map needs the India outline). The version
  * changes whenever any of them does, so a deploy installs a new worker.
  */
@@ -19,7 +24,7 @@ export async function precacheList(dist: string, files: string[]) {
   if (missing.length) throw new Error(`offline worker: ${missing.join(', ')} not in the build`);
   const hash = createHash('sha256');
   for (const p of ['/index.html', '/c.html', ...files, ...assets]) hash.update(p).update(await readFile(join(dist, p)));
-  return { version: hash.digest('hex').slice(0, 16), pages: ['/', '/c/'], files, assets };
+  return { version: hash.digest('hex').slice(0, 16), pages: ['/', APP_SHELL], shell: APP_SHELL, files, assets };
 }
 
 /** Writes dist/sw.js after the build: src/sw/sw.js with its precache list prepended. */

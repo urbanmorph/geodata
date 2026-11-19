@@ -11,15 +11,15 @@
 // the current deploy's files, so a tab still on the old version would otherwise
 // fail to load a lazy chunk mid-capture. The build prepends `self.__PRECACHE__`.
 
-const { version, pages, files, assets } = self.__PRECACHE__;
+const { version, pages, shell, files, assets } = self.__PRECACHE__;
 const PREFIX = 'collect-';
 const CURRENT = `${PREFIX}${version}`;
-const SHELL = '/c/'; // functions/c/[[path]].ts serves the app shell for every /c/… link
 
 const isHashedAsset = (path) => /^\/assets\/[^/]+-[\w-]{8}\.(js|css)$/.test(path);
 const TYPES = { js: /^(text|application)\/javascript\b/, css: /^text\/css\b/ };
 const typeMatches = (path, type) => !!type && !!TYPES[path.split('.').pop()]?.test(type);
-const pageKey = (path) => (path.startsWith('/c/') ? SHELL : path);
+// Every /c/… map page opens the one saved app shell (precache.ts APP_SHELL).
+const pageKey = (path) => (path.startsWith('/c/') ? shell : path);
 // Bypass the HTTP cache, so precaching never stores a stale copy.
 const fresh = (path) => new Request(path, { cache: 'reload' });
 
@@ -28,13 +28,19 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     (async () => {
       const cache = await caches.open(CURRENT);
-      for (const path of assets) {
-        // Unchanged build files are copied from the last version, not downloaded again.
-        const have = await caches.match(path);
-        if (have && typeMatches(path, have.headers.get('content-type'))) await cache.put(path, have);
-        else await put(cache, path);
+      try {
+        for (const path of assets) {
+          // Unchanged build files are copied from the last version, not downloaded again.
+          const have = await caches.match(path);
+          if (have && typeMatches(path, have.headers.get('content-type'))) await cache.put(path, have);
+          else await put(cache, path);
+        }
+        for (const path of [...pages, ...files]) await put(cache, path);
+      } catch (e) {
+        // A failed install never activates, so nothing else would delete its cache.
+        await caches.delete(CURRENT);
+        throw e;
       }
-      for (const path of [...pages, ...files]) await put(cache, path);
     })(),
   );
 });
