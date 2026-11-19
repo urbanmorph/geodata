@@ -13,7 +13,8 @@ from collections.abc import Iterable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import TOOL_TIMEOUT_S, atomic_output, download, run, write_stable_zip  # noqa: E402,F401  (atomic_output re-exported for other branches)
+# atomic_output is re-exported for scripts on other branches.
+from pipeline import TOOL_TIMEOUT_S, atomic_output, download, run, write_stable_zip  # noqa: E402,F401
 
 HERE = Path(__file__).resolve().parent
 JUNK_TS = HERE.parent / 'web' / 'functions' / 'lib' / 'junk-columns.ts'
@@ -33,12 +34,6 @@ def fetch_layer_file(catalog_path: Path, layer_id: str, fmt: str, dest: Path) ->
     if not dest.exists():
         download(layer_url(json.loads(catalog_path.read_text()), layer_id, fmt), dest)
     return dest
-
-
-def byte_ranges(size: int, parts: int) -> list[tuple[int, int]]:
-    """Inclusive (start, end) byte ranges splitting `size` bytes into <= parts."""
-    step = -(-size // parts)
-    return [(s, min(s + step, size) - 1) for s in range(0, size, step)]
 
 
 def features_sql(parquet: str, props_sql: str) -> str:

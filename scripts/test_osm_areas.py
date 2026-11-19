@@ -64,6 +64,7 @@ def test_a_busy_overpass_is_retried_through_the_shared_helper(tmp_path, monkeypa
     assert f.fetch_one('wards_y', (1, 2, 3, 4)) == '0 named places'
     assert waits == [30] and f.log is pipeline.log
 
+
 @pytest.fixture
 def two_wards(tmp_path):
     """Ward 1 is the square (0,0)-(1,1), ward 2 the square (1,0)-(2,1)."""
@@ -92,7 +93,8 @@ def test_each_area_goes_to_the_ward_that_contains_it_suburbs_first_then_by_name(
     }
 
 
-def test_a_number_only_layer_with_osm_areas_gets_a_sidecar_with_the_areas_apart_from_the_layer_s_own_names(two_wards, tmp_path, monkeypatch):
+def test_a_number_only_layer_with_osm_areas_gets_a_sidecar_with_the_areas_apart_from_the_layer_s_own_names(
+        two_wards, tmp_path, monkeypatch):
     con, pq = two_wards
     cache = tmp_path / 'osm'
     cache.mkdir()

@@ -171,7 +171,8 @@ def build_india_polygon_geojson(parquet_src: Path, out: Path) -> None:
             "name": "India",
             "country_code": "IN",
             "source": "LGD (Local Government Directory)",
-            "note": f"India's national boundary. Dissolved from {n_states} LGD state + UT polygons. India-correct by construction (LGD is India's authoritative admin source).",
+            "note": (f"India's national boundary. Dissolved from {n_states} LGD state + UT polygons. "
+                     "India-correct by construction (LGD is India's authoritative admin source)."),
         },
         "geometry": geometry,
     }

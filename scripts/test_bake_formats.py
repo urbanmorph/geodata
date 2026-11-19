@@ -128,13 +128,6 @@ def test_features_sql_builds_one_geojson_feature_per_row():
     assert 'struct_pack(id := id) AS properties' in sql and "read_parquet('/w/p.parquet')" in sql
 
 
-def test_byte_ranges_cover_the_file_exactly():
-    ranges = f.byte_ranges(1003, 4)
-    assert ranges[0][0] == 0 and ranges[-1][1] == 1002
-    assert all(b[0] == a[1] + 1 for a, b in zip(ranges, ranges[1:]))
-    assert f.byte_ranges(5, 8) == [(0, 0), (1, 1), (2, 2), (3, 3), (4, 4)]
-
-
 def test_shapefile_key_default_intro_explains_short_names():
     assert f.shapefile_key({'a_long_name': 'a_long_nam'})[0].startswith('Shapefile field names are limited')
 

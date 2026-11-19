@@ -133,7 +133,6 @@ def test_numeric_columns_need_every_value_numeric_ignoring_na_and_blank():
     assert t.numeric() == ['a']
 
 
-
 def test_whole_number_columns_become_integers_others_doubles():
     t = w.NumericTracker(['year', 'area'])
     for r in [{'year': '2010', 'area': '1.5'}, {'year': 1998.0, 'area': 'NA'}]:
@@ -144,7 +143,8 @@ def test_whole_number_columns_become_integers_others_doubles():
 def test_cast_sql_turns_na_into_null():
     import duckdb
     sql = w.cast_sql('v', 'BIGINT')
-    got = [duckdb.sql(f"SELECT {sql} FROM (SELECT ?::VARCHAR AS v)", params=[x]).fetchone()[0] for x in ('NA', '2010.0', ' ', 'NULL')]
+    got = [duckdb.sql(f"SELECT {sql} FROM (SELECT ?::VARCHAR AS v)", params=[x]).fetchone()[0]
+           for x in ('NA', '2010.0', ' ', 'NULL')]
     assert got == [None, 2010, None, None]
 
 

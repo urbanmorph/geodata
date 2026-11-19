@@ -3,7 +3,8 @@ Generate catalog.json from local files. Single source of truth for the viewer.
 
 Run after scripts/fetch.sh (and bake_extracts.py for the per-state extracts).
 """
-import json, sys
+import json
+import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
@@ -32,7 +33,7 @@ LEVELS = {
     'village':                {'order': 6,  'plural': 'villages',                               'path': 'admin/villages',        'category': 'boundaries'},
 
     # Electoral
-    'parliament_constituency':{'order': 10, 'plural': 'parliament constituencies',              'path': 'electoral/constituencies', 'category': 'people'},
+    'parliament_constituency': {'order': 10, 'plural': 'parliament constituencies',              'path': 'electoral/constituencies', 'category': 'people'},
     'assembly_constituency':  {'order': 11, 'plural': 'assembly constituencies',                'path': 'electoral/constituencies', 'category': 'people'},
 
     # Postal
@@ -92,7 +93,7 @@ ATTR = {
     'Bhuvan':        {'name': 'NRSC/ISRO Bhuvan',            'url': 'https://bhuvanpanchayat.nrsc.gov.in/'},
     'PMGSY':         {'name': 'PMGSY (Rural Roads)',         'url': 'https://omms.nic.in/'},
     'geoBoundaries': {'name': 'geoBoundaries',               'url': 'https://www.geoboundaries.org/'},
-    'data.gov.in':   {'name': 'Open Government Data (India)','url': 'https://data.gov.in/'},
+    'data.gov.in':   {'name': 'Open Government Data (India)', 'url': 'https://data.gov.in/'},
     'GatiShakti':    {'name': 'PM GatiShakti',               'url': 'https://gis.pmgatishakti.gov.in/'},
     'Bharatmaps':    {'name': 'Bharatmaps (NIC)',            'url': 'https://bharatmaps.gov.in/'},
     'OpenCity':      {'name': 'OpenCity / Oorvani Foundation', 'url': 'https://data.opencity.in/'},
@@ -313,6 +314,7 @@ if EXTERNAL_MANIFEST.exists():
 
 def provenance_for(layer_id: str) -> str:
     return EXTERNAL_PROVENANCE.get(layer_id, 'curated')
+
 
 # Reverse map: directory uses plural ("districts"), catalog uses singular ("district").
 # Computed once after LEVELS is finalised (including external-ingested additions).

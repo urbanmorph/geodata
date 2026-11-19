@@ -95,7 +95,8 @@ def list_pending() -> None:
     tokens = admin_token_counts([r['id'] for r in rows])
     for r in rows:
         print(f"  {r['id']}  {(r.get('name') or '(no name)')[:44]}")
-        print(f"      {r.get('feature_count')} features · {r.get('category')} · {r.get('day')} · {(r.get('source_url') or '')[:50]}")
+        print(f"      {r.get('feature_count')} features · {r.get('category')} · {r.get('day')} · "
+              f"{(r.get('source_url') or '')[:50]}")
         for p in problems_for(r, tokens):
             print(f'      ✗ {p}: cannot be accepted')
     print('\nAccept:  python3 scripts/moderate_submission.py accept <id>')

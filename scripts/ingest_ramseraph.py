@@ -667,7 +667,6 @@ def bake_whole_layer(d: Dataset, src_parquet: Path, bake_dir: Path | None = None
     return pipeline.bake_whole_layer(d, src_parquet, bake_dir or WORK / f'bake_{d.id}', basename)
 
 
-
 def merge_layer_into_catalog(
     catalog: dict,
     d: Dataset,

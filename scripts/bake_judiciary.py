@@ -198,5 +198,6 @@ def main() -> int:
         print(f"\n{len(errors)} file(s) failed; the bake is incomplete:\n  " + '\n  '.join(errors))
     return 1 if errors else 0
 
+
 if __name__ == '__main__':
     sys.exit(main())

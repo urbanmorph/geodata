@@ -9,12 +9,14 @@ on:
       - 'scripts/**'
       - 'web/migrations/**'
       - '.github/workflows/python-tests.yml'
+      - '.flake8'
   push:
     branches: [main]
     paths:
       - 'scripts/**'
       - 'web/migrations/**'
       - '.github/workflows/python-tests.yml'
+      - '.flake8'
   workflow_dispatch:
 
 concurrency:
@@ -41,7 +43,7 @@ jobs:
         run: python3 -m pip install --quiet 'duckdb==1.5.2' boto3 pyarrow pytest fonttools flake8
 
       - name: lint
-        run: python3 -m flake8 --max-line-length 130 scripts
+        run: python3 -m flake8 scripts  # config: .flake8
 
       - name: tests
         env:

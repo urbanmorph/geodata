@@ -18,6 +18,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import moderate_submission as m  # noqa: E402
 
+
 @pytest.fixture(autouse=True)
 def fresh_wrangler_probe():
     m.wrangler_bin.cache_clear()  # cached per process; tests swap subprocess.run
@@ -113,12 +114,14 @@ def test_missing_wrangler_falls_back_to_npx(monkeypatch):
 
 def test_wrangler_probe_runs_once_per_process(monkeypatch):
     calls = []
+
     def run(cmd, **kw):
         calls.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, stdout='4.1.0', stderr='')
     m.wrangler_bin.cache_clear()
     monkeypatch.setattr(m.subprocess, 'run', run)
-    m.wrangler_bin(); m.wrangler_bin(); m.wrangler_bin()
+    for _ in range(3):
+        m.wrangler_bin()
     assert len(calls) == 1
     m.wrangler_bin.cache_clear()
 
@@ -126,6 +129,7 @@ def test_wrangler_probe_runs_once_per_process(monkeypatch):
 def test_check_counts_admin_tokens_in_one_query(monkeypatch, capsys):
     queries = []
     rows = [dict(ROW, id=f's{i}', r2_key=f'community/s{i}/f.geojson') for i in range(5)]
+
     def d1(sql):
         queries.append(sql)
         if 'FROM submission_tokens' in sql:

@@ -17,7 +17,7 @@ import pytest
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import ingest_big_layers as bl
+import ingest_big_layers as bl  # noqa: E402
 
 
 @pytest.mark.parametrize('col', [

@@ -1,0 +1,16 @@
+# flake8 for scripts/ (CI: .github/workflows/python-tests.yml).
+[flake8]
+max-line-length = 130
+# `l` is this codebase's name for a catalog layer in comprehensions.
+extend-ignore = E741
+# Layer tables and their test fixtures: one record per line reads better
+# than wrapped records, and data branches edit them line by line.
+per-file-ignores =
+    scripts/build_catalog.py:E501
+    scripts/ingest_ramseraph.py:E501
+    scripts/ingest_external.py:E501
+    scripts/bake_judiciary.py:E501,E128
+    scripts/test_catalog_idempotent.py:E501
+    scripts/test_bake_mgnrega_districts.py:E501
+    scripts/test_ingest_external.py:E501
+exclude = __pycache__
