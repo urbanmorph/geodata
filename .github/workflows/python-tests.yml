@@ -41,8 +41,8 @@ jobs:
         # Ubuntu mirrors answer 503 now and then: retry each fetch, and the whole step three times.
         run: |
           for try in 1 2 3; do
-            sudo apt-get -o Acquire::Retries=5 update -qq &&
-              sudo apt-get -o Acquire::Retries=5 install -y -qq gdal-bin tippecanoe && exit 0
+            timeout 300 sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 update -qq &&
+              timeout 300 sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y -qq gdal-bin tippecanoe && exit 0
             echo "apt failed (try $try); retrying in 30 s"; sleep 30
           done
           exit 1
