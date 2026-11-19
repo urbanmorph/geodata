@@ -80,7 +80,7 @@ const viewOnly = new URLSearchParams(location.search).has('url');
 import { minimalPaint, minimalStyle } from './basemap-minimal';
 import { submissionSync } from './submission-sync';
 import { dropSyncFragment } from '../../shared/keyring';
-import { renderSubmissionSync } from './submission-sync-ui';
+import { renderSubmissionSync, SYNC_LINK_NOTE } from './submission-sync-ui';
 import { passkeysAvailable } from '../../shared/passkey';
 import { submitErrorText } from './submit-error';
 const darkScheme = matchMedia('(prefers-color-scheme: dark)');
@@ -743,13 +743,13 @@ function linksChanged(): void {
 // On load: sync if this device already joined. A sync link is never adopted
 // (shared/keyring.ts dropSyncFragment): its secret is only taken out of the address.
 async function bootSync(): Promise<void> {
-  dropSyncFragment(location, history);
+  const note = dropSyncFragment(location, history) ? SYNC_LINK_NOTE : '';
   try {
     if (subsSync.state()) {
       await subsSync.syncNow();
     }
     renderMySubmissions();
-    renderSync();
+    renderSync(note);
   } catch (e) {
     renderSync((e as Error).message);
   }
