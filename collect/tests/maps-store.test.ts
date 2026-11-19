@@ -87,6 +87,25 @@ describe('mergeMaps (restore from a saved file)', () => {
     expect(m.links).toEqual({ edit: E, admin: A });
     expect(m.records!.map((r) => r.id).sort()).toEqual(['r1', 'r2']);
   });
+  // Forgetting a point on one device must not be undone by the next sync, which
+  // brings back the other devices' copies (they still list it).
+  it('a point forgotten on any device stays forgotten after a merge', () => {
+    const synced: SavedMap = { id: 'm', name: 'X', role: 'collect', links: { edit: E }, records: [{ id: 'r1', label: '', link: L1, at: T }, { id: 'r2', label: '', link: L2, at: T }], at: T };
+    const here = dropRecord(mergeMaps([synced], []), 'm', 'r1');
+    expect(here[0].forgotten).toEqual(['r1']);
+    const [m] = mergeMaps([synced], here);
+    expect(m.records!.map((r) => r.id)).toEqual(['r2']);
+    expect(m.forgotten).toEqual(['r1']);
+    // ...and the other device, merging this one's copy, drops it too.
+    const [there] = mergeMaps(here, [synced]);
+    expect(there.records!.map((r) => r.id)).toEqual(['r2']);
+  });
+  it('a copy saved before forgetting existed (no forgotten list) still merges', () => {
+    const old = { id: 'm', name: 'X', role: 'collect', links: { edit: E }, records: [{ id: 'r1', label: '', link: L1, at: T }], at: T } as SavedMap;
+    const [m] = mergeMaps([old], []);
+    expect(m.records).toHaveLength(1);
+    expect(m.forgotten).toBeUndefined();
+  });
   it('ignores malformed entries', () => {
     expect(mergeMaps([null, { foo: 1 }, { id: 'x', links: {} }] as unknown as SavedMap[], [])).toEqual([
       expect.objectContaining({ id: 'x', role: 'view' }),

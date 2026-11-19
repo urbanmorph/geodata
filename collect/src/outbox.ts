@@ -8,6 +8,8 @@
 // Each point carries a random client_id, so if a send saved but its reply was
 // lost, sending it again returns the same record instead of a duplicate.
 
+import { b64url } from '../../shared/keyring';
+
 /** A photo kept with its point until both are sent. id is set once uploaded.
  *  Kept as bytes, not a Blob: Safari won't store a Blob in IndexedDB in some
  *  cases (private browsing among them), and an ArrayBuffer stores everywhere. */
@@ -15,7 +17,11 @@ export interface QueuedPhoto {
   client_id: string;
   field: string; // the Photo question it answers
   bytes: ArrayBuffer;
-  meta: { lat?: number; lng?: number; taken_at?: string; source?: 'camera' | 'gallery' };
+  meta: {
+    lat?: number; lng?: number; taken_at?: string; source?: 'camera' | 'gallery';
+    /** The point was put where the photo was taken: its GPS may stay in the file. */
+    placed?: boolean;
+  };
   id?: string;
 }
 
@@ -84,8 +90,7 @@ export const forgetUploads = (p: QueuedPoint): QueuedPoint =>
   ({ ...p, photos: p.photos?.map(({ id: _id, ...rest }) => rest) });
 
 export function newClientId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return b64url(crypto.getRandomValues(new Uint8Array(16)));
 }
 
 /** Whether a failed send is worth retrying later, or was refused for good. */
@@ -115,7 +120,7 @@ export function stuckReason(points: QueuedPoint[]): string | null {
 // at once. Each call waits for the one before it and then reads the queue
 // afresh, so a point is sent once, and a point saved mid-flush isn't missed.
 // Across tabs (two tabs, or the app and a tab), a browser lock does the same,
-// where the browser has one; otherwise it's one flush at a time per tab.
+// where the browser has one; otherwise a short lease in localStorage (withLease).
 let last: Promise<unknown> = Promise.resolve();
 const OUTBOX_LOCK = 'collect-outbox';
 
@@ -151,9 +156,45 @@ export function flush(store: OutboxStore, send: (p: QueuedPoint) => Promise<Send
     return { sent };
   };
   const lm = locks();
-  const run = last.catch(() => {}).then(() => (lm ? lm.request(OUTBOX_LOCK, body) : body()));
+  const run = last.catch(() => {}).then(() => (lm ? lm.request(OUTBOX_LOCK, body) : withLease(sharedStorage(), OUTBOX_LOCK, body)));
   last = run;
   return run;
+}
+
+// ---- a lease between tabs, where there is no Web Locks (Safari before 15.4) ----
+
+type LeaseStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+const LEASE_MS = 30_000; // renewed while held, so it only runs out for a tab closed mid-send
+
+function sharedStorage(): LeaseStorage | undefined {
+  try { return (globalThis as { localStorage?: LeaseStorage }).localStorage; } catch { return undefined; }
+}
+
+/** Runs body while holding a lease in storage shared by the tabs: waits while
+ *  another tab holds a live one, renews its own, and lets go after. Where the
+ *  storage is unusable (blocked), it just runs. */
+async function withLease<T>(storage: LeaseStorage | undefined, key: string, body: () => Promise<T>): Promise<T> {
+  if (!storage) return body();
+  const me = newClientId();
+  const read = (): { owner: string; until: number } | null => { try { return JSON.parse(storage.getItem(key) || 'null'); } catch { return null; } };
+  const claim = (): void => storage.setItem(key, JSON.stringify({ owner: me, until: Date.now() + LEASE_MS }));
+  const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
+  try {
+    for (;;) {
+      const held = read();
+      if (held && held.owner !== me && held.until > Date.now()) { await sleep(Math.min(250, held.until - Date.now())); continue; }
+      claim();
+      await sleep(30); // another tab claiming at the same moment: the last write wins, the other waits
+      if (read()?.owner === me) break;
+    }
+  } catch { return body(); } // storage refused a write: one flush per tab, as before
+  const renew = setInterval(() => { try { claim(); } catch { /* keeps the last one */ } }, LEASE_MS / 3);
+  try {
+    return await body();
+  } finally {
+    clearInterval(renew);
+    try { if (read()?.owner === me) storage.removeItem(key); } catch { /* runs out by itself */ }
+  }
 }
 
 // ---- the browser store (IndexedDB) -------------------------------------------

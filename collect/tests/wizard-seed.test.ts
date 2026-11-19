@@ -43,7 +43,8 @@ const flush = async () => { for (let i = 0; i < 5; i++) await new Promise((r) =>
 const CSV = 'name,lng,lat\nNeem,77.59,12.97\nNeem,77.59,12.97\nPeepal,77.6,12.98\n';
 
 async function createFromCsv(): Promise<void> {
-  $<HTMLButtonElement>('#start').click();
+  $<HTMLButtonElement>('#start').click(); // the wizard is loaded when tapped
+  await vi.waitFor(() => expect(app().querySelector('#seed-file')).toBeTruthy());
   const input = $<HTMLInputElement>('#seed-file');
   Object.defineProperty(input, 'files', { value: [new File([CSV], 'trees.csv', { type: 'text/csv' })], configurable: true });
   input.dispatchEvent(new Event('change'));

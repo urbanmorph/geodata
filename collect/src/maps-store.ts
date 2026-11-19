@@ -18,6 +18,8 @@ export interface SavedMap {
   at: string;
   /** Admin links replaced on some device: they no longer work, and sync must not bring them back. */
   retired?: string[];
+  /** Records forgotten on some device (deleted, or let go): sync must not bring them back. */
+  forgotten?: string[];
 }
 
 const KEY = 'collect:maps';
@@ -56,11 +58,17 @@ export function applyRecord(
     list.unshift(e);
   }
   e.records = [{ ...rec, at: now }, ...(e.records ?? []).filter((r) => r.id !== rec.id)];
+  if (e.forgotten?.includes(rec.id)) e.forgotten = e.forgotten.filter((id) => id !== rec.id);
   return list;
 }
 
+/** Forgets a record, and remembers that it did, so a synced copy can't bring it back. */
 export function dropRecord(maps: SavedMap[], mapId: string, recordId: string): SavedMap[] {
-  return maps.map((m) => (m.id === mapId ? { ...m, records: (m.records ?? []).filter((r) => r.id !== recordId) } : m));
+  return maps.map((m) => (m.id === mapId ? {
+    ...m,
+    records: (m.records ?? []).filter((r) => r.id !== recordId),
+    forgotten: [...new Set([...(m.forgotten ?? []), recordId])],
+  } : m));
 }
 
 export function capMaps(maps: SavedMap[]): SavedMap[] {
@@ -84,8 +92,8 @@ export function isCollectLink(link: unknown, here = typeof location === 'undefin
 }
 
 // Restore from a saved file, or sync: union links and records per map (highest
-// role wins) rather than keeping whichever copy came first; a link retired on
-// any device is dropped everywhere. Malformed rows, and links that don't open a
+// role wins) rather than keeping whichever copy came first; a link retired, or
+// a record forgotten, on any device is dropped everywhere. Malformed rows, and links that don't open a
 // collect map, are dropped.
 export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[] {
   const byId = new Map<string, SavedMap>();
@@ -96,17 +104,23 @@ export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[
     const role = m.role && RANK[m.role] ? m.role : roleFromLinks(links);
     const records = Array.isArray(m.records) ? m.records.filter((r) => r && typeof r.id === 'string' && isCollectLink(r.link)) : [];
     const retired = Array.isArray(m.retired) ? m.retired.filter((l) => typeof l === 'string') : [];
+    const forgotten = Array.isArray(m.forgotten) ? m.forgotten.filter((id) => typeof id === 'string') : [];
     candidates.set(m.id, [...(candidates.get(m.id) ?? []), links]);
     const e = byId.get(m.id);
     if (!e) {
-      byId.set(m.id, { id: m.id, name: m.name || 'Untitled map', role, links: {}, records, at: m.at || '', ...(retired.length ? { retired } : {}) });
+      byId.set(m.id, {
+        id: m.id, name: m.name || 'Untitled map', role, links: {}, records, at: m.at || '',
+        ...(retired.length ? { retired } : {}), ...(forgotten.length ? { forgotten } : {}),
+      });
       continue;
     }
     if (RANK[role] > RANK[e.role]) e.role = role;
     e.records = [...(e.records ?? []), ...records.filter((r) => !e.records?.some((x) => x.id === r.id))];
     if (retired.length) e.retired = [...new Set([...(e.retired ?? []), ...retired])];
+    if (forgotten.length) e.forgotten = [...new Set([...(e.forgotten ?? []), ...forgotten])];
   }
   for (const e of byId.values()) {
+    if (e.forgotten) e.records = e.records!.filter((r) => !e.forgotten!.includes(r.id));
     for (const links of candidates.get(e.id)!) {
       for (const slot of ['edit', 'admin', 'view'] as const) {
         const l = links[slot];

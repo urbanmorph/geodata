@@ -40,27 +40,29 @@ const $ = <T extends HTMLElement>(sel: string) => app().querySelector<T>(sel)!;
 const click = (sel: string) => $<HTMLElement>(sel).click();
 const hasSync = () => /Your maps on all your devices/.test(app().textContent || '');
 const flush = () => new Promise((r) => setTimeout(r, 0));
+// "Make a new map" is loaded when tapped (a dynamic import).
+const start = async () => { click('#start'); await vi.waitFor(() => expect($('#wz-back-top')).toBeTruthy()); };
 
 describe('the guided create flow keeps the home screen whole', () => {
   it('home has the sync section to start with', () => {
     expect(hasSync()).toBe(true);
   });
 
-  it('Back on step 1 returns home with the sync section', () => {
-    click('#start');
+  it('Back on step 1 returns home with the sync section', async () => {
+    await start();
     expect($('h1').textContent).toBe('What are you mapping?');
     click('#wz-back');
     expect(hasSync()).toBe(true);
   });
 
-  it('the top-bar arrow on step 1 returns home too', () => {
-    click('#start');
+  it('the top-bar arrow on step 1 returns home too', async () => {
+    await start();
     click('#wz-back-top');
     expect(hasSync()).toBe(true);
   });
 
   it('walks the four steps to a new map, then Ready, then home with sync intact', async () => {
-    click('#start');
+    await start();
     click('.choice[data-t="garbage"]');
     expect($('h1').textContent).toBe('What will people mark?');
     click('.choice[data-m="photos_ai"]');

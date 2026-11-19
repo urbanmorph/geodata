@@ -7,6 +7,7 @@ import * as h from '../../functions/lib/handlers';
 import * as ph from '../../functions/lib/photos';
 import * as ai from '../../functions/lib/ai';
 import type { Env } from '../../functions/types';
+import { readExif, writeExif } from '../../src/photos/exif';
 
 const O = 'https://collect.test';
 type TestEnv = Env & { DB: ReturnType<typeof sqliteD1> };
@@ -88,6 +89,22 @@ describe('uploading a photo', () => {
     expect(row.taken_at).toBe('2026-10-24T03:30:00.000Z');
     expect(objects.get(row.r2_key)).toEqual(JPEG);
     expect(row.r2_key).toBe(`collect/${m.id}/photos/${r.body.id}.jpg`);
+  });
+
+  it('drops the GPS from the stored file unless the point was put where the photo was taken', async () => {
+    const m = await newMap();
+    const withGps = new Uint8Array(writeExif(JPEG, { lat: 12.97, lng: 77.59, takenAt: '2026-10-24T09:00:00+05:30' }));
+    const plain = await upload(m, undefined, undefined, withGps);
+    const row = env.DB.raw.prepare('SELECT * FROM collect_photos WHERE id = ?').get(plain.body.id) as Record<string, any>;
+    expect(row).toMatchObject({ lat: 12.97, lng: 77.59 }); // kept for the admin, never published
+    const stored = readExif(objects.get(row.r2_key)!);
+    expect(stored.lat).toBeUndefined();
+    expect(stored.takenAt).toBe('2026-10-24T09:00:00+05:30');
+
+    // Placed from the photo: the point is already there, so the file may say so.
+    const placed = await upload(m, { lat: 12.97, lng: 77.59, placed: true }, undefined, JPEG);
+    const prow = env.DB.raw.prepare('SELECT * FROM collect_photos WHERE id = ?').get(placed.body.id) as Record<string, any>;
+    expect(readExif(objects.get(prow.r2_key)!)).toMatchObject({ lat: expect.closeTo(12.97, 4), lng: expect.closeTo(77.59, 4) });
   });
 
   it('a repeated upload (lost reply) returns the same photo', async () => {

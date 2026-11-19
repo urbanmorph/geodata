@@ -16,7 +16,7 @@ describe('touch targets', () => {
     expect(css).toMatch(/\nbutton, \.btn \{\s*font: inherit;/);
   });
 
-  for (const sel of ['.chip', '.tabs button', '.seg button', '.link-box button', '.btn-sm']) {
+  for (const sel of ['.chip', '.tabs button', '.seg button', '.link-box button', '.btn-sm', '.my-records summary']) {
     it(`${sel} is at least 44 px tall on touch screens`, () => {
       const rule = touch.match(new RegExp(`([^{}]*)\\{[^}]*min-height: 44px`, 'g'))?.join(' ') ?? '';
       expect(rule).toContain(sel);
@@ -24,7 +24,7 @@ describe('touch targets', () => {
   }
 
   it('icon controls get a 44 px hit area without growing', () => {
-    for (const sel of ['.photo-rm::after', '.topbar > a:first-child', '.maplibregl-ctrl-group button::after']) expect(touch).toContain(sel);
+    for (const sel of ['.photo-rm::after', '.topbar > a:first-child', '.maplibregl-ctrl-group button::after', '.opt-chip button::after']) expect(touch).toContain(sel);
   });
 
   it('the Manage header buttons use the class, not an inline 36 px height', () => {

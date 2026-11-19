@@ -1,7 +1,10 @@
 // A photo made ready on the phone before it is kept or sent: resized to about
-// 300 KB (150 KB with Data saver), its place and time kept in it, and nothing
-// else from the camera (the canvas drops every EXIF tag; exif.ts writes back
-// only those two). Its place and time also travel alongside, for the server.
+// 300 KB (150 KB with Data saver), its time kept in it, and nothing else from
+// the camera (the canvas drops every EXIF tag; exif.ts writes back only the
+// time). Its place is not in the file: the photo turns public once its point is
+// approved, and the point may be somewhere else. The place travels alongside
+// (meta), for the "use it for the point" offer and the server's private row;
+// the server writes it back into the file only when the point was put there.
 import { readExif, writeExif, type PhotoPlace } from './exif';
 import type { QueuedPhoto } from '../outbox';
 
@@ -88,7 +91,7 @@ export async function preparePhoto(file: File, opts: { dataSaver: boolean; sourc
     canvas.height = 0;
     img.src = '';
   }
-  const out = writeExif(new Uint8Array(await blob!.arrayBuffer()), place);
+  const out = writeExif(new Uint8Array(await blob!.arrayBuffer()), { takenAt: place.takenAt });
   const bytes = out.slice().buffer as ArrayBuffer;
   return { bytes, blob: new Blob([bytes], { type: 'image/jpeg' }), meta: photoMeta(place, opts.source) };
 }

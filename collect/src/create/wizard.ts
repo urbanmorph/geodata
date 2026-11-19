@@ -26,6 +26,7 @@ import { syncState } from '../syncing';
 import { TEMPLATES, templateById } from './templates';
 import { MARKS, modeChoices, withPhotoQuestion, schemaDocFor } from './plan';
 import { usesAi, type CollectMode } from '../schema/modes';
+import { readDataYear } from '../schema/data-year';
 
 export interface WizardHost {
   app: HTMLElement;
@@ -273,12 +274,12 @@ export function startCreate(host: WizardHost): void {
     if (name.length < 3) return stop('Give your map a name (at least 3 characters).', '#name');
     const purpose = s.purpose.trim();
     if (!purpose) return stop('Say what people should do (it is shown on the map).', '#purpose');
-    const year = s.year.trim();
-    const dataYear = year ? Number(year) : undefined;
-    if (dataYear !== undefined && !Number.isInteger(dataYear)) {
+    const year = readDataYear(s.year);
+    if (!year.ok) {
       app.querySelector<HTMLDetailsElement>('details.more')!.open = true;
-      return stop('Data year must be a whole number like 2026.', '#year');
+      return stop(year.error, '#year');
     }
+    const dataYear = year.value ?? undefined;
     if (s.seed) {
       if (!s.source.trim()) return stop('Name where this data comes from.', '#seed-source');
       if (!s.rights) return stop('Tick the box confirming you can publish this data under the licence.', '#seed-rights');

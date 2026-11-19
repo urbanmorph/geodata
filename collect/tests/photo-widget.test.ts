@@ -8,7 +8,7 @@ vi.mock('../src/photos/prepare', () => ({
   preparePhoto: async (_f: File, o: { source: string }) => ({ bytes: new ArrayBuffer(3), blob: new Blob(['x'], { type: 'image/jpeg' }), meta: { lat: 12.9, lng: 77.6, source: o.source } }),
   mayShowFace: async () => face,
 }));
-const { mountPhotoField, openViewer } = await import('../src/photos/widget');
+const { mountPhotoField, openViewer, authedSrc, releasePhotos } = await import('../src/photos/widget');
 
 const flush = () => new Promise((r) => setTimeout(r, 0));
 const pick = async (host: HTMLElement, src: 'camera' | 'gallery') => {
@@ -112,5 +112,30 @@ describe('memory', () => {
     await pick(host, 'gallery');
     pf.dispose();
     expect(revoked.sort()).toEqual(['blob:1', 'blob:2']);
+  });
+});
+
+// Private photos (pending points) are fetched with the token and shown from a
+// blob: URL. One still on screen must never be let go (it would turn blank);
+// all of them are let go when the sheet showing them closes.
+describe('private photos in memory', () => {
+  it('keeps every shown photo, however many, until the sheet lets them go', async () => {
+    const revoked: string[] = [];
+    let n = 0;
+    URL.createObjectURL = () => `blob:p${++n}`;
+    URL.revokeObjectURL = (u: string) => { revoked.push(u); };
+    vi.stubGlobal('fetch', async () => new Response(new Blob(['x'])));
+    try {
+      const srcs = await Promise.all(Array.from({ length: 45 }, (_, i) => authedSrc(`https://c/api/collect/v1/photos/ph_${i}`, 'adm_x')));
+      expect(new Set(srcs).size).toBe(45);
+      expect(revoked).toEqual([]);
+      // The same photo again (the viewer, a redraw) is the same URL, not a new fetch.
+      expect(await authedSrc('https://c/api/collect/v1/photos/ph_0', 'adm_x')).toBe(srcs[0]);
+      releasePhotos();
+      await flush();
+      expect(revoked.sort()).toEqual([...srcs].sort());
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 });

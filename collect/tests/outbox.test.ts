@@ -251,4 +251,55 @@ describe('two tabs sending the queue at once', () => {
       vi.unstubAllGlobals();
     }
   });
+
+  // Older Safari (before 15.4) has no Web Locks: a short lease in localStorage
+  // (shared by the tabs, renewed while the send runs) takes its place.
+  it('without a browser lock, take turns through a lease in localStorage', async () => {
+    const mem = new Map<string, string>();
+    const localStorage = {
+      getItem: (k: string) => mem.get(k) ?? null,
+      setItem: (k: string, v: string) => void mem.set(k, v),
+      removeItem: (k: string) => void mem.delete(k),
+    };
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('localStorage', localStorage);
+    try {
+      vi.resetModules();
+      const tabA = await import('../src/outbox');
+      vi.resetModules();
+      const tabB = await import('../src/outbox');
+      const store = memoryStore([point(), point()]);
+      let sends = 0;
+      let inside = 0;
+      let overlapped = false;
+      const send = async (p: QueuedPoint) => {
+        sends++;
+        if (++inside > 1) overlapped = true;
+        await new Promise((r) => setTimeout(r, 20));
+        inside--;
+        return ok(p.client_id);
+      };
+      await Promise.all([tabA.flush(store, send), tabB.flush(store, send)]);
+      expect(overlapped).toBe(false);
+      expect(sends).toBe(2);
+      expect(mem.has('collect-outbox')).toBe(false); // let go after
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('a lease left by a tab that was closed mid-send runs out', async () => {
+    const mem = new Map<string, string>([['collect-outbox', JSON.stringify({ owner: 'gone', until: Date.now() - 1 })]]);
+    vi.stubGlobal('navigator', {});
+    vi.stubGlobal('localStorage', { getItem: (k: string) => mem.get(k) ?? null, setItem: (k: string, v: string) => void mem.set(k, v), removeItem: (k: string) => void mem.delete(k) });
+    try {
+      vi.resetModules();
+      const tab = await import('../src/outbox');
+      const store = memoryStore([point()]);
+      await tab.flush(store, async (p) => ok(p.client_id));
+      expect(store.rows.size).toBe(0);
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
