@@ -103,12 +103,22 @@ def _total_size(resp, start: int) -> int | None:
     return start + int(cl) if cl is not None else None
 
 
-def _served_md5(resp) -> str | None:
+# Hosts whose single-part ETag is the body's MD5 (S3 semantics). Elsewhere an
+# ETag is opaque, even when it happens to look like 32 hex digits.
+MD5_ETAG_HOSTS = ('.r2.dev', '.r2.cloudflarestorage.com', '.amazonaws.com')
+
+
+def _served_md5(resp, url: str) -> str | None:
     """The body's MD5 when the server states it: our uploads' md5 metadata, or
-    a single-part ETag (a multipart one has a "-N" suffix and is no MD5)."""
-    for value in (resp.headers.get('x-amz-meta-md5'), (resp.headers.get('ETag') or '').strip('"')):
-        if value and _MD5.match(value):
-            return value
+    an S3/R2 single-part ETag (a multipart one has a "-N" suffix and is no MD5)."""
+    from urllib.parse import urlsplit
+    meta = resp.headers.get('x-amz-meta-md5')
+    if meta and _MD5.match(meta):
+        return meta
+    etag = (resp.headers.get('ETag') or '').strip('"')
+    host = urlsplit(url).hostname or ''
+    if _MD5.match(etag) and any(host.endswith(h) or host == h.lstrip('.') for h in MD5_ETAG_HOSTS):
+        return etag
     return None
 
 
@@ -118,8 +128,8 @@ def download(url: str, dest: Path, *, tries: int = 6, timeout: float = 300,
 
     The body goes to part_path(dest), renamed into place only when it is
     complete: as many bytes as the server said (Content-Length/Content-Range)
-    and, when the caller gives `md5` or the server states one (R2's md5
-    metadata or a single-part ETag), the right checksum. A cut-off answer
+    and, when the caller gives `md5` or the server states one (our md5
+    metadata, or an S3/R2 single-part ETag), the right checksum. A cut-off answer
     raises, also when the connection just ended early without an error (an R2
     download once stopped at 232 of 455 MB), and the next try resumes from the
     bytes already on disk (HTTP Range), as does a later run after a kill.
@@ -146,7 +156,7 @@ def download(url: str, dest: Path, *, tries: int = 6, timeout: float = 300,
             with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as r:
                 if start and r.status != 206:
                     start = 0  # the server ignored the Range: start over
-                total, served = _total_size(r, start), _served_md5(r)
+                total, served = _total_size(r, start), _served_md5(r, url)
                 with part.open('ab' if start else 'wb') as f:
                     n, mark = start, start
                     while chunk := r.read(CHUNK):

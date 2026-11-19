@@ -112,14 +112,20 @@ def test_a_truncated_response_with_no_retries_left_fails_and_keeps_the_part(tmp_
     assert pipeline.part_path(dest).stat().st_size == 100_000  # the next run resumes from here
 
 
-def test_download_checks_the_md5_etag_r2_sends(tmp_path, server):
+@pytest.fixture
+def r2_like(monkeypatch):
+    """Treat the local test server like R2: its single-part ETag is an MD5."""
+    monkeypatch.setattr(pipeline, 'MD5_ETAG_HOSTS', (*pipeline.MD5_ETAG_HOSTS, '127.0.0.1'))
+
+
+def test_download_checks_the_md5_etag_r2_sends(tmp_path, server, r2_like):
     _RangeHandler.etag = hashlib.md5(_RangeHandler.body).hexdigest()
     dest = tmp_path / 'f.parquet'
     pipeline.download(server, dest, tries=1)
     assert dest.read_bytes() == _RangeHandler.body
 
 
-def test_a_checksum_mismatch_fails_and_leaves_nothing(tmp_path, server):
+def test_a_checksum_mismatch_fails_and_leaves_nothing(tmp_path, server, r2_like):
     _RangeHandler.etag = '0' * 32
     dest = tmp_path / 'f.parquet'
     with pytest.raises(OSError, match='md5'):
@@ -127,7 +133,7 @@ def test_a_checksum_mismatch_fails_and_leaves_nothing(tmp_path, server):
     assert list(tmp_path.iterdir()) == []
 
 
-def test_a_multipart_etag_is_not_an_md5_and_is_not_checked(tmp_path, server):
+def test_a_multipart_etag_is_not_an_md5_and_is_not_checked(tmp_path, server, r2_like):
     _RangeHandler.etag = '0' * 32 + '-3'
     dest = tmp_path / 'f.parquet'
     pipeline.download(server, dest, tries=1)
@@ -140,6 +146,13 @@ def test_an_expected_md5_from_the_caller_is_checked(tmp_path, server):
         pipeline.download(server, dest, tries=1, md5='f' * 32)
     pipeline.download(server, dest, tries=1, md5=hashlib.md5(_RangeHandler.body).hexdigest())
     assert dest.exists()
+
+
+def test_an_etag_from_another_host_is_opaque(tmp_path, server):
+    _RangeHandler.etag = '0' * 32  # looks like an MD5, but this host is not S3/R2
+    dest = tmp_path / 'f.parquet'
+    pipeline.download(server, dest, tries=1)
+    assert dest.read_bytes() == _RangeHandler.body
 
 
 def test_download_skips_a_finished_file(tmp_path, server):
