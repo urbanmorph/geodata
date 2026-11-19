@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 import sys
+import threading
 import time
 from collections.abc import Callable, Iterable, Iterator
 from datetime import datetime, timezone
@@ -346,20 +347,34 @@ def r2_client(**config):
     )
 
 
-def _remote_has(s3, key: str, md5: str) -> bool:
-    """Skip only when the remote holds the same bytes. Sizes can't tell (a
-    lat,lon swap keeps the byte count) and a multipart ETag isn't an MD5,
-    so each upload stores its MD5 in metadata and that is compared."""
+class KeyTaken(RuntimeError):
+    """A new_only upload found other bytes already under its key."""
+
+
+def _remote_md5(s3, key: str) -> str | None:
+    """The remote object's md5 (None when there is no object). Sizes can't
+    tell (a lat,lon swap keeps the byte count) and a multipart ETag isn't an
+    MD5, so each upload stores its MD5 in metadata. Objects put by older
+    uploaders carry none; a single-part ETag is the body's MD5 (a multipart
+    one has a "-N" suffix, never matches, and so never counts as the same)."""
     try:
         head = s3.head_object(Bucket=BUCKET, Key=key)
     except s3.exceptions.ClientError:
-        return False
-    # Objects put by older uploaders carry no md5 metadata; a single-part
-    # ETag is the body's MD5 (a multipart one has a "-N" suffix and isn't).
-    remote = head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"')
+        return None
+    return head.get('Metadata', {}).get('md5') or head.get('ETag', '').strip('"')
+
+
+def _remote_has(s3, key: str, md5: str, new_only: bool = False) -> bool:
+    """True (skip the upload) when the remote holds the same bytes. With
+    `new_only`, raise KeyTaken when it holds other bytes: the key is published
+    and served immutable, so it must never be overwritten."""
+    remote = _remote_md5(s3, key)
     if remote == md5:
         log(f'  R2 skip (md5 match): s3://{BUCKET}/{key}')
         return True
+    if new_only and remote is not None:
+        raise KeyTaken(f's3://{BUCKET}/{key} already holds other bytes (remote {remote}, local {md5}); '
+                       'refusing to overwrite a published key: publish under a new key')
     return False
 
 
@@ -375,27 +390,37 @@ def _put_args(local: Path, md5: str) -> dict:
     }
 
 
-def r2_upload(s3, local: Path, key: str) -> None:
+def r2_upload(s3, local: Path, key: str, new_only: bool = False) -> None:
+    """Upload `local` to `key` unless R2 holds the same bytes (md5), under the
+    host-wide upload lock. `new_only`: raise KeyTaken rather than overwrite
+    other bytes (for keys that are not content-versioned)."""
     from boto3.s3.transfer import TransferConfig
     md5 = file_md5(local)
-    if _remote_has(s3, key, md5):
+    if _remote_has(s3, key, md5, new_only):
         return
     transfer = TransferConfig(multipart_threshold=64 * 1024 * 1024, multipart_chunksize=64 * 1024 * 1024)
-    log(f'  uploading → s3://{BUCKET}/{key}  ({local.stat().st_size:,} bytes)')
-    s3.upload_file(str(local), BUCKET, key, ExtraArgs=_put_args(local, md5), Config=transfer)
+    with upload_lock(owner=key):
+        log(f'  uploading → s3://{BUCKET}/{key}  ({local.stat().st_size:,} bytes)')
+        s3.upload_file(str(local), BUCKET, key, ExtraArgs=_put_args(local, md5), Config=transfer)
 
 
 def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: int = 64 * 1024 * 1024,
-                        tries: int = 8, wait: Callable[[int], None] | None = None) -> None:
+                        tries: int = 8, wait: Callable[[int], None] | None = None, new_only: bool = False) -> None:
     """r2_upload for multi-GB files on a flaky link. The multipart upload id is
     saved in state_dir, so a dropped or killed run resumes from the parts R2
     already holds (list_parts) instead of starting over; each part retries with
-    backoff. Same md5 skip and object headers as r2_upload."""
-    from botocore.exceptions import BotoCoreError
-    wait = wait or (lambda n: time.sleep(min(10 * n, 120)))
+    backoff. Same md5 skip, `new_only`, lock and object headers as r2_upload."""
     md5 = file_md5(local)
-    if _remote_has(s3, key, md5):
+    if _remote_has(s3, key, md5, new_only):
         return
+    with upload_lock(owner=key):
+        _multipart_upload(s3, local, key, md5, state_dir, part_size, tries,
+                          wait or (lambda n: time.sleep(min(10 * n, 120))))
+
+
+def _multipart_upload(s3, local: Path, key: str, md5: str, state_dir: Path, part_size: int,
+                      tries: int, wait: Callable[[int], None]) -> None:
+    from botocore.exceptions import BotoCoreError
     size = local.stat().st_size
     n_parts = max(1, -(-size // part_size))
     assert n_parts <= 1000, 'list_parts reads one page of 1,000 parts'
@@ -450,14 +475,16 @@ def patient_r2_client():
 
 
 def r2_upload_retrying(s3, local: Path, key: str, state_dir: Path | None = None,
-                       retries: int = 5, backoff: float = 30.0) -> None:
+                       retries: int = 5, backoff: float = 30.0, new_only: bool = False) -> None:
     """r2_upload_resumable (md5-skips unchanged files; its multipart id saved so
     a killed run resumes from the parts R2 holds; logs each part) retried with
-    backoff: a dropped TLS connection mid-multipart killed a 316 MB upload once."""
+    backoff: a dropped TLS connection mid-multipart killed a 316 MB upload once.
+    KeyTaken (new_only) is not retried."""
     from botocore.exceptions import BotoCoreError, ClientError
+    kw = {'new_only': True} if new_only else {}
     for attempt in range(retries + 1):
         try:
-            return r2_upload_resumable(s3, local, key, state_dir or UPLOAD_STATE)
+            return r2_upload_resumable(s3, local, key, state_dir or UPLOAD_STATE, **kw)
         except (BotoCoreError, ClientError, OSError) as e:
             if attempt == retries:
                 raise
@@ -467,9 +494,15 @@ def r2_upload_retrying(s3, local: Path, key: str, state_dir: Path | None = None,
 
 
 # One upload at a time across the jobs on this host (bakes, tile rebakes), so
-# none starves the link. The lock is a directory (mkdir is atomic) holding an
-# owner file "<pid> <who>"; a lock whose pid is gone (kill -9) is taken over.
+# none starves the link: r2_upload and r2_upload_resumable take it themselves.
+# The lock is a directory (mkdir is atomic) holding an owner file "<pid> <who>";
+# a lock whose pid is gone (kill -9), or that got no owner file within
+# LOCK_NO_OWNER_S, is taken over. Re-entrant within a process (a job holding it
+# calls the uploads, which take it again).
 UPLOAD_LOCK = Path('/tmp/bharatlas-upload.lock')
+LOCK_NO_OWNER_S = 60
+_held_locks: dict[Path, int] = {}  # lock -> how many blocks in this process hold it
+_held_guard = threading.Lock()
 
 
 def _pid_alive(pid: int) -> bool:
@@ -496,34 +529,57 @@ def upload_lock(lock: Path | None = None, owner: str = '', wait_s: float = 30,
                 on_wait: Callable[[str], None] | None = None) -> Iterator[Path]:
     """Hold the host-wide upload lock (UPLOAD_LOCK); wait `wait_s` between tries
     while a live job holds it. Released on exit, an exception, or SIGTERM/SIGHUP
-    (turned into SystemExit so the `finally` runs)."""
+    (turned into SystemExit so the `finally` runs). Re-entrant: a block inside
+    another one in this process (any thread) joins it."""
     import shutil
     import signal
-    import threading
     lock = lock or UPLOAD_LOCK
     while True:
-        try:
-            lock.mkdir()
-            break
-        except FileExistsError:
-            pid, who = _lock_owner(lock)
-            if pid is not None and pid != os.getpid() and not _pid_alive(pid):
-                log(f'  upload lock {lock}: its owner ({who}) is gone; taking it over')
-                shutil.rmtree(lock, ignore_errors=True)
-                continue
-            (on_wait or (lambda w: log(f'  upload lock held by {w}; retry in {wait_s:.0f} s')))(who)
-            time.sleep(wait_s)
-    (lock / 'owner').write_text(f'{os.getpid()} {owner}\n')
-    main = threading.current_thread() is threading.main_thread()
+        with _held_guard:
+            if _held_locks.get(lock):
+                _held_locks[lock] += 1
+                outer = False
+                break
+            try:
+                lock.mkdir()
+                (lock / 'owner').write_text(f'{os.getpid()} {owner}\n')
+                _held_locks[lock] = 1
+                outer = True
+                break
+            except FileExistsError:
+                pass
+        pid, who = _lock_owner(lock)
+        if _lock_is_stale(lock, pid):
+            log(f'  upload lock {lock}: its owner ({who}) is gone; taking it over')
+            shutil.rmtree(lock, ignore_errors=True)
+            continue
+        (on_wait or (lambda w: log(f'  upload lock held by {w}; retry in {wait_s:.0f} s')))(who)
+        time.sleep(wait_s)
+    main = outer and threading.current_thread() is threading.main_thread()
     old = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGHUP)} if main else {}
     for sig in old:
         signal.signal(sig, lambda n, _f: sys.exit(128 + n))
     try:
         yield lock
     finally:
-        shutil.rmtree(lock, ignore_errors=True)
+        with _held_guard:
+            _held_locks[lock] -= 1
+            if not _held_locks[lock]:
+                del _held_locks[lock]
+                shutil.rmtree(lock, ignore_errors=True)
         for sig, handler in old.items():
             signal.signal(sig, handler)
+
+
+def _lock_is_stale(lock: Path, pid: int | None) -> bool:
+    """Its owner is dead, is this process (which does not hold it: leaked), or
+    never wrote an owner file within LOCK_NO_OWNER_S."""
+    if pid is None:
+        try:
+            return time.time() - lock.stat().st_mtime > LOCK_NO_OWNER_S
+        except OSError:
+            return False  # released meanwhile: the next mkdir takes it
+    return pid == os.getpid() or not _pid_alive(pid)
 
 
 # ── cached steps + time limit ────────────────────────────────────────────────

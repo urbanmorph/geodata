@@ -262,6 +262,37 @@ def test_a_lock_held_by_a_live_job_is_respected(tmp_path):
     assert waited and 'other' in waited[0]
 
 
+def test_a_lock_with_no_owner_for_a_minute_is_taken_over(tmp_path):
+    # A job killed between mkdir and writing its owner file left an empty lock
+    # that every later job waited on forever.
+    lock = tmp_path / 'upload.lock'
+    lock.mkdir()
+    old = lock.stat().st_mtime - 120
+    os.utime(lock, (old, old))
+    with pipeline.upload_lock(lock, 'me', wait_s=60):  # would hang if it waited
+        assert (lock / 'owner').read_text().startswith(f'{os.getpid()} ')
+    assert not lock.exists()
+
+
+def test_the_upload_lock_is_reentrant_within_a_process(tmp_path):
+    # Uploads take the lock themselves; a caller already holding it must not deadlock.
+    lock = tmp_path / 'upload.lock'
+    with pipeline.upload_lock(lock, 'outer', wait_s=60):
+        with pipeline.upload_lock(lock, 'inner', wait_s=60):
+            assert (lock / 'owner').read_text() == f'{os.getpid()} outer\n'
+        assert lock.is_dir()  # still held by the outer block
+    assert not lock.exists()
+
+
+def test_a_lock_naming_this_process_that_it_does_not_hold_is_taken_over(tmp_path):
+    lock = tmp_path / 'upload.lock'
+    lock.mkdir()
+    (lock / 'owner').write_text(f'{os.getpid()} leaked\n')
+    with pipeline.upload_lock(lock, 'me', wait_s=60):
+        assert (lock / 'owner').read_text() == f'{os.getpid()} me\n'
+    assert not lock.exists()
+
+
 # ── external tools: always a timeout, stderr in the error ────────────────────
 
 def test_run_returns_the_output():

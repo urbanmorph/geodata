@@ -424,6 +424,43 @@ def test_resumable_upload_resumes_a_run_that_dropped_before_its_first_part(tmp_p
     assert s3.sent == [1, 2, 3] and s3.objects['k/big.geojson']['body'] == f.read_bytes()
 
 
+def test_uploads_hold_the_host_wide_lock(tmp_path, monkeypatch):
+    lock = tmp_path / 'upload.lock'
+    monkeypatch.setattr(pipeline, 'UPLOAD_LOCK', lock)
+    f = tmp_path / 'a.parquet'
+    f.write_bytes(b'x')
+    held = []
+
+    class S3(FakeS3):
+        def upload_file(self, *a, **k):
+            held.append(lock.is_dir())
+    pipeline.r2_upload(S3(), f, 'k/a.parquet')
+    s3 = FakeMultipartS3()
+    orig = s3.upload_part
+    s3.upload_part = lambda **k: held.append(lock.is_dir()) or orig(**k)
+    pipeline.r2_upload_resumable(s3, f, 'k/b.parquet', tmp_path / 'state')
+    assert held == [True, True] and not lock.exists()
+
+
+def test_a_new_only_upload_refuses_to_overwrite_other_bytes(tmp_path):
+    # Fixed keys (Overture <release>-r<N>/, releases/) must never get new bytes.
+    f = tmp_path / 'a.parquet'
+    f.write_bytes(b'new bytes')
+    taken = FakeS3({'Metadata': {'md5': 'f' * 32}})
+    with pytest.raises(pipeline.KeyTaken, match='k/a.parquet'):
+        pipeline.r2_upload(taken, f, 'k/a.parquet', new_only=True)
+    assert taken.puts == []
+    s3 = FakeMultipartS3()
+    s3.objects['k/a.parquet'] = {'Metadata': {'md5': 'f' * 32}}
+    with pytest.raises(pipeline.KeyTaken):
+        pipeline.r2_upload_retrying(s3, f, 'k/a.parquet', tmp_path / 'state', new_only=True)
+    assert s3.sent == []
+    pipeline.r2_upload(FakeS3({'Metadata': {'md5': pipeline.file_md5(f)}}), f, 'k/a.parquet', new_only=True)
+    fresh = FakeS3()
+    pipeline.r2_upload(fresh, f, 'k/a.parquet', new_only=True)  # absent: uploads
+    assert [k for k, _ in fresh.puts] == ['k/a.parquet']
+
+
 def test_r2_upload_trusts_a_single_part_etag_when_no_md5_metadata(tmp_path):
     # Objects put by upload_baked.py / wrangler carry no md5 metadata; a
     # single-part ETag is the MD5, so an unchanged file is still skipped.
