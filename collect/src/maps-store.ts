@@ -5,6 +5,7 @@
 // edit, delete or de-identify them — there are no accounts).
 
 import { dropOfflineCopies } from './offline-copies';
+import { parseMapPath } from './map-path';
 
 export type MapRole = 'owner' | 'collect' | 'view';
 export interface SavedRecord { id: string; label: string; link: string; at: string; }
@@ -68,7 +69,6 @@ export function capMaps(maps: SavedMap[]): SavedMap[] {
 }
 
 const COLLECT_HOST = 'collect.bharatlas.com';
-const MAP_PATH = /^\/c\/[A-Za-z0-9_-]{6,}(?:\/(?:admin|view)|\/r\/[A-Za-z0-9_-]{6,})?\/?$/;
 
 /** Whether a saved link opens a collect map: collect's own host (or this page's,
  *  for a preview or local development), over https (http only on localhost),
@@ -80,7 +80,7 @@ export function isCollectLink(link: unknown, here = typeof location === 'undefin
   try { u = new URL(link); } catch { return false; }
   const secure = u.protocol === 'https:' || (u.protocol === 'http:' && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(u.host));
   const ours = secure && (u.host === COLLECT_HOST || u.host === here);
-  return ours && MAP_PATH.test(u.pathname);
+  return ours && parseMapPath(u.pathname) !== null;
 }
 
 // Restore from a saved file, or sync: union links and records per map (highest

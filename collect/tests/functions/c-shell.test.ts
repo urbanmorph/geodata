@@ -38,4 +38,19 @@ describe('the /c/ map page shell', () => {
     expect(res.headers.get('x-frame-options')).toBe('DENY');
     expect(res.status).toBe(200);
   });
+  it('serves the map shell for record links too', async () => {
+    const { res, fetched } = await serve('/c/abc123/r/rec456');
+    expect(fetched).toEqual(['https://collect.test/c.html']);
+    expect(res.status).toBe(200);
+  });
+  // An address under /c/ that can't be a map link is collect's 404, with a 404
+  // status, not the map shell saying "this link doesn't open a map".
+  it('answers 404 with the 404 page for an address that is not a map link', async () => {
+    for (const path of ['/c/', '/c/ab', '/c/abc123/edit', '/c/abc123/r/', '/c/abc123/view/x']) {
+      const { res, fetched } = await serve(path);
+      expect(fetched).toEqual(['https://collect.test/404.html']);
+      expect(res.status).toBe(404);
+      expect(res.headers.get('x-robots-tag')).toBe('noindex');
+    }
+  });
 });
