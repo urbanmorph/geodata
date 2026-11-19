@@ -2,6 +2,7 @@ import { WARD_PLACES, mugiluUrl, yellideUrl } from './ward-places';
 import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
 import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial } from '../../../shared/licences.mjs';
 import { LEVEL_META, pickPrimary, type LevelMeta } from '../../../shared/level-meta.mjs';
+import { PUBLISHER_LD } from '../../../shared/brand.mjs';
 // Pure builder for the /view/<id> page's per-layer meta + Dataset JSON-LD.
 // Extracted from functions/view/[id].ts so the description-length rule
 // (Google Dataset Search requires ≥50 chars) is unit-testable.
@@ -29,7 +30,15 @@ export type CatalogLayer = {
   geojson?: { url: string; bytes: number } | null;
   kml?: { url: string; bytes: number } | null;
   shapefile?: { url: string; bytes: number } | null;
+  /** Who to credit: the original source, and the republisher bharatlas took it from. */
+  attribution?: { primary?: NamedLink | null; publisher?: NamedLink | null } | string | null;
+  /** When bharatlas last fetched the layer from its source (ISO date or datetime). */
+  fetched_at?: string | null;
+  /** Dated releases of this layer, newest first (served catalog only). */
+  versions?: Array<{ code: string; released?: string; sha256?: string; w3id?: string; url?: string }>;
 };
+
+type NamedLink = { name?: string | null; url?: string | null };
 
 export type { LevelMeta };
 
@@ -118,6 +127,38 @@ const DISTRIBUTION_FORMATS: Array<[
   ['kml', 'application/vnd.google-earth.kml+xml'],
   ['shapefile', 'application/zip'],
 ];
+
+const FORMAT_NAMES: Record<(typeof DISTRIBUTION_FORMATS)[number][0], string> = {
+  parquet: 'Parquet', pmtiles: 'PMTiles', geojson: 'GeoJSON', kml: 'KML', shapefile: 'Shapefile',
+};
+
+/** "Parquet, PMTiles or GeoJSON": the formats this layer actually ships. */
+function formatList(layer: CatalogLayer): string {
+  const names = DISTRIBUTION_FORMATS.filter(([key]) => layer[key]?.url).map(([key]) => FORMAT_NAMES[key]);
+  return names.length > 1 ? `${names.slice(0, -1).join(', ')} or ${names[names.length - 1]}` : names.join('');
+}
+
+/** schema.org `license`: the terms URL, or both URLs for a dual licence
+ *  ("CC0-1.0 / CC-BY-4.0"); the id itself when it has no known URL. */
+function licenceLd(licence: string | undefined): string | string[] | undefined {
+  if (!licence) return undefined;
+  const urls = licence.split('/').map((part) => licenceUrl(part.trim()) ?? part.trim());
+  return urls.length > 1 ? urls : urls[0];
+}
+
+/** The structured attribution; null for a plain-string or missing one. */
+const attributionOf = (layer: CatalogLayer) =>
+  typeof layer.attribution === 'object' ? layer.attribution : null;
+
+/** The credit to reproduce: the source by its own name, and the republisher
+ *  bharatlas took it from (unless that is bharatlas itself). */
+function creditLine(layer: CatalogLayer): string {
+  const a = attributionOf(layer);
+  const source = a?.primary?.name?.trim() || layer.source;
+  const via = a?.publisher?.name?.trim();
+  const credit = via && via !== PUBLISHER_LD.name ? `${source}, via ${via}` : source;
+  return `Source: ${credit}. Published via bharatlas (bharatlas.com).${layer.licence ? ` Licence: ${layer.licence}.` : ''}`;
+}
 
 function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> {
   const out: Array<Record<string, unknown>> = [];
@@ -337,12 +378,13 @@ export function buildViewDataset(
     levelMeta?.description ??
     (layer.description || `${title}: ${count ? count + ' ' + unit + ' · ' : ''}${layer.source}.`);
   const description = baseDescription.slice(0, META_DESC_MAX);
+  const formats = formatList(layer);
   // Lifts terse base descriptions over Google Dataset Search's ≥50 floor and
   // seeds format/provenance words for SERP rich snippets.
   const ldDescription =
     baseDescription.length >= LD_DESC_MIN
       ? baseDescription
-      : `${baseDescription} Free to view, slice and download as Parquet, PMTiles, GeoJSON or KML. Open atlas of India by Urban Morph, sourced from ${layer.source}.`;
+      : `${baseDescription} Free to view, slice and download${formats ? ` as ${formats}` : ''}. Open atlas of India by bharatlas, sourced from ${layer.source}.`;
   const canonical = `${origin}/view/${layer.id}`;
   const ogImage = `${origin}/og/view/${layer.id}.png`;
   const distribution = buildDistribution(layer);
@@ -350,7 +392,10 @@ export function buildViewDataset(
   // Machine-readable rights that travel with the data to AI agents and dataset
   // crawlers (PDGI "humans in the loop"): the credit to reproduce, that access
   // is unrestricted, and where the usage terms live.
-  const creditText = `Source: ${layer.source}. Published via bharatlas (bharatlas.com).${layer.licence ? ` Licence: ${layer.licence}.` : ''}`;
+  const creditText = creditLine(layer);
+  const primary = attributionOf(layer)?.primary;
+  const dateModified = /^\d{4}-\d{2}-\d{2}/.test(layer.fetched_at || '') ? layer.fetched_at!.slice(0, 10) : undefined;
+  const version = layer.versions?.[0]?.code;
   // Google Dataset Search matches queries on keywords (the home page's
   // per-level Dataset blocks carried them before they moved here).
   const keywords = [...new Set([layer.level, levelMeta?.label, layer.source, layer.category, 'India']
@@ -368,14 +413,18 @@ export function buildViewDataset(
       name: title,
       description: ldDescription,
       url: canonical,
-      license: layer.licence ? licenceUrl(layer.licence) ?? layer.licence : undefined,
+      license: licenceLd(layer.licence),
       isAccessibleForFree: true,
       keywords,
       creditText,
       conditionsOfAccess: 'Free and open. No account or API key required.',
       usageInfo: `${origin}/terms`,
-      creator: { '@type': 'Organization', name: layer.source },
-      publisher: { '@type': 'Organization', name: 'bharatlas', url: 'https://bharatlas.com' },
+      creator: primary?.name
+        ? { '@type': 'Organization', name: primary.name, ...(primary.url ? { url: primary.url } : {}) }
+        : { '@type': 'Organization', name: layer.source },
+      publisher: PUBLISHER_LD,
+      ...(dateModified ? { dateModified } : {}),
+      ...(version ? { version } : {}),
       spatialCoverage: { '@type': 'Place', name: 'India' },
       ...(distribution.length ? { distribution } : {}),
     },

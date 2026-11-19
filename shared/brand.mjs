@@ -6,6 +6,15 @@
 // (favicon.svg) in sync.
 import { escapeHtml as esc } from './format.mjs';
 
+// The one publisher every JSON-LD block names (home WebSite, /docs WebAPI,
+// /about AboutPage, each /view Dataset): bharatlas, built by Urban Morph.
+export const PUBLISHER_LD = Object.freeze({
+  '@type': 'Organization',
+  name: 'bharatlas',
+  url: 'https://bharatlas.com',
+  parentOrganization: Object.freeze({ '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' }),
+});
+
 export const PALETTE = Object.freeze({
   saffron: '#F28C28', // actions: buttons, highlights. Carries navy text, never white.
   saffronHover: '#E8730C',

@@ -9,6 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { fillTemplate } from './fill-template.mjs';
 import { escapeHtml as esc, fmtBytes, fmtDate, fmtInt } from '../../shared/format.mjs';
+import { PUBLISHER_LD } from '../../shared/brand.mjs';
+import { ogImage } from './og-image-url.mjs';
 
 const TEMPLATE = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'releases.template.html');
 const ORIGIN = 'https://bharatlas.com';
@@ -34,9 +36,22 @@ export function displayTitle(title) {
   return String(title).replace(/\s*<->\s*/g, ' to ');
 }
 
-function head({ title, description, path }) {
+/** BreadcrumbList from [name, path] pairs, Home first. */
+function crumbs(...trail) {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: [['Home', '/'], ...trail].map(([name, path], i) => ({ '@type': 'ListItem', position: i + 1, name, item: ORIGIN + path })),
+  };
+}
+
+function head({ title, description, path, trail }) {
   const url = ORIGIN + path;
   const full = `${title} · bharatlas`;
+  const image = ogImage('og-default');
+  const ld = {
+    '@context': 'https://schema.org',
+    '@graph': [crumbs(...trail), { '@type': 'CollectionPage', name: title, description, url, publisher: PUBLISHER_LD }],
+  };
   return [
     `<title>${esc(full)}</title>`,
     `<meta name="description" content="${esc(description)}" />`,
@@ -45,7 +60,13 @@ function head({ title, description, path }) {
     `<meta property="og:title" content="${esc(full)}" />`,
     `<meta property="og:description" content="${esc(description)}" />`,
     `<meta property="og:url" content="${esc(url)}" />`,
+    `<meta property="og:image" content="${esc(image)}" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
     `<meta property="og:site_name" content="bharatlas" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
+    `<meta name="twitter:image" content="${esc(image)}" />`,
+    `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`,
   ].join('\n    ');
 }
 
@@ -88,6 +109,7 @@ ${sections.join('\n')}`;
     title: 'Releases',
     description: `Dated, unchanging releases of bharatlas data, each with a SHA-256 pin and a permanent address to cite: ${plural(groups.size, 'dataset')}.`,
     path: '/releases',
+    trail: [['Releases', '/releases']],
   }, main);
 }
 
@@ -135,6 +157,7 @@ ${list.map(releaseSection).join('\n')}`;
     title: `${title}: releases`,
     description: `Dated releases of ${title} from bharatlas, each with a SHA-256 pin and a permanent w3id.org address to cite.`,
     path: `/releases/${dataset}`,
+    trail: [['Releases', '/releases'], [title, `/releases/${dataset}`]],
   }, main);
 }
 

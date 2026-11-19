@@ -1,4 +1,4 @@
-# collect.bharatlas.com — the crowd map-capture tool.
+# collect.bharatlas.com: the crowd map-capture tool.
 # The landing is public and indexable. Individual maps (/c/<id>) are private,
 # token-gated share links with no crawlable content, so they stay out of search.
 User-agent: *

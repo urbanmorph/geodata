@@ -41,9 +41,11 @@ Add to your MCP client config:
 | **query_layer** | Select any column; filter (exact, case-insensitive) and group_by on flat columns, with per-group sums of numeric columns. Runtime parquet reads. |
 | **locate** | Point-in-polygon: what state, district, ward, zone is this point in? |
 | **nearby** | Find features within a radius. Works for points, polygons, and lines. |
-| **get_layer_detail** | Download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile) |
+| **get_layer_detail** | Download URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most), its attribution, licence and dated versions to cite |
 | **list_categories** | Browse categories with layer counts |
 | **list_submissions** | Community-contributed layers under open licenses |
+
+List arguments (`select` and `sum` on `query_layer`, `layers` on `locate`) take an array of strings or one comma-separated string: `["dtname", "dist_lgd"]` or `"dtname,dist_lgd"`. `where` takes an object, `{"stname": "KERALA", "type": "PHC"}`, or a string, `"stname=KERALA, type=PHC"`. An argument of the wrong shape, or a column the layer does not have, comes back as an error that names it (with the layer's columns), so the model can correct itself.
 
 ## What you can ask
 
@@ -75,12 +77,12 @@ The server sends instructions to the LLM at connection time that teach:
 
 ## Links
 
-- [bharatlas.com](https://bharatlas.com) -- the atlas
+- [bharatlas.com](https://bharatlas.com): the atlas
 - [REST API docs](https://bharatlas.com/docs)
-- [MCP setup guide](https://bharatlas.com/mcp) -- install + example questions
-- [GitHub](https://github.com/urbanmorph/geodata) -- source code
-- [npm](https://www.npmjs.com/package/bharatlas-mcp) -- this package
+- [MCP setup guide](https://bharatlas.com/mcp): install and example questions
+- [GitHub](https://github.com/urbanmorph/geodata): source code
+- [npm](https://www.npmjs.com/package/bharatlas-mcp): this package
 
 ## License
 
-MIT. Data: each layer carries its own open license (CC0, CC-BY, ODbL, GODL-India).
+MIT. Data: each layer carries its own open license (CC0, CC-BY, CC-BY-SA, ODbL, GODL-India, MIT, CDLA-Permissive), named in `get_layer_detail`; credit its source when you use it.

@@ -115,3 +115,33 @@ describe('displayTitle', () => {
     expect(displayTitle('bharatlas record')).toBe('bharatlas record');
   });
 });
+
+describe('release pages: share card and structured data', () => {
+  const ld = (html: string) => {
+    const m = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+    if (!m) throw new Error('no JSON-LD');
+    return JSON.parse(m[1].replace(/\\u003c/g, '<'))['@graph'];
+  };
+
+  it('carries the site share image, like every other page', () => {
+    for (const html of [renderReleasesIndex(TWO), renderReleaseDataset(TWO, 'cw')]) {
+      expect(html).toMatch(/<meta property="og:image" content="https:\/\/bharatlas\.com\/og-default\.png\?v=[0-9a-f]{10}" \/>/);
+      expect(html).toContain('<meta name="twitter:card" content="summary_large_image" />');
+    }
+  });
+
+  it('describes /releases as a collection page with a breadcrumb', () => {
+    const graph = ld(renderReleasesIndex(TWO));
+    const page = graph.find((n: any) => n['@type'] === 'CollectionPage');
+    expect(page).toMatchObject({ name: 'Releases', url: 'https://bharatlas.com/releases' });
+    expect(page.publisher.name).toBe('bharatlas');
+    expect(graph.find((n: any) => n['@type'] === 'BreadcrumbList').itemListElement.map((i: any) => i.name)).toEqual(['Home', 'Releases']);
+  });
+
+  it('gives a dataset page a breadcrumb through /releases', () => {
+    const graph = ld(renderReleaseDataset(TWO, 'cw'));
+    const crumbs = graph.find((n: any) => n['@type'] === 'BreadcrumbList').itemListElement;
+    expect(crumbs.map((i: any) => i.item)).toEqual(['https://bharatlas.com/', 'https://bharatlas.com/releases', 'https://bharatlas.com/releases/cw']);
+    expect(crumbs[2].name).toBe('Census 2011 to LGD crosswalk');
+  });
+});

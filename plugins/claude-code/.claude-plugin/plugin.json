@@ -1,7 +1,7 @@
 {
   "name": "bharatlas",
   "version": "1.7.0",
-  "description": "India's open geo data plus map authoring via MCP. Query curated geo layers and community submissions, locate a point across all admin levels and zones, find nearby features, download in 5 formats, and author your own collect maps (register a share link, review, publish to the catalog).",
+  "description": "India's open geo data plus map authoring via MCP. Query curated geo layers and community submissions, locate a point across all admin levels and zones, find nearby features, download in open formats, and author your own collect maps (register a share link, review, submit to bharatlas as a layer).",
   "author": {
     "name": "UrbanMorph",
     "email": "sathya@urbanmorph.com"

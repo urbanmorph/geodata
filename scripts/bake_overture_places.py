@@ -245,7 +245,7 @@ def _con(tmp: Path):
     from bake_extracts import make_con
     tmp.mkdir(parents=True, exist_ok=True)
     con = make_con()
-    # ~4.4M rows with nested columns: let order-free COPYs stream and spill.
+    # ~4.8M rows with nested columns: let order-free COPYs stream and spill.
     con.execute(f"SET preserve_insertion_order = false; SET temp_directory = '{tmp}';")
     return con
 
