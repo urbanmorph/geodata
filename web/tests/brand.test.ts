@@ -145,7 +145,8 @@ describe('wordmark weight', () => {
     const css = read('collect/src/styles.css');
     expect(css).toMatch(/\.topbar \.brand \{[^}]*font-weight: 800/);
     expect(css).toMatch(/\.topbar \.collect-name \{[^}]*font-weight: 800/);
-    expect(read('collect/src/landing.ts')).toContain('<span class="collect-name">collect</span>');
+    // collect's one header (landing, link-problem page, 404).
+    expect(read('collect/src/topbar.ts')).toContain('<span class="collect-name">collect</span>');
   });
 });
 
