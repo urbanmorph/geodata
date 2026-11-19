@@ -3,7 +3,6 @@
 import { readFile, writeFile } from 'node:fs/promises';
 import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
 import { existsSync, readFileSync } from 'node:fs';
-import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
@@ -11,14 +10,16 @@ import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
-import { brandMarkSvg } from '../../shared/brand.mjs';
+import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
 import { LEVEL_META as BUILTIN_LEVEL_META, pickPrimary } from '../../shared/level-meta.mjs';
 import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
 import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
 import { WARD_PLACES } from '../functions/lib/ward-places.ts';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
+import { OPENAPI } from '../functions/lib/openapi.ts';
 import { fillTemplate } from './fill-template.mjs';
+import { ogImage } from './og-image-url.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
@@ -61,16 +62,6 @@ const LOCATE_N = DEFAULT_LOCATE_LAYERS.length;
 // TOKENS, renderNav, FOOTER imported from ./shared-chrome.mjs above
 // (extracted so vitest can test the pure helpers).
 
-// Link previews (LinkedIn, WhatsApp, X) cache a share image by URL for weeks,
-// so the URL carries the image's content hash: a new image is a new URL.
-const ogImageCache = new Map();
-function ogImage(name) {
-  if (!ogImageCache.has(name)) {
-    const hash = createHash('sha256').update(readFileSync(resolve(WEB, 'public', `${name}.png`))).digest('hex');
-    ogImageCache.set(name, `${ORIGIN}/${name}.png?v=${hash.slice(0, 10)}`);
-  }
-  return ogImageCache.get(name);
-}
 
 function seoHead(o) {
   const title = `${o.title} · bharatlas`;
@@ -370,12 +361,8 @@ const homeSeo = seoHead({
         alternateName: 'geodata',
         url: ORIGIN + '/',
         description:
-          "Open catalog, verifier and contribution flow for India's geo data: admin boundaries plus community layers.",
-        publisher: {
-          '@type': 'Organization',
-          name: 'Urban Morph',
-          url: 'https://urbanmorph.com',
-        },
+          "India's open atlas: curated and community map layers from state to village and city ward, with water, environment, transport and public money. View them on a map, query them through an API or MCP server, and download them.",
+        publisher: PUBLISHER_LD,
         // Sitelinks search box. ?q= is wired in src/main.ts so the
         // search input pre-fills + applies the filter on page load.
         potentialAction: {
@@ -845,7 +832,7 @@ await renderPage('about', {
         name: 'About bharatlas',
         url: ORIGIN + '/about',
         author: { '@id': ORIGIN + '/about#sathya' },
-        publisher: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
+        publisher: PUBLISHER_LD,
       },
       {
         '@type': 'Person',
@@ -1028,9 +1015,9 @@ await renderPage('docs', {
       {
         '@type': 'WebAPI',
         name: 'bharatlas API v1',
-        description: "Public JSON API for India's open geo layers. 13 endpoints: list, query, filter, locate, nearby, schema, categories, levels, counts, downloads, submissions.",
+        description: `Public JSON API for India's open geo layers. ${Object.keys(OPENAPI.paths).length} endpoints: locate a point, find features nearby, list layers, read a layer's schema, query, filter, group and export its rows, usage and download counts, themes, levels, community submissions and dated releases.`,
         url: ORIGIN + '/docs',
-        provider: { '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' },
+        provider: PUBLISHER_LD,
         documentation: ORIGIN + '/docs',
       },
       faqPage(DOCS_FAQ.map(({ q, a }) => ({ q, text: a }))),
@@ -1039,6 +1026,7 @@ await renderPage('docs', {
 }, {
   DOCS_FAQ_HTML: docsFaqHtml,
   DOCS_LAYERS: String(docs.layers),
+  DOCS_LOCATE_N: String(LOCATE_N),
   DOCS_DOWNLOADS: docs.downloads > 0 ? `${fmtInt(docs.downloads)} downloads so far.` : '',
   DOCS_LICENCES: docs.licences
     .map(([lic, n]) => `<li><b>${n}</b>${esc(lic)}</li>`)

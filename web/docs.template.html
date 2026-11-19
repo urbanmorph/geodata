@@ -96,8 +96,9 @@ seismic zone  Zone II</code></pre>
           <p>The MCP package in a terminal: pipe in a CSV of points, get codes back.</p>
         </div>
         <div class="card">
-          <h3>Release codes <span class="badge badge--soon">coming</span></h3>
-          <p>A permanent code for every version of a layer, with a checksum, so you can cite exactly what you used.</p>
+          <h3>Releases</h3>
+          <p>Dated copies that never change, each with a code, a SHA-256 pin and a permanent address, so you can cite exactly what you used. <a href="/releases">Browse releases</a>.</p>
+          <p><code>https://w3id.org/bharatlas</code></p>
         </div>
       </div>
 
@@ -141,7 +142,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
       </div>
       <p>Constituencies carry the Election Commission’s ids: <code>pc_id</code> in <code>lgd_parliament</code> (2925, Bangalore Central) and <code>AC_ID</code> in <code>lgd_assembly</code> (29162, Shivajinagar).</p>
       <p>We pass codes through exactly as the source publishes them and never renumber them.</p>
-      <div class="note"><p><span class="badge badge--soon">coming</span> Crosswalks: tables from Census 2011 codes and older district names to current LGD codes, so data from before a district was split still joins.</p></div>
+      <div class="note"><p>Crosswalks: the Census 2011 to LGD crosswalk links each Census 2011 code to the current LGD codes at every level (state, district, sub-district, block, village) and says how it changed (1:1, split, merge), so data from before a unit was split still joins. It is a <a href="/releases/cw">dated release</a>, as CSV and Parquet.</p></div>
 
       <h2 id="endpoints">Endpoints</h2>
       <p>All read-only, no key. Each is in the <a href="#reference">full reference</a> below and in <a href="/api/v1/openapi.json"><code>/api/v1/openapi.json</code></a> for code generators, API tools and AI assistants.</p>
@@ -153,8 +154,10 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <tr><td><code>GET /layers/:id</code></td><td>One layer: licence, attribution, download links</td></tr>
         <tr><td><code>GET /layers/:id/schema</code></td><td>Column names, types and sample values; read this before querying</td></tr>
         <tr><td><code>GET /layers/:id/query</code></td><td>Filter, select, group and total rows</td></tr>
+        <tr><td><code>GET /layers/:id/export</code></td><td>The rows matching a filter, with their shapes, as GeoJSON, KML or CSV</td></tr>
         <tr><td><code>GET /layers/:id/locate</code></td><td>The feature of one layer at, or nearest to, a point</td></tr>
         <tr><td><code>GET /submissions</code></td><td>Community layers, queried the same way</td></tr>
+        <tr><td><code>GET /releases</code></td><td>Dated releases, newest first, with each one’s SHA-256 pin and files</td></tr>
       </table>
       </div>
 
@@ -218,7 +221,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <tr><td><code>category</code></td><td>string</td><td>Filter by category (e.g. <code>boundaries</code>, <code>city-wards</code>, <code>environment</code>)</td></tr>
         <tr><td><code>level</code></td><td>string</td><td>Filter by admin level (e.g. <code>state</code>, <code>district</code>)</td></tr>
         <tr><td><code>source</code></td><td>string</td><td>Filter by data source (e.g. <code>LGD</code>, <code>OpenCity</code>)</td></tr>
-        <tr><td><code>q</code></td><td>string</td><td>Text search across id, source, notes</td></tr>
+        <tr><td><code>q</code></td><td>string</td><td>Text search (case-insensitive substring) across id, source, notes, category, level and tags</td></tr>
         <tr><td><code>limit</code></td><td>int</td><td>Results per page (default 100, max 500)</td></tr>
         <tr><td><code>offset</code></td><td>int</td><td>Skip N results (default 0)</td></tr>
       </table>
@@ -233,7 +236,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
       <pre><code>curl https://bharatlas.com/api/v1/layers/airports/schema</code></pre>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/query</span></h3>
-      <p>Query layer data with filters and grouping. Reads the parquet from R2 at runtime, no pre-computation needed. Works for curated and community layers.</p>
+      <p>Query layer data with filters and grouping. Reads the parquet from R2 at runtime, no pre-computation needed. Works for curated and community layers. An unknown column in <code>select</code>, <code>where</code>, <code>filter</code>, <code>group_by</code> or <code>sum</code> is a <code>400</code> that lists the layer’s columns, before any row is read. A filter that matches nothing returns <code>hints</code> with the column’s values. Answers are kept in the edge cache for up to an hour.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
         <tr><td><code>select</code></td><td>string</td><td>Comma-separated column names to return</td></tr>
@@ -242,6 +245,9 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <tr><td><code>sum</code></td><td>string</td><td>With <code>group_by</code>: comma-separated numeric columns to total per group, returned as <code>sums</code>. Percentages are not additive, so sum the amounts and recompute shares.</td></tr>
         <tr><td><code>limit</code></td><td>int</td><td>Max rows (default 100, max 1000)</td></tr>
         <tr><td><code>include_centroid</code></td><td>bool</td><td>Adds <code>_lat</code>/<code>_lng</code> (bounding-box centre) to each row where the layer has bounding-box columns. Default true; pass <code>false</code> to leave them out.</td></tr>
+        <tr><td><code>filter</code></td><td>JSON</td><td>Filters as a JSON list, for more than exact matches: <code>[{"col":"sname","kind":"in","values":["KA","TN"]}]</code>. Kinds: <code>in</code> (any of the values, case-insensitive), <code>range</code> (numeric <code>min</code> and/or <code>max</code>), <code>search</code> (case-insensitive substring <code>q</code>), <code>bool</code> (<code>v</code>). Combined with <code>where</code>: all must match.</td></tr>
+        <tr><td><code>order_by</code></td><td>string</td><td>Reserved, not applied yet: rows come in file order. Accepted so it is never read as a column filter.</td></tr>
+        <tr><td><code>format</code>, <code>estimate</code></td><td>string</td><td>Not used by <code>/query</code> (they belong to <code>/layers/:id/export</code>). Accepted so they are never read as column filters.</td></tr>
       </table>
       <pre><code># Airports in Bangalore district (the layer's own spelling; a miss returns hints with the values)
 curl "https://bharatlas.com/api/v1/layers/airports/query?where=district=Bangalore&amp;select=name,type"
@@ -257,7 +263,26 @@ curl "https://bharatlas.com/api/v1/layers/vedas_power_plants/query?group_by=laye
 
 # Which blocks are in Bengaluru Urban (district LGD code 525)?
 curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=dist_lgd=525&amp;select=block_name,block_lgd"</code></pre>
+      <pre><code># Hospitals in Karnataka or Kerala, counted per state (a filter for more than exact matches)
+curl -G "https://bharatlas.com/api/v1/layers/nhp_hospitals/query" \
+  --data-urlencode 'filter=[{"col":"State","kind":"in","values":["Karnataka","Kerala"]}]' \
+  --data-urlencode 'group_by=State'</code></pre>
       <p>Columns with geometry data (geom, wkb_geometry) are excluded from results. Rows are read row group by row group, so memory stays small on any layer; time grows with layer size. Most layers answer in about a second; on the largest (Overture places, 4.8M rows) a filter or group_by over the whole table takes several seconds, so filter on low-cardinality columns where you can.</p>
+
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/export</span></h3>
+      <p>Every row matching a filter, with all its columns and its shape, as a file. Takes <code>where</code> and <code>filter</code> in the same forms as <code>/query</code>; a filter is required, since the whole layer is a download. At most 50,000 rows and an estimated 100 MB: above either the answer is <code>400</code> with the match count and the estimate, so narrow the filter or use the layer’s downloads. GeoJSON and KML also refuse matches spread over more than 1 GB of the layer’s shapes; CSV has no such limit and carries the bounding-box centre as <code>_lat</code>, <code>_lng</code> instead of the shape. An export that fails after it starts ends the connection without completing, so you see a failed download, never a short file.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>format</code></td><td>string</td><td><code>geojson</code> (default), <code>kml</code> or <code>csv</code></td></tr>
+        <tr><td><code>estimate</code></td><td>string</td><td><code>1</code>: only the match count and each format’s estimated size, as JSON, without exporting</td></tr>
+        <tr><td><code>where</code></td><td>string</td><td>Exact, case-insensitive matches: <code>col1=val1,col2=val2</code></td></tr>
+        <tr><td><code>filter</code></td><td>JSON</td><td>As in <code>/query</code>: <code>in</code>, <code>range</code>, <code>search</code> and <code>bool</code> filters</td></tr>
+      </table>
+      <pre><code># How big would it be?
+curl "https://bharatlas.com/api/v1/layers/lgd_villages/export?where=dist_lgd=525&amp;estimate=1"
+
+# Bengaluru Urban's villages as GeoJSON
+curl -o villages.geojson "https://bharatlas.com/api/v1/layers/lgd_villages/export?where=dist_lgd=525&amp;format=geojson"</code></pre>
 
       <h2>Spatial</h2>
 
@@ -267,7 +292,7 @@ curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=dist_lgd=525&am
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
         <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Latitude (6 to 38, India bounding box)</td></tr>
         <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68 to 98, India bounding box)</td></tr>
-        <tr><td><code>layers</code></td><td>string</td><td>Comma-separated layer IDs, used as given (default: 13 admin and zone layers, plus the city ward layer covering the point)</td></tr>
+        <tr><td><code>layers</code></td><td>string</td><td>Comma-separated layer IDs to test, at most 25 (default: <!-- DOCS_LOCATE_N --> admin and zone layers, plus the city ward layer covering the point). A retired id is tested as its successor; an id that is not a layer comes back in <code>unknown_layers</code>, and when none is a layer the answer is <code>400</code>.</td></tr>
         <tr><td><code>zoom</code></td><td>int</td><td>Tile resolution 4-16 (default 14, auto-capped to layer max zoom)</td></tr>
       </table>
       <pre><code>curl "https://bharatlas.com/api/v1/locate?lat=12.97&amp;lng=77.59"</code></pre>
@@ -292,6 +317,23 @@ curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=dist_lgd=525&am
   "queried_layers": ["lgd_states", "lgd_districts", ...],
   "timing_ms": 450
 }</code></pre>
+
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/locate</span></h3>
+      <p>The feature of one layer that contains a point, or the nearest one: “which ward is this?”, or “the nearest airport”. Never cached.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Latitude (6 to 38)</td></tr>
+        <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68 to 98)</td></tr>
+        <tr><td><code>mode</code></td><td>string</td><td><code>auto</code> (default: contains, then nearest), <code>contains</code> (point-in-polygon) or <code>nearest</code> (the closest feature, with <code>distance_km</code> and a compass <code>bearing</code>)</td></tr>
+        <tr><td><code>zoom</code></td><td>int</td><td>Tile zoom for contains, 4 to 16 (default 14)</td></tr>
+        <tr><td><code>radius_km</code></td><td>float</td><td>Search radius for nearest, 1 to 200 (default 25)</td></tr>
+      </table>
+      <p>When nothing contains the point and nothing is within the radius, <code>feature</code> is <code>null</code> with <code>out_of_coverage: true</code>.</p>
+      <pre><code># Which Bengaluru ward is this point in?
+curl "https://bharatlas.com/api/v1/layers/wards_bengaluru_gba/locate?lat=12.9716&amp;lng=77.5946"
+
+# The nearest airport to a point
+curl "https://bharatlas.com/api/v1/layers/airports/locate?lat=12.97&amp;lng=77.59&amp;mode=nearest&amp;radius_km=100"</code></pre>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/nearby</span></h3>
       <p>Find features from any layer near a point, nearest first. Works for points, polygons, and lines: features are ranked by Haversine distance to their bounding-box centres.</p>
@@ -329,17 +371,18 @@ curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_w
       <h2>Counts and Stats</h2>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/counts</span></h3>
-      <p>Feature counts with optional column grouping. Without <code>group_by</code>, returns the total and lists all groupable columns. With <code>group_by</code>, returns value-level counts for that column.</p>
+      <p>Deprecated, kept for existing callers: <code>/layers/:id/query?group_by=&lt;col&gt;</code> gives the same counts, with <code>where</code>, <code>filter</code> and <code>sum</code>. Without <code>group_by</code>, returns the total and lists the groupable columns; with <code>filter_col</code> and <code>filter_val</code>, the total of matching rows. With <code>group_by</code>, returns value-level counts for that column.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
         <tr><td><code>group_by</code></td><td>string</td><td>Column name to group by (one listed in <code>groupable_columns</code>, e.g. <code>zone</code>)</td></tr>
+        <tr><td><code>filter_col</code>, <code>filter_val</code></td><td>string</td><td>Count only rows whose <code>filter_col</code> equals <code>filter_val</code> (exact, case-insensitive), with or without <code>group_by</code>. An unknown column, or one of the two without the other, is a <code>400</code>.</td></tr>
       </table>
       <pre><code># Total and groupable columns
 curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts
 
 # Count wards per zone in PCMC
 curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code></pre>
-      <p>Counts come from pre-computed statistics: columns with fewer than 200 distinct values can be grouped, one column at a time. A layer without statistics returns its total only; use <code>/query</code> with <code>group_by</code> for any column of any layer.</p>
+      <p>Grouped counts come from pre-computed statistics where they exist, otherwise they are counted from the Parquet file (the 500 largest groups). Use <code>/query</code> with <code>group_by</code> for any column of any layer.</p>
 
       <h2>Downloads</h2>
 
@@ -363,6 +406,12 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/submissions/:id</span></h3>
       <p>Single submission detail.</p>
 
+      <h2>Releases</h2>
+
+      <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/releases</span></h3>
+      <p>Dated releases, newest first. A release code is <code>bharatlas-&lt;dataset&gt;-&lt;year&gt;.&lt;month&gt;</code> (e.g. <code>bharatlas-cw-2026.11</code>); it is never reused and its files never change. Cite it with its pin, <code>&lt;code&gt;+sha256:&lt;hex&gt;</code>, and its permanent address, <code>https://w3id.org/bharatlas/&lt;dataset&gt;/&lt;year&gt;.&lt;month&gt;</code>; <code>https://w3id.org/bharatlas/&lt;dataset&gt;/latest</code> leads to the newest. The same index is at <a href="/releases/index.json"><code>/releases/index.json</code></a>, and as pages at <a href="/releases">/releases</a>.</p>
+      <pre><code>curl https://bharatlas.com/api/v1/releases</code></pre>
+
       <h2>Response Format</h2>
       <p>All endpoints return JSON. List endpoints wrap results in:</p>
       <pre><code>{ "data": [...], "total": N, "limit": 100, "offset": 0 }</code></pre>
@@ -385,7 +434,7 @@ curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code><
       </table>
 
       <h2 id="collect">collect API (write) <span class="badge badge--stable">stable</span></h2>
-      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and publish approved points to bharatlas as a layer. It runs as a separate service with its own origin and auth, so it has its own section here rather than sitting under <code>/api/v1</code> above.</p>
+      <p><a href="https://collect.bharatlas.com">collect</a> is the write side: design a map form, collect points from contributors, and submit approved points to bharatlas as a layer (reviewed before it appears). It runs as a separate service with its own origin and auth, so it has its own section here rather than sitting under <code>/api/v1</code> above.</p>
       <p>Base URL: <code>https://collect.bharatlas.com/api/collect/v1</code></p>
       <p>Auth is a bearer token in the URL fragment of each share link (kept out of server logs); the field-definition contract is the public meta-schema at <code>https://collect.bharatlas.com/schema/v1.json</code>. Creating a map programmatically needs an API key (the anti-abuse gate) via the <code>X-API-Key</code> header, since there is no browser Turnstile.</p>
       <table>
