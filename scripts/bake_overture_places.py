@@ -9,14 +9,13 @@ for the shapefile (DBF cannot hold nested values; columns.txt maps names).
 
 R2 keys are versioned by release because R2 objects are served
 `immutable, max-age=604800`: overwriting a key would let caches mix old and
-new bytes in range reads. The old keys are deleted only after verification
-(`--delete-stale`).
+new bytes in range reads. The old release's keys stay on R2 (a published URL
+never breaks); scripts/r2_prune.py prunes old tiles, nothing else.
 
 Usage:
     python3 scripts/bake_overture_places.py fetch  --release 2026-09-23.1 --src DIR
     python3 scripts/bake_overture_places.py bake   --release 2026-09-23.1 --src DIR --out DIR
     python3 scripts/bake_overture_places.py upload --release 2026-09-23.1 --out DIR
-    python3 scripts/bake_overture_places.py delete-stale --old-catalog FILE
 """
 from __future__ import annotations
 
@@ -236,14 +235,6 @@ def patched_level_meta(meta: dict, release: str) -> dict:
     return {**meta, 'label': display_name(release), 'description': description_for(release)}
 
 
-def stale_keys(old: dict, new: dict, r2_public: str) -> list[str]:
-    """R2 keys the old entry referenced that the new entry no longer does."""
-    def keys(layer):
-        return {(layer.get(f) or {}).get('url', '') for f in ('parquet', 'pmtiles', 'geojson', 'kml', 'shapefile')}
-    gone = keys(old) - keys(new)
-    return sorted(u.removeprefix(f'{r2_public}/') for u in gone if u.startswith(f'{r2_public}/'))
-
-
 # ── side-effecting steps ─────────────────────────────────────────────────
 
 def _con(tmp: Path):
@@ -426,35 +417,20 @@ def upload(release: str, out: Path) -> None:
     MANIFEST.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + '\n')
 
 
-def delete_stale(old_catalog: Path) -> None:
-    from ingest_ramseraph import BUCKET, R2_PUBLIC, r2_client
-
-    def entry(path):
-        return next(l for l in json.loads(path.read_text())['layers'] if l['id'] == LAYER_ID)
-
-    s3 = r2_client()
-    for key in stale_keys(entry(old_catalog), entry(CATALOG), R2_PUBLIC):
-        print(f'  deleting s3://{BUCKET}/{key}')
-        s3.delete_object(Bucket=BUCKET, Key=key)
-
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['fetch', 'bake', 'upload', 'delete-stale'])
+    ap.add_argument('step', choices=['fetch', 'bake', 'upload'])
     ap.add_argument('--release')
     ap.add_argument('--src', type=Path)
     ap.add_argument('--out', type=Path)
-    ap.add_argument('--old-catalog', type=Path)
     a = ap.parse_args()
     if a.step == 'fetch':
         a.src.mkdir(parents=True, exist_ok=True)
         print('\n'.join(str(p) for p in fetch(a.release, a.src)))
     elif a.step == 'bake':
         print(json.dumps(bake(a.release, a.src, a.out), indent=2))
-    elif a.step == 'upload':
-        upload(a.release, a.out)
     else:
-        delete_stale(a.old_catalog)
+        upload(a.release, a.out)
 
 
 if __name__ == '__main__':

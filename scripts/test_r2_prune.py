@@ -194,3 +194,11 @@ def test_load_manifests_reads_every_release_folder(tmp_path):
     (tmp_path / 'bharatlas-a-2026.11' / 'manifest.json').write_text(json.dumps({'code': 'bharatlas-a-2026.11'}))
     (tmp_path / 'index.json').write_text('{}')
     assert rp.load_manifests(tmp_path) == [{'code': 'bharatlas-a-2026.11'}]
+
+
+def test_only_r2_prune_deletes_from_r2():
+    """Rule: a published URL never breaks; r2_prune.py is the one script that deletes R2 objects."""
+    here = Path(__file__).resolve().parent
+    deleters = sorted(p.relative_to(here).as_posix() for p in here.rglob('*.py')
+                      if not p.name.startswith('test_') and 'delete_object' in p.read_text())
+    assert deleters == ['r2_prune.py']

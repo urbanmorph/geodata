@@ -94,15 +94,11 @@ def test_patched_layer_updates_rows_date_and_notes_but_keeps_identity():
     assert OLD_LAYER['rows'] == 2744948  # input not mutated
 
 
-def test_stale_keys_lists_only_old_objects_no_longer_referenced():
-    assert b.stale_keys(OLD_LAYER, patched(), R2) == [
-        'pois/overture-places/overture_places_india.parquet',
-        'pois/overture-places/overture_places_india.pmtiles',
-    ]
-
-
-def test_stale_keys_is_empty_when_nothing_changed():
-    assert b.stale_keys(patched(), patched(), R2) == []
+def test_no_step_deletes_published_keys():
+    """A published URL never breaks: old releases stay on R2 (only r2_prune.py prunes, tiles only)."""
+    src = Path(b.__file__).read_text()
+    assert 'delete_object' not in src and 'delete-stale' not in src
+    assert not hasattr(b, 'stale_keys')
 
 
 # ── tiles: popup fields only (many attributes make tippecanoe drop points) ─
