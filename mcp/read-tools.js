@@ -274,6 +274,39 @@ function layerPath(id, suffix = "") {
   return `/layers/${id}${suffix}`;
 }
 
+/** A list argument: an array of strings, or one comma-separated string (models
+ *  often send "a,b"). Anything else is refused by name; undefined when absent. */
+function listArg(value, name, what) {
+  if (value === undefined || value === null || value === "") return undefined;
+  const items = typeof value === "string" ? value.split(",") : value;
+  if (!Array.isArray(items) || !items.every((v) => typeof v === "string")) {
+    throw new Error(`${name} must be a list of ${what} (an array of strings, or one comma-separated string)`);
+  }
+  const out = items.map((v) => v.trim()).filter(Boolean);
+  return out.length ? out : undefined;
+}
+
+const WHERE_SHAPE = 'where must be an object of {column: value} pairs, e.g. {"STNAME": "KERALA"}';
+const SCALAR = new Set(["string", "number", "boolean"]);
+
+/** where as [column, value] pairs: an object, or a "col=value, col2=value2"
+ *  string. Never a string's characters (that made one filter per character). */
+function whereArg(value) {
+  if (value === undefined || value === null || value === "") return [];
+  if (typeof value === "string") {
+    const pairs = value.split(",").map((p) => {
+      const eq = p.indexOf("=");
+      return eq > 0 ? [p.slice(0, eq).trim(), p.slice(eq + 1).trim()] : null;
+    });
+    if (pairs.some((p) => !p || !p[0])) throw new Error(WHERE_SHAPE);
+    return pairs;
+  }
+  if (typeof value !== "object" || Array.isArray(value)) throw new Error(WHERE_SHAPE);
+  const entries = Object.entries(value);
+  if (!entries.every(([, v]) => SCALAR.has(typeof v))) throw new Error(WHERE_SHAPE);
+  return entries;
+}
+
 /** The API GET a read tool makes: { path, params } under /api/v1, or null when
  *  `name` is not a read tool. Throws on a layer_id the API could never accept. */
 export function readToolRequest(name, args = {}) {
@@ -286,18 +319,20 @@ export function readToolRequest(name, args = {}) {
     case "get_layer_schema":
       return { path: layerPath(args.layer_id, "/schema"), params: {} };
     case "query_layer": {
-      const { layer_id, select, where, group_by, sum, limit, include_centroid } = args;
+      const { layer_id, where, group_by, limit, include_centroid } = args;
       const params = {};
-      if (select?.length) params.select = select.join(",");
+      const select = listArg(args.select, "select", "column names");
+      const sum = listArg(args.sum, "sum", "column names");
+      if (select) params.select = select.join(",");
       if (group_by) params.group_by = group_by;
-      if (sum?.length) params.sum = sum.join(",");
+      if (sum) params.sum = sum.join(",");
       if (limit) params.limit = limit;
       if (include_centroid !== undefined) params.include_centroid = String(include_centroid);
       // Each filter as its own ?col=val param so values may contain commas (the
       // API splits a where= string on commas). Columns named like a reserved
       // param must still travel inside where=.
       const reservedWhere = [];
-      for (const [k, v] of Object.entries(where || {})) {
+      for (const [k, v] of whereArg(where)) {
         if (QUERY_RESERVED.has(k)) reservedWhere.push(`${k}=${v}`);
         else params[k] = v;
       }
@@ -309,9 +344,10 @@ export function readToolRequest(name, args = {}) {
       return { path: "/nearby", params: { lat, lng, layer: layer_id, radius_km: Math.min(radius_km, 200), limit } };
     }
     case "locate": {
-      const { lat, lng, layers } = args;
+      const { lat, lng } = args;
       const params = { lat, lng };
-      if (layers?.length) params.layers = layers.join(",");
+      const layers = listArg(args.layers, "layers", "layer IDs");
+      if (layers) params.layers = layers.join(",");
       return { path: "/locate", params };
     }
     case "list_categories":
