@@ -257,7 +257,7 @@ curl "https://bharatlas.com/api/v1/layers/vedas_power_plants/query?group_by=laye
 
 # Which blocks are in Bengaluru Urban (district LGD code 525)?
 curl "https://bharatlas.com/api/v1/layers/lgd_blocks/query?where=dist_lgd=525&amp;select=block_name,block_lgd"</code></pre>
-      <p>Columns with geometry data (geom, wkb_geometry) are excluded from results. Rows are read row group by row group, so memory stays small on any layer; time grows with layer size. Most layers answer in about a second; on the largest (Overture places, 4.4M rows) a filter or group_by over the whole table takes several seconds, so filter on low-cardinality columns where you can.</p>
+      <p>Columns with geometry data (geom, wkb_geometry) are excluded from results. Rows are read row group by row group, so memory stays small on any layer; time grows with layer size. Most layers answer in about a second; on the largest (Overture places, 4.8M rows) a filter or group_by over the whole table takes several seconds, so filter on low-cardinality columns where you can.</p>
 
       <h2>Spatial</h2>
 

@@ -25,7 +25,7 @@ import { onRequestGet as submissions } from '../api/v1/submissions/index';
 const PROTOCOL_VERSION = '2025-06-18';
 const SUPPORTED_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 // The same version as the npm package (mcp/version.test.js holds them equal).
-const SERVER_INFO = { name: 'bharatlas', title: "bharatlas: India's open geo data", version: '1.6.1' };
+const SERVER_INFO = { name: 'bharatlas', title: "bharatlas: India's open geo data", version: '1.7.0' };
 const MAX_BODY = 64 * 1024;
 
 export const INSTRUCTIONS = `bharatlas MCP server (hosted, read-only). India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, rivers, canals, groundwater, agro-climatic zones, floods, seismic zones) plus community submissions.

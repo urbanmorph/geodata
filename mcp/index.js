@@ -14,7 +14,7 @@ import { withClientIds, importSummary } from "./import-records.js";
 import { parseShareLink, atLeastScope } from "./collect-links.js";
 
 /** One version for the server and its user agent; bump with every release (version.test.js). */
-const VERSION = "1.6.1";
+const VERSION = "1.7.0";
 
 const API = process.env.BHARATLAS_API || "https://bharatlas.com/api/v1";
 
@@ -31,12 +31,12 @@ const SERVER_INSTRUCTIONS = `bharatlas MCP server. India's open geo data: curate
 ${INSTRUCTIONS_CORE}
 
 Collect (author your own map): this server also drives collect.bharatlas.com, the crowd map-capture tool in the bharatlas suite.
-- Create maps ONLINE at collect.bharatlas.com — the browser handles the anti-abuse check, so no account and no API key are needed. Point the user there to make one. They get three share links, each with a token in the URL #fragment: admin (full control), collect (add points), view (read published points).
+- Create maps ONLINE at collect.bharatlas.com: the browser handles the anti-abuse check, so no account and no API key are needed. Point the user there to make one. They get three share links, each with a token in the URL #fragment: admin (full control), collect (add points), view (read published points).
 - register_map: paste any collect share link to manage that map here. The link's scope decides what you can do:
   - view link  -> get_map, get_records: read / query / export that map's published points (analyse or back up what has been collected).
   - collect link -> the above; field capture itself is done in the browser on a phone via the collect link.
   - admin link -> everything: edit_map (settings), moderate_record (approve/reject), import_points (bulk data you already hold, with a source + rights), and publish.
-- publish submits a collect map's approved points to the bharatlas catalog FOR REVIEW — nothing is auto-approved. A bharatlas maintainer approves the submission before it goes live; the response's status is "pending" until then. Once approved it is queryable through the read tools above (list_submissions, query_layer, locate).
+- publish submits a collect map's approved points to the bharatlas catalog FOR REVIEW; nothing is auto-approved. A bharatlas maintainer approves the submission before it goes live; the response's status is "pending" until then. Once approved it is queryable through the read tools above (list_submissions, query_layer, locate).
 - No accounts: the link is the credential. A tool that needs more than your link allows will say which link you need. create_map is optional and needs COLLECT_API_KEY (request-only); prefer creating online.`;
 
 // The eight read tools live in read-tools.js (shared with bharatlas.com/mcp);
@@ -70,7 +70,7 @@ const TOOLS = [
   {
     name: "get_records",
     description:
-      "A collect map's records as a GeoJSON FeatureCollection — for reading, analysis, or backup/export. " +
+      "A collect map's records as a GeoJSON FeatureCollection, for reading, analysis, or backup/export. " +
       "view and collect scope return published points; admin can also read pending/rejected via status. " +
       "Each record's properties._photos lists its photo links (public once the point is approved); _ai holds notes a model wrote from the photo (others see only notes the owner accepted).",
     inputSchema: {
@@ -133,14 +133,14 @@ const TOOLS = [
     name: "publish",
     description:
       "Submit a collect map's approved points to the bharatlas catalog for review (needs the admin link). " +
-      "Nothing goes live automatically — a maintainer approves the submission first; the response status is 'pending' until then. " +
+      "Nothing goes live automatically: a maintainer approves the submission first; the response status is 'pending' until then. " +
       "Once approved it is queryable via list_submissions / query_layer / locate above.",
     inputSchema: { type: "object", properties: { id: { type: "string" } }, required: ["id"] },
   },
   {
     name: "create_map",
     description:
-      "Optional: create a collect map programmatically. Most maps are made online at collect.bharatlas.com (no key needed) — " +
+      "Optional: create a collect map programmatically. Most maps are made online at collect.bharatlas.com (no key needed); " +
       "prefer that and register_map the link. This path needs COLLECT_API_KEY (the request-only anti-abuse gate) and " +
       "auto-registers the new admin link.",
     inputSchema: {
@@ -155,7 +155,7 @@ const TOOLS = [
         license: { type: "string", description: "open licence id; default CC-BY-4.0" },
         category: { type: "string" },
         data_year: { type: "integer" },
-        moderation: { type: "boolean", description: "default true — points wait for approval" },
+        moderation: { type: "boolean", description: "default true: points wait for approval" },
         basemap: { enum: ["positron", "satellite", "topo"] },
       },
       required: ["name", "purpose", "geometry", "fields"],
@@ -293,7 +293,7 @@ async function handleTool(name, args) {
 
     case "create_map": {
       if (!COLLECT_API_KEY) {
-        throw new Error("create_map needs COLLECT_API_KEY (request-only). Most maps are created online at collect.bharatlas.com — do that, then register_map with the share link.");
+        throw new Error("create_map needs COLLECT_API_KEY (request-only). Most maps are created online at collect.bharatlas.com; do that, then register_map with the share link.");
       }
       const schema_doc = { version: 1, geometry: args.geometry, fields: args.fields };
       if (args.category) schema_doc.category = args.category;
