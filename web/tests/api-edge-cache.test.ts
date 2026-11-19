@@ -157,13 +157,13 @@ describe('R2 answers are edge-cached', () => {
     expect(counted).toEqual(['dist', 'dist']);
   });
 
-  it('query with group_by is cached; a row query is not', async () => {
+  it('query answers (group_by and rows) are cached; a hit still counts', async () => {
     await call(queryRoute, '/api/v1/layers/dist/query?group_by=state', { id: 'dist' });
     const hit = await call(queryRoute, '/api/v1/layers/dist/query?group_by=state', { id: 'dist' });
     expect(hit.headers.get('x-edge-cache')).toBe('HIT');
     const rows = await call(queryRoute, '/api/v1/layers/dist/query?limit=2', { id: 'dist' });
     expect(rows.status).toBe(200);
-    expect(rows.headers.get('x-edge-cache')).toBeNull();
+    expect(rows.headers.get('x-edge-cache')).toBe('MISS');
     expect(counted).toEqual(['dist', 'dist', 'dist']);
   });
 

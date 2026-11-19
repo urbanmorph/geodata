@@ -225,13 +225,21 @@ export async function query(
   const metadata = await cachedMetadata(file);
   const cols = topLevelColumns(metadata);
   const allCols = cols.map((c) => c.name);
-  assertFlat(cols, [...Object.keys(opts.where ?? {}), ...(opts.groupBy ? [opts.groupBy] : [])]);
-  assertFilterColumns(cols, (opts.filters ?? []).map((f) => f.col));
+  // Every check before any row is read: an unknown where column used to scan
+  // the whole file and answer 200 with nothing.
+  if (opts.groupBy) assertFlat(cols, [opts.groupBy]);
+  assertFilterColumns(cols, [...Object.keys(opts.where ?? {}), ...(opts.filters ?? []).map((f) => f.col)]);
   // A shape per row (decoded to GeoJSON) for up to 1,000 rows of state or
   // block polygons is a one-request Worker kill: shapes come from downloads.
   const geomSelected = (opts.select ?? []).filter((c) => isGeomColumn(c) && allCols.includes(c));
   if (geomSelected.length) {
     throw new QueryInputError(`Column "${geomSelected[0]}" is the geometry and can't be selected. For a point per row use include_centroid=true; for shapes use the layer's downloads or /export.`);
+  }
+  // An unknown select column used to be dropped silently (all unknown: total 0).
+  const unknownSelect = (opts.select ?? []).filter((c) => !allCols.includes(c));
+  if (unknownSelect.length) {
+    const selectable = allCols.filter((c) => !isGeomColumn(c));
+    throw new QueryInputError(`Select column(s) ${unknownSelect.map((c) => `"${c}"`).join(', ')} not found. Columns: ${selectable.join(', ')}`);
   }
 
   const sumCols = opts.sum?.length ? opts.sum : [];
@@ -325,7 +333,9 @@ export function groupAccumulator(groupCol: string, sumCols: string[] = [], maxKe
   };
 }
 
-const BBOX_COLS = ['xmin', 'ymin', 'xmax', 'ymax'];
+/** Flat bounding-box columns baked into every curated parquet (for nearby and
+ *  centroids): read when needed, never part of a default select. */
+export const BBOX_COLS: readonly string[] = ['xmin', 'ymin', 'xmax', 'ymax'];
 
 /** Row range of each row group. */
 function rowGroupSpans(metadata: FileMetaData): Array<{ start: number; end: number }> {
@@ -400,16 +410,13 @@ async function selectQuery(
     filters?: FilterSpec[];
   },
 ): Promise<QueryResult> {
+  // query() has checked every select column exists. The default leaves out the
+  // bounding box (`_lat`/`_lng` carry it as a point); a select can still ask.
   const selectCols = opts.select?.length
-    ? opts.select.filter((c) => allCols.includes(c))
-    : allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c));
-
-  if (selectCols.length === 0) {
-    return { columns: [], rows: [], total: 0, truncated: false };
-  }
+    ? opts.select
+    : allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c) && !BBOX_COLS.includes(c));
 
   const readCols = new Set(selectCols);
-  // FIX #3: include bbox columns if centroid requested and they exist
   if (opts.includeCentroid) {
     for (const bc of BBOX_COLS) if (allCols.includes(bc)) readCols.add(bc);
   }
@@ -432,16 +439,6 @@ async function selectQuery(
       file, metadata, compressors, columns: [...readCols], rowStart: 0, rowEnd: Math.min(limit, total),
     }) as Record<string, unknown>[];
     return { columns: selectCols, rows: rows.map(shape), total, truncated: total > limit };
-  }
-
-  // FIX #2: on zero results, provide hints (distinct values for filtered columns)
-  const missing = where.filter(([c]) => !allCols.includes(c));
-  if (missing.length) {
-    const avail = allCols.filter((c) => !isGeomColumn(c)).join(', ');
-    return {
-      columns: selectCols, rows: [], total: 0, truncated: false,
-      hints: Object.fromEntries(missing.map(([c]) => [c, [`Column "${c}" not found. Available: ${avail}`]])),
-    };
   }
 
   // Pass 1: where and filter columns only; each group is reduced to its match
@@ -494,7 +491,7 @@ async function groupByQuery(
   const readCols = new Set([groupCol, ...sumCols, ...where.map(([c]) => c), ...filters.map((f) => f.col)]);
   const filtered = where.length > 0 || filters.length > 0;
   const match = rowMatcher(where, filters);
-  const colList = [...readCols].filter((c) => allCols.includes(c));
+  const colList = [...readCols]; // query() has checked each exists
   const acc = groupAccumulator(groupCol, sumCols, maxKeys);
   let sample: Record<string, string[]> | undefined;
   await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
