@@ -57,10 +57,18 @@ describe('Security headers — Cloudflare Pages _headers file', () => {
     expect(csp![1]).toContain('blob:');
   });
 
-  it('CSP allows jsdelivr for DuckDB WASM bundles', () => {
+  it('CSP allows jsdelivr only for the DuckDB-WASM bundles, not the whole CDN', () => {
+    // DuckDB's worker (importScripts in a blob worker, which inherits the page
+    // CSP) and its .wasm load from cdn.jsdelivr.net/npm/@duckdb/duckdb-wasm@<ver>/dist/.
+    // Allowing the bare host would let any npm package run as script.
     const csp = headersFile.match(/Content-Security-Policy:\s*([^\n]+)/);
     expect(csp).not.toBeNull();
-    expect(csp![1]).toContain('https://cdn.jsdelivr.net');
+    for (const d of ['script-src', 'connect-src']) {
+      const seg = csp![1].split(';').map((s) => s.trim()).find((s) => s.startsWith(`${d} `))!;
+      const sources = seg.split(/\s+/).slice(1);
+      expect(sources, d).toContain('https://cdn.jsdelivr.net/npm/@duckdb/');
+      expect(sources, d).not.toContain('https://cdn.jsdelivr.net');
+    }
   });
 
   it('CSP allows Cloudflare Turnstile', () => {
@@ -213,8 +221,8 @@ describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)'
     const csp = SECURITY_HEADERS_HTML['content-security-policy'];
     // Cloudflare Turnstile widget
     expect(csp).toMatch(/https:\/\/challenges\.cloudflare\.com/);
-    // MapLibre + DuckDB-WASM lazy load
-    expect(csp).toMatch(/https:\/\/cdn\.jsdelivr\.net/);
+    // DuckDB-WASM worker + wasm (MapLibre is bundled, not from a CDN)
+    expect(csp).toContain('https://cdn.jsdelivr.net/npm/@duckdb/');
     // R2 public reads for layer downloads
     expect(csp).toMatch(/https:\/\/pub-0429b8e3b5a946e69ea007df844a6f1c\.r2\.dev/);
   });
