@@ -4,8 +4,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { loadCost, largeLoadHtml, LARGE_BYTES, SLOW_SECONDS } from '../src/large-load';
-import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
+import { largeLoadHtml } from '../src/large-load';
+import { viewMapLink, wholeFileBytes, inlineMapLink, loadCost, LARGE_BYTES, SLOW_SECONDS } from '../../shared/large-load.mjs';
 
 const MB = 1024 * 1024;
 

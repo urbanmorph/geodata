@@ -4,24 +4,19 @@
 // DuckDB-WASM count/export queries. Single-state filters short-circuit to a
 // pre-baked R2 extract when one exists.
 
-import {
-  exportFilteredParquet,
-  exportFilteredGeoJSON,
-  exportFilteredKML,
-  getDb,
-  query,
-} from './db';
 import { inlineLoader, VERBS_ENGINE, VERBS_EXPORT, VERBS_GEOJSON, VERBS_KML, VERBS_COUNT } from './loading';
-import { getCatalog } from './catalog';
+import { getCatalog, type Layer } from './catalog';
 import { escapeHtml } from './util';
 import {
   usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, FILTER_EXPORT_MAX_SHAPE_BYTES, SERVER_SHAPE_EXPORT,
 } from '../../shared/large-load.mjs';
 import { fmtBytes } from './format-hints';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
+import { moveActive } from './search-pop';
 import {
   buildMaplibreFilter,
-  buildWhereSQL,
+  escString,
+  whereClause,
   resolveStateCodes,
   typeaheadSQL,
   matchCountText,
@@ -29,13 +24,11 @@ import {
   type MaplibreFilter,
 } from './filter-where';
 
-type Layer = {
-  id: string;
-  parquet?: { url: string; bytes?: number | null } | null;
-  geojson?: { url?: string } | null;
-  level: string | null;
-  source: string;
-};
+// DuckDB-WASM (./db, ~47 kB gz) loads the first time the panel counts, suggests or
+// exports: the map prefetches this module, and a layer filtered on the server never needs it.
+const loadDb = () => import('./db');
+
+type FilterLayer = Pick<Layer, 'id' | 'parquet' | 'geojson' | 'level' | 'source'>;
 
 export type FilterCallbacks = {
   /** The panel's × : the map hides the panel and keeps the filter. */
@@ -46,7 +39,7 @@ export type FilterCallbacks = {
 };
 
 export function mountFilterPanel(
-  layer: Layer,
+  layer: FilterLayer,
   container: HTMLElement,
   ranked: ColumnStats[],
   rowCount: number,
@@ -147,8 +140,10 @@ export function mountFilterPanel(
       lastPlan = await apiPlan(layer.id, active);
       return lastPlan.total;
     }
-    const where = buildWhereSQL(active).replace(/^WHERE\s+/i, '');
-    const rows = await query<{ n: bigint | number }>(`SELECT COUNT(*) AS n FROM '${layer.parquet!.url}' WHERE ${where}`);
+    const { query } = await loadDb();
+    const rows = await query<{ n: bigint | number }>(
+      `SELECT COUNT(*) AS n FROM ${escString(layer.parquet!.url)} WHERE ${whereClause(active)}`,
+    );
     return Number(rows[0]?.n ?? 0);
   }
 
@@ -205,7 +200,7 @@ export function mountFilterPanel(
 
   // Warm DuckDB-WASM in the background — masks the cold start when the
   // user clicks an export button.
-  if (!server) getDb().catch(() => {});
+  if (!server) loadDb().then((db) => db.getDb()).catch(() => {});
 
   /** Large layer: check the count against the cap, then let the browser
    *  stream /export straight to a file (no copy of the rows in the tab). */
@@ -258,8 +253,7 @@ export function mountFilterPanel(
 
       // Generic path: build WHERE via filter-where.ts and run DuckDB export.
       const parquetUrl = layer.parquet!.url;
-      const whereStmt = buildWhereSQL(active);
-      const where = whereStmt.replace(/^WHERE\s+/i, '');
+      const where = whereClause(active);
       const filename = `${layer.id}.${fmt}`;
       const verbs = fmt === 'geojson' ? VERBS_GEOJSON : fmt === 'kml' ? VERBS_KML : VERBS_EXPORT;
       setExportEnabled(false);
@@ -268,9 +262,10 @@ export function mountFilterPanel(
         ? window.setTimeout(() => loader.setVerbs(verbs), 8000)
         : undefined;
       try {
+        const { exportFilteredParquet, exportFilteredGeoJSON, exportFilteredKML } = await loadDb();
         let blob: Blob;
         if (fmt === 'parquet') {
-          const select = `SELECT * FROM '${parquetUrl}' WHERE ${where}`;
+          const select = `SELECT * FROM ${escString(parquetUrl)} WHERE ${where}`;
           blob = await exportFilteredParquet(select, filename.replace(/\.parquet$/, ''));
         } else if (fmt === 'geojson') {
           blob = await exportFilteredGeoJSON(parquetUrl, where);
@@ -365,7 +360,7 @@ function renderField(
 
   if (aff.kind === 'facet') field.appendChild(renderFacet(col, aff, onChange));
   else if (aff.kind === 'range') field.appendChild(renderRange(col, aff, onChange));
-  else if (aff.kind === 'searchable' || aff.kind === 'search') field.appendChild(renderSearch(col, onChange, parquetUrl));
+  else if (aff.kind === 'search') field.appendChild(renderSearch(col, onChange, parquetUrl));
   else if (aff.kind === 'boolean') field.appendChild(renderBoolean(col, onChange));
   return field;
 }
@@ -383,18 +378,15 @@ function renderFacet(
     chip.type = 'button';
     chip.className = 'filter-chip';
     chip.dataset.value = String(v);
+    chip.setAttribute('aria-pressed', 'false');
     chip.innerHTML =
       `<span class="filter-chip__v">${escapeHtml(label ?? String(v))}</span>` +
       `<span class="filter-chip__n">${n.toLocaleString('en-IN')}</span>`;
     chip.addEventListener('click', () => {
       const key = String(v);
-      if (selected.has(key)) {
-        selected.delete(key);
-        chip.classList.remove('is-active');
-      } else {
-        selected.add(key);
-        chip.classList.add('is-active');
-      }
+      if (selected.has(key)) selected.delete(key);
+      else selected.add(key);
+      setPressed(chip, selected.has(key));
       const values = aff.values.map((x) => x.v).filter((x) => selected.has(String(x)));
       onChange(values.length ? { col: col.name, kind: 'in', values } : null);
     });
@@ -410,15 +402,16 @@ function renderRange(
 ): HTMLElement {
   const wrap = document.createElement('div');
   wrap.className = 'filter-range';
-  const make = (placeholder: string): HTMLInputElement => {
+  const make = (placeholder: string, bound: string): HTMLInputElement => {
     const i = document.createElement('input');
     i.type = 'number';
     i.placeholder = placeholder;
     i.className = 'filter-range__input';
+    i.setAttribute('aria-label', `${col.name}, ${bound}`);
     return i;
   };
-  const minI = make(`≥ ${aff.min}`);
-  const maxI = make(`≤ ${aff.max}`);
+  const minI = make(`≥ ${aff.min}`, 'minimum');
+  const maxI = make(`≤ ${aff.max}`, 'maximum');
   const sep = document.createElement('span');
   sep.className = 'filter-range__sep';
   sep.textContent = ' – ';
@@ -436,6 +429,8 @@ function renderRange(
   return wrap;
 }
 
+let typeaheadIds = 0;
+
 function renderSearch(
   col: ColumnStats,
   onChange: (filter: ActiveFilter | null) => void,
@@ -444,17 +439,48 @@ function renderSearch(
   const wrap = document.createElement('div');
   wrap.className = 'filter-typeahead';
   wrap.style.position = 'relative';
+  const listId = `filter-typeahead-${++typeaheadIds}`;
 
   const input = document.createElement('input');
   input.type = 'search';
   input.placeholder = `Search ${col.distinct.toLocaleString('en-IN')} ${col.name}…`;
   input.className = 'filter-search';
   input.autocomplete = 'off';
+  input.setAttribute('aria-label', `${col.name}, search`);
+  input.setAttribute('role', 'combobox');
+  input.setAttribute('aria-autocomplete', 'list');
+  input.setAttribute('aria-controls', listId);
+  input.setAttribute('aria-expanded', 'false');
   wrap.appendChild(input);
 
   const list = document.createElement('ul');
   list.className = 'filter-typeahead__list';
+  list.id = listId;
+  list.setAttribute('role', 'listbox');
+  list.setAttribute('aria-label', `${col.name} suggestions`);
   wrap.appendChild(list);
+
+  // The highlighted suggestion (arrow keys), -1 for none.
+  let active = -1;
+  const options = () => Array.from(list.querySelectorAll<HTMLLIElement>('[role="option"]'));
+  const setList = (values: string[]) => {
+    list.replaceChildren(...values.map((v, i) => {
+      const li = document.createElement('li');
+      li.className = 'filter-typeahead__item';
+      li.id = `${listId}-${i}`;
+      li.setAttribute('role', 'option');
+      li.setAttribute('aria-selected', 'false');
+      li.textContent = v;
+      li.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        pick(v);
+      });
+      return li;
+    }));
+    active = -1;
+    input.removeAttribute('aria-activedescendant');
+    input.setAttribute('aria-expanded', String(values.length > 0));
+  };
 
   // Suggestions in flight belong to the text that asked: any change cancels them.
   let timer: number | undefined;
@@ -468,12 +494,13 @@ function renderSearch(
   clearBtn.type = 'button';
   clearBtn.className = 'filter-typeahead__clear';
   clearBtn.textContent = '×';
+  clearBtn.setAttribute('aria-label', `Clear ${col.name} search`);
   clearBtn.style.display = 'none';
   clearBtn.addEventListener('click', () => {
     cancelSuggestions();
     input.value = '';
     clearBtn.style.display = 'none';
-    list.innerHTML = '';
+    setList([]);
     onChange(null);
   });
   wrap.appendChild(clearBtn);
@@ -482,7 +509,7 @@ function renderSearch(
     cancelSuggestions();
     input.value = value;
     clearBtn.style.display = '';
-    list.innerHTML = '';
+    setList([]);
     onChange({ col: col.name, kind: 'search', q: value });
   }
 
@@ -492,7 +519,7 @@ function renderSearch(
     clearBtn.style.display = q ? '' : 'none';
 
     if (!q) {
-      list.innerHTML = '';
+      setList([]);
       onChange(null);
       return;
     }
@@ -506,25 +533,34 @@ function renderSearch(
       // This request's own controller: a newer keystroke aborts it, so stale rows never land.
       const ctrl = (abortCtrl = new AbortController());
       try {
+        const { query } = await loadDb();
         const rows = await query<{ v: string }>(typeaheadSQL(parquetUrl, col.name, q));
         if (ctrl.signal.aborted) return;
-        list.innerHTML = '';
-        for (const r of rows) {
-          const li = document.createElement('li');
-          li.className = 'filter-typeahead__item';
-          li.textContent = String(r.v);
-          li.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            pick(String(r.v));
-          });
-          list.appendChild(li);
-        }
+        setList(rows.map((r) => String(r.v)));
       } catch { /* query failed — degrade to plain search */ }
     }, 250);
   });
 
+  // Arrow keys move through the suggestions, Enter picks one, Escape closes them.
+  input.addEventListener('keydown', (e) => {
+    const opts = options();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      if (!opts.length) return;
+      e.preventDefault();
+      active = moveActive(active, e.key, opts.length);
+      opts.forEach((o, i) => o.setAttribute('aria-selected', String(i === active)));
+      input.setAttribute('aria-activedescendant', opts[active].id);
+    } else if (e.key === 'Enter' && active >= 0 && opts[active]) {
+      e.preventDefault();
+      pick(opts[active].textContent ?? '');
+    } else if (e.key === 'Escape' && opts.length) {
+      e.stopPropagation(); // close the suggestions, not the panel
+      setList([]);
+    }
+  });
+
   input.addEventListener('blur', () => {
-    setTimeout(() => { list.innerHTML = ''; }, 200);
+    setTimeout(() => setList([]), 200);
   });
 
   return wrap;
@@ -543,17 +579,11 @@ function renderBoolean(
     btn.type = 'button';
     btn.textContent = label;
     btn.className = 'filter-bool__btn';
+    btn.setAttribute('aria-pressed', 'false');
     btn.addEventListener('click', () => {
-      if (current === v) {
-        current = null;
-        btn.classList.remove('is-active');
-        onChange(null);
-      } else {
-        current = v;
-        buttons.forEach((b) => b.classList.remove('is-active'));
-        btn.classList.add('is-active');
-        onChange({ col: col.name, kind: 'bool', v });
-      }
+      current = current === v ? null : v;
+      buttons.forEach((b, i) => setPressed(b, current === (i === 0)));
+      onChange(current == null ? null : { col: col.name, kind: 'bool', v: current });
     });
     buttons.push(btn);
     wrap.appendChild(btn);
@@ -562,6 +592,12 @@ function renderBoolean(
 }
 
 // ───── Tiny utilities ─────
+
+/** A toggle's look and its state for assistive tech, together. */
+function setPressed(btn: HTMLElement, on: boolean): void {
+  btn.classList.toggle('is-active', on);
+  btn.setAttribute('aria-pressed', String(on));
+}
 
 function downloadUrl(url: string, filename: string): void {
   const a = document.createElement('a');

@@ -47,7 +47,8 @@ describe('lean home page', () => {
   });
   it('searches /layer-index.json, which matches the /layers rows one for one', () => {
     // Fetched on the search's first focus, so the home page carries no list.
-    expect(read('src/main.ts')).toContain("fetch('/layer-index.json')");
+    expect(read('src/catalog-filter.ts')).toContain("fetch('/layer-index.json')");
+    expect(read('src/main.ts')).toContain('fetchLayerIndex(');
     const index = JSON.parse(read('public/layer-index.json')) as { i: string; t: string; h: string; n?: number }[];
     // Every row, in page order, is one entry of the index, by its id.
     const rowIds = [...layers.matchAll(/<(?:section class="row row--curated[^"]*"|article class="comm-card[^"]*") id="[^"]*" data-id="([^"]+)"|<article class="comm-card[^"]*" data-id="([^"]+)"/g)]
@@ -69,7 +70,7 @@ describe('lean home page', () => {
 
 describe('/layers weight', () => {
   it('filters from /layer-index.json: rows carry no search haystacks or unused data-*', () => {
-    expect(read('src/layers.ts')).toContain("fetch('/layer-index.json')");
+    expect(read('src/layers.ts')).toContain('fetchLayerIndex(');
     for (const attr of ['data-search-primary', 'data-search-body', 'data-title', 'data-sub', 'data-href', 'data-provenance', 'data-source', 'data-level', 'data-created']) {
       expect(layers, attr).not.toContain(`${attr}=`);
     }

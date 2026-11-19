@@ -23,10 +23,20 @@
 // popover and the /layers filter. Both count matching rows, so "See all N" on
 // the home page lands on N matches on /layers.
 
+import { memoRetry } from './memo-retry';
+
 /** One /layers row in /layer-index.json (prerender's layerIndex): its id, the
  *  primary and body haystacks, then what the popover shows (title, sub line,
  *  link) and how many layers it holds (n; absent = 1). */
 export type LayerIndexEntry = { i: string; p: string; b: string; t: string; s: string; h: string; n?: number };
+
+/** /layer-index.json, fetched once per page (the first focus or keystroke); a
+ *  failed fetch is retried on the next one. */
+export const fetchLayerIndex = memoRetry(() =>
+  fetch('/layer-index.json').then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json() as Promise<LayerIndexEntry[]>;
+  }));
 
 export type CardLike = {
   primary: string;

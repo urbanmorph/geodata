@@ -1,5 +1,6 @@
-// Pure validation helpers used by /verify and (later) /submit.
+// Pure validation helpers for /preview (the browser) and /api/submit (normaliseFC).
 // No DOM, no MapLibre — testable in plain Node.
+import { INDIA_BBOX } from './india-bbox';
 
 export type FC = {
   type: 'FeatureCollection';
@@ -20,7 +21,7 @@ export type Report = {
   bbox: [number, number, number, number] | null;
 };
 
-export const INDIA_BBOX: [number, number, number, number] = [68, 6, 98, 38];
+export { INDIA_BBOX };
 
 /** Accept any of: FeatureCollection, Feature, raw array of Features. */
 export function normaliseFC(o: unknown): FC {
@@ -81,9 +82,11 @@ export function validate(fc: FC, raw?: unknown): Report {
       continue;
     }
     byType[t] = (byType[t] || 0) + 1;
+    // A feature with any non-finite coordinate counts once, however many it has.
+    let bad = false;
     visitCoords(f.geometry, (x, y) => {
       if (!isFinite(x) || !isFinite(y)) {
-        invalid++;
+        bad = true;
         return;
       }
       if (x < INDIA_BBOX[0] || x > INDIA_BBOX[2] || y < INDIA_BBOX[1] || y > INDIA_BBOX[3]) outsideIndia++;
@@ -91,6 +94,7 @@ export function validate(fc: FC, raw?: unknown): Report {
         ? [Math.min(bbox[0], x), Math.min(bbox[1], y), Math.max(bbox[2], x), Math.max(bbox[3], y)]
         : [x, y, x, y];
     });
+    if (bad) invalid++;
     if (f.properties)
       for (const k of Object.keys(f.properties)) propCounts[k] = (propCounts[k] || 0) + 1;
   }

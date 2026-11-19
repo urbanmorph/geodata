@@ -1,4 +1,4 @@
-// /contribute — drop a file, see it on a map, fill metadata, publish.
+// /preview — drop a file, see it on a map, fill metadata, publish.
 //
 // One page that combines what /verify and /submit used to do separately.
 // Steps:
@@ -12,7 +12,9 @@
 //   ?category=…   → preselects the category dropdown
 
 import maplibregl from 'maplibre-gl';
-import { DATA_BASE_FILTERS, DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, POLYGON_GEOM_FILTER } from './map-paint';
+import {
+  DATA_BASE_FILTERS, DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, EDGE_GEOM_FILTER, POLYGON_GEOM_FILTER,
+} from './map-paint';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { validate, INDIA_BBOX, type FC, type Report } from './validate';
 import { fileToFC, type Format } from './parse-geo';
@@ -72,28 +74,27 @@ const viewOnly = new URLSearchParams(location.search).has('url');
 // block tile.openstreetmap.org outright — symptom is a dark canvas with
 // no labels and no land/water distinction. Minimal is bundled GeoJSON
 // from /world-land.geojson + /india-outline.geojson, served same-origin
-// from R2/Pages so it's reliable.
-import { BASEMAPS } from './basemaps';
+// from R2/Pages so it's reliable. It follows the page's colour scheme, as on the layer map.
+import { minimalPaint, minimalStyle } from './basemap-minimal';
 import { submissionSync } from './submission-sync';
 import { dropSyncFragment } from '../../shared/keyring';
 import { renderSubmissionSync } from './submission-sync-ui';
 import { passkeysAvailable } from '../../shared/passkey';
 import { submitErrorText } from './submit-error';
-const minimal = BASEMAPS.find((b) => b.id === 'minimal') ?? BASEMAPS[0];
-const BASE_STYLE: maplibregl.StyleSpecification = {
-  version: 8,
-  sources: minimal.sources,
-  layers: minimal.layers,
-};
+const darkScheme = matchMedia('(prefers-color-scheme: dark)');
+const mapScheme = (): 'light' | 'dark' => (darkScheme.matches ? 'dark' : 'light');
 
 const map = new maplibregl.Map({
   container: 'map',
-  style: BASE_STYLE,
+  style: minimalStyle(mapScheme()),
   bounds: INDIA_BBOX,
   fitBoundsOptions: { padding: 24 },
   attributionControl: { compact: true },
 });
 map.addControl(new maplibregl.NavigationControl({ visualizePitch: false }), 'top-right');
+darkScheme.addEventListener('change', () => {
+  for (const [id, prop, value] of minimalPaint(mapScheme())) if (map.getLayer(id)) map.setPaintProperty(id, prop, value);
+});
 
 function renderOnMap(fc: FC, bbox: Report['bbox']) {
   for (const id of ['c-fill', 'c-line', 'c-pt']) if (map.getLayer(id)) map.removeLayer(id);
@@ -111,7 +112,7 @@ function renderOnMap(fc: FC, bbox: Report['bbox']) {
     type: 'line',
     source: 'v',
     paint: { 'line-color': DATA_LINE, 'line-width': 0.8 },
-    filter: ['in', ['geometry-type'], ['literal', ['LineString', 'MultiLineString', 'Polygon', 'MultiPolygon']]],
+    filter: EDGE_GEOM_FILTER,
   });
   map.addLayer({
     id: 'c-pt',
@@ -166,8 +167,9 @@ resetBtn.addEventListener('click', () => resetState());
 
 // ---------- Handoff from home page ---------------------------------------
 //
-// Three race-resistant paths to popAndRender so we don't miss the file dropped
-// on /. See the comment in src/verify.ts for the long story.
+// Three race-resistant paths to popAndConsume so we don't miss the file dropped
+// on /: the style already loaded, its load event, and a 200 ms fallback (the
+// handoff has raced the map's start in real browsers).
 console.log(
   '[contribute] init · styleLoaded:', map.isStyleLoaded(),
   '· mapLoaded:', map.loaded(),
@@ -229,7 +231,12 @@ async function maybeFetchUrlParam(): Promise<void> {
 }
 
 // ---------- Validate + render --------------------------------------------
+// Each dropped file takes a number: a slower earlier file that finishes later
+// stops instead of overwriting the newer one's map, report and parsed features.
+let fileSeq = 0;
+
 async function handleFile(file: File): Promise<void> {
+  const seq = ++fileSeq;
   selectedFile = file;
   selectedFC = null;
   selectedFormat = null;
@@ -256,6 +263,7 @@ async function handleFile(file: File): Promise<void> {
   try {
     const parsed = await fileToFC(file, {
       onPhase: (p) => {
+        if (seq !== fileSeq) return;
         phaseLoader?.dismiss();
         phaseLoader = undefined;
         if (p === 'duckdb') {
@@ -268,17 +276,13 @@ async function handleFile(file: File): Promise<void> {
       },
     });
     phaseLoader?.dismiss();
+    if (seq !== fileSeq) return;
     fc = parsed.fc;
     format = parsed.format;
-    if (format === 'geojson' || format === 'json') {
-      try {
-        rawJson = JSON.parse(await file.text());
-      } catch {
-        rawJson = undefined;
-      }
-    }
+    rawJson = parsed.raw;
   } catch (e) {
     phaseLoader?.dismiss();
+    if (seq !== fileSeq) return;
     renderReport([{ k: (e as Error).message, level: 'err' }]);
     return;
   }
@@ -420,7 +424,8 @@ publishCancelBtn?.addEventListener('click', () => {
 // ---------- Turnstile (lazy) ---------------------------------------------
 function ensureTurnstile(): void {
   if (turnstileWidgetId != null) return;
-  const sitekey = captchaEl.dataset.sitekey || '1x00000000000000000000AA';
+  // Filled at build (scripts/turnstile-key.mjs); a local build gets Cloudflare's test key there.
+  const sitekey = captchaEl.dataset.sitekey ?? '';
 
   const renderWidget = () => {
     // @ts-expect-error global turnstile from CF script
@@ -575,8 +580,11 @@ function renderSuccess(payload: SuccessPayload): void {
     `It'll appear at <a href="${escapeHtml(shareUrl)}">${escapeHtml(shareUrl)}</a> once a maintainer approves it.`;
   (document.getElementById('success-token') as HTMLElement).textContent = payload.admin_token;
 
+  // onclick, not addEventListener: a second submission in this tab replaces the
+  // handlers (and the token they hold) instead of adding to them.
   const copyBtn = document.getElementById('copy-token')!;
-  copyBtn.addEventListener('click', async () => {
+  copyBtn.textContent = 'Copy token';
+  copyBtn.onclick = async () => {
     try {
       await navigator.clipboard.writeText(payload.admin_token);
       copyBtn.textContent = '✓ Copied';
@@ -584,9 +592,9 @@ function renderSuccess(payload: SuccessPayload): void {
     } catch {
       copyBtn.textContent = 'Copy failed';
     }
-  });
+  };
 
-  document.getElementById('download-token')!.addEventListener('click', () => {
+  document.getElementById('download-token')!.onclick = () => {
     const content =
       `geodata · submission backup\n\n` +
       `id:         ${payload.id}\n` +
@@ -603,7 +611,7 @@ function renderSuccess(payload: SuccessPayload): void {
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
-  });
+  };
 
   (document.getElementById('goto-submission') as HTMLAnchorElement).href = '/layers';
 

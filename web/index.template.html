@@ -534,7 +534,7 @@
       .filter-typeahead__item {
         padding: 6px 11px; cursor: pointer; font-size: var(--fs-sm); color: var(--fg);
       }
-      .filter-typeahead__item:hover { background: var(--accent-fill); color: var(--on-accent-fill); }
+      .filter-typeahead__item:hover, .filter-typeahead__item[aria-selected="true"] { background: var(--accent-fill); color: var(--on-accent-fill); }
       .filter-typeahead__clear {
         position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
         background: none; border: none; color: var(--muted); cursor: pointer;

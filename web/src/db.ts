@@ -3,7 +3,8 @@
 // cap; DuckDB's eh blob is ~34 MiB) — only the JS shim is bundled with our site.
 import * as duckdb from '@duckdb/duckdb-wasm';
 import { featuresToKML } from '../../shared/kml.mjs';
-import { parseWKB } from '../functions/lib/wkb-geojson';
+import { featuresFromRows, type RowFeature } from './wkb-rows';
+import { escString } from './filter-where';
 
 let dbPromise: Promise<duckdb.AsyncDuckDB> | null = null;
 
@@ -18,10 +19,18 @@ export function getDb(): Promise<duckdb.AsyncDuckDB> {
     const worker = new Worker(workerUrl);
     const logger = new duckdb.ConsoleLogger(duckdb.LogLevel.WARNING);
     const db = new duckdb.AsyncDuckDB(logger, worker);
-    await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
-    URL.revokeObjectURL(workerUrl);
+    try {
+      await db.instantiate(bundle.mainModule, bundle.pthreadWorker);
+    } catch (e) {
+      worker.terminate();
+      throw e;
+    } finally {
+      URL.revokeObjectURL(workerUrl);
+    }
     return db;
   })();
+  // A failed start (the CDN, a flaky connection) is not kept: the next call tries again.
+  dbPromise.catch(() => { dbPromise = null; });
   return dbPromise;
 }
 
@@ -55,68 +64,30 @@ export async function exportFilteredParquet(selectSql: string, basename: string)
   }
 }
 
-/** Query rows from a parquet — geometry column comes back as WKB bytes.
- *  We parse WKB → GeoJSON in JS rather than relying on the DuckDB spatial
- *  extension, which is fragile to install in WASM and threw cryptic errors
- *  on real data. */
-async function fetchFeatures(
-  parquetUrl: string,
-  whereClause: string,
-): Promise<Array<{ geometry: unknown; properties: Record<string, unknown> }>> {
+/** The features a SELECT over `from` (a quoted SQL source: a parquet URL or a
+ *  registered file) returns, optionally filtered by `whereClause`. */
+export async function readFeatures(from: string, whereClause = ''): Promise<RowFeature[]> {
   const db = await getDb();
   const conn = await db.connect();
   try {
-    const where = whereClause ? `WHERE ${whereClause}` : '';
-    const sql = `SELECT * FROM '${parquetUrl}' ${where}`;
+    const sql = `SELECT * FROM ${from}${whereClause ? ` WHERE ${whereClause}` : ''}`;
     let result;
     try {
       result = await conn.query(sql);
     } catch (e) {
       throw new Error(`query failed: ${(e as Error).message}`);
     }
-    const out: Array<{ geometry: unknown; properties: Record<string, unknown> }> = [];
-    for (const row of result.toArray()) {
-      const obj = row.toJSON() as Record<string, unknown>;
-      const raw = obj.geometry;
-      delete obj.geometry;
-      // Coerce BigInts so JSON.stringify doesn't throw.
-      for (const k of Object.keys(obj)) {
-        const v = obj[k];
-        if (typeof v === 'bigint') obj[k] = Number(v);
-      }
-      const wkb = toUint8Array(raw);
-      if (!wkb) continue;
-      let geometry: unknown;
-      try {
-        geometry = parseWKB(wkb);
-      } catch {
-        continue; // skip malformed geometries instead of killing the export
-      }
-      out.push({ geometry, properties: obj });
-    }
-    return out;
+    return featuresFromRows(result.toArray());
   } finally {
     await conn.close();
   }
 }
 
-function toUint8Array(v: unknown): Uint8Array | null {
-  if (!v) return null;
-  if (v instanceof Uint8Array) return v;
-  // Arrow may surface BLOB as a typed array via different paths
-  if (ArrayBuffer.isView(v)) return new Uint8Array((v as ArrayBufferView).buffer, (v as ArrayBufferView).byteOffset, (v as ArrayBufferView).byteLength);
-  if (v instanceof ArrayBuffer) return new Uint8Array(v);
-  return null;
-}
-
-// WKB -> GeoJSON lives with the server code; the filtered export uses it too.
-export { parseWKB };
-
 export async function exportFilteredGeoJSON(
   parquetUrl: string,
   whereClause: string,
 ): Promise<Blob> {
-  const feats = await fetchFeatures(parquetUrl, whereClause);
+  const feats = await readFeatures(escString(parquetUrl), whereClause);
   const fc = {
     type: 'FeatureCollection',
     features: feats.map((f) => ({ type: 'Feature', geometry: f.geometry, properties: f.properties })),
@@ -129,7 +100,7 @@ export async function exportFilteredKML(
   whereClause: string,
   layerName: string,
 ): Promise<Blob> {
-  const feats = await fetchFeatures(parquetUrl, whereClause);
+  const feats = await readFeatures(escString(parquetUrl), whereClause);
   const kml = featuresToKML(feats, layerName);
   return new Blob([kml], { type: 'application/vnd.google-earth.kml+xml' });
 }

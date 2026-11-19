@@ -6,7 +6,7 @@
 
 import { query } from './db';
 import { isUnofferedName, type ColumnStats, type ColumnType } from './filter-schema';
-import { escIdent } from './filter-where';
+import { escIdent, escString } from './filter-where';
 
 const DUCKDB_TO_NORM: Record<string, ColumnType> = {
   BOOLEAN: 'bool',
@@ -55,8 +55,9 @@ function coerceMinMax(v: string, norm: ColumnType): string | number {
 export type ProbeResult = { rowCount: number; columns: ColumnStats[] };
 
 export async function describeParquet(url: string): Promise<ProbeResult> {
+  const from = escString(url);
   const desc = await query<{ column_name: string; column_type: string }>(
-    `DESCRIBE SELECT * FROM '${url}' LIMIT 0`,
+    `DESCRIBE SELECT * FROM ${from} LIMIT 0`,
   );
 
   // Skip what the panel would drop anyway: geometry/nested types and
@@ -83,13 +84,13 @@ export async function describeParquet(url: string): Promise<ProbeResult> {
       ];
     });
     const [agg] = await query<Record<string, unknown>>(
-      `SELECT COUNT(*) AS row_count, ${fragments.join(', ')} FROM '${url}'`,
+      `SELECT COUNT(*) AS row_count, ${fragments.join(', ')} FROM ${from}`,
     );
     rowCount = Number(agg.row_count) || 0;
     Object.assign(aggRow, agg);
   } else {
     const [{ row_count }] = await query<{ row_count: number | bigint }>(
-      `SELECT COUNT(*) AS row_count FROM '${url}'`,
+      `SELECT COUNT(*) AS row_count FROM ${from}`,
     );
     rowCount = Number(row_count) || 0;
   }
@@ -100,8 +101,9 @@ export async function describeParquet(url: string): Promise<ProbeResult> {
     return distinct >= 2 && distinct <= FACET_THRESHOLD;
   });
 
+  // One GROUP BY per low-cardinality column, all asked at once (each is its own scan).
   const topValues: Record<string, Array<{ v: string | number; n: number }>> = {};
-  for (const d of lowCardCols) {
+  await Promise.all(lowCardCols.map(async (d) => {
     const norm = normaliseType(d.column_type);
     try {
       // Cast numeric columns back to native types — otherwise the MapLibre
@@ -110,7 +112,7 @@ export async function describeParquet(url: string): Promise<ProbeResult> {
       // nothing. Strings/dates stay as VARCHAR.
       const rows = await query<{ v: unknown; n: bigint | number }>(
         `SELECT ${escIdent(d.column_name)}::VARCHAR AS v, COUNT(*) AS n
-         FROM '${url}' WHERE ${escIdent(d.column_name)} IS NOT NULL
+         FROM ${from} WHERE ${escIdent(d.column_name)} IS NOT NULL
          GROUP BY 1 ORDER BY n DESC LIMIT ${MAX_TOP_VALUES}`,
       );
       topValues[d.column_name] = rows.map((r) => ({
@@ -121,7 +123,7 @@ export async function describeParquet(url: string): Promise<ProbeResult> {
       // A single column's top_values failure isn't fatal — the facet just
       // renders without baked values; the UI handles that.
     }
-  }
+  }));
 
   const columns: ColumnStats[] = desc.map((d) => {
     const norm = normaliseType(d.column_type);

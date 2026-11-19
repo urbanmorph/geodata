@@ -181,9 +181,9 @@ describe('pickAffordance — categorical', () => {
     ).toBe('facet');
   });
 
-  it('picks searchable for string distinct=200 (mid-cardinality)', () => {
+  it('picks search for string distinct=200 (mid-cardinality)', () => {
     const a = pickAffordance(col({ type: 'string', distinct: 200 }), 1000);
-    expect(a.kind).toBe('searchable');
+    expect(a.kind).toBe('search');
   });
 
   it('picks search for string distinct=5000 (high-cardinality)', () => {
@@ -213,12 +213,12 @@ describe('pickAffordance — numeric range', () => {
     expect(a).toMatchObject({ kind: 'range', min: 0.2, max: 12.4 });
   });
 
-  it('falls back to facet/searchable when numeric lacks min/max', () => {
+  it('falls back to facet/search when numeric lacks min/max', () => {
     const a = pickAffordance(
       col({ name: 'val', type: 'int', distinct: 200 }),
       1000,
     );
-    expect(a.kind).toBe('searchable');
+    expect(a.kind).toBe('search');
   });
 });
 
@@ -232,7 +232,7 @@ describe('rankColumns', () => {
     expect(out.map((c) => c.name)).toEqual(['zone']);
   });
 
-  it('ranks facets above range above searchable above search', () => {
+  it('ranks facets above range above a browsable search above a near-unique one', () => {
     const cols = [
       col({ name: 'searchcol', type: 'string', distinct: 5000 }),
       col({ name: 'facetcol', type: 'string', distinct: 8 }),

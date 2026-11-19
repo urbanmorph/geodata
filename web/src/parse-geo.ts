@@ -1,4 +1,4 @@
-// Shared geo-file parser used by /verify and /submit. Browser-only.
+// The geo-file parser behind /preview (a dropped, picked or handed-off file). Browser-only.
 // Lazy-loads heavy deps (JSZip for KMZ, DuckDB for Parquet) so the cost
 // only lands when a user actually drops that format.
 
@@ -10,13 +10,17 @@ export type Format = 'geojson' | 'json' | 'kml' | 'kmz' | 'gpx' | 'tcx' | 'parqu
 export type ParsePhase = 'parsing' | 'unzipping' | 'duckdb';
 export type ParseOpts = { onPhase?: (p: ParsePhase) => void };
 
-export async function fileToFC(file: File, opts: ParseOpts = {}): Promise<{ fc: FC; format: Format }> {
+/** The features, the format, and for GeoJSON the parsed object itself (its `crs`
+ *  member, which normaliseFC drops, is read from it). */
+export type Parsed = { fc: FC; format: Format; raw?: unknown };
+
+export async function fileToFC(file: File, opts: ParseOpts = {}): Promise<Parsed> {
   const name = file.name.toLowerCase();
 
   if (name.endsWith('.geojson') || name.endsWith('.json')) {
     opts.onPhase?.('parsing');
-    const obj = JSON.parse(await file.text());
-    return { fc: normaliseFC(obj), format: name.endsWith('.geojson') ? 'geojson' : 'json' };
+    const raw: unknown = JSON.parse(await file.text());
+    return { fc: normaliseFC(raw), format: name.endsWith('.geojson') ? 'geojson' : 'json', raw };
   }
 
   if (name.endsWith('.kml')) {
@@ -49,29 +53,14 @@ export async function fileToFC(file: File, opts: ParseOpts = {}): Promise<{ fc: 
 
   if (name.endsWith('.parquet')) {
     opts.onPhase?.('duckdb');
-    const { getDb, parseWKB } = await import('./db');
+    const { getDb, readFeatures } = await import('./db');
     const db = await getDb();
     await db.registerFileBuffer('parse-geo.parquet', new Uint8Array(await file.arrayBuffer()));
-    const conn = await db.connect();
     try {
-      const result = await conn.query("SELECT * FROM 'parse-geo.parquet'");
-      const rows = result.toArray();
-      const features: FC['features'] = [];
-      for (const row of rows) {
-        const obj = row.toJSON() as Record<string, unknown>;
-        const geomBytes = obj.geometry as Uint8Array | undefined;
-        delete obj.geometry;
-        for (const k of Object.keys(obj)) if (typeof obj[k] === 'bigint') obj[k] = Number(obj[k]);
-        if (!(geomBytes instanceof Uint8Array)) continue;
-        try {
-          features.push({ type: 'Feature', geometry: parseWKB(geomBytes), properties: obj });
-        } catch {
-          /* skip malformed */
-        }
-      }
+      const features = (await readFeatures("'parse-geo.parquet'"))
+        .map(({ geometry, properties }) => ({ type: 'Feature' as const, geometry, properties }));
       return { fc: { type: 'FeatureCollection', features }, format: 'parquet' };
     } finally {
-      await conn.close();
       await db.dropFile('parse-geo.parquet');
     }
   }

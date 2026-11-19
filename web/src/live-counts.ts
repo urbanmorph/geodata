@@ -13,17 +13,15 @@ export function refreshLiveCounts(): void {
       if (!counts) return;
 
       // Patch per-format badges: <span class="count" title="N downloads">N</span>
-      // Each download link lives inside a card with data-id="<layer_id>" and
-      // the link text is the format name (parquet, geojson, kml, shp).
+      // Each download link lives inside a card with data-id="<layer_id>".
       // fmtCount lives in format-hints.ts (pure + unit-tested).
       for (const section of document.querySelectorAll<HTMLElement>('[data-id]')) {
         const layerId = section.dataset.id || '';
         const layerCounts = counts[layerId] as Record<string, number> | undefined;
         if (!layerCounts) continue;
         for (const link of section.querySelectorAll<HTMLAnchorElement>('a[download]')) {
-          // Link text is the format, except Shapefile's link text shp (counted as shapefile).
-          const text = link.textContent?.trim() || '';
-          const fmt = text === 'shp' ? 'shapefile' : text;
+          // The counted format: data-fmt on /layers rows, the link text on community cards.
+          const fmt = link.dataset.fmt ?? link.textContent?.trim() ?? '';
           const n = layerCounts[fmt];
           if (!n) continue;
           const badge = link.nextElementSibling?.nextElementSibling;

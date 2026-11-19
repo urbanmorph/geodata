@@ -4,6 +4,7 @@
 // no sidecar (number-only cities, non-ward layers) or the fetch fails.
 import type { WardSidecar } from './locate-format';
 import type { WardIndex } from '../functions/lib/view-dataset';
+import { isWardLayer } from './locate-actions';
 
 /** The sidecar file: what the page renders (WardIndex) + what locate reads (WardSidecar). */
 export type WardIndexFile = WardIndex & WardSidecar;
@@ -11,7 +12,7 @@ export type WardIndexFile = WardIndex & WardSidecar;
 const cache = new Map<string, Promise<WardIndexFile | null>>();
 
 export function fetchWardIndex(layerId: string): Promise<WardIndexFile | null> {
-  if (!/^wards_/.test(layerId)) return Promise.resolve(null);
+  if (!isWardLayer(layerId)) return Promise.resolve(null);
   let p = cache.get(layerId);
   if (!p) {
     // No sidecar (a 404, or the site's HTML fallback) is kept as null; any other failure

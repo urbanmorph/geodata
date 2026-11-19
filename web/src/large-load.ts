@@ -3,8 +3,6 @@
 // navigator.connection where the browser reports it (Chrome, Android); Safari
 // reports none, so there the size rule alone applies.
 import { escapeHtml as esc, fmtBytes } from '../../shared/format.mjs';
-
-export { LARGE_BYTES, SLOW_SECONDS, loadCost, type LoadCost } from '../../shared/large-load.mjs';
 import { loadCost, LARGE_ICON, LARGE_VIEW_LABEL, largeViewNote, type LoadCost } from '../../shared/large-load.mjs';
 
 const fmtTime = (s: number) => (s < 60 ? `about ${Math.max(1, Math.round(s))} s` : `about ${Math.round(s / 60)} min`);
