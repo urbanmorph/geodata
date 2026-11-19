@@ -6,7 +6,7 @@
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
 // The finished page is kept in the edge cache, keyed by the deploy version.
 
-import { buildViewDataset, buildViewContent, resolveLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
+import { buildViewDataset, buildViewContent, layerLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../lib/catalog-loader';
 import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
@@ -33,7 +33,7 @@ function layerNotFound(ctx: AssetCtx, id: string, catalog: Catalog): Promise<Res
   const layers = catalog.layers ?? [];
   const items = suggestLayers(id, layers).map((sid) => {
     const layer = layers.find((l) => l.id === sid)!;
-    const meta = resolveLevelMeta(layer, catalog.level_meta);
+    const meta = layerLevelMeta(layer, catalog.level_meta, layers);
     const title = meta?.label || layer.name || sid.replace(/_/g, ' ');
     // Titles repeat across sources (LGD and SOI both have "Districts"): the source tells them apart.
     return `<li><a href="/view/${esc(sid)}">View ${esc(title)}</a>, ${esc(layer.source)}<code>${esc(sid)}</code></li>`;
@@ -78,7 +78,7 @@ async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: Catalog):
     wardIndex = await wardResp.json<WardIndex>().catch(() => null);
   }
 
-  const levelMeta = resolveLevelMeta(layer, catalog.level_meta);
+  const levelMeta = layerLevelMeta(layer, catalog.level_meta, catalog.layers ?? []);
   const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd, howToJsonLd, wardListJsonLd } = buildViewDataset(
     layer,
     levelMeta,

@@ -3,7 +3,7 @@
 // replaced the link; the server answers the same for both, so as not to reveal
 // which maps exist). Plain reasons and the next step, in collect's own header.
 import { ApiError } from './api';
-import { wordmarkHtml } from '../../shared/brand.mjs';
+import { collectTopbarHtml } from './topbar';
 
 /** A refusal that means the link itself is wrong, not the connection. */
 export function isLinkProblem(e: unknown): boolean {
@@ -11,7 +11,7 @@ export function isLinkProblem(e: unknown): boolean {
 }
 
 export function linkProblemHtml(): string {
-  return `<div class="topbar"><span class="collect-name">collect</span>${wordmarkHtml({ href: 'https://bharatlas.com', className: 'brand', size: 18 })}</div>
+  return `${collectTopbarHtml()}
     <div class="pad">
       <h1>This link doesn't open a map</h1>
       <p class="hint">Usually one of these:</p>

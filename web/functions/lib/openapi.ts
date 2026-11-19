@@ -349,6 +349,20 @@ export const OPENAPI = {
           attribution: { type: 'object', description: 'Who to credit: `primary` is the source, `publisher` who prepared it.', properties: { primary: ref('schemas', 'Credit'), publisher: ref('schemas', 'Credit') } },
           notes: { type: 'string' },
           downloads: { type: 'object', description: 'Format → file: parquet, pmtiles, geojson, kml, shapefile (each where available).', additionalProperties: { type: 'object', properties: { url: { type: 'string', format: 'uri' }, bytes: { type: ['integer', 'null'] } } } },
+          versions: {
+            type: 'array',
+            description: 'On `/layers/{id}` only: the layer’s dated releases, newest first, each one fixed by its SHA-256. Cite the version you used by its `code` (or its `w3id` address). Empty until the layer’s first release; `downloads` always point at the latest files.',
+            items: {
+              type: 'object',
+              properties: {
+                code: { type: 'string', examples: ['bharatlas-lgd_states-2026.12'] },
+                released: { type: 'string', format: 'date' },
+                sha256: { type: 'string', description: 'SHA-256 of the release’s SHA256SUMS file.' },
+                w3id: { type: 'string', format: 'uri', description: 'Persistent address of the release.' },
+                url: { type: 'string', format: 'uri' },
+              },
+            },
+          },
         },
       },
       Credit: { type: 'object', properties: { name: { type: 'string' }, url: { type: 'string', format: 'uri' } } },

@@ -35,6 +35,12 @@ export const TOKENS = `
       ${themeDecls('dark')}
       --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
     }
+    /* MapLibre's zoom and compass buttons: a dark panel, not a white box.
+       :root outranks MapLibre's stylesheet, which loads after these tokens. */
+    :root .maplibregl-ctrl-group:not(:empty) { background: var(--bg-elevated); box-shadow: 0 0 0 1px var(--line-bright); }
+    :root .maplibregl-ctrl-group button + button { border-top-color: var(--line); }
+    :root .maplibregl-ctrl-group button:not(:disabled):hover { background-color: var(--bg-card); }
+    :root .maplibregl-ctrl-group .maplibregl-ctrl-icon { filter: invert(1); }
   }
   *, *::before, *::after { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; color: var(--fg); }

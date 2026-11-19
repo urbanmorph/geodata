@@ -12,7 +12,7 @@
 //   ?category=…   → preselects the category dropdown
 
 import maplibregl from 'maplibre-gl';
-import { DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT } from './map-paint';
+import { DATA_BASE_FILTERS, DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, POLYGON_GEOM_FILTER } from './map-paint';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { validate, INDIA_BBOX, type FC, type Report } from './validate';
 import { fileToFC, type Format } from './parse-geo';
@@ -103,7 +103,7 @@ function renderOnMap(fc: FC, bbox: Report['bbox']) {
     type: 'fill',
     source: 'v',
     paint: { 'fill-color': DATA_FILL, 'fill-opacity': DATA_FILL_OPACITY },
-    filter: ['in', ['geometry-type'], ['literal', ['Polygon', 'MultiPolygon']]],
+    filter: POLYGON_GEOM_FILTER,
   });
   map.addLayer({
     id: 'c-line',
@@ -117,7 +117,7 @@ function renderOnMap(fc: FC, bbox: Report['bbox']) {
     type: 'circle',
     source: 'v',
     paint: { 'circle-radius': 3, 'circle-color': DATA_POINT },
-    filter: ['in', ['geometry-type'], ['literal', ['Point', 'MultiPoint']]],
+    filter: DATA_BASE_FILTERS.point,
   });
   if (bbox) {
     map.fitBounds([[bbox[0], bbox[1]], [bbox[2], bbox[3]]], { padding: 32, duration: 600 });

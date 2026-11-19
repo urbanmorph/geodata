@@ -15,10 +15,24 @@ export const DATA_SELECTED = PALETTE.saffron;
 export const OVERVIEW_MARKER = '_ov';
 const NOT_OVERVIEW: FilterSpecification = ['!', ['has', OVERVIEW_MARKER]];
 
+// MapLibre 4 reports Multi* features by their single type; MapLibre 5 names
+// them, so both spellings are listed.
+const geometryIs = (...types: string[]): FilterSpecification =>
+  ['in', ['geometry-type'], ['literal', types.flatMap((t) => [t, `Multi${t}`])]];
+
+/** Polygons only: a fill layer would close and fill a LineString (a railway's
+ * two tracks drew as a green band between them). */
+export const POLYGON_GEOM_FILTER = geometryIs('Polygon');
+
 /** Each data layer's own filter, under any filter the reader adds:
- * points draw points only; edges skip the overview's cell pieces. */
+ * fills draw polygons only, points draw points only; edges (lines and polygon
+ * outlines) skip the overview's cell pieces. */
 export const DATA_BASE_FILTERS = {
-  point: ['==', ['geometry-type'], 'Point'],
+  fill: POLYGON_GEOM_FILTER,
+  // An invisible wide stroke under line features: their click and hover
+  // target now that the fill no longer covers them.
+  'line-hit': geometryIs('LineString'),
+  point: geometryIs('Point'),
   line: NOT_OVERVIEW,
   'line-halo': NOT_OVERVIEW,
 } satisfies Record<string, FilterSpecification>;

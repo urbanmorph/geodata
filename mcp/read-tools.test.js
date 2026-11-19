@@ -40,3 +40,17 @@ test("an id that goes into a URL path must be a plain id (no path tricks)", asyn
   const { readFileSync } = await import("node:fs");
   assert.match(readFileSync(new URL("./index.js", import.meta.url), "utf8"), /`\/records\/\$\{idSegment\(args\.record_id, "record_id"\)\}\/moderate`/);
 });
+
+// spec-data-lifecycle section 8.4: get_layer_detail returns the layer's dated
+// releases (`versions`), so an agent can cite the exact version it used.
+test("agents are told get_layer_detail lists the citable versions", async () => {
+  const { READ_TOOLS } = await import("./read-tools.js");
+  const detail = READ_TOOLS.find((t) => t.name === "get_layer_detail");
+  assert.match(detail.description, /versions/);
+  assert.match(INSTRUCTIONS_CORE, /\*\*Citing\*\*: .*versions.*code.*sha256/s);
+});
+
+test("get_layer_detail passes the versions through unchanged", () => {
+  const versions = [{ code: "bharatlas-lgd_states-2026.12", released: "2026-12-01", sha256: "ab", w3id: "https://w3id.org/bharatlas/lgd_states/2026.12", url: "https://bharatlas.com/releases/bharatlas-lgd_states-2026.12/" }];
+  assert.deepEqual(shapeReadResult("get_layer_detail", { data: { id: "lgd_states", versions } }).data.versions, versions);
+});

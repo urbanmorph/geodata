@@ -53,12 +53,15 @@ Runbook (airtight: safe to run repeatedly, safe to drive from Claude Code):
        # then commit catalog.json on a branch, open a PR, merge -> CI deploys.
 
 Why it can't break anything:
-  - Idempotent. Re-running (or --all) writes the same deterministic R2 keys
-    and replaces the c_<id> catalog entry in place (never duplicates).
-    catalog.json is written LAST, so a mid-run failure never leaves a
-    dangling reference; just re-run.
-  - Never deletes. A format an earlier, larger bake made (a pmtiles) stays on
-    R2 when a re-bake no longer makes it: a published URL never breaks
+  - Versioned keys. Every file goes to community/<id>/<id>.<md5[:8]>.<ext>,
+    so a re-bake that changes a file publishes it under a new key and never
+    overwrites the one already served (spec-data-lifecycle.md rule 2).
+  - Idempotent. Re-running (or --all) on unchanged data gives the same md5
+    keys, uploads skip on an md5 match, and the c_<id> catalog entry is
+    replaced in place (never duplicated). catalog.json is written LAST, so a
+    mid-run failure never leaves a dangling reference; just re-run.
+  - Never deletes. Earlier versions, and a format an earlier, larger bake
+    made (a pmtiles), stay on R2: a published URL never breaks
     (supporting-docs/spec-data-lifecycle.md rule 1; old tiles are pruned only
     by scripts/r2_prune.py, which keeps the current and previous versions).
   - Rebuild-safe. A full `python3 scripts/build_catalog.py` PRESERVES baked
@@ -97,6 +100,7 @@ from bake_formats import geojson_popup_fields, pmtiles_args  # noqa: E402
 from pipeline import (  # noqa: E402
     BUCKET,
     R2_PUBLIC,
+    file_md5,
     make_con,
     r2_client,
     r2_upload,
@@ -150,9 +154,10 @@ def catalog_layer_id(submission_id: str) -> str:
     return f'c_{submission_id}'
 
 
-def baked_key(submission_id: str, fmt: str) -> str:
+def baked_key(submission_id: str, fmt: str, md5: str) -> str:
+    """community/<id>/<id>.<md5[:8]>.<ext>: a changed file gets a new key."""
     ext = 'shp.zip' if fmt == 'shapefile' else fmt
-    return f'{COMMUNITY_PREFIX}/{submission_id}/{submission_id}.{ext}'
+    return f'{COMMUNITY_PREFIX}/{submission_id}/{submission_id}.{md5[:8]}.{ext}'
 
 
 # Every format the bake can emit; pmtiles only above the size gate.
@@ -313,10 +318,6 @@ def geojson_to_pmtiles(gj: Path, out_pmtiles: Path, layer_name: str) -> None:
 # Orchestration
 # ===========================================================================
 
-def _artifact_block(sub_id: str, fmt: str, path: Path) -> dict:
-    return {'url': f'{R2_PUBLIC}/{baked_key(sub_id, fmt)}', 'bytes': path.stat().st_size}
-
-
 def bake(sub_id: str, scope: str, s3, work: Path, *, dry_run: bool) -> dict:
     meta = fetch_submission(sub_id, scope)
     r2_key = meta.get('r2_key')
@@ -347,28 +348,26 @@ def bake(sub_id: str, scope: str, s3, work: Path, *, dry_run: bool) -> dict:
           f'parquet {pq.stat().st_size:,}B · pmtiles={plan.pmtiles} '
           f'(rgs={plan.row_group_size})')
 
-    artifacts = {
-        'parquet': _artifact_block(sub_id, 'parquet', pq),
-        'geojson': _artifact_block(sub_id, 'geojson', gj),
-        'kml': _artifact_block(sub_id, 'kml', kml),
-    }
+    files = {'parquet': pq, 'geojson': gj, 'kml': kml}
     if plan.pmtiles:
-        artifacts['pmtiles'] = _artifact_block(sub_id, 'pmtiles', pmt)
+        files['pmtiles'] = pmt
+    keys = {fmt: baked_key(sub_id, fmt, file_md5(path)) for fmt, path in files.items()}
+    artifacts = {fmt: {'url': f'{R2_PUBLIC}/{keys[fmt]}', 'bytes': path.stat().st_size}
+                 for fmt, path in files.items()}
 
     meta['feature_count'] = features  # authoritative count from the actual bake
     entry = build_community_catalog_entry(meta, artifacts)
 
     if dry_run:
         print('  [dry-run] would upload:')
-        for fmt in artifacts:
-            print(f'    s3://{BUCKET}/{baked_key(sub_id, fmt)}')
+        for key in keys.values():
+            print(f'    s3://{BUCKET}/{key}')
         print('  [dry-run] catalog entry:')
         print('    ' + json.dumps(entry, ensure_ascii=False))
         return entry
 
-    for fmt, path in (('parquet', pq), ('geojson', gj), ('kml', kml), ('pmtiles', pmt)):
-        if fmt in artifacts:
-            r2_upload(s3, path, baked_key(sub_id, fmt))
+    for fmt, path in files.items():
+        r2_upload(s3, path, keys[fmt])
 
     catalog = json.loads(CATALOG.read_text())
     merge_community_entry(catalog, entry)

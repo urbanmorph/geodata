@@ -1,7 +1,7 @@
 import { WARD_PLACES, mugiluUrl, yellideUrl } from './ward-places';
 import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
 import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial } from '../../../shared/licences.mjs';
-import { LEVEL_META, type LevelMeta } from '../../../shared/level-meta.mjs';
+import { LEVEL_META, pickPrimary, type LevelMeta } from '../../../shared/level-meta.mjs';
 // Pure builder for the /view/<id> page's per-layer meta + Dataset JSON-LD.
 // Extracted from functions/view/[id].ts so the description-length rule
 // (Google Dataset Search requires ≥50 chars) is unit-testable.
@@ -15,6 +15,10 @@ export type CatalogLayer = {
   /** Display name for layers without a LEVEL_META entry (e.g. community). */
   name?: string;
   description?: string;
+  /** Some ingested layers carry a display title alongside `name`. */
+  title?: string | null;
+  /** The data's own year, when the catalog entry records one. */
+  vintage?: string | number | null;
   provenance?: string;
   category?: string;
   licence?: string;
@@ -56,6 +60,49 @@ export function resolveLevelMeta(
   catalogLevelMeta: Record<string, LevelMeta> | undefined,
 ): LevelMeta | undefined {
   return catalogLevelMeta?.[layer.id] ?? (layer.level ? LEVEL_META[layer.level] : undefined);
+}
+
+/** The layer fields the alternate-source rule reads. */
+export type LevelLayer = Pick<CatalogLayer, 'id' | 'level' | 'source' | 'provenance' | 'name' | 'title' | 'vintage'>;
+
+/** A trailing parenthetical that holds a year: "(2024)", "(2008 delimitation)". */
+const LABEL_YEAR = /\s*\([^()]*\b\d{4}\b[^()]*\)\s*$/;
+const YEAR = /\b(?:19|20)\d{2}\b/;
+const clean = (s: string | null | undefined): string => (s ?? '').trim();
+
+/** The layer's own year: its vintage field, else a year in its own name or title. */
+export function ownYear(layer: LevelLayer): string | null {
+  if (layer.vintage != null && String(layer.vintage).trim()) return String(layer.vintage).trim();
+  return [layer.name, layer.title].map((s) => clean(s).match(YEAR)?.[0]).find(Boolean) ?? null;
+}
+
+/** True when the layer borrows its level's built-in meta: it shares a level
+ *  with other curated layers and is not the one the meta describes. */
+function borrowsLevelMeta(
+  layer: LevelLayer, catalogLevelMeta: Record<string, LevelMeta> | undefined, layers: readonly LevelLayer[],
+): boolean {
+  if (!layer.level || catalogLevelMeta?.[layer.id]) return false;
+  const siblings = layers.filter((l) => l.level === layer.level && l.provenance !== 'community');
+  return siblings.length > 1 && pickPrimary(siblings)?.id !== layer.id;
+}
+
+/** The level meta a layer's pages use. A built-in level entry ("Blocks (2024)",
+ *  "... LGD snapshot 2024.") describes the level's primary layer, so an
+ *  alternate source keeps only the level's name and count noun: the year comes
+ *  from its own fields, the page title names its source (siblings would share
+ *  one title otherwise), and the description falls back to its own. */
+export function layerLevelMeta(
+  layer: LevelLayer,
+  catalogLevelMeta: Record<string, LevelMeta> | undefined,
+  /** Every catalog layer: tells a level's primary layer from its alternates. */
+  layers: readonly LevelLayer[],
+): LevelMeta | undefined {
+  const meta = resolveLevelMeta(layer as CatalogLayer, catalogLevelMeta);
+  if (!meta || !borrowsLevelMeta(layer, catalogLevelMeta, layers)) return meta;
+  const year = ownYear(layer);
+  const label = meta.label.replace(LABEL_YEAR, '') + (year ? ` (${year})` : '');
+  const source = clean(layer.source);
+  return { label, unit: meta.unit, ...(source ? { seo_title: `${label} from ${source}` } : {}) };
 }
 
 // schema.org DataDownload entries for every format the layer publishes. This
