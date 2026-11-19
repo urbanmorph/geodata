@@ -4,7 +4,7 @@ Transit layers: urban rail stations and lines (OpenStreetMap) and bus stops
 (open GTFS feeds where they exist, else OpenStreetMap), national, each row
 with its city, source, source licence and as-of date.
 
-  urban_rail_stations  metro, monorail and RRTS stations in operation
+  urban_rail_stations  metro and RRTS stations in operation
   urban_rail_lines     operational lines as line geometry, one row per line
   bus_stops            one point per stop, from the feed listed for its city
 
@@ -873,16 +873,16 @@ ODBL_NOTE = ('Published under the Open Database License (ODbL 1.0): you may copy
 LAYERS = {
     'urban_rail_stations': {
         'basename': 'Urban_Rail_Stations', 'source': 'OpenStreetMap', 'unit': 'stations',
-        'label': 'Metro, monorail and RRTS stations',
-        'description': ('Stations in operation on India\'s metro, monorail and regional rapid transit (Namo Bharat) '
+        'label': 'Metro and RRTS stations',
+        'description': ('Stations in operation on India\'s metro and regional rapid transit (Namo Bharat) '
                         'systems, one point per station, with its system, city and the lines that stop there.'),
         'tags': ['metro stations', 'metro', 'monorail', 'RRTS', 'Namo Bharat', 'urban rail', 'transit',
                  'OpenStreetMap', 'transport'],
     },
     'urban_rail_lines': {
         'basename': 'Urban_Rail_Lines', 'source': 'OpenStreetMap', 'unit': 'lines',
-        'label': 'Metro, monorail and RRTS lines',
-        'description': ('Lines in operation on India\'s metro, monorail and regional rapid transit systems, one '
+        'label': 'Metro and RRTS lines',
+        'description': ('Lines in operation on India\'s metro and regional rapid transit systems, one '
                         'feature per line with its name, number and colour where OpenStreetMap has them.'),
         'tags': ['metro lines', 'metro', 'monorail', 'RRTS', 'urban rail', 'transit', 'OpenStreetMap', 'transport'],
     },

@@ -1203,14 +1203,14 @@
       "description": "Degraded land mapped at 1:50,000 by NRSC from 2015-16 satellite imagery: the process (water or wind erosion, salinity, waterlogging, mining and more) and its severity, with the 2005-06 mapping alongside."
     },
     "urban_rail_stations": {
-      "label": "Metro, monorail and RRTS stations",
+      "label": "Metro and RRTS stations",
       "unit": "stations",
-      "description": "Stations in operation on India's metro, monorail and regional rapid transit (Namo Bharat) systems, one point per station, with its system, city and the lines that stop there."
+      "description": "Stations in operation on India's metro and regional rapid transit (Namo Bharat) systems, one point per station, with its system, city and the lines that stop there."
     },
     "urban_rail_lines": {
-      "label": "Metro, monorail and RRTS lines",
+      "label": "Metro and RRTS lines",
       "unit": "lines",
-      "description": "Lines in operation on India's metro, monorail and regional rapid transit systems, one feature per line with its name, number and colour where OpenStreetMap has them."
+      "description": "Lines in operation on India's metro and regional rapid transit systems, one feature per line with its name, number and colour where OpenStreetMap has them."
     },
     "bus_stops": {
       "label": "Bus stops",
@@ -2330,7 +2330,7 @@
         "method": "github_release",
         "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/Datagov_Pincode_Boundaries.parquet",
         "fingerprint": "updated_at=2026-03-08T05:12:20Z size=19819662",
-        "checked_at": "2026-11-18T13:23:39Z",
+        "checked_at": "2026-11-19T01:39:19Z",
         "changed_at": "2026-03-08T05:12:20Z"
       },
       "refresh": {
@@ -3113,7 +3113,7 @@
         "method": "github_release",
         "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/infra/national-highways/GatiShakti_MORTH_National_Highways.parquet",
         "fingerprint": "updated_at=2026-03-15T13:44:50Z size=58742537",
-        "checked_at": "2026-11-18T13:23:47Z",
+        "checked_at": "2026-11-19T01:39:26Z",
         "changed_at": "2026-03-15T13:44:50Z"
       },
       "refresh": {
@@ -3162,7 +3162,7 @@
         "method": "github_release",
         "url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.geojson",
         "fingerprint": "updated_at=2026-03-16T01:10:24Z size=49502037",
-        "checked_at": "2026-11-18T13:25:07Z",
+        "checked_at": "2026-11-19T01:39:27Z",
         "changed_at": "2026-03-16T01:10:24Z"
       },
       "refresh": {
@@ -4284,7 +4284,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Delhi",
         "fingerprint": "commit=d6415b989e6501cf7447d71a59a6150f86f48c07",
-        "checked_at": "2026-11-18T13:23:48Z",
+        "checked_at": "2026-11-19T01:39:28Z",
         "changed_at": "2018-01-03T01:29:37Z"
       },
       "refresh": {
@@ -4397,7 +4397,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Coimbatore",
         "fingerprint": "commit=bf31a4828f53fab6a559778e59dc6618119141a9",
-        "checked_at": "2026-11-18T13:23:49Z",
+        "checked_at": "2026-11-19T01:39:29Z",
         "changed_at": "2017-03-30T05:20:02Z"
       },
       "refresh": {
@@ -4738,7 +4738,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Chandigarh",
         "fingerprint": "commit=7d3273837f02ece06c512b3c44a13fd2e28b5aff",
-        "checked_at": "2026-11-18T13:23:50Z",
+        "checked_at": "2026-11-19T01:39:30Z",
         "changed_at": "2018-01-05T10:51:13Z"
       },
       "refresh": {
@@ -4794,7 +4794,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Lucknow",
         "fingerprint": "commit=d287c704e64d32ec251b1ed2a1d4111bed2de3bb",
-        "checked_at": "2026-11-18T13:23:51Z",
+        "checked_at": "2026-11-19T01:39:31Z",
         "changed_at": "2018-09-28T08:11:03Z"
       },
       "refresh": {
@@ -4850,7 +4850,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Kanpur",
         "fingerprint": "commit=c0ed773621b6b594073b3f07642dc1bf8fd049f6",
-        "checked_at": "2026-11-18T13:23:52Z",
+        "checked_at": "2026-11-19T01:39:32Z",
         "changed_at": "2018-09-28T07:41:22Z"
       },
       "refresh": {
@@ -4962,7 +4962,7 @@
         "method": "github_commit",
         "url": "https://github.com/datta07/INDIAN-SHAPEFILES/tree/master/METROPOLITAN%20CITIES",
         "fingerprint": "commit=062cab151de22b6c3edad1737e90f4538688f366",
-        "checked_at": "2026-11-18T13:23:53Z",
+        "checked_at": "2026-11-19T01:39:33Z",
         "changed_at": "2024-08-24T18:05:46Z"
       },
       "refresh": {
@@ -5018,7 +5018,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vadodara",
         "fingerprint": "commit=f3b69b4c3c9569e3ea7d14b2739c598c2bae942f",
-        "checked_at": "2026-11-18T13:23:54Z",
+        "checked_at": "2026-11-19T01:39:34Z",
         "changed_at": "2020-01-13T13:26:59Z"
       },
       "refresh": {
@@ -5074,7 +5074,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Faridabad",
         "fingerprint": "commit=f4e7fad9b98918633d2e2b86005bbb4862bd430c",
-        "checked_at": "2026-11-18T13:23:55Z",
+        "checked_at": "2026-11-19T01:39:35Z",
         "changed_at": "2018-03-15T05:16:36Z"
       },
       "refresh": {
@@ -5130,7 +5130,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/PCMC",
         "fingerprint": "commit=e250bf52fadf34d30f1d8acbe42057849f3d31de",
-        "checked_at": "2026-11-18T13:23:56Z",
+        "checked_at": "2026-11-19T01:39:36Z",
         "changed_at": "2016-08-19T12:53:38Z"
       },
       "refresh": {
@@ -5186,7 +5186,7 @@
         "method": "github_commit",
         "url": "https://github.com/datameet/Municipal_Spatial_Data/tree/master/Vijayawada",
         "fingerprint": "commit=8c03089704a7207124537bdcee3c01d285991d96",
-        "checked_at": "2026-11-18T13:23:57Z",
+        "checked_at": "2026-11-19T01:39:37Z",
         "changed_at": "2018-04-12T07:29:30Z"
       },
       "refresh": {
@@ -5878,7 +5878,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Power_Plants.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:32Z size=31826",
-        "checked_at": "2026-11-18T13:24:02Z",
+        "checked_at": "2026-11-19T01:39:42Z",
         "changed_at": "2026-03-10T02:47:32Z"
       },
       "refresh": {
@@ -5934,7 +5934,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Refineries.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:24Z size=4036",
-        "checked_at": "2026-11-18T13:24:02Z",
+        "checked_at": "2026-11-19T01:39:42Z",
         "changed_at": "2026-03-10T02:47:24Z"
       },
       "refresh": {
@@ -5990,7 +5990,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Oil_Wells.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:28Z size=512000",
-        "checked_at": "2026-11-18T13:24:02Z",
+        "checked_at": "2026-11-19T01:39:42Z",
         "changed_at": "2026-03-10T02:47:28Z"
       },
       "refresh": {
@@ -6046,7 +6046,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Wind_Farms.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:54Z size=6608",
-        "checked_at": "2026-11-18T13:24:02Z",
+        "checked_at": "2026-11-19T01:39:42Z",
         "changed_at": "2026-03-10T02:47:54Z"
       },
       "refresh": {
@@ -6102,7 +6102,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Ethanol_Plants.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:20Z size=27964",
-        "checked_at": "2026-11-18T13:24:02Z",
+        "checked_at": "2026-11-19T01:39:42Z",
         "changed_at": "2026-03-10T02:47:20Z"
       },
       "refresh": {
@@ -6158,7 +6158,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Power_Plants.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:51Z size=11966",
-        "checked_at": "2026-11-18T13:24:02Z",
+        "checked_at": "2026-11-19T01:39:42Z",
         "changed_at": "2026-03-10T02:47:51Z"
       },
       "refresh": {
@@ -6214,7 +6214,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-sources/Vedas_Solar_Panel_Areas.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:47Z size=54467",
-        "checked_at": "2026-11-18T13:24:02Z",
+        "checked_at": "2026-11-19T01:39:42Z",
         "changed_at": "2026-03-10T02:47:47Z"
       },
       "refresh": {
@@ -6326,7 +6326,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_power_infra/releases/download/power-lines/Vedas_Power_Transmission_Lines.parquet",
         "fingerprint": "updated_at=2026-03-10T02:47:15Z size=8636807",
-        "checked_at": "2026-11-18T13:24:03Z",
+        "checked_at": "2026-11-19T01:39:43Z",
         "changed_at": "2026-03-10T02:47:15Z"
       },
       "refresh": {
@@ -6854,7 +6854,7 @@
         "method": "github_release",
         "url": "https://github.com/ramSeraph/indian_transport/releases/download/pmgsy-roads/pmgsy_roads.parquet",
         "fingerprint": "updated_at=2026-03-10T04:00:19Z size=1239255074",
-        "checked_at": "2026-11-18T13:24:11Z",
+        "checked_at": "2026-11-19T01:39:50Z",
         "changed_at": "2026-03-10T04:00:19Z"
       },
       "refresh": {
@@ -10605,7 +10605,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.a78a4c94.shp.zip",
         "bytes": 2706532489
       },
-      "fetched_at": "2026-11-18T17:17:05+00:00"
+      "fetched_at": "2026-11-18T17:17:05+00:00",
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
     },
     {
       "id": "bhuvan_land_degradation_1516",
@@ -10644,7 +10653,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.e969ca38.shp.zip",
         "bytes": 3618977377
       },
-      "fetched_at": "2026-11-18T17:17:05+00:00"
+      "fetched_at": "2026-11-18T17:17:05+00:00",
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
     },
     {
       "id": "urban_rail_stations",
