@@ -71,7 +71,7 @@ export function mountFilterPanel(
   panel.id = 'map-filter-panel';
   panel.innerHTML = `
     <header class="filter-panel__head">
-      <span class="filter-panel__title">Filter &amp; export</span>
+      <span class="filter-panel__title" tabindex="-1">Filter &amp; export</span>
       <button class="filter-panel__close" aria-label="Close filter">×</button>
     </header>
     <div class="filter-panel__body">

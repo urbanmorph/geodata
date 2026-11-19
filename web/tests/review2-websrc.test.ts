@@ -24,6 +24,25 @@ describe('closing the map while it first loads', () => {
   });
 });
 
+describe('focus and names on the map surfaces', () => {
+  it('opening the Filter panel moves focus into it (its heading), on first build and on reopen', () => {
+    const m = code('src/map.ts');
+    expect(m).toMatch(/const focusFilterPanel = \(\) => filterPanel\(\)\?\.querySelector<HTMLElement>\('\.filter-panel__title'\)\?\.focus\(\{ preventScroll: true \}\);/);
+    expect((m.match(/focusFilterPanel\(\);/g) || []).length).toBe(2);
+    expect(code('src/filter.ts')).toMatch(/<span class="filter-panel__title" tabindex="-1">Filter &amp; export<\/span>/);
+  });
+
+  it('the locate sheet dialog has a name', () => {
+    expect(src('index.template.html')).toMatch(/<div class="locate-sheet" id="locate-sheet" role="dialog" aria-label="Location details"/);
+  });
+
+  it('the ward list arrives in its own slot, so the About panel keeps focus', () => {
+    const m = code('src/map.ts');
+    expect(m).toMatch(/\[data-ward-slot\]/);
+    expect(m).not.toMatch(/render\(idx\)/);
+  });
+});
+
 describe('"Zoom to it" frames the feature once', () => {
   it('a new pick drops the previous idle handler instead of stacking them', () => {
     const m = code('src/map.ts');

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { aboutLayerHtml, downloadListHtml } from '../src/about-layer';
+import { aboutLayerHtml, downloadListHtml, wardTableHtml } from '../src/about-layer';
 
 const layer = {
   id: 'wards_ahmedabad',
@@ -49,6 +49,12 @@ describe('aboutLayerHtml', () => {
     const withWards = aboutLayerHtml({ layer, meta, heading, wardIndex });
     expect(withWards).toContain('<table class="ward-index">');
     expect(withWards).toContain('Naranpura');
+  });
+
+  it('keeps the ward list in its own slot, so it can arrive later without re-rendering the panel', () => {
+    expect(html).toContain('<div data-ward-slot></div>');
+    expect(wardTableHtml(wardIndex)).toContain('<table class="ward-index">');
+    expect(aboutLayerHtml({ layer, meta, heading, wardIndex })).toContain(`<div data-ward-slot>${wardTableHtml(wardIndex)}</div>`);
   });
 
   it('escapes data', () => {
