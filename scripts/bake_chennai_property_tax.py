@@ -120,7 +120,7 @@ def write_joined_parquet(wards: Path, src: Path, out: Path) -> dict:
 def bake(out_dir: Path, src: Path = SRC) -> dict:
     import duckdb
     from bake_extracts import write_kml_from_geojson
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     if pipeline.file_md5(src) != SRC_MD5:
         raise SystemExit(f'{src.name}: md5 differs from the checked source file')

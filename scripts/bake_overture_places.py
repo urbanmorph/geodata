@@ -33,6 +33,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
+from pipeline import atomic_output  # noqa: E402
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 
@@ -284,7 +285,7 @@ def download_ranged(url: str, dest: Path, parts: int = 8) -> Path:
             return body
         return with_retries(once, 4)
 
-    with bake_formats.atomic_output(dest) as part:
+    with atomic_output(dest) as part:
         with ThreadPoolExecutor(parts) as pool, part.open('wb') as out:
             for chunk in pool.map(get, bake_formats.byte_ranges(size, parts)):
                 out.write(chunk)
@@ -296,7 +297,7 @@ def download_ranged(url: str, dest: Path, parts: int = 8) -> Path:
 def bake(release: str, src: Path, out: Path) -> dict:
     """Each stage writes atomically and skips an output that already exists:
     delete one file and re-run to rebuild just that format."""
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     out.mkdir(parents=True, exist_ok=True)
     con = _con(out / 'tmp')
@@ -306,14 +307,14 @@ def bake(release: str, src: Path, out: Path) -> dict:
 
     place_states = out / 'place_states.parquet'
     if not place_states.exists():
-        with bake_formats.atomic_output(place_states) as part:
+        with atomic_output(place_states) as part:
             con.execute(f"COPY ({place_states_sql(files, str(districts))}) TO '{part}' (FORMAT PARQUET)")
 
     if not path['parquet'].exists():
         clipped = out / 'clipped.parquet'
         try:
             con.execute(f"COPY ({clip_sql(files, str(place_states))}) TO '{clipped}' (FORMAT PARQUET, COMPRESSION ZSTD)")
-            with bake_formats.atomic_output(path['parquet']) as part:
+            with atomic_output(path['parquet']) as part:
                 rebake_flatten_bbox(clipped, part, con=con)
         finally:
             clipped.unlink(missing_ok=True)
@@ -326,7 +327,7 @@ def bake(release: str, src: Path, out: Path) -> dict:
         seq = out / 'tiles.geojsons'
         try:
             con.execute(f"COPY ({bake_formats.features_sql(str(parquet), TILE_PROPS_SQL)}) TO '{seq}' (FORMAT JSON)")
-            with bake_formats.atomic_output(path['pmtiles']) as part:
+            with atomic_output(path['pmtiles']) as part:
                 bake_formats.write_pmtiles(seq, part, LAYER_ID, TILE_FIELDS, parallel=True)
         finally:
             seq.unlink(missing_ok=True)
@@ -340,7 +341,7 @@ def bake(release: str, src: Path, out: Path) -> dict:
         feats = out / 'features.json'
         try:
             con.execute(f"COPY ({bake_formats.features_sql(str(parquet), props)}) TO '{feats}' (FORMAT JSON, ARRAY true)")
-            with bake_formats.atomic_output(path['geojson']) as part, part.open('wb') as dst, feats.open('rb') as fsrc:
+            with atomic_output(path['geojson']) as part, part.open('wb') as dst, feats.open('rb') as fsrc:
                 dst.write(b'{"type":"FeatureCollection","features":')
                 while chunk := fsrc.read(64 << 20):
                     dst.write(chunk)
@@ -349,7 +350,7 @@ def bake(release: str, src: Path, out: Path) -> dict:
             feats.unlink(missing_ok=True)
 
     if not path['shapefile'].exists():
-        with bake_formats.atomic_output(path['shapefile']) as part:
+        with atomic_output(path['shapefile']) as part:
             write_shapefile_zip(con, parquet, place_states, part, out / 'tmp')
 
     summary = {'release': release, 'rows': rows, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()}}
@@ -397,7 +398,7 @@ def write_shapefile_zip(con, parquet: Path, place_states: Path, out: Path, tmp: 
 
 
 def upload(release: str, out: Path) -> None:
-    from ingest_ramseraph import R2_PUBLIC, r2_client, r2_upload
+    from pipeline import R2_PUBLIC, r2_client, r2_upload
 
     summary = json.loads((out / 'summary.json').read_text())
     s3 = r2_client()

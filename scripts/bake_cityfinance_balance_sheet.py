@@ -270,7 +270,7 @@ def write_joined_parquet(base: Path, raw: Path, out: Path) -> dict:
 def bake(out_dir: Path, raw: Path = RAW) -> dict:
     import duckdb
     from bake_extracts import write_kml_from_geojson
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     out_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='cf_bs_') as tmp:

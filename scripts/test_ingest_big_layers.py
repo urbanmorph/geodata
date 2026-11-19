@@ -42,31 +42,12 @@ def test_guard_refuses_a_layer_with_owner_names(monkeypatch):
         bl.assert_no_personal_data('x_layer', Path('x.parquet'))
 
 
-def test_fetch_resumes_a_partial_download(tmp_path):
-    src = tmp_path / 'src.bin'
-    src.write_bytes(b'0123456789' * 1000)
-    dest = tmp_path / 'out' / 'dest.bin'
-    dest.parent.mkdir()
-    # A killed run left the first 3,000 bytes behind.
-    Path(f'{dest}.part').write_bytes(src.read_bytes()[:3000])
-    bl.fetch_resumable(src.as_uri(), dest)
-    assert dest.read_bytes() == src.read_bytes()
-    assert not Path(f'{dest}.part').exists()
-
-
-def test_fetch_skips_a_finished_file(tmp_path):
-    dest = tmp_path / 'dest.bin'
-    dest.write_bytes(b'done')
-    bl.fetch_resumable((tmp_path / 'missing').as_uri(), dest)  # would fail if fetched
-    assert dest.read_bytes() == b'done'
-
-
 def test_prefetch_bakes_popup_tiles_where_ingest_reads_them(tmp_path, monkeypatch):
     # The upstream PMTiles carry every column, so tippecanoe drops parcels at
     # mid zooms; each layer gets its own tiles with popup fields only.
     monkeypatch.setattr(bl.ir, 'WORK', tmp_path)
     seen = []
-    monkeypatch.setattr(bl, 'fetch_resumable', lambda url, dest: seen.append((url, dest)))
+    monkeypatch.setattr(bl, 'download', lambda url, dest: seen.append((url, dest)))
     monkeypatch.setattr(bl, 'bake_popup_pmtiles', lambda src, out, layer, fields: seen.append((src, out)))
     d = bl.DATASETS[0]
     bl.prefetch(d)

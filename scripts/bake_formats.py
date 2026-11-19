@@ -14,10 +14,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import (  # noqa: E402  (atomic_output is re-exported)
-    atomic_output,
-    write_stable_zip,
-)
+from pipeline import atomic_output, download, write_stable_zip  # noqa: E402,F401  (atomic_output re-exported for other branches)
 
 HERE = Path(__file__).resolve().parent
 JUNK_TS = HERE.parent / 'web' / 'functions' / 'lib' / 'junk-columns.ts'
@@ -33,11 +30,9 @@ def layer_url(catalog: dict, layer_id: str, fmt: str) -> str:
 
 def fetch_layer_file(catalog_path: Path, layer_id: str, fmt: str, dest: Path) -> Path:
     """Download a catalog layer's file (e.g. lgd_districts parquet) unless
-    `dest` exists. curl with a browser UA: r2.dev rejects urllib's default."""
+    `dest` exists (pipeline.download: resumable, size- and md5-checked)."""
     if not dest.exists():
-        url = layer_url(json.loads(catalog_path.read_text()), layer_id, fmt)
-        with atomic_output(dest) as part:
-            subprocess.run(['curl', '-sfL', '-A', 'Mozilla/5.0', '-o', str(part), url], check=True)
+        download(layer_url(json.loads(catalog_path.read_text()), layer_id, fmt), dest)
     return dest
 
 

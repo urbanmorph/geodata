@@ -84,24 +84,85 @@ def is_client_error(e: Exception) -> bool:
     return isinstance(e, urllib.error.HTTPError) and 400 <= e.code < 500 and e.code not in (408, 429)
 
 
-def download(url: str, dest: Path, *, tries: int = 4, timeout: float = 300,
-             wait: Callable[[int], None] | None = None) -> int:
+CHUNK = 1 << 20
+PROGRESS_EVERY = 200 * CHUNK
+_MD5 = re.compile(r'^[0-9a-f]{32}$')
+
+
+def part_path(dest: Path) -> Path:
+    """Where a download or build of `dest` is written until it is complete
+    (the real extension stays last, as in atomic_output)."""
+    return dest.with_name(f'{dest.stem}.part{dest.suffix}')
+
+
+def _total_size(resp, start: int) -> int | None:
+    cr = resp.headers.get('Content-Range')
+    if cr and '/' in cr and not cr.endswith('/*'):
+        return int(cr.rsplit('/', 1)[1])
+    cl = resp.headers.get('Content-Length')
+    return start + int(cl) if cl is not None else None
+
+
+def _served_md5(resp) -> str | None:
+    """The body's MD5 when the server states it: our uploads' md5 metadata, or
+    a single-part ETag (a multipart one has a "-N" suffix and is no MD5)."""
+    for value in (resp.headers.get('x-amz-meta-md5'), (resp.headers.get('ETag') or '').strip('"')):
+        if value and _MD5.match(value):
+            return value
+    return None
+
+
+def download(url: str, dest: Path, *, tries: int = 6, timeout: float = 300,
+             wait: Callable[[int], None] | None = None, md5: str | None = None) -> int:
     """Stream `url` to `dest` unless it is already there; returns its size.
-    The body goes to a .part file renamed into place only when complete, so
-    a killed or failed run never leaves a truncated file that counts as done.
-    Retries network errors and 5xx/429 with backoff; a 4xx fails at once."""
-    import shutil
+
+    The body goes to part_path(dest), renamed into place only when it is
+    complete: as many bytes as the server said (Content-Length/Content-Range)
+    and, when the caller gives `md5` or the server states one (R2's md5
+    metadata or a single-part ETag), the right checksum. A cut-off answer
+    raises, also when the connection just ended early without an error (an R2
+    download once stopped at 232 of 455 MB), and the next try resumes from the
+    bytes already on disk (HTTP Range), as does a later run after a kill.
+    Retries network errors and 5xx/429 with backoff; a 4xx fails at once.
+    Progress lines go to the log every 200 MB."""
+    import urllib.error
     import urllib.request
     if dest.exists():
         return dest.stat().st_size
     dest.parent.mkdir(parents=True, exist_ok=True)
+    part = part_path(dest)
+
+    def finish(expected_md5: str | None) -> None:
+        if expected_md5 and file_md5(part) != expected_md5:
+            part.unlink()
+            raise OSError(f'{dest.name}: md5 does not match {expected_md5}; deleted, the next try starts over')
+        os.replace(part, dest)
 
     def once() -> None:
-        log(f'  fetching {url}')
-        req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT})
-        with atomic_output(dest) as part, urllib.request.urlopen(req, timeout=timeout) as r, \
-                part.open('wb') as f:
-            shutil.copyfileobj(r, f, 1 << 20)
+        start = part.stat().st_size if part.exists() else 0
+        headers = {'User-Agent': USER_AGENT, **({'Range': f'bytes={start}-'} if start else {})}
+        log(f'  fetching {dest.name}' + (f' (resuming at {start:,} bytes)' if start else ''))
+        try:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=timeout) as r:
+                if start and r.status != 206:
+                    start = 0  # the server ignored the Range: start over
+                total, served = _total_size(r, start), _served_md5(r)
+                with part.open('ab' if start else 'wb') as f:
+                    n, mark = start, start
+                    while chunk := r.read(CHUNK):
+                        f.write(chunk)
+                        n += len(chunk)
+                        if n - mark >= PROGRESS_EVERY:
+                            log(f'    {dest.name}: {n / 1e6:,.0f} / {(total or 0) / 1e6:,.0f} MB')
+                            mark = n
+        except urllib.error.HTTPError as e:
+            if e.code == 416 and part.exists():  # the part already holds every byte
+                return finish(md5)
+            raise
+        size = part.stat().st_size
+        if total is not None and size != total:
+            raise OSError(f'{dest.name}: short read, {size:,} of {total:,} bytes; the next try resumes')
+        finish(md5 or served)
 
     with_retries(once, tries, wait, give_up=is_client_error)
     return dest.stat().st_size
@@ -297,6 +358,125 @@ def r2_upload_resumable(s3, local: Path, key: str, state_dir: Path, part_size: i
     s3.complete_multipart_upload(Bucket=BUCKET, Key=key, UploadId=state['upload_id'], MultipartUpload={
         'Parts': [{'PartNumber': n, 'ETag': done[n]} for n in sorted(done)]})
     state_path.unlink()
+
+
+UPLOAD_STATE = ROOT / 'data' / 'r2-uploads'  # multipart upload ids, so a killed upload resumes
+
+
+def patient_r2_client():
+    """r2_client for long runs on a flaky link: adaptive retries, ten attempts."""
+    return r2_client(retries={'max_attempts': 10, 'mode': 'adaptive'})
+
+
+def r2_upload_retrying(s3, local: Path, key: str, state_dir: Path | None = None,
+                       retries: int = 5, backoff: float = 30.0) -> None:
+    """r2_upload_resumable (md5-skips unchanged files; its multipart id saved so
+    a killed run resumes from the parts R2 holds; logs each part) retried with
+    backoff: a dropped TLS connection mid-multipart killed a 316 MB upload once."""
+    from botocore.exceptions import BotoCoreError, ClientError
+    for attempt in range(retries + 1):
+        try:
+            return r2_upload_resumable(s3, local, key, state_dir or UPLOAD_STATE)
+        except (BotoCoreError, ClientError, OSError) as e:
+            if attempt == retries:
+                raise
+            wait = backoff * 2 ** attempt
+            log(f'  upload {key}: {e.__class__.__name__}; retry {attempt + 1}/{retries} in {wait:.0f} s')
+            time.sleep(wait)
+
+
+# One upload at a time across the jobs on this host (bakes, tile rebakes), so
+# none starves the link. The lock is a directory (mkdir is atomic) holding an
+# owner file "<pid> <who>"; a lock whose pid is gone (kill -9) is taken over.
+UPLOAD_LOCK = Path('/tmp/bharatlas-upload.lock')
+
+
+def _pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def _lock_owner(lock: Path) -> tuple[int | None, str]:
+    try:
+        text = (lock / 'owner').read_text().strip()
+    except OSError:
+        return None, '?'  # just created: its owner is still writing the file
+    pid = text.split(' ', 1)[0]
+    return (int(pid) if pid.isdigit() else None), text
+
+
+@contextlib.contextmanager
+def upload_lock(lock: Path | None = None, owner: str = '', wait_s: float = 30,
+                on_wait: Callable[[str], None] | None = None) -> Iterator[Path]:
+    """Hold the host-wide upload lock (UPLOAD_LOCK); wait `wait_s` between tries
+    while a live job holds it. Released on exit, an exception, or SIGTERM/SIGHUP
+    (turned into SystemExit so the `finally` runs)."""
+    import shutil
+    import signal
+    import threading
+    lock = lock or UPLOAD_LOCK
+    while True:
+        try:
+            lock.mkdir()
+            break
+        except FileExistsError:
+            pid, who = _lock_owner(lock)
+            if pid is not None and pid != os.getpid() and not _pid_alive(pid):
+                log(f'  upload lock {lock}: its owner ({who}) is gone; taking it over')
+                shutil.rmtree(lock, ignore_errors=True)
+                continue
+            (on_wait or (lambda w: log(f'  upload lock held by {w}; retry in {wait_s:.0f} s')))(who)
+            time.sleep(wait_s)
+    (lock / 'owner').write_text(f'{os.getpid()} {owner}\n')
+    main = threading.current_thread() is threading.main_thread()
+    old = {sig: signal.getsignal(sig) for sig in (signal.SIGTERM, signal.SIGHUP)} if main else {}
+    for sig in old:
+        signal.signal(sig, lambda n, _f: sys.exit(128 + n))
+    try:
+        yield lock
+    finally:
+        shutil.rmtree(lock, ignore_errors=True)
+        for sig, handler in old.items():
+            signal.signal(sig, handler)
+
+
+# ── cached steps + time limit ────────────────────────────────────────────────
+
+def cached(out: Path, build: Callable[[Path], object]) -> Path:
+    """Run `build(part)` only when `out` does not exist yet; `out` appears
+    only if the build finished, so a killed run redoes just this step."""
+    if not out.exists():
+        out.parent.mkdir(parents=True, exist_ok=True)
+        with atomic_output(out) as part:
+            build(part)
+    return out
+
+
+class OutOfTime(Exception):
+    pass
+
+
+class Deadline:
+    """A run's own time limit, inside the host's job limit: stop between steps
+    once `minutes` have passed (everything finished so far is cached, so the
+    next run continues from there)."""
+
+    def __init__(self, minutes: float, clock: Callable[[], float] = time.monotonic):
+        self.clock = clock
+        self.end = clock() + minutes * 60
+
+    def left(self) -> float:
+        """Seconds left (negative once over)."""
+        return self.end - self.clock()
+
+    def check(self, step: str) -> None:
+        if self.clock() > self.end:
+            raise OutOfTime(f'time limit reached before {step}')
 
 
 # ── durable caches: R2 under cache/<prefix>/ ─────────────────────────────────

@@ -173,7 +173,7 @@ def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     results = {int(k): v for k, v in json.loads(results_path.read_text()).items()}
     con = make_con()

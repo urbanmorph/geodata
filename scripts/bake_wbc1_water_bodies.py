@@ -331,7 +331,7 @@ def write_shapefile_zip(con, parquet: Path, out: Path, prop_cols: list[str]) -> 
     """One shapefile; per-state shapefiles if its .dbf would reach 2 GB. Short
     DBF names with a columns.txt key. Returns the .shp names written."""
     import bake_formats
-    from ingest_ramseraph import DBF_MAX_BYTES, slug
+    from pipeline import DBF_MAX_BYTES, slug
     names = bake_formats.short_field_names(prop_cols)
     select = ', '.join(f'"{long}" AS "{short}"' for long, short in names.items())
     con.execute('SET geometry_always_xy = true')  # else EPSG:4326 writes lat,lon
@@ -460,7 +460,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     import bake_formats
     from bake_extracts import gdal_geojson_available
     from bake_whole_layer import write_geojson_whole
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     res = resources(json.loads((RAW / 'listing.json').read_text()))
     metas = {r['uuid']: json.loads((RAW / r['uuid'] / 'meta.json').read_text()) for r in res}

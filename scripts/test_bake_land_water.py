@@ -4,10 +4,8 @@ Run: PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest scripts/test_bake_land_w
 """
 from __future__ import annotations
 
-import http.server
 import json
 import sys
-import threading
 from pathlib import Path
 
 import duckdb
@@ -19,116 +17,7 @@ import bake_land_water as blw  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
 
 
-# ── download: resumable, cached, atomic ─────────────────────────────────
-
-class _RangeHandler(http.server.BaseHTTPRequestHandler):
-    body = b''
-    requests: list = []
-    fail_after: int | None = None  # bytes sent before dropping the connection
-
-    def do_GET(self):  # noqa: N802
-        rng = self.headers.get('Range')
-        type(self).requests.append(rng)
-        start = int(rng.split('=')[1].split('-')[0]) if rng else 0
-        if start >= len(self.body):
-            self.send_response(416)
-            self.send_header('Content-Range', f'bytes */{len(self.body)}')
-            self.end_headers()
-            return
-        chunk = self.body[start:]
-        self.send_response(206 if rng else 200)
-        if rng:
-            self.send_header('Content-Range', f'bytes {start}-{len(self.body) - 1}/{len(self.body)}')
-        self.send_header('Content-Length', str(len(chunk)))
-        self.end_headers()
-        if self.fail_after is not None:
-            self.wfile.write(chunk[:self.fail_after])
-            type(self).fail_after = None
-            self.wfile.flush()
-            self.connection.close()
-            return
-        self.wfile.write(chunk)
-
-    def log_message(self, *a):
-        pass
-
-
-@pytest.fixture
-def server():
-    _RangeHandler.body = bytes(range(256)) * 4096  # 1 MiB
-    _RangeHandler.requests = []
-    _RangeHandler.fail_after = None
-    srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), _RangeHandler)
-    threading.Thread(target=srv.serve_forever, daemon=True).start()
-    yield f'http://127.0.0.1:{srv.server_port}/f.parquet'
-    srv.shutdown()
-
-
-def test_fetch_downloads_whole_file_atomically(tmp_path, server):
-    dest = tmp_path / 'f.parquet'
-    blw.fetch(server, dest, retries=0)
-    assert dest.read_bytes() == _RangeHandler.body
-    assert not list(tmp_path.glob('*.part*'))
-
-
-def test_fetch_resumes_a_partial_download(tmp_path, server):
-    dest = tmp_path / 'f.parquet'
-    part = blw.part_path(dest)
-    part.write_bytes(_RangeHandler.body[:300_000])  # an earlier run was killed here
-    blw.fetch(server, dest, retries=0)
-    assert _RangeHandler.requests == ['bytes=300000-']
-    assert dest.read_bytes() == _RangeHandler.body
-
-
-def test_fetch_retries_a_dropped_connection_from_where_it_stopped(tmp_path, server):
-    _RangeHandler.fail_after = 100_000
-    dest = tmp_path / 'f.parquet'
-    blw.fetch(server, dest, retries=2, backoff=0)
-    assert dest.read_bytes() == _RangeHandler.body
-    assert _RangeHandler.requests[-1] == 'bytes=100000-'
-
-
-def test_fetch_skips_a_finished_file(tmp_path, server):
-    dest = tmp_path / 'f.parquet'
-    dest.write_bytes(b'done')
-    blw.fetch(server, dest, retries=0)
-    assert _RangeHandler.requests == []
-
-
-# ── cached steps + time limit ──────────────────────────────────────────
-
-def test_cached_step_runs_once_and_writes_atomically(tmp_path):
-    out = tmp_path / 'x.parquet'
-    calls = []
-
-    def build(part: Path):
-        calls.append(part)
-        assert part != out and part.suffix == '.parquet'  # real extension last
-        part.write_text('ok')
-
-    assert blw.cached(out, build) == out
-    assert blw.cached(out, build) == out
-    assert len(calls) == 1 and out.read_text() == 'ok'
-
-
-def test_cached_step_leaves_nothing_behind_on_failure(tmp_path):
-    out = tmp_path / 'x.geojson'
-
-    def boom(part: Path):
-        part.write_text('half')
-        raise RuntimeError('killed')
-
-    with pytest.raises(RuntimeError):
-        blw.cached(out, boom)
-    assert not out.exists() and not list(tmp_path.iterdir())
-
-
-def test_deadline_stops_cleanly_between_steps():
-    clock = iter([0.0, 10.0, 100.0])
-    d = blw.Deadline(minutes=1, clock=lambda: next(clock))
-    d.check('download')  # 10 s in
-    with pytest.raises(blw.OutOfTime):
-        d.check('bake')  # 100 s in, over the 60 s limit
+# Download, cached steps and the time limit live in pipeline (test_pipeline_infra.py).
 
 
 # ── verification ───────────────────────────────────────────────────────
@@ -309,41 +198,18 @@ def test_layers_over_two_gigabytes_are_not_ingested():
     assert all(v['parquet_bytes'] > 2 * 1024**3 for v in blw.SKIPPED.values())
 
 
-def test_upload_retries_a_dropped_connection(tmp_path, monkeypatch):
-    from botocore.exceptions import SSLError
-    calls = []
-
-    def flaky(s3, local, key, state_dir):
-        calls.append(key)
-        if len(calls) == 1:
-            raise SSLError(endpoint_url='https://r2', error='EOF occurred in violation of protocol')
-    monkeypatch.setattr(blw.pipeline, 'r2_upload_resumable', flaky)
-    blw.upload(None, tmp_path / 'a.parquet', 'k', retries=2, backoff=0)
-    assert calls == ['k', 'k']
-
-
-def test_upload_lock_waits_for_another_job_and_is_released_on_failure(tmp_path):
-    lock = tmp_path / 'upload.lock'
-    lock.mkdir()  # another job (tile rebakes) holds it
-    threading.Timer(0.2, lock.rmdir).start()
-    with pytest.raises(RuntimeError):
-        with blw.upload_lock(lock, wait=0.05):
-            assert lock.is_dir()
-            raise RuntimeError('upload failed')
-    assert not lock.exists()
-
-
 def test_publish_uploads_resumably_under_the_lock_then_registers(tmp_path, monkeypatch):
+    import pipeline
     lock = tmp_path / 'upload.lock'
-    monkeypatch.setattr(blw, 'UPLOAD_LOCK', lock)
-    monkeypatch.setattr(blw, 'r2_client', lambda: 's3')
+    monkeypatch.setattr(pipeline, 'UPLOAD_LOCK', lock)
+    monkeypatch.setattr(blw, 'patient_r2_client', lambda: 's3')
     seen, registered = [], []
 
     def fake_upload(s3, local, key, state_dir):
         # md5 skip + multipart resume live in r2_upload_resumable (test_pipeline.py)
-        assert lock.is_dir() and state_dir == blw.WORK / 'r2-uploads'
+        assert lock.is_dir() and state_dir == pipeline.UPLOAD_STATE
         seen.append(key)
-    monkeypatch.setattr(blw.pipeline, 'r2_upload_resumable', fake_upload)
+    monkeypatch.setattr(pipeline, 'r2_upload_resumable', fake_upload)
     monkeypatch.setattr(blw, 'register', lambda d, built: registered.append(d.id))
     d = blw.DATASETS[0]
     a, b = tmp_path / 'X.parquet', tmp_path / 'X.pmtiles'

@@ -67,13 +67,13 @@ def esc(s: str) -> str:
 @functools.cache
 def _s3():
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-    from ingest_ramseraph import r2_client
+    from pipeline import r2_client
     return r2_client()
 
 
 def r2_size(key: str) -> int | None:
     """Size of the stored object, or None if it is not in R2."""
-    from ingest_ramseraph import BUCKET
+    from pipeline import BUCKET
     s3 = _s3()
     try:
         return int(s3.head_object(Bucket=BUCKET, Key=key)['ContentLength'])

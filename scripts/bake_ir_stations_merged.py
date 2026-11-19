@@ -384,7 +384,7 @@ def merge(cris: list[Pt], wd: list[WD]) -> tuple[list[dict], dict]:
 # ── pull ─────────────────────────────────────────────────────────────────
 
 def _curl(args: list[str], dest: Path) -> None:
-    with bake_formats.atomic_output(dest) as part:
+    with pipeline.atomic_output(dest) as part:
         subprocess.run(['curl', '-sSfL', '--retry', '3', '--retry-delay', '5', '-m', '600',
                         '-A', USER_AGENT, '-o', str(part), *args], check=True)
         if dest.suffix == '.parquet' and pipeline.read_head(part, 4) != b'PAR1':
@@ -510,7 +510,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
     import tempfile
     from bake_extracts import gdal_geojson_available, make_con, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
     inputs = hashlib.md5((raw / 'sources.json').read_bytes() + Path(__file__).read_bytes()).hexdigest()

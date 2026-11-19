@@ -27,8 +27,8 @@ Run (R2 creds in the env: CLOUDFLARE_ACCOUNT_ID, R2_ACCESS_KEY_ID, R2_SECRET_ACC
     python3 -u scripts/bake_land_water.py --no-upload         # build + check locally only
     python3 -u scripts/bake_land_water.py --no-upload --register  # + manifest and root catalog entry
     python3 -u scripts/bake_land_water.py --minutes 300       # stop cleanly after 5 h
-Uploads wait for /tmp/bharatlas-upload.lock (shared with other upload jobs);
-a lock left by a killed job (kill -9) has to be removed by hand.
+Uploads wait for the host-wide upload lock (pipeline.upload_lock, shared with
+the other upload jobs); a lock left by a killed job (kill -9) is taken over.
 """
 from __future__ import annotations
 
@@ -39,29 +39,32 @@ import math
 import os
 import re
 import shutil
-import signal
 import subprocess
 import sys
-import threading
-import time
-import urllib.error
-import urllib.request
 import zipfile
 from pathlib import Path
-from typing import Callable
 
 import duckdb
-from botocore.exceptions import BotoCoreError, ClientError
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import ingest_ramseraph as ir  # noqa: E402
-import pipeline  # noqa: E402
-from bake_formats import atomic_output, pmtiles_args  # noqa: E402
+from pipeline import (  # noqa: E402
+    CHUNK,
+    OGR_ENV,
+    R2_PUBLIC,
+    Deadline,
+    OutOfTime,
+    cached,
+    download,
+    file_md5,
+    patient_r2_client,
+    r2_upload_retrying,
+    rebake_flatten_bbox,
+    upload_lock,
+)
+from bake_formats import pmtiles_args  # noqa: E402
 
 WORK = ir.WORK / 'land_water'
-UA = 'Mozilla/5.0 (compatible; bharatlas-data-fetch)'
-CHUNK = 1 << 20
-PROGRESS_EVERY = 200 * CHUNK
 
 
 def parquet_and_tiles_only(d: ir.Dataset) -> ir.Dataset:
@@ -139,94 +142,6 @@ SKIPPED: dict[str, dict] = {
 }
 
 
-# ── download ───────────────────────────────────────────────────────────
-
-def part_path(dest: Path) -> Path:
-    return dest.with_name(dest.name + '.part')
-
-
-def _total_size(resp, start: int) -> int | None:
-    cr = resp.headers.get('Content-Range')
-    if cr and '/' in cr and not cr.endswith('/*'):
-        return int(cr.rsplit('/', 1)[1])
-    cl = resp.headers.get('Content-Length')
-    return start + int(cl) if cl is not None else None
-
-
-def fetch(url: str, dest: Path, retries: int = 6, backoff: float = 15.0) -> Path:
-    """Download `url` to `dest`, resuming a `.part` file left by a killed run
-    or a dropped connection (HTTP Range). The file gets its real name only
-    once its size matches the server's, so an existing `dest` is complete."""
-    if dest.exists():
-        return dest
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    part = part_path(dest)
-    for attempt in range(retries + 1):
-        start = part.stat().st_size if part.exists() else 0
-        req = urllib.request.Request(url, headers={'User-Agent': UA, **({'Range': f'bytes={start}-'} if start else {})})
-        try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                if start and resp.status != 206:
-                    start = 0  # server ignored the Range: start over
-                total = _total_size(resp, start)
-                print(f'  fetch {dest.name}: {start:,} of {total or 0:,} bytes on disk', flush=True)
-                with part.open('ab' if start else 'wb') as f:
-                    n, mark = start, start
-                    while chunk := resp.read(CHUNK):
-                        f.write(chunk)
-                        n += len(chunk)
-                        if n - mark >= PROGRESS_EVERY:
-                            print(f'    {dest.name}: {n / 1e6:,.0f} / {(total or 0) / 1e6:,.0f} MB', flush=True)
-                            mark = n
-            size = part.stat().st_size
-            if total is not None and size != total:
-                raise OSError(f'short read: {size:,} of {total:,} bytes')
-            os.replace(part, dest)
-            return dest
-        except urllib.error.HTTPError as e:
-            if e.code == 416 and part.exists():  # the .part already holds every byte
-                os.replace(part, dest)
-                return dest
-            err: Exception = e
-        except (OSError, urllib.error.URLError) as e:
-            err = e
-        if attempt == retries:
-            raise err
-        wait = backoff * 2 ** attempt
-        print(f'  fetch {dest.name}: {err}; retry {attempt + 1}/{retries} in {wait:.0f} s', flush=True)
-        time.sleep(wait)
-    return dest
-
-
-# ── cached steps + time limit ──────────────────────────────────────────
-
-def cached(out: Path, build: Callable[[Path], object]) -> Path:
-    """Run `build(part)` only when `out` does not exist yet; `out` appears
-    only if the build finished, so a killed run redoes just this step."""
-    if not out.exists():
-        out.parent.mkdir(parents=True, exist_ok=True)
-        with atomic_output(out) as part:
-            build(part)
-    return out
-
-
-class OutOfTime(Exception):
-    pass
-
-
-class Deadline:
-    """Stop between steps once `minutes` have passed (everything finished so
-    far is cached on disk, so the next run continues from there)."""
-
-    def __init__(self, minutes: float, clock: Callable[[], float] = time.monotonic):
-        self.clock = clock
-        self.end = clock() + minutes * 60
-
-    def check(self, step: str) -> None:
-        if self.clock() > self.end:
-            raise OutOfTime(f'time limit reached before {step}')
-
-
 # ── verification ───────────────────────────────────────────────────────
 
 KML_VERTEX = re.compile(r'<coordinates>\s*([^,\s<]+),([^,\s<]+)')
@@ -262,7 +177,7 @@ def first_coord(path: Path) -> tuple[float, float]:
         shp = next(n for n in sorted(zipfile.ZipFile(path).namelist()) if n.endswith('.shp'))
         src = f'/vsizip/{path}/{shp}'
     proc = subprocess.Popen(['ogr2ogr', '-f', 'GeoJSONSeq', '/vsistdout/', src],
-                            stdout=subprocess.PIPE, text=True, env=ir.OGR_ENV)
+                            stdout=subprocess.PIPE, text=True, env=OGR_ENV)
     try:
         for line in proc.stdout:
             if v := _vertex(json.loads(line.strip('\x1e'))['geometry']):
@@ -553,11 +468,12 @@ def build(d: ir.Dataset, deadline: Deadline) -> dict:
     {'files': {local: r2 name}, 'features': n, 'bakes': {fmt: path}}."""
     work = WORK / d.id
     pq_name, pm_name = Path(d.parquet_url).name, Path(d.pmtiles_url).name
-    raw_pq = fetch(d.parquet_url, WORK / 'raw' / pq_name)
+    raw_pq = WORK / 'raw' / pq_name
+    download(d.parquet_url, raw_pq)
     deadline.check('parquet rebake')
 
     con = make_con(work)
-    flat = cached(work / pq_name, lambda part: ir.rebake_flatten_bbox(raw_pq, part, con))
+    flat = cached(work / pq_name, lambda part: rebake_flatten_bbox(raw_pq, part, con))
     features = con.execute(f"SELECT count(*) FROM read_parquet('{flat}')").fetchone()[0]
     print(f'  {d.id}: {features:,} features in {flat.name} ({flat.stat().st_size:,} bytes)', flush=True)
 
@@ -595,7 +511,7 @@ def build(d: ir.Dataset, deadline: Deadline) -> dict:
 def tiles_name(pm: Path) -> str:
     """The tiles' R2 name, <stem>.<md5[:8]>.pmtiles: R2 objects stay immutable
     once a catalog points at them, so a rebuilt tileset gets a new key."""
-    return f'{pm.stem}.{ir.file_md5(pm)[:8]}.pmtiles'
+    return f'{pm.stem}.{file_md5(pm)[:8]}.pmtiles'
 
 
 CATALOG = ir.ROOT / 'catalog.json'
@@ -611,65 +527,15 @@ def patch_root_catalog(d: ir.Dataset, pq_bytes: int, pm_bytes: int, features: in
     ir.merge_layer_into_catalog(c, d, pq_bytes, pm_bytes, features, info)
     # The tiles are baked here (popup fields), not the compiler's file, under a versioned name.
     next(lyr for lyr in c['layers'] if lyr['id'] == d.id)['pmtiles'] = {
-        'url': f'{ir.R2_PUBLIC}/{d.r2_prefix}/{pm_name}', 'bytes': pm_bytes}
+        'url': f'{R2_PUBLIC}/{d.r2_prefix}/{pm_name}', 'bytes': pm_bytes}
     catalog.write_text(json.dumps(c, indent=2) + '\n')
 
 
-def upload(s3, local: Path, key: str, retries: int = 5, backoff: float = 30.0) -> None:
-    """pipeline.r2_upload_resumable (md5-skips unchanged files; one part at a
-    time, its multipart id saved so a killed run resumes from the parts R2
-    holds; logs each part) with retries: a dropped TLS connection
-    mid-multipart killed a 316 MB upload once."""
-    for attempt in range(retries + 1):
-        try:
-            return pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads')
-        except (BotoCoreError, ClientError, OSError) as e:
-            if attempt == retries:
-                raise
-            wait = backoff * 2 ** attempt
-            print(f'  upload {key}: {e.__class__.__name__}; retry {attempt + 1}/{retries} in {wait:.0f} s', flush=True)
-            time.sleep(wait)
-
-
-# Shared with the other jobs that upload to R2 from this host (tile rebakes):
-# one upload at a time, so neither starves the link.
-UPLOAD_LOCK = Path('/tmp/bharatlas-upload.lock')
-
-
-@contextlib.contextmanager
-def upload_lock(lock: Path, wait: float = 30.0):
-    """mkdir is atomic: hold `lock` while uploading, waiting `wait` s between
-    tries while another job holds it; released on exit, an exception, or
-    SIGTERM/SIGHUP (turned into SystemExit so this `finally` runs)."""
-    while True:
-        try:
-            lock.mkdir()
-            break
-        except FileExistsError:
-            print(f'  upload lock {lock} held by another job; retry in {wait:.0f} s', flush=True)
-            time.sleep(wait)
-    old = {s: signal.getsignal(s) for s in (signal.SIGTERM, signal.SIGHUP)}
-    if threading.current_thread() is threading.main_thread():
-        for s in old:
-            signal.signal(s, lambda n, _f: sys.exit(128 + n))
-    try:
-        yield lock
-    finally:
-        lock.rmdir()
-        if threading.current_thread() is threading.main_thread():
-            for s, h in old.items():
-                signal.signal(s, h)
-
-
-def r2_client():
-    return pipeline.r2_client(retries={'max_attempts': 10, 'mode': 'adaptive'})
-
-
 def publish(d: ir.Dataset, built: dict) -> None:
-    s3 = r2_client()
-    with upload_lock(UPLOAD_LOCK):
+    s3 = patient_r2_client()
+    with upload_lock(owner='bake_land_water'):
         for local, name in built['files'].items():
-            upload(s3, local, f'{d.r2_prefix}/{name}')
+            r2_upload_retrying(s3, local, f'{d.r2_prefix}/{name}')
     register(d, built)
 
 

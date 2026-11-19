@@ -38,7 +38,7 @@ jobs:
           sudo apt-get install -y -qq gdal-bin tippecanoe
 
       - name: install Python packages
-        run: python3 -m pip install --quiet 'duckdb==1.5.2' boto3 pytest fonttools flake8
+        run: python3 -m pip install --quiet 'duckdb==1.5.2' boto3 pyarrow pytest fonttools flake8
 
       - name: lint
         run: python3 -m flake8 --max-line-length 130 scripts

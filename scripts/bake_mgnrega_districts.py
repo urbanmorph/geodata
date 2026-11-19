@@ -344,7 +344,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     import bake_formats
     from bake_extracts import gdal_geojson_available, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
-    from ingest_ramseraph import rebake_flatten_bbox
+    from pipeline import rebake_flatten_bbox
 
     full, trend = load_pages(RAW / f'full_{YEAR}'), load_pages(RAW / 'trend_all_years')
     out_dir.mkdir(parents=True, exist_ok=True)

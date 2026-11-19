@@ -46,9 +46,9 @@ import duckdb
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
-from bake_land_water import Deadline, OutOfTime, cached, r2_client, upload  # noqa: E402
 from pipeline import (  # noqa: E402
-    R2_PUBLIC, _remote_has, download, file_md5, log, make_con, rebake_flatten_bbox, write_json,
+    R2_PUBLIC, Deadline, OutOfTime, _remote_has, cached, download, file_md5, log, make_con, patient_r2_client,
+    r2_upload_retrying, rebake_flatten_bbox, upload_lock, write_json,
 )
 from tile_keys import versioned_key  # noqa: E402
 
@@ -153,11 +153,10 @@ def patch_catalog(lid: str, key: str, nbytes: int, catalog: Path = CATALOG, mani
 
 
 def publish(local: Path, key: str) -> None:
-    from rebake_tiles import upload_lock
-    s3 = r2_client()
+    s3 = patient_r2_client()
     if not _remote_has(s3, key, file_md5(local)):  # the md5 skip, before taking the upload lock
         with upload_lock(owner=LOCK_OWNER):
-            upload(s3, local, key)
+            r2_upload_retrying(s3, local, key)
 
 
 def rebake(layer: dict, deadline: Deadline, upload: bool = True) -> dict | None:

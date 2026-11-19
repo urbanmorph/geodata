@@ -6,10 +6,9 @@ ramSeraph GitHub releases, through the shared ingest_ramseraph pipeline
 upload, manifest + in-place catalog patch).
 
 What this script adds on top:
-  - fetch_resumable(): the release assets run to hundreds of MB, so they are
-    pulled with curl into a `.part` file that a killed run resumes; the file
-    is renamed only when complete, so the shared downloader (which trusts any
-    non-empty file) never sees a partial one.
+  - prefetch(): the release assets run to hundreds of MB, so they come down
+    through pipeline.download (a `.part` file that a killed run resumes,
+    renamed only once its size and checksum are right).
   - assert_no_personal_data(): a layer whose columns name people (owners,
     occupants, phone numbers) is refused before anything is baked. Columns
     are never dropped (bake rule), so such a source is skipped outright.
@@ -26,16 +25,14 @@ from __future__ import annotations
 
 import os
 import re
-import subprocess
 import sys
 from pathlib import Path
 
 import duckdb
 import ingest_ramseraph as ir
-from bake_formats import atomic_output, write_pmtiles
+from bake_formats import write_pmtiles
 from ingest_ramseraph import Dataset, republished
-
-USER_AGENT = 'Mozilla/5.0 (compatible; geodata-ingest)'
+from pipeline import atomic_output, download
 
 # Column names that hold people's details. Matched case-insensitively
 # against whole name parts, so record numbers (khatian, khasra) and place
@@ -57,19 +54,6 @@ def assert_no_personal_data(layer_id: str, parquet: Path) -> None:
     found = personal_data_columns(parquet_columns(parquet))
     if found:
         sys.exit(f'{layer_id}: refused, personal data columns {found}; skip this source')
-
-
-def fetch_resumable(url: str, dest: Path) -> None:
-    """Download url to dest via dest.part, resuming a partial file."""
-    if dest.exists() and dest.stat().st_size > 0:
-        print(f'  have {dest.name} ({dest.stat().st_size:,} bytes)', flush=True)
-        return
-    part = Path(f'{dest}.part')
-    print(f'  fetching {url}' + (f' (resuming at {part.stat().st_size:,})' if part.exists() else ''),
-          flush=True)
-    subprocess.run(['curl', '-fsSL', '--retry', '5', '--retry-delay', '10', '-C', '-',
-                    '-A', USER_AGENT, '-o', str(part), url], check=True)
-    part.rename(dest)
 
 
 def bake_popup_pmtiles(src: Path, out: Path, layer: str, fields: list[str]) -> None:
@@ -97,7 +81,7 @@ def prefetch(d: Dataset) -> None:
     """Put the source parquet and our popup-field PMTiles where ir.ingest()
     looks, so its downloader skips both."""
     raw = ir.WORK / f'_raw_{d.id}.parquet'
-    fetch_resumable(d.parquet_url, raw)
+    download(d.parquet_url, raw)
     bake_popup_pmtiles(raw, ir.WORK / f'{d.id}.pmtiles', d.id, TILE_FIELDS[d.id])
 
 
