@@ -22,7 +22,7 @@ import { popHandoff } from './handoff';
 import { fmtBytes } from './format-hints';
 import { overlayLoader, VERBS_VERIFY_RENDER, VERBS_VERIFY_FETCH, VERBS_ENGINE, inlineLoader } from './loading';
 import { escapeHtml } from './util';
-import { triggerDownload } from './util';
+import { triggerDownload, scrollBehavior } from './util';
 import {
   tokenBackup,
   saveSubmission,
@@ -608,7 +608,7 @@ function renderSuccess(payload: SuccessPayload): void {
   (document.getElementById('goto-submission') as HTMLAnchorElement).href = '/layers';
 
   successEl.classList.add('show');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: scrollBehavior() });
   renderMySubmissions();
 }
 

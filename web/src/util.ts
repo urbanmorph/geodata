@@ -1,5 +1,15 @@
 export { escapeHtml } from '../../shared/format.mjs';
 
+/** The reader asked for less motion (prefers-reduced-motion: reduce). */
+export function reducedMotion(): boolean {
+  return typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+/** Smooth scrolling, unless the reader asked for less motion. */
+export function scrollBehavior(): ScrollBehavior {
+  return reducedMotion() ? 'auto' : 'smooth';
+}
+
 /** Start a browser download of `href` (a URL or object URL) as `filename`. */
 export function downloadHref(href: string, filename: string, doc: Document = document): void {
   const a = doc.createElement('a');
