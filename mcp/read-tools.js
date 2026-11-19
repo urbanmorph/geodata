@@ -18,6 +18,7 @@ export const INSTRUCTIONS_CORE = `Workflow patterns:
   3. For precise spatial containment, test individual points via locate against the target layer
 - **Community layers**: list_submissions returns user-contributed datasets. These work with query_layer and get_layer_schema exactly like curated layers.
 - **Downloads**: get_layer_detail returns direct URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most).
+- **Citing**: get_layer_detail also returns "versions", the layer's dated releases, newest first. When you cite or publish a result, name the version you used by its code (e.g. bharatlas-lgd_states-2026.12) and sha256, or its w3id address. An empty list means no release yet: cite the layer's /view page and the date you read it.
 - **Large layers**: overture_places_india has 4.4M places. Always narrow it: where on basic_category (e.g. "hospital", "restaurant") or name, group_by, or nearby for places around a point. Whole-table filters and group_by take several seconds; nearby is the fast path for "near me".
 - **Honor the terms**: every layer and community submission carries its own source and open licence. When you use, quote, or publish results from a layer, credit its source and respect that licence; get_layer_detail returns the attribution and licence, and each /view page's Dataset JSON-LD carries a creditText to reproduce. A layer whose answer has "non_commercial": true is for non-commercial use only: say so whenever you use or recommend it, quote its "licence_notice", and never suggest it for a product, a client or paid work.
 
@@ -214,7 +215,7 @@ export const READ_TOOLS = [
     name: "get_layer_detail",
     description:
       "Get full metadata for a single layer: download URLs (parquet, pmtiles, geojson, kml, shapefile), " +
-      "attribution, license, feature count, and level metadata.",
+      "attribution, license, feature count, level metadata, and versions (the dated releases to cite).",
     inputSchema: {
       type: "object",
       properties: {

@@ -107,6 +107,15 @@ describe('the OpenAPI description', () => {
   });
 });
 
+describe('a layer names its citable versions (spec-data-lifecycle 8.4)', () => {
+  it('the Layer schema documents `versions`, each with the fields /layers/{id} returns', () => {
+    const v = (OPENAPI.components.schemas as any).Layer.properties.versions;
+    expect(v.type).toBe('array');
+    expect(Object.keys(v.items.properties).sort()).toEqual(['code', 'released', 'sha256', 'url', 'w3id']);
+    expect(v.description).toMatch(/newest first/);
+  });
+});
+
 describe('GET /api/v1/openapi.json', () => {
   it('serves the description as JSON (CORS and x-api-version come from the api middlewares)', async () => {
     const res = await (onRequestGet as any)({ request: new Request('https://bharatlas.com/api/v1/openapi.json') });
