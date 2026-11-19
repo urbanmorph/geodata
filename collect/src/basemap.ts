@@ -29,7 +29,9 @@ import { esriImagerySource } from '../../shared/esri-imagery';
 
 const SATELLITE_TILES = esriImagerySource(import.meta.env?.VITE_ARCGIS_KEY as string | undefined);
 
-export type BasemapId = 'liberty' | 'osm' | 'opentopo' | 'satellite';
+import type { BasemapId } from './basemap-ids';
+
+export type { BasemapId };
 
 export interface Basemap {
   id: BasemapId;

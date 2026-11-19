@@ -1,6 +1,7 @@
 // Photos on collect points. The phone resizes each photo (keeping only where and
 // when it was taken) and uploads it before the point; the point then claims its
-// photos by id. A photo is private (its map's admin, or the contributor of its
+// photos by id. Only where and when a photo was taken are kept from its EXIF,
+// whatever the client sent. A photo is private (its map's admin, or the contributor of its
 // point) until its point is approved, then public under the map's open licence.
 // Deleting a point deletes its photos; photos never claimed are cleared after two
 // weeks, and a map takes at most MAX_UNCLAIMED_PHOTOS_PER_DAY of them a day.
@@ -11,6 +12,7 @@ import { hashToken, verifyToken } from './tokens';
 import { nanoid, collectIpHash } from './reuse';
 import { checkPhotoRate } from './ratelimit';
 import { isInIndia } from '../../src/geo/bounds';
+import { readExif, writeExif } from '../../src/photos/exif';
 import { PHOTO_ID, CLIENT_ID, type Field } from '../../src/schema/validate-record';
 
 export const MAX_PHOTO_BYTES = 2_000_000; // the phone sends ~300 KB; this is a safety cap
@@ -24,11 +26,6 @@ export const MAX_UNCLAIMED_PHOTOS_PER_DAY = 300;
 
 const r2Key = (collectionId: string, id: string) => `collect/${collectionId}/photos/${id}.jpg`;
 export const photoUrl = (origin: string, id: string) => `${origin}/api/collect/v1/photos/${id}`;
-
-export interface PhotoRow {
-  id: string; collection_id: string; record_id: string | null; r2_key: string; bytes: number;
-  lat: number | null; lng: number | null; taken_at: string | null; source: string | null; created_at: string;
-}
 
 /** What the camera recorded, kept only when it makes sense. */
 function cleanMeta(raw: string | null): { lat: number | null; lng: number | null; taken_at: string | null; source: string | null } {
@@ -71,9 +68,12 @@ export async function uploadPhoto(env: Env, req: Request, collectionId: string, 
 
   const declared = Number(req.headers.get('content-length') || 0);
   if (declared > MAX_PHOTO_BYTES) return bad(413, 'photo too large');
-  const bytes = new Uint8Array(await req.arrayBuffer());
-  if (bytes.byteLength > MAX_PHOTO_BYTES) return bad(413, 'photo too large');
-  if (bytes.byteLength < 4 || bytes[0] !== 0xff || bytes[1] !== 0xd8 || bytes[2] !== 0xff) return bad(400, 'a photo must be a JPEG');
+  const sent = new Uint8Array(await req.arrayBuffer());
+  if (sent.byteLength > MAX_PHOTO_BYTES) return bad(413, 'photo too large');
+  if (sent.byteLength < 4 || sent[0] !== 0xff || sent[1] !== 0xd8 || sent[2] !== 0xff) return bad(400, 'a photo must be a JPEG');
+  // Only where and when it was taken are kept, as the phone does (prepare.ts):
+  // a photo from any other client loses its camera details here too.
+  const bytes = writeExif(sent, readExif(sent));
 
   const ipHash = await collectIpHash(req, env);
   if (!(await checkPhotoRate(env.DB, ipHash))) return bad(429, 'rate limit: too many photos this hour');

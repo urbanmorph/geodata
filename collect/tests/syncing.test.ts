@@ -25,6 +25,11 @@ function fakeServer() {
     return new Response('{}', { status: 405 });
   });
 }
+// A device synced before passkeys (sync links): a secret and no passkey.
+async function linkOnlyCopy(s: typeof import('../src/syncing')): Promise<void> {
+  localStorage.setItem('collect:keyring', JSON.stringify({ secret: (await import('../src/keyring')).newSecret() }));
+  await s.syncDevice();
+}
 const map = (id: string) => ({ id, name: id, role: 'owner' as const, links: { admin: `https://c/c/${id}/admin#adm_${id}` }, at: '2026-10-24' });
 
 beforeEach(() => {
@@ -51,7 +56,7 @@ describe('set up on this device', () => {
     const s = await import('../src/syncing');
     const ms = await import('../src/maps-store');
     ms.replaceMaps([map('old')]);
-    await s.joinSync((await import('../src/keyring')).newSecret()); // an older, link-only copy
+    await linkOnlyCopy(s); // an older, link-only copy
     const before = s.syncState()!.secret;
     await s.setUpSync();
     expect(s.syncState()).toMatchObject({ secret: before, passkey: expect.anything() });
@@ -70,7 +75,7 @@ describe("I've set this up already", () => {
     localStorage.clear(); vi.resetModules();
     s = await import('../src/syncing'); ms = await import('../src/maps-store');
     ms.replaceMaps([map('ipad-map')]);
-    await s.joinSync((await import('../src/keyring')).newSecret());
+    await linkOnlyCopy(s);
     await s.unlockWithPasskey();
     expect(ms.myMaps().map((m) => m.id).sort()).toEqual(['ipad-map', 'phone-map']);
     // and the phone gets the iPad's map on its next sync

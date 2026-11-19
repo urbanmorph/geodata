@@ -15,7 +15,8 @@ const NAME_KEYS = [
   'NAME', 'name',                          // generic fallback
 ];
 
-function escXml(s) {
+/** Text for a KML element or attribute. */
+export function escXml(s) {
   return s
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

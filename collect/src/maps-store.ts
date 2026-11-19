@@ -4,6 +4,9 @@
 // edit links of records you added (their rec_ token is the only way back to
 // edit, delete or de-identify them — there are no accounts).
 
+import { dropOfflineCopies } from './offline-copies';
+import { parseMapPath } from './map-path';
+
 export type MapRole = 'owner' | 'collect' | 'view';
 export interface SavedRecord { id: string; label: string; link: string; at: string; }
 export interface SavedMap {
@@ -65,9 +68,25 @@ export function capMaps(maps: SavedMap[]): SavedMap[] {
   return maps.filter((m) => m.role === 'owner' || (m.records?.length ?? 0) > 0 || ++shared <= MAX_SHARED);
 }
 
+const COLLECT_HOST = 'collect.bharatlas.com';
+
+/** Whether a saved link opens a collect map: collect's own host (or this page's,
+ *  for a preview or local development), over https (http only on localhost),
+ *  and a /c/ map path. A synced copy is data from
+ *  elsewhere, so anything else (another site, javascript:) is dropped. */
+export function isCollectLink(link: unknown, here = typeof location === 'undefined' ? COLLECT_HOST : location.host): boolean {
+  if (typeof link !== 'string') return false;
+  let u: URL;
+  try { u = new URL(link); } catch { return false; }
+  const secure = u.protocol === 'https:' || (u.protocol === 'http:' && /^(localhost|127\.0\.0\.1)(:\d+)?$/.test(u.host));
+  const ours = secure && (u.host === COLLECT_HOST || u.host === here);
+  return ours && parseMapPath(u.pathname) !== null;
+}
+
 // Restore from a saved file, or sync: union links and records per map (highest
 // role wins) rather than keeping whichever copy came first; a link retired on
-// any device is dropped everywhere. Malformed rows dropped.
+// any device is dropped everywhere. Malformed rows, and links that don't open a
+// collect map, are dropped.
 export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[] {
   const byId = new Map<string, SavedMap>();
   const candidates = new Map<string, SavedMap['links'][]>(); // every copy's links, first copy first
@@ -75,7 +94,7 @@ export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[
     if (!m || typeof m !== 'object' || typeof m.id !== 'string' || !m.id) continue;
     const links = m.links && typeof m.links === 'object' ? m.links : {};
     const role = m.role && RANK[m.role] ? m.role : roleFromLinks(links);
-    const records = Array.isArray(m.records) ? m.records.filter((r) => r && typeof r.id === 'string' && typeof r.link === 'string') : [];
+    const records = Array.isArray(m.records) ? m.records.filter((r) => r && typeof r.id === 'string' && isCollectLink(r.link)) : [];
     const retired = Array.isArray(m.retired) ? m.retired.filter((l) => typeof l === 'string') : [];
     candidates.set(m.id, [...(candidates.get(m.id) ?? []), links]);
     const e = byId.get(m.id);
@@ -91,7 +110,7 @@ export function mergeMaps(incoming: SavedMap[], existing: SavedMap[]): SavedMap[
     for (const links of candidates.get(e.id)!) {
       for (const slot of ['edit', 'admin', 'view'] as const) {
         const l = links[slot];
-        if (l && !e.links[slot] && !e.retired?.includes(l)) e.links[slot] = l;
+        if (isCollectLink(l) && !e.links[slot] && !e.retired?.includes(l!)) e.links[slot] = l;
       }
     }
   }
@@ -138,10 +157,18 @@ export function myMaps(): SavedMap[] {
 
 export const MAPS_CHANGED = 'collect:maps-changed';
 
-function write(maps: SavedMap[]): void {
-  try { localStorage.setItem(KEY, JSON.stringify(capMaps(maps))); } catch { /* per-device convenience only */ }
+/** Saves the list; false when this device's storage refused it. The offline
+ *  copies of maps give way first: this list is the only copy of admin links. */
+function write(maps: SavedMap[]): boolean {
+  const json = JSON.stringify(capMaps(maps));
+  let ok = false;
+  try {
+    try { localStorage.setItem(KEY, json); } catch { dropOfflineCopies(localStorage); localStorage.setItem(KEY, json); }
+    ok = true;
+  } catch { /* storage blocked or still full: the caller says so where it matters */ }
   // Lets keyring sync (when the user turned it on) push the change.
-  if (typeof window !== 'undefined') window.dispatchEvent(new Event(MAPS_CHANGED));
+  if (ok && typeof window !== 'undefined') window.dispatchEvent(new Event(MAPS_CHANGED));
+  return ok;
 }
 export function replaceMaps(maps: SavedMap[]): void { write(maps); }
 
@@ -152,13 +179,16 @@ function keepStorage(): void {
   try { void navigator.storage?.persist?.(); } catch { /* unsupported */ }
 }
 
-// Owner creating a map (all three links).
-export function saveOwnedMap(id: string, name: string, links: { edit?: string; admin?: string; view?: string }): void {
-  const prev = myMaps().find((m) => m.id === id);
-  const maps = myMaps().filter((m) => m.id !== id);
+// Owner creating a map (all three links). False when it couldn't be saved on
+// this device: the page then shows the admin link to keep by hand.
+export function saveOwnedMap(id: string, name: string, links: { edit?: string; admin?: string; view?: string }): boolean {
+  const all = myMaps();
+  const prev = all.find((m) => m.id === id);
+  const maps = all.filter((m) => m.id !== id);
   maps.unshift({ id, name: name || 'Untitled map', role: 'owner', links, records: prev?.records, at: new Date().toISOString() });
-  write(maps);
+  const ok = write(maps);
   keepStorage();
+  return ok;
 }
 
 export function replaceAdminLink(id: string, name: string, oldLink: string, newLink: string): void {
@@ -172,6 +202,8 @@ export function rememberMap(id: string, name: string, role: MapRole, link: strin
 }
 
 export function rememberRecord(mapId: string, mapName: string, rec: Omit<SavedRecord, 'at'>): void {
+  // The owner editing a point opens it with the admin link: that isn't one of their additions.
+  if (/#adm_/.test(rec.link)) return;
   write(applyRecord(myMaps(), mapId, mapName, rec, new Date().toISOString()));
   keepStorage();
 }

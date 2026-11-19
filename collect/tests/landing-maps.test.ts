@@ -8,7 +8,7 @@ vi.mock('../src/register-sw', () => ({}));
 vi.mock('../../web/src/install-button', () => ({ mountInstallButton: () => {} }));
 vi.mock('../src/passkey', () => ({ passkeysAvailable: () => false }));
 vi.mock('../src/syncing', () => ({
-  syncState: () => null, syncDevice: vi.fn(), setUpSync: vi.fn(), joinSync: vi.fn(), turnOffSync: vi.fn(),
+  syncState: () => null, syncDevice: vi.fn(), setUpSync: vi.fn(), turnOffSync: vi.fn(),
   unlockWithPasskey: vi.fn(), startAutoSync: () => {}, SyncGone: class extends Error {},
 }));
 vi.mock('../src/send-queue', () => ({ queuedFor: async () => [], sendWhenOnline: () => {}, OUTBOX_CHANGED: 'x' }));

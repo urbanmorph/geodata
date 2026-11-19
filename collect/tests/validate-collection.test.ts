@@ -89,8 +89,9 @@ describe('validateSchemaDoc (the meta-schema check)', () => {
     expect(validateSchemaDoc({ ...goodSchema, fields: [{ key: 'seen', label: 'Seen at', type: 'datetime' }] }).ok).toBe(true);
   });
 
-  it('caps reference_layers at 3', () => {
-    expect(validateSchemaDoc({ ...goodSchema, reference_layers: ['a', 'b', 'c', 'd'] }).ok).toBe(false);
+  it('keeps only the settings collect knows (an old reference_layers list is dropped)', () => {
+    const r = validateSchemaDoc({ ...goodSchema, reference_layers: ['a'], extra: { big: 'x' } });
+    expect(r.ok && Object.keys(r.value).sort()).toEqual(['fields', 'geometry', 'version']);
   });
 
   it('accepts a known category, rejects an unknown one', () => {

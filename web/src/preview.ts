@@ -74,7 +74,8 @@ const viewOnly = new URLSearchParams(location.search).has('url');
 // from /world-land.geojson + /india-outline.geojson, served same-origin
 // from R2/Pages so it's reliable.
 import { BASEMAPS } from './basemaps';
-import { submissionSync, syncSecretFrom } from './submission-sync';
+import { submissionSync } from './submission-sync';
+import { dropSyncFragment } from '../../shared/keyring';
 import { renderSubmissionSync } from './submission-sync-ui';
 import { passkeysAvailable } from '../../shared/passkey';
 import { submitErrorText } from './submit-error';
@@ -743,15 +744,12 @@ function linksChanged(): void {
     subsSync.syncNow().then(() => { renderMySubmissions(); renderSync(); }, (e: Error) => renderSync(e.message));
   }, 2000);
 }
-// On load: adopt a sync link opened here (then strip the secret from the address
-// bar), or sync if this device already joined.
+// On load: sync if this device already joined. A sync link is never adopted
+// (shared/keyring.ts dropSyncFragment): its secret is only taken out of the address.
 async function bootSync(): Promise<void> {
-  const secret = syncSecretFrom(location.hash);
+  dropSyncFragment(location, history);
   try {
-    if (secret) {
-      history.replaceState(null, '', location.pathname + location.search);
-      await subsSync.join(secret);
-    } else if (subsSync.state()) {
+    if (subsSync.state()) {
       await subsSync.syncNow();
     }
     renderMySubmissions();

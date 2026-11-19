@@ -68,13 +68,6 @@ export async function setUpSync(): Promise<void> {
   }
 }
 
-// Opened a sync link on this device (older shares still work; collect no longer
-// shows them): adopt its secret and merge both lists.
-export async function joinSync(secret: string): Promise<void> {
-  saveState({ secret });
-  await syncDevice();
-}
-
 // Turn off everywhere: delete the server copy (and this device's passkey
 // wrapper), then forget the secret here. Other devices learn on their next
 // sync (410 / missing copy) and stop too.

@@ -98,8 +98,10 @@ export async function preparePhoto(file: File, opts: { dataSaver: boolean; sourc
 export async function mayShowFace(blob: Blob): Promise<boolean | null> {
   const FD = (globalThis as { FaceDetector?: new (o?: object) => { detect(i: ImageBitmapSource): Promise<unknown[]> } }).FaceDetector;
   if (!FD || typeof createImageBitmap !== 'function') return null;
+  let bitmap: ImageBitmap | undefined;
   try {
-    const faces = await new FD({ fastMode: true, maxDetectedFaces: 1 }).detect(await createImageBitmap(blob));
+    bitmap = await createImageBitmap(blob);
+    const faces = await new FD({ fastMode: true, maxDetectedFaces: 1 }).detect(bitmap);
     return faces.length > 0;
-  } catch { return null; }
+  } catch { return null; } finally { bitmap?.close(); }
 }

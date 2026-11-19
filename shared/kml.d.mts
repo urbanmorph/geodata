@@ -5,3 +5,4 @@ export declare const KML_TAIL: string;
 export declare function kmlPlacemarkHead(properties: Record<string, unknown> | null | undefined): string;
 export declare function kmlPlacemark(f: KmlFeature): string;
 export declare function featuresToKML(feats: KmlFeature[], layerName: string): string;
+export declare function escXml(s: string): string;

@@ -84,6 +84,19 @@ export function syncSecretFrom(hash: string): string | null {
   return m && SECRET.test(m[1]) ? m[1] : null;
 }
 
+/** A sync link's secret is never adopted: joining one would merge this device's
+ *  links (admin links among them) into a copy whoever made the link can read.
+ *  Sync is passkey-only, so an opened sync link only has its secret taken out of
+ *  the address. True when there was one. */
+export function dropSyncFragment(
+  loc: Pick<Location, 'hash' | 'pathname' | 'search'>,
+  hist: { replaceState(data: unknown, unused: string, url: string): void },
+): boolean {
+  if (!loc.hash.startsWith('#sync=')) return false;
+  hist.replaceState(null, '', loc.pathname + loc.search);
+  return true;
+}
+
 // Sync was turned off on another device (or the copy expired): stop here too.
 export class SyncGone extends Error {}
 

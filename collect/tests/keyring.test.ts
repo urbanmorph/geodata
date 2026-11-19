@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { newSecret, deriveKeys, seal, unseal, syncSecretFrom } from '../src/keyring';
+import { newSecret, deriveKeys, seal, unseal } from '../src/keyring';
+import { dropSyncFragment, syncSecretFrom } from '../../shared/keyring';
 import type { SavedMap } from '../src/maps-store';
 
 const maps: SavedMap[] = [{ id: 'm1', name: 'Trees', role: 'owner', links: { admin: 'https://x/c/m1/admin#adm_1' }, at: '2026-10-22' }];
@@ -57,6 +58,26 @@ describe('sync link', () => {
   });
 });
 
+// A sync link hands over whoever made it a copy of everything this device syncs
+// (its admin links among them), so one is never adopted: its secret is only
+// taken out of the address. Sync is passkey-only.
+describe('dropSyncFragment', () => {
+  const at = (hash: string) => {
+    const calls: string[] = [];
+    const loc = { hash, pathname: '/', search: '?a=1' };
+    const hist = { replaceState: (_s: unknown, _t: string, url: string) => { calls.push(url); } };
+    return { dropped: dropSyncFragment(loc, hist), calls };
+  };
+  it('takes a sync secret out of the address, keeping path and query', () => {
+    expect(at(`#sync=${newSecret()}`)).toEqual({ dropped: true, calls: ['/?a=1'] });
+    expect(at('#sync=short')).toEqual({ dropped: true, calls: ['/?a=1'] });
+  });
+  it('leaves any other address alone', () => {
+    expect(at('')).toEqual({ dropped: false, calls: [] });
+    expect(at('#adm_x')).toEqual({ dropped: false, calls: [] });
+  });
+});
+
 import { syncNow, SyncGone, type KeyringApi } from '../src/keyring';
 
 // In-memory stand-in with the server's compare-and-set semantics (the real
@@ -78,7 +99,7 @@ function fakeServer(): KeyringApi & { writes: number } {
   };
 }
 const M = (id: string, records: string[] = []): SavedMap => ({
-  id, name: id, role: 'collect', links: { edit: `E-${id}` }, records: records.map((r) => ({ id: r, label: r, link: `L-${r}`, at: 't' })), at: 't',
+  id, name: id, role: 'collect', links: { edit: `https://collect.bharatlas.com/c/map-${id}#edt_1` }, records: records.map((r) => ({ id: r, label: r, link: `https://collect.bharatlas.com/c/map-${id}/r/rec-${r}#rec_1`, at: 't' })), at: 't',
 });
 
 describe('syncNow', () => {

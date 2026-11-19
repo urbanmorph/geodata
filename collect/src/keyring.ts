@@ -3,7 +3,7 @@
 import { mergeMaps, type SavedMap } from './maps-store';
 import { sealJson, unsealJson, syncDoc, type KeyringKeys, type KeyringApi } from '../../shared/keyring';
 
-export { newSecret, deriveKeys, syncSecretFrom, SyncGone, type KeyringKeys, type KeyringApi } from '../../shared/keyring';
+export { newSecret, deriveKeys, SyncGone, type KeyringKeys, type KeyringApi } from '../../shared/keyring';
 
 export function seal(encKey: CryptoKey, maps: SavedMap[]): Promise<string> {
   return sealJson(encKey, { v: 1, maps });

@@ -12,7 +12,7 @@ const syncDevice = vi.fn(async () => {});
 vi.mock('../src/syncing', () => ({
   syncState: () => ({ secret: 's', passkey: { id: 'pk' } }),
   syncDevice: () => syncDevice(),
-  setUpSync: vi.fn(), joinSync: vi.fn(), turnOffSync: vi.fn(), unlockWithPasskey: vi.fn(),
+  setUpSync: vi.fn(), turnOffSync: vi.fn(), unlockWithPasskey: vi.fn(),
   startAutoSync: () => window.addEventListener('collect:maps-changed', () => void syncDevice()),
   SyncGone: class extends Error {},
 }));

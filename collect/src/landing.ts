@@ -7,8 +7,8 @@ import { startCreate } from './create/wizard';
 import { mountInstallButton } from '../../web/src/install-button';
 import { collectTopbarHtml } from './topbar';
 import { footerLinksHtml } from '../../shared/footer.mjs';
-import { syncSecretFrom } from './keyring';
-import { syncState, syncDevice, setUpSync, joinSync, turnOffSync, startAutoSync, unlockWithPasskey, SyncGone } from './syncing';
+import { dropSyncFragment } from '../../shared/keyring';
+import { syncState, syncDevice, setUpSync, turnOffSync, startAutoSync, unlockWithPasskey, SyncGone } from './syncing';
 import { passkeysAvailable } from './passkey';
 import { queuedFor, sendWhenOnline, OUTBOX_CHANGED } from './send-queue';
 import './register-sw';
@@ -92,7 +92,7 @@ function home(focusSync = false) {
 
 // "Your maps on all your devices": one way, a passkey. The notice is the
 // consent: what's stored, that bharatlas can't read it, how long it's kept, and
-// how to delete it. (Older sync links still open, see bootSync; collect no
+// how to delete it. (Older sync links are not adopted, see bootSync; collect no
 // longer offers them, nor the backup file: one thing, made to work.)
 const SYNC_NOTICE = `Keeps an <strong>encrypted copy</strong> of your map links on bharatlas, opened with your passkey. bharatlas can't read it. It's deleted after <strong>12 months</strong> without use, or when you turn sync off.`;
 // An app on an iPhone/iPad home screen keeps its own list, apart from Safari's.
@@ -153,18 +153,19 @@ function passkeyError(ex: unknown): string {
   return e?.message || 'Something went wrong.';
 }
 
-// On load: adopt a sync link opened on this device (then strip the secret from
-// the address bar), or sync if this device already joined.
+// On load: sync if this device already joined. A sync link is never adopted
+// (shared/keyring.ts dropSyncFragment): its secret is only taken out of the
+// address, and the person is pointed to the passkey.
+const SYNC_LINK_NOTE = "Sync links no longer work. To see your maps on this device, tap I've set this up already and use your passkey.";
+
 async function bootSync(): Promise<void> {
-  const secret = syncSecretFrom(location.hash);
+  const fromLink = dropSyncFragment(location, history);
   try {
-    if (secret) {
-      history.replaceState(null, '', location.pathname + location.search);
-      await joinSync(secret);
-    } else if (syncState()) {
+    if (syncState()) {
       await syncDevice();
-    } else return;
-    home();
+      home();
+    }
+    if (fromLink) renderSync(SYNC_LINK_NOTE);
   } catch (e) {
     renderSync(e instanceof SyncGone ? 'Sync was turned off on another device, so it is off here too.'
       : e instanceof TypeError ? "You're offline. Your maps will sync when you're back online."
@@ -194,4 +195,4 @@ startAutoSync();
 sendWhenOnline();
 void bootSync();
 // A sync link pasted into an already-open tab only changes the fragment.
-window.addEventListener('hashchange', () => { if (syncSecretFrom(location.hash)) void bootSync(); });
+window.addEventListener('hashchange', () => { if (dropSyncFragment(location, history)) renderSync(SYNC_LINK_NOTE); });

@@ -6,6 +6,7 @@ export type ImportFormat = 'geojson' | 'csv' | 'kml';
 export interface ParsedFeature {
   geometry: unknown | null; // GeoJSON geometry, or null for CSV (built from lng/lat)
   props: Record<string, string>;
+  id?: string; // a GeoJSON feature's own id, when it has one
 }
 export interface Parsed { columns: string[]; features: ParsedFeature[]; }
 
@@ -23,10 +24,11 @@ export function parseGeoJSON(text: string): Parsed {
   const doc = JSON.parse(text) as { type?: string; features?: unknown[]; properties?: unknown; geometry?: unknown };
   const feats = doc.type === 'FeatureCollection' ? (doc.features || []) : doc.type === 'Feature' ? [doc] : [];
   const columns = new Set<string>();
-  const features: ParsedFeature[] = (feats as Array<{ geometry?: unknown; properties?: Record<string, unknown> }>).map((f) => {
+  const features: ParsedFeature[] = (feats as Array<{ id?: unknown; geometry?: unknown; properties?: Record<string, unknown> }>).map((f) => {
     const props: Record<string, string> = {};
     for (const [k, v] of Object.entries(f.properties || {})) { columns.add(k); props[k] = asStr(v); }
-    return { geometry: f.geometry ?? null, props };
+    const id = typeof f.id === 'string' || typeof f.id === 'number' ? String(f.id) : undefined;
+    return { geometry: f.geometry ?? null, props, ...(id !== undefined ? { id } : {}) };
   });
   return { columns: [...columns], features };
 }

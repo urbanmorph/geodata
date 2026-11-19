@@ -1,6 +1,6 @@
-// Single bridge to the web libs collect reuses unchanged (Phase 1 → promote to
-// shared/ at Phase 2). Keeping the deep relative paths in one place means the
-// route/handler files import at a stable, shallow depth.
+// Single bridge to the web libs collect reuses unchanged (submission saving,
+// Turnstile, ids, IP hashing). Keeping the deep relative paths in one place means
+// the route/handler files import at a stable, shallow depth.
 
 import type { Env } from '../types';
 import { ipHashFor } from '../../../web/functions/lib/submit-helpers';
