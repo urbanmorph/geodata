@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { precacheList } from '../src/sw/precache';
+import { parseMapPath } from '../src/map-path';
 
 let dist: string;
 const put = (path: string, body = path) => {
@@ -17,9 +18,11 @@ beforeEach(() => {
 afterEach(() => rmSync(dist, { recursive: true, force: true }));
 
 describe('precacheList', () => {
-  it('saves the landing, the map app shell (served at /c/), the build files and the listed files', async () => {
+  it('saves the landing, the map app shell (at /c/_shell: bare /c/ is a 404), the build files and the listed files', async () => {
     const list = await precacheList(dist, ['/india-outline.geojson']);
-    expect(list.pages).toEqual(['/', '/c/']);
+    expect(list.pages).toEqual(['/', '/c/_shell']);
+    expect(list.shell).toBe('/c/_shell');
+    expect(parseMapPath(list.shell)).not.toBeNull(); // functions/c/[[path]].ts serves it the shell
     expect(list.assets).toEqual(['/assets/app-DJmT4Z1m.js', '/assets/main-DEq_NYP-.js']);
     expect(list.files).toEqual(['/india-outline.geojson']);
   });

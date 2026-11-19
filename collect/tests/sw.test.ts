@@ -3,6 +3,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
+import { parseMapPath } from '../src/map-path';
 
 const SOURCE = readFileSync(new URL('../src/sw/sw.js', import.meta.url), 'utf8');
 const ORIGIN = 'https://collect.bharatlas.com';
@@ -28,7 +29,9 @@ function makeWorker(version: string, assets: string[], stores: Stores = new Map(
   const state = { online: true, fetched: [] as string[], deploy: version, stalled: false, release: () => {} };
   const site: Record<string, () => Response> = {
     '/': () => html(`landing ${version}`),
-    '/c/': () => html(`app shell ${state.deploy}`),
+    // Like functions/c/[[path]].ts: a map address (and /c/_shell, which parses as
+    // one) gets the app shell; bare /c/ is collect's 404.
+    '/c/_shell': () => html(`app shell ${state.deploy}`),
     '/india-outline.geojson': () => typed(`{"v":"${version}"}`, 'application/geo+json'),
     [APP_JS]: () => typed('app();', 'application/javascript'),
     [OLD_JS]: () => typed('qr();', 'application/javascript'),
@@ -38,7 +41,7 @@ function makeWorker(version: string, assets: string[], stores: Stores = new Map(
     if (state.stalled) await new Promise<void>((r) => (state.release = r));
     if (!state.online) throw new TypeError('Failed to fetch');
     const u = new URL(req.url);
-    const path = u.origin === ORIGIN ? (u.pathname.startsWith('/c/') ? '/c/' : u.pathname) : req.url;
+    const path = u.origin === ORIGIN ? (parseMapPath(u.pathname) ? '/c/_shell' : u.pathname) : req.url;
     return site[path]?.() ?? new Response('not found', { status: 404, headers: { 'content-type': 'text/html' } });
   }
   const open = async (name: string) => {
@@ -65,7 +68,7 @@ function makeWorker(version: string, assets: string[], stores: Stores = new Map(
   };
   const handlers: Record<string, Handler> = {};
   const self = {
-    __PRECACHE__: { version, pages: ['/', '/c/'], files: ['/india-outline.geojson'], assets },
+    __PRECACHE__: { version, pages: ['/', '/c/_shell'], shell: '/c/_shell', files: ['/india-outline.geojson'], assets },
     location: new URL(`${ORIGIN}/sw.js`),
     addEventListener: (type: string, fn: Handler) => (handlers[type] = fn),
     skipWaiting: async () => {},
@@ -169,6 +172,14 @@ describe('collect offline worker', () => {
     next.state.fetched = [];
     expect(await text(next.request(OLD_JS))).toBe('qr();');
     expect(next.state.fetched).toEqual([]);
+  });
+
+  it('a failed install leaves no half-filled cache behind', async () => {
+    const stores: Stores = new Map();
+    const v2 = makeWorker('v2', [APP_JS], stores);
+    v2.state.online = false;
+    await expect(v2.lifecycle('install')).rejects.toThrow();
+    expect([...stores.keys()]).not.toContain('collect-v2');
   });
 
   it('keeps only the current and previous versions', async () => {
