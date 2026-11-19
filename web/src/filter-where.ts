@@ -1,9 +1,11 @@
 // v4.2 commit 2: build SQL WHERE + MapLibre filter expressions from the
 // user's active filter state. Pure: no DOM, no DuckDB. The same ActiveFilter
 // list drives:
-//   - DuckDB-WASM exports + row-count queries (via buildWhereSQL)
+//   - DuckDB-WASM exports + row-count queries (via whereClause)
 //   - in-tile repaint (via buildMaplibreFilter), when the filter column
 //     is present as a PMTiles feature property
+
+import type { FilterSpecification } from 'maplibre-gl';
 
 export type ActiveFilter =
   | { col: string; kind: 'in'; values: Array<string | number> }
@@ -15,7 +17,8 @@ export function escIdent(s: string): string {
   return `"${s.replace(/"/g, '""')}"`;
 }
 
-function escString(s: string): string {
+/** A SQL string literal (also how a parquet URL goes into FROM). */
+export function escString(s: string): string {
   return `'${s.replace(/'/g, "''")}'`;
 }
 
@@ -31,7 +34,8 @@ function valueToSql(v: string | number | bigint | boolean): string {
   return escString(v);
 }
 
-export function buildWhereSQL(filters: ActiveFilter[]): string {
+/** The filters as one SQL condition, without WHERE ('' when none applies). */
+export function whereClause(filters: ActiveFilter[]): string {
   const parts: string[] = [];
   for (const f of filters) {
     if (f.kind === 'in') {
@@ -52,7 +56,7 @@ export function buildWhereSQL(filters: ActiveFilter[]): string {
       parts.push(`${escIdent(f.col)} = ${f.v ? 'TRUE' : 'FALSE'}`);
     }
   }
-  return parts.length ? 'WHERE ' + parts.join(' AND ') : '';
+  return parts.join(' AND ');
 }
 
 // The search box's suggestions: up to 8 distinct values containing q, with % and _
@@ -71,8 +75,8 @@ export function filterColumnsInTiles(filters: ActiveFilter[], tileKeys: Set<stri
 
 // Resolve an ActiveFilter to the LGD state codes it selects, when (and only
 // when) the user picked exactly one IN filter on a known state column. Used
-// by both the R2 pre-baked-extract fast path (filter.ts) and the camera
-// fly-to (map.ts). Returns [] when the filter doesn't address state.
+// by the R2 pre-baked-extract fast path (filter.ts). Returns [] when the
+// filter doesn't address state.
 const STATE_CODE_COL = /^state_lgd$/i;
 const STATE_NAME_COL = /^(stname|state|state_name)$/i;
 
@@ -94,7 +98,7 @@ export function resolveStateCodes(
   return [];
 }
 
-export type MaplibreFilter = unknown[] | null;
+export type MaplibreFilter = FilterSpecification | null;
 
 // MapLibre tile-property filter. Returns null when no filter applies, or
 // when the filter kind can't be pushed down (search). Callers can still run
@@ -123,8 +127,7 @@ export function buildMaplibreFilter(filters: ActiveFilter[]): MaplibreFilter {
     }
   }
   if (!exprs.length) return null;
-  if (exprs.length === 1) return exprs[0];
-  return ['all', ...exprs];
+  return (exprs.length === 1 ? exprs[0] : ['all', ...exprs]) as FilterSpecification;
 }
 
 // The active filter in a few words, for the "Filtered: ..." pill over the map

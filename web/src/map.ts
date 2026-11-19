@@ -2,15 +2,15 @@
 import maplibregl, { Map as MlMap } from 'maplibre-gl';
 import { Protocol, PMTiles } from 'pmtiles';
 import 'maplibre-gl/dist/maplibre-gl.css';
-import { overlayLoader, VERBS_MAP } from './loading';
-import { getCatalog } from './catalog';
+import { overlayLoader, VERBS_ENGINE, VERBS_MAP } from './loading';
+import { getCatalog, type Layer } from './catalog';
 import { escapeHtml } from './util';
 import { popupValueHtml, popupEntries } from './popup-value';
 import {
   BASEMAPS, baseStyle, basemapById, basemapInsertBefore, basemapLayers, getStoredBasemap, minimalPaint, setStoredBasemap,
   type BasemapId,
 } from './basemaps';
-import { onFirstRender, openGenerations, framesFromFile } from './map-startup';
+import { onFirstRender, openGenerations, framesFromFile, showPopupAt } from './map-startup';
 import {
   DATA_FILL, DATA_FILL_OPACITY, DATA_LINE, DATA_POINT, DATA_SELECTED, DATA_BASE_FILTERS, POLYGON_GEOM_FILTER,
   fillOutlineColor,
@@ -19,12 +19,11 @@ import { showLayerError } from './layer-errors';
 import { embedIframeHtml } from './embed-snippet';
 import { imageFilename, dataUrlToBlob, triggerDownload } from './image-export';
 import { filterColumnsInTiles, filterSummary, matchCountText, type ActiveFilter, type MaplibreFilter } from './filter-where';
-import { featureCollectionBounds, type FC } from './validate';
+import { featureCollectionBounds, INDIA_BBOX, type FC } from './validate';
 import { reduceOverlay, initialOverlayState, type OverlayState, type OverlayAction, type Surface } from './view-overlays';
 import { layerHeading, type LayerHeading } from './layer-display';
-import type { LevelMeta } from '../functions/lib/view-dataset';
 import { basePadding, paddingForPanelRect, type Padding } from './map-padding';
-import { resolveLocateConfig } from './locate-config';
+import { arrivalZoom, resolveLocateConfig } from './locate-config';
 // Static (not dynamic) import: geolocation must be requested synchronously
 // inside the tap handler. A dynamic import() pushes getCurrentPosition past the
 // user-gesture window, which mobile Chrome silently drops (no prompt, no sheet).
@@ -41,25 +40,10 @@ import {
   fillColorExpr, noDataFilter, hatchPixels, legendHtml, combineFilters, type ChoroplethSpec,
 } from '../../shared/choropleth.mjs';
 
-type Layer = {
-  id: string;
-  level: string | null;
-  source: string;
-  rows: number | null;
-  name?: string;
-  parquet?: { url: string; bytes: number } | null;
-  pmtiles?: { url: string; bytes: number } | null;
-  geojson?: { url: string; bytes: number } | null;
-  notes?: string;
-  // Value layers: colour polygons by one column (see shared/choropleth.mjs).
-  choropleth?: ChoroplethSpec;
-};
-
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-const INDIA_BOUNDS: [number, number, number, number] = [68, 6, 98, 38];
 const MAX_POPUP_PROPS = 10;
 const DATA_LAYERS = ['fill', 'fill-nodata', 'line-hit', 'line-halo', 'line', 'point'] as const;
 const INTERACTIVE_LAYERS = ['fill', 'line-hit', 'point'] as const;
@@ -77,7 +61,7 @@ let map: MlMap | null = null;
 let baseFilters: Partial<Record<(typeof DATA_LAYERS)[number], maplibregl.FilterSpecification>> = {};
 let filterAbort: AbortController | null = null;
 let activeBasemap: BasemapId = 'minimal';
-let layerBounds: [number, number, number, number] = INDIA_BOUNDS;
+let layerBounds: [number, number, number, number] = INDIA_BBOX;
 // Source-layer + level of the open layer, used by the locate "Zoom to it"
 // highlight (filter the same source; pick a sensible arrival zoom by level).
 let currentSourceLayer: string | undefined;
@@ -90,22 +74,6 @@ let pendingLocateCoords: { lat: number; lng: number } | null = null;
 const opens = openGenerations();
 // Resolves at the map's `load`: the style is in and the data source can be added.
 const styleLoaded = new WeakMap<MlMap, Promise<void>>();
-
-// Arrival zoom for "Zoom to it", keyed by layer level. A best-effort fitBounds
-// then tightens to the actual feature; this just gets us close enough that the
-// feature's tiles are loaded for that fit. Wards default to 13, else 11.
-const LEVEL_ZOOM: Record<string, number> = {
-  state: 6, district: 9, subdistrict: 10, block: 11, panchayat: 12, village: 13,
-  assembly_constituency: 9, parliament_constituency: 8, seismic_zone: 7, eco_zone: 7,
-  health_facility: 14, airport: 11,
-};
-function arrivalZoom(level: string | null): number {
-  if (!level) return 11;
-  const z = LEVEL_ZOOM[level]; // own-prop number, or inherited junk like toString
-  if (typeof z === 'number') return z;
-  if (/^wards_/.test(level)) return 13; // ward layers aren't in the table
-  return 11;
-}
 
 // ---------------------------------------------------------------------------
 // Single-open overlay controller
@@ -264,9 +232,9 @@ function flyTo(
 }
 
 function snapToIndiaIfLarge(bounds: [number, number, number, number]): [number, number, number, number] {
-  const indiaArea = (INDIA_BOUNDS[2] - INDIA_BOUNDS[0]) * (INDIA_BOUNDS[3] - INDIA_BOUNDS[1]);
+  const indiaArea = (INDIA_BBOX[2] - INDIA_BBOX[0]) * (INDIA_BBOX[3] - INDIA_BBOX[1]);
   const layerArea = (bounds[2] - bounds[0]) * (bounds[3] - bounds[1]);
-  return layerArea / indiaArea > 0.5 ? INDIA_BOUNDS : bounds;
+  return layerArea / indiaArea > 0.5 ? INDIA_BBOX : bounds;
 }
 
 
@@ -434,14 +402,14 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
   const common = currentSourceLayer ? { 'source-layer': currentSourceLayer } : {};
   if (filter) {
     map.addLayer({ id: 'locate-hl-fill', type: 'fill', source: 'layer', ...common,
-      filter: ['all', POLYGON_GEOM_FILTER, ...filter.slice(1)] as never,
+      filter: combineFilters(POLYGON_GEOM_FILTER, filter) as maplibregl.FilterSpecification,
       paint: { 'fill-color': HL_ACCENT, 'fill-opacity': 0.3 } });
-    map.addLayer({ id: 'locate-hl-line', type: 'line', source: 'layer', ...common, filter: filter as never,
+    map.addLayer({ id: 'locate-hl-line', type: 'line', source: 'layer', ...common, filter,
       paint: { 'line-color': HL_ACCENT, 'line-opacity': 1,
         'line-width': ['interpolate', ['linear'], ['zoom'], 6, 2, 12, 3.5] } });
     // Circle only for point geometries — otherwise it beads every polygon vertex.
     map.addLayer({ id: 'locate-hl-circle', type: 'circle', source: 'layer', ...common,
-      filter: ['all', POINT_GEOM_FILTER, ...filter.slice(1)] as never,
+      filter: combineFilters(POINT_GEOM_FILTER, filter) as maplibregl.FilterSpecification,
       paint: { 'circle-color': HL_ACCENT, 'circle-stroke-width': 2, 'circle-stroke-color': '#fff',
         'circle-radius': ['interpolate', ['linear'], ['zoom'], 8, 6, 14, 11] } });
   }
@@ -459,7 +427,7 @@ function highlightAndZoom(props: Record<string, unknown>, lng: number, lat: numb
     try {
       const feats = map.querySourceFeatures('layer', {
         ...(currentSourceLayer ? { sourceLayer: currentSourceLayer } : {}),
-        filter: filter as never,
+        filter,
       });
       if (!feats.length) return;
       const b = featureCollectionBounds({ type: 'FeatureCollection', features: feats } as unknown as FC);
@@ -508,7 +476,7 @@ function bindPopupToLayers() {
       popup.setHTML(buildRows(f.properties));
       popupId = fid;
     }
-    popup.setLngLat(e.lngLat).addTo(map!);
+    showPopupAt(popup, e.lngLat, map!);
   };
 
   for (const id of INTERACTIVE_LAYERS) {
@@ -578,12 +546,14 @@ async function attachData(m: MlMap, layer: Layer, tiles: Promise<PmtilesInfo> | 
     }
     flyTo(layerBounds, { padding: arrivalPadding(), duration: 0 });
     currentSourceLayer = undefined;
-    m.addSource('layer', { type: 'geojson', data: data as never, attribution: layer.source });
+    m.addSource('layer', { type: 'geojson', data: data as maplibregl.GeoJSONSourceSpecification['data'], attribution: layer.source });
     addDataLayers('layer', undefined, layer.choropleth);
   } else {
     throw new Error('no renderable source for ' + layer.id);
   }
 
+  // A newly loaded tile may carry property names the sample has not seen.
+  m.on('sourcedata', (e) => { if (e.sourceId === 'layer' && e.tile) tileKeys = null; });
   bindPopupToLayers();
 }
 
@@ -595,13 +565,8 @@ async function addLgdOverlay(m: MlMap, catalogLayers: Layer[], activeLayerId: st
   const lgd = catalogLayers.find((l) => l.id === 'lgd_states');
   if (!lgd?.pmtiles?.url) return;
 
-  const archive = getArchive(lgd.pmtiles.url);
-  const metadata = await archive.getMetadata();
-  const vlayers = (metadata as { vector_layers?: Array<{ id: string }> }).vector_layers || [];
-  if (!vlayers.length || !live()) return;
-  const sourceLayer = vlayers[0].id;
-
-  if (m.getSource('lgd-overlay')) return;
+  const { sourceLayer } = await readPmtiles(lgd.pmtiles.url);
+  if (!live() || m.getSource('lgd-overlay')) return;
   m.addSource('lgd-overlay', {
     type: 'vector',
     url: `pmtiles://${lgd.pmtiles.url}`,
@@ -699,13 +664,18 @@ function addLegend(container: HTMLElement, spec: ChoroplethSpec | undefined, uni
 
 // The property names the layer's tiles carry, from a sample of the loaded
 // features (a feature can omit a null property, so the sample is unioned).
-// Null until a tile has loaded.
+// Null until a tile has loaded. Read once per set of loaded tiles: a filter
+// change (each keystroke in a search box) reuses it until another tile loads.
+let tileKeys: Set<string> | null = null;
+
 function tilePropertyKeys(): Set<string> | null {
+  if (tileKeys) return tileKeys;
   if (!map?.getSource('layer')) return null;
   const feats = map.querySourceFeatures('layer', currentSourceLayer ? { sourceLayer: currentSourceLayer } : {});
   if (!feats.length) return null;
   const keys = new Set<string>();
   for (const f of feats.slice(0, 200)) for (const k of Object.keys(f.properties ?? {})) keys.add(k);
+  tileKeys = keys;
   return keys;
 }
 
@@ -734,14 +704,14 @@ function applyActiveFilters(
     flyTo(layerBounds, { padding, duration: 600 });
     return;
   }
-  setDataFilters(mapFilter as maplibregl.FilterSpecification | null);
+  setDataFilters(mapFilter);
 
   // Frame the matches once the map settles. None in view means they may be off
   // screen: zoom out to the whole layer once and look again.
   let widened = false;
   const fit = () => {
     const features = m.queryRenderedFeatures(undefined, {
-      layers: (['fill', 'point'] as string[]).filter((id) => m.getLayer(id)),
+      layers: INTERACTIVE_LAYERS.filter((id) => m.getLayer(id)),
     });
     if (!features.length && !widened) {
       widened = true;
@@ -750,18 +720,9 @@ function applyActiveFilters(
       return;
     }
     pendingFit = null;
-    const bounds = new maplibregl.LngLatBounds();
-    for (const f of features) {
-      if (f.geometry.type === 'Point') {
-        bounds.extend(f.geometry.coordinates as [number, number]);
-      } else if (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon') {
-        const coords = f.geometry.type === 'Polygon'
-          ? f.geometry.coordinates[0]
-          : f.geometry.coordinates[0][0];
-        for (const c of coords) bounds.extend(c as [number, number]);
-      }
-    }
-    if (!bounds.isEmpty()) m.fitBounds(bounds, { padding, duration: 600 });
+    // Every geometry type: a line layer's matches (rivers, rail lines) frame too.
+    const bounds = featureCollectionBounds({ type: 'FeatureCollection', features } as unknown as FC);
+    if (bounds) m.fitBounds(asBounds(bounds), { padding, duration: 600 });
   };
   pendingFit = fit;
   m.once('idle', fit);
@@ -983,7 +944,6 @@ async function wireFilterButton(layer: Layer) {
     }
     const container = document.getElementById('map')!;
 
-    const { VERBS_ENGINE } = await import('./loading');
     const panel = document.createElement('div');
     panel.className = 'filter-panel';
     panel.innerHTML = `<div style="padding:24px;color:var(--muted);font-size:var(--fs-base)"></div>`;
@@ -1133,18 +1093,20 @@ function wireAboutButton(layer: Layer, levelMeta: AboutMeta, heading: LayerHeadi
     fillUsage();
   };
   render();
-  fetch(`/api/v1/usage?layer=${encodeURIComponent(layer.id)}`)
-    .then((r) => (r.ok ? (r.json() as Promise<Usage>) : null))
-    .then((u) => { if (u) { usage = usageLine(u); fillUsage(); } })
-    .catch(() => {});
   container.appendChild(panel);
-  let wardsAsked = false;
+  // The usage line and the ward list are fetched the first time the panel shows
+  // (closed by default on phones and narrow screens, where many never open it).
+  let asked = false;
   surfaceHandles.about = {
     btn,
     show: () => {
       panel.hidden = false;
-      if (wardsAsked) return;
-      wardsAsked = true;
+      if (asked) return;
+      asked = true;
+      fetch(`/api/v1/usage?layer=${encodeURIComponent(layer.id)}`)
+        .then((r) => (r.ok ? (r.json() as Promise<Usage>) : null))
+        .then((u) => { if (u) { usage = usageLine(u); fillUsage(); } })
+        .catch(() => {});
       fetchWardIndex(layer.id).then((idx) => { if (idx && panel.isConnected) render(idx); });
     },
     hide: () => { panel.hidden = true; },
@@ -1176,11 +1138,12 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   // The map and its basemap don't depend on the layer, so they start before the
   // catalog arrives; the data is attached once both are in.
   activeBasemap = getStoredBasemap();
-  layerBounds = INDIA_BOUNDS;
+  layerBounds = INDIA_BBOX;
+  tileKeys = null;
   const m = new maplibregl.Map({
     container,
     style: baseStyle(activeBasemap, mapScheme()),
-    bounds: INDIA_BOUNDS,
+    bounds: INDIA_BBOX,
     fitBoundsOptions: { padding: fitPadding() },
     attributionControl: false,
     preserveDrawingBuffer: true,
@@ -1204,10 +1167,7 @@ export async function openLayer(layerId: string, opts: { titleEl: HTMLElement })
   });
 
   try {
-    const cat = (await getCatalog()) as {
-      layers?: Layer[];
-      level_meta?: Record<string, LevelMeta & { locate_label?: string; locate_mode?: string }>;
-    };
+    const cat = await getCatalog();
     if (!live()) return;
     const layer = cat.layers?.find((l) => l.id === layerId);
     if (!layer) {
@@ -1270,6 +1230,7 @@ export function closeLayer() {
     map = null;
   }
   pendingFit = null;
+  tileKeys = null;
   filterAbort?.abort();
   filterAbort = null;
   resetOverlays();

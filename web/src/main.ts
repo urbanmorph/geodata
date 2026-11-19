@@ -1,7 +1,7 @@
 // Tiny entry: hash-based map routing + hover-prefetch of the map chunk.
 // Map code is in a separate chunk; only loaded when the user opens a map.
 import { isEmbedPath, isViewPath, nextStateOnClose, catalogVisibleOnLoad } from './embed-snippet';
-import { filterCards, type CardLike, type LayerIndexEntry } from './catalog-filter';
+import { fetchLayerIndex, filterCards, type CardLike } from './catalog-filter';
 import { openDialog, closeDialog } from '../../shared/modal';
 import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
@@ -177,21 +177,12 @@ if (searchInput) {
   const resultsBox = document.getElementById('search-results');
   let cards: CardLike[] = [];
   let hits: Hit[] = [];
-  let loading: Promise<void> | null = null;
   const loadIndex = (): Promise<void> =>
-    (loading ??= fetch('/layer-index.json')
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<LayerIndexEntry[]>;
-      })
-      .then((rows) => {
-        cards = rows.map((r) => ({ primary: r.p, body: r.b, layers: r.n }));
-        hits = rows.map((r) => ({ title: r.t, sub: r.s, href: r.h }));
-      })
-      .catch((e: unknown) => {
-        loading = null; // retry on the next keystroke
-        throw e;
-      }));
+    fetchLayerIndex().then((rows) => {
+      if (cards.length) return;
+      cards = rows.map((r) => ({ primary: r.p, body: r.b, layers: r.n }));
+      hits = rows.map((r) => ({ title: r.t, sub: r.s, href: r.h }));
+    });
   const warm = () => void loadIndex().catch(() => {});
   searchInput.addEventListener('focus', warm, { once: true });
   searchInput.closest('.search-wrap')?.addEventListener('pointerenter', warm, { once: true });

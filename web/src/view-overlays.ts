@@ -1,8 +1,8 @@
 // Single-open overlay state for the /view map chrome.
 //
-// The map viewer has three secondary surfaces — basemap picker, filter/export,
-// download menu — plus a reserved slot for the Find-my-ward FAB (Step 1). They
-// used to toggle independently, so on mobile opening one left the others
+// The map viewer has five secondary surfaces: basemap picker, filter/export,
+// download menu, the locate sheet and the About panel. They used to toggle
+// independently, so on mobile opening one left the others
 // stacked behind it. This reducer makes "which surface is open" a single source
 // of truth: exactly one, or none, is ever active.
 //

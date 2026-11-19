@@ -23,6 +23,10 @@ type LocateApiResponse = {
 const PIN =
   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>';
 
+// The lookup that owns the sheet: a newer open, or closing the sheet, aborts it,
+// so a late answer (from a closed sheet or another layer) never draws or zooms.
+let current: AbortController | null = null;
+
 export function openLocate(opts: {
   layerId: string;
   config: LocateConfig;
@@ -33,11 +37,14 @@ export function openLocate(opts: {
   onClose: () => void;
 }): void {
   const { layerId, config, sheet, btn, onZoom, coords, onClose } = opts;
+  current?.abort();
+  const { signal } = (current = new AbortController());
   sheet.classList.add('open');
   sheet.setAttribute('aria-hidden', 'false');
   const stopPulse = () => btn.classList.remove('locating');
 
   const render = (html: string) => {
+    if (signal.aborted) return;
     sheet.innerHTML = `<button class="ls-close" type="button" aria-label="Close">×</button>${html}`;
     sheet.querySelector('.ls-close')?.addEventListener('click', onClose);
   };
@@ -66,6 +73,7 @@ export function openLocate(opts: {
   navigator.geolocation.getCurrentPosition(
     (pos) => run(pos.coords.latitude, pos.coords.longitude, false),
     (err) => {
+      if (signal.aborted) return;
       stopPulse();
       render(msg(err.code === err.PERMISSION_DENIED
         ? 'Location permission denied. Allow it in your browser to use this.'
@@ -75,6 +83,7 @@ export function openLocate(opts: {
   );
 
   async function run(lat: number, lng: number, autoZoom: boolean) {
+    if (signal.aborted) return;
     stopPulse();
     // A ward map's sidecar says which column holds the ward number, its name and its OpenStreetMap areas, so the
     // sheet titles a ward "Ward 102" (not the town its feature also names). Fetched alongside the lookup; none for
@@ -83,6 +92,7 @@ export function openLocate(opts: {
     try {
       const r = await fetch(
         `/api/v1/layers/${encodeURIComponent(layerId)}/locate?lat=${lat}&lng=${lng}&mode=${config.mode}`,
+        { signal },
       );
       if (r.status === 400) {
         // outside India bbox — the only 400 the endpoint returns for valid coords
@@ -91,7 +101,10 @@ export function openLocate(opts: {
         return;
       }
       if (!r.ok) throw new Error(String(r.status));
-      renderResult((await r.json()) as LocateApiResponse, lat, lng, autoZoom, await sidecar);
+      const data = (await r.json()) as LocateApiResponse;
+      const idx = await sidecar;
+      if (signal.aborted) return;
+      renderResult(data, lat, lng, autoZoom, idx);
     } catch {
       render(msg("Couldn't look that up. Try again."));
     }
@@ -150,6 +163,8 @@ export function openLocate(opts: {
 }
 
 export function closeLocate(sheet: HTMLElement): void {
+  current?.abort();
+  current = null;
   // Blur the focused control (share/close button) before hiding the sheet from
   // assistive tech — same browser block as the map overlay (see focus-utils).
   blurFocusWithin(sheet);

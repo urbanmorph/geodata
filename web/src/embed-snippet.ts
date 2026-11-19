@@ -15,16 +15,16 @@ export function isViewPath(pathname: string): { view: true; layerId: string } | 
   return { view: true, layerId: decodeURIComponent(m[1]) };
 }
 
-// What the browser tab title should become after the user closes the map
-// overlay. Paired with urlAfterCloseMap — when the URL flips back to /, the
-// tab title also has to flip back from the per-layer "lgd states · bharatlas"
-// (injected by the /view/<id> edge function via HTMLRewriter) to the home
-// title. Returns the new title to apply, or null if no change is needed.
 /** The home page shows on load; /view and /embed open the map over it instead. */
 export function catalogVisibleOnLoad(pathname: string): boolean {
   return !isViewPath(pathname).view && !isEmbedPath(pathname).embed;
 }
 
+// What the browser tab title should become after the user closes the map
+// overlay. Paired with urlAfterCloseMap — when the URL flips back to /, the
+// tab title also has to flip back from the per-layer "lgd states · bharatlas"
+// (injected by the /view/<id> edge function via HTMLRewriter) to the home
+// title. Returns the new title to apply, or null if no change is needed.
 export function titleAfterCloseMap(pathname: string, hash: string, homeTitle: string): string | null {
   if (hash.startsWith('#view/')) return homeTitle;
   if (isViewPath(pathname).view) return homeTitle;

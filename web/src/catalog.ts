@@ -1,13 +1,13 @@
-type Layer = {
-  id: string;
-  level: string;
-  source: string;
-  rows: number | null;
-  parquet?: { url: string; bytes: number } | null;
-  pmtiles?: { url: string; bytes: number } | null;
-  geojson?: { url: string; bytes: number } | null;
-  notes?: string;
-  licence?: string;
+import { memoRetry } from './memo-retry';
+import type { CatalogLayer, LevelMeta as EdgeLevelMeta } from '../functions/lib/view-dataset';
+import type { ChoroplethSpec } from '../../shared/choropleth.mjs';
+
+/** One catalog layer: the shape the edge reads (functions/lib/view-dataset.ts),
+ *  plus what only the browser uses. The one layer type in web/src. */
+export type Layer = CatalogLayer & {
+  /** Value layers: colour polygons by one column (shared/choropleth.mjs). */
+  choropleth?: ChoroplethSpec;
+  fetched_at?: string;
   attribution?: { primary?: { name: string; url: string }; publisher?: { name: string; url: string } | null };
 };
 
@@ -35,16 +35,10 @@ export type LayerFilterStats = {
   column_groups?: Array<{ canonical: string; members: string[] }>;
 };
 
-/** Per-layer (or per-level) display metadata. Inlined in the page catalog so
- *  the viewer can resolve a friendly title without a network round-trip. The
- *  edge (functions/lib/view-dataset.ts) reads the same field for /view SEO. */
-export type LevelMeta = {
-  label?: string;
-  seo_title?: string;
-  unit?: string;
-  description?: string;
-  seo_description?: string;
-};
+/** Per-layer (or per-level) display metadata: the edge's level meta
+ *  (functions/lib/view-dataset.ts, which reads the same field for /view SEO)
+ *  plus the locate toolbar item's opt-in. */
+export type LevelMeta = EdgeLevelMeta & { locate_label?: string; locate_mode?: string };
 
 export type Catalog = {
   layers?: Layer[];
@@ -58,22 +52,15 @@ export type Catalog = {
   attribution?: Record<string, unknown>;
 };
 
-let cache: Promise<Catalog> | null = null;
-
 /**
  * The catalog (layers, level metadata, extracts, filter stats), fetched once
  * per page. Not inlined in the HTML: the home page would carry ~38 KB gzipped
  * that only the map uses. main.ts starts this fetch early (hover on a map link,
  * or a /view load) so it runs alongside the map chunk download.
  */
-export function getCatalog(): Promise<Catalog> {
-  if (!cache) {
-    cache = fetch('/catalog.json').then((r) => {
-      // Shown to the reader ("failed to load layer: ..."), so plain words, no file name or status.
-      if (!r.ok) throw new Error("couldn't load the layer list");
-      return r.json() as Promise<Catalog>;
-    });
-    cache.catch(() => { cache = null; }); // a failed fetch can be retried
-  }
-  return cache;
-}
+export const getCatalog: () => Promise<Catalog> = memoRetry(() =>
+  fetch('/catalog.json').then((r) => {
+    // Shown to the reader ("failed to load layer: ..."), so plain words, no file name or status.
+    if (!r.ok) throw new Error("couldn't load the layer list");
+    return r.json() as Promise<Catalog>;
+  }));

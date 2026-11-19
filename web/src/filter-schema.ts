@@ -27,7 +27,6 @@ export type ColumnStats = {
 
 export type Affordance =
   | { kind: 'facet'; values: Array<{ v: string | number; n: number; label?: string }> }
-  | { kind: 'searchable' }
   | { kind: 'search' }
   | { kind: 'range'; min: number; max: number }
   | { kind: 'boolean' }
@@ -120,7 +119,6 @@ export function pickAffordance(col: ColumnStats, rowCount: number): Affordance {
   }
 
   if (col.distinct <= 50) return { kind: 'facet', values: col.topValues ?? [] };
-  if (col.distinct <= 2000) return { kind: 'searchable' };
   return { kind: 'search' };
 }
 
@@ -128,10 +126,17 @@ const KIND_PRIORITY: Record<Affordance['kind'], number> = {
   facet: 5,
   boolean: 4,
   range: 3,
-  searchable: 2,
   search: 1,
   drop: 0,
 };
+
+// A search box over up to this many values ranks above one over more: a column
+// you can browse (ward names) is a better filter than one of near-unique strings.
+const BROWSABLE_SEARCH_MAX = 2000;
+
+function priority(kind: Affordance['kind'], col: ColumnStats): number {
+  return kind === 'search' && col.distinct <= BROWSABLE_SEARCH_MAX ? 2 : KIND_PRIORITY[kind];
+}
 
 export function rankColumns(cols: ColumnStats[], rowCount: number): ColumnStats[] {
   return cols
@@ -139,7 +144,7 @@ export function rankColumns(cols: ColumnStats[], rowCount: number): ColumnStats[
     .filter((x) => x.aff.kind !== 'drop')
     .map((x) => ({
       c: x.c,
-      score: KIND_PRIORITY[x.aff.kind] * 10 + (1 - x.c.nullFrac),
+      score: priority(x.aff.kind, x.c) * 10 + (1 - x.c.nullFrac),
     }))
     .sort((a, b) => b.score - a.score)
     .slice(0, DISPLAY_CAP)

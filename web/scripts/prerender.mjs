@@ -21,9 +21,11 @@ import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
 import { fillTemplate } from './fill-template.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
-import { renderCommunityActions, channelOf, CHANNEL_LABEL, dlProxyUrl } from './community-card.mjs';
+import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
 import { expandAliases, buildBodyHaystack } from '../src/search-aliases.mjs';
 import { publicCatalogJson } from './public-catalog.mjs';
+import { availableDownloads } from '../src/format-hints.ts';
+import { turnstileSiteKey } from './turnstile-key.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '..');
@@ -167,21 +169,19 @@ function formatTokens(layer) {
   return t.join(' ');
 }
 
-// Map an R2 public URL to the /api/dl/<path> route so every click hits the
-// counter Pages Function. PMTiles bypasses (Range-fetched by MapLibre).
-function countFor(layer, fmt) {
-  return layerCount(dlCounts, layer.id, fmt);
-}
-
+// A layer's downloads (format-hints.ts, the same list the map's Download menu
+// shows) with their counts. `fmt` is the counted format, also on the link as
+// data-fmt for live-counts.ts; `text` is the link text (Shapefile reads "shp").
 function downloadLinks(layer) {
-  const items = [];
-  if (layer.parquet?.url) items.push({ fmt: 'parquet', url: dlProxyUrl(layer.parquet.url, 'parquet'), size: layer.parquet.bytes, count: countFor(layer, 'parquet') });
-  if (layer.pmtiles?.url) items.push({ fmt: 'pmtiles', url: dlProxyUrl(layer.pmtiles.url, 'pmtiles'), size: layer.pmtiles.bytes, count: countFor(layer, 'pmtiles') });
-  if (layer.geojson?.url) items.push({ fmt: 'geojson', url: dlProxyUrl(layer.geojson.url, 'geojson'), size: layer.geojson.bytes, count: countFor(layer, 'geojson') });
-  if (layer.kml?.url) items.push({ fmt: 'kml', url: dlProxyUrl(layer.kml.url, 'kml'), size: layer.kml.bytes, count: countFor(layer, 'kml') });
-  if (layer.shapefile?.url) items.push({ fmt: 'shp', url: dlProxyUrl(layer.shapefile.url, 'shapefile'), size: layer.shapefile.bytes, count: countFor(layer, 'shapefile') });
-  return items;
+  return availableDownloads(layer).map((d) => ({
+    fmt: d.fmt,
+    text: d.fmt === 'shapefile' ? 'shp' : d.fmt,
+    url: d.url,
+    size: d.bytes,
+    count: layerCount(dlCounts, layer.id, d.fmt),
+  }));
 }
+const downloadAnchor = (d) => `<a href="${esc(d.url)}" download data-fmt="${esc(d.fmt)}">${esc(d.text)}</a>`;
 
 function renderRow(level, layersForLevel, opts = {}) {
   const meta = LEVEL_META[level];
@@ -204,7 +204,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     ? `<span class="dl-inline">${downloads
         .map(
           (d, i) =>
-            `${i > 0 ? '<span class="dot">·</span>' : ''}<a href="${esc(d.url)}" download>${esc(d.fmt)}</a><span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}`
+            `${i > 0 ? '<span class="dot">·</span>' : ''}${downloadAnchor(d)}<span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}`
         )
         .join('')}</span>`
     : '';
@@ -220,7 +220,7 @@ function renderRow(level, layersForLevel, opts = {}) {
               const isPrimary = o === primary;
               const dl = downloadLinks(o);
               const links = dl
-                .map((d) => `<a href="${esc(d.url)}" download>${esc(d.fmt)}</a>`)
+                .map(downloadAnchor)
                 .join('<span class="dot">·</span>');
               return `<div class="alt__row${isPrimary ? ' alt__row--primary' : ''}">
                 <span class="src">${esc(o.source)}${isPrimary ? ' <span class="tag">primary</span>' : ''}</span>
@@ -861,9 +861,8 @@ await renderPage('about', {
   },
 }, { ATTR_LINKS: attrLinks, ABOUT_FAQ: aboutFaqHtml });
 
-// Turnstile site key — Cloudflare's test key (always passes) when no env override.
-// In production, set TURNSTILE_SITEKEY in the deploy environment.
-const TURNSTILE_SITEKEY = process.env.TURNSTILE_SITEKEY || '1x00000000000000000000AA';
+// Turnstile site key: the test key locally and on pull requests; a deploy build without the real one fails here.
+const TURNSTILE_SITEKEY = turnstileSiteKey(process.env);
 
 await renderPage(
   'preview',

@@ -212,3 +212,30 @@ describe('describeParquet — columns the panel never offers', () => {
     }
   });
 });
+
+describe('describeParquet — top_values run together', () => {
+  it("asks for every column's top values before any answers", async () => {
+    let answered = 0;
+    let askedBeforeFirstAnswer = 0;
+    mockQuery
+      .mockResolvedValueOnce([
+        { column_name: 'a', column_type: 'VARCHAR' },
+        { column_name: 'b', column_type: 'VARCHAR' },
+      ])
+      .mockResolvedValueOnce([{
+        row_count: 50,
+        distinct_a: 3, null_a: 0, min_a: 'x', max_a: 'z',
+        distinct_b: 4, null_b: 0, min_b: 'x', max_b: 'z',
+      }])
+      .mockImplementation(async (sql: string) => {
+        if (answered === 0) askedBeforeFirstAnswer++;
+        await new Promise((r) => setTimeout(r, 1));
+        answered++;
+        return [{ v: sql.includes('"a"') ? 'A' : 'B', n: 1 }];
+      });
+    const r = await describeParquet('x');
+    expect(askedBeforeFirstAnswer).toBe(2);
+    expect(r.columns.find((c) => c.name === 'a')!.topValues).toEqual([{ v: 'A', n: 1 }]);
+    expect(r.columns.find((c) => c.name === 'b')!.topValues).toEqual([{ v: 'B', n: 1 }]);
+  });
+});

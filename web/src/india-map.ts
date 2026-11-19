@@ -2,6 +2,8 @@
 // come from /map-themes.json (scripts/build_map_themes.py), fetched once, the
 // first time someone picks one of them.
 
+import { memoRetry } from './memo-retry';
+
 export type MapTheme = { kind: 'line' | 'dense'; paths: string[] };
 
 /** SVG for one fetched theme: a stroked line, or four shades of hexagons (lightest first). */
@@ -12,21 +14,12 @@ export function themeMarkup(theme: MapTheme, key: string): string {
     .join('');
 }
 
-let themes: Promise<Record<string, MapTheme>> | null = null;
-function loadThemes(): Promise<Record<string, MapTheme>> {
-  if (themes) return themes;
-  const load: Promise<Record<string, MapTheme>> = fetch('/map-themes.json')
-    .then((r) => {
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      return r.json() as Promise<Record<string, MapTheme>>;
-    })
-    .catch((e: unknown) => {
-      themes = null; // a failed fetch may be retried on the next pick
-      throw e;
-    });
-  themes = load;
-  return load;
-}
+// A failed fetch is retried on the next pick.
+const loadThemes = memoRetry(() =>
+  fetch('/map-themes.json').then((r) => {
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return r.json() as Promise<Record<string, MapTheme>>;
+  }));
 
 export function initIndiaMap(root: HTMLElement): void {
   const layer = root.querySelector<SVGGElement>('[data-map-layer]');

@@ -126,7 +126,11 @@ export default defineConfig({
           // Shared between map + filter; pulling it into its own chunk avoids
           // dragging the map-vendor static import in via the filter side.
           if (id.includes('src/loading')) return 'loader';
-          if (id.includes('src/util') || id.includes('src/catalog')) return 'shared';
+          if (id.includes('src/util') || /src\/(catalog|india-bbox)\.ts$/.test(id)) return 'shared';
+          // Vite's preload helper in a chunk of its own, for the pages that load code
+          // later (home, /preview), not inside whichever module Rollup picks (once
+          // validate.ts, pulled onto the home page) or on every page.
+          if (id.includes('vite/preload-helper')) return 'preload';
           // Heavy map deps as a separate vendor chunk for clean cache lifetime.
           if (id.includes('maplibre-gl') || id.includes('pmtiles')) return 'map-vendor';
         },

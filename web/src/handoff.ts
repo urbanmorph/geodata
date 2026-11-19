@@ -1,4 +1,4 @@
-// One-shot file hand-off from /verify to /submit.
+// One-shot file hand-off from the home page (a file dropped anywhere on it) to /preview.
 // sessionStorage holds tiny metadata; IndexedDB holds the blob.
 // Pop is destructive — reload won't re-trigger the picked-up file.
 

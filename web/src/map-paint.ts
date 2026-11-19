@@ -24,6 +24,9 @@ const geometryIs = (...types: string[]): FilterSpecification =>
  * two tracks drew as a green band between them). */
 export const POLYGON_GEOM_FILTER = geometryIs('Polygon');
 
+/** Lines and polygon outlines: what a stroke layer draws (the /preview map). */
+export const EDGE_GEOM_FILTER = geometryIs('LineString', 'Polygon');
+
 /** Each data layer's own filter, under any filter the reader adds:
  * fills draw polygons only, points draw points only; edges (lines and polygon
  * outlines) skip the overview's cell pieces. */

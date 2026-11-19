@@ -50,9 +50,3 @@ export function availableDownloads(layer: LayerLike): DownloadEntry[] {
 }
 
 export { fmtBytes, fmtCount } from '../../shared/format.mjs';
-
-// Compact count for download badges + the search-meta total. One decimal while
-// it reads cleanly (9.3k, 10.3k, 99.9k), whole thousands once that decimal is
-// just noise (250k), then millions (1.2M). A trailing .0 is always dropped.
-// Previously anything >= 10k rounded to whole thousands, so 10,300 showed as
-// "10k" — this keeps the tenths that make the number feel live.

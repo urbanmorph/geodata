@@ -1,6 +1,6 @@
-// Small pieces of the layer map's start-up (map.ts), kept free of MapLibre so they
-// can be tested: when the data layer has drawn, which open is still current, and
-// which whole-file layers are read on the page to frame the view.
+// Small pieces of the layer map (map.ts), kept free of MapLibre so they can be
+// tested: when the data layer has drawn, which open is still current, which
+// whole-file layers are read on the page to frame the view, and placing the pop-up.
 
 type MapEvents = {
   on(type: string, fn: (e?: unknown) => void): unknown;
@@ -50,4 +50,14 @@ export const FRAME_FROM_FILE_MAX = 8 * 1024 * 1024;
  *  (national layers) go to MapLibre by URL, parsed in its worker, and open on India. */
 export function framesFromFile(bytes: number | null | undefined): boolean {
   return !!bytes && bytes <= FRAME_FROM_FILE_MAX;
+}
+
+/** Moves an open pop-up to the pointer; adds it only when closed. MapLibre's addTo
+ *  on an open pop-up removes and rebuilds it (DOM, close/open events, focus), which
+ *  on every mousemove over a feature was a rebuild per pixel. */
+export function showPopupAt<P, M>(
+  popup: { isOpen(): boolean; setLngLat(ll: P): unknown; addTo(map: M): unknown }, lngLat: P, map: M,
+): void {
+  popup.setLngLat(lngLat);
+  if (!popup.isOpen()) popup.addTo(map);
 }

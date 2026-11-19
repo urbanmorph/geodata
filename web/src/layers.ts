@@ -2,7 +2,7 @@
 // across every theme with the same matcher as the home search (catalog-filter),
 // over the same /layer-index.json (the rows carry no search text of their own);
 // "show all N" opens a long section; ?q= pre-fills the box.
-import { filterCards, layersPerGroup, matchLine, type CardLike, type LayerIndexEntry } from './catalog-filter';
+import { fetchLayerIndex, filterCards, layersPerGroup, matchLine, type CardLike } from './catalog-filter';
 import { escapeHtml } from './util';
 import { refreshLiveCounts } from './live-counts';
 import { focusOnSlash } from './search-pop';
@@ -57,24 +57,15 @@ if (input && grid) {
   // The haystacks, matched to the rows by id once the index arrives. Until
   // then (and without JS) every row stays visible.
   let cards: CardLike[] | null = null;
-  let loading: Promise<void> | null = null;
   const loadIndex = (): Promise<void> =>
-    (loading ??= fetch('/layer-index.json')
-      .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        return r.json() as Promise<LayerIndexEntry[]>;
-      })
-      .then((rows) => {
-        const byId = new Map(rows.map((r) => [r.i, r]));
-        cards = cardEls.map((el) => {
-          const e = byId.get(el.dataset.id || '');
-          return { primary: e?.p ?? '', body: e?.b ?? '', layers: e?.n };
-        });
-      })
-      .catch((e: unknown) => {
-        loading = null; // retry on the next keystroke
-        throw e;
-      }));
+    fetchLayerIndex().then((rows) => {
+      if (cards) return;
+      const byId = new Map(rows.map((r) => [r.i, r]));
+      cards = cardEls.map((el) => {
+        const e = byId.get(el.dataset.id || '');
+        return { primary: e?.p ?? '', body: e?.b ?? '', layers: e?.n };
+      });
+    });
 
   const apply = (): void => {
     const query = input.value.trim();

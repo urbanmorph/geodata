@@ -157,8 +157,8 @@ describe('quick wins', () => {
     expect(readFileSync(resolve(__dirname, '../../collect/src/styles.css'), 'utf8')).toMatch(/\nbutton, \.btn \{\s*font: inherit;/);
   });
   it('the brand stays lowercase in the base-map list', () => {
-    expect(read('src/basemaps.ts')).not.toContain("'Bharatlas Minimal'");
-    expect(read('src/basemaps.ts')).toContain("'bharatlas Minimal'");
+    expect(read('src/basemap-minimal.ts')).not.toContain("'Bharatlas Minimal'");
+    expect(read('src/basemap-minimal.ts')).toContain("'bharatlas Minimal'");
   });
   it('the contribute page says what happens to a file in plain words', () => {
     const preview = read('preview.template.html');
