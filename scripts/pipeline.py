@@ -882,6 +882,14 @@ def rebake_flatten_bbox(src: Path, dst: Path, con=None, keep_struct: bool = Fals
     return n, non_geom
 
 
+def _is_row_number(con, relation: str, column: str) -> bool:
+    """True when `column` holds 0..n-1 or 1..n, one value per row: a reader's
+    feature number, not ids the source carried."""
+    n, lo, hi, distinct = con.execute(
+        f'SELECT count(*), min("{column}"), max("{column}"), count(DISTINCT "{column}") FROM {relation}').fetchone()
+    return n == 0 or (lo in (0, 1) and hi - lo == n - 1 and distinct == n)
+
+
 def geojson_to_parquet(gj: Path, out: Path, geometry_name: str | None = None, con=None) -> int:
     """GeoJSON -> parquet with flat bbox columns in Hilbert order (what
     /api/v1/nearby needs). ST_Read names the geometry `geom`; pass
@@ -890,11 +898,20 @@ def geojson_to_parquet(gj: Path, out: Path, geometry_name: str | None = None, co
         import duckdb
         con = duckdb.connect()
         con.execute('INSTALL spatial; LOAD spatial;')
-    # ST_Read (DuckDB 1.5) adds OGC_FID, a feature number that is not the source's data.
     read = f"ST_Read('{gj}')"
     cols = {r[0] for r in con.execute(f'DESCRIBE SELECT * FROM {read}').fetchall()}
     drop = [c for c in ('OGC_FID', 'geom' if geometry_name else None) if c in cols]
-    select = (f'* EXCLUDE ({", ".join(drop)})' if drop else '*') + (f', geom AS "{geometry_name}"' if geometry_name else '')
+    rename = ''
+    # ST_Read (DuckDB 1.5) adds OGC_FID: the row number, unless the Features
+    # carry integer "id"s, which it puts there. Those are source data: keep them
+    # (as `id` when no property is called that).
+    if 'OGC_FID' in cols and not _is_row_number(con, read, 'OGC_FID'):
+        drop.remove('OGC_FID')
+        if 'id' not in cols:
+            drop.append('OGC_FID')
+            rename = ', OGC_FID AS id'
+    select = (f'* EXCLUDE ({", ".join(drop)})' if drop else '*') + rename + \
+        (f', geom AS "{geometry_name}"' if geometry_name else '')
     raw = out.with_name(f'{out.stem}.raw.parquet')
     try:
         con.execute(f"COPY (SELECT {select} FROM {read}) TO '{raw}' (FORMAT PARQUET, COMPRESSION ZSTD)")

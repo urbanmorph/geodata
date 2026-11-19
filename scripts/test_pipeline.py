@@ -237,6 +237,49 @@ def test_geojson_to_parquet_adds_no_reader_column(tmp_path):
     assert cols == ['name', 'geometry', 'xmin', 'ymin', 'xmax', 'ymax']
 
 
+def _ids_geojson(path: Path, ids: list, props: list[dict] | None = None) -> Path:
+    feats = [{'type': 'Feature', **({} if i is None else {'id': i}), 'properties': (props or [{}] * len(ids))[n],
+              'geometry': {'type': 'Point', 'coordinates': [77 + n, 12 + n]}} for n, i in enumerate(ids)]
+    path.write_text(json.dumps({'type': 'FeatureCollection', 'features': feats}))
+    return path
+
+
+def _parquet_rows(out: Path) -> tuple[list[str], list[tuple]]:
+    con = pipeline.make_con()
+    rows = con.execute(f"SELECT * EXCLUDE (geometry, xmin, ymin, xmax, ymax) FROM '{out}' ORDER BY xmin").fetchall()
+    return [d[0] for d in con.description], rows
+
+
+@pytest.mark.parametrize('ids', [[None, None, None], [0, 1, 2], [1, 2, 3]])
+def test_geojson_to_parquet_drops_row_numbers(tmp_path, ids):
+    # No feature ids: ST_Read's OGC_FID is just the row number, not source data.
+    out = tmp_path / 'o.parquet'
+    pipeline.geojson_to_parquet(_ids_geojson(tmp_path / 'i.geojson', ids, [{'n': 'a'}, {'n': 'b'}, {'n': 'c'}]),
+                                out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['n'], [('a',), ('b',), ('c',)])
+
+
+def test_geojson_to_parquet_keeps_integer_feature_ids_as_id(tmp_path):
+    # ST_Read puts a Feature's integer "id" into OGC_FID: that is source data.
+    out = tmp_path / 'o.parquet'
+    pipeline.geojson_to_parquet(_ids_geojson(tmp_path / 'i.geojson', [17, 42]), out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['id'], [(17,), (42,)])
+
+
+def test_geojson_to_parquet_keeps_integer_ids_beside_an_id_property(tmp_path):
+    out = tmp_path / 'o.parquet'
+    gj = _ids_geojson(tmp_path / 'i.geojson', [17, 42], [{'id': 'p1'}, {'id': 'p2'}])
+    pipeline.geojson_to_parquet(gj, out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['OGC_FID', 'id'], [(17, 'p1'), (42, 'p2')])
+
+
+def test_geojson_to_parquet_keeps_string_feature_ids(tmp_path):
+    # A string "id" comes through as an `id` column; OGC_FID is then row numbers.
+    out = tmp_path / 'o.parquet'
+    pipeline.geojson_to_parquet(_ids_geojson(tmp_path / 'i.geojson', ['x1', 'x2']), out, geometry_name='geometry')
+    assert _parquet_rows(out) == (['id'], [('x1',), ('x2',)])
+
+
 def test_judiciary_parquet_gets_bbox_columns_for_nearby(tmp_path):
     # bake_judiciary wrote plain ST_Read parquet: no bbox columns, no Hilbert order.
     import bake_judiciary as bj
