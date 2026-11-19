@@ -279,3 +279,65 @@ def test_fetched_at_changes_with_the_release_only():
     same = patched()
     assert b.fetched_at_for(same, '2026-09-23.1', 'NOW') == '2026-10-07T12:00:00+00:00'
     assert b.fetched_at_for(OLD_LAYER, '2026-09-23.1', 'NOW') == 'NOW'
+
+
+# ── download: parallel ranges, each cached, resumable ─────────────────────
+
+class _Ranges(__import__('http.server').server.BaseHTTPRequestHandler):
+    body = bytes(range(256)) * 400  # 102,400 bytes
+    got: list = []
+
+    def do_HEAD(self):  # noqa: N802
+        self.send_response(200)
+        self.send_header('Content-Length', str(len(self.body)))
+        self.end_headers()
+
+    def do_GET(self):  # noqa: N802
+        a, b = (int(x) for x in self.headers['Range'].split('=')[1].split('-'))
+        type(self).got.append(a)
+        chunk = self.body[a:b + 1]
+        self.send_response(206)
+        self.send_header('Content-Range', f'bytes {a}-{b}/{len(self.body)}')
+        self.send_header('Content-Length', str(len(chunk)))
+        self.end_headers()
+        self.wfile.write(chunk)
+
+    def log_message(self, *a):
+        pass
+
+
+@pytest.fixture
+def ranges_url():
+    import http.server
+    import threading
+    _Ranges.got = []
+    srv = http.server.ThreadingHTTPServer(('127.0.0.1', 0), _Ranges)
+    threading.Thread(target=srv.serve_forever, daemon=True).start()
+    yield f'http://127.0.0.1:{srv.server_port}/part-0.parquet'
+    srv.shutdown()
+
+
+def test_a_stopped_download_keeps_its_finished_ranges_and_resumes(tmp_path, ranges_url):
+    """At ~0.7 MB/s from S3 a release file takes a long time: a stop (time limit,
+    kill) keeps every finished range on disk and the next run fetches only the rest."""
+    import pipeline
+    dest = tmp_path / 'part-0.parquet'
+    clock = iter([0.0] + [0.0] * 3 + [999.0] * 100)
+    with pytest.raises(pipeline.OutOfTime):
+        b.download_ranged(ranges_url, dest, parts=1, chunk=10_000,
+                          deadline=pipeline.Deadline(1, clock=lambda: next(clock)))
+    assert not dest.exists()
+    first = list(_Ranges.got)
+    assert 0 < len(first) < 11
+    _Ranges.got = []
+    b.download_ranged(ranges_url, dest, parts=4, chunk=10_000)
+    assert dest.read_bytes() == _Ranges.body
+    assert sorted(first + _Ranges.got) == list(range(0, 102_400, 10_000))  # no range fetched twice
+    assert not list(tmp_path.glob('*.chunks'))
+
+
+def test_a_finished_file_is_not_fetched_again(tmp_path, ranges_url):
+    dest = tmp_path / 'part-0.parquet'
+    dest.write_bytes(b'done')
+    b.download_ranged(ranges_url, dest)
+    assert _Ranges.got == []

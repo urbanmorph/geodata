@@ -13,7 +13,7 @@ new bytes in range reads. The old release's keys stay on R2 (a published URL
 never breaks); scripts/r2_prune.py prunes old tiles, nothing else.
 
 Usage:
-    python3 scripts/bake_overture_places.py fetch  --release 2026-09-23.1 --src DIR
+    python3 scripts/bake_overture_places.py fetch  --release 2026-09-23.1 --src DIR [--max-minutes 300]
     python3 scripts/bake_overture_places.py bake   --release 2026-09-23.1 --src DIR --out DIR
     python3 scripts/bake_overture_places.py upload --release 2026-09-23.1 --out DIR
 """
@@ -23,17 +23,18 @@ import argparse
 import copy
 import json
 import re
+import shutil
 import sys
 import tempfile
 import urllib.request
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
-from pipeline import atomic_output, write_json  # noqa: E402
+from pipeline import USER_AGENT, Deadline, OutOfTime, atomic_output, log, with_retries, write_json  # noqa: E402
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 
@@ -248,11 +249,11 @@ def _con(tmp: Path):
     return con
 
 
-def fetch(release: str, src: Path, parts: int = 8) -> list[Path]:
+def fetch(release: str, src: Path, parts: int = 8, deadline: Deadline | None = None) -> list[Path]:
     """Download only the release files whose row groups overlap India.
     Overture files are spatially sorted, so a release's ~30 files reduce to a
     few; S3 throttles one connection to us-west-2 (~0.7 MB/s from India), so
-    each file comes down as `parts` parallel byte ranges."""
+    each file comes down as `parts` parallel byte ranges (download_ranged)."""
     from bake_extracts import make_con
     con = make_con()
     con.execute("INSTALL httpfs; LOAD httpfs; SET s3_region = 'us-west-2';")
@@ -262,35 +263,67 @@ def fetch(release: str, src: Path, parts: int = 8) -> list[Path]:
     for s3_path in overlapping_files(groups):
         url = f"{S3_BUCKET_URL}/{s3_path.removeprefix('s3://overturemaps-us-west-2/')}"
         dest = src / s3_path.rsplit('/', 1)[1]
-        if not dest.exists():
-            download_ranged(url, dest, parts)
+        download_ranged(url, dest, parts, deadline=deadline)
         done.append(dest)
     return done
 
 
-def download_ranged(url: str, dest: Path, parts: int = 8) -> Path:
-    """GET `url` as `parts` parallel byte ranges into `dest` (atomic, size-checked)."""
-    from pipeline import with_retries
-    head = urllib.request.Request(url, method='HEAD', headers={'User-Agent': 'Mozilla/5.0'})
+CHUNK_BYTES = 64 * 1024 * 1024
+
+
+def download_ranged(url: str, dest: Path, parts: int = 8, chunk: int = CHUNK_BYTES,
+                    deadline: Deadline | None = None) -> Path:
+    """GET `url` as fixed-size byte ranges, `parts` at a time, each streamed to
+    its own file under <dest>.chunks/ and kept once complete (size-checked).
+    A stopped run (its time limit, a kill, a dropped connection) keeps every
+    finished range and the next run fetches only the rest; `dest` appears,
+    by streaming the ranges together, only when every byte is there."""
+    if dest.exists():
+        return dest
+    head = urllib.request.Request(url, method='HEAD', headers={'User-Agent': USER_AGENT})
     size = with_retries(lambda: int(urllib.request.urlopen(head, timeout=60).headers['Content-Length']), 4)
+    chunks = dest.with_name(dest.name + '.chunks')
+    chunks.mkdir(parents=True, exist_ok=True)
+    ranges = [(a, min(a + chunk, size) - 1) for a in range(0, size, chunk)]
 
-    def get(rng: tuple[int, int]) -> bytes:
-        req = urllib.request.Request(url, headers={'Range': f'bytes={rng[0]}-{rng[1]}', 'User-Agent': 'Mozilla/5.0'})
+    def path(rng: tuple[int, int]) -> Path:
+        return chunks / f'{rng[0]:015d}.bin'
 
-        def once() -> bytes:
-            with urllib.request.urlopen(req, timeout=600) as r:
-                body = r.read()
-            if len(body) != rng[1] - rng[0] + 1:  # a short range is a cut-off answer: retry it
-                raise OSError(f'range {rng}: got {len(body)} bytes')
-            return body
-        return with_retries(once, 4)
+    def get(rng: tuple[int, int]) -> None:
+        if deadline:
+            deadline.check(f'{dest.name} bytes {rng[0]:,}')
+        req = urllib.request.Request(url, headers={'Range': f'bytes={rng[0]}-{rng[1]}', 'User-Agent': USER_AGENT})
 
+        def once() -> None:
+            with atomic_output(path(rng)) as part, urllib.request.urlopen(req, timeout=600) as r, \
+                    part.open('wb') as f:
+                shutil.copyfileobj(r, f, 1 << 20)
+                f.flush()
+                if f.tell() != rng[1] - rng[0] + 1:  # a short range is a cut-off answer: retry it
+                    raise OSError(f'range {rng}: got {f.tell():,} bytes')
+        with_retries(once, 4)
+
+    todo = [r for r in ranges if not (path(r).exists() and path(r).stat().st_size == r[1] - r[0] + 1)]
+    log(f'  {dest.name}: {size / 1e6:,.0f} MB, {len(ranges) - len(todo)} of {len(ranges)} ranges on disk')
+    with ThreadPoolExecutor(parts) as pool:
+        futures = [pool.submit(get, r) for r in todo]
+        try:
+            for n, fut in enumerate(as_completed(futures), 1):
+                fut.result()
+                if n % 8 == 0 or n == len(futures):
+                    log(f'    {dest.name}: {len(ranges) - len(todo) + n} of {len(ranges)} ranges')
+        except BaseException:
+            for f in futures:
+                f.cancel()
+            raise
     with atomic_output(dest) as part:
-        with ThreadPoolExecutor(parts) as pool, part.open('wb') as out:
-            for chunk in pool.map(get, bake_formats.byte_ranges(size, parts)):
-                out.write(chunk)
+        with part.open('wb') as out:
+            for r in ranges:
+                with path(r).open('rb') as f:
+                    shutil.copyfileobj(f, out, 1 << 20)
         if part.stat().st_size != size:
-            raise IOError(f'{dest.name}: got {part.stat().st_size} of {size} bytes')
+            raise OSError(f'{dest.name}: got {part.stat().st_size:,} of {size:,} bytes')
+    shutil.rmtree(chunks)
     return dest
 
 
@@ -425,10 +458,15 @@ def main() -> None:
     ap.add_argument('--release')
     ap.add_argument('--src', type=Path)
     ap.add_argument('--out', type=Path)
+    ap.add_argument('--max-minutes', type=float, default=300, help='fetch stops cleanly after this long')
     a = ap.parse_args()
     if a.step == 'fetch':
         a.src.mkdir(parents=True, exist_ok=True)
-        print('\n'.join(str(p) for p in fetch(a.release, a.src)))
+        try:
+            print('\n'.join(str(p) for p in fetch(a.release, a.src, deadline=Deadline(a.max_minutes))))
+        except OutOfTime as e:
+            log(f'STOPPED: {e}; finished ranges are kept, re-run to continue')
+            sys.exit(3)
     elif a.step == 'bake':
         print(json.dumps(bake(a.release, a.src, a.out), indent=2))
     else:
