@@ -107,8 +107,19 @@ def test_stale_keys_is_empty_when_nothing_changed():
 
 # ── tiles: popup fields only (many attributes make tippecanoe drop points) ─
 
-def test_tile_fields_are_the_popup_fields():
-    assert b.TILE_FIELDS == ('id', 'name', 'basic_category', 'confidence', 'operating_status')
+def test_tile_fields_are_the_popup_fields_then_the_filter_panel_columns():
+    assert b.TILE_FIELDS == ('id', 'name', 'basic_category', 'confidence', 'operating_status', 'version')
+
+
+def test_tiles_carry_every_column_the_filter_panel_filters_on():
+    # the panel's stats for this layer (low-cardinality columns the map must draw)
+    from build_filter_stats import tile_filter_columns
+    stats = {'row_count': 4_758_311, 'columns': [
+        {'name': 'id', 'type': 'string', 'distinct': 4_758_311, 'nulls': 0},
+        {'name': 'operating_status', 'type': 'string', 'distinct': 2, 'nulls': 0},
+        {'name': 'basic_category', 'type': 'string', 'distinct': 263, 'nulls': 0},
+        {'name': 'version', 'type': 'int', 'distinct': 16, 'nulls': 0}]}
+    assert set(tile_filter_columns(stats)) <= set(b.TILE_FIELDS)
 
 
 def test_tile_args_keep_only_tile_fields_and_read_geojsonseq():
