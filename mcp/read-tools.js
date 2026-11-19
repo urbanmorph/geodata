@@ -11,15 +11,16 @@ export const INSTRUCTIONS_CORE = `Workflow patterns:
 - **Filtering**: query_layer where is an exact, case-insensitive match (no partial or substring match). Pass column=value pairs; check the schema for the right column name and value format. Columns the schema marks as type "nested" (structs, lists, maps, e.g. Overture names/addresses) can be selected but not used in where or group_by (the API returns 400 listing the flat columns).
 - **Counting**: use group_by to count features by any column. Example: group_by "category" on the gs_wildlife layer returns national parks vs sanctuaries.
 - **Totals**: add sum (numeric columns) to group_by to total values per group, e.g. group_by "district" + sum ["area_ha"] rolls block-level areas up to districts. Percentages are not additive: sum the underlying amounts and recompute shares.
-- **Location queries**: locate returns all admin boundaries + zones at a lat/lng, and (for the ~30 covered cities) auto-includes the municipal ward layer that contains the point — so "what ward is this?" just works with lat/lng alone. Use it to answer "what state/district/ward is this point in?"
+- **Location queries**: locate returns all admin boundaries + zones at a lat/lng, and (for the 30+ cities with ward layers) auto-includes the municipal ward layer that contains the point, so "what ward is this?" works with lat/lng alone. Use it to answer "what state/district/ward is this point in?"
 - **Spatial joins** (multi-step): to answer "which X are in Y?" when layers don't share a common column:
   1. Use locate to find the admin context (state, district) of the target area
   2. Use query_layer with a where filter to narrow the other layer by that admin context
   3. For precise spatial containment, test individual points via locate against the target layer
+- **Near a point**: nearby returns a layer's features nearest first within radius_km (default 25, max 200), with the true count inside the radius. Use it for "X near Y" once you have Y's coordinate.
 - **Community layers**: list_submissions returns user-contributed datasets. These work with query_layer and get_layer_schema exactly like curated layers.
 - **Downloads**: get_layer_detail returns direct URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most).
 - **Citing**: get_layer_detail also returns "versions", the layer's dated releases, newest first. When you cite or publish a result, name the version you used by its code (e.g. bharatlas-lgd_states-2026.12) and sha256, or its w3id address. An empty list means no release yet: cite the layer's /view page and the date you read it.
-- **Large layers**: overture_places_india has 4.4M places. Always narrow it: where on basic_category (e.g. "hospital", "restaurant") or name, group_by, or nearby for places around a point. Whole-table filters and group_by take several seconds; nearby is the fast path for "near me".
+- **Large layers**: overture_places_india has 4.8M places. Always narrow it: where on basic_category (e.g. "hospital", "restaurant") or name, group_by, or nearby for places around a point. Whole-table filters and group_by take several seconds; nearby is the fast path for "near me".
 - **Honor the terms**: every layer and community submission carries its own source and open licence. When you use, quote, or publish results from a layer, credit its source and respect that licence; get_layer_detail returns the attribution and licence, and each /view page's Dataset JSON-LD carries a creditText to reproduce. A layer whose answer has "non_commercial": true is for non-commercial use only: say so whenever you use or recommend it, quote its "licence_notice", and never suggest it for a product, a client or paid work.
 
 Source preference (multiple layers often cover the same level):
@@ -43,11 +44,12 @@ Cross-layer queries (combining data from different layers):
   - "wells/borewells/tubewells/irrigation pumps" → mi6_wells_districts (census counts per district, 2017-18)
   - "forests/green cover/ecology" → soi_forests, gs_wildlife, bm_eco_zones, biogeographic_zones
   - "agriculture/farming/cropping zones" → agro_ecological_zones, agro_climatic_zones, corestack_lulc_blocks (land use and cropping intensity by block, modelled)
-  - "places/POIs/shops/restaurants/ATMs/schools/hospitals by name" → overture_places_india (filter on name or basic_category; 4.4M rows, always add a where or group_by, or use nearby)
+  - "places/POIs/shops/restaurants/ATMs/schools/hospitals by name" → overture_places_india (filter on name or basic_category; 4.8M rows, always add a where or group_by, or use nearby)
   - "hazards/risks" → seismic_zones, india_flood_inventory
   - "health/medical" → nic_health
   - "boundaries/admin" → lgd_states, lgd_districts, lgd_subdistricts, lgd_blocks, lgd_villages
-  - "roads/transport" → gs_highways, airports
+  - "roads/transport" → gs_highways, pmgsy_roads (rural roads), airports
+  - "railway stations/metro/bus stops/transit" → ir_stations, urban_rail_stations, urban_rail_lines, bus_stops
   When unsure, use list_layers with a broad q search and list_categories to discover what's available. Combine ALL relevant layers, not just the first match.
 - **Sky and air over a place**: once you have a coordinate (from locate, nearby or a layer row), the mugilu MCP (mugilu.live/mcp, tool conditions_at) gives the live air quality, heat, fog and warnings there. bharatlas answers where; mugilu answers what the sky is doing.
 
@@ -72,7 +74,7 @@ export const READ_TOOLS = [
       properties: {
         category: {
           type: "string",
-          description: "Filter by category: boundaries, city-wards, people, environment, water, agriculture, transport, infrastructure, health-edu",
+          description: "Filter by category: boundaries, city-wards, people, environment, water, agriculture, transport, infrastructure, health-edu, economy",
         },
         level: {
           type: "string",
@@ -159,7 +161,7 @@ export const READ_TOOLS = [
       "Given a latitude/longitude, find which administrative boundaries, zones, and regions " +
       "contain that point. Returns state, district, subdistrict, block, parliament/assembly " +
       "constituency, pincode, seismic zone, high court jurisdiction, the municipal ward (for " +
-      "the ~30 cities with ward data), and more. " +
+      "the 30+ cities with ward layers), and more. " +
       "The 'where am I?' tool. Also accepts specific layer IDs to check.",
     inputSchema: {
       type: "object",
@@ -175,7 +177,7 @@ export const READ_TOOLS = [
         layers: {
           type: "array",
           items: { type: "string" },
-          description: "Specific layer IDs to check. Omit to use the default: 13 essential admin/zone layers PLUS the city ward layer(s) covering the point (for the ~30 cities with ward data). Passing this replaces the default entirely (no ward auto-include).",
+          description: "Specific layer IDs to check. Omit to use the default: 13 essential admin/zone layers PLUS the city ward layer(s) covering the point (for the 30+ cities with ward layers). Passing this replaces the default entirely (no ward auto-include).",
         },
       },
       required: ["lat", "lng"],
