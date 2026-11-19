@@ -1,0 +1,282 @@
+{
+ "code": "bharatlas-mgnrega_districts-2026.11",
+ "dataset": "mgnrega_districts",
+ "title": "MGNREGA by District (2025-26), MoRD",
+ "description": "\"District-wise MGNREGA Data at a Glance\", Ministry of Rural Development, on data.gov.in under GODL-India. Values are each district's latest cumulative snapshot of the year as published (March for most; the month column shows which); money columns (Total_Exp, Wages, Material_and_skilled_Wages, Total_Adm_Expenditure, exp_*) are in Rs lakh. NREGA districts are matched to LGD districts by name within the state, with hand-checked renames; districts without a match have no values. MGNREGA reports Rajasthan as its 33 districts before the 2023 reorganisation and Nagaland as 11 districts, so there an older district's figures include the newer districts carved from it, which show no values. Urban districts (Delhi, Mumbai, Chennai, Kolkata, Hyderabad, Chandigarh) have no MGNREGA. Darjeeling covers the Siliguri subdivision only (the hill areas report as GTA, which spans Darjeeling and Kalimpong). NREGA districts with no LGD polygon: ARUNACHAL PRADESH / KEYI PANYOR; WEST BENGAL / GORKHALAND TERRITORIAL ADMINISTRATION (GTA). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+ "released": "2026-11-19",
+ "sha256": "04549ecc4c73f52dcfb8bcac4cedc5a4671e4d18931bb6a6ed73cf93b87a4b7e",
+ "sha256_of": "SHA256SUMS",
+ "pin": "bharatlas-mgnrega_districts-2026.11+sha256:04549ecc4c73f52dcfb8bcac4cedc5a4671e4d18931bb6a6ed73cf93b87a4b7e",
+ "files": [
+  {
+   "name": "mgnrega_districts.geojson",
+   "sha256": "63b786b856e9492cf4389d1b32d9e84ffb90a0b68150c4e5d9fb9b9378516f78",
+   "bytes": 94213743,
+   "rows": null,
+   "licence": "GODL-India",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.geojson",
+   "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.geojson"
+  },
+  {
+   "name": "mgnrega_districts.kml",
+   "sha256": "6ecb44764ed27b799a2422e08d467a398bebcd5ea14a8383f7d40eea743d99a4",
+   "bytes": 75385397,
+   "rows": null,
+   "licence": "GODL-India",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.kml",
+   "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.kml"
+  },
+  {
+   "name": "mgnrega_districts.parquet",
+   "sha256": "37034c3a6c808d4f10b2961bc3c9cb37181c69ec7e9c499b68f91ce5ea28600f",
+   "bytes": 24229000,
+   "rows": 785,
+   "licence": "GODL-India",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.parquet",
+   "columns": [
+    {
+     "name": "dist_lgd",
+     "type": "INTEGER"
+    },
+    {
+     "name": "dtname",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "stname",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "state_lgd",
+     "type": "INTEGER"
+    },
+    {
+     "name": "Approved_Labour_Budget",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Average_Wage_rate_per_day_per_person",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Average_days_of_employment_provided_per_Household",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Differently_abled_persons_worked",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Material_and_skilled_Wages",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Number_of_Completed_Works",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Number_of_GPs_with_NIL_exp",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Number_of_Ongoing_Works",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Persondays_of_Central_Liability_so_far",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Remarks",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "SC_persondays",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "SC_workers_against_active_workers",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ST_persondays",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ST_workers_against_active_workers",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_Adm_Expenditure",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_Exp",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_Households_Worked",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_Individuals_Worked",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_No_of_Active_Job_Cards",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_No_of_Active_Workers",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_No_of_HHs_completed_100_Days_of_Wage_Employment",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_No_of_JobCards_issued",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_No_of_Workers",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Total_No_of_Works_Takenup",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Wages",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "Women_Persondays",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "district_code",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "district_name",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "fin_year",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "month",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "percent_of_Category_B_Works",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "percent_of_Expenditure_on_Agriculture_Allied_Works",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "percent_of_NRM_Expenditure",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "percentage_payments_gererated_within_15_days",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "state_code",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "state_name",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "exp_2018_19",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "exp_2019_20",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "exp_2020_21",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "exp_2021_22",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "exp_2022_23",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "exp_2023_24",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "exp_2024_25",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "exp_2025_26",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "geometry",
+     "type": "GEOMETRY"
+    },
+    {
+     "name": "xmin",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ymin",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "xmax",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ymax",
+     "type": "DOUBLE"
+    }
+   ],
+   "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.parquet"
+  },
+  {
+   "name": "mgnrega_districts.shp.zip",
+   "sha256": "743062a293b14c53e4075b658ade2072c8dd20092a720f30bca506582525589c",
+   "bytes": 39491753,
+   "rows": null,
+   "licence": "GODL-India",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/economy/mgnrega-districts/MGNREGA_Districts_2025_26.shp.zip",
+   "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/mgnrega_districts.shp.zip"
+  }
+ ],
+ "licence": "GODL-India",
+ "attribution": {
+  "sources": [
+   {
+    "name": "Ministry of Rural Development (MGNREGA), via data.gov.in",
+    "url": "https://www.data.gov.in/",
+    "fetched": "2026-11-19T15:33:44+00:00",
+    "version": "resources=1 changed=1795021225"
+   }
+  ],
+  "compiled_by": "bharatlas (https://bharatlas.com; https://github.com/urbanmorph/geodata)"
+ },
+ "citation": "Ministry of Rural Development (MGNREGA), via data.gov.in. MGNREGA by District (2025-26), MoRD, as released by bharatlas: bharatlas-mgnrega_districts-2026.11 (sha256:04549ecc4c73f52dcfb8bcac4cedc5a4671e4d18931bb6a6ed73cf93b87a4b7e). https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/",
+ "url": "https://bharatlas.com/releases/bharatlas-mgnrega_districts-2026.11/",
+ "w3id_proposed": "https://w3id.org/bharatlas/mgnrega_districts/2026.11",
+ "previous": null,
+ "layer": {
+  "id": "mgnrega_districts",
+  "view": "https://bharatlas.com/view/mgnrega_districts"
+ }
+}
