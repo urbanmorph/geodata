@@ -1203,14 +1203,14 @@
       "description": "Degraded land mapped at 1:50,000 by NRSC from 2015-16 satellite imagery: the process (water or wind erosion, salinity, waterlogging, mining and more) and its severity, with the 2005-06 mapping alongside."
     },
     "urban_rail_stations": {
-      "label": "Metro, monorail and RRTS stations",
+      "label": "Metro and RRTS stations",
       "unit": "stations",
-      "description": "Stations in operation on India's metro, monorail and regional rapid transit (Namo Bharat) systems, one point per station, with its system, city and the lines that stop there."
+      "description": "Stations in operation on India's metro and regional rapid transit (Namo Bharat) systems, one point per station, with its system, city and the lines that stop there."
     },
     "urban_rail_lines": {
-      "label": "Metro, monorail and RRTS lines",
+      "label": "Metro and RRTS lines",
       "unit": "lines",
-      "description": "Lines in operation on India's metro, monorail and regional rapid transit systems, one feature per line with its name, number and colour where OpenStreetMap has them."
+      "description": "Lines in operation on India's metro and regional rapid transit systems, one feature per line with its name, number and colour where OpenStreetMap has them."
     },
     "bus_stops": {
       "label": "Bus stops",
