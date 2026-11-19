@@ -84,6 +84,24 @@ def test_a_layer_override_sets_its_own_tolerance_with_a_reason(monkeypatch):
     assert '30%' in block['audit']
 
 
+def test_a_layer_override_names_what_its_class_audit_checks(monkeypatch):
+    monkeypatch.setitem(pr.OVERRIDES, 'urban_rail_stations', {'audit': 'stations per city within 2 of Wikipedia'})
+    block, _ = pr.infer(layer('urban_rail_stations', 'transport'))
+    assert block['class'] == 'fast'
+    assert block['audit'].endswith('; the class audit: stations per city within 2 of Wikipedia')
+    assert 'counts against the reference' not in block['audit']
+
+
+def test_populate_keeps_the_last_audit_result_and_adds_none_where_there_is_none():
+    cat = {'layers': [layer('ir_stations', 'transport', fetched_at='2026-11-17T00:00:00+00:00'), layer()]}
+    result = {'Delhi Metro': {'rows': 243, 'reference': 243}}
+    cat['layers'][0]['refresh'] = {'class': 'fast', 'audited_at': '2026-11-18', 'audit_result': result}
+    pr.populate(cat, None)
+    assert cat['layers'][0]['refresh']['audit_result'] == result
+    assert list(cat['layers'][0]['refresh'])[-1] == 'audit_result'
+    assert 'audit_result' not in cat['layers'][1]['refresh']
+
+
 def test_a_tolerance_without_a_reason_is_refused(monkeypatch):
     monkeypatch.setitem(pr.OVERRIDES, 'wards_pune', {'tolerance': 0.3})
     try:
