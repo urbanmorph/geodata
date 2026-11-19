@@ -15,6 +15,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import bake_land_water as blw  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
+from tile_keys import versioned_key  # noqa: E402
 
 
 # Download, cached steps and the time limit live in pipeline (test_pipeline_infra.py).
@@ -141,24 +142,44 @@ def test_layers_are_republished_under_policy_b_smallest_first():
         assert [x.id for x in blw.DATASETS if d.id in x.id] == [d.id]
 
 
+def _built(tmp_path: Path, bakes: tuple[str, ...] = ()) -> dict:
+    """A local build of DATASETS[0]: parquet, tiles and the given whole-layer bakes."""
+    stem = 'SLUSI_Priority_MicroWatersheds'
+    exts = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'kml': 'kml', 'shapefile': 'shp.zip'}
+    paths = {}
+    for fmt in ('parquet', 'pmtiles', *bakes):
+        paths[fmt] = tmp_path / f'{stem}.{exts[fmt]}'
+        paths[fmt].write_bytes(fmt.encode())
+    return blw.built_files(paths, features=3)
+
+
+def test_every_file_gets_a_content_versioned_name(tmp_path):
+    # R2 objects are immutable once a catalog points at them: a refresh must
+    # never overwrite a published parquet or download, only add new keys.
+    built = _built(tmp_path, ('geojson', 'kml', 'shapefile'))
+    for fmt, path in built['paths'].items():
+        assert built['names'][fmt] == versioned_key(path.name, ir.file_md5(path))
+    assert built['names']['shapefile'].endswith('.shp.zip')
+
+
 def test_catalog_patch_touches_only_the_given_root_file_and_is_idempotent(tmp_path):
     cat = tmp_path / 'catalog.json'
     cat.write_text(json.dumps({'layers': [], 'level_meta': {}, 'level_order': []}, indent=2) + '\n')
-    gj = tmp_path / 'X.geojson'
-    gj.write_text('{}')
     d = blw.DATASETS[0]
-    tiles = 'SLUSI_Priority_MicroWatersheds.0123abcd.pmtiles'
-    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, tiles, catalog=cat)
+    built = _built(tmp_path, ('geojson',))
+    blw.patch_root_catalog(d, built, catalog=cat)
     first = cat.read_text()
-    blw.patch_root_catalog(d, 10, 20, 3, {'geojson': gj}, tiles, catalog=cat)
+    blw.patch_root_catalog(d, built, catalog=cat)
     assert cat.read_text() == first
     layer = json.loads(first)['layers'][0]
-    assert (layer['id'], layer['rows'], layer['geojson']['bytes']) == (d.id, 3, 2)
-    assert layer['parquet']['url'].endswith(f'{d.r2_prefix}/SLUSI_Priority_MicroWatersheds.parquet')
-    assert layer['pmtiles'] == {'url': f'{ir.R2_PUBLIC}/{d.r2_prefix}/{tiles}', 'bytes': 20}
+    names = built['names']
+    assert (layer['id'], layer['rows'], layer['geojson']['bytes']) == (d.id, 3, len(b'geojson'))
+    for fmt in ('parquet', 'pmtiles', 'geojson'):
+        assert layer[fmt]['url'] == f'{ir.R2_PUBLIC}/{d.r2_prefix}/{names[fmt]}'
+    assert layer['parquet']['upstream_url'] == d.parquet_url
 
 
-def test_register_points_catalog_and_manifest_at_the_versioned_tiles(tmp_path, monkeypatch):
+def test_register_points_catalog_and_manifest_at_the_versioned_files(tmp_path, monkeypatch):
     (tmp_path / 'scripts').mkdir()
     (tmp_path / 'scripts' / 'external-ingested.json').write_text('[]')
     cat = tmp_path / 'catalog.json'
@@ -166,25 +187,22 @@ def test_register_points_catalog_and_manifest_at_the_versioned_tiles(tmp_path, m
     monkeypatch.setattr(ir, 'ROOT', tmp_path)
     monkeypatch.setattr(blw, 'CATALOG', cat)
     d = blw.DATASETS[0]
-    pq, pm = tmp_path / 'SLUSI_Priority_MicroWatersheds.parquet', tmp_path / 'SLUSI_Priority_MicroWatersheds.pmtiles'
-    pq.write_bytes(b'pq')
-    pm.write_bytes(b'tiles')
-    name = blw.tiles_name(pm)
-    blw.register(d, {'files': {pq: pq.name, pm: name}, 'features': 1, 'bakes': {}})
+    built = _built(tmp_path)
+    blw.register(d, built)
     row = json.loads((tmp_path / 'scripts' / 'external-ingested.json').read_text())[0]
-    assert (row['pmtiles_file'], row['parquet_file']) == (name, pq.name)
-    assert json.loads(cat.read_text())['layers'][0]['pmtiles']['url'].endswith('/' + name)
+    assert (row['parquet_file'], row['pmtiles_file']) == (built['names']['parquet'], built['names']['pmtiles'])
+    layer = json.loads(cat.read_text())['layers'][0]
+    assert layer['parquet']['url'].endswith('/' + built['names']['parquet'])
+    assert layer['pmtiles']['url'].endswith('/' + built['names']['pmtiles'])
 
 
 def test_tiles_go_to_a_new_key_per_content(tmp_path):
-    # R2 objects are immutable once a catalog points at them: a rebuilt
-    # tileset gets its own key, <stem>.<md5[:8]>.pmtiles.
     pm = tmp_path / 'NGDR_Lithology_50k.pmtiles'
     pm.write_bytes(b'tiles v1')
-    first = blw.tiles_name(pm)
+    first = blw.built_files({'pmtiles': pm}, 1)['names']['pmtiles']
     assert first == f'NGDR_Lithology_50k.{ir.file_md5(pm)[:8]}.pmtiles'
     pm.write_bytes(b'tiles v2')
-    assert blw.tiles_name(pm) != first
+    assert blw.built_files({'pmtiles': pm}, 1)['names']['pmtiles'] != first
     assert blw.CATALOG == ir.ROOT / 'catalog.json'
 
 
@@ -212,9 +230,9 @@ def test_publish_uploads_resumably_under_the_lock_then_registers(tmp_path, monke
     monkeypatch.setattr(pipeline, 'r2_upload_resumable', fake_upload)
     monkeypatch.setattr(blw, 'register', lambda d, built: registered.append(d.id))
     d = blw.DATASETS[0]
-    a, b = tmp_path / 'X.parquet', tmp_path / 'X.pmtiles'
-    blw.publish(d, {'files': {a: 'X.parquet', b: 'X.pmtiles'}, 'features': 1, 'bakes': {}})
-    assert seen == [f'{d.r2_prefix}/X.parquet', f'{d.r2_prefix}/X.pmtiles']
+    built = _built(tmp_path, ('geojson',))
+    blw.publish(d, built)
+    assert seen == [f"{d.r2_prefix}/{built['names'][fmt]}" for fmt in ('parquet', 'pmtiles', 'geojson')]
     assert registered == [d.id] and not lock.exists()
 
 
