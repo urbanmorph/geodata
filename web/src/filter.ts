@@ -11,6 +11,7 @@ import {
   usesServerFilter, FILTER_EXPORT_MAX_BYTES, FILTER_EXPORT_MAX_ROWS, FILTER_EXPORT_MAX_SHAPE_BYTES, SERVER_SHAPE_EXPORT,
 } from '../../shared/large-load.mjs';
 import { fmtBytes } from './format-hints';
+import { dlProxyUrl } from '../../shared/downloads.mjs';
 import { pickAffordance, type Affordance, type ColumnStats } from './filter-schema';
 import { moveActive } from './search-pop';
 import {
@@ -28,7 +29,7 @@ import {
 // exports: the map prefetches this module, and a layer filtered on the server never needs it.
 const loadDb = () => import('./db');
 
-type FilterLayer = Pick<Layer, 'id' | 'parquet' | 'geojson' | 'level' | 'source'>;
+type FilterLayer = Pick<Layer, 'id' | 'parquet' | 'geojson' | 'kml' | 'level' | 'source'>;
 
 export type FilterCallbacks = {
   /** The panel's × : the map hides the panel and keeps the filter. */
@@ -135,16 +136,19 @@ export function mountFilterPanel(
   // can refuse above the caps without asking the server again.
   let lastPlan: ExportPlan | null = null;
 
-  async function countMatches(active: ActiveFilter[]): Promise<number> {
+  /** The match count, and for a large layer its export plan. The caller keeps
+   *  the plan only if this count is still the latest (a stale plan must never
+   *  gate a newer filter's export). */
+  async function countMatches(active: ActiveFilter[]): Promise<{ n: number; plan: ExportPlan | null }> {
     if (server) {
-      lastPlan = await apiPlan(layer.id, active);
-      return lastPlan.total;
+      const plan = await apiPlan(layer.id, active);
+      return { n: plan.total, plan };
     }
     const { query } = await loadDb();
     const rows = await query<{ n: bigint | number }>(
       `SELECT COUNT(*) AS n FROM ${escString(layer.parquet!.url)} WHERE ${whereClause(active)}`,
     );
-    return Number(rows[0]?.n ?? 0);
+    return { n: Number(rows[0]?.n ?? 0), plan: null };
   }
 
   async function runRowCount(active: ActiveFilter[]) {
@@ -156,9 +160,10 @@ export function mountFilterPanel(
       ? window.setTimeout(() => countLoader?.setVerbs(VERBS_COUNT), 8000)
       : undefined;
     try {
-      const n = await countMatches(active);
+      const { n, plan } = await countMatches(active);
       window.clearTimeout(warmTimer);
       if (mySeq !== countSeq) return;
+      lastPlan = plan;
       countLoader?.dismiss();
       countLoader = undefined;
       engineWarm = true;
@@ -208,7 +213,8 @@ export function mountFilterPanel(
     let plan = lastPlan;
     if (!plan) {
       try {
-        plan = lastPlan = await apiPlan(layer.id, active);
+        // Not cached: the filter may change before this answer arrives.
+        plan = await apiPlan(layer.id, active);
       } catch (e) {
         status.innerHTML = `<span class="filter-panel__err">Export failed: ${escapeHtml(String((e as Error).message))}</span>`;
         return;
@@ -240,7 +246,7 @@ export function mountFilterPanel(
         const bake = extracts[String(code)]?.[fmt];
         if (bake?.url) {
           const fn = `${layer.id}__state${code}.${fmt}`;
-          downloadHref(bake.url, fn);
+          downloadHref(dlProxyUrl(bake.url, fmt), fn);
           status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(fn)} (${fmtBytes(bake.bytes)}, pre-baked).</span>`;
           return;
         }
@@ -276,13 +282,7 @@ export function mountFilterPanel(
         clearTimeout(warmTimer);
         loader.dismiss();
         engineWarm = true;
-        // Count the filtered export against the same layer + format
-        // counter that catalog-card downloads use. The parquetUrl is the
-        // raw R2 URL; strip the domain to get the R2 key, swap the
-        // extension to the exported format, and fire-and-forget a GET to
-        // /api/dl/ so the Pages Function increments D1.
-        const countKey = parquetUrl.replace(/^https?:\/\/[^/]+\//, '').replace(/\.parquet$/, `.${fmt}`);
-        fetch(`/api/dl/${countKey}`, { keepalive: true }).catch(() => {});
+        countDownload(layer, fmt);
         status.innerHTML = `<span class="filter-panel__ok">Downloaded ${escapeHtml(filename)} (${fmtBytes(blob.size)}).</span>`;
       } catch (e) {
         clearTimeout(warmTimer);
@@ -293,6 +293,16 @@ export function mountFilterPanel(
       }
     });
   });
+}
+
+/** Count a filtered export against the same layer + format counter the
+ *  download links use (the format's own file, so versioned keys count right).
+ *  redirect:'manual' stops at the counter's 302 instead of fetching the file. */
+function countDownload(layer: FilterLayer, fmt: 'parquet' | 'geojson' | 'kml' | 'csv'): void {
+  if (fmt === 'csv') return; // no CSV file to count against
+  const url = layer[fmt]?.url;
+  if (!url) return;
+  fetch(dlProxyUrl(url, fmt), { redirect: 'manual', keepalive: true }).catch(() => {});
 }
 
 // ───── Server path (layers over LARGE_FILTER_BYTES) ─────
