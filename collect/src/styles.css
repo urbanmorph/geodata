@@ -659,13 +659,16 @@ label.btn.primary { color: var(--on-accent-solid); }
 }
 
 /* ── touch targets: at least 44 x 44 px on phones ──────────────────────────
-   The compact controls grow a little; the icon ones (photo remove, the back
-   arrow, MapLibre's zoom) keep their size and get an invisible hit area. */
+   The compact controls grow a little; the icon ones (photo remove, an
+   option's ✕, the back arrow, MapLibre's zoom) keep their size and get an
+   invisible hit area. */
 .btn-sm { min-height: 36px; font-size: var(--fs-sm); }
 @media (pointer: coarse), (max-width: 640px) {
-  .chip, .tabs button, .seg button, .link-box .btn, .link-box button, .btn-sm, .ref-opt { min-height: 44px; }
+  .chip, .tabs button, .seg button, .link-box .btn, .link-box button, .btn-sm, .ref-opt, .my-records summary { min-height: 44px; }
   .link-box button { min-width: 44px; }
   .photo-rm::after { content: ""; position: absolute; inset: -4px -4px -12px -12px; } /* 28 px dot, 44 px to tap */
+  .opt-chip button { position: relative; }
+  .opt-chip button::after { content: ""; position: absolute; inset: -12px; } /* the small ✕ in a 44 px chip, 44 px to tap */
   .topbar > a:first-child, .topbar .brand { display: inline-flex; align-items: center; min-width: 44px; min-height: 44px; margin-block: -11px; }
   .maplibregl-map .maplibregl-ctrl-group button { position: relative; }
   .maplibregl-map .maplibregl-ctrl-group button::after { content: ""; position: absolute; inset: 0 -8px; }
