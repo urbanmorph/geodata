@@ -102,9 +102,7 @@ def test_failed_download_leaves_no_file_that_counts_as_done(tmp_path):
 
 def test_ingest_ramseraph_downloads_through_the_shared_helper():
     import ingest_ramseraph as ir
-    import rebake_locate_tiles as rt
     assert ir.http_download is pipeline.download
-    assert rt.download is pipeline.download
 
 
 # ── byte-stable zips (review item 5) ─────────────────────────────────────────

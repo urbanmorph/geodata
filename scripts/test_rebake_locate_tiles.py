@@ -11,8 +11,12 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE / 'oneoff'))  # a finished one-off, kept for the record
 import rebake_locate_tiles as rt  # noqa: E402
+import tile_keys  # noqa: E402
+from pipeline import file_md5  # noqa: E402
 
 URL = 'https://pub-x.r2.dev/postal/boundaries/bharatviz_pincodes.pmtiles'
 
@@ -24,11 +28,34 @@ def test_tiles_go_to_zoom_12_and_keep_every_feature_there():
     assert ['-l', 'bharatviz_pincodes'] == cmd[cmd.index('-l'):cmd.index('-l') + 2]
 
 
-def test_new_tiles_go_to_a_versioned_key_not_the_cached_one():
-    # The old object is served immutable for 7 days; overwriting it would keep
-    # serving the coarse tiles from caches.
-    assert rt.versioned_key(URL) == 'postal/boundaries/bharatviz_pincodes.z12.pmtiles'
-    assert rt.versioned_key(URL.replace('.pmtiles', '.z12.pmtiles')) == 'postal/boundaries/bharatviz_pincodes.z12.pmtiles'
+def test_new_tiles_go_to_a_content_versioned_key(tmp_path):
+    # A fixed <stem>.z12.pmtiles came back unchanged for a layer already on it,
+    # so a rebuilt tileset overwrote the live key.
+    out = tmp_path / 'bharatviz_pincodes.pmtiles'
+    out.write_bytes(b'tiles v1')
+    first = rt.tiles_key(URL, out)
+    assert first == f'postal/boundaries/bharatviz_pincodes.{file_md5(out)[:8]}.pmtiles'
+    assert tile_keys.is_rebaked({'url': f'https://pub-x.r2.dev/{first}'})
+    out.write_bytes(b'tiles v2')
+    second = rt.tiles_key(f'https://pub-x.r2.dev/{first}', out)
+    assert second != first and second.startswith('postal/boundaries/bharatviz_pincodes.')
+    assert rt.tiles_key(URL.replace('.pmtiles', '.z12.pmtiles'), out) == second
+
+
+def test_layers_already_on_rebaked_tiles_are_skipped_unless_forced(tmp_path, monkeypatch):
+    # Rebaking them again would put every column over rebake_tiles' popup-field tiles.
+    import json
+    cat = tmp_path / 'catalog.json'
+    rebaked = {'id': 'a', 'pmtiles': {'url': URL.replace('.pmtiles', '.z12.pmtiles')}}
+    cat.write_text(json.dumps({'layers': [rebaked]}))
+    monkeypatch.setattr(rt, 'CATALOG', cat)
+    monkeypatch.setattr(rt, 'LAYERS', ['a'])
+    out = tmp_path / 'a.pmtiles'
+    out.write_bytes(b'tiles')
+    baked = []
+    monkeypatch.setattr(rt, 'bake', lambda layer: baked.append(layer['id']) or out)
+    assert rt.main(['x', '--no-upload']) == 0 and baked == []
+    assert rt.main(['x', '--no-upload', '--force']) == 0 and baked == ['a']
 
 
 def test_patch_points_the_layer_at_the_new_tiles_and_keeps_the_rest():
@@ -75,8 +102,9 @@ def test_catalog_is_patched_after_each_layer(tmp_path, monkeypatch):
     monkeypatch.setattr(rt, 'LAYERS', ['a', 'b'])
     monkeypatch.setattr(rt, 'r2_client', lambda: object())
     monkeypatch.setattr(rt, 'r2_upload', lambda *a: None)
-    out = tmp_path / 'a.z12.pmtiles'
+    out = tmp_path / 'a.pmtiles'
     out.write_bytes(b'tiles')
+    key = rt.tiles_key(layers[0]['pmtiles']['url'], out)
 
     def bake(layer):
         if layer['id'] == 'b':
@@ -86,7 +114,7 @@ def test_catalog_is_patched_after_each_layer(tmp_path, monkeypatch):
     with pytest.raises(KeyboardInterrupt):
         rt.main(['x'])
     a = json.loads(cat.read_text())['layers'][0]
-    assert a['pmtiles']['url'].endswith('/postal/boundaries/a.z12.pmtiles') and a['pmtiles']['bytes'] == 5
+    assert a['pmtiles']['url'].endswith('/' + key) and a['pmtiles']['bytes'] == 5
 
 
 def test_tile_args_come_from_the_shared_builder():

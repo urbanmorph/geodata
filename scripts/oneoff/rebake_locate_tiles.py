@@ -8,14 +8,20 @@ was z4), so a point fell inside a coarse neighbouring polygon: MG Road came
 back as 562157 (Bettahalsur) instead of 560001.
 
 Per layer: parquet (from R2) -> GeoJSON (lon,lat) -> tippecanoe -z12 ->
-upload to a versioned key (<name>.z12.pmtiles; the old key is served immutable
-for 7 days, so it is not overwritten) -> patch catalog.json. Delete the old
-keys only after the catalog change is deployed.
+upload to a content-versioned key (<stem>.<md5[:8]>.pmtiles; a published key
+never gets new bytes) -> patch catalog.json. Old keys stay on R2 (only
+r2_prune.py prunes old tiles).
+
+FINISHED ONE-OFF (Nov 2026): every layer in LAYERS is on z12 tiles. A layer
+whose catalog tiles are already rebaked (tile_keys.is_rebaked: this script's
+.z12 keys or rebake_tiles' popup-field tiles) is skipped, so a rerun cannot
+put every column back over rebake_tiles' tiles; --force rebakes it anyway (to
+a new key). For new tiles use scripts/rebake_tiles.py.
 
 Run:
     set -a; source web/.dev.vars; set +a
-    python3 scripts/rebake_locate_tiles.py --no-upload   # build + check only
-    python3 scripts/rebake_locate_tiles.py               # build, upload, patch catalog
+    python3 scripts/oneoff/rebake_locate_tiles.py --no-upload   # build + check only
+    python3 scripts/oneoff/rebake_locate_tiles.py [--force]     # build, upload, patch catalog
 
 Idempotent: downloads are cached in WORK, the GeoJSON and tiles are rebuilt
 only when older than what they are made from, uploads skip on a matching md5,
@@ -26,23 +32,26 @@ from __future__ import annotations
 
 import copy
 import json
+import re
 import subprocess
 import sys
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+HERE = Path(__file__).resolve().parent.parent  # scripts/
 sys.path.insert(0, str(HERE))
 from bake_formats import pmtiles_args  # noqa: E402
 from pipeline import (  # noqa: E402
     R2_PUBLIC,
     atomic_output,
     download,
+    file_md5,
     is_fresh,
     make_con,
     r2_client,
     r2_upload,
     write_json,
 )
+from tile_keys import is_rebaked, versioned_key  # noqa: E402
 
 ROOT = HERE.parent
 CATALOG = ROOT / 'catalog.json'
@@ -58,11 +67,11 @@ def tippecanoe_cmd(geojson: Path, out: Path, layer: str) -> list[str]:
     return pmtiles_args(geojson, out, layer, (), max_zoom=MAX_ZOOM)
 
 
-def versioned_key(pmtiles_url: str) -> str:
+def tiles_key(pmtiles_url: str, tiles: Path) -> str:
+    """<stem>.<md5[:8]>.pmtiles beside the layer's current tiles (an earlier
+    .z12 or md5 suffix replaced, not stacked)."""
     key = pmtiles_url.split('.r2.dev/', 1)[1]
-    stem = key[:-len('.pmtiles')]
-    suffix = f'.z{MAX_ZOOM}'
-    return key if stem.endswith(suffix) else f'{stem}{suffix}.pmtiles'
+    return versioned_key(re.sub(rf'\.z{MAX_ZOOM}(?=\.pmtiles$)', '', key), file_md5(tiles))
 
 
 def patched_layer(layer: dict, r2_public: str, key: str, nbytes: int) -> dict:
@@ -87,7 +96,7 @@ def bake(layer: dict) -> Path:
         with atomic_output(gj) as part:
             con.execute(f"COPY (SELECT * {exclude} FROM '{pq}' WHERE {geom} IS NOT NULL) "
                         f"TO '{part}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')")
-    out = WORK / Path(versioned_key(layer['pmtiles']['url'])).name
+    out = WORK / f'{lid}.pmtiles'
     if not is_fresh(out, gj):
         with atomic_output(out) as part:
             subprocess.run(tippecanoe_cmd(gj, part, lid), check=True, capture_output=True, timeout=1800)
@@ -100,8 +109,11 @@ def main(argv: list[str]) -> int:
     for lid in LAYERS:
         catalog = json.loads(CATALOG.read_text())
         layer = next(l for l in catalog['layers'] if l['id'] == lid)
+        if is_rebaked(layer.get('pmtiles')) and '--force' not in argv:
+            print(f'{lid}: tiles already rebaked ({layer["pmtiles"]["url"]}); skipped (--force to rebake)', flush=True)
+            continue
         out = bake(layer)
-        key = versioned_key(layer['pmtiles']['url'])
+        key = tiles_key(layer['pmtiles']['url'], out)
         print(f'{lid}: {out} ({out.stat().st_size:,} bytes) -> {key}', flush=True)
         if upload:
             r2_upload(s3, out, key)

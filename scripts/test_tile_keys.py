@@ -1,7 +1,7 @@
 """Rebaked map tiles survive a catalog rebuild or a re-ingest.
 
-rebake_tiles.py (<stem>.<md5[:8]>.pmtiles) and rebake_locate_tiles.py
-(<stem>.z12.pmtiles) publish tiles under new keys (the old keys stay; only
+rebake_tiles.py (<stem>.<md5[:8]>.pmtiles) and oneoff/rebake_locate_tiles.py
+(<stem>.z12.pmtiles, earlier) publish tiles under new keys (the old keys stay; only
 r2_prune.py prunes old tiles). build_catalog.py, ingest_ramseraph.py and the
 bakes' register steps template the tile URL from their own files, so without
 this rule a rerun would point a layer back at tiles without the rebake's
@@ -32,12 +32,9 @@ def test_is_rebaked_recognises_both_rebake_key_shapes():
 
 def test_rebake_scripts_produce_keys_the_rule_recognises():
     import rebake_tiles
-    import rebake_locate_tiles
     layer = {'pmtiles': {'url': f'{R2}/environment/fsi-beats/FSI_Beats.pmtiles'}}
     key = rebake_tiles.versioned_key(layer, '8357dbd8' + '0' * 24)
     assert tile_keys.is_rebaked({'url': f'{R2}/{key}'})
-    z = rebake_locate_tiles.versioned_key(f'{R2}/admin/states/LGD_States.pmtiles')
-    assert tile_keys.is_rebaked({'url': f'{R2}/{z}'})
     import rebake_layer
     pq = rebake_layer.versioned_key('admin/states/LGD_States.parquet', '0a1b2c3d' + '0' * 24)
     assert tile_keys.is_rebaked({'url': f'{R2}/{pq}'}, 'parquet')
