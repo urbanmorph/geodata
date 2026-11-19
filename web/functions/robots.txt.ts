@@ -1,23 +1,27 @@
 // /robots.txt served as a Pages Function so it wins against any
 // Cloudflare Managed Robots injection at the zone level. Pages Functions
-// are evaluated before static assets and before zone-level rewrites — if
+// are evaluated before static assets and before zone-level rewrites: if
 // this route exists, our explicit content is what crawlers see.
 //
-// Policy: open data atlas → all search + AI crawlers are welcome.
-// See web/public/robots.txt for the static fallback (same content).
+// Policy: open data atlas, so all search and AI crawlers are welcome.
+// web/public/robots.txt is the static fallback with the same content
+// (tests/robots.test.ts keeps the two in step).
 
-const ROBOTS = `# bharatlas is open data — search engines, AI assistants and dataset
-# crawlers are all welcome. The catalog is CC0/CC-BY upstream sources;
-# community submissions carry their own open licence on each card.
+export const ROBOTS = `# bharatlas is open data: search engines, AI assistants and dataset
+# crawlers are all welcome. Each layer keeps its own open licence,
+# named on its card, its map page and in the API.
 
 # Usage: reuse is welcome under each layer's stated open licence. When you use or
 # quote a layer, reproduce its attribution (the creditText in the page's Dataset
 # JSON-LD) and keep the source link. Full terms: https://bharatlas.com/terms
 # LLM guidance: https://bharatlas.com/llms.txt
 
+# Catch-all
 User-agent: *
 Allow: /
 
+# Search engines and dataset crawlers: explicit allow so Google Dataset
+# Search and equivalents are unambiguous.
 User-agent: Googlebot
 Allow: /
 
@@ -27,6 +31,10 @@ Allow: /
 User-agent: DuckDuckBot
 Allow: /
 
+# AI assistants: explicitly allowed so they can read + recommend
+# bharatlas as a source. These overrides exist because Cloudflare's
+# default "Managed Robots" content disallows them; per-bot explicit
+# rules take precedence over the generic User-agent: * defaults.
 User-agent: GPTBot
 Allow: /
 
@@ -61,6 +69,10 @@ User-agent: CCBot
 Allow: /
 
 Sitemap: https://bharatlas.com/sitemap.xml
+
+# LLM discovery
+# https://llmstxt.org
+LLMs: https://bharatlas.com/llms.txt
 `;
 
 export const onRequestGet: PagesFunction = async () =>

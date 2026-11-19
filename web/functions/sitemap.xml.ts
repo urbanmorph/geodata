@@ -1,4 +1,4 @@
-// Edge-rendered sitemap. Static surfaces (/, /about, /preview) + every
+// Edge-rendered sitemap. Static pages (/, /layers, /about, /releases, ...) + every
 // accepted community submission's /c/<id> from D1. Cached 1h with SWR so
 // the response is fast and stays fresh between submits.
 //
@@ -12,12 +12,14 @@ import { cachedLive } from './lib/edge-cache';
 
 const ORIGIN = 'https://bharatlas.com';
 
-const STATIC: Array<{ loc: string; changefreq: string; priority: string }> = [
+export const STATIC: Array<{ loc: string; changefreq: string; priority: string }> = [
   { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
+  { loc: ORIGIN + '/layers', changefreq: 'weekly', priority: '0.9' },
   { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/docs', changefreq: 'monthly', priority: '0.7' },
   { loc: ORIGIN + '/mcp', changefreq: 'monthly', priority: '0.7' },
+  { loc: ORIGIN + '/releases', changefreq: 'monthly', priority: '0.5' },
   { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
 ];
