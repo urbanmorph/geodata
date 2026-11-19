@@ -146,10 +146,14 @@ function licenceLd(licence: string | undefined): string | string[] | undefined {
   return urls.length > 1 ? urls : urls[0];
 }
 
+/** The structured attribution; null for a plain-string or missing one. */
+const attributionOf = (layer: CatalogLayer) =>
+  typeof layer.attribution === 'object' ? layer.attribution : null;
+
 /** The credit to reproduce: the source by its own name, and the republisher
  *  bharatlas took it from (unless that is bharatlas itself). */
 function creditLine(layer: CatalogLayer): string {
-  const a = typeof layer.attribution === 'object' && layer.attribution ? layer.attribution : null;
+  const a = attributionOf(layer);
   const source = a?.primary?.name?.trim() || layer.source;
   const via = a?.publisher?.name?.trim();
   const credit = via && via !== PUBLISHER_LD.name ? `${source}, via ${via}` : source;
@@ -389,7 +393,7 @@ export function buildViewDataset(
   // crawlers (PDGI "humans in the loop"): the credit to reproduce, that access
   // is unrestricted, and where the usage terms live.
   const creditText = creditLine(layer);
-  const primary = typeof layer.attribution === 'object' ? layer.attribution?.primary : null;
+  const primary = attributionOf(layer)?.primary;
   const dateModified = /^\d{4}-\d{2}-\d{2}/.test(layer.fetched_at || '') ? layer.fetched_at!.slice(0, 10) : undefined;
   const version = layer.versions?.[0]?.code;
   // Google Dataset Search matches queries on keywords (the home page's
