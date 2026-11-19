@@ -28,7 +28,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
   ['script-src', [
     "'self'",
     'blob:',                                  // DuckDB-WASM worker bootstrap
-    'https://cdn.jsdelivr.net',               // DuckDB-WASM + MapLibre bundle
+    'https://cdn.jsdelivr.net/npm/@duckdb/',  // DuckDB-WASM worker (importScripts in its blob worker); MapLibre is bundled
     'https://challenges.cloudflare.com',      // Turnstile widget
     'https://static.cloudflareinsights.com',  // CF Web Analytics beacon (auto-injected)
     "'wasm-unsafe-eval'",                     // DuckDB-WASM WebAssembly execution
@@ -37,7 +37,7 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
   ['connect-src', [
     "'self'",
     'blob:',
-    'https://cdn.jsdelivr.net',                                     // DuckDB-WASM bundle fetches
+    'https://cdn.jsdelivr.net/npm/@duckdb/',                        // DuckDB-WASM .wasm fetch (db.ts, getJsDelivrBundles)
     'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev',          // R2 public bucket — catalog parquets, pmtiles
     'https://challenges.cloudflare.com',                            // Turnstile API
     'https://collect.bharatlas.com',                                // keyring sync of "Your submissions" (collect's /keyrings API)

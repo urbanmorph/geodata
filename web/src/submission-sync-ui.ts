@@ -9,7 +9,7 @@ type Sync = Pick<ReturnType<typeof createSubmissionSync>, 'state' | 'turnOn' | '
 export const SYNC_LINK_NOTE = 'Sync links no longer work. Use Unlock with your passkey instead.';
 
 const NOTICE =
-  "Keeps an <strong>encrypted copy</strong> of these admin links on bharatlas, so you can manage your submissions from your other devices. bharatlas can't read it and doesn't know whose it is. It's deleted after <strong>12 months</strong> without use, or as soon as you turn sync off.";
+  "Keeps an <strong>encrypted copy</strong> of the links and tokens of your submissions on bharatlas, so your other devices can have them too: unlock it there with your passkey. bharatlas can't read it and doesn't know whose it is. It's deleted after <strong>12 months</strong> without use, or as soon as you turn sync off.";
 
 /** What went wrong, in plain words: a cancelled passkey, a lost connection, or the reason given. */
 const errorText = (ex: unknown) => {

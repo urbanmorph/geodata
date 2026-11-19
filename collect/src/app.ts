@@ -337,7 +337,7 @@ async function boot(): Promise<void> {
     locate.onclick = () => {
       if (!navigator.geolocation) return toast('Location not available', 'error');
       navigator.geolocation.getCurrentPosition(
-        (pos) => map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }),
+        (pos) => map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }),
         () => toast("Couldn't get your location", 'error'),
         { enableHighAccuracy: true, timeout: 8000 },
       );
@@ -1815,7 +1815,7 @@ function openReview(idx: number): void {
   selectReviewFeature(idx); // emphasise the same feature on the map
   if (c) {
     reviewMarker = new maplibregl.Marker({ color: '#d97706' }).setLngLat(c).addTo(map);
-    map.flyTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: sheetLiftOffset(), duration: 500 });
+    map.easeTo({ center: c, zoom: Math.max(map.getZoom(), 14), offset: sheetLiftOffset(), duration: 500 });
   }
 
   const attrs = attrRowsHtml(p, 'attr');
@@ -2049,7 +2049,7 @@ async function recordEditor(): Promise<void> {
   if (locateBtn) locateBtn.onclick = () => {
     if (!navigator.geolocation) return toast('Location not available', 'error');
     navigator.geolocation.getCurrentPosition(
-      (pos) => { moved = true; map.flyTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }); },
+      (pos) => { moved = true; map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }); },
       () => toast("Couldn't get your location", 'error'), { enableHighAccuracy: true, timeout: 8000 },
     );
   };

@@ -28,6 +28,20 @@ describe('sync controls', () => {
     expect(text).toMatch(/collect/); // the passkey made in collect works here too
   });
 
+  // Authors can't edit or delete a submission (the curator approves; to change
+  // or remove one, contact us with the token), so sync promises only what it does:
+  // the links and tokens, on your other devices, unlocked with your passkey.
+  it('says sync keeps the links and tokens on other devices, not that it lets you manage submissions', () => {
+    document.body.innerHTML = '<div id="box"></div>';
+    renderSubmissionSync(document.getElementById('box')!, fakeSync() as never, { passkeys: true, onChange: () => {} });
+    const text = document.body.textContent!;
+    expect(text).not.toMatch(/manage/i);
+    expect(text).toMatch(/links and tokens of your submissions/);
+    expect(text).toMatch(/other devices/);
+    expect(text).toMatch(/passkey/);
+    expect(text).not.toContain('\u2014');
+  });
+
   // Sync is passkey-only (#322): no sync link is adopted, so none is shown (it
   // would also put the secret on screen). The way to another device is the passkey.
   it('turning on shows no sync link or secret, and points to the passkey', async () => {
