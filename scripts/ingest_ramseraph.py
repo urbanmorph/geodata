@@ -41,6 +41,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
+import licence_watch  # noqa: E402
 from tile_keys import is_rebaked, keep_all_rebaked  # noqa: E402
 
 # Re-exported: other scripts import these names from here (use pipeline directly in new code).
@@ -125,6 +126,9 @@ FAC_EDU_BASE = 'https://github.com/ramSeraph/indian_facilities/releases/download
 RS = 'https://github.com/ramSeraph'
 
 
+_REGISTRY = licence_watch.load_registry()
+
+
 def republished(id: str, name: str, category: str, source: str, release: str, file: str,
                 description: str, unit: str, source_url: str, source_org: str,
                 kml_name_field: str, r2_prefix: str, **kw) -> Dataset:
@@ -132,14 +136,20 @@ def republished(id: str, name: str, category: str, source: str, release: str, fi
     the publisher states no open licence, so the compiler's CC0 applies and
     the publisher is credited. `release` is '<repo>/<tag>' under ramSeraph."""
     base = f'{RS}/{release.split("/")[0]}/releases/download/{release.split("/")[1]}/{file}'
+    licence = licence_watch.labels_of(id, _REGISTRY).get('licence')
+    if licence:   # the publisher's reviewed terms (licence-terms.json) set the licence
+        nc = ', non-commercial only' if licence_watch.labels_of(id, _REGISTRY).get('non_commercial') else ''
+        terms = f" Used under the publisher's terms ({licence}{nc}), credited as the publisher asks."
+    else:
+        licence = 'CC0-1.0'
+        terms = (' The publisher states no open licence; republished with credit under'
+                 ' bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).')
     return Dataset(
         id=id, name=name, level=id, category=category, source=source, description=description,
-        unit=unit, license='CC0-1.0', r2_prefix=r2_prefix,
+        unit=unit, license=licence, r2_prefix=r2_prefix,
         parquet_url=f'{base}.parquet', pmtiles_url=f'{base}.pmtiles',
         source_url=source_url, source_org=source_org,
-        notes=RAMSERAPH_NOTE.format(src=source_org) + (
-            ' The publisher states no open licence; republished with credit under'
-            ' bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).'),
+        notes=RAMSERAPH_NOTE.format(src=source_org) + terms,
         bake_all_formats=True, kml_name_field=kml_name_field, **kw)
 
 
@@ -648,6 +658,13 @@ DATASETS: list[Dataset] = [
     republished('marine_police_stations', 'Marine police station areas (NCOG)', 'people', 'NCOG', 'indian_admin_boundaries/police', 'NCOG_Marine_Police_Boundaries', 'Coastal villages grouped by marine police station, with LGD state, district and sub-district codes.', 'areas', 'https://ncog.gov.in/', 'National Centre of Geo-informatics (BISAG-N)', 'vname', 'people/marine-police-stations'),
     republished('amrit_sarovar_ponds', 'Amrit Sarovar ponds', 'water', 'AmritSarovar', 'indian_water_features/waterbodies', 'Amrit_Sarovar_Water_Observatory_Ponds', 'Ponds built or rejuvenated under Mission Amrit Sarovar (mostly via MGNREGA), with status, scheme, village, block and district.', 'ponds', 'https://amritsarovar.gov.in/', 'Mission Amrit Sarovar (Ministry of Rural Development), via the Water Observatory', 'Name_of_Sarovar', 'water/amrit-sarovar-ponds'),
     republished('jjm_facilities', 'Jal Jeevan Mission facilities', 'infrastructure', 'JJM', 'indian_facilities/jjm-facilities', 'JJM_facilities', 'Schools, anganwadis and other public institutions in rural habitations recorded by the Jal Jeevan Mission, with category, class and LGD village code.', 'facilities', 'https://jaljeevanmission.gov.in/', 'Jal Jeevan Mission (Ministry of Jal Shakti)', 'fac_name', 'infrastructure/jjm-facilities'),
+    # ── NGDR underground (Nov 2026, policy B) ───────────────────────────
+    # Still held: every mining lease file (major, minor and other; NGDR and
+    # NCOG) names private lessees, many with phones and emails.
+    republished('gsi_drilling_boreholes', 'Mineral exploration boreholes (GSI)', 'environment', 'NGDR', 'indian_land_features/mining', 'NGDR_Mining_Exploration_Drilling_Boreholes', 'Boreholes drilled in mineral exploration, with commodity, stage of investigation, depth, inclination, collar level, prospect, block and dates, from the Geological Survey of India.', 'boreholes', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'borehole_name', 'environment/gsi-drilling-boreholes'),
+    republished('gsi_hydrocarbon_blocks', 'Oil and gas blocks (NGDR)', 'environment', 'NGDR', 'indian_land_features/mining', 'NGDR_Hydrocarbon_Blocks', 'Oil and gas blocks and fields, onland and offshore: nomination, PSC, HELP and OALP, discovered small field and coal bed methane blocks and producing fields, with basin, operator and status, from Directorate General of Hydrocarbons data in the National Geoscience Data Repository. Name columns differ by block type.', 'blocks and fields', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'blk_name', 'environment/gsi-hydrocarbon-blocks'),
+    republished('gsi_mineral_deposits', 'Mineral deposits (GSI)', 'environment', 'NGDR', 'indian_land_features/mining', 'NGDR_Mineral_Deposits', 'Mineral deposits of every commodity (copper, iron, bauxite, gold, lead-zinc, manganese, chromite, diamond and more) with metallogenic belt, reserve, grade, host rock and formation, from the Geological Survey of India.', 'deposits', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'locality', 'environment/gsi-mineral-deposits'),
+    republished('gsi_geothermal_springs', 'Geothermal springs (GSI)', 'environment', 'NGDR', 'indian_water_features/natural', 'NGDR_Geothermal_Springs', 'Hot and thermal springs with temperature, pH, dissolved salts, mass flow and spring type, from the Geological Survey of India.', 'springs', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)', 'location', 'environment/gsi-geothermal-springs'),
     # ── West Bengal wards + Indian Railways (Nov 2026, policy B) ────────
     # SBM wards have no West Bengal; WB AMRUT covers 52 towns (not Kolkata,
     # which has wards_kolkata). Railways were held until policy B.
@@ -753,6 +770,7 @@ def merge_layer_into_catalog(
     if not merged.get('fetched_at'):
         merged['fetched_at'] = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
+    merged = pipeline.licence_labelled(merged)   # the publisher's reviewed licence and credit, not the compiler's
     catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], merged)
     catalog['level_meta'][d.level] = level_meta
     # The home prerender (web/scripts/prerender.mjs:311) iterates
@@ -878,6 +896,7 @@ def ingest(d: Dataset, upload: bool = True) -> None:
         print(f'  ✓ {d.id}: {len(files)} files built locally; R2, manifest and catalog untouched')
         return
 
+    pipeline.LICENCE_GATE(d.id)   # before anything goes live: the licence must read as reviewed
     s3 = r2_client()
     for local, name in files.items():
         r2_upload(s3, local, f'{d.r2_prefix}/{name}')

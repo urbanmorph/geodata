@@ -13,6 +13,9 @@ describe('licenceUrl', () => {
     expect(licenceUrl('GODL-India')).toBe('https://data.gov.in/government-open-data-license-india');
     expect(licenceUrl('MIT')).toBe('https://opensource.org/licenses/MIT');
     expect(licenceUrl('CC-BY-SA-2.5-IN')).toBe('https://creativecommons.org/licenses/by-sa/2.5/in/');
+    expect(licenceUrl('CC-BY-2.5-IN')).toBe('https://creativecommons.org/licenses/by/2.5/in/');
+    // publisher terms that are not a licence id link to the terms page itself
+    expect(licenceUrl('NRSC terms')).toBe('https://www.nrsc.gov.in/nrscnew/termsConditions.php');
   });
 
   it('never maps a non-commercial licence to its commercial sibling', () => {

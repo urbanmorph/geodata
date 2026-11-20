@@ -62,6 +62,7 @@ from urllib.parse import quote, unquote, urlencode, urlparse
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+import licence_watch  # noqa: E402
 from catalog_record import github_asset  # noqa: E402
 from pipeline import is_client_error, log, with_retries, write_json  # noqa: E402
 from populate_refresh import RELEASES, last_build, last_refresh, load_releases, next_due, weak_check  # noqa: E402
@@ -487,7 +488,12 @@ def _cell(s) -> str:
     return str(s if s is not None else '').replace('|', '\\|').replace('\n', ' ')
 
 
-def summary(status: dict, due: list[dict] | None = None) -> dict:
+def licence_results() -> list[dict]:
+    """Each licence terms page read again and compared with the text reviewed at ingest (licence_watch.py)."""
+    return licence_watch.check_all(licence_watch.load_registry())
+
+
+def summary(status: dict, due: list[dict] | None = None, licence: list[dict] | None = None) -> dict:
     """The machine-readable summary the ops dashboard and the workflow read (counts, changed, error, due, due_count;
     local_only lists the data.gov.in layers CI leaves to the monthly run from India)."""
     counts = Counter(e.get('status') for e in status.values())
@@ -496,12 +502,13 @@ def summary(status: dict, due: list[dict] | None = None) -> dict:
         return sorted(k for k, e in status.items() if e.get('status') == s)
     return {'checked_at': max((e['checked_at'] for e in status.values() if e.get('checked_at')), default=None),
             'counts': dict(counts), 'changed': having('changed'), 'error': having('error'),
-            'local_only': having('local_only'), 'due': [d['id'] for d in due or []], 'due_count': len(due or [])}
+            'local_only': having('local_only'), 'due': [d['id'] for d in due or []], 'due_count': len(due or []),
+            **licence_watch.summary(licence or [])}
 
 
-def issue_body(status: dict, catalog: dict, due: list[dict] | None = None) -> str:
+def issue_body(status: dict, catalog: dict, due: list[dict] | None = None, licence: list[dict] | None = None) -> str:
     fetched = {lyr['id']: lyr.get('fetched_at') for lyr in catalog['layers']}
-    s = summary(status, due)
+    s = summary(status, due, licence)
     c = s['counts']
     lines = [f'Weekly check of each layer\'s upstream source (metadata only), last run {s["checked_at"]}: '
              f'{c.get("changed", 0)} changed, {c.get("error", 0)} errors, {c.get("unchanged", 0)} unchanged, '
@@ -545,6 +552,7 @@ def issue_body(status: dict, catalog: dict, due: list[dict] | None = None) -> st
                       '(`python3 scripts/release.py --layer <layer id>`).', '']
     else:
         lines += ['No layer is due for a rebuild.', '']
+    lines += [licence_watch.issue_section(licence or [])]
     lines.append(f'<!-- update-summary {json.dumps(s, sort_keys=True)} -->')
     return '\n'.join(lines) + '\n'
 
@@ -578,10 +586,11 @@ def main(argv=None) -> int:
     status = run(catalog, status_path, Client(token=token), max_minutes=args.max_minutes,
                  max_age_hours=args.max_age_hours, in_ci=os.environ.get('GITHUB_ACTIONS') == 'true')
     due = due_layers(catalog, status, load_releases(Path(args.releases)), today())
-    s = summary(status, due)
+    licence = licence_results()
+    s = summary(status, due, licence)
     log('status: ' + ', '.join(f'{k} {v}' for k, v in sorted(s['counts'].items())) + f'; due {len(due)}')
     if args.issue_body:
-        Path(args.issue_body).write_text(issue_body(status, catalog, due))
+        Path(args.issue_body).write_text(issue_body(status, catalog, due, licence))
     if args.summary:
         Path(args.summary).write_text(json.dumps(s, indent=1, sort_keys=True) + '\n')
     return 0

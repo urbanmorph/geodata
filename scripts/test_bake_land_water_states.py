@@ -16,6 +16,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import bake_land_water_states as s  # noqa: E402
+import licence_watch  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
 from pipeline import file_md5  # noqa: E402
 
@@ -61,7 +62,7 @@ def test_layers_are_gw_prospects_and_degradation_2015_16_only():
     assert [Path(u).name for u in ld.shards] == [
         f'Bhuvan_Land_Degradation_50k_1516.{n}.parquet' for n in ('000', '001', '010', '011')]
     for layer in s.LAYERS:
-        assert layer.d.license == 'CC0-1.0'
+        assert layer.d.license == licence_watch.licence_of(layer.d.id)   # Bhuvan: NRSC terms
         assert all(u.startswith('https://github.com/ramSeraph/indian_land_features/releases/download/')
                    for u in layer.shards)
         assert layer.popup and layer.state_column in layer.popup
@@ -197,7 +198,7 @@ def test_register_patches_catalog_and_manifest_in_place_idempotent(tmp_path):
     assert entry['pmtiles'] == {'url': base + 'Bhuvan_Groundwater_Prospects_LGEOM.22222222.pmtiles', 'bytes': 50}
     assert entry['geojson'] == {'url': base + 'Bhuvan_Groundwater_Prospects_LGEOM.33333333.geojson.zip', 'bytes': 30}
     assert entry['kml']['url'].endswith('.kml.zip') and entry['shapefile']['url'].endswith('.shp.zip')
-    assert (entry['rows'], entry['licence'], entry['provenance']) == (7, 'CC0-1.0', 'curated')
+    assert (entry['rows'], entry['licence'], entry['provenance']) == (7, 'NRSC terms', 'curated')
     assert entry['fetched_at'] and 'one file per state' in entry['notes']
     assert '—' not in entry['notes'] and '—' not in c['level_meta']['bhuvan_gw_prospects']['description']
     assert 'bhuvan_gw_prospects' in c['level_order']

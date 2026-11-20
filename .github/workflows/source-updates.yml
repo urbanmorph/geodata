@@ -78,8 +78,8 @@ jobs:
           set -euo pipefail
           title='Source updates'
           label='source-updates'
-          # open while anything needs a person: a changed source, a failing check or a rebuild due
-          pending=$(jq '(.counts.changed // 0) + (.counts.error // 0) + (.due_count // 0)' data/update-summary.json)
+          # open while anything needs a person: a changed source, a failing check, a rebuild due or changed licence terms
+          pending=$(jq '(.counts.changed // 0) + (.counts.error // 0) + (.due_count // 0) + (.licence_changed // [] | length)' data/update-summary.json)
           gh label create "$label" --color FBCA04 --description 'Weekly upstream source check' --force
           num=$(gh issue list --label "$label" --state all --limit 1 --json number --jq '.[0].number // empty')
           if [ -z "$num" ]; then
@@ -95,4 +95,4 @@ jobs:
             gh issue close "$num" --reason completed \
               --comment 'No source has changed since it was ingested, every check answered, and no rebuild is due.'
           fi
-          echo "issue #$num: $pending changed, erroring or due"
+          echo "issue #$num: $pending changed, erroring, due or with changed licence terms"

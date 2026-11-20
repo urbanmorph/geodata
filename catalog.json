@@ -1221,6 +1221,36 @@
       "label": "Airports, airfields and heliports",
       "unit": "airports",
       "description": "Airports, airfields and heliports across India from OurAirports: IATA and ICAO codes, type, scheduled service, and the LGD state and district."
+    },
+    "gsi_drilling_boreholes": {
+      "label": "Mineral exploration boreholes (GSI)",
+      "unit": "boreholes",
+      "description": "Boreholes drilled in mineral exploration, with commodity, stage of investigation, depth, inclination, collar level, prospect, block and dates, from the Geological Survey of India."
+    },
+    "gsi_hydrocarbon_blocks": {
+      "label": "Oil and gas blocks (NGDR)",
+      "unit": "blocks and fields",
+      "description": "Oil and gas blocks and fields, onland and offshore: nomination, PSC, HELP and OALP, discovered small field and coal bed methane blocks and producing fields, with basin, operator and status, from Directorate General of Hydrocarbons data in the National Geoscience Data Repository. Name columns differ by block type."
+    },
+    "gsi_mineral_deposits": {
+      "label": "Mineral deposits (GSI)",
+      "unit": "deposits",
+      "description": "Mineral deposits of every commodity (copper, iron, bauxite, gold, lead-zinc, manganese, chromite, diamond and more) with metallogenic belt, reserve, grade, host rock and formation, from the Geological Survey of India."
+    },
+    "gsi_geothermal_springs": {
+      "label": "Geothermal springs (GSI)",
+      "unit": "springs",
+      "description": "Hot and thermal springs with temperature, pH, dissolved salts, mass flow and spring type, from the Geological Survey of India."
+    },
+    "subsidence_point": {
+      "label": "Land subsidence, five megacities (InSAR)",
+      "unit": "points",
+      "description": "Land subsidence in Delhi, Mumbai, Bengaluru, Chennai and Kolkata: InSAR vertical land motion points in cm/yr (negative values mean the ground is sinking), from Ohenhen et al. 2025."
+    },
+    "atal_bhujal_wells": {
+      "label": "Groundwater levels, Atal Bhujal wells (2015-2022)",
+      "unit": "wells",
+      "description": "Groundwater levels in about 5,500 Atal Bhujal Yojana monitoring wells in seven States, before and after each monsoon from 2015 to 2022, in metres below ground level, with well depth and aquifer."
     }
   },
   "level_order": [
@@ -1376,7 +1406,13 @@
     "bhuvan_land_degradation_1516",
     "urban_rail_stations",
     "urban_rail_lines",
-    "bus_stops"
+    "bus_stops",
+    "gsi_drilling_boreholes",
+    "gsi_hydrocarbon_blocks",
+    "gsi_mineral_deposits",
+    "gsi_geothermal_springs",
+    "subsidence_point",
+    "atal_bhujal_wells"
   ],
   "layers": [
     {
@@ -1524,11 +1560,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/states/bhuvan_states.shp.zip",
         "bytes": 3044424
       },
-      "licence": "CC0-1.0 / CC-BY-4.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "NRSC/ISRO Bhuvan",
-          "url": "https://bhuvanpanchayat.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": {
           "name": "yashveeeeeeer/india-geodata",
@@ -1554,7 +1590,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "lgd_districts",
@@ -1701,11 +1738,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/districts/bhuvan_districts.shp.zip",
         "bytes": 62679401
       },
-      "licence": "CC0-1.0 / CC-BY-4.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "NRSC/ISRO Bhuvan",
-          "url": "https://bhuvanpanchayat.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": {
           "name": "yashveeeeeeer/india-geodata",
@@ -1731,7 +1768,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "lgd_subdistricts",
@@ -1933,11 +1971,11 @@
         "bytes": 329636203
       },
       "shapefile": null,
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "NRSC/ISRO Bhuvan",
-          "url": "https://bhuvanpanchayat.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": {
           "name": "yashveeeeeeer/india-geodata",
@@ -1963,7 +2001,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "pmgsy_blocks",
@@ -1983,10 +2022,10 @@
       "geojson": null,
       "kml": null,
       "shapefile": null,
-      "licence": "CC0-1.0",
+      "licence": "GODL-India",
       "attribution": {
         "primary": {
-          "name": "PMGSY (Rural Roads)",
+          "name": "PMGSY GeoSadak (Ministry of Rural Development)",
           "url": "https://omms.nic.in/"
         },
         "publisher": {
@@ -3595,11 +3634,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-hyderabad/wards_hyderabad.shp.zip",
         "bytes": 69585
       },
-      "licence": "CC0-1.0",
+      "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
-          "name": "OpenCity / Oorvani Foundation",
-          "url": "https://data.opencity.in/"
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
         },
         "publisher": null
       },
@@ -5063,7 +5102,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-faridabad/wards_faridabad.shp.zip",
         "bytes": 19119
       },
-      "licence": "CC-BY-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
           "name": "DataMeet India",
@@ -5119,7 +5158,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-pcmc/wards_pcmc.shp.zip",
         "bytes": 68274
       },
-      "licence": "CC-BY-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
           "name": "DataMeet India",
@@ -5175,7 +5214,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-vijayawada/wards_vijayawada.shp.zip",
         "bytes": 25152
       },
-      "licence": "CC-BY-4.0",
+      "licence": "CC-BY-SA-2.5-IN",
       "attribution": {
         "primary": {
           "name": "DataMeet India",
@@ -5290,8 +5329,8 @@
       "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
-          "name": "India Flood Inventory v3",
-          "url": "https://github.com/yashveeeeeeer/india-geodata/releases/tag/environment/flood-inventory"
+          "name": "India Flood Inventory v1.0 (Zenodo)",
+          "url": "https://doi.org/10.5281/zenodo.4742143"
         },
         "publisher": {
           "name": "yashveeeeeeer/india-geodata",
@@ -5337,7 +5376,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM1.466461ac.pmtiles",
         "bytes": 1899106
       },
-      "licence": "CC-BY-4.0",
+      "licence": "CC-BY-2.5-IN",
       "attribution": {
         "primary": {
           "name": "geoBoundaries",
@@ -5384,7 +5423,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM2.87bacccd.pmtiles",
         "bytes": 4632639
       },
-      "licence": "CC-BY-4.0",
+      "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
           "name": "geoBoundaries",
@@ -5431,7 +5470,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM3.50b78dec.pmtiles",
         "bytes": 11828870
       },
-      "licence": "CC-BY-4.0",
+      "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
           "name": "geoBoundaries",
@@ -5478,7 +5517,7 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/geoboundaries/IND_ADM4.c1550f23.pmtiles",
         "bytes": 12205168
       },
-      "licence": "CC-BY-4.0",
+      "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
           "name": "geoBoundaries",
@@ -6505,11 +6544,11 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/ndem-floods-1998-2022/NDEM_All_India_Flood_Innundation_1998_to_2022.b7e4a6f7.pmtiles",
         "bytes": 12331779
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "NDEM (NRSC / ISRO)",
-          "url": "https://ndem.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
@@ -6544,7 +6583,8 @@
         "audit": "none while frozen: re-check by hand if the source publishes a correction",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "gsi_landslide_inventory",
@@ -6617,11 +6657,11 @@
         "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/landslides/NDEM_Landslide_Hazard.pmtiles",
         "bytes": 6962128
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "NDEM (NRSC / ISRO)",
-          "url": "https://ndem.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
@@ -6656,7 +6696,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "ngdr_earthquakes",
@@ -6729,11 +6770,11 @@
         "upstream_url": "https://github.com/ramSeraph/india_natural_disasters/releases/download/cyclones/NDEM_Cyclones_ctl.pmtiles",
         "bytes": 85997
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "NDEM (NRSC / ISRO)",
-          "url": "https://ndem.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
@@ -6768,7 +6809,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "wris_waterbodies",
@@ -7055,13 +7097,16 @@
         "bytes": 95552208
       },
       "shapefile": null,
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Central Ground Water Board",
           "url": "https://cgwb.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "water",
       "provenance": "curated",
@@ -7118,13 +7163,16 @@
         "bytes": 244549580
       },
       "shapefile": null,
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Central Ground Water Board",
           "url": "https://cgwb.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "water",
       "provenance": "curated",
@@ -7251,13 +7299,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-ecological-zones/Agro_Ecological_Zones.shp.zip",
         "bytes": 3581123
       },
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "ICAR-NBSS&LUP",
           "url": "https://www.nbsslup.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "agriculture",
       "provenance": "curated",
@@ -7320,13 +7371,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-climatic-zones/Agro_Climatic_Zones.shp.zip",
         "bytes": 3865905
       },
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Planning Commission of India",
           "url": "https://niti.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "agriculture",
       "provenance": "curated",
@@ -7389,13 +7443,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/biogeographic/Biogeographic_Zones.shp.zip",
         "bytes": 3664341
       },
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Wildlife Institute of India",
           "url": "https://wii.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "environment",
       "provenance": "curated",
@@ -8278,17 +8335,17 @@
         "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Premonsoon.pmtiles",
         "bytes": 22541076
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "Bhuvan (NRSC, ISRO)",
-          "url": "https://bhuvan.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). Used under the publisher's terms (NRSC terms, non-commercial only), credited as the publisher asks.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-premonsoon/Bhuvan_Groundwater_Quality_Premonsoon.geojson",
         "bytes": 409130168
@@ -8317,7 +8374,8 @@
         "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": "2026-12-15"
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "gw_quality_postmonsoon",
@@ -8334,17 +8392,17 @@
         "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/groundwater-prospects/Bhuvan_Groundwater_Quality_Postmonsoon.pmtiles",
         "bytes": 21359034
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "Bhuvan (NRSC, ISRO)",
-          "url": "https://bhuvan.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). Used under the publisher's terms (NRSC terms, non-commercial only), credited as the publisher asks.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/gw-quality-postmonsoon/Bhuvan_Groundwater_Quality_Postmonsoon.geojson",
         "bytes": 390581277
@@ -8373,7 +8431,8 @@
         "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": "2026-12-15"
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "gsi_geology_2m",
@@ -9177,7 +9236,7 @@
         "release": "on_rebuild",
         "audit": "row count within 10% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
-        "next_due": "2026-12-15"
+        "next_due": "2026-12-19"
       }
     },
     {
@@ -9872,17 +9931,17 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.1c1fc9ad.pmtiles",
         "bytes": 13299292
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "Bhuvan (NRSC, ISRO)",
-          "url": "https://bhuvan.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). Used under the publisher's terms (NRSC terms, non-commercial only), credited as the publisher asks. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-lineaments-50k/Bhuvan_Lineament_50k_0506.geojson",
         "bytes": 173800562
@@ -9911,7 +9970,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "bhuvan_gw_prospect_structures",
@@ -9927,17 +9987,17 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.fd5cf8fb.pmtiles",
         "bytes": 40214958
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "Bhuvan (NRSC, ISRO)",
-          "url": "https://bhuvan-app1.nrsc.gov.in/gwis/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). Used under the publisher's terms (NRSC terms, non-commercial only), credited as the publisher asks. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospect-structures/Bhuvan_Groundwater_Prospects_STRU.geojson",
         "bytes": 1058548081
@@ -9966,7 +10026,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "slusi_priority_micro_watersheds",
@@ -10595,17 +10656,17 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-geomorphology-50k/Bhuvan_Geomorphology_50k_0506.2a168a4a.pmtiles",
         "bytes": 523891089
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "Bhuvan (NRSC, ISRO)",
-          "url": "https://bhuvan.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). Used under the publisher's terms (NRSC terms, non-commercial only), credited as the publisher asks. Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area.",
       "geojson": null,
       "kml": null,
       "shapefile": null,
@@ -10625,7 +10686,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "bhuvan_gw_prospects",
@@ -10641,17 +10703,17 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.ae1714b1.pmtiles",
         "bytes": 485859909
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "Bhuvan (NRSC, ISRO)",
-          "url": "https://bhuvan-app1.nrsc.gov.in/gwis/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
       "category": "water",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GeoJSON, KML and shapefile downloads are zips holding one file per state (36 files, by the source column `sname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). Used under the publisher's terms (NRSC terms, non-commercial only), credited as the publisher asks. GeoJSON, KML and shapefile downloads are zips holding one file per state (36 files, by the source column `sname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/bhuvan-gw-prospects/Bhuvan_Groundwater_Prospects_LGEOM.8d171e51.geojson.zip",
         "bytes": 3808345123
@@ -10665,6 +10727,14 @@
         "bytes": 2706532489
       },
       "fetched_at": "2026-11-18T17:17:05+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://bhuvan-app1.nrsc.gov.in/gwis/",
+        "reason": "the source link is a portal page, not a file, release or dataset API",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
       "refresh": {
         "class": "slow",
         "check": "weekly",
@@ -10673,7 +10743,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "bhuvan_land_degradation_1516",
@@ -10689,17 +10760,17 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.9124dbb1.pmtiles",
         "bytes": 550870262
       },
-      "licence": "CC0-1.0",
+      "licence": "NRSC terms",
       "attribution": {
         "primary": {
-          "name": "Bhuvan (NRSC, ISRO)",
-          "url": "https://bhuvan.nrsc.gov.in/"
+          "name": "NRSC, ISRO/DOS",
+          "url": "https://www.nrsc.gov.in/"
         },
         "publisher": null
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GeoJSON, KML and shapefile downloads are zips holding one file per state (35 files, by the source column `lname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Bhuvan (NRSC, ISRO). Used under the publisher's terms (NRSC terms, non-commercial only), credited as the publisher asks. GeoJSON, KML and shapefile downloads are zips holding one file per state (35 files, by the source column `lname`): one India-wide file would be tens of GB. The parquet holds the whole layer; use Filter & export on the map, or the API, for an area. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/bhuvan-land-degradation-1516/Bhuvan_Land_Degradation_50k_1516.24389621.geojson.zip",
         "bytes": 2270457611
@@ -10713,6 +10784,14 @@
         "bytes": 3618977377
       },
       "fetched_at": "2026-11-18T17:17:05+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://bhuvan.nrsc.gov.in/",
+        "reason": "the source link is a portal page, not a file, release or dataset API",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
       "refresh": {
         "class": "slow",
         "check": "weekly",
@@ -10721,7 +10800,8 @@
         "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
         "audited_at": null,
         "next_due": null
-      }
+      },
+      "non_commercial": true
     },
     {
       "id": "urban_rail_stations",
@@ -11413,6 +11493,368 @@
           "Thane | Mumbai region GTFS (croyla/mumbai-gtfs)": 1805,
           "Vasai-Virar | Mumbai region GTFS (croyla/mumbai-gtfs)": 696
         }
+      }
+    },
+    {
+      "id": "gsi_drilling_boreholes",
+      "level": "gsi_drilling_boreholes",
+      "source": "NGDR",
+      "rows": 6904,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mining_Exploration_Drilling_Boreholes.parquet",
+        "bytes": 533329
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mining_Exploration_Drilling_Boreholes.pmtiles",
+        "bytes": 1652818
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.geojson",
+        "bytes": 8259970
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.kml",
+        "bytes": 14061281
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.shp.zip",
+        "bytes": 659973
+      },
+      "fetched_at": "2026-11-20T09:14:12+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mining_Exploration_Drilling_Boreholes.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:59:19Z size=578153",
+        "checked_at": "2026-11-20T09:15:12Z",
+        "changed_at": "2026-03-10T00:59:19Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "gsi_hydrocarbon_blocks",
+      "level": "gsi_hydrocarbon_blocks",
+      "source": "NGDR",
+      "rows": 810,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Hydrocarbon_Blocks.parquet",
+        "bytes": 299064
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Hydrocarbon_Blocks.pmtiles",
+        "bytes": 398606
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.geojson",
+        "bytes": 1525469
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.kml",
+        "bytes": 1697228
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.shp.zip",
+        "bytes": 313494
+      },
+      "fetched_at": "2026-11-20T09:14:20+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Hydrocarbon_Blocks.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:58:59Z size=305994",
+        "checked_at": "2026-11-20T09:15:12Z",
+        "changed_at": "2026-03-10T00:58:59Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "gsi_mineral_deposits",
+      "level": "gsi_mineral_deposits",
+      "source": "NGDR",
+      "rows": 476,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mineral_Deposits.parquet",
+        "bytes": 34121
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mineral_Deposits.pmtiles",
+        "bytes": 60596
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.geojson",
+        "bytes": 249395
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.kml",
+        "bytes": 494211
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.shp.zip",
+        "bytes": 36876
+      },
+      "fetched_at": "2026-11-20T09:14:26+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mineral_Deposits.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:59:08Z size=36669",
+        "checked_at": "2026-11-20T09:15:12Z",
+        "changed_at": "2026-03-10T00:59:08Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "gsi_geothermal_springs",
+      "level": "gsi_geothermal_springs",
+      "source": "NGDR",
+      "rows": 349,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/natural/NGDR_Geothermal_Springs.parquet",
+        "bytes": 31218
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/natural/NGDR_Geothermal_Springs.pmtiles",
+        "bytes": 51880
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.geojson",
+        "bytes": 229712
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.kml",
+        "bytes": 554118
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.shp.zip",
+        "bytes": 26099
+      },
+      "fetched_at": "2026-11-20T09:14:31+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/natural/NGDR_Geothermal_Springs.parquet",
+        "fingerprint": "updated_at=2026-03-10T04:55:35Z size=32696",
+        "checked_at": "2026-11-20T09:15:13Z",
+        "changed_at": "2026-03-10T04:55:35Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "subsidence_megacities",
+      "level": "subsidence_point",
+      "source": "Ohenhen et al. 2025 (Virginia Tech)",
+      "rows": 551591,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.b6b92513.parquet",
+        "bytes": 30379055
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.2163ccd7.pmtiles",
+        "bytes": 15976040
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.7c518e25.geojson",
+        "bytes": 192689512
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.099aa267.kml",
+        "bytes": 323721542
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.3ff90382.shp.zip",
+        "bytes": 29637233
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Sadhasivam, Ohenhen, Khorrami, Werth and Shirzaei (Virginia Tech), data for Ohenhen et al. 2025, Nature Sustainability",
+          "url": "https://doi.org/10.7294/25856260.v3"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Data of Ohenhen et al. 2025, \"Building damage risk in sinking Indian megacities\", Nature Sustainability (https://doi.org/10.1038/s41893-025-01663-0), published on the Virginia Tech data repository (figshare article 25856260, version 3) under CC0 1.0. Every point of the five <City>_VLM_data.csv files as published: Longitude, Latitude and VLM_cm_per_yr, the vertical land motion in cm/yr in the IGS14 reference frame, negative where the land sinks and positive where it rises. bharatlas adds the city column. Some points repeat a coordinate with different values, and a few Mumbai points have no value (NaN), as in the source. The same dataset also holds building damage risk shapefiles per city, not included here.",
+      "tags": [
+        "subsidence",
+        "land subsidence",
+        "vertical land motion",
+        "InSAR",
+        "sinking cities",
+        "Delhi",
+        "Mumbai",
+        "Bengaluru",
+        "Chennai",
+        "Kolkata",
+        "Nature Sustainability"
+      ],
+      "fetched_at": "2026-11-20T09:15:42+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://doi.org/10.7294/25856260.v3",
+        "reason": "a paper's published data on figshare, pinned at version 3 (scripts/bake_subsidence_megacities.py); figshare refuses HEAD requests and no check method reads its API yet",
+        "fingerprint": "version=3",
+        "checked_at": "2026-11-20T09:15:42+00:00",
+        "changed_at": "2025-10-29T18:57:36Z"
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "atal_bhujal_wells",
+      "level": "atal_bhujal_wells",
+      "source": "Atal Bhujal Yojana (data.gov.in)",
+      "rows": 5490,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/atal-bhujal-wells/Atal_Bhujal_Wells.50cac699.parquet",
+        "bytes": 440394
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/atal-bhujal-wells/Atal_Bhujal_Wells.f0c624c2.pmtiles",
+        "bytes": 280134
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/atal-bhujal-wells/Atal_Bhujal_Wells.68dd67d7.geojson",
+        "bytes": 8437461
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/atal-bhujal-wells/Atal_Bhujal_Wells.6aa4f69b.kml",
+        "bytes": 11303491
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/atal-bhujal-wells/Atal_Bhujal_Wells.9b245868.shp.zip",
+        "bytes": 741258
+      },
+      "licence": "GODL-India",
+      "attribution": {
+        "primary": {
+          "name": "Atal Bhujal Yojana, Ministry of Jal Shakti (data.gov.in)",
+          "url": "https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana"
+        },
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Published on data.gov.in by the Ministry of Jal Shakti under GODL-India (\"Disclosed Ground Water Level Data under Atal Bhujal Yojana from 2015 to 2022\"). data.gov.in serves the file only after a login, so bharatlas takes the copy CoRE Stack republishes (STAC item borewells_vector), which keeps the published columns. Levels are metres below ground level: a larger number is a deeper water table. \"NA\" in the source is empty here; the 2022 columns also hold \"dry\" for a well that held no water, so they stay text. Some Well_ID values repeat, as published. The point is the published Latitude and Longitude. The States are Gujarat, Haryana, Karnataka, Madhya Pradesh, Maharashtra, Rajasthan and Uttar Pradesh.",
+      "tags": [
+        "groundwater",
+        "groundwater level",
+        "water table",
+        "wells",
+        "borewells",
+        "piezometers",
+        "Atal Bhujal Yojana",
+        "Atal Jal",
+        "CGWB",
+        "depth to water"
+      ],
+      "fetched_at": "2026-11-20T12:42:39+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana",
+        "reason": "data.gov.in serves the file only after a login; the layer is CoRE Stack's copy, pinned by sha256 (scripts/bake_atal_bhujal_wells.py), and the 2015-2022 series is complete",
+        "fingerprint": "sha256=7a59e97a6ad04dbab59ab6f1c72b3ddbf41084a1463e7fc2f47df0acae450c25",
+        "checked_at": "2026-11-20T12:42:39+00:00",
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
       }
     }
   ],
@@ -13890,6 +14332,14 @@
     "OurAirports": {
       "name": "OurAirports",
       "url": "https://ourairports.com/data/"
+    },
+    "Ohenhen et al. 2025 (Virginia Tech)": {
+      "name": "Sadhasivam, Ohenhen, Khorrami, Werth and Shirzaei (Virginia Tech), data for Ohenhen et al. 2025, Nature Sustainability",
+      "url": "https://doi.org/10.7294/25856260.v3"
+    },
+    "Atal Bhujal Yojana (data.gov.in)": {
+      "name": "Atal Bhujal Yojana, Ministry of Jal Shakti (data.gov.in)",
+      "url": "https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana"
     }
   },
   "licence_summary": {

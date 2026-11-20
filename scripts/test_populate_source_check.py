@@ -129,6 +129,13 @@ def test_merge_keeps_a_recorded_fingerprint_while_the_method_and_url_stay_the_sa
     assert fresh == {'method': 'http', 'url': 'v', 'fingerprint': None, 'checked_at': None, 'changed_at': None}
 
 
+def test_a_machine_check_a_bake_script_recorded_is_never_downgraded_to_manual():
+    # bake_airports.py records a github_commit check on OurAirports; nothing here can infer it
+    old = {'method': 'github_commit', 'url': 'https://github.com/o/r/tree/main/a.csv', 'fingerprint': 'commit=x',
+           'checked_at': '2026-11-20', 'changed_at': '2026-11-20'}
+    assert ps.merge(old, ps.manual('no upstream link is recorded')) == old
+
+
 def test_merge_of_a_manual_check_records_its_reason():
     sc = ps.merge(None, {'method': 'manual', 'url': 'x', 'reason': 'why'})
     assert sc == {'method': 'manual', 'url': 'x', 'reason': 'why', 'fingerprint': None, 'checked_at': None,

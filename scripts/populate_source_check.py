@@ -92,6 +92,12 @@ OVERRIDES: dict[str, dict] = {
     'urban_rail_stations': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'urban_rail_lines': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'bus_stops': {'method': 'github_commit', 'url': 'https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs'},
+    'subsidence_megacities': manual('a paper\'s published data on figshare, pinned at version 3 '
+                                    '(scripts/bake_subsidence_megacities.py); figshare refuses HEAD requests and no '
+                                    'check method reads its API yet', 'https://doi.org/10.7294/25856260.v3'),
+    'atal_bhujal_wells': manual('data.gov.in serves the file only after a login; the layer is CoRE Stack\'s copy, '
+                                'pinned by sha256 (scripts/bake_atal_bhujal_wells.py), and the 2015-2022 series is '
+                                'complete', 'https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana'),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }
@@ -134,7 +140,10 @@ def infer(layer: dict, ext: dict | None) -> dict:
 
 
 def merge(old: dict | None, inferred: dict) -> dict:
-    """The layer's new source_check: the recorded fingerprint and dates survive while method and URL do."""
+    """The layer's new source_check: the recorded fingerprint and dates survive while method and URL do. A machine
+    check a bake script recorded (bake_airports.py's github_commit) is kept when nothing better can be inferred."""
+    if inferred['method'] == 'manual' and old and old.get('method') not in (None, 'manual'):
+        return old
     keep = old and old.get('method') == inferred['method'] and old.get('url') == inferred.get('url')
     out = {'method': inferred['method'], 'url': inferred.get('url')}
     if 'reason' in inferred:
