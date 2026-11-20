@@ -189,6 +189,8 @@ def last_build(layer: dict, releases: dict | None) -> str | None:
 #   GTFS            a feed (method gtfs, or a feed's repository folder) is rebuilt and re-dated without the stops
 #                   changing, and bharatlas's transit layers also draw on OpenStreetMap
 #   manual or none  no machine check at all
+#   data.gov.in     a resource marked frequency Daily: its `changed` moves every day whether or not the data did
+#                   (mgnrega_districts). Read from the answer, so check_updates.answer_weakness decides it, not this
 # WEAK_CHECKS names layers whose check looks strong but is not, with the reason.
 
 WEAK_CHECKS: dict[str, str] = {}

@@ -146,13 +146,13 @@ def catalog_two_assets_one_release():
         layer('soi_districts', sc('github_release', f'{YASH}/admin/districts/SOI_Districts.parquet',
                                   'updated_at=2026-01-01T00:00:00Z size=1')),
         layer('wards_pune', sc('manual', 'https://data.opencity.in/x', reason='Cloudflare')),
-        layer('gb_adm1', sc('http', 'https://gb.example/ADM1/')),
+        layer('gb_adm1', sc('http', 'https://gb.example/api/ADM1/')),
     ]}
 
 
 def client_for_catalog():
     return FakeClient(
-        heads={'https://gb.example/ADM1/': {'etag': '"1"', 'last-modified': 'Sat, 24 Feb 2024 10:31:09 GMT'}},
+        heads={'https://gb.example/api/ADM1/': {'etag': '"1"', 'last-modified': 'Sat, 24 Feb 2024 10:31:09 GMT'}},
         json_by_url={'https://api.github.com/repos/yashveeeeeeer/india-geodata/releases/tags/admin%2Fdistricts':
                      RELEASE})
 
@@ -162,7 +162,7 @@ def test_a_run_asks_each_release_once_skips_manual_layers_and_records_every_stat
     client = client_for_catalog()
     status = cu.run(catalog_two_assets_one_release(), out, client, now=lambda: NOW)
     assert sorted(client.calls) == ['https://api.github.com/repos/yashveeeeeeer/india-geodata/releases/tags/'
-                                    'admin%2Fdistricts', 'https://gb.example/ADM1/']
+                                    'admin%2Fdistricts', 'https://gb.example/api/ADM1/']
     assert {k: v['status'] for k, v in status.items()} == {
         'lgd_districts': 'unchanged', 'soi_districts': 'changed', 'wards_pune': 'manual', 'gb_adm1': 'unchanged'}
     assert status['soi_districts']['old'] == 'updated_at=2026-01-01T00:00:00Z size=1'
@@ -188,16 +188,16 @@ def test_a_run_rechecks_entries_older_than_the_window_or_whose_check_changed(tmp
     cu.run(catalog_two_assets_one_release(), out, client, now=lambda: '2026-11-25T10:00:00Z')
     assert len(client.calls) == 2
     cat = catalog_two_assets_one_release()
-    cat['layers'][3]['source_check']['url'] = 'https://gb.example/ADM2/'
-    client = FakeClient(heads={'https://gb.example/ADM2/': {'etag': '"2"'}})
+    cat['layers'][3]['source_check']['url'] = 'https://gb.example/api/ADM2/'
+    client = FakeClient(heads={'https://gb.example/api/ADM2/': {'etag': '"2"'}})
     cu.run(cat, out, client, now=lambda: '2026-11-25T11:00:00Z')
-    assert client.calls == ['https://gb.example/ADM2/']
+    assert client.calls == ['https://gb.example/api/ADM2/']
 
 
 def test_a_failed_request_is_an_error_entry_and_the_rest_still_finish(tmp_path):
     out = tmp_path / 'update-status.json'
     client = client_for_catalog()
-    client.heads['https://gb.example/ADM1/'] = urllib.error.HTTPError('u', 503, 'Service Unavailable', {}, None)
+    client.heads['https://gb.example/api/ADM1/'] = urllib.error.HTTPError('u', 503, 'Service Unavailable', {}, None)
     status = cu.run(catalog_two_assets_one_release(), out, client, now=lambda: NOW)
     assert status['gb_adm1']['status'] == 'error'
     assert '503' in status['gb_adm1']['error']
@@ -255,7 +255,7 @@ def test_the_issue_lists_changed_and_erroring_layers_with_a_machine_readable_sum
     cat = catalog_two_assets_one_release()
     status = {'soi_districts': {'status': 'changed', 'method': 'github_release', 'url': f'{YASH}/a/b.parquet',
                                 'old': 'o1', 'new': 'n1', 'checked_at': NOW},
-              'gb_adm1': {'status': 'error', 'method': 'http', 'url': 'https://gb.example/ADM1/',
+              'gb_adm1': {'status': 'error', 'method': 'http', 'url': 'https://gb.example/api/ADM1/',
                           'error': 'HTTP 503', 'checked_at': NOW},
               'lgd_districts': {'status': 'unchanged', 'method': 'github_release', 'checked_at': NOW},
               'wards_pune': {'status': 'manual', 'method': 'manual'}}
@@ -395,6 +395,97 @@ def test_main_writes_the_due_table_into_the_issue_and_summary(tmp_path, monkeypa
                     str(tmp_path / 'none.json'), '--issue-body', str(out), '--summary', str(summ)]) == 0
     assert '| ir_stations | fast |' in out.read_text()
     assert json.loads(summ.read_text())['due'] == ['ir_stations']
+
+
+# ── weak checks never report "changed" ──────────────────────────────────────
+
+DGI = 'https://www.data.gov.in/backend/dmspublic/v1/resources?format=json&filters%5Buuid%5D=x'
+
+
+def dgi_listing(frequency, changed=1795021225):
+    return {'total': 1, 'data': {'rows': [{'changed': [changed], 'frequency': [frequency]}]}}
+
+
+def test_a_weak_check_records_its_fingerprint_but_is_weak_not_changed(tmp_path):
+    cat = {'layers': [layer('urban_rail_stations', sc('http', PBF, 'etag="a"'))]}
+    client = FakeClient(heads={PBF: {'etag': '"b"'}})
+    e = cu.run(cat, tmp_path / 's.json', client, now=lambda: NOW)['urban_rail_stations']
+    assert e['status'] == 'weak' and e['new'] == 'etag="b"'
+    assert e['weak'].startswith('an OpenStreetMap extract')
+
+
+def test_a_data_gov_in_resource_marked_daily_is_a_weak_check_and_one_marked_five_yearly_is_not(tmp_path):
+    cat = {'layers': [layer('mgnrega_districts', sc('ckan', DGI, 'resources=1 changed=1'))]}
+    daily = cu.run(cat, tmp_path / 'a.json', FakeClient(json_by_url={DGI: dgi_listing('Daily')}), now=lambda: NOW)
+    assert daily['mgnrega_districts']['status'] == 'weak'
+    assert 'Daily' in daily['mgnrega_districts']['weak']
+    five = cu.run(cat, tmp_path / 'b.json', FakeClient(json_by_url={DGI: dgi_listing('Five Yearly')}),
+                  now=lambda: NOW)
+    assert five['mgnrega_districts']['status'] == 'changed' and five['mgnrega_districts']['weak'] is None
+
+
+def test_weak_layers_are_not_listed_or_counted_as_changed():
+    status = {'urban_rail_stations': cu._entry(sc('http', PBF, 'etag="a"'), NOW, status='weak', new='etag="b"',
+                                               weak='an OpenStreetMap extract changes daily')}
+    body = cu.issue_body(status, {'layers': []}, [])
+    assert 'Changed since ingest' not in body and 'No source has changed' in body
+    assert '1 on a weak check' in body
+    summary = json.loads(re.search(r'<!-- update-summary (.*) -->', body).group(1))
+    assert summary['changed'] == [] and summary['counts'] == {'weak': 1}
+
+
+def test_a_regular_layer_on_a_weak_check_is_due_by_its_schedule_and_says_why():
+    cat = {'layers': [refreshed('mgnrega_districts', 'regular', 'monthly_if_changed', '2026-10-01T00:00:00+00:00')]}
+    cat['layers'][0]['source_check'] = sc('ckan', DGI, 'f')
+    entry = cu._entry(cat['layers'][0]['source_check'], NOW, status='weak', new='g', weak='marked Daily')
+    due = cu.due_layers(cat, {'mgnrega_districts': entry}, None, '2026-11-18')
+    assert [(d['id'], d['why']) for d in due] == [('mgnrega_districts', 'weak check: marked Daily')]
+    assert cu.due_layers(cat, {'mgnrega_districts': entry}, None, '2026-10-20') == []
+
+
+# ── data.gov.in refuses GitHub's servers: checked from India instead ────────
+
+def dgi_catalog():
+    return {'layers': [layer('wbc1_water_bodies', sc('ckan', DGI, 'resources=1 changed=1')),
+                       layer('gb_adm1', sc('http', 'https://gb.example/api/ADM1/'))]}
+
+
+def test_in_ci_data_gov_in_is_not_asked_and_is_listed_as_local_only(tmp_path):
+    client = FakeClient(heads={'https://gb.example/api/ADM1/': {'etag': '"1"'}})
+    status = cu.run(dgi_catalog(), tmp_path / 's.json', client, now=lambda: NOW, in_ci=True)
+    assert client.calls == ['https://gb.example/api/ADM1/']
+    assert status['wbc1_water_bodies']['status'] == 'local_only'
+    assert status['wbc1_water_bodies']['checked_at'] is None       # a later local run asks it at once
+
+
+def test_locally_data_gov_in_is_asked_and_a_failure_is_a_real_error(tmp_path):
+    client = FakeClient(heads={'https://gb.example/api/ADM1/': {'etag': '"1"'}},
+                        json_by_url={DGI: urllib.error.HTTPError(DGI, 503, 'Service Unavailable', {}, None)})
+    status = cu.run(dgi_catalog(), tmp_path / 's.json', client, now=lambda: NOW)
+    assert DGI in client.calls and status['wbc1_water_bodies']['status'] == 'error'
+
+
+def test_local_only_layers_have_their_own_section_and_are_not_errors():
+    status = {'wbc1_water_bodies': {'status': 'local_only', 'method': 'ckan', 'url': DGI, 'checked_at': None},
+              'a': {'status': 'unchanged', 'checked_at': NOW}}
+    body = cu.issue_body(status, {'layers': []}, [])
+    assert '### Checked from India each month (1)' in body
+    assert '`python3 scripts/check_updates.py --max-age-hours 0`' in body
+    assert '| wbc1_water_bodies |' in body and 'Errors' not in body
+    summary = json.loads(re.search(r'<!-- update-summary (.*) -->', body).group(1))
+    assert summary['error'] == [] and summary['local_only'] == ['wbc1_water_bodies']
+    assert summary['counts'] == {'local_only': 1, 'unchanged': 1}
+
+
+def test_main_skips_data_gov_in_on_github_actions(tmp_path, monkeypatch):
+    cat = tmp_path / 'catalog.json'
+    cat.write_text(json.dumps({'layers': [layer('wbc1_water_bodies', sc('ckan', DGI))]}))
+    monkeypatch.setenv('GITHUB_ACTIONS', 'true')
+    monkeypatch.setattr(cu.Client, 'get_json', lambda self, url: pytest.fail(f'asked {url}'))
+    summ = tmp_path / 'summary.json'
+    assert cu.main(['--catalog', str(cat), '--status', str(tmp_path / 's.json'), '--releases',
+                    str(tmp_path / 'none.json'), '--summary', str(summ)]) == 0
+    assert json.loads(summ.read_text())['local_only'] == ['wbc1_water_bodies']
 
 
 # ── politeness ──────────────────────────────────────────────────────────────

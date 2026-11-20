@@ -9,8 +9,14 @@ file. Each answer becomes a fingerprint, compared with the one recorded in catal
   unchanged  same fingerprint (or, before one is recorded, the source's own date is not after fetched_at)
   changed    a different fingerprint (or, before one is recorded, the source is dated after fetched_at)
   baseline   no fingerprint recorded yet and no source date to compare: accept one with --accept-all-unchanged
+  weak       a weak check (see below): its fingerprint is recorded but never reported as changed; the layer goes
+             by its rebuild schedule ("Due or overdue"). Besides populate_refresh.weak_check, a data.gov.in resource
+             marked frequency Daily is weak: data.gov.in moves its `changed` date every day
   error      the request failed; the message says why
   manual     no machine check (source_check.reason says why); no request is made
+  local_only on GitHub Actions (GITHUB_ACTIONS=true), a data.gov.in check: data.gov.in refuses GitHub's servers
+             (HTTP 503), so no request is made and the owner runs this script from India on days 1 to 7 of each
+             month (--max-age-hours 0). Run locally, data.gov.in is asked like any source and a failure is an error
 
 Results go to data/update-status.json ({layer_id: {status, method, url, old, new, new_date, checked_at, error}}),
 saved after every answer, so a killed run resumes: an entry checked within --max-age-hours with the same method,
@@ -69,6 +75,8 @@ WORKERS = 4
 HOST_DELAY_S = 1.0
 TIMEOUT_S = 30
 ISSUE_TITLE = 'Source updates'
+DATAGOV_HOSTS = ('data.gov.in', 'www.data.gov.in', 'api.data.gov.in')
+LOCAL_COMMAND = 'python3 scripts/check_updates.py --max-age-hours 0'
 
 _GH_REPO = re.compile(r'^https://github\.com/([^/]+/[^/]+)/?$')
 GH_FOLDER = re.compile(r'^https://github\.com/([^/]+/[^/]+)/tree/([^/]+)/(.+)$')
@@ -168,6 +176,16 @@ def _ckan(doc: dict) -> tuple[str, str | None]:
         changed = max(r['changed'][0] for r in rows)
         return f'resources={doc["total"]} changed={changed}', iso(datetime.fromtimestamp(changed, timezone.utc))
     raise CheckError('no dataset record in the answer')
+
+
+def answer_weakness(check: dict, answer) -> str | None:
+    """Why this answer cannot confirm the data unchanged, beyond what populate_refresh.weak_check sees in the
+    catalog: data.gov.in moves a resource's `changed` every day when the resource is marked frequency Daily,
+    whether or not its data changed (mgnrega_districts, verified by a full re-pull on 19 Nov 2026)."""
+    rows = (answer.get('data') or {}).get('rows') if check['method'] == 'ckan' and isinstance(answer, dict) else None
+    if any('daily' in (f or '').lower() for r in rows or [] for f in r.get('frequency') or []):
+        return 'data.gov.in re-dates a resource marked Daily every day, whether or not its data changed'
+    return None
 
 
 def fingerprint(check: dict, answer) -> tuple[str, str | None]:
@@ -300,24 +318,33 @@ def _fresh(prev: dict | None, check: dict, now: str, max_age_hours: float) -> bo
 
 def _entry(check: dict, now: str, **kw) -> dict:
     """A status entry; an error unless `kw` says otherwise."""
-    return {'status': 'error', 'method': check.get('method'), 'url': check.get('url'),
-            'old': check.get('fingerprint'), 'new': None, 'new_date': None, 'checked_at': now, 'error': None, **kw}
+    return {'status': 'error', 'method': check.get('method'), 'url': check.get('url'), 'old': check.get('fingerprint'),
+            'new': None, 'new_date': None, 'checked_at': now, 'error': None, 'weak': None, **kw}
 
 
 def _result(layer: dict, answer, err: str | None, now: str) -> dict:
+    """The layer's status entry from the answer. A weak check (populate_refresh.weak_check, or answer_weakness) is
+    status 'weak' whatever its fingerprint says: its fingerprint is recorded but proves nothing either way, so the
+    layer goes by its rebuild schedule instead."""
     check = layer['source_check']
     if err:
         return _entry(check, now, error=err)
     try:
         new, new_date = fingerprint(check, answer)
-    except (CheckError, KeyError, TypeError, ValueError) as e:     # an answer of an unexpected shape
+        weak = weak_check(layer) or answer_weakness(check, answer)
+    except (AttributeError, CheckError, KeyError, TypeError, ValueError) as e:    # an answer of an unexpected shape
         return _entry(check, now, error=f'{type(e).__name__}: {e}')
-    return _entry(check, now, new=new, new_date=new_date,
-                  status=classify(check.get('fingerprint'), new, new_date, layer.get('fetched_at')))
+    return _entry(check, now, new=new, new_date=new_date, weak=weak,
+                  status='weak' if weak else classify(check.get('fingerprint'), new, new_date, layer.get('fetched_at')))
+
+
+def local_only(check: dict) -> bool:
+    """data.gov.in refuses GitHub's servers (HTTP 503), so CI leaves its checks to the monthly run from India."""
+    return urlparse(check.get('url') or '').netloc in DATAGOV_HOSTS
 
 
 def run(catalog: dict, out: Path, client, now=utc_now, max_minutes: float = 20, max_age_hours: float = 20,
-        workers: int = WORKERS) -> dict:
+        workers: int = WORKERS, in_ci: bool = False) -> dict:
     layers = {lyr['id']: lyr for lyr in catalog['layers'] if lyr.get('source_check')}
     status = {k: v for k, v in load_status(out).items() if k in layers}
     started = now()
@@ -327,6 +354,8 @@ def run(catalog: dict, out: Path, client, now=utc_now, max_minutes: float = 20, 
         if check['method'] == 'manual':
             status[lid] = {'status': 'manual', 'method': 'manual', 'url': check.get('url'),
                            'reason': check.get('reason')}
+        elif in_ci and local_only(check):
+            status[lid] = _entry(check, None, status='local_only')
         elif not _fresh(status.get(lid), check, started, max_age_hours):
             try:
                 due.setdefault(request_of(check), []).append(lid)
@@ -335,7 +364,7 @@ def run(catalog: dict, out: Path, client, now=utc_now, max_minutes: float = 20, 
     save_status(out, status)
     n_due = sum(map(len, due.values()))
     log(f'{len(layers)} layers: {n_due} to check with {len(due)} requests, '
-        f'{len(layers) - n_due} manual or checked within {max_age_hours:g} h')
+        f'{len(layers) - n_due} manual, left to the run from India, or checked within {max_age_hours:g} h')
 
     deadline = time.monotonic() + max_minutes * 60
 
@@ -431,9 +460,10 @@ def due_layers(catalog: dict, status: dict, releases: dict | None, on: str) -> l
         r = lyr.get('refresh') or {}
         rebuild = r.get('rebuild')
         entry = status.get(lyr['id']) or {}
-        if rebuild == 'monthly_if_changed' and entry.get('status') != 'changed':
+        # a weak check cannot say whether the source changed, so it may have: the layer goes by its month
+        if rebuild == 'monthly_if_changed' and entry.get('status') not in ('changed', 'weak'):
             continue
-        weak = weak_check(lyr)
+        weak = weak_check(lyr) or entry.get('weak')
         same = None if weak else identical_on(lyr, entry)
         due = next_due(rebuild, last_refresh(lyr, releases, same))
         if due and due <= on:
@@ -457,13 +487,15 @@ def _cell(s) -> str:
 
 
 def summary(status: dict, due: list[dict] | None = None) -> dict:
+    """The machine-readable summary the ops dashboard and the workflow read (counts, changed, error, due, due_count;
+    local_only lists the data.gov.in layers CI leaves to the monthly run from India)."""
     counts = Counter(e.get('status') for e in status.values())
+
+    def having(s):
+        return sorted(k for k, e in status.items() if e.get('status') == s)
     return {'checked_at': max((e['checked_at'] for e in status.values() if e.get('checked_at')), default=None),
-            'counts': dict(counts),
-            'changed': sorted(k for k, e in status.items() if e.get('status') == 'changed'),
-            'error': sorted(k for k, e in status.items() if e.get('status') == 'error'),
-            'due': [d['id'] for d in due or []],
-            'due_count': len(due or [])}
+            'counts': dict(counts), 'changed': having('changed'), 'error': having('error'),
+            'local_only': having('local_only'), 'due': [d['id'] for d in due or []], 'due_count': len(due or [])}
 
 
 def issue_body(status: dict, catalog: dict, due: list[dict] | None = None) -> str:
@@ -472,7 +504,8 @@ def issue_body(status: dict, catalog: dict, due: list[dict] | None = None) -> st
     c = s['counts']
     lines = [f'Weekly check of each layer\'s upstream source (metadata only), last run {s["checked_at"]}: '
              f'{c.get("changed", 0)} changed, {c.get("error", 0)} errors, {c.get("unchanged", 0)} unchanged, '
-             f'{c.get("baseline", 0)} without a recorded version, {c.get("manual", 0)} checked by hand.', '']
+             f'{c.get("baseline", 0)} without a recorded version, {c.get("weak", 0)} on a weak check (rebuilt on '
+             f'schedule), {c.get("manual", 0)} checked by hand.', '']
     if s['changed']:
         lines += [f'### Changed since ingest ({len(s["changed"])})', '',
                   '| Layer | Method | Old to new | Link |', '|---|---|---|---|']
@@ -491,11 +524,18 @@ def issue_body(status: dict, catalog: dict, due: list[dict] | None = None) -> st
             e = status[lid]
             lines.append(f'| {lid} | {e.get("method")} | {_cell(e.get("error"))} | {page_link(e.get("url"))} |')
         lines.append('')
+    if s['local_only']:
+        lines += [f'### Checked from India each month ({len(s["local_only"])})', '',
+                  'data.gov.in refuses requests from GitHub\'s servers, so these are checked from India on days 1 to '
+                  f'7 of each month: `{LOCAL_COMMAND}`', '', '| Layer | Link |', '|---|---|']
+        lines += [f'| {lid} | {status[lid].get("url") or ""} |' for lid in s['local_only']]
+        lines.append('')
     if due:
         lines += [f'### Due or overdue ({len(due)})', '',
                   'Due a month after the layer\'s last build, or after the last weekly check that confirmed its '
                   'source identical by an exact fingerprint (a release asset, a commit, a dataset record, a data '
-                  'file\'s headers); a weak check (OpenStreetMap, GTFS, a page, by hand) never counts.', '',
+                  'file\'s headers); a weak check (OpenStreetMap, GTFS, a page, a data.gov.in resource marked Daily, by '
+                  'hand) never counts.', '',
                   '| Layer | Class | Rebuild | Last build | Confirmed identical | Due | Days over | Why |',
                   '|---|---|---|---|---|---|---|---|']
         lines += [f'| {d["id"]} | {d["class"]} | {d["rebuild"]} | {d["last_build"]} | {d["last_identical"] or ""} | '
@@ -535,7 +575,7 @@ def main(argv=None) -> int:
 
     token = os.environ.get('GITHUB_TOKEN') or os.environ.get('GH_TOKEN')
     status = run(catalog, status_path, Client(token=token), max_minutes=args.max_minutes,
-                 max_age_hours=args.max_age_hours)
+                 max_age_hours=args.max_age_hours, in_ci=os.environ.get('GITHUB_ACTIONS') == 'true')
     due = due_layers(catalog, status, load_releases(Path(args.releases)), today())
     s = summary(status, due)
     log('status: ' + ', '.join(f'{k} {v}' for k, v in sorted(s['counts'].items())) + f'; due {len(due)}')
