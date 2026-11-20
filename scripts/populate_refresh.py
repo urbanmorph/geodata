@@ -105,6 +105,8 @@ OVERRIDES: dict[str, dict] = {
     'subsidence_megacities': {'class': 'frozen', 'reason': 'a paper\'s published data (Ohenhen et al. 2025), '
                                                            'pinned at its figshare version'},
     'atal_bhujal_wells': {'class': 'frozen', 'reason': HISTORICAL + ' (well levels for 2015-2022)'},
+    'glhymps_permeability': {'class': 'frozen', 'reason': 'a paper\'s published data (GLHYMPS 2.0, Huscroft et al. '
+                                                          '2018), pinned at its Borealis version'},
     'high_courts': {'class': 'frozen', 'reason': JUDICIARY},
     'ngt_zones': {'class': 'frozen', 'reason': JUDICIARY},
     'nclt_benches': {'class': 'frozen', 'reason': JUDICIARY},

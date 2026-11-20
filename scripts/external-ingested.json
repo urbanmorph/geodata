@@ -2797,5 +2797,37 @@
       "GEM",
       "Global Earthquake Model"
     ]
+  },
+  {
+    "id": "glhymps_permeability",
+    "name": "Permeability and porosity (GLHYMPS 2.0)",
+    "level": "glhymps_permeability",
+    "category": "water",
+    "source": "GLHYMPS 2.0 (Huscroft et al. 2018)",
+    "description": "How easily water moves through the ground near the surface (permeability) and how much of it is open space (porosity), mapped as rock and sediment polygons across India, from GLHYMPS 2.0.",
+    "unit": "polygons",
+    "features": 7795,
+    "license": "CC-BY-4.0",
+    "r2_prefix": "water/glhymps-permeability",
+    "parquet_file": "GLHYMPS_India.3d26649d.parquet",
+    "parquet_bytes": 8132161,
+    "pmtiles_file": "GLHYMPS_India.20e62c98.pmtiles",
+    "pmtiles_bytes": 4570164,
+    "source_url": "https://doi.org/10.5683/SP2/TTJNIU",
+    "source_org": "Huscroft, Gleeson, Hartmann and B\u00f6rker (Borealis)",
+    "source_version": "Borealis 10.5683/SP2/TTJNIU v1.0",
+    "notes": "GLHYMPS 2.0, the global hydrogeology map of Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, \"Compiling and mapping global permeability of the unconsolidated and consolidated Earth\", Geophysical Research Letters 45 (https://doi.org/10.1002/2017GL075860), published on Borealis (https://doi.org/10.5683/SP2/TTJNIU, version 1.0) under CC-BY 4.0. Every polygon that touches India (its boundary as shown on bharatlas, claimed areas included) is kept whole, so some reach past the border; every column is as published, with the shapefile's short names. Permeability is log10 of permeability in m\u00b2, times 100: logK_Ferr_ (without permafrost) and logK_Ice_x (with permafrost) of -1300 mean 10^-13 m\u00b2. Higher (less negative) values let water through more easily. For hydraulic conductivity of water in m/s, K = 10^(value/100) x 10^7. Porosity_x is porosity in percent (porosity x 100), K_stdev_x1 the standard deviation of log10 permeability x 100. GUM_K says where the values come from (1 GLHYMPS, 2 the Global Unconsolidated Sediments Map) and 0 marks a polygon with no permeability value, whose permeability columns read 0 as published. Prmfrst is 1 inside the permafrost boundary. The source readme describes every column. The map is global and coarse (half the polygons are under 15 km\u00b2, the largest cover hundreds of thousands of km\u00b2): use it for regional patterns, not for a single site.",
+    "tags": [
+      "groundwater",
+      "hydrogeology",
+      "permeability",
+      "porosity",
+      "hydraulic conductivity",
+      "aquifer",
+      "subsurface",
+      "GLHYMPS",
+      "unconsolidated sediments",
+      "permafrost"
+    ]
   }
 ]

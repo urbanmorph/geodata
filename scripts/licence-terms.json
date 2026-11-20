@@ -1516,6 +1516,28 @@
     }
    },
    "decided": "2026-11-21: labels applied at ingest"
+  },
+  {
+   "id": "borealis_glhymps_2",
+   "publisher": "Huscroft, Gleeson, Hartmann and Börker 2018, GLHYMPS 2.0 (Borealis, the Canadian Dataverse)",
+   "url": "https://borealisdata.ca/api/datasets/:persistentId/?persistentId=doi:10.5683/SP2/TTJNIU",
+   "kind": "json",
+   "json_path": "data.latestVersion.license.name",
+   "stated": "CC-BY-4.0",
+   "quote": "\"license\": {\"name\": \"CC-BY 4.0\", \"uri\": \"http://creativecommons.org/licenses/by/4.0\"}",
+   "verdict": "ok",
+   "layers": [
+    "glhymps_permeability"
+   ],
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "credit": {
+     "name": "Huscroft, Gleeson, Hartmann and Börker 2018, GLHYMPS 2.0 (Geophysical Research Letters)",
+     "url": "https://doi.org/10.5683/SP2/TTJNIU"
+    }
+   },
+   "sha256": "090376c32b961b252c53f1ccd22580f6c3a1cbe5906dd556caa754110d4bc2f0",
+   "seen_at": "2026-11-21"
   }
  ]
 }

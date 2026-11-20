@@ -102,6 +102,9 @@ OVERRIDES: dict[str, dict] = {
     'gem_active_faults': {'method': 'github_commit',
                           'url': 'https://github.com/GEMScienceTools/gem-global-active-faults/tree/master/'
                                  'geojson/gem_active_faults.geojson'},
+    'glhymps_permeability': manual('a paper\'s published data on Borealis, pinned at version 1.0 by md5 and sha256 '
+                                   '(scripts/bake_glhymps_permeability.py); no check method reads the Dataverse '
+                                   'API yet', 'https://doi.org/10.5683/SP2/TTJNIU'),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }
