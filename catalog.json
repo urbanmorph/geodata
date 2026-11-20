@@ -1221,6 +1221,26 @@
       "label": "Airports, airfields and heliports",
       "unit": "airports",
       "description": "Airports, airfields and heliports across India from OurAirports: IATA and ICAO codes, type, scheduled service, and the LGD state and district."
+    },
+    "gsi_drilling_boreholes": {
+      "label": "Mineral exploration boreholes (GSI)",
+      "unit": "boreholes",
+      "description": "Boreholes drilled in mineral exploration, with commodity, stage of investigation, depth, inclination, collar level, prospect, block and dates, from the Geological Survey of India."
+    },
+    "gsi_hydrocarbon_blocks": {
+      "label": "Oil and gas blocks (NGDR)",
+      "unit": "blocks and fields",
+      "description": "Oil and gas blocks and fields, onland and offshore: nomination, PSC, HELP and OALP, discovered small field and coal bed methane blocks and producing fields, with basin, operator and status, from Directorate General of Hydrocarbons data in the National Geoscience Data Repository. Name columns differ by block type."
+    },
+    "gsi_mineral_deposits": {
+      "label": "Mineral deposits (GSI)",
+      "unit": "deposits",
+      "description": "Mineral deposits of every commodity (copper, iron, bauxite, gold, lead-zinc, manganese, chromite, diamond and more) with metallogenic belt, reserve, grade, host rock and formation, from the Geological Survey of India."
+    },
+    "gsi_geothermal_springs": {
+      "label": "Geothermal springs (GSI)",
+      "unit": "springs",
+      "description": "Hot and thermal springs with temperature, pH, dissolved salts, mass flow and spring type, from the Geological Survey of India."
     }
   },
   "level_order": [
@@ -1376,7 +1396,11 @@
     "bhuvan_land_degradation_1516",
     "urban_rail_stations",
     "urban_rail_lines",
-    "bus_stops"
+    "bus_stops",
+    "gsi_drilling_boreholes",
+    "gsi_hydrocarbon_blocks",
+    "gsi_mineral_deposits",
+    "gsi_geothermal_springs"
   ],
   "layers": [
     {
@@ -11429,6 +11453,230 @@
           "Thane | Mumbai region GTFS (croyla/mumbai-gtfs)": 1805,
           "Vasai-Virar | Mumbai region GTFS (croyla/mumbai-gtfs)": 696
         }
+      }
+    },
+    {
+      "id": "gsi_drilling_boreholes",
+      "level": "gsi_drilling_boreholes",
+      "source": "NGDR",
+      "rows": 6904,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mining_Exploration_Drilling_Boreholes.parquet",
+        "bytes": 533329
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mining_Exploration_Drilling_Boreholes.pmtiles",
+        "bytes": 1652818
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.geojson",
+        "bytes": 8259970
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.kml",
+        "bytes": 14061281
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-drilling-boreholes/NGDR_Mining_Exploration_Drilling_Boreholes.shp.zip",
+        "bytes": 659973
+      },
+      "fetched_at": "2026-11-20T09:14:12+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mining_Exploration_Drilling_Boreholes.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:59:19Z size=578153",
+        "checked_at": "2026-11-20T09:15:12Z",
+        "changed_at": "2026-03-10T00:59:19Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "gsi_hydrocarbon_blocks",
+      "level": "gsi_hydrocarbon_blocks",
+      "source": "NGDR",
+      "rows": 810,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Hydrocarbon_Blocks.parquet",
+        "bytes": 299064
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Hydrocarbon_Blocks.pmtiles",
+        "bytes": 398606
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.geojson",
+        "bytes": 1525469
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.kml",
+        "bytes": 1697228
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-hydrocarbon-blocks/NGDR_Hydrocarbon_Blocks.shp.zip",
+        "bytes": 313494
+      },
+      "fetched_at": "2026-11-20T09:14:20+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Hydrocarbon_Blocks.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:58:59Z size=305994",
+        "checked_at": "2026-11-20T09:15:12Z",
+        "changed_at": "2026-03-10T00:58:59Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "gsi_mineral_deposits",
+      "level": "gsi_mineral_deposits",
+      "source": "NGDR",
+      "rows": 476,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mineral_Deposits.parquet",
+        "bytes": 34121
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mineral_Deposits.pmtiles",
+        "bytes": 60596
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.geojson",
+        "bytes": 249395
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.kml",
+        "bytes": 494211
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-mineral-deposits/NGDR_Mineral_Deposits.shp.zip",
+        "bytes": 36876
+      },
+      "fetched_at": "2026-11-20T09:14:26+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_land_features/releases/download/mining/NGDR_Mineral_Deposits.parquet",
+        "fingerprint": "updated_at=2026-03-10T00:59:08Z size=36669",
+        "checked_at": "2026-11-20T09:15:12Z",
+        "changed_at": "2026-03-10T00:59:08Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "gsi_geothermal_springs",
+      "level": "gsi_geothermal_springs",
+      "source": "NGDR",
+      "rows": 349,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.parquet",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/natural/NGDR_Geothermal_Springs.parquet",
+        "bytes": 31218
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.pmtiles",
+        "upstream_url": "https://github.com/ramSeraph/indian_water_features/releases/download/natural/NGDR_Geothermal_Springs.pmtiles",
+        "bytes": 51880
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Geological Survey of India (NGDR / Bhukosh)",
+          "url": "https://bhukosh.gsi.gov.in/"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler).",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.geojson",
+        "bytes": 229712
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.kml",
+        "bytes": 554118
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-geothermal-springs/NGDR_Geothermal_Springs.shp.zip",
+        "bytes": 26099
+      },
+      "fetched_at": "2026-11-20T09:14:31+00:00",
+      "source_check": {
+        "method": "github_release",
+        "url": "https://github.com/ramSeraph/indian_water_features/releases/download/natural/NGDR_Geothermal_Springs.parquet",
+        "fingerprint": "updated_at=2026-03-10T04:55:35Z size=32696",
+        "checked_at": "2026-11-20T09:15:13Z",
+        "changed_at": "2026-03-10T04:55:35Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
       }
     }
   ],
