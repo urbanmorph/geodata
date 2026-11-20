@@ -240,6 +240,37 @@ def test_significant_batch_is_defined_under_policy_b():
         assert held not in by_id
 
 
+NGDR_UNDERGROUND = {
+    # id: (ramSeraph release, file, kml name field)
+    'gsi_drilling_boreholes': ('indian_land_features/mining', 'NGDR_Mining_Exploration_Drilling_Boreholes',
+                               'borehole_name'),
+    'gsi_hydrocarbon_blocks': ('indian_land_features/mining', 'NGDR_Hydrocarbon_Blocks', 'blk_name'),
+    'gsi_mineral_deposits': ('indian_land_features/mining', 'NGDR_Mineral_Deposits', 'locality'),
+    'gsi_geothermal_springs': ('indian_water_features/natural', 'NGDR_Geothermal_Springs', 'location'),
+}
+
+
+def test_ngdr_underground_layers_are_defined_under_policy_b():
+    # NGDR (GSI Bhukosh) states no open licence: the compiler's CC0 applies,
+    # crediting GSI, as for coal blocks and critical minerals.
+    from build_catalog import ATTR
+    by_id = {d.id: d for d in ir.DATASETS}
+    for lid, (release, file, name_field) in NGDR_UNDERGROUND.items():
+        d = by_id[lid]
+        repo, tag = release.split('/')
+        base = f'https://github.com/ramSeraph/{repo}/releases/download/{tag}/{file}'
+        assert (d.parquet_url, d.pmtiles_url) == (f'{base}.parquet', f'{base}.pmtiles'), lid
+        assert (d.category, d.kml_name_field, d.license, d.source) == ('environment', name_field, 'CC0-1.0', 'NGDR'), lid
+        assert d.source_url == ATTR['NGDR']['url'] and 'Geological Survey of India' in d.source_org, lid
+        assert d.bake_all_formats and 'sources-and-licensing' in d.notes, lid
+        assert '—' not in d.name + d.description and 'catalog' not in (d.name + d.description).lower(), lid
+        assert [x.id for x in ir.DATASETS if lid in x.id] == [lid]
+    # Mining leases (major, minor, other; NGDR and NCOG) name private lessees,
+    # many with phones and emails: personal data, still held.
+    for held in ('gsi_minor_mining_leases', 'ncog_minor_mining_leases', 'gsi_mining_leases_other'):
+        assert held not in by_id
+
+
 WB_AND_RAILWAYS = {
     # id: (category, kml name field, ATTR source key)
     'wb_amrut_wards': ('city-wards', 'Ward_No', 'WBAMRUT'),
