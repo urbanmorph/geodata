@@ -146,6 +146,37 @@ def gate(layer_id: str) -> None:
         print(f'  licence terms {r["id"]}: {r["status"]}', flush=True)
 
 
+# ── labels ───────────────────────────────────────────────────────────────────
+# A terms document may set the labels its layers carry: "labels": {"licence", "non_commercial", "credit": {name,
+# url}}. Every registration applies them (pipeline.upsert_layer, ingest_ramseraph), so a re-extract never puts
+# back a compiler's licence over the publisher's reviewed one.
+
+def labels_of(layer_id: str, registry: dict) -> dict:
+    out: dict = {}
+    for t in terms_of(layer_id, registry):
+        for k, v in t.get('labels', {}).items():
+            if k in out and out[k] != v:
+                raise ValueError(f'{layer_id}: terms disagree on {k} ({out[k]!r} vs {v!r} from "{t["id"]}")')
+            out[k] = v
+    return out
+
+
+def licence_of(layer_id: str, default: str = 'CC0-1.0', registry: dict | None = None) -> str:
+    """The licence a layer's reviewed terms set, else `default` (the compiler's)."""
+    return labels_of(layer_id, registry if registry is not None else load_registry()).get('licence', default)
+
+
+def labelled(entry: dict, registry: dict | None = None) -> dict:
+    """The catalog entry with the labels its terms set (a new dict; unchanged when its terms set none)."""
+    labels = labels_of(entry['id'], registry if registry is not None else load_registry())
+    if not labels:
+        return entry
+    out = {**entry, **{k: v for k, v in labels.items() if k != 'credit'}}
+    if 'credit' in labels:
+        out['attribution'] = {**(entry.get('attribution') or {'publisher': None}), 'primary': labels['credit']}
+    return out
+
+
 # ── recording ────────────────────────────────────────────────────────────────
 
 def load_registry(path: Path = REGISTRY) -> dict:

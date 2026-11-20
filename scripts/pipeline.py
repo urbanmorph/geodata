@@ -819,6 +819,12 @@ def _licence_gate(layer_id: str) -> None:
 LICENCE_GATE = _licence_gate
 
 
+def licence_labelled(entry: dict) -> dict:
+    """The entry with the licence, non-commercial flag and credit its reviewed terms set (licence-terms.json)."""
+    import licence_watch
+    return licence_watch.labelled(entry, licence_watch.load_registry())
+
+
 def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None = None,
                  attribution: tuple[str, dict] | None = None,
                  category: tuple[str, str] | None = None) -> dict:
@@ -833,6 +839,7 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
     licence terms changed since they were reviewed (LICENCE_GATE)."""
     from tile_keys import keep_all_rebaked
     LICENCE_GATE(entry['id'])
+    entry = licence_labelled(entry)
     prev = next((x for x in catalog.setdefault('layers', []) if x.get('id') == entry['id']), {})
     entry = {**entry, 'fetched_at': prev.get('fetched_at') or entry.get('fetched_at') or now_iso()}
     keep_all_rebaked(entry, prev)  # rebaked tiles (filter columns) stay while the data is unchanged

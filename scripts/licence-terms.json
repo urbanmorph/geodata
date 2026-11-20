@@ -9,7 +9,7 @@
    "end": "exclusive property of NRSC, ISRO.",
    "stated": "NRSC terms, non-commercial use only; credit \"Source: NRSC, ISRO/DOS\" and link www.nrsc.gov.in",
    "quote": "All downloadable content can be used for non-commercial purposes with proper attribution (\"Source: NRSC, ISRO/DOS\") and linking to www.nrsc.gov.in.",
-   "verdict": "mark_nc",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "bhuvan_states",
@@ -26,7 +26,16 @@
     "ndem_landslide_hazard",
     "ndem_cyclone_tracks"
    ],
-   "sha256": "bd43270e8da1cbf82da9e9cb23a466aafe15a2c731d0ff2019cc05035c0cc8e3"
+   "sha256": "bd43270e8da1cbf82da9e9cb23a466aafe15a2c731d0ff2019cc05035c0cc8e3",
+   "labels": {
+    "licence": "NRSC terms",
+    "non_commercial": true,
+    "credit": {
+     "name": "NRSC, ISRO/DOS",
+     "url": "https://www.nrsc.gov.in/"
+    }
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "gsi_ngdr_bhukosh",
@@ -88,7 +97,7 @@
    "kind": "manual",
    "stated": "CC0-1.0 from compiler, credit \"Source: Survey of India, Government of India\" (pending owner decision on the foreign-entity clause)",
    "quote": "I agree not to share the downloaded data with any foreign individual or foreign entity, except as permitted under applicable laws.",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "soi_states",
@@ -101,7 +110,8 @@
    "watch_anchors": [
     "I agree to comply with the Geospatial Data Guidelines",
     "terminated for policy violations"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "pmgsy_geosadak",
@@ -111,14 +121,22 @@
    "json_path": "$.body",
    "stated": "GODL-India, credit Ministry of Rural Development (PMGSY Rural Connectivity Datasets, 2022)",
    "quote": "Ministry of Rural Development, 2022. PMGSY Rural Connectivity Datasets ... Published under India's Government Open Data License",
-   "verdict": "relabel",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "pmgsy_blocks",
     "pmgsy_habitations",
     "pmgsy_roads"
    ],
-   "sha256": "ca1a01d0953a58a033fd5c6279cfe3d8d24361c02440699f58ddd31fa8195968"
+   "sha256": "ca1a01d0953a58a033fd5c6279cfe3d8d24361c02440699f58ddd31fa8195968",
+   "labels": {
+    "licence": "GODL-India",
+    "credit": {
+     "name": "PMGSY GeoSadak (Ministry of Rural Development)",
+     "url": "https://omms.nic.in/"
+    }
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "data_gov_in",
@@ -795,11 +813,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_ahmedabad"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_jaipur",
@@ -810,11 +829,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_jaipur"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_gurugram",
@@ -825,11 +845,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_gurugram"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_kochi",
@@ -840,11 +861,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_kochi"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_vizag",
@@ -855,11 +877,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_vizag"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_thane",
@@ -870,11 +893,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_thane"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_indore",
@@ -885,11 +909,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_indore"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_madurai",
@@ -900,11 +925,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_madurai"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_navi_mumbai",
@@ -915,11 +941,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_navi_mumbai"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_guwahati",
@@ -930,11 +957,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_guwahati"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_bhopal",
@@ -945,11 +973,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_bhopal"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_kalyan_dombivli",
@@ -960,11 +989,12 @@
    "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
    "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
    "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_kalyan_dombivli"
-   ]
+   ],
+   "decided": "2026-11-20 (owner): kept with credit under Policy B; take down on request"
   },
   {
    "id": "opencity_bengaluru_bbmp_2022",
@@ -1020,14 +1050,22 @@
    "end": "Open Database License",
    "stated": "OpenStreetMap-derived => ODbL-1.0 (OpenCity dataset now Other (Public Domain), file removed)",
    "quote": "Columns carry OpenStreetMap ids, versions and changesets (from our own layer notes).",
-   "verdict": "relabel",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_hyderabad_osm",
     "urban_rail_stations",
     "urban_rail_lines"
    ],
-   "sha256": "1e34b0f089065b13e61872aecebadeb5ab8b49871c43745a1d73dda62c643327"
+   "sha256": "1e34b0f089065b13e61872aecebadeb5ab8b49871c43745a1d73dda62c643327",
+   "labels": {
+    "licence": "ODbL-1.0",
+    "credit": {
+     "name": "© OpenStreetMap contributors",
+     "url": "https://www.openstreetmap.org/copyright"
+    }
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "opencity_bhubaneshwar",
@@ -1117,12 +1155,16 @@
    "end": "license.",
    "stated": "CC-BY-SA-2.5-IN",
    "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
-   "verdict": "relabel",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_faridabad"
    ],
-   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668",
+   "labels": {
+    "licence": "CC-BY-SA-2.5-IN"
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "datameet_vijayawada",
@@ -1133,12 +1175,16 @@
    "end": "license.",
    "stated": "CC-BY-SA-2.5-IN",
    "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
-   "verdict": "relabel",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_vijayawada"
    ],
-   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668",
+   "labels": {
+    "licence": "CC-BY-SA-2.5-IN"
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "datameet_pcmc",
@@ -1149,12 +1195,16 @@
    "end": "license.",
    "stated": "CC-BY-SA-2.5-IN",
    "quote": "created by the Pune chapter of the DataMeet Trust ... shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
-   "verdict": "relabel",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "wards_pcmc"
    ],
-   "sha256": "9d48b29b657f817c1d04bdd0fd7b62beec422f8d18344f01dd5be8707db1abba"
+   "sha256": "9d48b29b657f817c1d04bdd0fd7b62beec422f8d18344f01dd5be8707db1abba",
+   "labels": {
+    "licence": "CC-BY-SA-2.5-IN"
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "datameet_lucknow_etc",
@@ -1182,12 +1232,16 @@
    "json_path": "boundaryLicense",
    "stated": "CC BY 2.5 IN",
    "quote": "boundaryLicense: \"Creative Commons Attribution 2.5 India (CC BY 2.5 IN)\"; source DataMeet, Election Commission of India",
-   "verdict": "relabel",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "gb_adm1"
    ],
-   "sha256": "85118c90aaba29134e14cd5161db5e1612cda70f84dc1cc50a4a047dd4a7f909"
+   "sha256": "85118c90aaba29134e14cd5161db5e1612cda70f84dc1cc50a4a047dd4a7f909",
+   "labels": {
+    "licence": "CC-BY-2.5-IN"
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "geoboundaries_gb_adm2_etc",
@@ -1197,14 +1251,18 @@
    "json_path": "boundaryLicense",
    "stated": "ODbL-1.0",
    "quote": "boundaryLicense: \"Open Data Commons Open Database License 1.0\"; source Pathways Data Pvt. Ltd., lgdirectory.gov.in",
-   "verdict": "relabel",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "gb_adm2",
     "gb_adm3",
     "gb_adm4"
    ],
-   "sha256": "e117703eb9eabd24a0fc76bf82dcaf92ae5ac9a2034dab0848ced0cb0ae3d5b2"
+   "sha256": "e117703eb9eabd24a0fc76bf82dcaf92ae5ac9a2034dab0848ced0cb0ae3d5b2",
+   "labels": {
+    "licence": "ODbL-1.0"
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "bharatviz",
@@ -1245,12 +1303,20 @@
    "json_path": "metadata.license.id",
    "stated": "Mixed: Zenodo v1.0 (2021) and 2024 versions CC-BY-4.0; latest Zenodo version (2025-08-29) CC-BY-NC-4.0; GitHub source repo states no licence",
    "quote": "Zenodo 16994648 (2025-08-29) license id \"cc-by-nc-4.0\"; 11275211 (2024-05-24) and 4742143 (v1.0) \"cc-by-4.0\"",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "india_flood_inventory"
    ],
-   "sha256": "e2ccf360af6e08873a1491a6e7ad8932cdb58d24803977fc370715c7192f950f"
+   "sha256": "e2ccf360af6e08873a1491a6e7ad8932cdb58d24803977fc370715c7192f950f",
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "credit": {
+     "name": "India Flood Inventory v1.0 (Zenodo)",
+     "url": "https://doi.org/10.5281/zenodo.4742143"
+    }
+   },
+   "decided": "2026-11-20 (owner): labels applied"
   },
   {
    "id": "ourairports",

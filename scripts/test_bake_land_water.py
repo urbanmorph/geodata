@@ -15,6 +15,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import bake_land_water as blw  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
+import licence_watch  # noqa: E402
 from tile_keys import versioned_key  # noqa: E402
 
 
@@ -130,10 +131,12 @@ def test_layers_are_republished_under_policy_b_smallest_first():
     existing = {d.id for d in ir.DATASETS}
     for d in blw.DATASETS:
         cat, src, file = EXPECT[d.id]
-        assert (d.category, d.source, d.license) == (cat, src, 'CC0-1.0'), d.id
+        # the compiler's CC0, unless the publisher's reviewed terms set the licence (Bhuvan: NRSC terms)
+        reviewed = licence_watch.licence_of(d.id, default=None)
+        assert (d.category, d.source, d.license) == (cat, src, reviewed or 'CC0-1.0'), d.id
         assert src in ATTR, d.id
         assert d.parquet_url.endswith(f'/{file}.parquet') and d.pmtiles_url.endswith(f'/{file}.pmtiles')
-        assert 'sources-and-licensing' in d.notes and 'ramSeraph' in d.notes, d.id
+        assert ("publisher's terms" if reviewed else 'sources-and-licensing') in d.notes and 'ramSeraph' in d.notes, d.id
         # The 1:50k polygon layers are parquet + tiles only (GeoJSON was 25.6 GB).
         assert d.bake_all_formats == (d.id not in PARQUET_AND_TILES_ONLY) and d.kml_name_field, d.id
         assert '—' not in d.name + d.description, d.id  # no em-dashes in user copy

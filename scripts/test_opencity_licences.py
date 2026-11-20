@@ -19,6 +19,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
+import licence_watch  # noqa: E402
 
 # layer id -> (OpenCity dataset slug, CKAN license_id; None = field empty)
 CKAN = {
@@ -64,7 +65,8 @@ NOT_REBUILT = {'wards_hyderabad_osm'}
 
 
 def _expected(layer_id: str) -> str:
-    return LABEL[CKAN[layer_id][1]]
+    # the publisher's reviewed terms (licence-terms.json) override OpenCity's label: OSM-derived wards are ODbL
+    return licence_watch.licence_of(layer_id, default=LABEL[CKAN[layer_id][1]])
 
 
 def _opencity_url(slug: str) -> str:

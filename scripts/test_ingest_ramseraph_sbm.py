@@ -19,6 +19,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import ingest_ramseraph as ir  # noqa: E402
+import licence_watch  # noqa: E402
 import pipeline  # noqa: E402
 from test_catalog_idempotent import _ds  # noqa: E402
 
@@ -233,8 +234,8 @@ def test_significant_batch_is_defined_under_policy_b():
     by_id = {d.id: d for d in ir.DATASETS}
     for lid, (cat, name_field) in SIGNIFICANT.items():
         d = by_id[lid]
-        assert (d.category, d.kml_name_field, d.license) == (cat, name_field, 'CC0-1.0'), lid
-        assert d.bake_all_formats and 'sources-and-licensing' in d.notes and d.source_org, lid
+        assert (d.category, d.kml_name_field, d.license) == (cat, name_field, licence_watch.licence_of(lid)), lid
+        assert d.bake_all_formats and ('sources-and-licensing' in d.notes or "publisher's terms" in d.notes) and d.source_org, lid
     # Personal data (lessee names, phones, emails; editor name + mobile) stays out.
     for held in ('gsi_major_mining_leases_2022', 'ncog_major_mining_leases', 'police_stations_rajasthan'):
         assert held not in by_id

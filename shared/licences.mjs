@@ -7,6 +7,7 @@ export const LICENCE_URLS = Object.freeze({
   'CC0-1.0': 'https://creativecommons.org/publicdomain/zero/1.0/',
   'CC-BY-4.0': 'https://creativecommons.org/licenses/by/4.0/',
   'CC-BY-SA-4.0': 'https://creativecommons.org/licenses/by-sa/4.0/',
+  'CC-BY-2.5-IN': 'https://creativecommons.org/licenses/by/2.5/in/',
   'CC-BY-SA-2.5-IN': 'https://creativecommons.org/licenses/by-sa/2.5/in/',
   'CC-BY-NC-4.0': 'https://creativecommons.org/licenses/by-nc/4.0/',
   'CC-BY-NC-SA-4.0': 'https://creativecommons.org/licenses/by-nc-sa/4.0/',
@@ -17,6 +18,8 @@ export const LICENCE_URLS = Object.freeze({
   'Apache-2.0': 'https://www.apache.org/licenses/LICENSE-2.0',
   MIT: 'https://opensource.org/licenses/MIT',
   Unlicense: 'https://unlicense.org/',
+  // Publisher terms that are not a licence id (with the layer's non_commercial flag when they say so).
+  'NRSC terms': 'https://www.nrsc.gov.in/nrscnew/termsConditions.php',
 });
 
 /** Terms URL for a licence id; a dual licence ("CC0-1.0 / CC-BY-4.0") uses the first. */

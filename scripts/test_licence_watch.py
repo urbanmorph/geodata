@@ -147,7 +147,53 @@ def test_no_change_says_so():
     assert 'No licence has changed' in md
 
 
+# ── the labels a layer carries, decided by its reviewed terms ────────────────
+
+NC_LABELS = {'licence': 'NRSC-Terms', 'non_commercial': True,
+             'credit': {'name': 'NRSC, ISRO/DOS', 'url': 'https://www.nrsc.gov.in/'}}
+
+
+def test_a_layer_takes_the_labels_its_reviewed_terms_set():
+    reg = registry({**recorded(), 'labels': NC_LABELS}, {'id': 'compiler', 'kind': 'manual', 'layers': ['bhuvan_x']})
+    assert lw.labels_of('bhuvan_x', reg) == NC_LABELS
+    assert lw.labels_of('other', reg) == {}
+
+
+def test_two_terms_that_disagree_on_a_label_are_an_error():
+    reg = registry({**recorded(), 'labels': NC_LABELS},
+                   {'id': 'b', 'kind': 'manual', 'layers': ['bhuvan_x'], 'labels': {'licence': 'CC0-1.0'}})
+    with pytest.raises(ValueError, match='bhuvan_x'):
+        lw.labels_of('bhuvan_x', reg)
+
+
+def test_labelling_an_entry_sets_licence_flag_and_credit_and_keeps_the_compiler():
+    entry = {'id': 'bhuvan_x', 'licence': 'CC0-1.0',
+             'attribution': {'primary': {'name': 'Bhuvan', 'url': 'https://bhuvan'}, 'publisher': {'name': 'compiler'}}}
+    out = lw.labelled(entry, registry({**recorded(), 'labels': NC_LABELS}))
+    assert out['licence'] == 'NRSC-Terms' and out['non_commercial'] is True
+    assert out['attribution'] == {'primary': NC_LABELS['credit'], 'publisher': {'name': 'compiler'}}
+    assert entry['licence'] == 'CC0-1.0'   # the input is not changed
+    assert lw.labelled(entry, registry(recorded())) == entry   # no labels, no change
+
+
+def test_registering_a_layer_applies_its_labels(monkeypatch):
+    monkeypatch.setattr(lw, 'load_registry', lambda: registry({**recorded(), 'labels': NC_LABELS}))
+    cat = pipeline.upsert_layer({'layers': []}, {'id': 'bhuvan_x', 'licence': 'CC0-1.0'}, {'label': 'x'})
+    assert cat['layers'][0]['licence'] == 'NRSC-Terms' and cat['layers'][0]['non_commercial'] is True
+
+
 # ── the registry itself ──────────────────────────────────────────────────────
+
+def test_every_layer_carries_the_labels_its_terms_set():
+    reg = lw.load_registry()
+    catalog = json.loads((HERE.parent / 'catalog.json').read_text())
+    wrong = {}
+    for lyr in catalog['layers']:
+        want = lw.labelled(lyr, reg)
+        if want != lyr:
+            wrong[lyr['id']] = {k: (lyr.get(k), want.get(k)) for k in want if want.get(k) != lyr.get(k)}
+    assert wrong == {}
+
 
 def test_every_layer_has_its_licence_terms_recorded():
     reg = lw.load_registry()
@@ -162,3 +208,14 @@ def test_every_recorded_term_has_a_baseline():
         assert t.get('seen_at') and t.get('stated'), t['id']
         if t['kind'] != 'manual':
             assert t.get('url') and t.get('sha256'), t['id']
+
+
+def test_a_republished_layer_with_reviewed_terms_says_so_in_its_notes():
+    import ingest_ramseraph as ir
+    d = ir.republished('bhuvan_gw_prospects', 'n', 'water', 'Bhuvan', 'r/t', 'f', 'd', 'u', 'https://bhuvan',
+                       'Bhuvan (NRSC, ISRO)', 'k', 'water/x')
+    assert d.license == 'NRSC terms'
+    assert 'CC0' not in d.notes and 'states no open licence' not in d.notes
+    assert "the publisher's terms (NRSC terms, non-commercial only)" in d.notes
+    fsi = next(x for x in ir.DATASETS if x.id == 'fsi_beats')   # no labels: the compiler's CC0 stands
+    assert fsi.license == 'CC0-1.0' and 'CC0 1.0 from the compiler' in fsi.notes
