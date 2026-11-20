@@ -84,6 +84,8 @@ RULES = [
 
 HISTORICAL = 'a historical vintage, kept as published; a newer one is a separate layer'
 ONE_OFF_CENSUS = 'a one-off census: its tables are final once published'
+OSM_AUDIT = ('rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; '
+             'every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns')
 JUDICIARY = 'a bharatlas-derived judiciary map, dissolved from LGD states by a gazette notification'
 
 # Layers the rules get wrong, or whose class audit needs naming.
@@ -119,6 +121,11 @@ OVERRIDES: dict[str, dict] = {
                                      'Delhi Metro from station tags; the Mumbai Monorail out while suspended'},
     'urban_rail_lines': {'audit': 'lines per system against Wikipedia\'s operational lines; operational sections '
                                   'only (Mumbai 2B and 9, Chennai Yellow)'},
+    # scripts/bake_osm_underground.py: OSM changes month to month like the transit layers (owner, 2026-11-21)
+    'osm_tunnels': {'audit': OSM_AUDIT},
+    'osm_underground_utilities': {'audit': OSM_AUDIT},
+    'osm_mines_caves': {'class': 'fast', 'reason': 'mapped in OpenStreetMap, which changes month to month',
+                        'audit': OSM_AUDIT},
     'bus_stops': {'audit': 'stops per city against each GTFS feed\'s stops.txt and the OSM count in the city; '
                            'every row names its source and licence'},
 }
