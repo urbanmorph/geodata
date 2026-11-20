@@ -62,6 +62,12 @@ def manual(reason: str, url: str | None = None) -> dict:
 DERIVED_FROM_LGD = 'derived by bharatlas from lgd_states; refresh it when lgd_states changes'
 
 # Layers whose upstream the generic rules below would get wrong. Kept short and reviewable.
+CORE_MWS = ('CoRE Stack serves these per tehsil from its GeoServer (about 600 files each, named by its tehsil-wise '
+            'STAC files); the set is pinned by sha256 (scripts/bake_core_mws.py) and no check method reads '
+            'per-tehsil files yet')
+CORE_MWS_STAC = ('https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/'
+                 'CorestackCatalogs_merged_collection/tehsil_wise/catalog.json')
+
 OVERRIDES: dict[str, dict] = {
     # data.gov.in resources the bake scripts pull through the keyed API; the listing is keyless
     'mgnrega_districts': {'method': 'ckan', 'url': datagov(uuid='ee03643a-ee4c-48c2-ac30-9f2ff26ab722')},
@@ -109,6 +115,8 @@ OVERRIDES: dict[str, dict] = {
     'glhymps_permeability': manual('a paper\'s published data on Borealis, pinned at version 1.0 by md5 and sha256 '
                                    '(scripts/bake_glhymps_permeability.py); no check method reads the Dataverse '
                                    'API yet', 'https://doi.org/10.5683/SP2/TTJNIU'),
+    'core_mws_water_balance': manual(CORE_MWS, CORE_MWS_STAC),
+    'core_mws_drought': manual(CORE_MWS, CORE_MWS_STAC),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }
