@@ -12,6 +12,7 @@ import { join } from "node:path";
 import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
 import { withClientIds, importSummary } from "./import-records.js";
 import { parseShareLink, atLeastScope } from "./collect-links.js";
+import { createMapBody } from "./create-map.js";
 
 /** One version for the server and its user agent; bump with every release (version.test.js). */
 const VERSION = "1.7.0";
@@ -152,7 +153,7 @@ const TOOLS = [
         geometry: { type: "array", items: { enum: ["point", "line", "polygon"] }, description: "what contributors may add" },
         fields: { type: "array", items: { type: "object" }, description: "the form for each record (see collect.bharatlas.com/schema/v1.json); a field of type \"photo\" (max_photos 1-3) asks for photos" },
         mode: { enum: ["form", "form_ai", "photos_ai"], description: "how people collect: form (default); form_ai = form plus notes a model writes from the photo, for the owner to check; photos_ai = people only take photos and the model fills the form (places only). AI modes need a photo field." },
-        license: { type: "string", description: "open licence id; default CC-BY-4.0" },
+        license: { type: "string", description: "open licence id (CC0-1.0, CC-BY-4.0, CC-BY-SA-4.0, ODbL-1.0, ODC-PDDL-1.0, GODL-India, CDLA-Permissive-2.0); default CC0-1.0, and the answer names the licence used" },
         category: { type: "string" },
         data_year: { type: "integer" },
         moderation: { type: "boolean", description: "default true: points wait for approval" },
@@ -295,15 +296,7 @@ async function handleTool(name, args) {
       if (!COLLECT_API_KEY) {
         throw new Error("create_map needs COLLECT_API_KEY (request-only). Most maps are created online at collect.bharatlas.com; do that, then register_map with the share link.");
       }
-      const schema_doc = { version: 1, geometry: args.geometry, fields: args.fields };
-      if (args.category) schema_doc.category = args.category;
-      if (args.basemap) schema_doc.basemap = args.basemap;
-      if (args.mode && args.mode !== "form") schema_doc.mode = args.mode;
-      const body = {
-        name: args.name, purpose: args.purpose, description: args.description,
-        license: args.license || "CC-BY-4.0", data_year: args.data_year,
-        moderation: args.moderation === false ? 0 : 1, schema_doc,
-      };
+      const { body, licenceNote } = createMapBody(args);
       const r = await collectApi("POST", "/collections", { apiKey: COLLECT_API_KEY, body });
       const adminLink = r.links?.admin;
       if (adminLink) {
@@ -312,7 +305,8 @@ async function handleTool(name, args) {
           rememberMap(p.id, { token: p.token, scope: p.scope, link: p.link, name: args.name, at: new Date().toISOString() });
         } catch { /* ignore */ }
       }
-      return { id: r.id, links: r.links, note: "Share links.collect with contributors. Admin link registered locally." };
+      return { id: r.id, links: r.links, license: body.license,
+        note: `Share links.collect with contributors. Admin link registered locally. ${licenceNote}` };
     }
 
     default:

@@ -23,7 +23,8 @@ const CATEGORY_LABEL = new Map(CATEGORIES);
 export const categoryLabel = (id: string): string => CATEGORY_LABEL.get(id) ?? id;
 
 // Licences: the allow-list community submissions use (web/functions/lib/licenses.ts),
-// with collect's shorter names, CC BY 4.0 first (the default for a new map).
+// with collect's shorter names, CC0 first: the default for a new map (owner, 2026-11-20). The form
+// says so beside the choice, so nobody publishes under it without being told.
 const SHORT: Record<string, string> = {
   'CC-BY-4.0': 'CC BY 4.0 (credit required)',
   'CC0-1.0': 'CC0 (public domain)',
@@ -33,7 +34,7 @@ const SHORT: Record<string, string> = {
   'GODL-India': 'GODL India',
   'CDLA-Permissive-2.0': 'CDLA Permissive 2.0',
 };
-const DEFAULT_LICENCE = 'CC-BY-4.0';
+export const DEFAULT_LICENCE = 'CC0-1.0';
 export const OPEN_LICENCES: [string, string][] = ALLOWED
   .map((l): [string, string] => [l.id, SHORT[l.id] ?? l.name])
   .sort((a, b) => Number(b[0] === DEFAULT_LICENCE) - Number(a[0] === DEFAULT_LICENCE));
