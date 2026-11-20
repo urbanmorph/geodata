@@ -2700,5 +2700,38 @@
     "source_url": "https://bhukosh.gsi.gov.in/",
     "source_org": "Geological Survey of India (NGDR / Bhukosh)",
     "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler)."
+  },
+  {
+    "id": "subsidence_megacities",
+    "name": "Land subsidence, five megacities (InSAR)",
+    "level": "subsidence_point",
+    "category": "environment",
+    "source": "Ohenhen et al. 2025 (Virginia Tech)",
+    "description": "Land subsidence in Delhi, Mumbai, Bengaluru, Chennai and Kolkata: InSAR vertical land motion points in cm/yr (negative values mean the ground is sinking), from Ohenhen et al. 2025.",
+    "unit": "points",
+    "features": 551591,
+    "license": "CC0-1.0",
+    "r2_prefix": "environment/subsidence_megacities",
+    "parquet_file": "Subsidence_Megacities.b6b92513.parquet",
+    "parquet_bytes": 30379055,
+    "pmtiles_file": "Subsidence_Megacities.2163ccd7.pmtiles",
+    "pmtiles_bytes": 15976040,
+    "source_url": "https://doi.org/10.7294/25856260.v3",
+    "source_org": "Virginia Tech (University Libraries)",
+    "source_version": "figshare 25856260 v3",
+    "notes": "Data of Ohenhen et al. 2025, \"Building damage risk in sinking Indian megacities\", Nature Sustainability (https://doi.org/10.1038/s41893-025-01663-0), published on the Virginia Tech data repository (figshare article 25856260, version 3) under CC0 1.0. Every point of the five <City>_VLM_data.csv files as published: Longitude, Latitude and VLM_cm_per_yr, the vertical land motion in cm/yr in the IGS14 reference frame, negative where the land sinks and positive where it rises. bharatlas adds the city column. Some points repeat a coordinate with different values, and a few Mumbai points have no value (NaN), as in the source. The same dataset also holds building damage risk shapefiles per city, not included here.",
+    "tags": [
+      "subsidence",
+      "land subsidence",
+      "vertical land motion",
+      "InSAR",
+      "sinking cities",
+      "Delhi",
+      "Mumbai",
+      "Bengaluru",
+      "Chennai",
+      "Kolkata",
+      "Nature Sustainability"
+    ]
   }
 ]

@@ -46,7 +46,11 @@
     "gsi_coal_blocks",
     "gsi_critical_minerals",
     "gsi_lineaments_250k",
-    "gsi_lithology_50k"
+    "gsi_lithology_50k",
+    "gsi_drilling_boreholes",
+    "gsi_hydrocarbon_blocks",
+    "gsi_mineral_deposits",
+    "gsi_geothermal_springs"
    ],
    "sha256": "845302d523b0a77f204c88e23f72098c3e7e89463032ed7deb6ae0e1a85127cc"
   },
@@ -606,7 +610,11 @@
     "wris_lakes",
     "wris_river_polygons",
     "wris_waterbodies",
-    "wris_watersheds"
+    "wris_watersheds",
+    "gsi_drilling_boreholes",
+    "gsi_hydrocarbon_blocks",
+    "gsi_mineral_deposits",
+    "gsi_geothermal_springs"
    ],
    "sha256": "52b7b69ad25f669ff775a0447d6f85a9bfacf2fd612b1d33e08faaac810caf33"
   },
@@ -1351,6 +1359,21 @@
     "bus_stops"
    ],
    "sha256": "31cc752b9116d28c4a3ae5631de7e1ca8b9e89555386bfaec81b7b4cf5ad98a6"
+  },
+  {
+   "id": "figshare_ohenhen_2025",
+   "publisher": "Ohenhen et al. 2025 (Virginia Tech data repository, figshare)",
+   "url": "https://api.figshare.com/v2/articles/25856260/versions/3",
+   "kind": "json",
+   "json_path": "license.name",
+   "stated": "CC0-1.0",
+   "quote": "CC0 1.0 Universal (CC0 1.0) Public Domain Dedication",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "subsidence_megacities"
+   ],
+   "sha256": "1e50a4c76f7c58cbe6acb8425f656394128b540c232bfd6a696daa932b642516"
   }
  ]
 }

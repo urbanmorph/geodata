@@ -92,6 +92,9 @@ OVERRIDES: dict[str, dict] = {
     'urban_rail_stations': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'urban_rail_lines': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'bus_stops': {'method': 'github_commit', 'url': 'https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs'},
+    'subsidence_megacities': manual('a paper\'s published data on figshare, pinned at version 3 '
+                                    '(scripts/bake_subsidence_megacities.py); figshare refuses HEAD requests and no '
+                                    'check method reads its API yet', 'https://doi.org/10.7294/25856260.v3'),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }
