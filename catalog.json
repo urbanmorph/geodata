@@ -1261,6 +1261,21 @@
       "label": "Permeability and porosity (GLHYMPS 2.0)",
       "unit": "polygons",
       "description": "How easily water moves through the ground near the surface (permeability) and how much of it is open space (porosity), mapped as rock and sediment polygons across India, from GLHYMPS 2.0."
+    },
+    "osm_tunnels": {
+      "label": "Tunnels (OpenStreetMap)",
+      "unit": "tunnels",
+      "description": "Road, rail, metro and canal tunnels mapped in OpenStreetMap, one line per mapped stretch, with every tag OpenStreetMap gives them."
+    },
+    "osm_underground_utilities": {
+      "label": "Underground pipelines and cables (OpenStreetMap)",
+      "unit": "lines",
+      "description": "Pipelines and power cables mapped below ground or under water in OpenStreetMap, with what they carry where mapped and every tag OpenStreetMap gives them."
+    },
+    "osm_mines_caves": {
+      "label": "Mine shafts and caves (OpenStreetMap)",
+      "unit": "places",
+      "description": "Mine shafts, adits, old mines, cave entrances and sinkholes mapped in OpenStreetMap, one point each, with every tag OpenStreetMap gives them."
     }
   },
   "level_order": [
@@ -1424,7 +1439,10 @@
     "subsidence_point",
     "atal_bhujal_wells",
     "active_fault",
-    "glhymps_permeability"
+    "glhymps_permeability",
+    "osm_tunnels",
+    "osm_underground_utilities",
+    "osm_mines_caves"
   ],
   "layers": [
     {
@@ -12001,6 +12019,210 @@
         "audited_at": null,
         "next_due": null
       }
+    },
+    {
+      "id": "osm_tunnels",
+      "level": "osm_tunnels",
+      "source": "OpenStreetMap",
+      "rows": 22868,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.241e7c5d.parquet",
+        "bytes": 1822263
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.1dc9dbe5.pmtiles",
+        "bytes": 8947451
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.35b426f6.geojson",
+        "bytes": 19194162
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.1bb475c6.kml",
+        "bytes": 16994509
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.29d3be15.shp.zip",
+        "bytes": 2416405
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-19",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap. A tunnel is a way tagged tunnel=yes, or tunnel=flooded (a canal or stream tunnel full of water). Culverts (tunnel=culvert, small drains under a road), passages through buildings and covered drains are left out. Many short road tunnels are underpasses beneath a railway or a road. A tunnel mapped as two ways (one per direction or per bore) is two rows. Features still tagged as under construction or disused keep those tags. Every OpenStreetMap tag is kept as mapped: a tag used on at least 1% of the rows is its own column, every other tag is in other_tags (a JSON object). osm_type and osm_id link each row to openstreetmap.org/<osm_type>/<osm_id>; as_of is the extract date. OpenStreetMap is mapped by volunteers, so coverage is incomplete and uneven: a place with no feature here may simply not be mapped yet.",
+      "tags": [
+        "tunnels",
+        "underground",
+        "below ground",
+        "road tunnels",
+        "rail tunnels",
+        "metro",
+        "canal tunnels",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns",
+        "audited_at": null,
+        "next_due": "2026-12-19"
+      }
+    },
+    {
+      "id": "osm_underground_utilities",
+      "level": "osm_underground_utilities",
+      "source": "OpenStreetMap",
+      "rows": 857,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.07edf70b.parquet",
+        "bytes": 291285
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.b9a3aacd.pmtiles",
+        "bytes": 1438287
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.b141de00.geojson",
+        "bytes": 1143913
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.e80b8bdb.kml",
+        "bytes": 1027152
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.b0078434.shp.zip",
+        "bytes": 285622
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": "2026-11-19",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap. Pipelines (man_made=pipeline) mapped location=underground or underwater, power cables (power=cable, which OpenStreetMap uses for buried and submarine cables) unless mapped above ground, and power lines mapped location=underground. About as many pipelines again are mapped with no location, and are left out because it is not known where they run. Every OpenStreetMap tag is kept as mapped: a tag used on at least 1% of the rows is its own column, every other tag is in other_tags (a JSON object). osm_type and osm_id link each row to openstreetmap.org/<osm_type>/<osm_id>; as_of is the extract date. OpenStreetMap is mapped by volunteers, so coverage is incomplete and uneven: a place with no feature here may simply not be mapped yet.",
+      "tags": [
+        "pipelines",
+        "power cables",
+        "underground",
+        "below ground",
+        "utilities",
+        "water pipelines",
+        "gas pipelines",
+        "OpenStreetMap",
+        "infrastructure"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns",
+        "audited_at": null,
+        "next_due": "2026-12-19"
+      }
+    },
+    {
+      "id": "osm_mines_caves",
+      "level": "osm_mines_caves",
+      "source": "OpenStreetMap",
+      "rows": 1093,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.946e9e72.parquet",
+        "bytes": 60156
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.b8f8d86a.pmtiles",
+        "bytes": 255307
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.d0be2a92.geojson",
+        "bytes": 662426
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.dd9181a3.kml",
+        "bytes": 664285
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.409b6835.shp.zip",
+        "bytes": 66047
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "fetched_at": "2026-11-19",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap. Mine shafts and adits (man_made=mineshaft, adit), old mines (historic=mine, mine_shaft, mine_adit), cave entrances (natural=cave_entrance) and sinkholes (natural=sinkhole). A feature drawn as an area is one point at its centre (osm_type says way). Most mine shafts mapped so far are small coal pits in Meghalaya, tagged resource=coal. Every OpenStreetMap tag is kept as mapped: a tag used on at least 1% of the rows is its own column, every other tag is in other_tags (a JSON object). osm_type and osm_id link each row to openstreetmap.org/<osm_type>/<osm_id>; as_of is the extract date. OpenStreetMap is mapped by volunteers, so coverage is incomplete and uneven: a place with no feature here may simply not be mapped yet.",
+      "tags": [
+        "mines",
+        "mine shafts",
+        "coal mines",
+        "caves",
+        "sinkholes",
+        "underground",
+        "below ground",
+        "OpenStreetMap",
+        "environment"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns",
+        "audited_at": null,
+        "next_due": "2026-12-19"
+      }
     }
   ],
   "state_extracts": [],
@@ -14493,6 +14715,10 @@
     "GLHYMPS 2.0 (Huscroft et al. 2018)": {
       "name": "Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, GLHYMPS 2.0 (Geophysical Research Letters)",
       "url": "https://doi.org/10.5683/SP2/TTJNIU"
+    },
+    "OpenStreetMap": {
+      "name": "\u00a9 OpenStreetMap contributors",
+      "url": "https://www.openstreetmap.org/copyright"
     }
   },
   "licence_summary": {

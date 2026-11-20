@@ -1088,7 +1088,10 @@
    "layers": [
     "wards_hyderabad_osm",
     "urban_rail_stations",
-    "urban_rail_lines"
+    "urban_rail_lines",
+    "osm_tunnels",
+    "osm_underground_utilities",
+    "osm_mines_caves"
    ],
    "sha256": "1e34b0f089065b13e61872aecebadeb5ab8b49871c43745a1d73dda62c643327",
    "labels": {
