@@ -6,9 +6,9 @@ import { OPEN_LICENCES as ALLOWED } from '../../web/functions/lib/licenses';
 import { validateSchemaDoc } from '../src/schema/validate-collection';
 
 describe('options', () => {
-  it('offers exactly the licences the server accepts, CC BY 4.0 first (the default)', () => {
+  it('offers exactly the licences the server accepts, CC0 first (the default, owner 2026-11-20)', () => {
     expect(OPEN_LICENCES.map(([id]) => id).sort()).toEqual(ALLOWED.map((l) => l.id).sort());
-    expect(OPEN_LICENCES[0][0]).toBe('CC-BY-4.0');
+    expect(OPEN_LICENCES[0][0]).toBe('CC0-1.0');
   });
   it('the server accepts every category the form offers, and no other', () => {
     expect(CATEGORY_IDS).toEqual(CATEGORIES.map(([id]) => id));

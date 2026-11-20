@@ -229,7 +229,7 @@ export function startCreate(host: WizardHost): void {
         <input id="ref-search" placeholder="Tap to browse all layers, or type to filter…" autocomplete="off" />
         <div id="ref-results" class="ref-results"></div>
         <div id="ref-chosen"></div>
-        <label for="license">Licence <span class="hint">(open licences only, the map publishes openly)</span></label>
+        <label for="license">Licence <span class="hint">(CC0, public domain, unless you choose another open licence; the map publishes openly)</span></label>
         <select id="license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${id === s.license ? ' selected' : ''}>${l}</option>`).join('')}</select>
         <label for="year">Data year <span class="hint">(optional)</span></label>
         <input id="year" inputmode="numeric" placeholder="2026" value="${escapeHtml(s.year)}" />
