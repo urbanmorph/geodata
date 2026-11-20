@@ -414,6 +414,19 @@ def test_a_weak_check_records_its_fingerprint_but_is_weak_not_changed(tmp_path):
     assert e['weak'].startswith('an OpenStreetMap extract')
 
 
+def test_an_entry_saved_before_weak_checks_existed_is_asked_again(tmp_path):
+    # a status file from before #338 has no `weak` field: its 'changed' for an OpenStreetMap layer is stale
+    out = tmp_path / 's.json'
+    cat = {'layers': [layer('urban_rail_stations', sc('http', PBF, 'etag="a"'))]}
+    out.write_text(json.dumps({'urban_rail_stations': {
+        'status': 'changed', 'method': 'http', 'url': PBF, 'old': 'etag="a"', 'new': 'etag="b"',
+        'new_date': None, 'checked_at': NOW, 'error': None}}))
+    client = FakeClient(heads={PBF: {'etag': '"b"'}})
+    e = cu.run(cat, out, client, now=lambda: NOW)['urban_rail_stations']
+    assert client.calls == [PBF]
+    assert e['status'] == 'weak'
+
+
 def test_a_data_gov_in_resource_marked_daily_is_a_weak_check_and_one_marked_five_yearly_is_not(tmp_path):
     cat = {'layers': [layer('mgnrega_districts', sc('ckan', DGI, 'resources=1 changed=1'))]}
     daily = cu.run(cat, tmp_path / 'a.json', FakeClient(json_by_url={DGI: dgi_listing('Daily')}), now=lambda: NOW)

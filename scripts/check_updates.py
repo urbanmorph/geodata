@@ -311,7 +311,8 @@ def _same_check(prev: dict, check: dict) -> bool:
 
 
 def _fresh(prev: dict | None, check: dict, now: str, max_age_hours: float) -> bool:
-    if not prev or not prev.get('checked_at'):
+    # an entry without `weak` was saved before weak checks existed: its status may say 'changed' for a weak check
+    if not prev or not prev.get('checked_at') or 'weak' not in prev:
         return False
     return _same_check(prev, check) and parse_date(now) - parse_date(prev['checked_at']) < timedelta(hours=max_age_hours)
 
