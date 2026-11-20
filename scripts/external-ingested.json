@@ -2733,5 +2733,37 @@
       "Kolkata",
       "Nature Sustainability"
     ]
+  },
+  {
+    "id": "atal_bhujal_wells",
+    "name": "Groundwater levels, Atal Bhujal wells (2015-2022)",
+    "level": "atal_bhujal_wells",
+    "category": "water",
+    "source": "Atal Bhujal Yojana (data.gov.in)",
+    "description": "Groundwater levels in about 5,500 Atal Bhujal Yojana monitoring wells in seven States, before and after each monsoon from 2015 to 2022, in metres below ground level, with well depth and aquifer.",
+    "unit": "wells",
+    "features": 5490,
+    "license": "GODL-India",
+    "r2_prefix": "water/atal-bhujal-wells",
+    "parquet_file": "Atal_Bhujal_Wells.50cac699.parquet",
+    "parquet_bytes": 440394,
+    "pmtiles_file": "Atal_Bhujal_Wells.f0c624c2.pmtiles",
+    "pmtiles_bytes": 280134,
+    "source_url": "https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana",
+    "source_org": "Ministry of Jal Shakti (Atal Bhujal Yojana), via CoRE Stack",
+    "source_version": "sha256 7a59e97a6ad0",
+    "notes": "Published on data.gov.in by the Ministry of Jal Shakti under GODL-India (\"Disclosed Ground Water Level Data under Atal Bhujal Yojana from 2015 to 2022\"). data.gov.in serves the file only after a login, so bharatlas takes the copy CoRE Stack republishes (STAC item borewells_vector), which keeps the published columns. Levels are metres below ground level: a larger number is a deeper water table. \"NA\" in the source is empty here; the 2022 columns also hold \"dry\" for a well that held no water, so they stay text. Some Well_ID values repeat, as published. The point is the published Latitude and Longitude. The States are Gujarat, Haryana, Karnataka, Madhya Pradesh, Maharashtra, Rajasthan and Uttar Pradesh.",
+    "tags": [
+      "groundwater",
+      "groundwater level",
+      "water table",
+      "wells",
+      "borewells",
+      "piezometers",
+      "Atal Bhujal Yojana",
+      "Atal Jal",
+      "CGWB",
+      "depth to water"
+    ]
   }
 ]

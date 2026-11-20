@@ -95,6 +95,9 @@ OVERRIDES: dict[str, dict] = {
     'subsidence_megacities': manual('a paper\'s published data on figshare, pinned at version 3 '
                                     '(scripts/bake_subsidence_megacities.py); figshare refuses HEAD requests and no '
                                     'check method reads its API yet', 'https://doi.org/10.7294/25856260.v3'),
+    'atal_bhujal_wells': manual('data.gov.in serves the file only after a login; the layer is CoRE Stack\'s copy, '
+                                'pinned by sha256 (scripts/bake_atal_bhujal_wells.py), and the 2015-2022 series is '
+                                'complete', 'https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana'),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }

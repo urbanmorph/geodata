@@ -104,6 +104,7 @@ OVERRIDES: dict[str, dict] = {
     'ndem_floods_1998_2022': {'class': 'frozen', 'reason': HISTORICAL + ' (flood extents for 1998-2022)'},
     'subsidence_megacities': {'class': 'frozen', 'reason': 'a paper\'s published data (Ohenhen et al. 2025), '
                                                            'pinned at its figshare version'},
+    'atal_bhujal_wells': {'class': 'frozen', 'reason': HISTORICAL + ' (well levels for 2015-2022)'},
     'high_courts': {'class': 'frozen', 'reason': JUDICIARY},
     'ngt_zones': {'class': 'frozen', 'reason': JUDICIARY},
     'nclt_benches': {'class': 'frozen', 'reason': JUDICIARY},

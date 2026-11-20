@@ -246,7 +246,7 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     entry = catalog_entry(summ, prev, r2_public or pipeline.R2_PUBLIC)
     pipeline.upsert_layer(catalog, entry, level_meta(), level=LEVEL, attribution=(SOURCE, ATTRIBUTION))
     # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], entry)
+    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], pipeline.licence_labelled(entry))
     pipeline.write_json(catalog_path, catalog)
     pipeline.write_json(manifest_path, pipeline.upsert_by_id(json.loads(manifest_path.read_text()), manifest_entry(summ)))
 

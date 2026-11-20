@@ -230,7 +230,7 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     pipeline.upsert_layer(catalog, entry, level_meta(), level=LEVEL, attribution=(SOURCE, ATTRIBUTION))
     # This bake makes every file of the layer, so its entry stands as built: upsert_layer would keep the
     # first fetched_at and, while the parquet is unchanged, the previous tiles as if someone had rebaked them.
-    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], entry)
+    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], pipeline.licence_labelled(entry))
     pipeline.write_json(catalog_path, catalog)
     pipeline.write_json(manifest_path, pipeline.upsert_by_id(json.loads(manifest_path.read_text()), manifest_entry(summ)))
 

@@ -157,7 +157,8 @@
     "wbc1_water_bodies",
     "mi6_wells_districts",
     "nhp_hospitals",
-    "nin_health_facilities"
+    "nin_health_facilities",
+    "atal_bhujal_wells"
    ],
    "sha256": "794528c6a32560fbb1a714c78d907bb4c3aab31340f0437c92a15505f1f9c5e4"
   },
@@ -1472,6 +1473,26 @@
     "subsidence_megacities"
    ],
    "sha256": "1e50a4c76f7c58cbe6acb8425f656394128b540c232bfd6a696daa932b642516"
+  },
+  {
+   "id": "core_stack_pan_india",
+   "publisher": "CoRE Stack (Pan India STAC catalogue)",
+   "url": "https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/CorestackCatalogs_merged_collection/PanIndiaCatalogs/collection.json",
+   "kind": "json",
+   "json_path": "license",
+   "stated": "CC-BY-4.0 on every Pan India collection; each item names its original publisher",
+   "verdict": "ok",
+   "layers": [
+    "cgwb_aquifers",
+    "cgwb_gw_extraction",
+    "agro_ecological_zones",
+    "agro_climatic_zones",
+    "biogeographic_zones",
+    "atal_bhujal_wells"
+   ],
+   "sha256": "7d47300ad7583a7dad5c9f7cbfed040ccd6e960c2a7694cc692b2d831b90d9bc",
+   "seen_at": "2026-11-20",
+   "quote": "\"license\": \"CC-BY-4.0\""
   }
  ]
 }

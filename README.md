@@ -65,13 +65,13 @@ bharatlas is an atlas of India's open geo layers, from the national boundary dow
 
 ## Layers and sources
 
-bharatlas has 173 layers (checked 20 November 2026): the curated layers, plus the community submissions that have been approved, from the Contribute page or from collect. A submission that has been baked into a curated layer (`c_<id>`) counts once. `GET /api/v1/layers` lists the 172 curated entries (one of them a baked community layer) and `GET /api/v1/submissions` the approved submissions. Curated layers by theme, from `GET /api/v1/categories`:
+bharatlas has 174 layers (checked 20 November 2026): the curated layers, plus the community submissions that have been approved, from the Contribute page or from collect. A submission that has been baked into a curated layer (`c_<id>`) counts once. `GET /api/v1/layers` lists the 173 curated entries (one of them a baked community layer) and `GET /api/v1/submissions` the approved submissions. Curated layers by theme, from `GET /api/v1/categories`:
 
 | Theme | Layers | Examples |
 |---|---:|---|
 | Boundaries | 26 | `lgd_states` to `lgd_villages`; SOI, Bhuvan and geoBoundaries alternates; PMGSY blocks and habitations; town and city boundaries (SBM); West Bengal town boundaries (AMRUT); land parcels for Delhi, Goa and the Puducherry and Andaman coasts |
 | City wards | 42 | `wards_bengaluru_gba`, `wards_chennai`, `wards_mumbai`, `wards_delhi`; BDA jurisdiction and layouts; `sbm_wards` (about 3,300 towns and cities); Kalyan-Dombivli wards; Pune 2025 administrative wards; zones for Greater Bengaluru, Pune and Chennai; West Bengal wards (AMRUT, 52 towns) |
-| Water | 26 | WRIS rivers, canals, basins, watersheds, lakes, dams, reservoirs; CGWB aquifers and groundwater extraction; groundwater quality and prospects (Bhuvan); 1st Census of Water Bodies; Amrit Sarovar ponds; India Flood Inventory; NDEM floods 1998-2022 |
+| Water | 27 | WRIS rivers, canals, basins, watersheds, lakes, dams, reservoirs; CGWB aquifers and groundwater extraction; groundwater quality and prospects (Bhuvan); Atal Bhujal well water levels 2015-2022; 1st Census of Water Bodies; Amrit Sarovar ponds; India Flood Inventory; NDEM floods 1998-2022 |
 | Infrastructure and utilities | 13 | pincode polygons, VEDAS power plants and transmission lines, Jal Jeevan Mission facilities, Overture places |
 | Environment | 31 | forest circles, divisions, ranges, beats and recorded forest area (FSI); wildlife sanctuaries, reserves and corridors; eco-sensitive zones; Coastal Regulation Zones 2019; geology, lithology, coal blocks, critical minerals, mineral deposits, exploration boreholes, geothermal springs and lineaments (GSI); oil and gas blocks (NGDR); geomorphology and land degradation (Bhuvan); seismic zones, landslides, earthquakes, cyclone tracks; land subsidence in five megacities (InSAR) |
 | People and places | 13 | parliament and assembly constituencies, high courts, NGT zones, NCLT benches; police station jurisdictions (Andhra Pradesh, Bihar, Delhi, Tamil Nadu, Telangana, marine) |
@@ -331,7 +331,7 @@ Data sources:
 - [datta07/INDIAN-SHAPEFILES](https://github.com/datta07/INDIAN-SHAPEFILES): metropolitan city ward shapefiles; Patna wards cleaned by Jayesh Keswani.
 - [Central Water Commission (India-WRIS)](https://indiawris.gov.in/): basins, rivers, canals, dams, reservoirs, lakes, waterbodies.
 - [ramSeraph/indianopenmaps](https://github.com/ramSeraph/indianopenmaps): selectively republished layers (WRIS waterbodies, SLUSI watersheds and soil, VEDAS power infrastructure, PMGSY roads and habitations, Swachh Bharat Mission urban wards and town boundaries, NHP hospitals and NIN health facilities, UDISE schools).
-- [CoRE Stack](https://core-stack.org/): republished CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, Wildlife Institute of India biogeographic zones.
+- [CoRE Stack](https://core-stack.org/): republished CGWB aquifers and groundwater extraction, WRIS canals, ICAR-NBSS agro-ecological zones, Planning Commission agro-climatic zones, Wildlife Institute of India biogeographic zones, and the Atal Bhujal Yojana well water levels published on data.gov.in.
 - [PMGSY](https://omms.nic.in/): rural blocks, roads and habitations.
 - [PM GatiShakti](https://gis.pmgatishakti.gov.in/): wildlife sanctuaries, national parks, highways.
 - [Bharatmaps](https://bharatmaps.gov.in/) (NIC): eco-sensitive zones, dams, Ramsar sites, wetlands.
