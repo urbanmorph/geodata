@@ -56,6 +56,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 import zipfile
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
@@ -149,23 +150,41 @@ class Deadline(pipeline.Deadline):
 
 # ── pull ────────────────────────────────────────────────────────────────────
 
-def _head_location(url: str) -> str:
-    """Where `url` redirects (Geofabrik's india-latest names today's dated file)."""
+def dated_extract_url(url: str, location_of: Callable[[str], str | None], hops: int = 5) -> str:
+    """Follow redirects from `url` (india-latest) to the dated extract it names."""
+    for _ in range(hops):
+        try:
+            osm_date(url.rsplit('/', 1)[1])
+            return url
+        except ValueError:
+            nxt = location_of(url)
+            if not nxt:
+                break
+            url = urllib.parse.urljoin(url, nxt)
+    raise ValueError(f'{url} does not lead to a dated Geofabrik extract')
+
+
+def head_location(url: str) -> str | None:
+    """The Location a HEAD of `url` redirects to, or None."""
     class NoRedirect(urllib.request.HTTPRedirectHandler):
         def redirect_request(self, *a, **k):
             return None
-    opener = urllib.request.build_opener(NoRedirect)
     req = urllib.request.Request(url, method='HEAD', headers={'User-Agent': pipeline.USER_AGENT})
     try:
-        opener.open(req, timeout=60)
+        urllib.request.build_opener(NoRedirect).open(req, timeout=60)
     except urllib.error.HTTPError as e:
         if e.code in (301, 302, 303, 307, 308):
-            return urllib.parse.urljoin(url, e.headers['Location'])
+            return e.headers['Location']
         raise
-    return url
+    return None
 
 
-def _get_text(url: str) -> str:
+def latest_extract_url() -> str:
+    """Today's dated India extract (Geofabrik redirects india-latest to it, now in two hops)."""
+    return dated_extract_url(OSM_LATEST, lambda url: head_location(url))
+
+
+def get_text(url: str) -> str:
     req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
     return pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=60).read().decode())
 
@@ -183,11 +202,11 @@ def pull(deadline: Deadline, refresh: bool = False) -> dict:
     path = sources_path()
     sources = json.loads(path.read_text()) if path.exists() and not refresh else {}
     if 'osm' not in sources:
-        url = _head_location(OSM_LATEST)
+        url = latest_extract_url()
         name = url.rsplit('/', 1)[1]
         dest = WORK / 'raw' / 'osm' / name
         pipeline.download(url, dest, timeout=600)
-        want = _get_text(url + '.md5').split()[0]
+        want = get_text(url + '.md5').split()[0]
         got = pipeline.file_md5(dest)
         if got != want:
             dest.unlink()

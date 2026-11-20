@@ -372,3 +372,11 @@ def test_register_keeps_the_tiles_rebake_tiles_published_and_the_refresh_block(t
     assert (row['pmtiles_file'], row['pmtiles_bytes']) == ('Bus_Stops.0a1b2c3d.pmtiles', 5)
     assert lyr['fetched_at'] == '2026-11-17'                 # a rebuild moves the card's Updated date
     assert lyr['refresh']['class'] == 'fast' and lyr['refresh']['audited_at'] == '2026-11-18'
+
+
+def test_the_pull_follows_geofabriks_redirects_to_the_dated_extract(monkeypatch):
+    # Geofabrik moved India (2026-11): india-latest 301s to asia/india/, which 307s to the dated file
+    hops = {b.OSM_LATEST: 'https://download.geofabrik.de/asia/india/india-latest.osm.pbf',
+            'https://download.geofabrik.de/asia/india/india-latest.osm.pbf': 'india-261119.osm.pbf'}
+    monkeypatch.setattr(b, 'head_location', hops.get)
+    assert b.latest_extract_url() == 'https://download.geofabrik.de/asia/india/india-261119.osm.pbf'

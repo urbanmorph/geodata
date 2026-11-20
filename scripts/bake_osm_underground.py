@@ -47,9 +47,6 @@ import argparse
 import json
 import sys
 import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
@@ -57,7 +54,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import pipeline  # noqa: E402
-from bake_transit import WAY_GEOM_SQL, osm_date  # noqa: E402
+from bake_transit import WAY_GEOM_SQL, dated_extract_url, get_text, head_location, osm_date  # noqa: E402
 from pipeline import OutOfTime, cached, log, work_dir  # noqa: E402
 from populate_source_check import GEOFABRIK_INDIA  # noqa: E402
 
@@ -136,40 +133,6 @@ def row_of(feature: dict, columns: list[str]) -> dict:
 
 
 # ── pull ────────────────────────────────────────────────────────────────────
-
-def dated_extract_url(url: str, location_of: Callable[[str], str | None], hops: int = 5) -> str:
-    """Follow redirects from `url` (india-latest) to the dated extract it names."""
-    for _ in range(hops):
-        try:
-            osm_date(url.rsplit('/', 1)[1])
-            return url
-        except ValueError:
-            nxt = location_of(url)
-            if not nxt:
-                break
-            url = urllib.parse.urljoin(url, nxt)
-    raise ValueError(f'{url} does not lead to a dated Geofabrik extract')
-
-
-def head_location(url: str) -> str | None:
-    """The Location a HEAD of `url` redirects to, or None."""
-    class NoRedirect(urllib.request.HTTPRedirectHandler):
-        def redirect_request(self, *a, **k):
-            return None
-    req = urllib.request.Request(url, method='HEAD', headers={'User-Agent': pipeline.USER_AGENT})
-    try:
-        urllib.request.build_opener(NoRedirect).open(req, timeout=60)
-    except urllib.error.HTTPError as e:
-        if e.code in (301, 302, 303, 307, 308):
-            return e.headers['Location']
-        raise
-    return None
-
-
-def get_text(url: str) -> str:
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=60).read().decode())
-
 
 def sources_path(work: Path) -> Path:
     return work / 'cache' / 'sources.json'
