@@ -1,0 +1,186 @@
+{
+ "code": "bharatlas-airports-2026.11",
+ "dataset": "airports",
+ "title": "Airports, airfields and heliports, OurAirports",
+ "description": "OurAirports (ourairports.com), public domain, kept current by its contributors; every row for India as published, including small airfields, heliports and closed airports (the type column says which, and the source marks some duplicates in the name). bharatlas adds state, district, state_lgd and dist_lgd from LGD districts: the district containing the point, else the nearest within 25 km for islands the LGD outline leaves out (lgd_match says which; null when neither). Replaced the data.gov.in airports shapefile (151 airports, last changed September 2022) on 20 Nov 2026.",
+ "released": "2026-11-20",
+ "sha256": "a7dedfdf16fa5b4938dcd1f2546cbd24223b9ee51baa4f9bfe93532605d4418e",
+ "sha256_of": "SHA256SUMS",
+ "pin": "bharatlas-airports-2026.11+sha256:a7dedfdf16fa5b4938dcd1f2546cbd24223b9ee51baa4f9bfe93532605d4418e",
+ "files": [
+  {
+   "name": "airports.geojson",
+   "sha256": "1ba6b2e84040d9512aeff1e5700070f09d68cf876a3aa400f7a408bd422349de",
+   "bytes": 492649,
+   "rows": null,
+   "licence": "Unlicense",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.b06e8838.geojson",
+   "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.geojson"
+  },
+  {
+   "name": "airports.kml",
+   "sha256": "b38eb4cf9d249b1de8375949c3b1d832debd6cbe6beb0cc3b5460f8bfc07d69d",
+   "bytes": 861493,
+   "rows": null,
+   "licence": "Unlicense",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.4150753c.kml",
+   "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.kml"
+  },
+  {
+   "name": "airports.parquet",
+   "sha256": "adc48b4abf26312560b8157d5a13f5e460d7811db54c62291e43da8dbabfe1ba",
+   "bytes": 69455,
+   "rows": 661,
+   "licence": "Unlicense",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.cf7498ce.parquet",
+   "columns": [
+    {
+     "name": "id",
+     "type": "BIGINT"
+    },
+    {
+     "name": "ident",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "type",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "name",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "latitude_deg",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "longitude_deg",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "elevation_ft",
+     "type": "INTEGER"
+    },
+    {
+     "name": "continent",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "iso_country",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "iso_region",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "municipality",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "scheduled_service",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "icao_code",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "iata_code",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "gps_code",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "local_code",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "home_link",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "wikipedia_link",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "keywords",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "state",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "district",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "state_lgd",
+     "type": "INTEGER"
+    },
+    {
+     "name": "dist_lgd",
+     "type": "INTEGER"
+    },
+    {
+     "name": "lgd_match",
+     "type": "VARCHAR"
+    },
+    {
+     "name": "geometry",
+     "type": "GEOMETRY"
+    },
+    {
+     "name": "xmin",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ymin",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "xmax",
+     "type": "DOUBLE"
+    },
+    {
+     "name": "ymax",
+     "type": "DOUBLE"
+    }
+   ],
+   "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.parquet"
+  },
+  {
+   "name": "airports.shp.zip",
+   "sha256": "42707faf5a523f6e656a77d9f935e5f7214d28ff27e10aeaccb15cbc7c4bbf35",
+   "bytes": 74512,
+   "rows": null,
+   "licence": "Unlicense",
+   "source_url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.3fa4f7a4.shp.zip",
+   "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.shp.zip"
+  }
+ ],
+ "licence": "Unlicense",
+ "attribution": {
+  "sources": [
+   {
+    "name": "OurAirports",
+    "url": "https://ourairports.com/data/",
+    "fetched": "2026-11-20T06:28:17+00:00",
+    "version": "commit=c82dbcb02e5143ceaea49e5d657dc3f8efde5f9b"
+   }
+  ],
+  "compiled_by": "bharatlas (https://bharatlas.com; https://github.com/urbanmorph/geodata)"
+ },
+ "citation": "OurAirports. Airports, airfields and heliports, OurAirports, as released by bharatlas: bharatlas-airports-2026.11 (sha256:a7dedfdf16fa5b4938dcd1f2546cbd24223b9ee51baa4f9bfe93532605d4418e). https://bharatlas.com/releases/bharatlas-airports-2026.11/",
+ "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/",
+ "w3id_proposed": "https://w3id.org/bharatlas/airports/2026.11",
+ "previous": null,
+ "layer": {
+  "id": "airports",
+  "view": "https://bharatlas.com/view/airports"
+ }
+}

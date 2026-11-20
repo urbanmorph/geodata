@@ -193,7 +193,9 @@ def last_build(layer: dict, releases: dict | None) -> str | None:
 #                   (mgnrega_districts). Read from the answer, so check_updates.answer_weakness decides it, not this
 # WEAK_CHECKS names layers whose check looks strong but is not, with the reason.
 
-WEAK_CHECKS: dict[str, str] = {}
+WEAK_CHECKS: dict[str, str] = {
+    'airports': 'OurAirports re-commits its data every night for the whole world, whatever happens to India\'s rows',
+}
 DATA_FILE = re.compile(r'\.(parquet|geojson|json|zip|gpkg|shp|kml|kmz|csv|pmtiles|tiff?|gz|xlsx?)$', re.I)
 OSM_HOSTS = ('geofabrik.de', 'openstreetmap.org', 'openstreetmap.fr', 'overpass-api.de')
 STRONG_METHODS = ('github_release', 'github_commit', 'ckan')

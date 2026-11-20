@@ -2594,5 +2594,35 @@
       "OpenStreetMap",
       "transport"
     ]
+  },
+  {
+    "id": "airports",
+    "name": "Airports, airfields and heliports",
+    "level": "airport",
+    "category": "transport",
+    "source": "OurAirports",
+    "description": "Airports, airfields and heliports across India from OurAirports: IATA and ICAO codes, type, scheduled service, and the LGD state and district.",
+    "unit": "airports",
+    "features": 661,
+    "license": "Unlicense",
+    "r2_prefix": "transport/airports",
+    "parquet_file": "Airports.cf7498ce.parquet",
+    "parquet_bytes": 69455,
+    "pmtiles_file": "Airports.95354cb6.pmtiles",
+    "pmtiles_bytes": 733553,
+    "source_url": "https://ourairports.com/data/",
+    "source_org": "OurAirports",
+    "source_commit": "c82dbcb02e5143ceaea49e5d657dc3f8efde5f9b",
+    "notes": "OurAirports (ourairports.com), public domain, kept current by its contributors; every row for India as published, including small airfields, heliports and closed airports (the type column says which, and the source marks some duplicates in the name). bharatlas adds state, district, state_lgd and dist_lgd from LGD districts: the district containing the point, else the nearest within 25 km for islands the LGD outline leaves out (lgd_match says which; null when neither). Replaced the data.gov.in airports shapefile (151 airports, last changed September 2022) on 20 Nov 2026.",
+    "tags": [
+      "airports",
+      "airfields",
+      "heliports",
+      "aviation",
+      "IATA",
+      "ICAO",
+      "transport",
+      "OurAirports"
+    ]
   }
 ]

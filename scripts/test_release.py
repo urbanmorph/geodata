@@ -373,3 +373,11 @@ def test_a_ward_number_is_a_stable_id_but_a_gdal_row_number_is_not(tmp_path):
     write_parquet(a, {'OGC_FID': [1, 2], 'ward_no': [10, 11]})
     write_parquet(b, {'OGC_FID': [1, 2], 'ward_no': [11, 12]})
     assert rel.stable_id_column(b, a) == 'ward_no'
+
+
+def test_a_layer_release_title_uses_the_label_of_its_level_when_the_id_has_none():
+    import release
+    catalog = {'level_meta': {'airport': {'label': 'Airports, airfields and heliports'}},
+               'levels': {'airport': {'plural': 'airports'}}}
+    layer = {'id': 'airports', 'level': 'airport', 'source': 'OurAirports'}
+    assert release._title(layer, catalog) == 'Airports, airfields and heliports, OurAirports'

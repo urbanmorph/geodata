@@ -343,7 +343,8 @@ Data sources:
 - [Overture Maps Foundation](https://overturemaps.org/): points of interest.
 - [bharatviz](https://bharatviz.org/) (Saket Choudhary, MIT): India Post pincode polygons.
 - [geoBoundaries](https://www.geoboundaries.org/): independent cross-check.
-- [data.gov.in](https://data.gov.in/): airports, seismic zones, pincodes and other government open data.
+- [data.gov.in](https://data.gov.in/): seismic zones, pincodes and other government open data.
+- [OurAirports](https://ourairports.com/data/) (public domain): airports, airfields and heliports.
 - [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL): area names in ward views (view only).
 
 Pipelines and patterns:

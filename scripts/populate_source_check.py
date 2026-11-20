@@ -81,8 +81,6 @@ OVERRIDES: dict[str, dict] = {
                           'https://github.com/datta07/INDIAN-SHAPEFILES'),
     'mi6_wells_districts': manual('summed by hand from the 6th Minor Irrigation Census files (a one-off census)',
                                   'https://mowr.nic.in/irrigationcensus/'),
-    'airports': manual('no source file was recorded when it was ingested (a data.gov.in copy)',
-                       'https://data.gov.in/'),
     # the catalog's templated parquet link names a file the release never held; it holds the GeoJSON
     'nic_health': {'method': 'github_release',
                    'url': 'https://github.com/yashveeeeeeer/india-geodata/releases/download/healthcare/facilities/'

@@ -136,3 +136,10 @@ def test_pmtiles_args_fixed_max_zoom_replaces_the_guess():
     # -zg picked z4 for ~9k railway stations: 600 m coordinate steps when zoomed in.
     args = f.pmtiles_args(Path('in.geojson'), Path('o.pmtiles'), 'l', ('a',), max_zoom=12)
     assert '-zg' not in args and '-Z0' in args and '-z12' in args
+
+
+def test_pmtiles_args_keep_every_point_at_every_zoom_when_asked():
+    args = f.pmtiles_args(Path('in.geojson'), Path('o.pmtiles'), 'l', ('a',), max_zoom=12, keep_all=True)
+    assert args[args.index('-r') + 1] == '1'   # drop rate 1: no thinning below the base zoom
+    assert '--drop-densest-as-needed' not in args and '--extend-zooms-if-still-dropping' not in args
+    assert '-r' not in f.pmtiles_args(Path('in.geojson'), Path('o.pmtiles'), 'l', ('a',))

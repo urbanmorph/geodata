@@ -16,6 +16,7 @@ export const LICENCE_URLS = Object.freeze({
   'CDLA-Permissive-2.0': 'https://cdla.dev/permissive-2-0/',
   'Apache-2.0': 'https://www.apache.org/licenses/LICENSE-2.0',
   MIT: 'https://opensource.org/licenses/MIT',
+  Unlicense: 'https://unlicense.org/',
 });
 
 /** Terms URL for a licence id; a dual licence ("CC0-1.0 / CC-BY-4.0") uses the first. */
