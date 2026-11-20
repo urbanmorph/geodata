@@ -98,6 +98,9 @@ OVERRIDES: dict[str, dict] = {
     'atal_bhujal_wells': manual('data.gov.in serves the file only after a login; the layer is CoRE Stack\'s copy, '
                                 'pinned by sha256 (scripts/bake_atal_bhujal_wells.py), and the 2015-2022 series is '
                                 'complete', 'https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana'),
+    'glhymps_permeability': manual('a paper\'s published data on Borealis, pinned at version 1.0 by md5 and sha256 '
+                                   '(scripts/bake_glhymps_permeability.py); no check method reads the Dataverse '
+                                   'API yet', 'https://doi.org/10.5683/SP2/TTJNIU'),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }

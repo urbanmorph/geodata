@@ -125,11 +125,15 @@ def _detect_geom_col(
 
 
 def write_geojson_whole(
-    con: duckdb.DuckDBPyConnection, parquet: Path, out: Path, gdal_ok: bool = True
+    con: duckdb.DuckDBPyConnection, parquet: Path, out: Path, gdal_ok: bool = True,
+    coordinate_precision: int | None = None,
 ) -> None:
     """Whole-layer GeoJSON through GDAL (streams; every column kept, nulls
     too). `gdal_ok` is kept for callers on other branches: without the GDAL
-    driver this raises instead of hand-building the file in memory."""
+    driver this raises instead of hand-building the file in memory.
+    RFC 7946 output rounds coordinates to 7 decimals; `coordinate_precision`
+    keeps more, for polygons with vertices closer than that, which the
+    rounding would collapse into lines."""
     if not gdal_ok:
         raise RuntimeError('duckdb-spatial has no GDAL GeoJSON driver: install a spatial build with GDAL')
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -137,10 +141,11 @@ def write_geojson_whole(
     # Callers pass bare connections too; without this, EPSG:4326-tagged
     # geometry is written lat,lon.
     con.execute("SET geometry_always_xy = true")
+    options = "'RFC7946=YES'" + (f", 'COORDINATE_PRECISION={coordinate_precision}'" if coordinate_precision else "")
     con.execute(
         f"COPY (SELECT * EXCLUDE \"{geom_col}\", \"{geom_col}\" FROM '{parquet.as_posix()}') "
         f"TO '{out.as_posix()}' "
-        f"WITH (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS 'RFC7946=YES')"
+        f"WITH (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS ({options}))"
     )
 
 

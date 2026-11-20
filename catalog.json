@@ -1251,6 +1251,11 @@
       "label": "Groundwater levels, Atal Bhujal wells (2015-2022)",
       "unit": "wells",
       "description": "Groundwater levels in about 5,500 Atal Bhujal Yojana monitoring wells in seven States, before and after each monsoon from 2015 to 2022, in metres below ground level, with well depth and aquifer."
+    },
+    "glhymps_permeability": {
+      "label": "Permeability and porosity (GLHYMPS 2.0)",
+      "unit": "polygons",
+      "description": "How easily water moves through the ground near the surface (permeability) and how much of it is open space (porosity), mapped as rock and sediment polygons across India, from GLHYMPS 2.0."
     }
   },
   "level_order": [
@@ -1412,7 +1417,8 @@
     "gsi_mineral_deposits",
     "gsi_geothermal_springs",
     "subsidence_point",
-    "atal_bhujal_wells"
+    "atal_bhujal_wells",
+    "glhymps_permeability"
   ],
   "layers": [
     {
@@ -11856,6 +11862,73 @@
         "audited_at": null,
         "next_due": null
       }
+    },
+    {
+      "id": "glhymps_permeability",
+      "level": "glhymps_permeability",
+      "source": "GLHYMPS 2.0 (Huscroft et al. 2018)",
+      "rows": 7795,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.3d26649d.parquet",
+        "bytes": 8132161
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.20e62c98.pmtiles",
+        "bytes": 4570164
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.4b1782f4.geojson",
+        "bytes": 51972180
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.2c81f857.kml",
+        "bytes": 49796160
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.c0fe3f8a.shp.zip",
+        "bytes": 10321020
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, GLHYMPS 2.0 (Geophysical Research Letters)",
+          "url": "https://doi.org/10.5683/SP2/TTJNIU"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "GLHYMPS 2.0, the global hydrogeology map of Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, \"Compiling and mapping global permeability of the unconsolidated and consolidated Earth\", Geophysical Research Letters 45 (https://doi.org/10.1002/2017GL075860), published on Borealis (https://doi.org/10.5683/SP2/TTJNIU, version 1.0) under CC-BY 4.0. Every polygon that touches India (its boundary as shown on bharatlas, claimed areas included) is kept whole, so some reach past the border; every column is as published, with the shapefile's short names. Permeability is log10 of permeability in m\u00b2, times 100: logK_Ferr_ (without permafrost) and logK_Ice_x (with permafrost) of -1300 mean 10^-13 m\u00b2. Higher (less negative) values let water through more easily. For hydraulic conductivity of water in m/s, K = 10^(value/100) x 10^7. Porosity_x is porosity in percent (porosity x 100), K_stdev_x1 the standard deviation of log10 permeability x 100. GUM_K says where the values come from (1 GLHYMPS, 2 the Global Unconsolidated Sediments Map) and 0 marks a polygon with no permeability value, whose permeability columns read 0 as published. Prmfrst is 1 inside the permafrost boundary. The source readme describes every column. The map is global and coarse (half the polygons are under 15 km\u00b2, the largest cover hundreds of thousands of km\u00b2): use it for regional patterns, not for a single site.",
+      "tags": [
+        "groundwater",
+        "hydrogeology",
+        "permeability",
+        "porosity",
+        "hydraulic conductivity",
+        "aquifer",
+        "subsurface",
+        "GLHYMPS",
+        "unconsolidated sediments",
+        "permafrost"
+      ],
+      "fetched_at": "2026-11-20T19:23:59+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://doi.org/10.5683/SP2/TTJNIU",
+        "reason": "a paper's published data on Borealis, pinned at version 1.0 by md5 and sha256 (scripts/bake_glhymps_permeability.py); no check method reads the Dataverse API yet",
+        "fingerprint": "sha256=ef28bfaeefcadf35e3bc6eb6450d0023110a88bcad380767ee450aa66714bf58",
+        "checked_at": "2026-11-20T19:23:59+00:00",
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
+      }
     }
   ],
   "state_extracts": [],
@@ -14340,6 +14413,10 @@
     "Atal Bhujal Yojana (data.gov.in)": {
       "name": "Atal Bhujal Yojana, Ministry of Jal Shakti (data.gov.in)",
       "url": "https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana"
+    },
+    "GLHYMPS 2.0 (Huscroft et al. 2018)": {
+      "name": "Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, GLHYMPS 2.0 (Geophysical Research Letters)",
+      "url": "https://doi.org/10.5683/SP2/TTJNIU"
     }
   },
   "licence_summary": {
