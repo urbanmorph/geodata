@@ -397,6 +397,32 @@ def test_main_writes_the_due_table_into_the_issue_and_summary(tmp_path, monkeypa
     assert json.loads(summ.read_text())['due'] == ['ir_stations']
 
 
+@pytest.fixture(autouse=True)
+def _no_licence_pages(monkeypatch):
+    monkeypatch.setattr(cu, 'licence_results', lambda: [])
+
+
+LICENCE_CHANGED = [{'id': 'nrsc', 'layers': ['bhuvan_x'], 'url': 'https://nrsc.example/terms', 'status': 'changed'}]
+
+
+def test_the_issue_lists_changed_licence_terms_and_the_summary_counts_them():
+    body = cu.issue_body({'a': {'status': 'unchanged', 'checked_at': NOW}}, {'layers': []}, [], LICENCE_CHANGED)
+    assert '### Licence terms changed (1)' in body and '--accept nrsc' in body
+    summary = json.loads(re.search(r'<!-- update-summary (.*) -->', body).group(1))
+    assert summary['licence_changed'] == ['nrsc'] and summary['licence_error'] == []
+
+
+def test_main_checks_the_licence_terms_every_week(tmp_path, monkeypatch):
+    cat = tmp_path / 'catalog.json'
+    cat.write_text(json.dumps({'layers': []}))
+    monkeypatch.setattr(cu, 'licence_results', lambda: LICENCE_CHANGED)
+    out, summ = tmp_path / 'issue.md', tmp_path / 'summary.json'
+    assert cu.main(['--catalog', str(cat), '--status', str(tmp_path / 's.json'), '--releases',
+                    str(tmp_path / 'none.json'), '--issue-body', str(out), '--summary', str(summ)]) == 0
+    assert 'Licence terms changed' in out.read_text()
+    assert json.loads(summ.read_text())['licence_changed'] == ['nrsc']
+
+
 # ── weak checks never report "changed" ──────────────────────────────────────
 
 DGI = 'https://www.data.gov.in/backend/dmspublic/v1/resources?format=json&filters%5Buuid%5D=x'

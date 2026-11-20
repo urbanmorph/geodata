@@ -1,0 +1,1356 @@
+{
+ "terms": [
+  {
+   "id": "bhuvan_nrsc",
+   "publisher": "Bhuvan / NRSC (ISRO), incl. Bhuvan Panchayat and Bhuvan GWIS",
+   "url": "https://www.nrsc.gov.in/nrscnew/termsConditions.php",
+   "kind": "html",
+   "start": "Key Conditions:",
+   "end": "exclusive property of NRSC, ISRO.",
+   "stated": "NRSC terms, non-commercial use only; credit \"Source: NRSC, ISRO/DOS\" and link www.nrsc.gov.in",
+   "quote": "All downloadable content can be used for non-commercial purposes with proper attribution (\"Source: NRSC, ISRO/DOS\") and linking to www.nrsc.gov.in.",
+   "verdict": "mark_nc",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "bhuvan_states",
+    "bhuvan_districts",
+    "bhuvan_blocks",
+    "gw_quality_premonsoon",
+    "gw_quality_postmonsoon",
+    "bhuvan_lineaments_50k",
+    "bhuvan_gw_prospect_structures",
+    "bhuvan_geomorphology_50k",
+    "bhuvan_gw_prospects",
+    "bhuvan_land_degradation_1516",
+    "ndem_floods_1998_2022",
+    "ndem_landslide_hazard",
+    "ndem_cyclone_tracks"
+   ],
+   "sha256": "bd43270e8da1cbf82da9e9cb23a466aafe15a2c731d0ff2019cc05035c0cc8e3"
+  },
+  {
+   "id": "gsi_ngdr_bhukosh",
+   "publisher": "GSI / NGDR / Bhukosh (Geological Survey of India, Ministry of Mines)",
+   "url": "https://geodataindia.gov.in/terms_conditions",
+   "kind": "html",
+   "start": "Users shall:",
+   "end": "Keep their login",
+   "stated": "none (cannot be republished under GSI's licence)",
+   "quote": "Digital Maps/Reports/Data Products downloaded from BHUKOSH (geoportal) will not be resold/transmitted/conveyed to a third party in full or in part",
+   "verdict": "fail",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "gsi_landslide_inventory",
+    "ngdr_earthquakes",
+    "gsi_geology_2m",
+    "gsi_coal_blocks",
+    "gsi_critical_minerals",
+    "gsi_lineaments_250k",
+    "gsi_lithology_50k"
+   ],
+   "sha256": "845302d523b0a77f204c88e23f72098c3e7e89463032ed7deb6ae0e1a85127cc"
+  },
+  {
+   "id": "lgd",
+   "publisher": "LGD (Local Government Directory, Ministry of Panchayati Raj); geometries via Bharatmaps/NIC",
+   "url": "https://lgdirectory.gov.in/copyRightPolicy.do",
+   "kind": "html",
+   "start": "Material featured on this site may be reproduced",
+   "end": "copyright holders concerned.",
+   "stated": "CC0-1.0 from compiler (ramSeraph/DataMeet), credit LGD (MoPR)",
+   "quote": "Material featured on this site may be reproduced free of charge in any format or media without requiring specific permission.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "lgd_states",
+    "lgd_districts",
+    "lgd_subdistricts",
+    "lgd_blocks",
+    "lgd_panchayats",
+    "lgd_villages",
+    "lgd_parliament",
+    "lgd_assembly",
+    "india_boundary",
+    "high_courts",
+    "ngt_zones",
+    "nclt_benches"
+   ],
+   "sha256": "2fc6469293f0e146110cfe88a936196c09d7dd4b94ae5aeb783d097465739133"
+  },
+  {
+   "id": "survey_of_india",
+   "publisher": "Survey of India (SOI)",
+   "url": "https://onlinemaps.surveyofindia.gov.in/addtocart.aspx",
+   "kind": "manual",
+   "stated": "CC0-1.0 from compiler, credit \"Source: Survey of India, Government of India\" (pending owner decision on the foreign-entity clause)",
+   "quote": "I agree not to share the downloaded data with any foreign individual or foreign entity, except as permitted under applicable laws.",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "soi_states",
+    "soi_districts",
+    "soi_subdistricts",
+    "soi_village_points",
+    "soi_forests"
+   ],
+   "reason": "the site's TLS certificate chain does not verify from a script; read it in a browser",
+   "watch_anchors": [
+    "I agree to comply with the Geospatial Data Guidelines",
+    "terminated for policy violations"
+   ]
+  },
+  {
+   "id": "pmgsy_geosadak",
+   "publisher": "PMGSY / GeoSadak (NRIDA, Ministry of Rural Development)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_transport/releases/tags/pmgsy-roads",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "GODL-India, credit Ministry of Rural Development (PMGSY Rural Connectivity Datasets, 2022)",
+   "quote": "Ministry of Rural Development, 2022. PMGSY Rural Connectivity Datasets ... Published under India's Government Open Data License",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "pmgsy_blocks",
+    "pmgsy_habitations",
+    "pmgsy_roads"
+   ],
+   "sha256": "ca1a01d0953a58a033fd5c6279cfe3d8d24361c02440699f58ddd31fa8195968"
+  },
+  {
+   "id": "data_gov_in",
+   "publisher": "data.gov.in (Open Government Data Platform India, NIC/MeitY)",
+   "url": "https://www.data.gov.in/terms-of-use",
+   "kind": "html",
+   "start": "The catalog and information available through the Portal",
+   "end": "except where otherwise noted.",
+   "stated": "GODL-India, credit the owning Ministry/Department and data.gov.in",
+   "quote": "Content is owned by the respective Ministries/Departments/Organizations and licensed under the Government Open Data License-India.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "datagov_pincodes",
+    "seismic_zones",
+    "mgnrega_districts",
+    "state_finance",
+    "wbc1_water_bodies",
+    "mi6_wells_districts",
+    "nhp_hospitals",
+    "nin_health_facilities"
+   ],
+   "sha256": "794528c6a32560fbb1a714c78d907bb4c3aab31340f0437c92a15505f1f9c5e4"
+  },
+  {
+   "id": "smart_cities_mission_data_portal",
+   "publisher": "Smart Cities Mission data portal (smartcities.data.gov.in, MoHUA)",
+   "url": "https://smartcities.data.gov.in/catalog/property-tax-chennai",
+   "kind": "html",
+   "start": "All datasets/resources including metadata published on smartcities.data.gov.in",
+   "end": "Government Open Data License - India",
+   "stated": "GODL-India, credit Greater Chennai Corporation / Chennai Smart City Ltd",
+   "quote": "All datasets/resources including metadata published on smartcities.data.gov.in are licensed under the Government Open Data License - India",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "property_tax_chennai_wards"
+   ],
+   "sha256": "2f0007b4c32cd71aca289526b7ae7e59ae5123003339c480d7e78ffaad94d2e7"
+  },
+  {
+   "id": "nic_healthgis",
+   "publisher": "NIC HealthGIS (healthgis.nic.in), via yashveeeeeeer/india-geodata",
+   "url": "https://raw.githubusercontent.com/yashveeeeeeer/india-geodata/main/data/healthcare/facilities/metadata.json",
+   "kind": "json",
+   "json_path": "$.license",
+   "stated": "CC0-1.0 or compiler's claim; GODL-India only if a data.gov.in copy is confirmed",
+   "quote": "not found (host did not resolve)",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "nic_health"
+   ],
+   "sha256": "339829345c9bed94ce9b6a965e0d53eb05fe4c138f92b2586335a54a83e1d660"
+  },
+  {
+   "id": "cgwb",
+   "publisher": "CGWB (Central Ground Water Board), via CoRE Stack",
+   "url": "https://aikosh.indiaai.gov.in/home/datasets/details/geological_and_hydrogeological_layers.html",
+   "kind": "manual",
+   "stated": "CC-BY-4.0 (CoRE Stack, the compiler) unless a data.gov.in copy is the source, then GODL-India",
+   "quote": "unreachable (TLS: unable to get local issuer certificate / HTTP 500)",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "cgwb_aquifers",
+    "cgwb_gw_extraction"
+   ],
+   "reason": "the AIKosh page draws its licence with JavaScript; read it in a browser"
+  },
+  {
+   "id": "icar_nbss_lup",
+   "publisher": "ICAR-NBSS&LUP (agro-ecological regions), via CoRE Stack",
+   "url": "https://www.nbsslup.in/",
+   "kind": "manual",
+   "reason": "no stable anchors around the licence text on this page",
+   "stated": "CC-BY-4.0 (CoRE Stack compiler), credit ICAR-NBSS&LUP",
+   "quote": "not found (host did not resolve)",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "agro_ecological_zones"
+   ]
+  },
+  {
+   "id": "planning_commission_niti_aayog",
+   "publisher": "Planning Commission / NITI Aayog (agro-climatic zones), via CoRE Stack",
+   "url": "https://www.niti.gov.in/copyright-policy",
+   "kind": "html",
+   "start": "Material featured on this Portal may be reproduced",
+   "end": "copyright holders concerned",
+   "stated": "CC-BY-4.0 (CoRE Stack compiler), credit Planning Commission of India",
+   "quote": "Material featured on this Portal may be reproduced free of charge after taking proper permission by sending a mail to us.",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "agro_climatic_zones"
+   ],
+   "sha256": "d95a9dc559d37bbd4dff407befdf8d4afef9ceba7f20cb1aa9ce051b20dcedea"
+  },
+  {
+   "id": "wildlife_institute_of_india",
+   "publisher": "Wildlife Institute of India (biogeographic zones), via CoRE Stack",
+   "url": "https://wii.gov.in/copyright-policy",
+   "kind": "html",
+   "start": "Material featured on this site may be reproduced",
+   "end": "Currently there is no third party",
+   "stated": "CC-BY-4.0 (CoRE Stack compiler), credit WII (Rodgers, Panwar & Mathur)",
+   "quote": "Material featured on this site may be reproduced free of charge in any format or media without requiring specific permission.",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "biogeographic_zones"
+   ],
+   "sha256": "541910822de776c8b9143a9d04a4fc94f07304accdaee3cf72d089ce97425a3a"
+  },
+  {
+   "id": "cwc_india_wris",
+   "publisher": "CWC / India-WRIS (Ministry of Jal Shakti)",
+   "url": "https://cwc.gov.in/en/copyright-policy",
+   "kind": "html",
+   "start": "The contents of this website may not be reproduced",
+   "end": "objectionable context.",
+   "stated": "CC0-1.0 from compiler, credit CWC / India-WRIS",
+   "quote": "The contents of this website may not be reproduced partially or fully, without due permission from Central Water Commission",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wris_basin",
+    "wris_subbasin",
+    "wris_rivers",
+    "wris_dams",
+    "wris_reservoirs",
+    "wris_watersheds",
+    "wris_river_polygons",
+    "wris_lakes",
+    "wris_waterbodies",
+    "wris_canals"
+   ],
+   "sha256": "0cbd4ad2135496a476fea6d8b68cbcff56b9bce82cf70d6ed5457d9ce631dc3a"
+  },
+  {
+   "id": "forest_survey_of_india",
+   "publisher": "Forest Survey of India (FSI, MoEFCC); RFA via Bharatmaps",
+   "url": "https://fsi.nic.in/copyright-policy",
+   "kind": "html",
+   "start": "Copyright policy - Moderate",
+   "end": "STATE OF FOREST REPORT",
+   "stated": "CC0-1.0 from compiler, credit Forest Survey of India",
+   "quote": "Material featured on this Website https://fsi.nic.in may be reproduced free of charge after taking proper permission by sending a mail to us.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "fsi_circles",
+    "fsi_divisions",
+    "fsi_ranges",
+    "fsi_beats",
+    "fsi_recorded_forest_area"
+   ],
+   "sha256": "8f8d00fbb1b0b841e551821cc54e7b2f1ddee891a9782d49a51097d0067ef29c"
+  },
+  {
+   "id": "bharatmaps",
+   "publisher": "Bharatmaps (NIC)",
+   "url": "https://raw.githubusercontent.com/yashveeeeeeer/india-geodata/main/data/water/wetlands/metadata.json",
+   "kind": "json",
+   "json_path": "$.license",
+   "stated": "CC0-1.0 from compiler, credit Bharatmaps (NIC) and the owning ministry (Parivesh/MoEFCC, MoJS)",
+   "quote": "not found (the 'Term & conditions' link on the page is href=\"#\")",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "bm_eco_zones",
+    "bp_ramsar",
+    "bp_wetlands",
+    "bm_dams"
+   ],
+   "sha256": "0e41e585df114e054d50a86461058f5e82f53b89f5c36ad099ede11eb08bd10e"
+  },
+  {
+   "id": "parivesh",
+   "publisher": "PARIVESH (MoEFCC), via Bharatmaps",
+   "url": "https://environmentclearance.nic.in/CopyrightPolicy.aspx",
+   "kind": "manual",
+   "stated": "CC0-1.0 from compiler, credit PARIVESH (MoEFCC) and Bharatmaps",
+   "quote": "Contents of this website may not be reproduced partially or fully, without due permission from NIC.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wildlife_corridors",
+    "crz2019_zones",
+    "crz2019_lines"
+   ],
+   "reason": "the site's TLS certificate chain does not verify from a script; read it in a browser",
+   "watch_anchors": [
+    "Contents of this website may not be reproduced",
+    "objectionable context"
+   ]
+  },
+  {
+   "id": "pm_gatishakti_nmp_gis",
+   "publisher": "PM GatiShakti NMP GIS (DPIIT, built by BISAG-N), via yashveeeeeeer",
+   "url": "https://raw.githubusercontent.com/yashveeeeeeer/india-geodata/main/data/infrastructure/national-highways/metadata.json",
+   "kind": "json",
+   "json_path": "$.license",
+   "stated": "CC0-1.0 from compiler, credit PM GatiShakti (DPIIT/BISAG-N) and MoRTH/MoEFCC",
+   "quote": "not found (host did not resolve)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "gs_wildlife",
+    "gs_highways"
+   ],
+   "sha256": "0e41e585df114e054d50a86461058f5e82f53b89f5c36ad099ede11eb08bd10e"
+  },
+  {
+   "id": "vedas",
+   "publisher": "VEDAS (Space Applications Centre, ISRO) Energy Map",
+   "url": "https://vedas.sac.gov.in/en/terms-conditions.html",
+   "kind": "html",
+   "start": "By accessing this website",
+   "end": "exclusive jurisdiction of the courts of India.",
+   "stated": "CC0-1.0 from compiler, credit VEDAS, SAC/ISRO",
+   "quote": "If any user is interested to use the material of ISRO featured in this Website, then, the user is required to take the permission",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "vedas_power_plants",
+    "vedas_oil_refineries",
+    "vedas_oil_wells",
+    "vedas_wind_farms",
+    "vedas_ethanol_plants",
+    "vedas_solar_plants",
+    "vedas_solar_panel_areas",
+    "vedas_solar_panels_ai_2023"
+   ],
+   "sha256": "24b8df849ee223e4dbecd11a228f93520be335c5629d241ddd138c31ad693497"
+  },
+  {
+   "id": "slusi",
+   "publisher": "SLUSI (Soil & Land Use Survey of India, DA&FW)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_water_features/releases/tags/hydro-boundaries",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit SLUSI",
+   "quote": "not found (home page has no copyright/terms link)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "slusi_soil_health",
+    "slusi_micro_watersheds",
+    "slusi_priority_micro_watersheds"
+   ],
+   "sha256": "b5aa33e116872103e2ea2089e3d2a2aa99094ce086dbe6eb3ad33e02e007b146"
+  },
+  {
+   "id": "ncog",
+   "publisher": "NCOG (National Centre of Geo-informatics, BISAG-N/MeitY)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_facilities/releases/tags/education",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit NCOG (BISAG-N) and UDISE+ / the police department",
+   "quote": "unreachable (connection refused / timeout)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "udise_schools",
+    "marine_police_stations"
+   ],
+   "sha256": "7cc9cc42851223e10bb61470f6b557f2334ca32f46e502729696316417971403"
+  },
+  {
+   "id": "swachh_bharat_mission",
+   "publisher": "Swachh Bharat Mission (Urban), MoHUA",
+   "url": "https://api.github.com/repos/ramSeraph/indian_admin_boundaries/releases/tags/urban",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit SBM (Urban)",
+   "quote": "not found (only a privacy policy link)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "sbm_wards",
+    "sbm_ulbs",
+    "wb_amrut_wards",
+    "wb_amrut_ulbs"
+   ],
+   "sha256": "ed733626a6372eced88b1abfba4aee10f5fbf61be8acc8dd0720ef7a4dd58b68"
+  },
+  {
+   "id": "jal_jeevan_mission",
+   "publisher": "Jal Jeevan Mission (DDWS, Ministry of Jal Shakti)",
+   "url": "https://jaljeevanmission.gov.in/website-policies",
+   "kind": "html",
+   "start": "All the contents available on this website",
+   "end": "Department of Drinking Water and Sanitation. It",
+   "stated": "CC0-1.0 from compiler, credit Jal Jeevan Mission (DDWS)",
+   "quote": "Contents of this website may not be reproduced partially or fully, without due permission from the Department of Drinking Water and Sanitation.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "jjm_facilities"
+   ],
+   "sha256": "0f6818e97282117d2fe02f055e1dfcbc522bf43c9a0bea09160b8dc0c4b42fd1"
+  },
+  {
+   "id": "mission_amrit_sarovar_water_observatory",
+   "publisher": "Mission Amrit Sarovar / Water Observatory (MoRD, IIT Delhi HydroSense Lab)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_water_features/releases/tags/waterbodies",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit Mission Amrit Sarovar (MoRD) and the Water Observatory",
+   "quote": "not found (site redirects to a login page; ms8.pmgatishakti.gov.in shell has no terms)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "amrit_sarovar_ponds"
+   ],
+   "sha256": "17a5984e306f48da26ce154b2aaad0de0c2461b057a1de14c6f483825b9ba16c"
+  },
+  {
+   "id": "indian_railways_gis_portal",
+   "publisher": "Indian Railways GIS portal (CRIS, Ministry of Railways)",
+   "url": "https://irgeoportal.gov.in/Portal/website-policy.html",
+   "kind": "manual",
+   "stated": "CC0-1.0 from compiler, credit Indian Railways (CRIS)",
+   "quote": "Material featured on this Portal may be reproduced free of charge after taking proper permission by sending a mail to us.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "ir_tracks"
+   ],
+   "reason": "the site's TLS certificate chain does not verify from a script; read it in a browser",
+   "watch_anchors": [
+    "Material featured on this Portal may be reproduced free of charge",
+    "departments/copyright holders concerned."
+   ]
+  },
+  {
+   "id": "cityfinance_in",
+   "publisher": "CityFinance.in (MoHUA; run by NIUA and Janaagraha)",
+   "url": "https://www.cityfinance.in/home",
+   "kind": "manual",
+   "reason": "no stable anchors around the licence text on this page",
+   "stated": "No open licence stated: Policy B republish with credit; do not claim GODL-India unless a data.gov.in copy is the source",
+   "quote": "not found (Angular shell; no terms text served)",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "cityfinance_ulbs",
+    "cityfinance_ulb_balance_sheets"
+   ]
+  },
+  {
+   "id": "apsac",
+   "publisher": "APSAC (Andhra Pradesh Space Applications Centre)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_admin_boundaries/releases/tags/police",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit APSAC",
+   "quote": "not found (footer 'All rights reserved' only; no copyright/terms text)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "police_stations_ap",
+    "police_stations_telangana",
+    "police_stations_tn",
+    "traffic_police_stations_tn",
+    "police_stations_bihar"
+   ],
+   "sha256": "51932b1b6e8f64e1cc4de7b45044dbb3c3cb9e96546611a82c16505c93cc143b"
+  },
+  {
+   "id": "ncscm",
+   "publisher": "NCSCM (National Centre for Sustainable Coastal Management, MoEFCC)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_cadastrals/releases/tags/puducherry",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit NCSCM",
+   "quote": "not found (footer 'All rights reserved' only; no copyright/terms text)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "cadastrals_puducherry_coastal",
+    "cadastrals_andaman_coastal"
+   ],
+   "sha256": "a29c1c1aa3da6829158a55745bd52ab6af893f1b07a452950e43f87513dccac0"
+  },
+  {
+   "id": "goa_bhoomi",
+   "publisher": "Goa Bhoomi (ICAR-NBSS&LUP)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_cadastrals/releases/tags/goa",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit Goa Bhoomi",
+   "quote": "not checked (bare-IP http host)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "cadastrals_goa"
+   ],
+   "sha256": "31e0c39807923a7d7634cdf1f45c93ae0ca99d70f07b70a3de270f2f7cb7c613"
+  },
+  {
+   "id": "geospatial_delhi_limited",
+   "publisher": "Geospatial Delhi Limited (GSDL)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_cadastrals/releases/tags/delhi",
+   "kind": "json",
+   "json_path": "$.body",
+   "stated": "CC0-1.0 from compiler, credit Geospatial Delhi Limited",
+   "quote": "not found (footer 'All rights reserved' only; no copyright/terms text)",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "police_stations_delhi",
+    "cadastrals_delhi"
+   ],
+   "sha256": "cc61495733d6111ae11cc55b7319dd77a8759c564bf51ff83289bce1622871a5"
+  },
+  {
+   "id": "compiler_ramseraph_indianopenmaps",
+   "publisher": "COMPILER: ramSeraph/indianopenmaps (DataMeet)",
+   "url": "https://raw.githubusercontent.com/ramSeraph/indianopenmaps/main/DATA_LICENSE.md",
+   "kind": "text",
+   "start": "# Licensing",
+   "end": "# Rationale behind the licensing",
+   "stated": "CC0-1.0 only where the original's terms can't be traced (see per-publisher rows)",
+   "quote": "Most of the data here(anything that links here for licensing) is licensed using CC0 1.0",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "amrit_sarovar_ponds",
+    "bhuvan_geomorphology_50k",
+    "bhuvan_gw_prospect_structures",
+    "bhuvan_lineaments_50k",
+    "cadastrals_andaman_coastal",
+    "cadastrals_delhi",
+    "cadastrals_goa",
+    "cadastrals_puducherry_coastal",
+    "crz2019_lines",
+    "crz2019_zones",
+    "fsi_beats",
+    "fsi_circles",
+    "fsi_divisions",
+    "fsi_ranges",
+    "fsi_recorded_forest_area",
+    "gsi_coal_blocks",
+    "gsi_critical_minerals",
+    "gsi_geology_2m",
+    "gsi_landslide_inventory",
+    "gsi_lineaments_250k",
+    "gsi_lithology_50k",
+    "gw_quality_postmonsoon",
+    "gw_quality_premonsoon",
+    "ir_tracks",
+    "jjm_facilities",
+    "marine_police_stations",
+    "ndem_cyclone_tracks",
+    "ndem_floods_1998_2022",
+    "ndem_landslide_hazard",
+    "ngdr_earthquakes",
+    "nhp_hospitals",
+    "nin_health_facilities",
+    "pmgsy_habitations",
+    "pmgsy_roads",
+    "police_stations_ap",
+    "police_stations_bihar",
+    "police_stations_delhi",
+    "police_stations_telangana",
+    "police_stations_tn",
+    "sbm_ulbs",
+    "sbm_wards",
+    "slusi_micro_watersheds",
+    "slusi_priority_micro_watersheds",
+    "slusi_soil_health",
+    "traffic_police_stations_tn",
+    "udise_schools",
+    "vedas_ethanol_plants",
+    "vedas_oil_refineries",
+    "vedas_oil_wells",
+    "vedas_power_plants",
+    "vedas_solar_panel_areas",
+    "vedas_solar_panels_ai_2023",
+    "vedas_solar_plants",
+    "vedas_wind_farms",
+    "wb_amrut_ulbs",
+    "wb_amrut_wards",
+    "wildlife_corridors",
+    "wris_lakes",
+    "wris_river_polygons",
+    "wris_waterbodies",
+    "wris_watersheds"
+   ],
+   "sha256": "52b7b69ad25f669ff775a0447d6f85a9bfacf2fd612b1d33e08faaac810caf33"
+  },
+  {
+   "id": "compiler_yashveeeeeeer_india_geodata",
+   "publisher": "COMPILER: yashveeeeeeer/india-geodata",
+   "url": "https://raw.githubusercontent.com/yashveeeeeeer/india-geodata/main/data/administrative/states/metadata.json",
+   "kind": "json",
+   "json_path": "$.license",
+   "stated": "per-dataset metadata licence, overridden by the original's licence where traceable",
+   "quote": "Individual datasets carry their own licenses as documented in their metadata.json files.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "bhuvan_blocks",
+    "bhuvan_districts",
+    "bhuvan_states",
+    "bm_dams",
+    "bm_eco_zones",
+    "bp_ramsar",
+    "bp_wetlands",
+    "datagov_pincodes",
+    "gs_highways",
+    "gs_wildlife",
+    "lgd_assembly",
+    "lgd_blocks",
+    "lgd_districts",
+    "lgd_panchayats",
+    "lgd_parliament",
+    "lgd_states",
+    "lgd_subdistricts",
+    "lgd_villages",
+    "nic_health",
+    "pmgsy_blocks",
+    "soi_districts",
+    "soi_forests",
+    "soi_states",
+    "soi_subdistricts",
+    "soi_village_points",
+    "wris_basin",
+    "wris_dams",
+    "wris_reservoirs",
+    "wris_rivers",
+    "wris_subbasin"
+   ],
+   "sha256": "c68c2f6c8fe000ae213ab478d04d4c59842dfdf0a165a57c052c45b69042faf3"
+  },
+  {
+   "id": "opencity_bengaluru_gba",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=gba-wards-delimitation-2025",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_bengaluru_gba"
+   ]
+  },
+  {
+   "id": "opencity_corporation_bengaluru_etc",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=greater-bengaluru-authority-corporations-delimitation-2025",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "corporation_bengaluru",
+    "zones_bengaluru_gba"
+   ]
+  },
+  {
+   "id": "opencity_bda_jurisdiction",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=bda-jurisdiction-and-boundary",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "bda_jurisdiction"
+   ]
+  },
+  {
+   "id": "opencity_bda_layouts",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=bda-layouts",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "bda_layouts"
+   ]
+  },
+  {
+   "id": "opencity_hyderabad",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=hyderabad-wards-info",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_hyderabad"
+   ]
+  },
+  {
+   "id": "opencity_mumbai_etc",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=mumbai-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_mumbai",
+    "electoral_wards_mumbai_2017"
+   ]
+  },
+  {
+   "id": "opencity_kolkata",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=kolkata-wards-information",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_kolkata"
+   ]
+  },
+  {
+   "id": "opencity_pune_etc",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=pune-wards-info",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_pune",
+    "wards_pune_2025",
+    "zones_pune"
+   ]
+  },
+  {
+   "id": "opencity_ahmedabad",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=amdavad-municipal-corporation-wards-map-2024",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_ahmedabad"
+   ]
+  },
+  {
+   "id": "opencity_jaipur",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=jaipur-municipal-corporation-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_jaipur"
+   ]
+  },
+  {
+   "id": "opencity_gurugram",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=gurugram-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_gurugram"
+   ]
+  },
+  {
+   "id": "opencity_kochi",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=kochi-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_kochi"
+   ]
+  },
+  {
+   "id": "opencity_vizag",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=visakhapatnam-wards-map-2024",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_vizag"
+   ]
+  },
+  {
+   "id": "opencity_thane",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=thane-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_thane"
+   ]
+  },
+  {
+   "id": "opencity_indore",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=indore-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_indore"
+   ]
+  },
+  {
+   "id": "opencity_madurai",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=madurai-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_madurai"
+   ]
+  },
+  {
+   "id": "opencity_navi_mumbai",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=navi-mumbai-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_navi_mumbai"
+   ]
+  },
+  {
+   "id": "opencity_guwahati",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=guwahati-wards-information",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_guwahati"
+   ]
+  },
+  {
+   "id": "opencity_bhopal",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=bhopal-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_bhopal"
+   ]
+  },
+  {
+   "id": "opencity_kalyan_dombivli",
+   "publisher": "OpenCity (source: Esri India Living Atlas)",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=kalyan-dombivli-wards-map",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Other (Public Domain) per OpenCity; upstream Esri India Master Terms of Use (no offline export)",
+   "quote": "license_id \"other-pd\", license_title \"Other (Public Domain)\"; OpenCity \"url\": \"livingatlas.esri.in\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_kalyan_dombivli"
+   ]
+  },
+  {
+   "id": "opencity_bengaluru_bbmp_2022",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=bbmp-ward-information",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "None stated on dataset; OpenCity site default ODbL",
+   "quote": "FAQ: \"Unless explicitly stated ... All our data is under Open Data Commons Open Database License (ODbL).\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_bengaluru_bbmp_2022"
+   ]
+  },
+  {
+   "id": "opencity_mysuru",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=mysuru-city-corporation-wards-info",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "None stated on dataset; OpenCity site default ODbL",
+   "quote": "FAQ: \"Unless explicitly stated ... All our data is under Open Data Commons Open Database License (ODbL).\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_mysuru"
+   ]
+  },
+  {
+   "id": "opencity_chennai",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=gcc-ward-information",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "None stated on dataset; OpenCity site default ODbL",
+   "quote": "FAQ: \"Unless explicitly stated ... All our data is under Open Data Commons Open Database License (ODbL).\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_chennai"
+   ]
+  },
+  {
+   "id": "opencity_hyderabad_osm_etc",
+   "publisher": "OpenCity (earlier OSM-derived file)",
+   "url": "https://www.openstreetmap.org/copyright",
+   "kind": "html",
+   "start": "OpenStreetMap",
+   "end": "Open Database License",
+   "stated": "OpenStreetMap-derived => ODbL-1.0 (OpenCity dataset now Other (Public Domain), file removed)",
+   "quote": "Columns carry OpenStreetMap ids, versions and changesets (from our own layer notes).",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_hyderabad_osm",
+    "urban_rail_stations",
+    "urban_rail_lines"
+   ],
+   "sha256": "1e34b0f089065b13e61872aecebadeb5ab8b49871c43745a1d73dda62c643327"
+  },
+  {
+   "id": "opencity_bhubaneshwar",
+   "publisher": "OpenCity",
+   "url": "https://data.opencity.in/api/3/action/package_show?id=bhubaneswar-administrative-boundaries",
+   "kind": "manual",
+   "json_path": "result.license_id",
+   "reason": "data.opencity.in answers scripts with a Cloudflare challenge; read it in a browser",
+   "stated": "Creative Commons Attribution Share-Alike (no version)",
+   "quote": "license_id \"cc-by-sa\", license_title \"Creative Commons Attribution Share-Alike\"",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_bhubaneshwar"
+   ]
+  },
+  {
+   "id": "datameet_delhi",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Delhi/Readme.md",
+   "kind": "text",
+   "start": "**License**",
+   "end": "license.",
+   "stated": "CC-BY-SA-2.5-IN",
+   "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_delhi"
+   ],
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+  },
+  {
+   "id": "datameet_coimbatore",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Coimbatore/ReadMe.md",
+   "kind": "text",
+   "start": "**License**",
+   "end": "license.",
+   "stated": "CC-BY-SA-2.5-IN",
+   "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_coimbatore"
+   ],
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+  },
+  {
+   "id": "datameet_chandigarh",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Chandigarh/Readme.md",
+   "kind": "text",
+   "start": "**License**",
+   "end": "license.",
+   "stated": "CC-BY-SA-2.5-IN",
+   "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_chandigarh"
+   ],
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+  },
+  {
+   "id": "datameet_zones_chennai",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Chennai/Readme.md",
+   "kind": "text",
+   "start": "**License**",
+   "end": "license.",
+   "stated": "CC-BY-SA-2.5-IN",
+   "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "zones_chennai"
+   ],
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+  },
+  {
+   "id": "datameet_faridabad",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Faridabad/Readme.md",
+   "kind": "text",
+   "start": "**License**",
+   "end": "license.",
+   "stated": "CC-BY-SA-2.5-IN",
+   "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_faridabad"
+   ],
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+  },
+  {
+   "id": "datameet_vijayawada",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Vijayawada/Readme.md",
+   "kind": "text",
+   "start": "**License**",
+   "end": "license.",
+   "stated": "CC-BY-SA-2.5-IN",
+   "quote": "The dataset is shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_vijayawada"
+   ],
+   "sha256": "83aee105f474b6e09da3e65e7ddf772363f65a59e6a98a74004da62999503668"
+  },
+  {
+   "id": "datameet_pcmc",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/PCMC/Readme.md",
+   "kind": "text",
+   "start": "**License**",
+   "end": "license.",
+   "stated": "CC-BY-SA-2.5-IN",
+   "quote": "created by the Pune chapter of the DataMeet Trust ... shared under Creative Commons Attribution-ShareAlike 2.5 India license.",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_pcmc"
+   ],
+   "sha256": "9d48b29b657f817c1d04bdd0fd7b62beec422f8d18344f01dd5be8707db1abba"
+  },
+  {
+   "id": "datameet_lucknow_etc",
+   "publisher": "DataMeet",
+   "url": "https://raw.githubusercontent.com/datameet/Municipal_Spatial_Data/master/Readme.md",
+   "kind": "text",
+   "start": "## Data License",
+   "end": "Please mention",
+   "stated": "CC-BY-4.0 (repo default; folder readmes state no licence)",
+   "quote": "Unless explicitly stated, all datasets in this repository is shared under CC BY 4.0 license.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_lucknow",
+    "wards_kanpur",
+    "wards_vadodara"
+   ],
+   "sha256": "85c8dade26546371b20e62e63e04bee7d1f8bca0854f7048d1a73f59aed15c4d"
+  },
+  {
+   "id": "geoboundaries_gb_adm1",
+   "publisher": "geoBoundaries",
+   "url": "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM1/",
+   "kind": "json",
+   "json_path": "boundaryLicense",
+   "stated": "CC BY 2.5 IN",
+   "quote": "boundaryLicense: \"Creative Commons Attribution 2.5 India (CC BY 2.5 IN)\"; source DataMeet, Election Commission of India",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "gb_adm1"
+   ],
+   "sha256": "85118c90aaba29134e14cd5161db5e1612cda70f84dc1cc50a4a047dd4a7f909"
+  },
+  {
+   "id": "geoboundaries_gb_adm2_etc",
+   "publisher": "geoBoundaries",
+   "url": "https://www.geoboundaries.org/api/current/gbOpen/IND/ADM2/",
+   "kind": "json",
+   "json_path": "boundaryLicense",
+   "stated": "ODbL-1.0",
+   "quote": "boundaryLicense: \"Open Data Commons Open Database License 1.0\"; source Pathways Data Pvt. Ltd., lgdirectory.gov.in",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "gb_adm2",
+    "gb_adm3",
+    "gb_adm4"
+   ],
+   "sha256": "e117703eb9eabd24a0fc76bf82dcaf92ae5ac9a2034dab0848ced0cb0ae3d5b2"
+  },
+  {
+   "id": "bharatviz",
+   "publisher": "bharatviz (saketlab/bharatviz)",
+   "url": "https://api.github.com/repos/saketlab/bharatviz/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "MIT",
+   "quote": "MIT License. Copyright (c) 2025 Saket Choudhary",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "bharatviz_pincodes"
+   ],
+   "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7"
+  },
+  {
+   "id": "datta07_indian_shapefiles",
+   "publisher": "datta07/INDIAN-SHAPEFILES",
+   "url": "https://api.github.com/repos/datta07/INDIAN-SHAPEFILES/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "MIT",
+   "quote": "MIT License. Copyright (c) 2022",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "wards_surat",
+    "wards_patna"
+   ],
+   "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7"
+  },
+  {
+   "id": "india_flood_inventory",
+   "publisher": "India Flood Inventory (HydroSense Lab, IIT Delhi) via yashveeeeeeer/india-geodata",
+   "url": "https://zenodo.org/api/records/4742142",
+   "kind": "json",
+   "json_path": "metadata.license.id",
+   "stated": "Mixed: Zenodo v1.0 (2021) and 2024 versions CC-BY-4.0; latest Zenodo version (2025-08-29) CC-BY-NC-4.0; GitHub source repo states no licence",
+   "quote": "Zenodo 16994648 (2025-08-29) license id \"cc-by-nc-4.0\"; 11275211 (2024-05-24) and 4742143 (v1.0) \"cc-by-4.0\"",
+   "verdict": "unclear",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "india_flood_inventory"
+   ],
+   "sha256": "e2ccf360af6e08873a1491a6e7ad8932cdb58d24803977fc370715c7192f950f"
+  },
+  {
+   "id": "ourairports",
+   "publisher": "OurAirports",
+   "url": "https://api.github.com/repos/davidmegginson/ourairports-data/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "Unlicense (public domain)",
+   "quote": "This is free and unencumbered software released into the public domain.",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "airports"
+   ],
+   "sha256": "5232f4cc61223e4456c924cac0a586d092a904ca2bf6975f285962910dcab7f5"
+  },
+  {
+   "id": "ramseraph_indian_power_infra",
+   "publisher": "ramSeraph/indian_power_infra (from ISRO VEDAS energymap)",
+   "url": "https://api.github.com/repos/ramSeraph/indian_power_infra/releases/tags/power-lines",
+   "kind": "json",
+   "json_path": "body",
+   "stated": "ODbL-1.0 (OSM-derived)",
+   "quote": "License: Data is very likely based on OSM. So.. ODBL to OSMF",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "vedas_transmission_lines"
+   ],
+   "sha256": "ec36a64155e426ec50c95a07942de35782c9be91749c02db5a5360ee04990115"
+  },
+  {
+   "id": "overture_maps_foundation",
+   "publisher": "Overture Maps Foundation",
+   "url": "https://docs.overturemaps.org/attribution/",
+   "kind": "html",
+   "start": "Places",
+   "end": "Transportation",
+   "stated": "Per source: CDLA-Permissive-2.0 (Meta, Microsoft, etc.), Apache-2.0 (Foursquare), CC0-1.0 (AllThePlaces)",
+   "quote": "Foursquare: Apache 2.0, 'Copyright 2024 Foursquare Labs, Inc. All rights reserved.'; others 'Available under CDLA Permissive 2.0.'",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "overture_places_india"
+   ],
+   "sha256": "2080cb9ab4eba2ff9c7fbfabf804ef45e8692abbb2a62a66b597f904a9506b7e"
+  },
+  {
+   "id": "core_stack",
+   "publisher": "CoRE Stack (IndiaSAT v4)",
+   "url": "https://raw.githubusercontent.com/Nirzaree/STAC-spec/master/data/PANindia_stac_raster/panindia-layers/lulc--indiasat-2017-2024/collection.json",
+   "kind": "json",
+   "json_path": "license",
+   "stated": "CC-BY-4.0 (STAC catalogue, CoREstack as licensor)",
+   "quote": "\"license\": \"CC-BY-4.0\"; provider CoREstack roles producer, processor, host, licensor",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "corestack_lulc_blocks"
+   ],
+   "sha256": "7d47300ad7583a7dad5c9f7cbfed040ccd6e960c2a7694cc692b2d831b90d9bc"
+  },
+  {
+   "id": "community",
+   "publisher": "Community (Goa Gazette, Goa Bhunaksha)",
+   "url": "https://goaprintingpress.gov.in/copyright-policy/",
+   "kind": "html",
+   "start": "Copyright Policy Material featured",
+   "end": "However, the permission",
+   "stated": "Government reuse terms: free reproduction with prominent source acknowledgement (GIGW copyright policy)",
+   "quote": "Material featured on this site may be reproduced free of charge ... the source must be prominently acknowledged.",
+   "verdict": "relabel",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "c_nL7zNStsW3"
+   ],
+   "sha256": "97f5c1451799ba8197fd1ea4fe3ce20474461478821ee7b7dfdb8dcd1b01c640"
+  },
+  {
+   "id": "bharatlas_merge",
+   "publisher": "bharatlas merge (CRIS via ramSeraph/indianopenmaps; Wikidata)",
+   "url": "https://raw.githubusercontent.com/ramSeraph/indianopenmaps/main/DATA_LICENSE.md",
+   "kind": "text",
+   "start": "# Licensing",
+   "end": "# Rationale",
+   "stated": "Inputs CC0-1.0 (indianopenmaps DATA_LICENSE, Wikidata); output CC-BY-4.0 by bharatlas",
+   "quote": "Most of the data here ... is licensed using CC0 1.0",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "ir_stations"
+   ],
+   "sha256": "28588663927e23973e3326d09148d29fa3608ffda4c8fd0a68e8fd6e7de0afc8"
+  },
+  {
+   "id": "openstreetmap_gtfs_feeds",
+   "publisher": "OpenStreetMap + GTFS feeds (Vonter/bmtc-gtfs, croyla/*, CUMTA)",
+   "url": "https://api.github.com/repos/Vonter/bmtc-gtfs/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "ODbL-1.0 overall; inputs: BMTC ODbL-1.0, PMPML MIT-0, Mumbai MIT-0, Ahmedabad MIT, OSM ODbL, CUMTA none stated",
+   "quote": "GitHub licence API: Vonter/bmtc-gtfs ODbL-1.0; croyla/pmpml-gtfs MIT-0; croyla/mumbai-gtfs MIT-0; croyla/amd-gtfs MIT",
+   "verdict": "ok",
+   "seen_at": "2026-11-20",
+   "layers": [
+    "bus_stops"
+   ],
+   "sha256": "31cc752b9116d28c4a3ae5631de7e1ca8b9e89555386bfaec81b7b4cf5ad98a6"
+  }
+ ]
+}

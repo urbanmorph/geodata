@@ -878,6 +878,7 @@ def ingest(d: Dataset, upload: bool = True) -> None:
         print(f'  ✓ {d.id}: {len(files)} files built locally; R2, manifest and catalog untouched')
         return
 
+    pipeline.LICENCE_GATE(d.id)   # before anything goes live: the licence must read as reviewed
     s3 = r2_client()
     for local, name in files.items():
         r2_upload(s3, local, f'{d.r2_prefix}/{name}')

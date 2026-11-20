@@ -134,7 +134,10 @@ def infer(layer: dict, ext: dict | None) -> dict:
 
 
 def merge(old: dict | None, inferred: dict) -> dict:
-    """The layer's new source_check: the recorded fingerprint and dates survive while method and URL do."""
+    """The layer's new source_check: the recorded fingerprint and dates survive while method and URL do. A machine
+    check a bake script recorded (bake_airports.py's github_commit) is kept when nothing better can be inferred."""
+    if inferred['method'] == 'manual' and old and old.get('method') not in (None, 'manual'):
+        return old
     keep = old and old.get('method') == inferred['method'] and old.get('url') == inferred.get('url')
     out = {'method': inferred['method'], 'url': inferred.get('url')}
     if 'reason' in inferred:

@@ -10665,6 +10665,14 @@
         "bytes": 2706532489
       },
       "fetched_at": "2026-11-18T17:17:05+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://bhuvan-app1.nrsc.gov.in/gwis/",
+        "reason": "the source link is a portal page, not a file, release or dataset API",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
       "refresh": {
         "class": "slow",
         "check": "weekly",
@@ -10713,6 +10721,14 @@
         "bytes": 3618977377
       },
       "fetched_at": "2026-11-18T17:17:05+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://bhuvan.nrsc.gov.in/",
+        "reason": "the source link is a portal page, not a file, release or dataset API",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
       "refresh": {
         "class": "slow",
         "check": "weekly",
