@@ -1221,6 +1221,11 @@
       "label": "Airports, airfields and heliports",
       "unit": "airports",
       "description": "Airports, airfields and heliports across India from OurAirports: IATA and ICAO codes, type, scheduled service, and the LGD state and district."
+    },
+    "subsidence_point": {
+      "label": "Land subsidence, five megacities (InSAR)",
+      "unit": "points",
+      "description": "Land subsidence in Delhi, Mumbai, Bengaluru, Chennai and Kolkata: InSAR vertical land motion points in cm/yr (negative values mean the ground is sinking), from Ohenhen et al. 2025."
     }
   },
   "level_order": [
@@ -1376,7 +1381,8 @@
     "bhuvan_land_degradation_1516",
     "urban_rail_stations",
     "urban_rail_lines",
-    "bus_stops"
+    "bus_stops",
+    "subsidence_point"
   ],
   "layers": [
     {
@@ -11414,6 +11420,74 @@
           "Vasai-Virar | Mumbai region GTFS (croyla/mumbai-gtfs)": 696
         }
       }
+    },
+    {
+      "id": "subsidence_megacities",
+      "level": "subsidence_point",
+      "source": "Ohenhen et al. 2025 (Virginia Tech)",
+      "rows": 551591,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.b6b92513.parquet",
+        "bytes": 30379055
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.2163ccd7.pmtiles",
+        "bytes": 15976040
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.7c518e25.geojson",
+        "bytes": 192689512
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.099aa267.kml",
+        "bytes": 323721542
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/subsidence_megacities/Subsidence_Megacities.3ff90382.shp.zip",
+        "bytes": 29637233
+      },
+      "licence": "CC0-1.0",
+      "attribution": {
+        "primary": {
+          "name": "Sadhasivam, Ohenhen, Khorrami, Werth and Shirzaei (Virginia Tech), data for Ohenhen et al. 2025, Nature Sustainability",
+          "url": "https://doi.org/10.7294/25856260.v3"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "Data of Ohenhen et al. 2025, \"Building damage risk in sinking Indian megacities\", Nature Sustainability (https://doi.org/10.1038/s41893-025-01663-0), published on the Virginia Tech data repository (figshare article 25856260, version 3) under CC0 1.0. Every point of the five <City>_VLM_data.csv files as published: Longitude, Latitude and VLM_cm_per_yr, the vertical land motion in cm/yr in the IGS14 reference frame, negative where the land sinks and positive where it rises. bharatlas adds the city column. Some points repeat a coordinate with different values, and a few Mumbai points have no value (NaN), as in the source. The same dataset also holds building damage risk shapefiles per city, not included here.",
+      "tags": [
+        "subsidence",
+        "land subsidence",
+        "vertical land motion",
+        "InSAR",
+        "sinking cities",
+        "Delhi",
+        "Mumbai",
+        "Bengaluru",
+        "Chennai",
+        "Kolkata",
+        "Nature Sustainability"
+      ],
+      "fetched_at": "2026-11-20T09:15:42+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://doi.org/10.7294/25856260.v3",
+        "reason": "a paper's published data on figshare, pinned at version 3 (scripts/bake_subsidence_megacities.py); figshare refuses HEAD requests and no check method reads its API yet",
+        "fingerprint": "version=3",
+        "checked_at": "2026-11-20T09:15:42+00:00",
+        "changed_at": "2025-10-29T18:57:36Z"
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
+      }
     }
   ],
   "state_extracts": [],
@@ -13890,6 +13964,10 @@
     "OurAirports": {
       "name": "OurAirports",
       "url": "https://ourairports.com/data/"
+    },
+    "Ohenhen et al. 2025 (Virginia Tech)": {
+      "name": "Sadhasivam, Ohenhen, Khorrami, Werth and Shirzaei (Virginia Tech), data for Ohenhen et al. 2025, Nature Sustainability",
+      "url": "https://doi.org/10.7294/25856260.v3"
     }
   },
   "licence_summary": {

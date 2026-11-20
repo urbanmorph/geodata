@@ -65,7 +65,7 @@ bharatlas is an atlas of India's open geo layers, from the national boundary dow
 
 ## Layers and sources
 
-bharatlas has 168 layers (checked 19 November 2026): the curated layers, plus the community submissions that have been approved, from the Contribute page or from collect. A submission that has been baked into a curated layer (`c_<id>`) counts once. `GET /api/v1/layers` lists the 167 curated entries (one of them a baked community layer) and `GET /api/v1/submissions` the approved submissions. Curated layers by theme, from `GET /api/v1/categories`:
+bharatlas has 169 layers (checked 20 November 2026): the curated layers, plus the community submissions that have been approved, from the Contribute page or from collect. A submission that has been baked into a curated layer (`c_<id>`) counts once. `GET /api/v1/layers` lists the 168 curated entries (one of them a baked community layer) and `GET /api/v1/submissions` the approved submissions. Curated layers by theme, from `GET /api/v1/categories`:
 
 | Theme | Layers | Examples |
 |---|---:|---|
@@ -73,7 +73,7 @@ bharatlas has 168 layers (checked 19 November 2026): the curated layers, plus th
 | City wards | 42 | `wards_bengaluru_gba`, `wards_chennai`, `wards_mumbai`, `wards_delhi`; BDA jurisdiction and layouts; `sbm_wards` (about 3,300 towns and cities); Kalyan-Dombivli wards; Pune 2025 administrative wards; zones for Greater Bengaluru, Pune and Chennai; West Bengal wards (AMRUT, 52 towns) |
 | Water | 26 | WRIS rivers, canals, basins, watersheds, lakes, dams, reservoirs; CGWB aquifers and groundwater extraction; groundwater quality and prospects (Bhuvan); 1st Census of Water Bodies; Amrit Sarovar ponds; India Flood Inventory; NDEM floods 1998-2022 |
 | Infrastructure and utilities | 13 | pincode polygons, VEDAS power plants and transmission lines, Jal Jeevan Mission facilities, Overture places |
-| Environment | 26 | forest circles, divisions, ranges, beats and recorded forest area (FSI); wildlife sanctuaries, reserves and corridors; eco-sensitive zones; Coastal Regulation Zones 2019; geology, lithology, coal blocks, critical minerals and lineaments (GSI); geomorphology and land degradation (Bhuvan); seismic zones, landslides, earthquakes, cyclone tracks |
+| Environment | 27 | forest circles, divisions, ranges, beats and recorded forest area (FSI); wildlife sanctuaries, reserves and corridors; eco-sensitive zones; Coastal Regulation Zones 2019; geology, lithology, coal blocks, critical minerals and lineaments (GSI); geomorphology and land degradation (Bhuvan); seismic zones, landslides, earthquakes, cyclone tracks; land subsidence in five megacities (InSAR) |
 | People and places | 13 | parliament and assembly constituencies, high courts, NGT zones, NCLT benches; police station jurisdictions (Andhra Pradesh, Bihar, Delhi, Tamil Nadu, Telangana, marine) |
 | Agriculture and land use | 4 | agro-ecological and agro-climatic zones, soil health, land use by block |
 | Transport and mobility | 8 | highways, airports, PMGSY roads; Indian Railways stations and tracks; metro and RRTS stations and lines; bus stops (OpenStreetMap, with Bengaluru, Pune, Mumbai, Ahmedabad and Chennai bus feeds) |
@@ -345,6 +345,7 @@ Data sources:
 - [geoBoundaries](https://www.geoboundaries.org/): independent cross-check.
 - [data.gov.in](https://data.gov.in/): seismic zones, pincodes and other government open data.
 - [OurAirports](https://ourairports.com/data/) (public domain): airports, airfields and heliports.
+- [Ohenhen et al. 2025](https://doi.org/10.1038/s41893-025-01663-0), Nature Sustainability, data on the [Virginia Tech data repository](https://doi.org/10.7294/25856260.v3) (CC0): InSAR land subsidence in Delhi, Mumbai, Bengaluru, Chennai and Kolkata.
 - [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors (ODbL): area names in ward views (view only).
 
 Pipelines and patterns:
