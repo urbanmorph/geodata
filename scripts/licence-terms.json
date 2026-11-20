@@ -1493,6 +1493,29 @@
    "sha256": "7d47300ad7583a7dad5c9f7cbfed040ccd6e960c2a7694cc692b2d831b90d9bc",
    "seen_at": "2026-11-20",
    "quote": "\"license\": \"CC-BY-4.0\""
+  },
+  {
+   "id": "gem_global_active_faults",
+   "publisher": "GEM Foundation (GEM Global Active Faults Database, GEMScienceTools/gem-global-active-faults)",
+   "url": "https://api.github.com/repos/GEMScienceTools/gem-global-active-faults/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "CC-BY-SA-4.0 (LICENSE.txt and README since Sept 2019; the 2019.0 tag was CC-BY-4.0); cite Styron and Pagani 2020, Earthquake Spectra, doi:10.1177/8755293020944182",
+   "quote": "The dataset is freely and publicly available here, under a Creative Commons attribution sharealike license.",
+   "verdict": "ok",
+   "seen_at": "2026-11-21",
+   "layers": [
+    "gem_active_faults"
+   ],
+   "sha256": "0ccccf9cc7da9081b488713d97d43fe4cc02ab1cd9d639c7a1b216293d299763",
+   "labels": {
+    "licence": "CC-BY-SA-4.0",
+    "credit": {
+     "name": "GEM Foundation, GEM Global Active Faults Database (Styron and Pagani 2020)",
+     "url": "https://github.com/GEMScienceTools/gem-global-active-faults"
+    }
+   },
+   "decided": "2026-11-21: labels applied at ingest"
   }
  ]
 }

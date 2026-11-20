@@ -98,6 +98,10 @@ OVERRIDES: dict[str, dict] = {
     'atal_bhujal_wells': manual('data.gov.in serves the file only after a login; the layer is CoRE Stack\'s copy, '
                                 'pinned by sha256 (scripts/bake_atal_bhujal_wells.py), and the 2015-2022 series is '
                                 'complete', 'https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana'),
+    # scripts/bake_gem_active_faults.py pins the newest commit of the file; a new commit is a new version
+    'gem_active_faults': {'method': 'github_commit',
+                          'url': 'https://github.com/GEMScienceTools/gem-global-active-faults/tree/master/'
+                                 'geojson/gem_active_faults.geojson'},
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }

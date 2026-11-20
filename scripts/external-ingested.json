@@ -2765,5 +2765,37 @@
       "CGWB",
       "depth to water"
     ]
+  },
+  {
+    "id": "gem_active_faults",
+    "name": "Active faults (GEM)",
+    "level": "active_fault",
+    "category": "environment",
+    "source": "GEM Global Active Faults",
+    "description": "Active fault traces that touch India, from the GEM Global Active Faults Database (Styron and Pagani 2020): the Himalayan front, Ladakh and the Karakoram, Kashmir, Kutch and the North-East, with slip type and, for some, dip, rake and slip rate.",
+    "unit": "faults",
+    "features": 75,
+    "license": "CC-BY-SA-4.0",
+    "r2_prefix": "environment/gem-active-faults",
+    "parquet_file": "GEM_Active_Faults.976a04c3.parquet",
+    "parquet_bytes": 22615,
+    "pmtiles_file": "GEM_Active_Faults.ab60cf78.pmtiles",
+    "pmtiles_bytes": 655360,
+    "source_url": "https://github.com/GEMScienceTools/gem-global-active-faults",
+    "source_org": "GEM Foundation",
+    "source_version": "commit 850fd05, sha256 603513086b46",
+    "notes": "From the GEM Foundation's Global Active Faults Database (GEM GAF-DB), published on GitHub (GEMScienceTools/gem-global-active-faults, file geojson/gem_active_faults.geojson at commit 850fd05, June 2021) under CC BY-SA 4.0. Cite it as GEM asks: Styron, Richard, and Marco Pagani. \"The GEM Global Active Faults Database.\" Earthquake Spectra, vol. 36, no. 1_suppl, Oct. 2020, pp. 160-180, doi:10.1177/8755293020944182. bharatlas keeps every fault trace in the file that touches India as bharatlas shows it (the India boundary layer, claimed areas included), whole, not cut at the border, with every column as published. Dip, rake, slip rates and depths are (most likely, minimum, maximum) text, as published. In and around India the traces come from HimaTibetMap (Styron et al. 2010), the Earthquake Model of the Middle East (EMME) and a Southeast Asia compilation. The database maps no faults in peninsular India or the Andaman and Nicobar Islands. slip_type also names folds (Anticline), and some columns (name, accuracy and others) are empty for every trace here, as published. GEM also publishes a \"harmonized\" file with some of these traces left out; this layer is the full file. Share-alike: anything you make from this layer and share must carry the same licence (CC BY-SA 4.0) and credit GEM.",
+    "tags": [
+      "active faults",
+      "faults",
+      "fault lines",
+      "earthquakes",
+      "seismic hazard",
+      "tectonics",
+      "Himalaya",
+      "Main Frontal Thrust",
+      "GEM",
+      "Global Earthquake Model"
+    ]
   }
 ]

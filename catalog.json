@@ -1251,6 +1251,11 @@
       "label": "Groundwater levels, Atal Bhujal wells (2015-2022)",
       "unit": "wells",
       "description": "Groundwater levels in about 5,500 Atal Bhujal Yojana monitoring wells in seven States, before and after each monsoon from 2015 to 2022, in metres below ground level, with well depth and aquifer."
+    },
+    "active_fault": {
+      "label": "Active faults (GEM)",
+      "unit": "faults",
+      "description": "Active fault traces that touch India, from the GEM Global Active Faults Database (Styron and Pagani 2020): the Himalayan front, Ladakh and the Karakoram, Kashmir, Kutch and the North-East, with slip type and, for some, dip, rake and slip rate."
     }
   },
   "level_order": [
@@ -1412,7 +1417,8 @@
     "gsi_mineral_deposits",
     "gsi_geothermal_springs",
     "subsidence_point",
-    "atal_bhujal_wells"
+    "atal_bhujal_wells",
+    "active_fault"
   ],
   "layers": [
     {
@@ -11856,6 +11862,72 @@
         "audited_at": null,
         "next_due": null
       }
+    },
+    {
+      "id": "gem_active_faults",
+      "level": "active_fault",
+      "source": "GEM Global Active Faults",
+      "rows": 75,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.976a04c3.parquet",
+        "bytes": 22615
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.ab60cf78.pmtiles",
+        "bytes": 655360
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.a4bf8df2.geojson",
+        "bytes": 93727
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.5cb9fb96.kml",
+        "bytes": 79062
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.8479dc65.shp.zip",
+        "bytes": 22341
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "GEM Foundation, GEM Global Active Faults Database (Styron and Pagani 2020)",
+          "url": "https://github.com/GEMScienceTools/gem-global-active-faults"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "From the GEM Foundation's Global Active Faults Database (GEM GAF-DB), published on GitHub (GEMScienceTools/gem-global-active-faults, file geojson/gem_active_faults.geojson at commit 850fd05, June 2021) under CC BY-SA 4.0. Cite it as GEM asks: Styron, Richard, and Marco Pagani. \"The GEM Global Active Faults Database.\" Earthquake Spectra, vol. 36, no. 1_suppl, Oct. 2020, pp. 160-180, doi:10.1177/8755293020944182. bharatlas keeps every fault trace in the file that touches India as bharatlas shows it (the India boundary layer, claimed areas included), whole, not cut at the border, with every column as published. Dip, rake, slip rates and depths are (most likely, minimum, maximum) text, as published. In and around India the traces come from HimaTibetMap (Styron et al. 2010), the Earthquake Model of the Middle East (EMME) and a Southeast Asia compilation. The database maps no faults in peninsular India or the Andaman and Nicobar Islands. slip_type also names folds (Anticline), and some columns (name, accuracy and others) are empty for every trace here, as published. GEM also publishes a \"harmonized\" file with some of these traces left out; this layer is the full file. Share-alike: anything you make from this layer and share must carry the same licence (CC BY-SA 4.0) and credit GEM.",
+      "tags": [
+        "active faults",
+        "faults",
+        "fault lines",
+        "earthquakes",
+        "seismic hazard",
+        "tectonics",
+        "Himalaya",
+        "Main Frontal Thrust",
+        "GEM",
+        "Global Earthquake Model"
+      ],
+      "fetched_at": "2026-11-20T19:23:25+00:00",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/GEMScienceTools/gem-global-active-faults/tree/master/geojson/gem_active_faults.geojson",
+        "fingerprint": "commit=850fd05b48841eb806d61a37043b5567f5bb99dd",
+        "checked_at": "2026-11-20T19:23:25+00:00",
+        "changed_at": "2021-06-24T16:48:23Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
     }
   ],
   "state_extracts": [],
@@ -14340,6 +14412,10 @@
     "Atal Bhujal Yojana (data.gov.in)": {
       "name": "Atal Bhujal Yojana, Ministry of Jal Shakti (data.gov.in)",
       "url": "https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana"
+    },
+    "GEM Global Active Faults": {
+      "name": "GEM Foundation, GEM Global Active Faults Database (Styron and Pagani 2020)",
+      "url": "https://github.com/GEMScienceTools/gem-global-active-faults"
     }
   },
   "licence_summary": {
