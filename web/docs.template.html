@@ -249,8 +249,8 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <tr><td><code>order_by</code></td><td>string</td><td>Reserved, not applied yet: rows come in file order. Accepted so it is never read as a column filter.</td></tr>
         <tr><td><code>format</code>, <code>estimate</code></td><td>string</td><td>Not used by <code>/query</code> (they belong to <code>/layers/:id/export</code>). Accepted so they are never read as column filters.</td></tr>
       </table>
-      <pre><code># Airports in Bangalore district (the layer's own spelling; a miss returns hints with the values)
-curl "https://bharatlas.com/api/v1/layers/airports/query?where=district=Bangalore&amp;select=name,type"
+      <pre><code># Airports in Bengaluru Urban district (the layer's own spelling; a miss returns hints with the values)
+curl "https://bharatlas.com/api/v1/layers/airports/query?where=district=Bengaluru%20Urban&amp;select=name,type"
 
 # Forests by type, across India
 curl "https://bharatlas.com/api/v1/layers/soi_forests/query?group_by=type"

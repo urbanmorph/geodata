@@ -86,26 +86,28 @@ def geojson_popup_fields(geojson: Path) -> list[str]:
 
 
 def pmtiles_args(src: Path, out: Path, layer: str, fields: Iterable[str],
-                 parallel: bool = False, max_zoom: int | None = None) -> list[str]:
+                 parallel: bool = False, max_zoom: int | None = None, keep_all: bool = False) -> list[str]:
     """tippecanoe args keeping only `fields` (popup fields): every extra tile
     attribute makes tippecanoe drop more features at low zoom; no fields keeps
     them all. `parallel` reads line-delimited GeoJSON with -P. `max_zoom`
-    fixes z0..max_zoom (locate tests points at the max zoom) instead of -zg."""
+    fixes z0..max_zoom (locate tests points at the max zoom) instead of -zg.
+    `keep_all` keeps every feature at every zoom (drop rate 1, no dropping to
+    fit): for a few hundred points that should all show on the map of India."""
     # -n: tippecanoe otherwise names the tileset after the input file path.
     zoom = ['-Z0', f'-z{max_zoom}'] if max_zoom is not None else ['-zg']
     args = ['tippecanoe', '-o', str(out), '-l', layer, '-n', layer, *zoom]
     if parallel:
         args.append('-P')
-    args += ['--drop-densest-as-needed', '--extend-zooms-if-still-dropping']
+    args += ['-r', '1'] if keep_all else ['--drop-densest-as-needed', '--extend-zooms-if-still-dropping']
     for field in fields:
         args += ['-y', field]
     return args + ['--force', '--no-progress-indicator', str(src)]
 
 
 def write_pmtiles(src: Path, out: Path, layer: str, fields: Iterable[str], parallel: bool = False,
-                  max_zoom: int | None = None) -> None:
+                  max_zoom: int | None = None, keep_all: bool = False) -> None:
     out.unlink(missing_ok=True)
-    run(pmtiles_args(src, out, layer, fields, parallel, max_zoom), timeout=TOOL_TIMEOUT_S)
+    run(pmtiles_args(src, out, layer, fields, parallel, max_zoom, keep_all), timeout=TOOL_TIMEOUT_S)
 
 
 def short_field_names(columns: list[str]) -> dict[str, str]:

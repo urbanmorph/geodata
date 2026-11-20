@@ -316,7 +316,8 @@ def layer_diff(cur: Path, prev_file: dict, prev: Path | None) -> list[str]:
 
 
 def _title(layer: dict, catalog: dict) -> str:
-    label = ((catalog.get('level_meta') or {}).get(layer['id']) or {}).get('label') \
+    meta = catalog.get('level_meta') or {}
+    label = (meta.get(layer['id']) or meta.get(layer.get('level')) or {}).get('label') \
         or ((catalog.get('levels') or {}).get(layer.get('level')) or {}).get('plural', '').capitalize()
     return f'{label}, {layer["source"]}' if label else layer['id']
 

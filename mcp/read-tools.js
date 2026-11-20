@@ -117,7 +117,7 @@ export const READ_TOOLS = [
       "Supports: select specific columns, filter by column values, group by a column to get counts, " +
       "and sum numeric columns per group (e.g. roll block areas up to district totals). " +
       "Use get_layer_schema first to discover column names. " +
-      "Examples: 'airports in Karnataka' -> where: {state: 'KA'}, " +
+      "Examples: 'airports in Karnataka' -> where: {state: 'Karnataka'}, " +
       "'forest types' -> group_by: 'type', " +
       "'health facilities in Bihar' -> where: {state: 'BIHAR'}, select: ['name', 'type'].",
     inputSchema: {

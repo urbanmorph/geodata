@@ -109,7 +109,7 @@ describe('layerHeading: a year only when it belongs to the layer', () => {
   });
 
   it('a layer alone at its level is its own primary and keeps the label', () => {
-    expect(title(catalog.layers.find((l: { id: string }) => l.id === 'airports'))).toBe('Airports (2024)');
+    expect(title(catalog.layers.find((l: { id: string }) => l.id === 'airports'))).toBe('Airports, airfields and heliports');
   });
 
 

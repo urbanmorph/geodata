@@ -140,9 +140,9 @@ export const LEVEL_META = Object.freeze({
     description: 'Reservoir polygons from CWC WRIS, snapshot 2024. Complements the river basin, sub-basin, and river network layers.',
   },
   airport: {
-    label: 'Airports (2024)',
+    label: 'Airports, airfields and heliports',
     unit: 'airports',
-    description: 'Airports across India. 151 point features with name, type, district, and state. From data.gov.in, snapshot 2024.',
+    description: 'Airports, airfields and heliports across India from OurAirports: IATA and ICAO codes, type, scheduled service, and the LGD state and district.',
   },
   national_highway: {
     label: 'National highways (2024)',

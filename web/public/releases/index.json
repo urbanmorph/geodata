@@ -1,6 +1,7 @@
 {
  "note": "bharatlas releases: each code is immutable and pinned by its SHA-256. Data from others keeps its source's licence; credit the source first.",
  "latest": {
+  "airports": "bharatlas-airports-2026.11",
   "catalog": "bharatlas-catalog-2026.11",
   "cw": "bharatlas-cw-2026.11",
   "mgnrega_districts": "bharatlas-mgnrega_districts-2026.11",
@@ -212,6 +213,52 @@
      "bytes": 145909,
      "rows": 148,
      "licence": "CC-BY-4.0"
+    }
+   ]
+  },
+  {
+   "code": "bharatlas-airports-2026.11",
+   "dataset": "airports",
+   "title": "Airports, airfields and heliports, OurAirports",
+   "released": "2026-11-20",
+   "sha256": "a7dedfdf16fa5b4938dcd1f2546cbd24223b9ee51baa4f9bfe93532605d4418e",
+   "pin": "bharatlas-airports-2026.11+sha256:a7dedfdf16fa5b4938dcd1f2546cbd24223b9ee51baa4f9bfe93532605d4418e",
+   "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/",
+   "w3id_proposed": "https://w3id.org/bharatlas/airports/2026.11",
+   "manifest": "https://bharatlas.com/releases/bharatlas-airports-2026.11/manifest.json",
+   "previous": null,
+   "files": [
+    {
+     "name": "airports.geojson",
+     "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.geojson",
+     "sha256": "1ba6b2e84040d9512aeff1e5700070f09d68cf876a3aa400f7a408bd422349de",
+     "bytes": 492649,
+     "rows": null,
+     "licence": "Unlicense"
+    },
+    {
+     "name": "airports.kml",
+     "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.kml",
+     "sha256": "b38eb4cf9d249b1de8375949c3b1d832debd6cbe6beb0cc3b5460f8bfc07d69d",
+     "bytes": 861493,
+     "rows": null,
+     "licence": "Unlicense"
+    },
+    {
+     "name": "airports.parquet",
+     "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.parquet",
+     "sha256": "adc48b4abf26312560b8157d5a13f5e460d7811db54c62291e43da8dbabfe1ba",
+     "bytes": 69455,
+     "rows": 661,
+     "licence": "Unlicense"
+    },
+    {
+     "name": "airports.shp.zip",
+     "url": "https://bharatlas.com/releases/bharatlas-airports-2026.11/airports.shp.zip",
+     "sha256": "42707faf5a523f6e656a77d9f935e5f7214d28ff27e10aeaccb15cbc7c4bbf35",
+     "bytes": 74512,
+     "rows": null,
+     "licence": "Unlicense"
     }
    ]
   }

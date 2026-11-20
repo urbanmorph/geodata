@@ -1216,6 +1216,11 @@
       "label": "Bus stops",
       "unit": "bus stops",
       "description": "City bus stops from the open bus feeds of Bengaluru, Pune, the Mumbai region, Ahmedabad and Chennai, and from OpenStreetMap for Delhi, Kolkata, Kochi and Hyderabad, each row with its city, operator, source and licence."
+    },
+    "airport": {
+      "label": "Airports, airfields and heliports",
+      "unit": "airports",
+      "description": "Airports, airfields and heliports across India from OurAirports: IATA and ICAO codes, type, scheduled service, and the LGD state and district."
     }
   },
   "level_order": [
@@ -5670,35 +5675,56 @@
     {
       "id": "airports",
       "level": "airport",
-      "source": "data.gov.in",
-      "rows": 151,
+      "source": "OurAirports",
+      "rows": 661,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airport.21caf084.parquet",
-        "bytes": 14261
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.cf7498ce.parquet",
+        "bytes": 69455
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airport.pmtiles",
-        "bytes": 206478
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.95354cb6.pmtiles",
+        "bytes": 733553
       },
-      "licence": "GODL-India",
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.b06e8838.geojson",
+        "bytes": 492649
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.4150753c.kml",
+        "bytes": 861493
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/transport/airports/Airports.3fa4f7a4.shp.zip",
+        "bytes": 74512
+      },
+      "licence": "Unlicense",
       "attribution": {
         "primary": {
-          "name": "Open Government Data (India)",
-          "url": "https://data.gov.in/"
+          "name": "OurAirports",
+          "url": "https://ourairports.com/data/"
         },
         "publisher": null
       },
       "category": "transport",
       "provenance": "curated",
-      "notes": "Airports across India. 151 point features with name, type, district, state. From data.gov.in.",
-      "fetched_at": "2026-05-25T17:54:40+00:00",
+      "notes": "OurAirports (ourairports.com), public domain, kept current by its contributors; every row for India as published, including small airfields, heliports and closed airports (the type column says which, and the source marks some duplicates in the name). bharatlas adds state, district, state_lgd and dist_lgd from LGD districts: the district containing the point, else the nearest within 25 km for islands the LGD outline leaves out (lgd_match says which; null when neither). Replaced the data.gov.in airports shapefile (151 airports, last changed September 2022) on 20 Nov 2026.",
+      "tags": [
+        "airports",
+        "airfields",
+        "heliports",
+        "aviation",
+        "IATA",
+        "ICAO",
+        "transport",
+        "OurAirports"
+      ],
+      "fetched_at": "2026-11-20T06:28:17+00:00",
       "source_check": {
-        "method": "manual",
-        "url": "https://data.gov.in/",
-        "reason": "no source file was recorded when it was ingested (a data.gov.in copy)",
-        "fingerprint": null,
-        "checked_at": null,
-        "changed_at": null
+        "method": "github_commit",
+        "url": "https://github.com/davidmegginson/ourairports-data/tree/main/airports.csv",
+        "fingerprint": "commit=c82dbcb02e5143ceaea49e5d657dc3f8efde5f9b",
+        "checked_at": "2026-11-20T06:28:17+00:00",
+        "changed_at": "2026-11-20T02:53:12Z"
       },
       "refresh": {
         "class": "fast",
@@ -5707,7 +5733,7 @@
         "release": "monthly",
         "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit (counts against the reference)",
         "audited_at": null,
-        "next_due": "2026-06-25"
+        "next_due": "2026-12-20"
       }
     },
     {
@@ -13860,6 +13886,10 @@
     "SmartCitiesChennai": {
       "name": "Greater Chennai Corporation / Chennai Smart City Ltd, via the Smart Cities Mission data portal (MoHUA)",
       "url": "https://smartcities.data.gov.in/catalog/property-tax-chennai"
+    },
+    "OurAirports": {
+      "name": "OurAirports",
+      "url": "https://ourairports.com/data/"
     }
   },
   "licence_summary": {

@@ -161,9 +161,9 @@ async function run() {
 
     // ── Q6: How many airports in Karnataka, what types? ──
     console.log("\nQ6: How many airports in Karnataka, what types?");
-    const q6 = await call(proc, "query_layer", { layer_id: "airports", where: { state: "KA" }, select: ["name", "type", "district"] });
-    assert(q6.data?.total >= 8, `airports in KA: ${q6.data?.total} (expected >= 8)`);
-    const blrAirports = q6.data?.rows?.filter((r) => r.district?.toLowerCase().includes("bangalore")) || [];
+    const q6 = await call(proc, "query_layer", { layer_id: "airports", where: { state: "Karnataka" }, select: ["name", "type", "district"] });
+    assert(q6.data?.total >= 8, `airports in Karnataka: ${q6.data?.total} (expected >= 8)`);
+    const blrAirports = q6.data?.rows?.filter((r) => r.district?.toLowerCase().includes("bengaluru")) || [];
     assert(blrAirports.length >= 2, `airports in Bangalore district: ${blrAirports.length}`);
 
     // ── Q7: Wards in Chennai vs Pune ──
@@ -207,8 +207,8 @@ async function run() {
     const airDistCol = q11s.data?.columns?.find((c) => c.name === "district");
     assert(!!airDistCol, "airports has district column");
     // Step 3: query airports in that district area (using state since district names may not match)
-    const q11q = await call(proc, "query_layer", { layer_id: "airports", where: { state: "KA" }, select: ["name", "type", "district"] });
-    const blrAir = q11q.data?.rows?.filter((r) => r.district?.toLowerCase().includes("bangalore")) || [];
+    const q11q = await call(proc, "query_layer", { layer_id: "airports", where: { state: "Karnataka" }, select: ["name", "type", "district"] });
+    const blrAir = q11q.data?.rows?.filter((r) => r.district?.toLowerCase().includes("bengaluru")) || [];
     assert(blrAir.length >= 2, `airports near Bengaluru: ${blrAir.length} (multi-step spatial pattern works)`);
 
     // ── Spatial join Q12: What eco-sensitive zones are near Bengaluru? ──
@@ -317,8 +317,8 @@ async function run() {
     // ── Q18: How many airports in Bengaluru district, what are their types? ──
     console.log("\nQ18: How many airports in Bengaluru district, what are their types?");
     // This was already tested in Q6 but here as the exact original question
-    const q18 = await call(proc, "query_layer", { layer_id: "airports", where: { state: "KA" }, select: ["name", "type", "district"] });
-    const q18blr = q18.data?.rows?.filter((r) => r.district?.toLowerCase().includes("bangalore")) || [];
+    const q18 = await call(proc, "query_layer", { layer_id: "airports", where: { state: "Karnataka" }, select: ["name", "type", "district"] });
+    const q18blr = q18.data?.rows?.filter((r) => r.district?.toLowerCase().includes("bengaluru")) || [];
     assert(q18blr.length >= 2, `Bengaluru district airports: ${q18blr.length}`);
     const q18types = [...new Set(q18blr.map((r) => r.type))];
     assert(q18types.length >= 2, `types: ${q18types.join(", ")}`);
