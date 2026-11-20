@@ -148,8 +148,12 @@ def gate(layer_id: str) -> None:
 
 # ── labels ───────────────────────────────────────────────────────────────────
 # A terms document may set the labels its layers carry: "labels": {"licence", "non_commercial", "credit": {name,
-# url}}. Every registration applies them (pipeline.upsert_layer, ingest_ramseraph), so a re-extract never puts
+# url}, "via": {name, url}}. Every registration applies them (pipeline.upsert_layer, ingest_ramseraph), so a re-extract never puts
 # back a compiler's licence over the publisher's reviewed one.
+
+# credit = the original publisher (attribution.primary); via = the compiler whose licence applies (.publisher)
+ATTRIBUTION_LABELS = {'credit': 'primary', 'via': 'publisher'}
+
 
 def labels_of(layer_id: str, registry: dict) -> dict:
     out: dict = {}
@@ -171,9 +175,11 @@ def labelled(entry: dict, registry: dict | None = None) -> dict:
     labels = labels_of(entry['id'], registry if registry is not None else load_registry())
     if not labels:
         return entry
-    out = {**entry, **{k: v for k, v in labels.items() if k != 'credit'}}
-    if 'credit' in labels:
-        out['attribution'] = {**(entry.get('attribution') or {'publisher': None}), 'primary': labels['credit']}
+    out = {**entry, **{k: v for k, v in labels.items() if k not in ATTRIBUTION_LABELS}}
+    for label, field in ATTRIBUTION_LABELS.items():
+        if label in labels:
+            out['attribution'] = {'primary': None, 'publisher': None, **(out.get('attribution') or {}),
+                                  field: labels[label]}
     return out
 
 

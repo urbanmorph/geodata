@@ -7091,13 +7091,16 @@
         "bytes": 95552208
       },
       "shapefile": null,
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Central Ground Water Board",
           "url": "https://cgwb.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "water",
       "provenance": "curated",
@@ -7154,13 +7157,16 @@
         "bytes": 244549580
       },
       "shapefile": null,
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Central Ground Water Board",
           "url": "https://cgwb.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "water",
       "provenance": "curated",
@@ -7287,13 +7293,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-ecological-zones/Agro_Ecological_Zones.shp.zip",
         "bytes": 3581123
       },
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "ICAR-NBSS&LUP",
           "url": "https://www.nbsslup.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "agriculture",
       "provenance": "curated",
@@ -7356,13 +7365,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/agro-climatic-zones/Agro_Climatic_Zones.shp.zip",
         "bytes": 3865905
       },
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Planning Commission of India",
           "url": "https://niti.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "agriculture",
       "provenance": "curated",
@@ -7425,13 +7437,16 @@
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/biogeographic/Biogeographic_Zones.shp.zip",
         "bytes": 3664341
       },
-      "licence": "GODL-India",
+      "licence": "CC-BY-4.0",
       "attribution": {
         "primary": {
           "name": "Wildlife Institute of India",
           "url": "https://wii.gov.in/"
         },
-        "publisher": null
+        "publisher": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        }
       },
       "category": "environment",
       "provenance": "curated",

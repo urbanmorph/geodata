@@ -176,6 +176,13 @@ def test_labelling_an_entry_sets_licence_flag_and_credit_and_keeps_the_compiler(
     assert lw.labelled(entry, registry(recorded())) == entry   # no labels, no change
 
 
+def test_a_compiler_whose_licence_applies_is_credited_as_the_publisher():
+    via = {'name': 'CoRE Stack', 'url': 'https://core-stack.org/'}
+    entry = {'id': 'bhuvan_x', 'licence': 'GODL-India', 'attribution': {'primary': {'name': 'CGWB'}, 'publisher': None}}
+    out = lw.labelled(entry, registry({**recorded(), 'labels': {'licence': 'CC-BY-4.0', 'via': via}}))
+    assert out['licence'] == 'CC-BY-4.0' and out['attribution'] == {'primary': {'name': 'CGWB'}, 'publisher': via}
+
+
 def test_registering_a_layer_applies_its_labels(monkeypatch):
     monkeypatch.setattr(lw, 'load_registry', lambda: registry({**recorded(), 'labels': NC_LABELS}))
     cat = pipeline.upsert_layer({'layers': []}, {'id': 'bhuvan_x', 'licence': 'CC0-1.0'}, {'label': 'x'})

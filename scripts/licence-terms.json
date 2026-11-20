@@ -199,13 +199,21 @@
    "kind": "manual",
    "stated": "CC-BY-4.0 (CoRE Stack, the compiler) unless a data.gov.in copy is the source, then GODL-India",
    "quote": "unreachable (TLS: unable to get local issuer certificate / HTTP 500)",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "cgwb_aquifers",
     "cgwb_gw_extraction"
    ],
-   "reason": "the AIKosh page draws its licence with JavaScript; read it in a browser"
+   "reason": "the AIKosh page draws its licence with JavaScript; read it in a browser",
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "via": {
+     "name": "CoRE Stack",
+     "url": "https://core-stack.org/"
+    }
+   },
+   "decided": "2026-11-20 (owner): CC-BY-4.0 as CoRE Stack's STAC catalogue states, original publisher credited"
   },
   {
    "id": "icar_nbss_lup",
@@ -215,11 +223,19 @@
    "reason": "no stable anchors around the licence text on this page",
    "stated": "CC-BY-4.0 (CoRE Stack compiler), credit ICAR-NBSS&LUP",
    "quote": "not found (host did not resolve)",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "agro_ecological_zones"
-   ]
+   ],
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "via": {
+     "name": "CoRE Stack",
+     "url": "https://core-stack.org/"
+    }
+   },
+   "decided": "2026-11-20 (owner): CC-BY-4.0 as CoRE Stack's STAC catalogue states, original publisher credited"
   },
   {
    "id": "planning_commission_niti_aayog",
@@ -230,12 +246,20 @@
    "end": "copyright holders concerned",
    "stated": "CC-BY-4.0 (CoRE Stack compiler), credit Planning Commission of India",
    "quote": "Material featured on this Portal may be reproduced free of charge after taking proper permission by sending a mail to us.",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "agro_climatic_zones"
    ],
-   "sha256": "d95a9dc559d37bbd4dff407befdf8d4afef9ceba7f20cb1aa9ce051b20dcedea"
+   "sha256": "d95a9dc559d37bbd4dff407befdf8d4afef9ceba7f20cb1aa9ce051b20dcedea",
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "via": {
+     "name": "CoRE Stack",
+     "url": "https://core-stack.org/"
+    }
+   },
+   "decided": "2026-11-20 (owner): CC-BY-4.0 as CoRE Stack's STAC catalogue states, original publisher credited"
   },
   {
    "id": "wildlife_institute_of_india",
@@ -246,12 +270,20 @@
    "end": "Currently there is no third party",
    "stated": "CC-BY-4.0 (CoRE Stack compiler), credit WII (Rodgers, Panwar & Mathur)",
    "quote": "Material featured on this site may be reproduced free of charge in any format or media without requiring specific permission.",
-   "verdict": "unclear",
+   "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
     "biogeographic_zones"
    ],
-   "sha256": "541910822de776c8b9143a9d04a4fc94f07304accdaee3cf72d089ce97425a3a"
+   "sha256": "541910822de776c8b9143a9d04a4fc94f07304accdaee3cf72d089ce97425a3a",
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "via": {
+     "name": "CoRE Stack",
+     "url": "https://core-stack.org/"
+    }
+   },
+   "decided": "2026-11-20 (owner): CC-BY-4.0 as CoRE Stack's STAC catalogue states, original publisher credited"
   },
   {
    "id": "cwc_india_wris",
