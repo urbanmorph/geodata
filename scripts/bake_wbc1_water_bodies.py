@@ -229,7 +229,7 @@ class NumericTracker:
             if v is None or isinstance(v, str) and v.strip().upper() in NA:
                 continue
             try:
-                if isinstance(v, bool):
+                if isinstance(v, bool) or isinstance(v, str) and '_' in v:  # float('12_3') is 123
                     raise ValueError
                 x = float(v)
                 if not math.isfinite(x):

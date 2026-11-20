@@ -88,6 +88,9 @@ JUDICIARY = 'a bharatlas-derived judiciary map, dissolved from LGD states by a g
 
 # Layers the rules get wrong, or whose class audit needs naming.
 # {id: {class?, reason?, tolerance?, tolerance_reason?, audit?}}; a tolerance needs its reason.
+CORE_MWS_YEARLY = ('CoRE Stack adds a year and more tehsils to its micro-watershed series a few times a year '
+                   'at most')
+
 OVERRIDES: dict[str, dict] = {
     'state_finance': {'class': 'frozen', 'reason': 'one-off snapshots of Rajya Sabha answers; an answered '
                                                    'question does not change'},
@@ -104,6 +107,8 @@ OVERRIDES: dict[str, dict] = {
     'ndem_floods_1998_2022': {'class': 'frozen', 'reason': HISTORICAL + ' (flood extents for 1998-2022)'},
     'subsidence_megacities': {'class': 'frozen', 'reason': 'a paper\'s published data (Ohenhen et al. 2025), '
                                                            'pinned at its figshare version'},
+    'core_mws_water_balance': {'class': 'slow', 'reason': CORE_MWS_YEARLY},
+    'core_mws_drought': {'class': 'slow', 'reason': CORE_MWS_YEARLY},
     'atal_bhujal_wells': {'class': 'frozen', 'reason': HISTORICAL + ' (well levels for 2015-2022)'},
     'high_courts': {'class': 'frozen', 'reason': JUDICIARY},
     'ngt_zones': {'class': 'frozen', 'reason': JUDICIARY},

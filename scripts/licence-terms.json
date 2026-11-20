@@ -1493,6 +1493,29 @@
    "sha256": "7d47300ad7583a7dad5c9f7cbfed040ccd6e960c2a7694cc692b2d831b90d9bc",
    "seen_at": "2026-11-20",
    "quote": "\"license\": \"CC-BY-4.0\""
+  },
+  {
+   "id": "core_stack_tehsil_wise",
+   "publisher": "CoRE Stack (tehsil-wise STAC catalogue; its own micro-watershed layers)",
+   "url": "https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/CorestackCatalogs_merged_collection/tehsil_wise/jharkhand/collection.json",
+   "kind": "json",
+   "json_path": "license",
+   "stated": "CC-BY-4.0 on every state collection, CoRE Stack as provider; CoRE Stack computes these layers itself",
+   "quote": "\"license\": \"CC-BY-4.0\"; providers: CoRE Stack; rel license https://spdx.org/licenses/CC-BY-4.0.html",
+   "verdict": "ok",
+   "seen_at": "2026-11-21",
+   "layers": [
+    "core_mws_water_balance",
+    "core_mws_drought"
+   ],
+   "sha256": "7d47300ad7583a7dad5c9f7cbfed040ccd6e960c2a7694cc692b2d831b90d9bc",
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "credit": {
+     "name": "CoRE Stack",
+     "url": "https://core-stack.org/"
+    }
+   }
   }
  ]
 }
