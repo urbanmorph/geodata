@@ -83,6 +83,42 @@ def parquet_and_tiles_only(d: ir.Dataset) -> ir.Dataset:
         ' use Filter & export on the map, or the API, to download an area.'))
 
 
+def with_note(d: ir.Dataset, note: str) -> ir.Dataset:
+    return dataclasses.replace(d, notes=f'{d.notes} {note}')
+
+
+# Layers whose publisher serves the same map several times under different
+# layer names: id -> the column naming one feature. The bake keeps one copy
+# (drop_copies), and the layer's notes say so. GSI's WFS publishes the
+# lithology map 11 times (lithology_gcs_ngdr1 ... ngdr11, the prefix of `id`);
+# ramSeraph's scrape kept all 11, so a point lookup returned each unit 11 times.
+DEDUPE: dict[str, str] = {'gsi_lithology_50k': 'gid'}
+
+
+def drop_copies(src: Path, dst: Path, key: str, con: duckdb.DuckDBPyConnection, id_col: str = 'id') -> int:
+    """Write `src` to `dst` without rows that repeat another row in every
+    column but `id_col` (geometry included), keeping the copy from the first
+    source layer: the `id_col` prefix before the dot, by length then text, so
+    ngdr1 < ngdr2 < ngdr10. Every column and value of the kept rows, their id
+    too, stays as published. Raises ValueError, writing nothing, when the
+    copies of one `key` differ in anything: then they are not copies, and a
+    changed upstream must not lose data silently. Returns the rows dropped."""
+    rel = f"read_parquet('{src}')"
+    cols = [c for c, *_ in con.execute(f'DESCRIBE SELECT * FROM {rel}').fetchall() if c != id_col]
+    content = ', '.join(f'"{c}"' for c in cols)
+    differ = con.execute(f'SELECT "{key}" FROM (SELECT DISTINCT {content} FROM {rel}) '
+                         f'GROUP BY "{key}" HAVING count(*) > 1 ORDER BY 1 LIMIT 5').fetchall()
+    if differ:
+        raise ValueError(f'{src.name}: the copies of {key} {", ".join(str(k) for (k,) in differ)} differ; '
+                         'not dropping anything')
+    layer = f"split_part(\"{id_col}\", '.', 1)"
+    con.execute(f'COPY (SELECT * FROM {rel} QUALIFY row_number() OVER '
+                f'(PARTITION BY {content} ORDER BY length({layer}), {layer}, "{id_col}") = 1) '
+                f"TO '{dst}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+    (before,), (after,) = (con.execute(f"SELECT count(*) FROM read_parquet('{p}')").fetchone() for p in (src, dst))
+    return before - after
+
+
 DATASETS: list[ir.Dataset] = [
     ir.republished(
         'slusi_priority_micro_watersheds', 'Priority micro-watersheds (SLUSI)', 'water', 'SLUSI',
@@ -107,13 +143,16 @@ DATASETS: list[ir.Dataset] = [
          'geomorphology mapping. Mizoram, Lakshadweep and some UTs are missing in the source.'),
         'lineaments', 'https://bhuvan.nrsc.gov.in/', 'Bhuvan (NRSC, ISRO)',
         'Des', 'environment/bhuvan-lineaments-50k'),
-    parquet_and_tiles_only(ir.republished(
+    parquet_and_tiles_only(with_note(ir.republished(
         'gsi_lithology_50k', 'Lithology 1:50k (GSI)', 'environment', 'NGDR',
         'indian_land_features/geology', 'NGDR_Lithology_50k',
         ('Rock units mapped at 1:50,000 by the Geological Survey of India: lithology, age, '
          'supergroup, group, formation and stratigraphy, by toposheet.'),
         'rock units', 'https://bhukosh.gsi.gov.in/', 'Geological Survey of India (NGDR / Bhukosh)',
-        'lithologic', 'environment/gsi-lithology-50k')),
+        'lithologic', 'environment/gsi-lithology-50k'),
+        'GSI publishes this map 11 times under different layer names (lithology_gcs_ngdr1 to'
+        ' lithology_gcs_ngdr11); bharatlas keeps one copy, the ngdr1 rows: 360,622 rock units.'
+        ' Nothing else is changed.')),
     parquet_and_tiles_only(ir.republished(
         'bhuvan_geomorphology_50k', 'Geomorphology 1:50k (Bhuvan 2005-06)', 'environment', 'Bhuvan',
         'indian_land_features/geomorphology', 'Bhuvan_Geomorphology_50k_0506',
@@ -472,7 +511,11 @@ def build(d: ir.Dataset, deadline: Deadline) -> dict:
     deadline.check('parquet rebake')
 
     con = make_con(work)
-    flat = cached(work / pq_name, lambda part: rebake_flatten_bbox(raw_pq, part, con))
+    src = raw_pq
+    if key := DEDUPE.get(d.id):
+        src = cached(work / f'{Path(pq_name).stem}.one_copy.parquet',
+                     lambda part: print(f'  {d.id}: dropped {drop_copies(raw_pq, part, key, con):,} copies', flush=True))
+    flat = cached(work / pq_name, lambda part: rebake_flatten_bbox(src, part, con))
     features = con.execute(f"SELECT count(*) FROM read_parquet('{flat}')").fetchone()[0]
     print(f'  {d.id}: {features:,} features in {flat.name} ({flat.stat().st_size:,} bytes)', flush=True)
 

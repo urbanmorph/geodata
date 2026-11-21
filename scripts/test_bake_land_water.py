@@ -64,6 +64,61 @@ def test_first_coordinate_of_a_kml_and_a_zipped_shapefile(tmp_path, monkeypatch)
         assert blw.first_coord(out[fmt]) == pytest.approx((85.1, 25.6)), fmt
 
 
+# ── one copy of a map the publisher serves several times ───────────────
+
+def _copies(tmp_path: Path, rows: list[tuple[str, int, str, str]]) -> Path:
+    """A source parquet of (id, gid, lithologic, WKT) rows, ramSeraph's bbox struct included."""
+    src = tmp_path / 'L.parquet'
+    con = duckdb.connect()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    values = ', '.join(f"('{i}', {g}, '{v}', ST_GeomFromText('{w}'))" for i, g, v, w in rows)
+    con.execute(f"""COPY (SELECT id, gid, lithologic, g AS geometry,
+                         {{'xmin': ST_XMin(g), 'ymin': ST_YMin(g), 'xmax': ST_XMax(g), 'ymax': ST_YMax(g)}} AS bbox
+                         FROM (VALUES {values}) t(id, gid, lithologic, g)) TO '{src}' (FORMAT PARQUET)""")
+    return src
+
+
+SQ = 'POLYGON((77 28, 77.1 28, 77.1 28.1, 77 28.1, 77 28))'
+SQ2 = 'POLYGON((77.1 28, 77.2 28, 77.2 28.1, 77.1 28.1, 77.1 28))'
+
+
+def test_copies_of_a_republished_map_keep_one_row_each_the_first_layers(tmp_path):
+    # GSI's WFS serves the lithology map 11 times (lithology_gcs_ngdr1 ... ngdr11).
+    src = _copies(tmp_path, [
+        ('lithology_gcs_ngdr10.1', 1, 'GRANITE', SQ), ('lithology_gcs_ngdr2.1', 1, 'GRANITE', SQ),
+        ('lithology_gcs_ngdr1.1', 1, 'GRANITE', SQ),
+        ('lithology_gcs_ngdr10.2', 2, 'BASALT', SQ2), ('lithology_gcs_ngdr2.2', 2, 'BASALT', SQ2)])
+    out = tmp_path / 'out.parquet'
+    con = blw.make_con(tmp_path)
+    assert blw.drop_copies(src, out, 'gid', con) == 3
+    describe = "DESCRIBE SELECT * FROM read_parquet('{}')"
+    assert con.execute(describe.format(out)).fetchall() == con.execute(describe.format(src)).fetchall()
+    kept = con.execute(f"SELECT id, gid, lithologic, ST_AsText(geometry) FROM read_parquet('{out}') "
+                       "ORDER BY gid").fetchall()
+    # ngdr1 first; ngdr2 before ngdr10 (by number, not text); every value unchanged
+    assert kept == [('lithology_gcs_ngdr1.1', 1, 'GRANITE', 'POLYGON ((77 28, 77.1 28, 77.1 28.1, 77 28.1, 77 28))'),
+                    ('lithology_gcs_ngdr2.2', 2, 'BASALT',
+                     'POLYGON ((77.1 28, 77.2 28, 77.2 28.1, 77.1 28.1, 77.1 28))')]
+
+
+@pytest.mark.parametrize('copy', [('lithology_gcs_ngdr2.1', 1, 'SHALE', SQ),   # another value
+                                  ('lithology_gcs_ngdr2.1', 1, 'GRANITE', SQ2)])  # another shape
+def test_copies_that_differ_stop_the_bake(tmp_path, copy):
+    # A future upstream change must not lose data silently: drop only exact copies.
+    src = _copies(tmp_path, [('lithology_gcs_ngdr1.1', 1, 'GRANITE', SQ), copy])
+    out = tmp_path / 'out.parquet'
+    with pytest.raises(ValueError, match='gid 1'):
+        blw.drop_copies(src, out, 'gid', blw.make_con(tmp_path))
+    assert not out.exists()
+
+
+def test_layers_cut_to_one_copy_say_so():
+    by_id = {d.id: d for d in blw.DATASETS}
+    assert blw.DEDUPE == {'gsi_lithology_50k': 'gid'}
+    notes = by_id['gsi_lithology_50k'].notes
+    assert '11 times' in notes and '360,622' in notes and '—' not in notes and 'catalog' not in notes
+
+
 def test_tile_bounds_of_a_known_tile():
     # z0 is the whole web-mercator world; z1 x1 y0 is the north-east quarter.
     w, s, e, n = blw.tile_bounds(1, 1, 0)

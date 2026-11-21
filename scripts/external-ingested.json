@@ -2435,16 +2435,16 @@
     "source": "NGDR",
     "description": "Rock units mapped at 1:50,000 by the Geological Survey of India: lithology, age, supergroup, group, formation and stratigraphy, by toposheet.",
     "unit": "rock units",
-    "features": 3966842,
+    "features": 360622,
     "license": "CC0-1.0",
     "r2_prefix": "environment/gsi-lithology-50k",
-    "parquet_file": "NGDR_Lithology_50k.parquet",
-    "parquet_bytes": 527034110,
-    "pmtiles_file": "NGDR_Lithology_50k.0f1c048f.pmtiles",
-    "pmtiles_bytes": 201232291,
+    "parquet_file": "NGDR_Lithology_50k.34be2296.parquet",
+    "parquet_bytes": 491244280,
+    "pmtiles_file": "NGDR_Lithology_50k.73c6fdad.pmtiles",
+    "pmtiles_bytes": 181845998,
     "source_url": "https://bhukosh.gsi.gov.in/",
     "source_org": "Geological Survey of India (NGDR / Bhukosh)",
-    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area."
+    "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GSI publishes this map 11 times under different layer names (lithology_gcs_ngdr1 to lithology_gcs_ngdr11); bharatlas keeps one copy, the ngdr1 rows: 360,622 rock units. Nothing else is changed. Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area."
   },
   {
     "id": "bhuvan_geomorphology_50k",
