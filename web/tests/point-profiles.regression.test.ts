@@ -23,6 +23,7 @@ async function get(kind: 'ground' | 'surface', lat: number, lng: number): Promis
   return r.json() as Promise<Profile>;
 }
 const feat = (e: Entry | undefined, k: string) => String(e?.features?.[0]?.[k] ?? '');
+const cover = (s: Profile['sections']) => s.land.worldcover?.values?.land_cover;
 const near = (e: Entry | undefined) => e?.nearest?.[0];
 
 interface Point {
@@ -40,6 +41,7 @@ const POINTS: Record<string, Point> = {
     },
     surface: (s) => {
       expect(feat(s.place.lgd_districts, 'dtname')).toBe('South West');
+      expect(cover(s)).toBe('Built-up');
       expect(near(s.access.gs_highways)!.distance_km).toBeLessThan(3);
     } },
   joshimath: { lat: 30.555, lng: 79.565,
@@ -49,17 +51,27 @@ const POINTS: Record<string, Point> = {
     },
     surface: (s) => {
       expect(Number(s.land.dem.values!.elevation_m)).toBeGreaterThan(1500);
+      expect(cover(s)).toBe('Built-up');
       expect(String(near(s.water.wris_rivers)!.properties.rivname)).toMatch(/Alaknanda/);
     } },
   mahabaleshwar: { lat: 17.925, lng: 73.657,
     ground: (g) => expect(feat(g.geology.gsi_lithology_50k, 'lithologic')).toMatch(/LATERITE/),
-    surface: (s) => expect(Number(s.land.dem.values!.elevation_m)).toBeGreaterThan(1200) },
+    surface: (s) => {
+      expect(Number(s.land.dem.values!.elevation_m)).toBeGreaterThan(1200);
+      expect(cover(s)).toBe('Built-up');
+    } },
   latur: { lat: 18.40, lng: 76.58,
     ground: (g) => expect(feat(g.geology.gsi_lithology_50k, 'lithologic')).toMatch(/BASALT/),
-    surface: (s) => expect(feat(s.place.lgd_districts, 'dtname')).toBe('Latur') },
+    surface: (s) => {
+      expect(feat(s.place.lgd_districts, 'dtname')).toBe('Latur');
+      expect(cover(s)).toBe('Built-up');
+    } },
   jaisalmer: { lat: 26.915, lng: 70.908,
     ground: (g) => expect(feat(g.groundwater.cgwb_aquifers, 'aquifer')).toBe('Sandstone'),
-    surface: (s) => expect(feat(s.place.lgd_districts, 'dtname')).toBe('Jaisalmer') },
+    surface: (s) => {
+      expect(feat(s.place.lgd_districts, 'dtname')).toBe('Jaisalmer');
+      expect(cover(s)).toBe('Built-up');
+    } },
   majuli: { lat: 26.95, lng: 94.17,
     ground: (g) => expect(feat(g.seismic.seismic_zones, 'seismic_zo')).toBe('Seismic Zone-V'),
     surface: (s) => {
@@ -67,6 +79,7 @@ const POINTS: Record<string, Point> = {
       expect(String(r.properties.rivname)).toMatch(/Brahmaputra/);
       expect(r.distance_km).toBeLessThan(5);
       expect(s.water.ndem_floods_1998_2022.status).toBe('found');
+      expect(cover(s)).toBe('Cropland');
     } },
   kolkata: { lat: 22.57, lng: 88.36,
     ground: (g) => expect(feat(g.groundwater.cgwb_aquifers, 'aquifer')).toBe('Alluvium'),
@@ -74,18 +87,26 @@ const POINTS: Record<string, Point> = {
       const r = near(s.water.wris_rivers)!;
       expect(String(r.properties.rivname)).toMatch(/Hooghly/);
       expect(r.distance_km).toBeLessThan(3);
+      expect(cover(s)).toBe('Built-up');
     } },
   bengaluru: { lat: 12.97, lng: 77.59,
     ground: (g) => expect(feat(g.geology.gsi_lithology_50k, 'lithologic')).toMatch(/GRANITE/),
-    surface: (s) => expect(feat(s.place.lgd_districts, 'dtname')).toBe('Bengaluru Urban') },
+    // 12.97, 77.59 falls in Cubbon Park: tree cover, as ESA's 10 m map also says
+    surface: (s) => {
+      expect(feat(s.place.lgd_districts, 'dtname')).toBe('Bengaluru Urban');
+      expect(cover(s)).toBe('Tree cover');
+    } },
   bhuj: { lat: 23.25, lng: 69.67,
     ground: (g) => expect(feat(g.seismic.seismic_zones, 'seismic_zo')).toBe('Seismic Zone-V'),
-    surface: (s) => expect(feat(s.place.lgd_districts, 'dtname')).toBe('Kachchh') },
+    surface: (s) => {
+      expect(feat(s.place.lgd_districts, 'dtname')).toBe('Kachchh');
+      expect(cover(s)).toBe('Built-up');
+    } },
 };
 
 const GROUND_SECTIONS = ['seismic', 'geology', 'resources', 'groundwater', 'soil', 'subsidence', 'underground', 'watershed'];
 const SURFACE_SECTIONS = ['place', 'land', 'climate', 'water', 'hazards', 'protected', 'access', 'services', 'infrastructure'];
-// Lasting gaps, not failures: rasters whose file is not published.
+// Lasting gaps, not failures: rasters whose file is not published (none now; kept for new ones).
 const LASTING = /not published/;
 
 describe.skipIf(!BASE)('point profiles at the 9 test points', () => {

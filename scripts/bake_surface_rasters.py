@@ -11,8 +11,10 @@ GeoTIFFs, the same pattern as scripts/bake_soilgrids.py:
              sentence). Slope is worked out at read time from a 3 x 3 window.
   worldpop   WorldPop 2020 constrained (BSGM), India, 3 arcsec (about 100 m),
              people per pixel (Float32), CC BY 4.0. One file from data.worldpop.org.
-  worldcover ESA WorldCover 2021 v200, 10 m, CC BY 4.0: `size` only. Its India
-             COG is far over the 3 GB limit, so this script measures it and stops.
+  worldcover ESA WorldCover 2021 v200, CC BY 4.0, resampled to 30 m (1 arcsec) by
+             majority class: at 10 m the India COG is 7.5 GB, over the 3 GB limit
+             (`size` measures the options). Each 10 m tile is warped on its own
+             straight from ESA's public bucket and cached, so a stopped run resumes.
 
 Steps (each output written atomically; a killed run redoes only the step it was in;
 a second run with the same inputs does nothing):
@@ -188,9 +190,53 @@ def size_worldcover(work: Path) -> dict:
     return report
 
 
+def worldcover_part_name(key: str) -> str:
+    lng, lat = worldcover_lnglat(key)
+    return f'N{lat:02d}E{lng:03d}.tif'
+
+
+def worldcover_warp(key: str, src: str, dest: str) -> list[str]:
+    """One 3-degree WorldCover tile to 30 m (1 arcsec) by majority class, on its own square of the grid."""
+    lng, lat = worldcover_lnglat(key)
+    res = str(1 / 3600)
+    return ['gdalwarp', '-q', '-overwrite', '-r', 'mode', '-tr', res, res,
+            '-te', str(lng), str(lat), str(lng + 3), str(lat + 3), '-ot', 'Byte', '-dstnodata', '0',
+            '-co', 'TILED=YES', '-co', 'COMPRESS=DEFLATE', src, dest]
+
+
+def build_worldcover(work: Path, deadline: pipeline.Deadline | None = None) -> Path:
+    """ESA WorldCover 2021 at 30 m: each 10 m tile warped on its own (cache/worldcover/, backed up on
+    R2 every 10 minutes and on exit, so a stopped run resumes by tile), then one COG over India."""
+    keys = listing(work, 'worldcover', lambda: [(k, s) for k, s in s3_keys(WORLDCOVER_BUCKET, 'v200/2021/map/')
+                                                if (ll := worldcover_lnglat(k)) and touches_india(*ll, 3)])
+    parts = work / 'cache' / 'worldcover'
+    log(f'  worldcover: {len(keys)} ESA tiles, {sum(s for _, s in keys) / 1e9:.2f} GB at 10 m')
+    with pipeline.cache_backup(parts, 'bake_surface_rasters/worldcover'):
+        for i, (key, _) in enumerate(keys, 1):
+            out = parts / worldcover_part_name(key)
+            if out.exists():
+                continue
+            if deadline:
+                deadline.check(f'worldcover tile {key}')
+            t0 = time.monotonic()
+            cached(out, lambda part, key=key: pipeline.run(
+                worldcover_warp(key, f'/vsicurl/{WORLDCOVER_BUCKET}/{key}', str(part)), timeout=3600, env=GDAL_ENV))
+            log(f'    worldcover {i}/{len(keys)} {out.name}: {out.stat().st_size / 1e6:.1f} MB ({time.monotonic() - t0:.0f} s)')
+    vrt = parts.parent / 'worldcover.vrt'
+    pipeline.run(['gdalbuildvrt', '-q', '-overwrite', '-srcnodata', '0', '-vrtnodata', '0', str(vrt),
+                  *sorted(str(parts / worldcover_part_name(k)) for k, _ in keys)], timeout=600)
+
+    def translate(part: Path) -> None:
+        x0, y0, x1, y1 = BBOX
+        pipeline.run(['gdal_translate', '-q', '-projwin', str(x0), str(y1), str(x1), str(y0), '-a_nodata', '0',
+                      *COG, '-co', 'PREDICTOR=YES', str(vrt), str(part)], timeout=6 * 3600, env=GDAL_ENV)
+    return cached(out_path(work, 'worldcover'), translate)
+
+
 RASTERS = {
     'dem': {'basename': 'Copernicus_GLO90_India', 'build': build_dem},
     'worldpop': {'basename': 'WorldPop_2020_constrained_India', 'build': build_worldpop},
+    'worldcover': {'basename': 'ESA_WorldCover_2021_India_30m', 'build': build_worldcover},
 }
 
 
@@ -233,7 +279,8 @@ def main(argv: list[str] | None = None) -> int:
             t0 = time.monotonic()
             if args.step in ('build', 'all'):
                 deadline.check(f'build {name}')
-                p = RASTERS[name]['build'](WORK)
+                build = RASTERS[name]['build']
+                p = build(WORK, deadline) if name == 'worldcover' else build(WORK)
                 log(f'  {name}: {p.name} {p.stat().st_size / 1e6:,.1f} MB ({time.monotonic() - t0:,.0f} s)')
             if args.step in ('upload', 'all'):
                 deadline.check(f'upload {name}')

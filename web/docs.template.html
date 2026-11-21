@@ -383,7 +383,7 @@ curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085"</code></pre
       <p>What is on the ground at a point, in one call. Same conventions as <code>/ground</code> (credit, licence, <code>about</code>, <code>status</code>, <code>open_only</code>, <code>summary</code>, <code>disclaimer</code>); its sections:</p>
       <ul>
         <li><b>place</b>: state, district, sub-district, block, constituencies, pincode, and the city ward (or the national ward map elsewhere)</li>
-        <li><b>land</b>: elevation and slope (Copernicus DEM GLO-90, about 90 m), people per km<sup>2</sup> (WorldPop 2020, about 100 m), CoRE Stack block land use (2023-24), land degradation (NRSC, non-commercial)</li>
+        <li><b>land</b>: land cover (ESA WorldCover 2021, resampled to 30 m), elevation and slope (Copernicus DEM GLO-90, about 90 m), people per km<sup>2</sup> (WorldPop 2020, about 100 m), CoRE Stack block land use (2023-24), land degradation (NRSC, non-commercial)</li>
         <li><b>climate</b>: agro-climatic, agro-ecological, eco and biogeographic zones</li>
         <li><b>water</b>: basin and sub-basin; the nearest river, water body, reservoir, dam, wetland and Ramsar site, each by true distance to its line or outline; Amrit Sarovar ponds; recorded floods and NDEM flood extents (non-commercial)</li>
         <li><b>hazards</b>: seismic zone, landslide hazard (non-commercial) and recorded landslides within 5 km, cyclone tracks within 100 km (non-commercial), coastal regulation zone</li>

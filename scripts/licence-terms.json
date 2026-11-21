@@ -1622,7 +1622,7 @@
   },
   {
    "id": "esa_worldcover_2021",
-   "publisher": "ESA WorldCover 2021 v200 (not yet used: its India file is over the 3 GB limit)",
+   "publisher": "ESA WorldCover 2021 v200 (not a layer: read by /api/v1/surface, resampled to 30 m)",
    "url": "https://esa-worldcover.org/en/data-access",
    "kind": "manual",
    "stated": "CC-BY-4.0",

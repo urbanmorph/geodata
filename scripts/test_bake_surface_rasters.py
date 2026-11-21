@@ -72,3 +72,19 @@ def test_every_raster_carries_a_credit_licence_scale_and_vintage():
         assert r['about']['scale'] and r['about']['vintage'], name
     assert 'WorldDEM-90' in SPEC['rasters']['dem']['credit']['notice']
     assert 'do not incur any liability' in SPEC['rasters']['dem']['credit']['notice']
+
+
+def test_worldcover_is_built_and_says_its_resolution():
+    assert 'worldcover' in sr.RASTERS
+    assert '30 m' in SPEC['rasters']['worldcover']['about']['scale']
+
+
+def test_each_worldcover_tile_warps_to_30_m_on_its_own_3_degree_square():
+    key = 'v200/2021/map/ESA_WorldCover_10m_2021_v200_N27E075_Map.tif'
+    cmd = sr.worldcover_warp(key, 'in.tif', 'out.tif')
+    assert cmd[:2] == ['gdalwarp', '-q']
+    assert cmd[cmd.index('-r') + 1] == 'mode'
+    assert cmd[cmd.index('-tr') + 1:cmd.index('-tr') + 3] == [str(1 / 3600)] * 2
+    assert cmd[cmd.index('-te') + 1:cmd.index('-te') + 5] == ['75', '27', '78', '30']
+    assert cmd[-2:] == ['in.tif', 'out.tif']
+    assert sr.worldcover_part_name(key) == 'N27E075.tif'

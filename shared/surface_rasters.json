@@ -50,7 +50,7 @@
         "notice": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium"
       },
       "about": {
-        "scale": "10 m classes from Sentinel-1 and Sentinel-2",
+        "scale": "30 m: the majority of ESA's 10 m classes (Sentinel-1 and Sentinel-2) in each 1 arcsec pixel",
         "vintage": "2021"
       },
       "classes": {
@@ -66,7 +66,11 @@
         "95": "Mangroves",
         "100": "Moss and lichen"
       },
-      "file": null
+      "file": {
+        "key": "surface/worldcover/ESA_WorldCover_2021_India_30m.c2629bcf.tif",
+        "bytes": 949594269,
+        "md5": "c2629bcfc65f850cdf5243557324635e"
+      }
     }
   }
 }
