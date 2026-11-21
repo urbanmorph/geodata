@@ -17,7 +17,7 @@ import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2'
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { chunkRanges, coalesced } from './parquet-coalesce';
-import { overlappingRowGroups, queryBbox } from './nearby';
+import { groupBoxes, overlappingRowGroups, queryBbox } from './nearby';
 import { parseWKB } from './wkb-geojson';
 import { pointInPolygon } from './point-in-polygon';
 import { GIS_ARTEFACT_COLUMNS } from './junk-columns';
@@ -196,19 +196,16 @@ export async function nearestByGeometry(
 ): Promise<{ features: GeomHit[]; total: number; capped: boolean }> {
   const { cols, geomCol } = columnsOf(metadata);
   const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
-  const bboxFile = coalesced(file, spans.flatMap((s) => chunkRanges(metadata, [...BBOX_COLS], s.start, s.end)));
-  const perGroup = await mapConcurrent(spans, R2_CONCURRENCY, async (span) => {
-    const rows = await parquetReadObjects({
-      file: bboxFile, metadata, compressors, columns: [...BBOX_COLS], rowStart: span.start, rowEnd: span.end,
-    }) as Array<Record<string, unknown>>;
-    const near: Array<{ idx: number; d: number }> = [];
-    rows.forEach((b, i) => {
-      const d = bboxDistanceKm(lat, lng, boxOf(b));
+  const boxes = await groupBoxes(file, metadata, spans);
+  const near: Array<{ idx: number; d: number }> = [];
+  spans.forEach((span, g) => {
+    const b = boxes[g];
+    for (let i = 0; i < b.xmin.length; i++) {
+      const d = bboxDistanceKm(lat, lng, { xmin: b.xmin[i], ymin: b.ymin[i], xmax: b.xmax[i], ymax: b.ymax[i] });
       if (d <= radiusKm) near.push({ idx: span.start + i, d });
-    });
-    return near;
+    }
   });
-  const { idxs: candidates, capped } = pickCandidates(perGroup.flat(), opts.maxCandidates ?? MAX_SHAPE_CANDIDATES);
+  const { idxs: candidates, capped } = pickCandidates(near, opts.maxCandidates ?? MAX_SHAPE_CANDIDATES);
 
   const skip = skipOf(geomCol);
   const windows = readWindows(candidates, READ_WINDOW_ROWS);

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { parquetMetadataAsync, parquetReadObjects } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
 import { chunkRanges, coalesced, mergeRanges } from '../functions/lib/parquet-coalesce';
-import { nearby, nearestRows } from '../functions/lib/nearby';
+import { clearBoxCache, groupBoxes, nearby, nearestRows } from '../functions/lib/nearby';
 import type { CatalogData } from '../functions/lib/catalog-api';
 import { nearestByGeometry } from '../functions/lib/nearby-geometry';
 
@@ -102,7 +102,7 @@ describe('the nearby engines read less, and answer the same', () => {
     const none = await nearby(12.9, 77.05, 5, 'rg', catalog, r2, 1, []);
     expect(none.total).toBe(all.total);
     expect(none.features[0].properties).toEqual({});
-    expect(reads.length).toBe(1); // the bbox columns only
+    expect(reads.length).toBe(0); // the bbox columns were decoded by the calls above (kept per isolate)
   });
 
   it('nearestByGeometry: same answer as before', async () => {
@@ -111,5 +111,26 @@ describe('the nearby engines read less, and answer the same', () => {
     const md = await parquetMetadataAsync(file);
     const r = await nearestByGeometry(file, md, 28.5, 77.012, 5, { limit: 10 });
     expect(r.features.map((f) => f.properties.name)).toEqual(['short_near', 'long']);
+  });
+});
+
+describe('decoded bbox columns are kept per isolate', () => {
+  // Decoding them was most of a profile's CPU; the coverage search and the next
+  // point nearby ask for the same row groups again.
+  it('a second search over the same row groups of the same object reads and decodes nothing', async () => {
+    clearBoxCache();
+    const { file, reads } = tracked();
+    const keyed = { ...file, cacheKey: 'rg@1:e' };
+    const md = await parquetMetadataAsync(file);
+    const spans = [{ start: 0, end: 2048 }, { start: 2048, end: 4096 }];
+    reads.length = 0;
+    const a = await groupBoxes(keyed, md, spans);
+    expect(reads.length).toBe(1); // two groups' bbox columns in one joined read
+    const b = await groupBoxes(keyed, md, spans);
+    expect(reads.length).toBe(1);
+    expect(b).toEqual(a);
+    expect(a[1].xmin.length).toBe(2048);
+    await groupBoxes(file, md, spans); // no cacheKey: nothing is kept
+    expect(reads.length).toBe(2);
   });
 });
