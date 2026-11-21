@@ -1,4 +1,5 @@
-// /layers: every layer, one section per theme (Option B). The box filters rows
+// /layers: every layer, in three realms (below ground, on the ground, in the
+// air) with a section per theme in each (Option B). The box filters rows
 // across every theme with the same matcher as the home search (catalog-filter),
 // over the same /layer-index.json (the rows carry no search text of their own);
 // "show all N" opens a long section; ?q= pre-fills the box.
@@ -18,22 +19,26 @@ const meta = document.getElementById('search-meta');
 
 if (input && grid) {
   const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
+  // Realms (below ground, on the ground, in the air) hold the theme sections.
+  const realms = Array.from(grid.querySelectorAll<HTMLElement>('.realm'));
   const cardEls = Array.from(grid.querySelectorAll<HTMLElement>('.row, .comm-card'));
   const sectionOf = cardEls.map((el) => el.closest<HTMLElement>('.category-section'));
-  // Each theme's count, in its section header and the theme index: the page's
-  // own figure, or while filtering the number of its layers that match.
-  const countEls = sections.map((sec) => ({
-    head: sec.querySelector<HTMLElement>('.category-section__count'),
-    index: document.querySelector<HTMLElement>(`.theme-index a[href="#${sec.id}"]`),
+  // Each theme's and realm's count, in its section header (themes only) and
+  // the index: the page's own figure, or while filtering the number of its
+  // layers that match.
+  const groups = [...sections, ...realms];
+  const countEls = groups.map((g) => ({
+    head: g.classList.contains('category-section') ? g.querySelector<HTMLElement>('.category-section__count') : null,
+    index: document.querySelector<HTMLElement>(`.theme-index a[href="#${g.id}"]`),
   }));
   const baked = countEls.map(({ head, index }) => ({
     head: head?.textContent ?? '',
     index: index?.querySelector('.theme-index__n')?.textContent ?? '',
   }));
-  const showCounts = (perSection: Map<HTMLElement | null, number> | null): void => {
-    sections.forEach((sec, i) => {
+  const showCounts = (perGroup: Map<HTMLElement | null, number> | null): void => {
+    groups.forEach((sec, i) => {
       const { head, index } = countEls[i];
-      const n = perSection ? perSection.get(sec) ?? 0 : null;
+      const n = perGroup ? perGroup.get(sec) ?? 0 : null;
       if (head) head.textContent = n == null ? baked[i].head : `${n} layer${n === 1 ? '' : 's'}`;
       const num = index?.querySelector('.theme-index__n');
       if (num) num.textContent = n == null ? baked[i].index : String(n);
@@ -86,7 +91,11 @@ if (input && grid) {
       // While filtering every match shows: open the section, hide empty ones.
       sec.classList.toggle('expanded', !!query);
       sec.classList.toggle('hidden', !perSection.get(sec));
+      // A realm's count is its sections' sum; a realm with no match hides.
+      const realm = sec.closest<HTMLElement>('.realm');
+      if (realm) perSection.set(realm, (perSection.get(realm) ?? 0) + (perSection.get(sec) ?? 0));
     }
+    for (const realm of realms) realm.hidden = !perSection.get(realm);
     showCounts(result ? perSection : null);
     showEmpty(result && result.totalMatches === 0 ? query : null);
     if (meta) meta.textContent = result ? matchLine(result.totalLayers, query) : '';

@@ -12,9 +12,13 @@ const catalog = JSON.parse(readFileSync(resolve(__dirname, '..', '..', 'catalog.
   layers: { id: string; level: string; provenance?: string }[];
 };
 
-const rows = [...list.matchAll(/<section class="row row--curated[^"]*" id="([^"]+)"[^>]*data-category="([^"]+)"[^>]*data-layers="(\d+)"/g)].map(
-  (m) => ({ level: m[1], category: m[2], layers: Number(m[3]) }),
-);
+// A row's theme is that of the section it sits in.
+const rows = list.split('<section class="category-section"').slice(1).flatMap((sec) => {
+  const category = sec.match(/^ id="[^"]+" data-category="([^"]+)"/)![1];
+  return [...sec.matchAll(/<section class="row row--curated[^"]*" id="([^"]+)"[^>]*data-layers="(\d+)"/g)].map(
+    (m) => ({ level: m[1], category, layers: Number(m[2]) }),
+  );
+});
 const commCards = (list.match(/class="comm-card[ "]/g) || []).length;
 const seeAll = () => Number(html.match(/href="\/layers">See all (\d+) layers<\/a>/)?.[1]);
 // A home theme card's count: <a class="theme-card" href="/layers#X">…<span class="count">N</span>.
@@ -38,9 +42,12 @@ describe('home page layer counts', () => {
     const cats = [...new Set(rows.map((r) => r.category))];
     for (const cat of cats) {
       const layers = rows.filter((r) => r.category === cat).reduce((n, r) => n + r.layers, 0);
-      const section = list.match(new RegExp(`data-category="${cat}"[^>]*>\\s*<header[^>]*>\\s*<h2[^>]*>[^<]*</h2>\\s*<span class="category-section__count">(\\d+) layers?`));
-      expect(Number(section?.[1]), cat).toBeGreaterThanOrEqual(layers);
-      expect(chip(cat), cat).toBe(Number(section?.[1]));
+      // A theme can have a section in more than one realm (water below and on the ground).
+      const sections = [...list.matchAll(new RegExp(`data-category="${cat}"[^>]*>\\s*<header[^>]*>\\s*<h3[^>]*>[^<]*</h3>\\s*<span class="category-section__count">(\\d+) layers?`, 'g'))];
+      const total = sections.reduce((n, m) => n + Number(m[1]), 0);
+      expect(sections.length, cat).toBeGreaterThan(0);
+      expect(total, cat).toBeGreaterThanOrEqual(layers);
+      expect(chip(cat), cat).toBe(total);
     }
   });
 });

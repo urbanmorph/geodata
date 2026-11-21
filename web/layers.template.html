@@ -17,7 +17,7 @@
     <style>
       <!-- TOKENS -->
 
-      /* All layers: a theme index beside one section per theme. */
+      /* All layers: an index beside three realms, each with a section per theme. */
       .layers-head { margin: 24px 0 20px; }
       .layers-search {
         display: flex; align-items: center; gap: 10px; max-width: 640px; min-height: 52px; margin: 0 0 8px; padding: 0 14px;
@@ -26,7 +26,9 @@
       .layers-search:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
       .search-meta { margin: 8px 0 0; }
       .layers-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: 28px; }
-      .theme-index { position: sticky; top: 16px; display: flex; flex-direction: column; border: 1.5px solid var(--edge); background: var(--bg-elevated); }
+      .theme-index { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; border: 1.5px solid var(--edge); background: var(--bg-elevated); }
+      .theme-index__group + .theme-index__group { border-top: 1.5px solid var(--edge); }
+      .theme-index a.theme-index__realm { grid-template-columns: 1fr auto; font-weight: 800; background: var(--land); }
       .theme-index a {
         display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px;
         color: var(--fg); font-weight: 650; text-decoration: none; border-bottom: 1px solid var(--line);
@@ -39,10 +41,25 @@
       @media (max-width: 900px) {
         /* Phones and tablets: the index becomes a row of chips that scrolls sideways. */
         .layers-body { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-        .theme-index { position: static; flex-direction: row; overflow-x: auto; scrollbar-width: none; border: 0; background: none; gap: 8px; }
+        .theme-index { position: static; max-height: none; flex-direction: row; overflow-x: auto; scrollbar-width: none; border: 0; background: none; gap: 8px; }
+        .theme-index__group { display: contents; }
         .theme-index a { flex: none; border: 1.5px solid var(--edge); background: var(--bg-elevated); border-radius: var(--radius-sm); }
         .theme-index a:last-child { border-bottom: 1.5px solid var(--edge); }
+        /* A realm reads as a label before its themes' chips. */
+        .theme-index a.theme-index__realm { border-color: transparent; background: none; padding-left: 4px; }
+        .theme-index__group + .theme-index__group .theme-index__realm { margin-left: 12px; }
       }
+      /* Realms: below ground, on the ground, in the air. A realm heading sits a level above its themes. */
+      .realm { padding: 0 0 36px; scroll-margin-top: 16px; }
+      .realm + .realm { padding-top: 28px; border-top: 3px solid var(--edge); }
+      .realm__head { margin: 0 0 18px; }
+      .realm__title { margin: 0; font-size: var(--fs-3xl); line-height: 1.1; font-weight: 850; letter-spacing: -.025em; color: var(--fg); }
+      .realm__desc { margin: 6px 0 0; max-width: 640px; color: var(--muted); font-size: var(--fs-md); }
+      .sister-card {
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; margin: 8px 0 0; padding: 16px 18px;
+        background: var(--bg-elevated); border: 1.5px solid var(--edge); border-left: 4px solid var(--brand-green); border-radius: var(--radius-sm);
+      }
+      .sister-card p { margin: 0; max-width: 520px; }
 
       .catalog-empty { color: var(--muted); font-size: var(--fs-base); text-align: center; padding: 32px 0; }
       .catalog-empty a { margin-left: 4px; }
@@ -54,7 +71,11 @@
       .category-section:first-of-type { border-top: none; padding-top: 4px; }
       .category-section.hidden { display: none; }
       .category-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
-      .category-section__title { margin: 0; font-size: var(--fs-2xl); font-weight: 850; letter-spacing: -.02em; color: var(--fg); }
+      .category-section__title { margin: 0; font-size: var(--fs-xl); font-weight: 800; letter-spacing: -.015em; color: var(--fg); scroll-margin-top: 16px; }
+      @media (max-width: 640px) {
+        .realm__title { font-size: var(--fs-2xl); }
+        .category-section__title { font-size: var(--fs-lg); }
+      }
       .category-section__count { color: var(--muted); font: 600 var(--fs-sm) var(--font-mono); font-variant-numeric: tabular-nums; }
       .category-section__body { display: flex; flex-direction: column; gap: 0; }
       .category-cta {

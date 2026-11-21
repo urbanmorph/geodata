@@ -1,0 +1,33 @@
+{
+  "realms": [
+    { "id": "below", "name": "Below ground", "desc": "Rocks, faults, minerals, aquifers and groundwater under the surface." },
+    { "id": "ground", "name": "On the ground", "desc": "Boundaries, wards, rivers, forests, roads and the places people use." },
+    { "id": "air", "name": "In the air", "desc": "Weather and climate over the land: cyclone tracks and climate zones." }
+  ],
+  "categories": {
+    "boundaries": "ground",
+    "city-wards": "ground",
+    "people": "ground",
+    "environment": "ground",
+    "water": "ground",
+    "agriculture": "ground",
+    "transport": "ground",
+    "infrastructure": "ground",
+    "culture": "ground",
+    "health-edu": "ground",
+    "economy": "ground",
+    "other": "ground"
+  },
+  "layers": {
+    "below": [
+      "seismic_zones", "ngdr_earthquakes", "gem_active_faults", "subsidence_megacities", "osm_mines_caves",
+      "gsi_geology_2m", "gsi_lithology_50k", "gsi_lineaments_250k", "bhuvan_lineaments_50k", "bhuvan_geomorphology_50k",
+      "gsi_coal_blocks", "gsi_critical_minerals", "gsi_mineral_deposits", "gsi_hydrocarbon_blocks", "gsi_drilling_boreholes",
+      "gsi_geothermal_springs", "cgwb_aquifers", "cgwb_gw_extraction", "mi6_wells_districts", "gw_quality_premonsoon",
+      "gw_quality_postmonsoon", "bhuvan_gw_prospects", "bhuvan_gw_prospect_structures", "atal_bhujal_wells",
+      "glhymps_permeability", "core_mws_water_balance", "slusi_soil_health", "osm_tunnels", "osm_underground_utilities",
+      "vedas_oil_wells", "wris_groundwater_levels"
+    ],
+    "air": ["ndem_cyclone_tracks", "agro_climatic_zones"]
+  }
+}

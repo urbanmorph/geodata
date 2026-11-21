@@ -13,6 +13,7 @@ import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-l
 import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
 import { LEVEL_META as BUILTIN_LEVEL_META, pickPrimary } from '../../shared/level-meta.mjs';
 import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
+import { REALMS, realmOf } from './realms.mjs';
 import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
 import { WARD_PLACES } from '../functions/lib/ward-places.ts';
@@ -278,7 +279,6 @@ function renderRow(level, layersForLevel, opts = {}) {
   layerIndex.push({ i: primary.id, p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
-    `data-category="${esc(primary.category || 'boundaries')}"`,
     `data-layers="${layersForLevel.length}"`,
   ].join(' ');
 
@@ -331,11 +331,13 @@ for (const l of catalog.layers) {
   (byLevel[l.level] ||= []).push(l);
 }
 
-// Determine the category for each level (taken from its primary layer).
+// Determine the category and /layers realm for each level (taken from its primary layer).
 const categoryByLevel = {};
+const realmByLevel = {};
 for (const lvl of Object.keys(byLevel)) {
   const primary = pickPrimary(byLevel[lvl]);
   categoryByLevel[lvl] = catOf(primary.category);
+  realmByLevel[lvl] = realmOf(primary);
 }
 
 // Attribution links — used by the /about page footer only (the home page
@@ -490,7 +492,6 @@ function renderCommunityCard(s, opts = {}) {
   const dataAttrs = [
     `data-id="${esc(s.id)}"`,
     `data-useful="${useful}"`,
-    `data-category="${esc(cat)}"`,
   ].join(' ');
   const credit = s.is_original ? `original work by ${esc(s.attribution)}` : `source: ${esc(s.attribution)}`;
   // View map + Download. The action targets depend on whether the submission
@@ -565,13 +566,13 @@ if (community.length > 0) {
 // Only render chips when there's more than one category to switch between.
 const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('') : '';
 
-// Render one section per non-empty category. Inside each: curated level rows
-// first (in LEVEL_ORDER), then community cards (newest first). Both are
-// searchable via /layer-index.json; the category pill picks one section to show.
+// /layers renders one section per realm and non-empty category. Inside each:
+// curated level rows first (in LEVEL_ORDER), then community cards (newest
+// first). Both are searchable via /layer-index.json.
 //
 // Density management: sections with > VISIBLE_LIMIT layers collapse the
-// overflow under a "show all N" toggle (data-overflow attr); main.ts wires
-// the toggle. Per-layer `.row--collapsed` class hides them by default.
+// overflow under a "show all N" toggle that layers.ts wires. Per-layer
+// `.row--collapsed` class hides them by default.
 // Quick links under the search: the most downloaded curated layers, one per
 // level (the alternates of a level would read as duplicates).
 const POPULAR_N = 8;
@@ -620,10 +621,16 @@ const updatedHtml = newestFetch
 
 const VISIBLE_LIMIT = 6;
 
-function renderCategorySection(cat) {
-  const levelsInCat = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat);
-  const commInCat = communityByCategory[cat] || [];
-  if (!levelsInCat.length && !commInCat.length) return '';
+// One theme's layers within one realm: curated levels (LEVEL_ORDER) and community cards.
+const sectionContent = (realm, cat) => ({
+  levelsInCat: LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat && realmByLevel[lvl] === realm),
+  commInCat: (communityByCategory[cat] || []).filter((s) => realmOf({ id: s.id, category: cat }) === realm),
+});
+
+// A theme's section within a realm, id "<realm>-<theme>". The theme's first
+// section on the page also carries the plain theme id on its heading, so
+// /layers#water (home theme cards, the sitemap, old links) still lands.
+function renderCategorySection(realm, cat, { levelsInCat, commInCat }, plainId) {
   const catLabel = (catalog.categories || {})[cat] || cat;
   const total = levelsInCat.reduce((n, lvl) => n + byLevel[lvl].length, 0) + commInCat.length;
   const overflows = levelsInCat.length + commInCat.length > VISIBLE_LIMIT;
@@ -642,9 +649,9 @@ function renderCategorySection(cat) {
     ? `<button type="button" class="show-more" data-show-more aria-expanded="false">Show all ${total} ${esc(catLabel.toLowerCase())} layers</button>`
     : '';
 
-  return `<section class="category-section" id="${esc(cat)}" data-category="${esc(cat)}" ${overflows ? 'data-overflow' : ''}>
+  const html = `<section class="category-section" id="${realm}-${esc(cat)}" data-category="${esc(cat)}">
       <header class="category-section__head">
-        <h2 class="category-section__title">${esc(catLabel)}</h2>
+        <h3 class="category-section__title"${plainId ? ` id="${esc(cat)}"` : ''}>${esc(catLabel)}</h3>
         <span class="category-section__count">${total} layer${total === 1 ? '' : 's'}</span>
       </header>
       <div class="category-section__body">
@@ -652,8 +659,9 @@ function renderCategorySection(cat) {
         ${commHtml}
         ${showMore}
       </div>
-      <a href="/preview?category=${esc(cat)}" class="category-cta">Contribute a ${esc(catLabel.toLowerCase())} layer</a>
+      <a href="/preview?category=${esc(cat)}" class="category-cta">Contribute ${/^[aeiou]/i.test(catLabel) ? 'an' : 'a'} ${esc(catLabel.toLowerCase())} layer</a>
     </section>`;
+  return { html, total, label: catLabel };
 }
 
 const allCategories = new Set([
@@ -661,18 +669,49 @@ const allCategories = new Set([
   ...Object.keys(communityByCategory),
 ]);
 const sortedCats = [...new Set([...CATEGORY_ORDER, 'other'])].filter((c) => allCategories.has(c));
-const sectionHtml = new Map(sortedCats.map((cat) => [cat, renderCategorySection(cat)]).filter(([, html]) => html));
-const categorySections = [...sectionHtml.values()].join('\n');
 
-// /layers: every theme with layers is a section, with an index beside them (Option B).
-const sectionCats = [...sectionHtml.keys()];
-const themeIndexHtml = sectionCats
-  .map((cat) => {
-    const n = categoryCounts[cat] ?? 0;
-    const label = (catalog.categories || {})[cat] || cat;
-    return `<a href="#${esc(cat)}">${legendGlyph(cat)}<span>${esc(label)}</span><span class="theme-index__n">${n}</span></a>`;
-  })
+// /layers (Option B, then realms): three realms (scripts/realms.json), each
+// with a section per theme that has layers there, and an index beside them
+// grouped the same way. Rendered in page order: renderRow fills the search
+// index (/layer-index.json) as it goes, and it must follow the rows.
+const placedCats = new Set();
+const realmBlocks = REALMS.map((realm) => {
+  const sections = sortedCats
+    .map((cat) => [cat, sectionContent(realm.id, cat)])
+    .filter(([, c]) => c.levelsInCat.length || c.commInCat.length)
+    .map(([cat, c]) => {
+      const first = !placedCats.has(cat);
+      placedCats.add(cat);
+      return { cat, ...renderCategorySection(realm.id, cat, c, first) };
+    });
+  return { ...realm, sections, total: sections.reduce((n, s) => n + s.total, 0) };
+}).filter((r) => r.sections.length);
+
+// In the air: the live sky over a place is mugilu's job, not a layer.
+const MUGILU_CARD = `<aside class="sister-card" aria-label="Sister site">
+        <p>For live air quality, heat, rain and weather warnings over any place in India, see mugilu, our sister site.</p>
+        <a class="btn btn--line" href="https://mugilu.live" target="_blank" rel="noopener">Open mugilu</a>
+      </aside>`;
+
+const categorySections = realmBlocks
+  .map((r) => `<section class="realm" id="${r.id}" aria-labelledby="${r.id}-title">
+      <header class="realm__head">
+        <h2 class="realm__title" id="${r.id}-title">${esc(r.name)}</h2>
+        <p class="realm__desc">${esc(r.desc)}</p>
+      </header>
+      ${r.sections.map((s) => s.html).join('\n')}
+      ${r.id === 'air' ? MUGILU_CARD : ''}
+    </section>`)
+  .join('\n');
+
+const indexLink = (href, inner, n, cls = '') =>
+  `<a${cls ? ` class="${cls}"` : ''} href="#${href}">${inner}<span class="theme-index__n">${n}</span></a>`;
+const themeIndexHtml = realmBlocks
+  .map((r) => `<div class="theme-index__group">${indexLink(r.id, `<span>${esc(r.name)}</span>`, r.total, 'theme-index__realm')}${r.sections
+    .map((s) => indexLink(`${r.id}-${esc(s.cat)}`, `${legendGlyph(s.cat)}<span>${esc(s.label)}</span>`, s.total))
+    .join('')}</div>`)
   .join('');
+const sectionCats = [...placedCats];
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const homeDownloads = totalDownloads(dlCounts);
@@ -712,9 +751,13 @@ const layersSeo = seoHead({
   },
 });
 const layersTmpl = await readFile(resolve(WEB, 'layers.template.html'), 'utf8');
+// Source indentation is about 1 KB gzipped on /layers (its 50 KB budget). A
+// run of whitespace renders as one space, and the page has no <pre> or
+// <textarea>, so dropping the indent after each newline changes nothing seen.
+const dropIndent = (html) => html.replace(/\n\s+/g, '\n');
 await writeFile(
   resolve(WEB, 'layers.html'),
-  await minifyInlineStyles(fillTemplate(layersTmpl, {
+  dropIndent(await minifyInlineStyles(fillTemplate(layersTmpl, {
     SEO_HEAD: layersSeo,
     TOKENS,
     NAV: renderNav('layers'),
@@ -724,7 +767,7 @@ await writeFile(
     LAYER_TOTAL: String(totalLayers),
     THEME_TOTAL: String(sectionCats.length),
     USAGE_BLOCK: usageBlockHtml(siteUse),
-  })),
+  }))),
 );
 await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));
 console.log(`prerendered /layers: ${sectionCats.length} themes, ${layerIndex.length} rows in the search index`);

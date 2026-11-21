@@ -121,3 +121,59 @@ describe('/layers filter: counts and the empty state', () => {
     expect(rows()).toEqual([true, true, true]);
   });
 });
+
+// Themes sit under realms (below ground, on the ground, in the air): a search
+// hides a realm with no match and counts each realm's matching layers.
+describe('/layers filter: realms', () => {
+  const type = async (q: string) => {
+    const input = document.getElementById('catalog-search') as HTMLInputElement;
+    input.value = q;
+    input.dispatchEvent(new Event('input'));
+    await flush(); await flush();
+  };
+  const realm = (id: string) => document.getElementById(id)!;
+  const indexLink = (id: string) => document.querySelector<HTMLElement>(`.theme-index a[href="#${id}"]`)!;
+  const n = (id: string) => indexLink(id).querySelector('.theme-index__n')!.textContent;
+
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <input id="catalog-search"><p id="search-meta"></p><p id="catalog-empty" hidden></p>
+      <nav class="theme-index">
+        <a class="theme-index__realm" href="#below"><span>Below ground</span><span class="theme-index__n">1</span></a>
+        <a href="#below-environment"><span>Environment</span><span class="theme-index__n">1</span></a>
+        <a class="theme-index__realm" href="#ground"><span>On the ground</span><span class="theme-index__n">5</span></a>
+        <a href="#ground-boundaries"><span>Boundaries</span><span class="theme-index__n">4</span></a>
+        <a href="#ground-water"><span>Water</span><span class="theme-index__n">1</span></a>
+      </nav>
+      <div id="catalog-grid">
+        <section class="realm" id="below"><header class="realm__head"><h2>Below ground</h2></header>
+          <section class="category-section" id="below-environment"><section class="row" data-id="forest_cover" data-layers="1"></section></section>
+        </section>
+        <section class="realm" id="ground"><header class="realm__head"><h2>On the ground</h2></header>
+          <section class="category-section" id="ground-boundaries"><section class="row" data-id="lgd_districts" data-layers="4"></section></section>
+          <section class="category-section" id="ground-water"><article class="comm-card" data-id="abcdefgh"></article></section>
+        </section>
+      </div>`;
+    history.replaceState(null, '', '/layers');
+  });
+
+  it('hides a realm with no match, counts matches per realm, and restores both when cleared', async () => {
+    await import('../src/layers');
+    release();
+    await type('forest');
+    expect(realm('below').hidden).toBe(false);
+    expect(realm('ground').hidden).toBe(true);
+    expect(n('below')).toBe('1');
+    expect(n('ground')).toBe('0');
+    expect(indexLink('ground').classList.contains('is-empty')).toBe(true);
+    await type('lakes');
+    expect(realm('below').hidden).toBe(true);
+    expect(realm('ground').hidden).toBe(false);
+    expect(n('ground')).toBe('1');
+    await type('');
+    expect(realm('below').hidden).toBe(false);
+    expect(realm('ground').hidden).toBe(false);
+    expect(n('ground')).toBe('5');
+    expect(document.querySelector('.theme-index a.is-empty')).toBeNull();
+  });
+});
