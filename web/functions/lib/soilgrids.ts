@@ -16,8 +16,9 @@ export function soilBands(): Array<{ property: PropKey | 'wrb'; depth: string | 
 }
 
 export interface SoilProfile {
-  /** Per depth interval, each property in plain units (field names carry the unit). */
-  depths: Record<string, Record<string, number | null>>;
+  /** Per depth interval, each property in plain units (field names carry the unit);
+   *  null where SoilGrids predicts no properties (it masks built-up land and water). */
+  depths: Record<string, Record<string, number | null>> | null;
   /** Most probable WRB reference soil group. */
   wrb_class: string | null;
 }
@@ -38,7 +39,8 @@ export function decodeSoil(values: (number | null)[]): SoilProfile | null {
     const p = spec.properties[property];
     (depths[depth!] ??= {})[p.field] = v === null ? null : round(v, p.factor);
   });
-  return { depths, wrb_class: wrb };
+  const anyProperty = values.slice(0, -1).some((v) => v !== null && v !== undefined);
+  return { depths: anyProperty ? depths : null, wrb_class: wrb };
 }
 
 export type SoilResult =

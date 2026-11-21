@@ -111,3 +111,12 @@ def test_register_writes_the_key_into_the_shared_spec_and_a_rerun_changes_nothin
     assert json.loads(first)['file'] == file
     sg.register(spec_path, file)
     assert spec_path.read_text() == first
+
+
+def test_the_cog_gets_a_content_versioned_key_and_a_tiff_type(tmp_path):
+    import pipeline
+    f = tmp_path / 'SoilGrids_India_250m.tif'
+    f.write_bytes(b'II*\x00')
+    name = pipeline.versioned_names({'tif': f})['tif']
+    assert name == f'SoilGrids_India_250m.{pipeline.file_md5(f)[:8]}.tif'
+    assert pipeline.CONTENT_TYPES['.tif'] == 'image/tiff'

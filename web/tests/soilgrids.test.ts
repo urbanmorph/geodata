@@ -19,11 +19,11 @@ describe('SoilGrids bands and units', () => {
     const vals = [...depth, ...depth, ...depth, 6];
     const soil = decodeSoil(vals);
     expect(soil).not.toBeNull();
-    expect(soil!.depths['0-5cm']).toEqual({
+    expect(soil!.depths!['0-5cm']).toEqual({
       clay_pct: 24.7, sand_pct: 30, silt_pct: 45.3, ph_water: 7.8, soc_g_per_kg: 5.2,
       bulk_density_g_per_cm3: 1.45, cec_cmolc_per_kg: 18.9, nitrogen_g_per_kg: 0.87,
     });
-    expect(Object.keys(soil!.depths)).toEqual(['0-5cm', '5-15cm', '15-30cm']);
+    expect(Object.keys(soil!.depths!)).toEqual(['0-5cm', '5-15cm', '15-30cm']);
     expect(soil!.wrb_class).toBe('Cambisols');
   });
 
@@ -32,8 +32,14 @@ describe('SoilGrids bands and units', () => {
     vals[0] = null;
     vals[24] = 99;
     const soil = decodeSoil(vals)!;
-    expect(soil.depths['0-5cm'].clay_pct).toBeNull();
+    expect(soil.depths!['0-5cm'].clay_pct).toBeNull();
     expect(soil.wrb_class).toBeNull();
+  });
+
+  it('built-up land: no properties (SoilGrids masks it) but a WRB class is still mapped', () => {
+    const vals: (number | null)[] = new Array(25).fill(null);
+    vals[24] = 29;
+    expect(decodeSoil(vals)).toEqual({ depths: null, wrb_class: 'Vertisols' });
   });
 
   it('is null when every band is nodata (water, built-up land, outside the land mask)', () => {
@@ -60,7 +66,7 @@ describe('soilAt', () => {
     const r = await soilAt(bucket, 'k', 30 - 17.5 * 0.25, 70 + 25.5 * 0.25);
     expect(r.status).toBe('ok');
     // the fixture has 3 bands: clay 1705 g/kg, sand 2705, silt 3705
-    if (r.status === 'ok') expect(r.soil.depths['0-5cm'].clay_pct).toBe(170.5);
+    if (r.status === 'ok') expect(r.soil.depths!['0-5cm'].clay_pct).toBe(170.5);
   });
 
   it('says why when there is no value', async () => {

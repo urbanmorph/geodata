@@ -438,13 +438,14 @@ function soilEntry(s: SoilResult): GroundEntry {
     resolution_m: 250, units,
     depths: s.status === 'ok' ? s.soil.depths : null,
     wrb_class: s.status === 'ok' ? s.soil.wrb_class : null,
-    ...(s.status === 'ok' ? {} : { reason: s.reason }),
+    ...(s.status !== 'ok' ? { reason: s.reason }
+      : s.soil.depths ? {} : { reason: 'no SoilGrids soil properties here: SoilGrids leaves out built-up land and water (the WRB soil group is still mapped)' }),
   };
 }
 
 function soilSay(e: GroundEntry): string | null {
   const top = e.depths?.['0-5cm'];
-  if (!top) return null;
+  if (!top) return e.wrb_class ? `Soil group (SoilGrids, WRB): ${e.wrb_class}; no soil properties mapped here (built-up land or water)` : null;
   const bits = [top.clay_pct != null && `${top.clay_pct}% clay`, top.sand_pct != null && `${top.sand_pct}% sand`,
     top.ph_water != null && `pH ${top.ph_water}`].filter(Boolean).join(', ');
   return `Topsoil (0-5 cm, SoilGrids): ${bits}${e.wrb_class ? `; soil group ${e.wrb_class}` : ''}`;
@@ -529,7 +530,7 @@ export async function profileAt(
       const entry: GroundEntry = {
         layer_id: spec.id, credit: creditOf(layer), ...ncFields(layer),
         about: { ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },
-        ...got, ...(spec.units ? { units: spec.units } : {}),
+        ...got, ...(spec.units && got.status === 'found' ? { units: spec.units } : {}),
       };
       sections[spec.section][spec.id] = entry;
       const line = spec.say?.(entry);
