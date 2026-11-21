@@ -382,8 +382,8 @@ export async function profileAt(
       failed(key, e);
     }
   });
-  // A pixel source speaks just before the first layer of its section.
-  const pixelJobs = profile.pixels.map(async (px) => {
+  // A pixel source speaks just before the first layer of its section, the sources in table order.
+  const pixelJobs = profile.pixels.map(async (px, i) => {
     try {
       const read = deps.pixels[px.id];
       if (!read) { unavailable.push({ layer_id: px.id, reason: 'not published' }); return; }
@@ -392,7 +392,7 @@ export async function profileAt(
       const entry: ProfileEntry = { layer_id: px.id, match: 'pixel', ...px.entry(got) };
       sections[px.section][px.id] = entry;
       const line = px.say?.(entry);
-      if (line) said.push([layers.findIndex((l) => l.section === px.section) - 0.5, line]);
+      if (line) said.push([layers.findIndex((l) => l.section === px.section) - 1 + (i + 1) / (profile.pixels.length + 1), line]);
       if (entry.status === 'found') credits.add(px.credit);
     } catch (e) {
       failed(px.id, e);
@@ -401,8 +401,8 @@ export async function profileAt(
   await Promise.all([...layerJobs, ...pixelJobs]);
 
   // Answers arrive in any order: lay each section out in the table's order (pixel sources first).
-  const pixelIds = new Set(profile.pixels.map((p) => p.id));
-  const order = (id: string) => (pixelIds.has(id) ? -1 : layers.findIndex((l) => keyOf(l) === id));
+  const pixelAt = new Map(profile.pixels.map((p, i) => [p.id, i - profile.pixels.length]));
+  const order = (id: string) => pixelAt.get(id) ?? layers.findIndex((l) => keyOf(l) === id);
   for (const s of profile.sections) {
     sections[s] = Object.fromEntries(Object.entries(sections[s]).sort(([a], [b]) => order(a) - order(b)));
   }
