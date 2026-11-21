@@ -1,4 +1,4 @@
-import { PMTiles } from 'pmtiles';
+import { PMTiles, ResolvedValueCache } from 'pmtiles';
 import { R2Source } from './r2-source';
 import { lngLatToTile } from './tile-math';
 import { findFeaturesAtPoint } from './mvt-locate';
@@ -78,11 +78,14 @@ export async function locate(
 
 // One reader per R2 key per isolate, so the archive's header and directory
 // cache survive between requests (keys are versioned, so a rebake is a new key).
+// ResolvedValueCache, not pmtiles' default SharedPromiseCache: that one keeps
+// the pending header/directory promise, which never settles once the request
+// that started the read has ended (isolate-cache.ts).
 const readers = new Map<string, PMTiles>();
 export function pmtilesFor(r2: R2Bucket, key: string): PMTiles {
   let pm = readers.get(key);
   if (!pm) {
-    pm = new PMTiles(new R2Source(r2, key));
+    pm = new PMTiles(new R2Source(r2, key), new ResolvedValueCache());
     readers.set(key, pm);
   }
   return pm;
