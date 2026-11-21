@@ -21,8 +21,10 @@ const rows = list.split('<section class="category-section"').slice(1).flatMap((s
 });
 const commCards = (list.match(/class="comm-card[ "]/g) || []).length;
 const seeAll = () => Number(html.match(/href="\/layers">See all (\d+) layers<\/a>/)?.[1]);
-// A home theme card's count: <a class="theme-card" href="/layers#X">…<span class="count">N</span>.
-const chip = (cat: string) => Number(html.match(new RegExp(`href="/layers#${cat}">[\\s\\S]*?<span class="count">(\\d+)</span>`))?.[1]);
+// A theme's count on the home page: the sum of its cards, one per realm it has
+// layers in (<a class="theme-card" href="/layers#<realm>-X">…<span class="count">N</span>).
+const chip = (cat: string) => [...html.matchAll(new RegExp(`href="/layers#[a-z]+-${cat}">[\\s\\S]*?<span class="count">(\\d+)</span>`, 'g'))]
+  .reduce((n, m) => n + Number(m[1]), 0);
 
 describe('home page layer counts', () => {
   it('every curated row says how many layers it holds', () => {
@@ -81,9 +83,14 @@ describe('home hero', () => {
 
   it('says it is open, and describes every theme card it links to /layers', () => {
     expect(html).toContain('Free and open data. No sign-up.');
-    const themes = [...html.matchAll(/<a class="theme-card" href="\/layers(?:#|\?q=)([a-z-]+)">[\s\S]*?<\/a>/g)];
+    // A theme with cards in two realms describes itself once, in its own realm.
+    const themes = [...html.matchAll(/<a class="theme-card" href="\/layers(?:#[a-z]+-|\?q=)([a-z-]+)">[\s\S]*?<\/a>/g)];
     expect(themes.length).toBeGreaterThan(5);
-    for (const t of themes) if (t[1] !== 'all' && t[1] !== 'community') expect(t[0], t[1]).toMatch(/<span class="theme-card__desc">[^<]{10,}<\/span>/);
+    for (const cat of new Set(themes.map((t) => t[1]))) {
+      if (cat === 'community') continue;
+      const described = themes.filter((t) => t[1] === cat && /<span class="theme-card__desc">[^<]{10,}<\/span>/.test(t[0]));
+      expect(described.length, cat).toBe(1);
+    }
   });
 
   it('offers Find my ward next to the search box', () => {

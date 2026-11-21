@@ -538,8 +538,6 @@ const totalLayers = Object.values(categoryCounts).reduce((a, b) => a + b, 0);
 if (totalLayers !== layerTotal(catalog, community)) {
   console.warn(`[prerender] theme counts total ${totalLayers}, but there are ${layerTotal(catalog, community)} layers: a level is missing from LEVEL_ORDER`);
 }
-const activeCats = Object.entries(catalog.categories || {})
-  .filter(([id]) => categoryCounts[id]);
 // Theme cards ("Browse by theme"): each links to its section on /layers.
 // Each card leads with its theme's map symbol (THEME_GLYPH), like a map legend.
 const legendGlyph = (id) => {
@@ -547,24 +545,15 @@ const legendGlyph = (id) => {
   const paint = g.fill === 'ink' ? 'class="ink"' : `fill="${g.fill}"`;
   return `<svg class="legend-glyph" viewBox="0 0 28 28" width="26" height="26" aria-hidden="true"><path d="${g.d}" ${paint}/></svg>`;
 };
-// Theme cards link into /layers: each theme is a section there (Option B).
-const themeHref = (id) => (id === 'community' ? '/layers?q=community' : `/layers#${id}`);
 // Cities with a ward map (a city's vintages and alternates count once).
 const WARD_CITY_COUNT = new Set(Object.values(WARD_PLACES).map((p) => p.city)).size;
-const themeCard = (id, name, n) =>
-  `<a class="theme-card" href="${themeHref(id)}">` +
+// A theme card links to its section on /layers; `describe` adds the theme's line.
+const themeCard = (id, name, n, href, describe = true) =>
+  `<a class="theme-card" href="${href}">` +
   legendGlyph(id) +
   `<span class="theme-card__name">${esc(name)}</span><span class="theme-card__n"><span class="count">${n}</span> layer${n === 1 ? '' : 's'}</span>` +
-  (THEME_DESC[id] ? `<span class="theme-card__desc">${esc(themeDesc(id, WARD_CITY_COUNT))}</span>` : '') +
+  (describe && THEME_DESC[id] ? `<span class="theme-card__desc">${esc(themeDesc(id, WARD_CITY_COUNT))}</span>` : '') +
   `</a>`;
-// No "All layers" card: the "See all N layers" button under the grid does that.
-const chips = activeCats.map(([id, name]) => themeCard(id, name, categoryCounts[id]));
-// A Community card when there are community layers: /layers filtered to them.
-if (community.length > 0) {
-  chips.push(themeCard('community', 'Community', community.length));
-}
-// Only render chips when there's more than one category to switch between.
-const chipsHtml = activeCats.length > 1 || community.length > 0 ? chips.join('') : '';
 
 // /layers renders one section per realm and non-empty category. Inside each:
 // curated level rows first (in LEVEL_ORDER), then community cards (newest
@@ -676,7 +665,7 @@ const sortedCats = [...new Set([...CATEGORY_ORDER, 'other'])].filter((c) => allC
 // index (/layer-index.json) as it goes, and it must follow the rows.
 const planned = REALMS.map((realm) => ({
   realm,
-  parts: sortedCats.map((cat) => ({ cat, c: sectionContent(realm.id, cat) })).filter(({ c }) => c.total),
+  parts: sortedCats.map((cat) => ({ cat, realm: realm.id, c: sectionContent(realm.id, cat) })).filter(({ c }) => c.total),
 }));
 // Each theme's largest section (the first on a tie) takes the plain anchor.
 const largest = new Map();
@@ -691,9 +680,11 @@ const realmBlocks = planned
   });
 
 // In the air: the live sky over a place is mugilu's job, not a layer.
+const MUGILU = 'For live air quality, heat, rain and weather warnings over any place in India, see';
+const MUGILU_HREF = 'https://mugilu.live';
 const MUGILU_CARD = `<aside class="sister-card" aria-label="Sister site">
-        <p>For live air quality, heat, rain and weather warnings over any place in India, see mugilu, our sister site.</p>
-        <a class="btn btn--line" href="https://mugilu.live" target="_blank" rel="noopener">Open mugilu</a>
+        <p>${MUGILU} mugilu, our sister site.</p>
+        <a class="btn btn--line" href="${MUGILU_HREF}" target="_blank" rel="noopener">Open mugilu</a>
       </aside>`;
 
 const categorySections = realmBlocks
@@ -716,13 +707,39 @@ const themeIndexHtml = realmBlocks
   .join('');
 const sectionCats = [...largest.keys()];
 
+// Home "Browse by theme": the same realms and sections as /layers, a card per
+// section (no "All layers" card: the "See all N layers" button does that).
+// Community layers sit on the ground by default, so their card (/layers
+// filtered to them) joins that realm. A theme in two realms describes itself
+// once: on its card in the theme's own realm (realms.json default), where the
+// line fits, else on its largest card.
+const placed = new Set(realmBlocks.flatMap((r) => r.sections.map((s) => `${r.id}-${s.cat}`)));
+const describedIn = (cat) => {
+  const home = realmOf({ category: cat });
+  return placed.has(`${home}-${cat}`) ? home : largest.get(cat).realm;
+};
+const homeRealmsHtml = realmBlocks
+  .map((r) => {
+    const cards = r.sections.map((s) => themeCard(s.cat, s.label, s.total, `/layers#${r.id}-${s.cat}`, describedIn(s.cat) === r.id));
+    if (r.id === 'ground' && community.length) cards.push(themeCard('community', 'Community', community.length, '/layers?q=community'));
+    const note = r.id === 'air'
+      ? `<p class="realm-group__note">${MUGILU} <a href="${MUGILU_HREF}" target="_blank" rel="noopener">mugilu</a>, our sister site.</p>`
+      : '';
+    return `<div class="realm-group">
+        <h3 class="realm-group__title"><a href="/layers#${r.id}">${esc(r.name)}</a></h3>
+        <p class="realm-group__desc">${esc(r.desc)}</p>
+        <nav class="theme-grid" aria-label="${esc(r.name)} themes">${cards.join('')}</nav>${note}
+      </div>`;
+  })
+  .join('\n');
+
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const homeDownloads = totalDownloads(dlCounts);
 // API/MCP totals for the home line and the /layers block (shown once past API_SHOW_MIN).
 const apiUse = (await fetchUsageTotals()) ?? { api: 0, mcp: 0 };
 const siteUse = { downloads: homeDownloads, ...apiUse };
 const out = fillTemplate(tmpl, {
-  CATEGORY_CHIPS: chipsHtml,
+  REALM_GROUPS: homeRealmsHtml,
   SEO_HEAD: homeSeo,
   TOKENS,
   NAV: renderNav('home'),

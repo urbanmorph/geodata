@@ -100,8 +100,23 @@ describe('lean home page', () => {
   it('links the themes and an "all layers" button to /layers', () => {
     const cards = [...home.matchAll(/<a class="theme-card[^"]*" href="([^"]+)"/g)].map((m) => m[1]);
     expect(cards.length).toBeGreaterThan(5);
-    for (const h of cards) expect(h).toMatch(/^\/layers(#[a-z-]+|\?q=community)?$/);
+    for (const h of cards) expect(h).toMatch(/^\/layers(#(below|ground|air)-[a-z-]+|\?q=community)$/);
     expect(home).toMatch(/<a class="btn btn--line"[^>]*href="\/layers">See all \d+ layers<\/a>/);
+  });
+  it('groups the theme cards by realm, each card on its /layers section with the same count', () => {
+    const groups = [...home.matchAll(/<div class="realm-group">\s*<h3 class="realm-group__title"><a href="\/layers#([a-z]+)">([^<]+)<\/a><\/h3>\s*<p class="realm-group__desc">([^<]+)<\/p>([\s\S]*?)<\/div>\s*(?=<div class="realm-group">|<p class="see-all">)/g)];
+    expect(groups.map((g) => [g[1], g[2]])).toEqual([['below', 'Below ground'], ['ground', 'On the ground'], ['air', 'In the air']]);
+    const realmsJson = JSON.parse(read('scripts/realms.json')).realms as { id: string; desc: string }[];
+    for (const g of groups) {
+      expect(g[3]).toBe(realmsJson.find((r) => r.id === g[1])!.desc);
+      for (const m of g[4].matchAll(/<a class="theme-card" href="\/layers#([a-z]+)-([a-z-]+)">[\s\S]*?<span class="count">(\d+)<\/span>/g)) {
+        expect(m[1], m[0]).toBe(g[1]);
+        expect(layers, `${m[1]}-${m[2]}`).toMatch(new RegExp(`<section class="category-section" id="${m[1]}-${m[2]}"[^>]*>\\s*<header class="category-section__head">\\s*<h3[^>]*>[^<]*</h3>\\s*<span class="category-section__count">${m[3]} layer`));
+      }
+    }
+    const air = groups.find((g) => g[1] === 'air')![4];
+    expect(air).toContain('href="/layers#air-environment"');
+    expect(air).toMatch(/see <a href="https:\/\/mugilu\.live"[^>]*>mugilu<\/a>, our sister site/);
   });
   it('searches /layer-index.json, which matches the /layers rows one for one', () => {
     // Fetched on the search's first focus, so the home page carries no list.
