@@ -18,7 +18,8 @@ type Entry = { status: string; features?: Record<string, unknown>[]; nearest?: A
 type Profile = { summary: string; sections: Record<string, Record<string, Entry>>; unavailable: Array<{ layer_id: string; reason: string }> };
 
 async function get(kind: 'ground' | 'surface', lat: number, lng: number): Promise<Profile> {
-  const r = await fetch(`${BASE}/api/v1/${kind}?lat=${lat}&lng=${lng}`);
+  // Sent as our own smoke test, so the check is not counted as use (usage.ts).
+  const r = await fetch(`${BASE}/api/v1/${kind}?lat=${lat}&lng=${lng}`, { headers: { 'user-agent': 'bharatlas-mcp-test point-profiles' } });
   expect(r.status, `${kind} ${lat},${lng}`).toBe(200);
   return r.json() as Promise<Profile>;
 }
