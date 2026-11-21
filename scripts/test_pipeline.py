@@ -201,23 +201,55 @@ def test_whole_layer_failure_leaves_no_partial_output(tmp_path, monkeypatch):
     assert errors and not bwl.out_paths('p', 'w')['geojson'].exists()
 
 
-def test_whole_layer_geojson_can_keep_full_precision_so_fine_polygons_stay_polygons(tmp_path):
-    """RFC 7946 output rounds to 7 decimals (~1 cm), which collapses a polygon whose vertices are closer
-    than that (GLHYMPS, reprojected from metres) into lines; coordinate_precision keeps it whole."""
-    from bake_whole_layer import write_geojson_whole
+def _wkt_parquet(path: Path, wkts: list[str]) -> Path:
     con = pipeline.make_con()
-    con.execute('INSTALL spatial; LOAD spatial;')
-    pq = tmp_path / 'fine.parquet'
-    con.execute(f"""COPY (SELECT 1 AS id, ST_GeomFromText('POLYGON((77 12, 77.00000002 12, 77.00000002 12.00000002,
-                    77 12.00000002, 77 12))') AS geometry) TO '{pq}' (FORMAT PARQUET)""")
-    kinds = {}
-    for name, kw in (('rounded', {}), ('full', {'coordinate_precision': 15})):
-        out = tmp_path / f'{name}.geojson'
-        write_geojson_whole(con, pq, out, **kw)
-        kinds[name] = json.loads(out.read_text())['features'][0]['geometry']
-    assert kinds['full']['type'] == 'Polygon'
-    assert kinds['full']['coordinates'][0][2] == [77.00000002, 12.00000002]
-    assert kinds['rounded'] != kinds['full']        # the default stays as it was for every other layer
+    rows = ' UNION ALL '.join(f"SELECT {i} AS id, ST_GeomFromText('{w}') AS geometry" for i, w in enumerate(wkts))
+    con.execute(f"COPY ({rows} ORDER BY id) TO '{path}' (FORMAT PARQUET)")
+    return path
+
+
+def test_whole_layer_geojson_keeps_every_feature_whole_where_7_decimals_would_break_it(tmp_path):
+    """GDAL's RFC 7946 writer snaps to 7 decimals (~1 cm) and repairs whatever that makes invalid, so a
+    polygon or line with vertices closer than that came out as a line, a point or a GeometryCollection
+    (GLHYMPS, gs_highways, ward maps), and the shapefile step then failed. Such a layer keeps full precision."""
+    from bake_whole_layer import write_geojson_whole
+    fine = ['POLYGON((77 12, 77.00000002 12, 77.00000002 12.00000002, 77 12.00000002, 77 12))',  # collapses
+            'POLYGON((77 12, 77.1 12, 77.1 12.00000003, 77 12))',                                # a sliver
+            'LINESTRING(77 12, 77.00000002 12.00000001)',                                         # a short line
+            'MULTIPOLYGON(((77 12, 77.00000002 12, 77.00000002 12.00000002, 77 12)),'             # GDAL fails
+            '((78 12, 78.1 12, 78.1 12.1, 78 12)))',
+            'POLYGON((78 13, 78.1 13, 78.1 13.1, 78 13))']
+    pq = _wkt_parquet(tmp_path / 'fine.parquet', fine)
+    out = tmp_path / 'fine.geojson'
+    write_geojson_whole(pipeline.make_con(), pq, out)
+    geoms = [f['geometry'] for f in json.loads(out.read_text())['features']]
+    assert [g['type'] for g in geoms] == ['Polygon', 'Polygon', 'LineString', 'MultiPolygon', 'Polygon']
+    assert geoms[0]['coordinates'][0][2] == [77.00000002, 12.00000002]   # lon, lat
+    first = out.read_bytes()
+    write_geojson_whole(pipeline.make_con(), pq, out)
+    assert out.read_bytes() == first                                      # a re-run writes the same bytes
+
+
+def test_whole_layer_geojson_fails_rather_than_ship_changed_geometry(tmp_path, monkeypatch):
+    import bake_whole_layer as bwl
+    monkeypatch.setattr(bwl, 'GEOJSON_FALLBACK_PRECISIONS', (8, 7))     # every grid too coarse
+    pq = _wkt_parquet(tmp_path / 'fine.parquet', ['LINESTRING(77 12, 77.000000002 12.000000001)'])
+    with pytest.raises(ValueError, match='every precision'):
+        bwl.write_geojson_whole(pipeline.make_con(), pq, tmp_path / 'fine.geojson')
+
+
+def test_whole_layer_geojson_is_unchanged_for_a_layer_7_decimals_do_not_break(tmp_path):
+    from bake_whole_layer import write_geojson_whole
+    pq = _wkt_parquet(tmp_path / 'coarse.parquet', ['POLYGON((77.123456789 12, 77.2 12, 77.2 12.1, 77.123456789 12))',
+                                                    'MULTIPOLYGON(((78 12, 78.1 12, 78.1 12.1, 78 12)))'])
+    out, plain = tmp_path / 'coarse.geojson', tmp_path / 'plain' / 'coarse.geojson'   # same layer name
+    plain.parent.mkdir()
+    con = pipeline.make_con()
+    write_geojson_whole(con, pq, out)
+    con.execute(f"COPY (SELECT * EXCLUDE geometry, geometry FROM '{pq}') TO '{plain}' "
+                "WITH (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS ('RFC7946=YES'))")
+    assert out.read_bytes() == plain.read_bytes()                         # the 7-decimal file, byte for byte
+    assert '77.1234568' in out.read_text()
 
 
 def test_per_state_extract_skip_needs_a_fresh_output(tmp_path):

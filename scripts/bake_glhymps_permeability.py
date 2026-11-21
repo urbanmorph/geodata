@@ -65,9 +65,6 @@ LICENCE = 'CC-BY-4.0'
 ATTRIBUTION = {'name': 'Huscroft, Gleeson, Hartmann and Börker 2018, GLHYMPS 2.0 (Geophysical Research Letters)',
                'url': DOI_URL}
 TILE_FIELDS = ('logK_Ferr_', 'logK_Ice_x', 'Porosity_x')
-# Reprojected from metres, some polygons have vertices under 1 cm apart: the GeoJSON's default 7 decimals would
-# collapse 44 of them into lines, so the GeoJSON (and the KML, shapefile, tiles made from it) keeps 15.
-GEOJSON_PRECISION = 15
 PAD_DEG = 1.0  # the bbox prefilter, in degrees around India; the exact intersection test follows
 TAGS = ['groundwater', 'hydrogeology', 'permeability', 'porosity', 'hydraulic conductivity', 'aquifer',
         'subsurface', 'GLHYMPS', 'unconsolidated sediments', 'permafrost']
@@ -190,9 +187,9 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     log(f'{rows} polygons')
     con = make_con()
     log('geojson')
-    path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con),
-                        coordinate_precision=GEOJSON_PRECISION)
+    # Reprojected from metres, some polygons have vertices under 1 cm apart: 7 decimals would collapse 44 of
+    # them into lines, so write_geojson_whole keeps full precision for the GeoJSON (and the KML, shapefile, tiles).
+    write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))
     log('kml')
     write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
     log('shapefile')

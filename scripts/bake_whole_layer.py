@@ -74,6 +74,11 @@ REFERENCE_INDIA_BOUNDARY_R2_PREFIX = "reference"
 REFERENCE_INDIA_BOUNDARY_BASENAME = "india_boundary"
 
 MAX_PARQUET_MB = float(os.environ.get("WHOLE_LAYER_MAX_PARQUET_MB", "100"))
+# Decimals tried, in order, for a layer whose geometry 7 decimals would change (write_geojson_whole).
+# No one grid suits every layer: GDAL snaps as round(x / 1e-15) * 1e-15, past what a double holds at
+# India's longitudes, and that noise broke 3 polygons each in soi_forests and bhuvan_blocks (12 changes
+# none of theirs), while 12 is too coarse for gs_wildlife and corporation_bengaluru (15 changes none).
+GEOJSON_FALLBACK_PRECISIONS = (15, 12)
 
 
 # ---------------------------------------------------------------------------
@@ -124,16 +129,38 @@ def _detect_geom_col(
     return "geometry"
 
 
+def _shape_sql(g: str) -> str:
+    """(type, vertex count) of geometry `g`, with a one-part Multi* named as its
+    single type (RFC 7946 output writes it so) and an empty geometry as NULL."""
+    t = f"ST_GeometryType({g})::VARCHAR"
+    return (f"CASE WHEN {g} IS NULL OR ST_IsEmpty({g}) THEN NULL "
+            f"WHEN {t} LIKE 'MULTI%' AND ST_NumGeometries({g}) = 1 THEN substr({t}, 6) ELSE {t} END AS t, "
+            f"ST_NPoints({g}) AS n")
+
+
+def geojson_changed_features(con: duckdb.DuckDBPyConnection, parquet: Path, geom_col: str, geojson: Path) -> int:
+    """How many features the GeoJSON writer changed: their (type, vertex count)
+    pairs, compared as multisets (no key is needed). Rounding alone keeps both;
+    GDAL's repair of a geometry the rounding made invalid changes them."""
+    src = _shape_sql(f'"{geom_col}"')
+    return con.execute(
+        f"SELECT count(*) FROM (SELECT {src} FROM '{parquet.as_posix()}' "
+        f"EXCEPT ALL SELECT {_shape_sql('geom')} FROM ST_Read('{geojson.as_posix()}'))").fetchone()[0]
+
+
 def write_geojson_whole(
     con: duckdb.DuckDBPyConnection, parquet: Path, out: Path, gdal_ok: bool = True,
-    coordinate_precision: int | None = None,
 ) -> None:
     """Whole-layer GeoJSON through GDAL (streams; every column kept, nulls
     too). `gdal_ok` is kept for callers on other branches: without the GDAL
     driver this raises instead of hand-building the file in memory.
-    RFC 7946 output rounds coordinates to 7 decimals; `coordinate_precision`
-    keeps more, for polygons with vertices closer than that, which the
-    rounding would collapse into lines."""
+
+    RFC 7946 output snaps coordinates to 7 decimals (~1 cm) and repairs any
+    geometry the snapping made invalid, which turns a polygon or line with
+    vertices closer than that into a line, a point or a GeometryCollection (a
+    shapefile can't hold one), or fails the write. Such a layer is written at
+    the first of GEOJSON_FALLBACK_PRECISIONS that changes no geometry; every
+    other layer keeps its 7-decimal file."""
     if not gdal_ok:
         raise RuntimeError('duckdb-spatial has no GDAL GeoJSON driver: install a spatial build with GDAL')
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -141,12 +168,29 @@ def write_geojson_whole(
     # Callers pass bare connections too; without this, EPSG:4326-tagged
     # geometry is written lat,lon.
     con.execute("SET geometry_always_xy = true")
-    options = "'RFC7946=YES'" + (f", 'COORDINATE_PRECISION={coordinate_precision}'" if coordinate_precision else "")
-    con.execute(
-        f"COPY (SELECT * EXCLUDE \"{geom_col}\", \"{geom_col}\" FROM '{parquet.as_posix()}') "
-        f"TO '{out.as_posix()}' "
-        f"WITH (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS ({options}))"
-    )
+
+    # Snapping can't make a point invalid: a points-only layer skips the read-back.
+    only_points = not con.execute(f"SELECT count(*) FROM '{parquet.as_posix()}' "
+                                  f"WHERE ST_Dimension(\"{geom_col}\") > 0").fetchone()[0]
+    for precision in (None, *GEOJSON_FALLBACK_PRECISIONS):
+        option = f", 'COORDINATE_PRECISION={precision}'" if precision else ''
+        out.unlink(missing_ok=True)  # GDAL won't overwrite
+        try:
+            con.execute(
+                f"COPY (SELECT * EXCLUDE \"{geom_col}\", \"{geom_col}\" FROM '{parquet.as_posix()}') "
+                f"TO '{out.as_posix()}' "
+                f"WITH (FORMAT GDAL, DRIVER 'GeoJSON', LAYER_CREATION_OPTIONS ('RFC7946=YES'{option}))"
+            )
+            if only_points:
+                return
+            changed = geojson_changed_features(con, parquet, geom_col, out)
+        except duckdb.Error as e:  # GEOS can't repair some collapses ("Overlay input is mixed-dimension")
+            changed = str(e)
+        if not changed:
+            return
+        print(f"note  {out.name}: at {precision or 7} decimals the GeoJSON writer changed geometries ({changed})",
+              flush=True)
+    raise ValueError(f'{out.name}: the GeoJSON writer changes geometries at every precision tried')
 
 
 def build_india_polygon_geojson(parquet_src: Path, out: Path) -> None:
