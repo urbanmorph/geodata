@@ -10672,15 +10672,15 @@
       "id": "gsi_lithology_50k",
       "level": "gsi_lithology_50k",
       "source": "NGDR",
-      "rows": 3966842,
+      "rows": 360622,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.34be2296.parquet",
         "upstream_url": "https://github.com/ramSeraph/indian_land_features/releases/download/geology/NGDR_Lithology_50k.parquet",
-        "bytes": 527034110
+        "bytes": 491244280
       },
       "pmtiles": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.0f1c048f.pmtiles",
-        "bytes": 201232291
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gsi-lithology-50k/NGDR_Lithology_50k.73c6fdad.pmtiles",
+        "bytes": 181845998
       },
       "licence": "CC0-1.0",
       "attribution": {
@@ -10692,7 +10692,7 @@
       },
       "category": "environment",
       "provenance": "curated",
-      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area.",
+      "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GSI publishes this map 11 times under different layer names (lithology_gcs_ngdr1 to lithology_gcs_ngdr11); bharatlas keeps one copy, the ngdr1 rows: 360,622 rock units. Nothing else is changed. Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area.",
       "geojson": null,
       "kml": null,
       "shapefile": null,
