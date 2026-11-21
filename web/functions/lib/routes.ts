@@ -10,7 +10,7 @@
 
 /** Prerendered single-page routes (one <name>.template.html each). '' = "/". */
 export const STATIC_PAGES = new Set<string>([
-  '', 'about', 'docs', 'layers', 'mcp', 'preview', 'privacy', 'terms',
+  '', 'about', 'design', 'docs', 'layers', 'mcp', 'preview', 'privacy', 'terms',
 ]);
 
 /** Pages served straight from public/<name>/index.html, not prerendered: the

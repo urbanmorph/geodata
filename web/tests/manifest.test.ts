@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestProblems, manifestContentType, readManifest, screenshotProblems, MANIFEST_LINK } from './helpers/manifest-checks';
+import { COLORS } from '../../shared/tokens.mjs';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
 import { renderNav } from '../scripts/shared-chrome.mjs';
 
@@ -13,7 +14,7 @@ describe('bharatlas.com web app manifest', () => {
     expect(screenshotProblems(pub)).toEqual([]);
   });
   it('meets the install criteria', () => {
-    expect(manifestProblems(pub, '#ffffff')).toEqual([]);
+    expect(manifestProblems(pub, COLORS.light['--bg'])).toEqual([]);
     const m = readManifest(pub);
     expect(m.start_url).toBe('/');
     expect(m.id).toBe('/');

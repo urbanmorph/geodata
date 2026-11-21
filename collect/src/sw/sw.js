@@ -66,17 +66,19 @@ self.addEventListener('activate', (event) => {
 
 // collect's own page for an address that isn't saved here, in collect's colours
 // (light and dark), with a way home and "Try again" (an empty link reloads it).
+// A plain worker script, so it carries copies of the tokens it needs
+// (shared/tokens.mjs; web/tests/design-tokens.test.ts keeps them equal).
 const OFFLINE_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="robots" content="noindex"><title>You're offline · collect</title>
-<style>:root{color-scheme:light dark;--bg:#fff;--ink:#0B1B3F;--muted:#4b5563;--accent:#1A2A6C}
-@media (prefers-color-scheme: dark){:root{--bg:#0b0b10;--ink:#f3f4f6;--muted:#9ca3af;--accent:#F5A04A}}
-body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--ink);
-font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+<style>:root{color-scheme:light dark;--font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;--fs-md: 16px;--fs-2xl: 24px;--radius-sm: 4px;--bg: #F3F6F1;--bg-elevated: #ffffff;--fg: #0B1B3F;--muted: #4B5563;--edge: #0B1B3F;--accent-fill: #F28C28;--on-accent-fill: #0B1B3F}
+@media (prefers-color-scheme: dark){:root{--bg: #0a0a0a;--bg-elevated: #15151a;--fg: #ededed;--muted: #9ca3af;--edge: #C8D0E3}}
+body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--fg);
+font:var(--fs-md)/1.55 var(--font-sans);
 padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
-main{max-width:30rem;text-align:center}h1{font-size:1.6rem;margin:0 0 .5rem}p{color:var(--muted);margin:0 0 1.4rem}
-a{display:inline-block;margin:.25rem;padding:.6rem 1.1rem;border-radius:999px;border:1px solid var(--accent);color:var(--accent);text-decoration:none;font-weight:600}
-a.go{background:#F28C28;border-color:#F28C28;color:#0B1B3F}</style></head>
+main{max-width:30rem;text-align:center}h1{font-size:var(--fs-2xl);margin:0 0 .5rem}p{color:var(--muted);margin:0 0 1.4rem}
+a{display:inline-flex;align-items:center;min-height:44px;margin:.25rem;padding:0 1.1rem;border-radius:var(--radius-sm);border:1.5px solid var(--edge);background:var(--bg-elevated);color:var(--fg);text-decoration:none;font-weight:750}
+a.go{background:var(--accent-fill);color:var(--on-accent-fill);box-shadow:3px 3px 0 var(--edge)}</style></head>
 <body><main><h1>You're offline</h1>
 <p>This page isn't saved on this phone. Maps you've opened before with a connection still work, and points you add are kept and sent when you're back online.</p>
 <a class="go" href="">Try again</a><a href="/">Your maps</a></main></body></html>`;

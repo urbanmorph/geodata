@@ -20,6 +20,7 @@ export const PALETTE = Object.freeze({
   saffronHover: '#E8730C',
   saffronLight: '#F5A04A', // links + focus on dark backgrounds
   green: '#12804A', // India green: open, free, verified
+  greenText: '#0F7A45', // India green a shade deeper, for text: AA on every light surface
   navy: '#0B1B3F', // chakra navy: ink, wordmark
   navyLink: '#1A2A6C', // links on light backgrounds
   white: '#FFFFFF',
@@ -37,7 +38,7 @@ export const THEME = Object.freeze({
     '--accent-fill': PALETTE.saffron,
     '--accent-fill-hover': PALETTE.saffronHover,
     '--on-accent-fill': PALETTE.navy,
-    '--brand-green': PALETTE.green,
+    '--brand-green': PALETTE.greenText,
   }),
   dark: Object.freeze({
     '--fg': '#ededed',

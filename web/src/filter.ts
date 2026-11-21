@@ -64,7 +64,7 @@ export function mountFilterPanel(
             <span class="fmt">KML</span><span class="muted">Google Earth &amp; Maps</span>
           </button>`;
   const hint = server
-    ? `This layer is large, so filtering runs on the bharatlas server: the count and exports (up to ${FILTER_EXPORT_MAX_ROWS.toLocaleString('en-US')} rows) come from there.`
+    ? `This layer is large, so filtering runs on the bharatlas server: the count and exports (up to ${FILTER_EXPORT_MAX_ROWS.toLocaleString('en-IN')} rows) come from there.`
     : 'Filtering runs in your browser. It downloads only the parts of the file your filter needs.';
   const panel = document.createElement('aside');
   panel.className = 'filter-panel';
@@ -228,7 +228,7 @@ export function mountFilterPanel(
     }
     const filename = `${layer.id}.${fmt}`;
     downloadHref(`/api/v1/layers/${encodeURIComponent(layer.id)}/export?format=${fmt}&filter=${filterParam(active)}`, filename);
-    status.innerHTML = `<span class="filter-panel__ok">Downloading ${escapeHtml(filename)} (${n.toLocaleString('en-US')} rows) from the server.</span>`;
+    status.innerHTML = `<span class="filter-panel__ok">Downloading ${escapeHtml(filename)} (${n.toLocaleString('en-IN')} rows) from the server.</span>`;
   }
 
   exportBtns.forEach((btn) => {
@@ -323,7 +323,7 @@ async function apiPlan(layerId: string, active: ActiveFilter[]): Promise<ExportP
   return body.data;
 }
 
-const MB = (n: number) => `${Math.round(n / (1024 * 1024)).toLocaleString('en-US')} MB`;
+const MB = (n: number) => `${Math.round(n / (1024 * 1024)).toLocaleString('en-IN')} MB`;
 const FMT_LABEL: Record<ExportFmt, string> = { geojson: 'GeoJSON', kml: 'KML', csv: 'CSV' };
 
 /** Above an export cap (rows, estimated bytes, or for GeoJSON/KML the shape
@@ -339,13 +339,13 @@ export function overCapMessage(
     ? 'For a whole state, download the per-state zip (GeoJSON, KML or shapefile) from the layer\'s files; or narrow the filter.'
     : 'Narrow the filter, or download the whole layer from its files.';
   if (n > FILTER_EXPORT_MAX_ROWS) {
-    return `${n.toLocaleString('en-US')} match: more than one export holds (${FILTER_EXPORT_MAX_ROWS.toLocaleString('en-US')}). ${instead}`;
+    return `${n.toLocaleString('en-IN')} match: more than one export holds (${FILTER_EXPORT_MAX_ROWS.toLocaleString('en-IN')}). ${instead}`;
   }
   if (bytes > FILTER_EXPORT_MAX_BYTES) {
-    return `${n.toLocaleString('en-US')} match, an estimated ${MB(bytes)} as ${FMT_LABEL[fmt]}: more than one export holds (${MB(FILTER_EXPORT_MAX_BYTES)}). ${instead}`;
+    return `${n.toLocaleString('en-IN')} match, an estimated ${MB(bytes)} as ${FMT_LABEL[fmt]}: more than one export holds (${MB(FILTER_EXPORT_MAX_BYTES)}). ${instead}`;
   }
   if (fmt !== 'csv' && shapeBytes > FILTER_EXPORT_MAX_SHAPE_BYTES) {
-    return `${n.toLocaleString('en-US')} match, spread over too much of this layer to export their shapes in one go. ${instead} Or export CSV (each row with its centre point).`;
+    return `${n.toLocaleString('en-IN')} match, spread over too much of this layer to export their shapes in one go. ${instead} Or export CSV (each row with its centre point).`;
   }
   return null;
 }

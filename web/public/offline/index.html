@@ -7,20 +7,23 @@
 <title>You're offline · bharatlas</title>
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <style>
-  :root{color-scheme:light dark;--bg:#ffffff;--fg:#0B1B3F;--muted:#525965;--line:#e5e7eb;--card:#ffffff}
-  @media (prefers-color-scheme: dark){:root{--bg:#0a0a0a;--fg:#ededed;--muted:#9ca3af;--line:#262626;--card:#1a1a1f}}
+  /* Shown with no network, so it carries copies of the tokens it needs
+     (shared/tokens.mjs; web/tests/design-tokens.test.ts keeps them equal). */
+  :root{color-scheme:light dark;--font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif;--fs-base: 15px;--fs-md: 16px;--fs-xl: 22px;--fs-3xl: 32px;--radius-sm: 4px;--bg: #F3F6F1;--bg-elevated: #ffffff;--fg: #0B1B3F;--muted: #4B5563;--edge: #0B1B3F;--accent-strong: #0B1B3F;--accent-fill: #F28C28;--on-accent-fill: #0B1B3F;--land: #E6F2EA}
+  @media (prefers-color-scheme: dark){:root{--bg: #0a0a0a;--bg-elevated: #15151a;--fg: #ededed;--muted: #9ca3af;--edge: #C8D0E3;--accent-strong: #F28C28;--land: #13261C}}
   *{box-sizing:border-box}
   body{margin:0;min-height:100dvh;display:grid;place-items:center;background:var(--bg);color:var(--fg);
-    font:15px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    font:var(--fs-base)/1.6 var(--font-sans);
     padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left))}
   main{max-width:32rem;text-align:center}
-  .site-brand{display:inline-flex;align-items:center;gap:8px;color:var(--fg);text-decoration:none;font-size:22px;font-weight:800;letter-spacing:-.025em}
-  h1{font-size:32px;line-height:1.15;font-weight:800;letter-spacing:-.025em;margin:28px 0 8px}
-  p{color:var(--muted);font-size:16px;margin:0 0 24px}
+  .site-brand{display:inline-flex;align-items:center;gap:8px;color:var(--fg);text-decoration:none;font-size:var(--fs-xl);font-weight:800;letter-spacing:-.025em}
+  h1{font-size:var(--fs-3xl);line-height:1.15;font-weight:800;letter-spacing:-.025em;margin:28px 0 8px}
+  p{color:var(--muted);font-size:var(--fs-md);margin:0 0 24px}
   .links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-  .links a{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--fg);text-decoration:none;font-size:16px;font-weight:650}
-  .links a.go{background:#F28C28;border-color:#F28C28;color:#0B1B3F}
-  .links a:focus-visible{outline:3px solid #F5A04A;outline-offset:2px}
+  .links a{display:inline-flex;align-items:center;min-height:44px;padding:0 20px;border-radius:var(--radius-sm);border:1.5px solid var(--edge);background:var(--bg-elevated);color:var(--fg);text-decoration:none;font-size:var(--fs-md);font-weight:750}
+  .links a:hover{background:var(--land)}
+  .links a.go{background:var(--accent-fill);color:var(--on-accent-fill);box-shadow:3px 3px 0 var(--edge)}
+  .links a:focus-visible{outline:2px solid var(--accent-strong);outline-offset:2px}
 </style>
 </head>
 <body>

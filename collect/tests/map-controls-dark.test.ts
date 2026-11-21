@@ -9,7 +9,7 @@ const darkBlocks = [...css.matchAll(/@media \(prefers-color-scheme: dark\) \{([\
 
 describe('collect map attribution in dark mode', () => {
   it('is a card-coloured panel with readable text and links', () => {
-    expect(darkBlocks).toMatch(/\.maplibregl-map \.maplibregl-ctrl-attrib[^{]*\{[^}]*background-color: var\(--card\)[^}]*color: var\(--fg\)/);
+    expect(darkBlocks).toMatch(/\.maplibregl-map \.maplibregl-ctrl-attrib[^{]*\{[^}]*background-color: var\(--bg-elevated\)[^}]*color: var\(--fg\)/);
     expect(darkBlocks).toMatch(/\.maplibregl-map \.maplibregl-ctrl-attrib a \{[^}]*color: var\(--muted\)/);
   });
   it('shows a light (i) icon', () => {

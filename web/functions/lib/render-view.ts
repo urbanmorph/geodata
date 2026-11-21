@@ -14,7 +14,7 @@
 // Result: no link the user can click jumps off 5173 in dev.
 
 import type { SubmissionView } from './submissions';
-import { TOKENS, renderNav } from '../../scripts/shared-chrome.mjs';
+import { MAP_TOKENS, renderNav } from '../../scripts/shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
 import { licenceUrl } from '../../../shared/licences.mjs';
 import { footerHtml } from '../../../shared/footer.mjs';
@@ -128,7 +128,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <style>
       /* Edge-rendered with the site's shared tokens, header and page classes
          (scripts/shared-chrome.mjs); only this page's own pieces are below. */
-      ${TOKENS}
+      ${MAP_TOKENS}
       .tag { margin: 8px 0 0; }
       .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px var(--sp-5); margin: 0 0 var(--sp-6); font-size: var(--fs-base); }
       .kv dt { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
@@ -159,7 +159,7 @@ export function renderViewPage(opts: RenderOpts): string {
       <dt>Licence</dt>
       <dd><a href="${esc(licenseUrl)}" rel="noopener" target="_blank"><code>${esc(s.license)}</code></a></dd>
       <dt>Format</dt>
-      <dd><code>${esc(s.format)}</code> · ${esc(fmtBytes(s.bytes))}${s.feature_count != null ? ` · ${s.feature_count.toLocaleString()} features` : ''}${s.geometry_types ? ` · ${esc(s.geometry_types)}` : ''}</dd>
+      <dd><code>${esc(s.format)}</code> · ${esc(fmtBytes(s.bytes))}${s.feature_count != null ? ` · ${s.feature_count.toLocaleString('en-IN')} features` : ''}${s.geometry_types ? ` · ${esc(s.geometry_types)}` : ''}</dd>
       ${s.data_year ? `<dt>Data year</dt>
       <dd>${s.data_year}</dd>` : ''}
       <dt>Submitted</dt>

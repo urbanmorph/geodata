@@ -1,14 +1,16 @@
 // collect wears bharatlas's "survey sheet" look (Direction A): the same edge,
-// land, grid, shadow and mono tokens as bharatlas.com, read here from
-// bharatlas's shared styles so the two can't drift; navy-edged controls with
-// 4px corners; an offset shadow on the main action; grid paper behind pages.
+// land, grid, shadow and mono tokens as bharatlas.com (both sites emit
+// shared/tokens.mjs, so the two can't drift); navy-edged controls with 4px
+// corners; an offset shadow on the main action; grid paper behind pages.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 // @ts-expect-error: plain .mjs
 import { TOKENS } from '../../web/scripts/shared-chrome.mjs';
+import { injectTokens } from '../../shared/tokens.mjs';
 
-const css = readFileSync(resolve(__dirname, '../src/styles.css'), 'utf8');
+// The stylesheet as the build serves it, tokens filled in (vite.config.ts).
+const css = injectTokens(readFileSync(resolve(__dirname, '../src/styles.css'), 'utf8'));
 const darkOf = (s: string) => s.slice(s.indexOf('prefers-color-scheme: dark'));
 const value = (s: string, t: string) => s.match(new RegExp(`${t}: ([^;]+);`))?.[1].trim();
 
@@ -26,7 +28,8 @@ describe('collect tokens match bharatlas', () => {
 
 describe('collect controls', () => {
   it('corners are 4px', () => {
-    expect(value(css, '--radius')).toBe('4px');
+    expect(value(css, '--radius-sm')).toBe('4px');
+    expect(css).toMatch(/button, \.btn \{[^}]*border-radius: var\(--radius-sm\)/);
   });
   it('buttons and inputs have the navy edge', () => {
     expect(css).toMatch(/button, \.btn \{[^}]*border: 1\.5px solid var\(--edge\)/);

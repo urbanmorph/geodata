@@ -126,9 +126,10 @@ describe('every surface uses the brand (no leftover violet)', () => {
 
   it('collect uses the brand saffron for buttons with navy text', () => {
     const css = read('collect/src/styles.css');
-    expect(css).toContain(`--accent-solid: ${PALETTE.saffron};`);
-    expect(css).toContain(`--on-accent-solid: ${PALETTE.navy};`);
-    for (const l of css.split('\n').filter((x) => x.includes('var(--accent-solid)'))) expect(l).not.toMatch(/color: ?#fff\b/);
+    expect(THEME.light['--accent-fill']).toBe(PALETTE.saffron);
+    expect(THEME.light['--on-accent-fill']).toBe(PALETTE.navy);
+    expect(css).toMatch(/button\.primary, \.btn\.primary \{[^}]*background: var\(--accent-fill\); color: var\(--on-accent-fill\)/);
+    for (const l of css.split('\n').filter((x) => x.includes('var(--accent-fill)'))) expect(l).not.toMatch(/color: ?#fff\b/);
   });
 
   it('buttons on the saffron fill use navy text, not white', () => {

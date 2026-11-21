@@ -298,7 +298,7 @@ export function groupAccumulator(groupCol: string, sumCols: string[] = [], maxKe
         const key = String(row[groupCol] ?? '(null)');
         if (counts[key] === undefined && ++keys > maxKeys) {
           throw new QueryInputError(
-            `Column "${groupCol}" has more than ${maxKeys.toLocaleString('en-US')} distinct values: too many to group. `
+            `Column "${groupCol}" has more than ${maxKeys.toLocaleString('en-IN')} distinct values: too many to group. `
             + 'Group by a coarser column, or narrow the rows with a where filter first.',
           );
         }

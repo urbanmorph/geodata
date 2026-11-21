@@ -1,0 +1,28 @@
+export type ColorKind = 'surface' | 'text' | 'fill' | 'on-fill' | 'edge' | 'decor';
+export type ColorRole = Readonly<{ name: string; kind: ColorKind; light: string; dark: string; use: string }>;
+type Decls = Readonly<Record<string, string>>;
+
+export declare const DESIGN_VERSION: string;
+export declare const DESIGN_CHANGELOG: ReadonlyArray<Readonly<{ version: string; date: string; changes: readonly string[] }>>;
+export declare const COLOR_ROLES: readonly ColorRole[];
+export declare const COLORS: Readonly<{ light: Decls; dark: Decls }>;
+export declare const FONT: Decls;
+export declare const FONT_SIZE: Decls;
+export declare const FONT_WEIGHT: Decls;
+export declare const LINE_HEIGHT: Decls;
+export declare const SPACE: Decls;
+export declare const RADIUS: Decls;
+export declare const DEPRECATED: Decls;
+export declare const BORDER: Decls;
+export declare const SHADOW: Decls;
+export declare const Z: Decls;
+export declare const MOTION: Decls;
+export declare const ICON: Decls;
+export declare const TAP: Decls;
+export declare const LAYOUT: Decls;
+export declare const BREAKPOINTS: Readonly<{ sm: number; md: number; lg: number }>;
+export declare const SCALES: Readonly<Record<'FONT' | 'FONT_SIZE' | 'FONT_WEIGHT' | 'LINE_HEIGHT' | 'SPACE' | 'RADIUS' | 'BORDER' | 'SHADOW' | 'Z' | 'MOTION' | 'ICON' | 'TAP' | 'LAYOUT' | 'DEPRECATED', Decls>>;
+export declare const TOKENS_MARKER: string;
+export declare function tokensCss(): string;
+export declare function injectTokens(css: string): string;
+export declare function contrast(a: string, b: string): number;

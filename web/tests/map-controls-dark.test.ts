@@ -3,8 +3,10 @@
 // page with a map (the layer map, embeds and the contribute preview all
 // include the shared tokens).
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 // @ts-expect-error: plain .mjs
-import { TOKENS } from '../scripts/shared-chrome.mjs';
+import { TOKENS, MAP_TOKENS } from '../scripts/shared-chrome.mjs';
 
 const dark = (css: string) => {
   const at = css.indexOf('@media (prefers-color-scheme: dark)');
@@ -12,7 +14,7 @@ const dark = (css: string) => {
 };
 
 describe('map controls in dark mode', () => {
-  const css = dark(TOKENS);
+  const css = dark(MAP_TOKENS.slice(TOKENS.length));
   // `:root` raises each rule over MapLibre's own stylesheet, which the bundle
   // injects after the page's inline tokens.
   it('the button group is an elevated panel with a token edge', () => {
@@ -33,6 +35,12 @@ describe('map controls in dark mode', () => {
     expect(css).toMatch(/:root \.maplibregl-ctrl-attrib-button \{[^}]*background-color: transparent[^}]*filter: invert\(1\)/);
   });
   it('the light theme keeps MapLibre defaults', () => {
-    expect(TOKENS.slice(0, TOKENS.indexOf('@media (prefers-color-scheme: dark)'))).not.toContain('maplibregl-ctrl');
+    expect(TOKENS).not.toContain('maplibregl-ctrl');
+  });
+  it('ship only on pages with a map (the layer map, the contribute preview, /view)', () => {
+    const read = (f: string) => readFileSync(resolve(__dirname, '..', f), 'utf8');
+    for (const f of ['index.html', 'preview.html']) expect(read(f), f).toContain('.maplibregl-ctrl-group');
+    expect(read('functions/lib/render-view.ts')).toContain('${MAP_TOKENS}');
+    for (const f of ['layers.html', 'about.html', 'docs.html']) expect(read(f), f).not.toContain('maplibregl-ctrl');
   });
 });

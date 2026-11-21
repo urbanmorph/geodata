@@ -1599,7 +1599,7 @@ async function importFlow(file: File): Promise<void> {
     <div id="map-preview" class="hint" style="margin:10px 0"></div>
     <div class="maplabel">Where's this data from? <span class="hint">(the source, shown in the published credit)</span></div>
     <input id="imp-source" placeholder="e.g. SOI Forest Atlas 2021, or a link" maxlength="200" aria-label="Where's this data from?" />
-    <label class="chip" style="gap:8px;margin-top:10px;align-items:flex-start;border-radius:12px;padding:10px 12px"><input type="checkbox" id="imp-rights" style="width:auto;min-height:auto;margin-top:3px"><span style="white-space:normal;font-weight:400;font-size:var(--fs-sm)">I have the right to publish this under the map's licence (${escapeHtml(meta.license)}): it's my own data, or from a source whose terms allow it.</span></label>
+    <label class="chip" style="gap:8px;margin-top:10px;align-items:flex-start;border-radius:var(--radius-xl);padding:10px 12px"><input type="checkbox" id="imp-rights" style="width:auto;min-height:auto;margin-top:3px"><span style="white-space:normal;font-weight:400;font-size:var(--fs-sm)">I have the right to publish this under the map's licence (${escapeHtml(meta.license)}): it's my own data, or from a source whose terms allow it.</span></label>
     <button class="primary" id="do-import" style="margin-top:12px">Import all ${n} rows</button>
     <div id="import-result"></div>`;
 
@@ -1772,9 +1772,9 @@ function wirePointRows(q: HTMLElement): void {
 
 const photoCount = (v: unknown): string => {
   const n = Array.isArray(v) ? v.length : 0;
-  return n ? `${n} photo${n === 1 ? '' : 's'}` : '—';
+  return n ? `${n} photo${n === 1 ? '' : 's'}` : 'No photos';
 };
-const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? '—' : String(v));
+const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? 'n/a' : String(v));
 
 // One attribute row per (non-deleted) field — shared by the review sheet
 // (prefix "attr") and the map tooltip (prefix "pop-attr"). Empty-state per caller.

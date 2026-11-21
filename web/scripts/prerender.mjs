@@ -2,11 +2,11 @@
 // Zero JS needed to read or navigate the catalog.
 import { readFile, writeFile } from 'node:fs/promises';
 import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
-import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
+import { TOKENS, MAP_TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
@@ -20,7 +20,8 @@ import { WARD_PLACES } from '../functions/lib/ward-places.ts';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
 import { OPENAPI } from '../functions/lib/openapi.ts';
 import { fillTemplate } from './fill-template.mjs';
-import { minifyInlineStyles } from './minify-inline-css.mjs';
+import { minifyInlineStyles as minifyCss } from './minify-inline-css.mjs';
+import { designPageBody } from './design-page.mjs';
 import { ogImage } from './og-image-url.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
@@ -33,6 +34,13 @@ import { turnstileSiteKey } from './turnstile-key.mjs';
 const HERE = dirname(fileURLToPath(import.meta.url));
 const WEB = resolve(HERE, '..');
 const ROOT = resolve(WEB, '..');
+
+// Each page keeps only the tokens it reads (minify-inline-css.mjs), plus those the
+// site's scripts write into markup at run time (var(--x) in web/src and shared/).
+const SCRIPT_TOKENS = new Set(['src', '../shared'].flatMap((dir) =>
+  readdirSync(resolve(WEB, dir)).filter((f) => /\.(ts|mjs)$/.test(f) && f !== 'tokens.mjs')
+    .flatMap((f) => [...readFileSync(resolve(WEB, dir, f), 'utf8').matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))));
+const minifyInlineStyles = (html) => minifyCss(html, { keepTokens: SCRIPT_TOKENS });
 
 const catalogPath = resolve(ROOT, 'catalog.json');
 if (!existsSync(catalogPath)) {
@@ -760,7 +768,7 @@ const siteUse = { downloads: homeDownloads, ...apiUse };
 const out = fillTemplate(tmpl, {
   REALM_GROUPS: homeRealmsHtml,
   SEO_HEAD: homeSeo,
-  TOKENS,
+  TOKENS: MAP_TOKENS,
   NAV: renderNav('home'),
   FOOTER,
   POPULAR: popularHtml,
@@ -964,7 +972,7 @@ await renderPage(
       ],
     },
   },
-  { TURNSTILE_SITEKEY },
+  { TURNSTILE_SITEKEY, TOKENS: MAP_TOKENS },
 );
 
 // Shared minimal WebSite ref for legal pages' isPartOf.
@@ -1023,6 +1031,22 @@ await renderPage('terms', {
     ],
   },
 });
+
+// /design: the living style guide, built from shared/tokens.mjs (scripts/design-page.mjs).
+await renderPage('design', {
+  title: 'Design',
+  description: 'How bharatlas looks and reads: colours, type, spacing, buttons, accessibility and word rules, shown with the real values the site uses.',
+  url: ORIGIN + '/design',
+  image: ogImage('og-default'),
+  structuredData: {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
+      { '@type': 'ListItem', position: 2, name: 'Design', item: ORIGIN + '/design' },
+    ],
+  },
+}, { DESIGN_BODY: designPageBody() });
 
 // /docs FAQ — mirrors the visible "Common questions" section emitted into
 // docs.template.html. Targets queries an LLM (or a human) is likely to ask
@@ -1210,6 +1234,7 @@ const sitemapUrls = [
   { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
   { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
+  { loc: ORIGIN + '/design', changefreq: 'monthly', priority: '0.4' },
   { loc: ORIGIN + '/docs', changefreq: 'monthly', priority: '0.7' },
   { loc: ORIGIN + '/mcp', changefreq: 'monthly', priority: '0.7' },
   { loc: ORIGIN + '/releases', changefreq: 'monthly', priority: '0.5' },

@@ -9,6 +9,7 @@ const SITE = 'https://bharatlas.com';
 const LINKS = [
   ['privacy', '/privacy'],
   ['terms', '/terms'],
+  ['design', '/design'],
   ['status', 'https://status.bharatlas.com/'],
   ['code', 'https://github.com/urbanmorph/geodata'],
 ];

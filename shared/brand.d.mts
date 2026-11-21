@@ -5,6 +5,7 @@ export declare const PALETTE: Readonly<{
   saffronHover: string;
   saffronLight: string;
   green: string;
+  greenText: string;
   navy: string;
   navyLink: string;
   white: string;

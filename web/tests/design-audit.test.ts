@@ -33,7 +33,7 @@ describe('2. community pages use the site header and a main landmark', () => {
 });
 
 describe('3, 5, 6, 8. labels are sentence case (no all-caps)', () => {
-  for (const f of ['index.template.html', 'preview.template.html', 'docs.template.html', 'mcp.template.html', 'about.template.html', 'functions/lib/render-view.ts']) {
+  for (const f of ['index.template.html', 'layers.template.html', 'preview.template.html', 'docs.template.html', 'mcp.template.html', 'about.template.html', 'design.template.html', 'scripts/shared-chrome.mjs', 'functions/lib/render-view.ts', '../collect/src/styles.css']) {
     it(f, () => expect(read(f)).not.toMatch(/text-transform:\s*uppercase/));
   }
 });
@@ -66,8 +66,12 @@ describe('5. docs section headings match the other pages', () => {
 });
 
 describe('7. collect has one primary action', () => {
-  it('the Install app pill is outlined, as on bharatlas.com', () => {
-    expect(readFileSync(resolve(__dirname, '../../collect/src/styles.css'), 'utf8')).toMatch(/button\.install-app \{[^}]*background: transparent;[^}]*border-color: var\(--line-strong\)/);
+  it('Install app is a small secondary button (4 px corners, the navy edge), as on bharatlas.com', () => {
+    const css = readFileSync(resolve(__dirname, '../../collect/src/styles.css'), 'utf8');
+    const rule = css.match(/button\.install-app \{[^}]*\}/)?.[0] ?? '';
+    expect(rule).toMatch(/min-height: 36px/);
+    expect(rule).not.toMatch(/border-radius|border-color|background/);
+    expect(TOKENS).toMatch(/\.install-app \{[^}]*border: var\(--border-edge\); border-radius: var\(--radius-sm\)/);
   });
 
   it('sync setup is a secondary button', () => {

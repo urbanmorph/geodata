@@ -10,8 +10,8 @@
     <link rel="icon" sizes="any" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F3F6F1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <style>
       <!-- TOKENS -->
 
@@ -63,7 +63,7 @@
       .ws-side .reset {
         display: block; width: 100%; margin: 14px 0 0;
         background: transparent; color: var(--muted); border: 1px dashed var(--line);
-        border-radius: 6px; padding: 8px 12px; font: inherit; font-size: var(--fs-xs); cursor: pointer;
+        border-radius: var(--radius-md); padding: 8px 12px; font: inherit; font-size: var(--fs-xs); cursor: pointer;
       }
       .ws-side .reset:hover { color: var(--fg); border-color: var(--fg); }
 
@@ -84,7 +84,7 @@
       button.cancel {
         background: transparent; border: 0; cursor: pointer;
         color: var(--muted); font-size: var(--fs-md); padding: 4px 8px; line-height: 1;
-        border-radius: 4px;
+        border-radius: var(--radius-sm);
       }
       button.cancel:hover { color: var(--err); background: var(--bg); }
 
@@ -112,7 +112,7 @@
       .field textarea { resize: vertical; min-height: 50px; }
       .legal {
         font-size: var(--fs-xs); color: var(--muted); line-height: 1.5;
-        background: var(--bg); padding: 8px 10px; border-radius: 6px;
+        background: var(--bg); padding: 8px 10px; border-radius: var(--radius-md);
         border-left: 3px solid var(--accent); margin: 12px 0;
       }
       .radio-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
@@ -133,7 +133,7 @@
       #success .warn {
         background: color-mix(in srgb, var(--warn) 12%, var(--bg-card));
         border-left: 3px solid var(--warn);
-        padding: 14px 16px; border-radius: 6px; margin: 16px 0;
+        padding: 14px 16px; border-radius: var(--radius-md); margin: 16px 0;
       }
       #success .warn strong { color: var(--warn); }
       #success .token {
@@ -167,7 +167,7 @@
         border-radius: 50%;
         animation: ml-spin 0.85s linear infinite;
       }
-      .map-loader__verb { font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif; color: var(--muted); }
+      .map-loader__verb { font: 500 var(--fs-sm)/1.2 var(--font-sans); color: var(--muted); }
       @keyframes ml-spin { to { transform: rotate(360deg); } }
 
       /* === Your submissions (v4.8) ========================================== */
