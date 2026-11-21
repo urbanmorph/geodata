@@ -17,6 +17,7 @@ export const INSTRUCTIONS_CORE = `Workflow patterns:
   2. Use query_layer with a where filter to narrow the other layer by that admin context
   3. For precise spatial containment, test individual points via locate against the target layer
 - **Near a point**: nearby returns a layer's features nearest first within radius_km (default 25, max 200), with the true count inside the radius. Use it for "X near Y" once you have Y's coordinate.
+- **Below a point**: ground_at returns the subsurface profile of a lat/lng in one call (seismic zone, faults, lineaments and earthquakes, rock, minerals and wells, aquifer, groundwater level and quality, SoilGrids soil, subsidence, tunnels and buried utilities), each part with its source, licence, scale and vintage. Use it instead of many locate/nearby calls for "what is under this site?". Say "not covered" (the layer does not reach the point) apart from "none within the radius"; layers in "unavailable" were not read, so say nothing about them. Pass on its disclaimer: screening information, not for site or engineering decisions. open_only: true leaves out non-commercial layers.
 - **Community layers**: list_submissions returns user-contributed datasets. These work with query_layer and get_layer_schema exactly like curated layers.
 - **Downloads**: get_layer_detail returns direct URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most).
 - **Citing**: get_layer_detail also returns "versions", the layer's dated releases, newest first. When you cite or publish a result, name the version you used by its code (e.g. bharatlas-lgd_states-2026.12) and sha256, or its w3id address. An empty list means no release yet: cite the layer's /view page and the date you read it.
@@ -209,6 +210,26 @@ export const READ_TOOLS = [
     },
   },
   {
+    name: "ground_at",
+    description:
+      "What is below a point, in one call: seismic zone, nearest active faults, lineaments and recorded earthquakes, " +
+      "rock type (GSI lithology) and landform, aquifer, near-surface permeability (GLHYMPS, in m2 and m/s), " +
+      "nearby groundwater wells, soil at 0-5, 5-15 and 15-30 cm (ISRIC SoilGrids 2.0: clay, sand, silt, pH, organic carbon, " +
+      "bulk density, CEC, nitrogen, WRB soil group) and the nearest Soil Health Card sample, ground subsidence (cm/yr) in megacities, " +
+      "and tunnels, buried pipelines and cables, mines and caves nearby. Returns a one-line `summary` plus `sections`, " +
+      "each layer with its credit, licence (non-commercial ones flagged) and status (found, none_within_radius, or not_covered where the layer does not reach the point); layers that could not be read are listed in `unavailable`. " +
+      "Example: 'what is under this plot in Delhi?' -> lat: 28.525, lng: 77.085.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lat: { type: "number", description: "Latitude (6 to 38, India bounding box)" },
+        lng: { type: "number", description: "Longitude (68 to 98, India bounding box)" },
+        open_only: { type: "boolean", description: "true leaves out the non-commercial layers (for commercial use); default false" },
+      },
+      required: ["lat", "lng"],
+    },
+  },
+  {
     name: "list_categories",
     description: "List all data categories with layer counts.",
     inputSchema: { type: "object", properties: {} },
@@ -350,6 +371,8 @@ export function readToolRequest(name, args = {}) {
       if (layers) params.layers = layers.join(",");
       return { path: "/locate", params };
     }
+    case "ground_at":
+      return { path: "/ground", params: { lat: args.lat, lng: args.lng, ...(args.open_only === true ? { open_only: "true" } : {}) } };
     case "list_categories":
       return { path: "/categories", params: {} };
     case "get_layer_detail":

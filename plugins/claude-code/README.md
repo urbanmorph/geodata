@@ -4,7 +4,7 @@ Wraps the [bharatlas-mcp](https://www.npmjs.com/package/bharatlas-mcp) server as
 
 ## What it does
 
-Adds 17 MCP tools in two halves:
+Adds 18 MCP tools in two halves:
 
 **Read (no auth):** query curated geo layers (state to village boundaries, city wards, forests, wildlife, rivers, reservoirs, hospitals, highways, airports, floods, seismic and eco zones, pincodes) and community submissions; locate any lat/lng across all admin levels and zones; find nearby features; download in Parquet, PMTiles, GeoJSON, KML or Shapefile.
 

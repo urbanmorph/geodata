@@ -1582,6 +1582,20 @@
      "url": "https://core-stack.org/"
     }
    }
+  },
+  {
+   "id": "isric_soilgrids",
+   "publisher": "ISRIC World Soil Information, SoilGrids 2.0 (not a layer: read by /api/v1/ground)",
+   "url": "https://files.isric.org/soilgrids/latest/data/README.md",
+   "kind": "text",
+   "start": "The SoilGrids maps are publicly available under the",
+   "end": "License",
+   "stated": "CC-BY-4.0",
+   "quote": "The SoilGrids maps are publicly available under the [CC-BY 4.0 License](https://creativecommons.org/licenses/by/4.0/).",
+   "verdict": "ok",
+   "layers": [],
+   "sha256": "fc995280e25b8d3849fa3fe78219acb170cbd662e33afd6165ad2822d5aeb5c5",
+   "seen_at": "2026-11-21"
   }
  ]
 }

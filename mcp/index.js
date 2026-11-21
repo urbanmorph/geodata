@@ -40,7 +40,7 @@ Collect (author your own map): this server also drives collect.bharatlas.com, th
 - publish submits a collect map's approved points to the bharatlas catalog FOR REVIEW; nothing is auto-approved. A bharatlas maintainer approves the submission before it goes live; the response's status is "pending" until then. Once approved it is queryable through the read tools above (list_submissions, query_layer, locate).
 - No accounts: the link is the credential. A tool that needs more than your link allows will say which link you need. create_map is optional and needs COLLECT_API_KEY (request-only); prefer creating online.`;
 
-// The eight read tools live in read-tools.js (shared with bharatlas.com/mcp);
+// The nine read tools live in read-tools.js (shared with bharatlas.com/mcp);
 // the collect tools need the local credential store, so they are npm-only.
 const TOOLS = [
   ...READ_TOOLS,

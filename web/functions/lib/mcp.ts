@@ -1,6 +1,6 @@
 // bharatlas's hosted MCP server at https://bharatlas.com/mcp: a stateless JSON-RPC
 // 2.0 endpoint over Streamable HTTP (MCP 2025-06-18), JSON responses, no sessions.
-// It offers the eight read tools only (mcp/read-tools.js, shared with the npm
+// It offers the nine read tools only (mcp/read-tools.js, shared with the npm
 // package). Map authoring (collect) needs the share links the npm package keeps on
 // the user's machine, so it stays there and no share token ever reaches this server.
 //
@@ -19,6 +19,7 @@ import { onRequestGet as layerSchema } from '../api/v1/layers/[id]/schema';
 import { onRequestGet as layerQuery } from '../api/v1/layers/[id]/query';
 import { onRequestGet as locate } from '../api/v1/locate';
 import { onRequestGet as nearby } from '../api/v1/nearby';
+import { onRequestGet as ground } from '../api/v1/ground';
 import { onRequestGet as categories } from '../api/v1/categories';
 import { onRequestGet as submissions } from '../api/v1/submissions/index';
 
@@ -64,14 +65,15 @@ export const API_ROUTES: ApiRoute[] = [
   [/^\/layers\/([^/]+)\/query$/, asHandler(layerQuery)],
   [/^\/locate$/, asHandler(locate)],
   [/^\/nearby$/, asHandler(nearby)],
+  [/^\/ground$/, asHandler(ground)],
   [/^\/categories$/, asHandler(categories)],
   [/^\/submissions$/, asHandler(submissions)],
 ];
 
 /** The API's own per-IP limit, shared with /api/v1 (same keys, same D1 rows, and
- *  the same non-blocking check): 120 calls a minute, locate 60 on its own key. */
+ *  the same non-blocking check): 120 calls a minute, locate and ground_at 60 on the locate key. */
 export function apiRateLimit(env: Env, waitUntil: WaitUntil): RateLimit {
-  return (req, tool) => apiLimitFor(req, env, tool === 'locate', waitUntil);
+  return (req, tool) => apiLimitFor(req, env, tool === 'locate' || tool === 'ground_at', waitUntil);
 }
 
 const ok = (id: Id, result: unknown) => rpc({ jsonrpc: '2.0', id, result });

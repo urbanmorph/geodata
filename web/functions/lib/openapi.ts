@@ -44,7 +44,7 @@ export const OPENAPI = {
       'Public, read-only and free. No key, no sign-up; CORS is open. `/v1` only grows: fields are added, never renamed or removed, and every response carries `x-api-version: v1`. ' +
       'Each layer keeps the open licence its source published it under: read `licence` and `attribution` from `/layers/{id}` and credit the source when you use the data. ' +
       "Please send a `User-Agent` that names your app (for example `my-app/1.0`). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are. " +
-      'Rate limits: 120 requests a minute per IP, 60 a minute for the locate endpoints; over the limit you get 429 with `retry-after`. ' +
+      'Rate limits: 120 requests a minute per IP, 60 a minute for the locate endpoints and /ground; over the limit you get 429 with `retry-after`. ' +
       'Authoring maps is a separate API on collect.bharatlas.com (`/api/collect/v1`, behind a map’s share link, not described here). Its bulk import, `POST /collections/{id}/import` (admin link), takes up to 5000 `records` of `{geometry, properties, client_id?}`: `client_id` is your own stable id for the row (text, 1–128 characters, unique within the map). Re-importing a row with the same `client_id` updates that record in place if its data changed and otherwise leaves it alone, so running the same import twice adds nothing; the response counts `added`, `updated` and `unchanged` overall and per batch of 100 (`batches`). Rows without `client_id` are added again on every run.',
     contact: { name: 'bharatlas', url: 'https://bharatlas.com/docs' },
     license: { name: 'API code: MIT. Data: each layer keeps its source licence (see `licence` on every layer).', identifier: 'MIT' },
@@ -92,6 +92,31 @@ export const OPENAPI = {
         responses: {
           '200': ok('Features sorted by distance', ref('schemas', 'NearbyResult')),
           ...errors('301', '400', '429', '500'),
+        },
+      },
+    },
+    '/ground': {
+      get: {
+        operationId: 'groundAt',
+        tags: ['Spatial'],
+        summary: 'What is below a point: its subsurface profile in one call',
+        description:
+          'Seismic zone, nearest active faults, mapped lineaments and recorded earthquakes; rock (GSI lithology) and landform; aquifer, stage of groundwater extraction, near-surface permeability (GLHYMPS, decoded to m2 and m/s) and nearby groundwater wells; ' +
+          'soil properties at 0-5, 5-15 and 15-30 cm and the WRB soil group from ISRIC SoilGrids 2.0 (250 m, CC BY 4.0), plus the nearest Soil Health Card sample; ground subsidence in megacities (median of satellite points within 500 m); ' +
+          'tunnels, buried pipelines and cables, mines and caves nearby; and, in rural areas, the CoRE Stack micro-watershed water balance and drought. ' +
+          'Each layer is one entry under `sections.<section>.<layer_id>` with its `credit` (source, licence) and, for non-commercial layers, `non_commercial` and `licence_notice`; units are in field names or `units`. ' +
+          '`contains` entries list the features holding the point; `nearest` entries give `count` within `radius_km` and the nearest few with `distance_km` (points by distance to the point, lines by true distance to the line: `distance_to`). ' +
+          'Every entry has a `status`: `found`, `none_within_radius` (the layer covers the area, nothing is that close) or `not_covered` (the layer does not reach this point, e.g. subsidence outside its cities). ' +
+          'Each entry also says its `about`: scale or resolution, vintage and the date bharatlas fetched it; `disclaimer` says once that this is screening information, not for site or engineering decisions. ' +
+          'A layer that cannot be read in time is listed in `unavailable` and the rest still answer. `summary` says it in one line. ' +
+          'The answer is for the point snapped to 3 decimal places (about 100 m; `point` says which), kept in the edge cache for an hour when every layer answered, never by clients. Uses the locate rate limit (60 a minute).',
+        parameters: [
+          LAT, LNG,
+          q('open_only', 'true leaves out the non-commercial layers (NRSC geomorphology, lineaments, groundwater quality and prospects, NDEM floods); they are named in `omitted_non_commercial`.', { type: 'boolean', default: false }),
+        ],
+        responses: {
+          '200': ok('The profile', ref('schemas', 'GroundResult')),
+          ...errors('400', '429', '500'),
         },
       },
     },
@@ -418,6 +443,51 @@ export const OPENAPI = {
           failed_layers: { type: 'array', items: { type: 'string' }, description: 'Layers that could not be read: their absence from `results` says nothing about the point. Absent when every layer answered.' },
           unknown_layers: { type: 'array', items: { type: 'string' }, description: 'Ids in `layers` that are not layers (not tested). Absent when every id was known.' },
           timing_ms: { type: 'integer' },
+        },
+      },
+      GroundResult: {
+        type: 'object',
+        properties: {
+          point: ref('schemas', 'Point'),
+          summary: { type: 'string', description: 'The profile in one readable line.' },
+          disclaimer: { type: 'string', description: 'Screening information, not for site or engineering decisions.' },
+          omitted_non_commercial: { type: 'array', items: { type: 'string' }, description: 'With open_only=true: the non-commercial layers left out.' },
+          sections: {
+            type: 'object',
+            description: 'seismic, geology, resources, groundwater, soil, subsidence, underground, watershed: each maps a layer id (or `soilgrids`) to its entry.',
+            additionalProperties: {
+              type: 'object',
+              additionalProperties: {
+                type: 'object',
+                properties: {
+                  layer_id: { type: 'string' },
+                  match: { type: 'string', enum: ['contains', 'nearest', 'pixel'] },
+                  status: { type: 'string', enum: ['found', 'none_within_radius', 'not_covered'], description: 'not_covered: the layer does not reach this point; none_within_radius: it does, but nothing is within radius_km.' },
+                  distance_to: { type: 'string', enum: ['point', 'line'], description: 'nearest: distance to the feature point, or to the nearest part of the line.' },
+                  credit: { type: 'object', properties: { name: { type: 'string' }, url: { type: 'string' }, publisher: { type: 'object' }, licence: { type: 'string' }, licence_url: { type: 'string' } } },
+                  non_commercial: { type: 'boolean' },
+                  licence_notice: { type: 'string' },
+                  units: { type: 'object', additionalProperties: { type: 'string' } },
+                  about: { type: 'object', properties: { scale: { type: 'string' }, vintage: { type: 'string' }, note: { type: 'string' }, fetched_at: { type: 'string', format: 'date' } } },
+                  features: { type: 'array', items: { type: 'object' }, description: 'contains: the features holding the point (identical ones once).' },
+                  decoded: { type: 'object', description: 'Source encodings in plain units (e.g. GLHYMPS permeability in m2).' },
+                  radius_km: { type: 'number' },
+                  count: { type: 'integer', description: 'nearest: features within radius_km.' },
+                  count_capped: { type: 'boolean', description: 'More features were in range than were read; `count` and `stats` cover those read.' },
+                  nearest: { type: 'array', items: { type: 'object', properties: { distance_km: { type: 'number' }, lat: { type: 'number', description: 'The feature point, or the nearest point of the line.' }, lng: { type: 'number' }, properties: { type: 'object' }, decoded: { type: 'object' } } } },
+                  stats: { type: 'object', additionalProperties: { type: ['number', 'null'] }, description: 'e.g. subsidence: median_VLM_cm_per_yr, the median over points of each point\'s median reading, with points and readings counted.' },
+                  resolution_m: { type: 'integer' },
+                  depths: { type: ['object', 'null'], description: 'SoilGrids: depth interval (0-5cm, 5-15cm, 15-30cm) to clay_pct, sand_pct, silt_pct, ph_water, soc_g_per_kg, bulk_density_g_per_cm3, cec_cmolc_per_kg, nitrogen_g_per_kg.' },
+                  wrb_class: { type: ['string', 'null'], description: 'SoilGrids: most probable WRB reference soil group.' },
+                  reason: { type: 'string', description: 'Why SoilGrids has no value here (water, built-up land, outside its land mask).' },
+                },
+              },
+            },
+          },
+          unavailable: { type: 'array', items: { type: 'object', properties: { layer_id: { type: 'string' }, reason: { type: 'string' } } }, description: 'Layers that could not be read in time: their absence says nothing about the point.' },
+          attribution: { type: 'array', items: { type: 'string' }, description: 'The sources that answered, with their licences: credit them when you use the result.' },
+          timing_ms: { type: 'integer' },
+          layer_timing_ms: { type: 'object', additionalProperties: { type: 'integer' } },
         },
       },
       NearbyResult: {

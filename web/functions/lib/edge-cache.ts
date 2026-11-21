@@ -19,6 +19,8 @@ const KEY_ORIGIN ='https://bharatlas.com/__cache/';
 // Restores the handler's own cache-control on a hit: the stored copy carries
 // the edge ttl instead (the Cache API honours the stored cache-control).
 const CLIENT_CC = 'x-client-cache-control';
+/** A handler sets this header on a 200 the colo must not keep (a partial answer); it never reaches the client. */
+export const NO_STORE = 'x-edge-no-store';
 
 const cmp = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
 
@@ -93,8 +95,9 @@ export async function cached(
 
   let res = await compute();
   if (res.status !== 200) return res;
-  res = withHeaders(res, { etag: res.headers.get('etag') ?? etagFor(key), 'x-edge-cache': 'MISS' });
-  if (cache) {
+  const keep = !res.headers.has(NO_STORE);
+  res = withHeaders(res, { etag: res.headers.get('etag') ?? etagFor(key), 'x-edge-cache': 'MISS', [NO_STORE]: null });
+  if (cache && keep) {
     const stored = withHeaders(res.clone(), {
       'cache-control': `public, max-age=${ttl}`,
       [CLIENT_CC]: res.headers.get('cache-control'),

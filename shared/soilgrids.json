@@ -1,0 +1,120 @@
+{
+  "about": "SoilGrids 2.0 over India's bounding box, one 25-band Int16 GeoTIFF read one pixel at a time by /api/v1/ground. Written by scripts/bake_soilgrids.py (bands, grid) and its register step (file). Units: https://docs.isric.org/globaldata/soilgrids/SoilGrids_faqs_01.html",
+  "source": {
+    "name": "ISRIC SoilGrids 2.0 (Poggio et al. 2021)",
+    "url": "https://soilgrids.org",
+    "data_url": "https://files.isric.org/soilgrids/latest/data/",
+    "citation": "Poggio, L., de Sousa, L. M., Batjes, N. H., Heuvelink, G. B. M., Kempen, B., Ribeiro, E., and Rossiter, D. (2021). SoilGrids 2.0: producing soil information for the globe with quantified spatial uncertainty. SOIL 7, 217-240. https://doi.org/10.5194/soil-7-217-2021",
+    "licence": "CC-BY-4.0",
+    "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+    "licence_stated_at": "https://files.isric.org/soilgrids/latest/data/README.md"
+  },
+  "grid": {
+    "crs": "EPSG:4326",
+    "res_deg": 0.002083333000000875,
+    "bbox": [
+      68,
+      6,
+      98,
+      38
+    ],
+    "nodata": -32768,
+    "block": 64
+  },
+  "properties": {
+    "clay": {
+      "field": "clay_pct",
+      "label": "clay",
+      "mapped": "g/kg",
+      "factor": 10,
+      "unit": "%"
+    },
+    "sand": {
+      "field": "sand_pct",
+      "label": "sand",
+      "mapped": "g/kg",
+      "factor": 10,
+      "unit": "%"
+    },
+    "silt": {
+      "field": "silt_pct",
+      "label": "silt",
+      "mapped": "g/kg",
+      "factor": 10,
+      "unit": "%"
+    },
+    "phh2o": {
+      "field": "ph_water",
+      "label": "pH (water)",
+      "mapped": "pH x 10",
+      "factor": 10,
+      "unit": "pH"
+    },
+    "soc": {
+      "field": "soc_g_per_kg",
+      "label": "soil organic carbon",
+      "mapped": "dg/kg",
+      "factor": 10,
+      "unit": "g/kg"
+    },
+    "bdod": {
+      "field": "bulk_density_g_per_cm3",
+      "label": "bulk density",
+      "mapped": "cg/cm3",
+      "factor": 100,
+      "unit": "g/cm3"
+    },
+    "cec": {
+      "field": "cec_cmolc_per_kg",
+      "label": "cation exchange capacity (pH 7)",
+      "mapped": "mmol(c)/kg",
+      "factor": 10,
+      "unit": "cmol(c)/kg"
+    },
+    "nitrogen": {
+      "field": "nitrogen_g_per_kg",
+      "label": "total nitrogen",
+      "mapped": "cg/kg",
+      "factor": 100,
+      "unit": "g/kg"
+    }
+  },
+  "depths": [
+    "0-5cm",
+    "5-15cm",
+    "15-30cm"
+  ],
+  "wrb": [
+    "Acrisols",
+    "Albeluvisols",
+    "Alisols",
+    "Andosols",
+    "Arenosols",
+    "Calcisols",
+    "Cambisols",
+    "Chernozems",
+    "Cryosols",
+    "Durisols",
+    "Ferralsols",
+    "Fluvisols",
+    "Gleysols",
+    "Gypsisols",
+    "Histosols",
+    "Kastanozems",
+    "Leptosols",
+    "Lixisols",
+    "Luvisols",
+    "Nitisols",
+    "Phaeozems",
+    "Planosols",
+    "Plinthosols",
+    "Podzols",
+    "Regosols",
+    "Solonchaks",
+    "Solonetz",
+    "Stagnosols",
+    "Umbrisols",
+    "Vertisols"
+  ],
+  "file": null
+}

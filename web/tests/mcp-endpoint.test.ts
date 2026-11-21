@@ -22,6 +22,7 @@ function stubRoutes(body: unknown = { data: [] }, status = 200) {
     [/^\/layers\/([^/]+)\/query$/, handler],
     [/^\/locate$/, handler],
     [/^\/nearby$/, handler],
+    [/^\/ground$/, handler],
     [/^\/categories$/, handler],
     [/^\/submissions$/, handler],
   ];
@@ -69,12 +70,12 @@ describe('/mcp protocol', () => {
     expect(json.result.protocolVersion).toBe('2025-06-18');
   });
 
-  it('tools/list offers exactly the eight read tools, all marked read-only', async () => {
+  it('tools/list offers exactly the nine read tools, all marked read-only', async () => {
     const { json } = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
     const names = json.result.tools.map((t: { name: string }) => t.name);
     expect(names).toEqual([
       'list_layers', 'get_layer_schema', 'query_layer', 'locate',
-      'nearby', 'list_categories', 'get_layer_detail', 'list_submissions',
+      'nearby', 'ground_at', 'list_categories', 'get_layer_detail', 'list_submissions',
     ]);
     for (const t of json.result.tools) {
       expect(t.annotations.readOnlyHint).toBe(true);
@@ -155,6 +156,25 @@ describe('/mcp tools/call', () => {
     expect(seen[0].url.pathname).toBe('/api/v1/locate');
     expect(seen[0].url.searchParams.get('lat')).toBe('12.97');
     expect(seen[0].url.searchParams.get('layers')).toBe('lgd_states,lgd_districts');
+  });
+
+  it('ground_at asks /ground for the point', async () => {
+    const { routes, seen } = stubRoutes({ summary: 'x' });
+    await rpc(call('ground_at', { lat: 28.525, lng: 77.085 }), { routes });
+    expect(seen[0].url.pathname).toBe('/api/v1/ground');
+    expect(seen[0].url.searchParams.get('lat')).toBe('28.525');
+    expect(seen[0].url.searchParams.get('lng')).toBe('77.085');
+  });
+
+  it('the real routes serve /ground, and ground_at takes the locate limit', async () => {
+    const { API_ROUTES } = await import('../functions/lib/mcp');
+    expect(API_ROUTES.some(([re]) => re.test('/ground'))).toBe(true);
+    const keys: string[] = [];
+    const db = { prepare: () => ({ bind: (k: string) => { keys.push(k); return { first: async () => ({ hour_window_start: new Date().toISOString(), hour_count: 1 }) }; } }) };
+    const limit = apiRateLimit({ DB: db, IP_SALT: 's' } as never, (p) => { void p; });
+    await limit(post({}), 'ground_at');
+    await new Promise((r) => setTimeout(r, 0));
+    expect(keys.some((k) => k.includes('locate:'))).toBe(true);
   });
 
   it('an API error comes back as a tool error with the API message', async () => {

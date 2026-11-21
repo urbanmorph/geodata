@@ -77,8 +77,9 @@ async function run() {
       proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: listId, method: "tools/list" }) + "\n");
     });
     const tools = listResult.result.tools;
-    // 8 query tools + 9 collect authoring tools (merged in 1.1.0).
-    assert(tools.length === 17, "17 tools available");
+    // 9 query tools (ground_at added in the release after 1.7.0) + 9 collect authoring tools (merged in 1.1.0).
+    assert(tools.length === 18, "18 tools available");
+    assert(tools.some((t) => t.name === "ground_at"), "has ground_at tool");
     assert(tools.some((t) => t.name === "nearby"), "has nearby tool");
     const ql = tools.find((t) => t.name === "query_layer");
     assert(ql?.inputSchema?.properties?.sum?.type === "array", "query_layer exposes sum (1.2.0)");

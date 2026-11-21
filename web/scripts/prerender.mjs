@@ -1070,6 +1070,10 @@ const DOCS_FAQ = [
     a: 'GET https://bharatlas.com/api/v1/nearby?lat=12.97&lng=77.59&layer=wris_reservoirs&radius_km=50 finds features from any layer within a radius. Works for points, polygons and lines: reads bounding-box columns from the layer parquet and ranks features by Haversine distance to their bounding-box centres.',
   },
   {
+    q: 'How do I find what is below a point (soil, rock, groundwater, seismic zone)?',
+    a: 'GET https://bharatlas.com/api/v1/ground?lat=28.525&lng=77.085 returns the subsurface profile of a point in one call: seismic zone, nearby active faults and recorded earthquakes, rock type, aquifer and permeability, groundwater wells, soil properties at three depths from ISRIC SoilGrids 2.0 (CC BY 4.0) and the nearest Soil Health Card sample, ground subsidence in megacities, and tunnels and buried utilities nearby. Each part names its source and licence, with a one-line summary.',
+  },
+  {
     q: 'How do I query a layer with column filters?',
     a: 'GET https://bharatlas.com/api/v1/layers/:id/query?where=col=val&select=col1,col2&group_by=col. Reads parquet directly from R2 at runtime. Call /schema first to discover column names.',
   },
@@ -1214,7 +1218,7 @@ await renderPage('mcp', {
       {
         '@type': 'SoftwareApplication',
         name: 'bharatlas-mcp',
-        description: "MCP server for India's open geo data. 17 tools for LLMs: 8 for reading (list, schema, query, locate, nearby, categories, submissions, downloads) plus 9 for authoring collect maps (register, create, edit, moderate, import, publish and more).",
+        description: "MCP server for India's open geo data. 18 tools for LLMs: 9 for reading (list, schema, query, locate, nearby, what is below a point, categories, submissions, downloads) plus 9 for authoring collect maps (register, create, edit, moderate, import, publish and more).",
         url: ORIGIN + '/mcp',
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Any',

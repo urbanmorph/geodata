@@ -150,6 +150,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
       <table>
         <tr><td><code>GET /locate</code></td><td>Every boundary and zone at a point, including the city ward where we have one</td></tr>
         <tr><td><code>GET /nearby</code></td><td>Features from one layer within a radius, nearest first</td></tr>
+        <tr><td><code>GET /ground</code></td><td>What is below a point: seismic zone, faults, rock, aquifer, groundwater, soil, subsidence, tunnels, in one call</td></tr>
         <tr><td><code>GET /layers</code></td><td>Every layer: search by category (theme), level, source</td></tr>
         <tr><td><code>GET /layers/:id</code></td><td>One layer: licence, attribution, download links</td></tr>
         <tr><td><code>GET /layers/:id/schema</code></td><td>Column names, types and sample values; read this before querying</td></tr>
@@ -351,6 +352,29 @@ curl "https://bharatlas.com/api/v1/nearby?lat=12.97&amp;lng=77.59&amp;layer=wris
 # Wildlife sanctuaries within 100km of Mysuru
 curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_wildlife&amp;radius_km=100"</code></pre>
 
+      <h3 id="ground"><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/ground</span></h3>
+      <p>What is below a point, in one call instead of a dozen locate and nearby calls. The answer has a one-line <code>summary</code> and <code>sections</code>:</p>
+      <ul>
+        <li><b>seismic</b>: seismic zone, active faults within 50 km, GSI lineaments within 25 km and NRSC lineaments within 10 km (non-commercial), each by true distance to the line, recorded earthquakes within 50 km</li>
+        <li><b>geology</b>: rock type (GSI 1:50,000 lithology, and the 1:2 million map as a coarse fallback), landform (NRSC geomorphology, non-commercial), GSI exploration boreholes within 25 km</li>
+        <li><b>resources</b>: coal and hydrocarbon blocks (0 km when inside), critical minerals, mineral deposits, hot springs and oil or gas wells nearby</li>
+        <li><b>groundwater</b>: aquifer and stage of groundwater extraction (CGWB), groundwater prospects (NRSC, non-commercial), wells counted by the 2017-18 Minor Irrigation Census, the nearest groundwater quality samples (non-commercial), near-surface permeability and porosity (GLHYMPS 2.0, decoded to m<sup>2</sup> and m/s), Atal Bhujal wells within 10 km with their latest pre- and post-monsoon water levels</li>
+        <li><b>soil</b>: clay, sand, silt, pH, organic carbon, bulk density, CEC and nitrogen at 0-5, 5-15 and 15-30 cm, and the WRB soil group, from <a href="https://soilgrids.org">ISRIC SoilGrids 2.0</a> (250 m, Poggio et al. 2021, CC BY 4.0); the nearest Soil Health Card sample within 5 km</li>
+        <li><b>subsidence</b>: in the megacities it covers, the median vertical land motion (cm/yr, negative is sinking) of satellite points within 500 m</li>
+        <li><b>underground</b>: tunnels and buried pipelines or cables within 1 km, mine shafts, adits and caves within 5 km (OpenStreetMap)</li>
+        <li><b>watershed</b>: in rural areas, the CoRE Stack micro-watershed water balance and drought record; whether NDEM mapped the point as flooded between 1998 and 2022 (non-commercial)</li>
+      </ul>
+      <p>Each entry names its <code>layer_id</code> and carries its <code>credit</code> (source and licence); a non-commercial layer says so with <code>non_commercial</code> and <code>licence_notice</code>. Units are in field names (<code>clay_pct</code>, <code>distance_km</code>) or in <code>units</code>. <code>contains</code> entries list the features holding the point; <code>nearest</code> entries give the <code>count</code> within <code>radius_km</code> and the nearest few. Each entry's <code>status</code> is <code>found</code>, <code>none_within_radius</code> (the layer covers the area, nothing is that close) or <code>not_covered</code> (the layer does not reach the point: subsidence is mapped for some cities only, Atal Bhujal wells for seven states, CoRE Stack for some rural tehsils). SoilGrids leaves out water and built-up land: there <code>depths</code> is <code>null</code> with a <code>reason</code>. A layer that could not be read in time is listed in <code>unavailable</code> and the rest still answer. Shares the locate limit (60 a minute). Never cached.</p>
+      <table>
+        <tr><th>Param</th><th>Type</th><th>Description</th></tr>
+        <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Latitude (6-38)</td></tr>
+        <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68-98)</td></tr>
+        <tr><td><code>open_only</code></td><td>bool</td><td><code>true</code> leaves out the non-commercial layers (listed in <code>omitted_non_commercial</code>)</td></tr>
+      </table>
+      <p>Every entry says its <code>about</code>: scale or resolution, the period its data describe and the date we fetched it. This is screening information, not a site investigation: the answer's <code>disclaimer</code> says so. The answer is for the point snapped to about 100 m.</p>
+      <pre><code># What is under this plot in south-west Delhi?
+curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085"</code></pre>
+
       <h2>Admin units by code</h2>
       <p>For a point, use <code>/locate</code>. To find a unit by its LGD code, or list the units under one, query the LGD layers, e.g. <code>/layers/lgd_districts/query?where=dist_lgd=525</code> (Bengaluru Urban) or <code>/layers/lgd_blocks/query?where=dist_lgd=525</code> (its blocks).</p>
 
@@ -466,7 +490,7 @@ curl -X POST https://collect.bharatlas.com/api/collect/v1/collections/ID/publish
 
 <!-- DOCS_FAQ_HTML -->
       <h2>For LLMs</h2>
-      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp@latest</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 17 tools with built-in instructions: 8 for reading (schema-first querying, spatial joins, multi-source awareness) plus 9 for authoring collect maps.</p>
+      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp@latest</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 18 tools with built-in instructions: 9 for reading (schema-first querying, spatial joins, what is below a point, multi-source awareness) plus 9 for authoring collect maps.</p>
     </main>
 
     <!-- FOOTER -->

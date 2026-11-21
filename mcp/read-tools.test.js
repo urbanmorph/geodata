@@ -97,3 +97,23 @@ test("a where that is not an object or col=value pairs is refused with a clear m
   // Numbers and booleans are fine values.
   assert.equal(readToolRequest("query_layer", { layer_id: "x", where: { code: 29, ok: true } }).params.code, 29);
 });
+
+// ground_at: what is below a point, in one call (GET /api/v1/ground).
+test("ground_at asks /ground with the point and nothing else", () => {
+  assert.deepEqual(readToolRequest("ground_at", { lat: 28.525, lng: 77.085, extra: 1 }), { path: "/ground", params: { lat: 28.525, lng: 77.085 } });
+  assert.deepEqual(readToolRequest("ground_at", { lat: 1, lng: 2, open_only: true }).params, { lat: 1, lng: 2, open_only: "true" });
+});
+
+test("ground_at is a read tool that needs lat and lng", async () => {
+  const { READ_TOOLS } = await import("./read-tools.js");
+  const t = READ_TOOLS.find((x) => x.name === "ground_at");
+  assert.ok(t, "ground_at is offered");
+  assert.deepEqual(t.inputSchema.required, ["lat", "lng"]);
+  assert.equal(t.annotations.readOnlyHint, true);
+  assert.match(t.description, /SoilGrids/);
+  assert.match(t.description, /unavailable/);
+});
+
+test("the instructions point at ground_at for what lies below a point", () => {
+  assert.match(INSTRUCTIONS_CORE, /\*\*Below a point\*\*: ground_at/);
+});

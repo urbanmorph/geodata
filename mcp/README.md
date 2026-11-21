@@ -7,7 +7,7 @@ Ask questions about India's geo data in natural language. This MCP server connec
 
 ## Install
 
-No install needed for the eight read tools: they also run hosted at `https://bharatlas.com/mcp` (Streamable HTTP, read-only), e.g. `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`. Install this package for all 17 tools, including collect authoring.
+No install needed for the nine read tools: they also run hosted at `https://bharatlas.com/mcp` (Streamable HTTP, read-only), e.g. `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`. Install this package for all 18 tools, including collect authoring.
 
 Add to your MCP client config:
 
@@ -41,6 +41,7 @@ Add to your MCP client config:
 | **query_layer** | Select any column; filter (exact, case-insensitive) and group_by on flat columns, with per-group sums of numeric columns. Runtime parquet reads. |
 | **locate** | Point-in-polygon: what state, district, ward, zone is this point in? |
 | **nearby** | Find features within a radius. Works for points, polygons, and lines. |
+| **ground_at** | What is below a point, in one call: seismic zone, faults and earthquakes, rock, aquifer and permeability, groundwater wells, soil (ISRIC SoilGrids 2.0 at 0-5, 5-15 and 15-30 cm, and the nearest Soil Health Card sample), subsidence, tunnels and buried utilities. Each part carries its source and licence. |
 | **get_layer_detail** | Download URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most), its attribution, licence and dated versions to cite |
 | **list_categories** | Browse categories with layer counts |
 | **list_submissions** | Community-contributed layers under open licenses |
@@ -59,6 +60,7 @@ List arguments (`select` and `sum` on `query_layer`, `layers` on `locate`) take 
 - "What state, district, seismic zone is Bengaluru in?" (Karnataka, Bengaluru Urban, Zone II)
 - "Reservoirs within 50km of Bengaluru?" (12 found)
 - "Wildlife sanctuaries near Mysuru?" (Ranganathittu 15km, Nagarahole NP 60km)
+- "What is under this plot in Delhi (28.525, 77.085)?" (seismic zone IV, older alluvium, silt-clay with kankar, semi-confined aquifer: one ground_at call)
 
 **Cross-layer**
 - "Which airports in Karnataka are near water bodies?" (Hubballi: Unkal Lake 2.3km, 14 rivers)
@@ -74,6 +76,7 @@ The server sends instructions to the LLM at connection time that teach:
 - **Source preference**: LGD for admin boundaries, with SOI/Bhuvan/geoBoundaries as alternates
 - **Concept-to-layer mapping**: "water bodies" = rivers + canals + reservoirs + wetlands + ramsar sites + dams; "groundwater" = aquifers + extraction stage + wells (minor irrigation census); "places/shops/ATMs" = Overture places
 - **Spatial join workflow**: locate for context, query for data, nearby for proximity
+- **Below a point**: ground_at for the subsurface profile of a site in one call, instead of many locate and nearby calls
 
 ## Links
 
@@ -85,4 +88,4 @@ The server sends instructions to the LLM at connection time that teach:
 
 ## License
 
-MIT. Data: each layer carries its own open license (CC0, CC-BY, CC-BY-SA, ODbL, GODL-India, MIT, CDLA-Permissive), named in `get_layer_detail`; credit its source when you use it.
+MIT. Data: each layer carries its own open license (CC0, CC-BY, CC-BY-SA, ODbL, GODL-India, MIT, CDLA-Permissive), named in `get_layer_detail`; credit its source when you use it. ground_at's soil values come from ISRIC SoilGrids 2.0 (Poggio et al. 2021, CC BY 4.0).

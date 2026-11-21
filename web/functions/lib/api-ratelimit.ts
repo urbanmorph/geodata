@@ -130,6 +130,11 @@ export const API_LIMIT = 120;
 export const LOCATE_LIMIT = 60;
 
 /** The /api/v1 (and hosted MCP) limit for one request: locate counts on its own key. */
+/** Point lookups (locate, a layer's locate, ground) share the tighter locate limit: each reads many layers. */
+export function isPointLookup(pathname: string): boolean {
+  return pathname.endsWith('/locate') || pathname === '/api/v1/ground';
+}
+
 export async function apiLimitFor(
   request: Request,
   env: { DB: RunnableD1; IP_SALT?: string },
