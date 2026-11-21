@@ -20,6 +20,8 @@ export const LICENCE_URLS = Object.freeze({
   Unlicense: 'https://unlicense.org/',
   // Publisher terms that are not a licence id (with the layer's non_commercial flag when they say so).
   'NRSC terms': 'https://www.nrsc.gov.in/nrscnew/termsConditions.php',
+  // No open licence: the 2013 policy lets anyone use downloaded India-WRIS data and asks for credit.
+  'India-WRIS terms': 'https://cwc.gov.in/sites/default/files/hddp2013.pdf',
 });
 
 /** Terms URL for a licence id; a dual licence ("CC0-1.0 / CC-BY-4.0") uses the first. */

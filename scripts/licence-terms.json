@@ -287,6 +287,24 @@
    "decided": "2026-11-20 (owner): CC-BY-4.0 as CoRE Stack's STAC catalogue states, original publisher credited"
   },
   {
+   "id": "india_wris_gwl",
+   "publisher": "India-WRIS (Ministry of Jal Shakti): CGWB and state ground water departments, groundwater levels",
+   "url": "https://cwc.gov.in/sites/default/files/hddp2013.pdf",
+   "kind": "manual",
+   "reason": "the India-WRIS portal states no licence; the 2013 Hydro-Meteorological Data Dissemination Policy is a PDF",
+   "stated": "No open licence stated: Policy B republish with credit. The 2013 Hydro-Meteorological Data Dissemination Policy lets anyone download unclassified India-WRIS data free and asks that its use be acknowledged",
+   "quote": "The use of data downloaded from IndiaWRIS or obtained from CWC/CGWB shall be duly acknowledged",
+   "verdict": "unclear",
+   "seen_at": "2026-11-21",
+   "layers": [
+    "wris_groundwater_levels"
+   ],
+   "labels": {
+    "licence": "India-WRIS terms"
+   },
+   "decided": "2026-11-21 (owner): ingest approved under Policy B with credit to India-WRIS / CGWB and state ground water departments; take down on request"
+  },
+  {
    "id": "cwc_india_wris",
    "publisher": "CWC / India-WRIS (Ministry of Jal Shakti)",
    "url": "https://cwc.gov.in/en/copyright-policy",

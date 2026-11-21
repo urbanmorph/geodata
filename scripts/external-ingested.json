@@ -2990,5 +2990,41 @@
       "climate",
       "CoRE Stack"
     ]
+  },
+  {
+    "id": "wris_groundwater_levels",
+    "name": "Groundwater levels, India-WRIS stations",
+    "level": "wris_groundwater_levels",
+    "category": "water",
+    "source": "India-WRIS",
+    "description": "Every India-WRIS groundwater-level monitoring station (CGWB and state ground water departments), with a summary of its manual readings in metres below ground level: first and last reading, the latest pre- and post-monsoon depth and the ten-year pre-monsoon trend.",
+    "unit": "stations",
+    "features": 92973,
+    "license": "India-WRIS terms",
+    "r2_prefix": "water/wris-groundwater-levels",
+    "parquet_file": "WRIS_Groundwater_Levels.2728c74b.parquet",
+    "parquet_bytes": 6142383,
+    "pmtiles_file": "WRIS_Groundwater_Levels.8acc95e2.pmtiles",
+    "pmtiles_bytes": 4905785,
+    "readings_file": "WRIS_Groundwater_Manual_Readings.ab41da73.parquet",
+    "readings_bytes": 12609452,
+    "source_url": "https://indiawris.gov.in/v3/api-docs",
+    "source_org": "India-WRIS (Ministry of Jal Shakti): CGWB and state ground water departments",
+    "source_version": "pulled 2026-11-21",
+    "notes": "Stations are the India-WRIS station layer as published: every field, the point from its long and lat (445 stations sit outside India as published). Readings come from the India-WRIS Dataset API: 67,106 of 92,973 stations have manual readings, which end in 2024. Columns added by bharatlas from the manual \"MANUAL-Water Level\" readings: first_reading and last_reading (dates), n_readings, years_of_record (calendar years with a reading), last_depth_m (the last reading), premonsoon_depth_m and premonsoon_year (the latest year's last March to May reading), postmonsoon_depth_m and postmonsoon_year (the same for October and November), and premonsoon_trend_m_per_yr: the least-squares slope of the yearly pre-monsoon depth over 2015-2024 where at least 5 years have one (trend_n_years says how many); a positive trend means the water table is getting deeper. Depths are metres below ground level, so a larger number is a deeper water table; a negative depth is water above ground, as published. Telemetric stations report every few hours and the API cannot leave those readings out, so bharatlas reads them only for the feed's last week (2026-05-29 to 2026-06-04): telemetry_last_value and telemetry_last_at are the last \"GPRS-Water Level\" value as the sensor reports it (agencies differ in sign and datum). The API answers a large request unreliably, so bharatlas asks for spans small enough to come back whole; where telemetry still filled a district's answer, its manual readings for that span were read on the days that agency took readings in that State. series_complete is false for those stations, whose series may miss a reading. The 3,476,743 manual readings themselves, with every published field, are a separate Parquet download: https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Manual_Readings.ab41da73.parquet",
+    "tags": [
+      "groundwater",
+      "groundwater level",
+      "water table",
+      "depth to water",
+      "wells",
+      "piezometers",
+      "observation wells",
+      "DWLR",
+      "telemetry",
+      "India-WRIS",
+      "CGWB",
+      "monsoon"
+    ]
   }
 ]

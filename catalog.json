@@ -1286,6 +1286,11 @@
       "label": "Drought by micro-watershed (CoRE Stack, 2017-2024)",
       "unit": "micro-watersheds",
       "description": "Drought weeks for each micro-watershed CoRE Stack has mapped, each monsoon from 2017 to 2022 or 2024: weeks in mild, moderate and severe drought, dry spells, monsoon onset, kharif sown area and weekly rainfall deviation."
+    },
+    "wris_groundwater_levels": {
+      "label": "Groundwater levels, India-WRIS stations",
+      "unit": "stations",
+      "description": "Every India-WRIS groundwater-level monitoring station (CGWB and state ground water departments), with a summary of its manual readings in metres below ground level: first and last reading, the latest pre- and post-monsoon depth and the ten-year pre-monsoon trend."
     }
   },
   "level_order": [
@@ -1454,7 +1459,8 @@
     "osm_underground_utilities",
     "osm_mines_caves",
     "core_mws_water_balance",
-    "core_mws_drought"
+    "core_mws_drought",
+    "wris_groundwater_levels"
   ],
   "layers": [
     {
@@ -12388,6 +12394,75 @@
         "audited_at": null,
         "next_due": null
       }
+    },
+    {
+      "id": "wris_groundwater_levels",
+      "level": "wris_groundwater_levels",
+      "source": "India-WRIS",
+      "rows": 92973,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Levels.2728c74b.parquet",
+        "bytes": 6142383
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Levels.8acc95e2.pmtiles",
+        "bytes": 4905785
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Levels.631a9184.geojson",
+        "bytes": 116137733
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Levels.55884f8f.kml",
+        "bytes": 165005203
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Levels.80c33051.shp.zip",
+        "bytes": 10256747
+      },
+      "licence": "India-WRIS terms",
+      "attribution": {
+        "primary": {
+          "name": "India-WRIS / CGWB and state ground water departments",
+          "url": "https://indiawris.gov.in/wris/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Stations are the India-WRIS station layer as published: every field, the point from its long and lat (445 stations sit outside India as published). Readings come from the India-WRIS Dataset API: 67,106 of 92,973 stations have manual readings, which end in 2024. Columns added by bharatlas from the manual \"MANUAL-Water Level\" readings: first_reading and last_reading (dates), n_readings, years_of_record (calendar years with a reading), last_depth_m (the last reading), premonsoon_depth_m and premonsoon_year (the latest year's last March to May reading), postmonsoon_depth_m and postmonsoon_year (the same for October and November), and premonsoon_trend_m_per_yr: the least-squares slope of the yearly pre-monsoon depth over 2015-2024 where at least 5 years have one (trend_n_years says how many); a positive trend means the water table is getting deeper. Depths are metres below ground level, so a larger number is a deeper water table; a negative depth is water above ground, as published. Telemetric stations report every few hours and the API cannot leave those readings out, so bharatlas reads them only for the feed's last week (2026-05-29 to 2026-06-04): telemetry_last_value and telemetry_last_at are the last \"GPRS-Water Level\" value as the sensor reports it (agencies differ in sign and datum). The API answers a large request unreliably, so bharatlas asks for spans small enough to come back whole; where telemetry still filled a district's answer, its manual readings for that span were read on the days that agency took readings in that State. series_complete is false for those stations, whose series may miss a reading. The 3,476,743 manual readings themselves, with every published field, are a separate Parquet download: https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Manual_Readings.ab41da73.parquet",
+      "tags": [
+        "groundwater",
+        "groundwater level",
+        "water table",
+        "depth to water",
+        "wells",
+        "piezometers",
+        "observation wells",
+        "DWLR",
+        "telemetry",
+        "India-WRIS",
+        "CGWB",
+        "monsoon"
+      ],
+      "fetched_at": "2026-11-21T17:28:41+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://indiawris.gov.in/v3/api-docs",
+        "reason": "a live API with no version, change date or row count; the readings are pulled per district and year by scripts/bake_wris_groundwater.py",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
     }
   ],
   "state_extracts": [],
@@ -14888,6 +14963,10 @@
     "CoRE Stack": {
       "name": "CoRE Stack",
       "url": "https://core-stack.org/"
+    },
+    "India-WRIS": {
+      "name": "India-WRIS / CGWB and state ground water departments",
+      "url": "https://indiawris.gov.in/wris/"
     }
   },
   "licence_summary": {
