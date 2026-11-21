@@ -62,6 +62,12 @@ def manual(reason: str, url: str | None = None) -> dict:
 DERIVED_FROM_LGD = 'derived by bharatlas from lgd_states; refresh it when lgd_states changes'
 
 # Layers whose upstream the generic rules below would get wrong. Kept short and reviewable.
+CORE_MWS = ('CoRE Stack serves these per tehsil from its GeoServer (about 600 files each, named by its tehsil-wise '
+            'STAC files); the set is pinned by sha256 (scripts/bake_core_mws.py) and no check method reads '
+            'per-tehsil files yet')
+CORE_MWS_STAC = ('https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/'
+                 'CorestackCatalogs_merged_collection/tehsil_wise/catalog.json')
+
 OVERRIDES: dict[str, dict] = {
     # data.gov.in resources the bake scripts pull through the keyed API; the listing is keyless
     'mgnrega_districts': {'method': 'ckan', 'url': datagov(uuid='ee03643a-ee4c-48c2-ac30-9f2ff26ab722')},
@@ -92,12 +98,25 @@ OVERRIDES: dict[str, dict] = {
     'urban_rail_stations': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'urban_rail_lines': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'bus_stops': {'method': 'github_commit', 'url': 'https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs'},
+    # scripts/bake_osm_underground.py: the same dated OSM extract
+    'osm_tunnels': {'method': 'http', 'url': GEOFABRIK_INDIA},
+    'osm_underground_utilities': {'method': 'http', 'url': GEOFABRIK_INDIA},
+    'osm_mines_caves': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'subsidence_megacities': manual('a paper\'s published data on figshare, pinned at version 3 '
                                     '(scripts/bake_subsidence_megacities.py); figshare refuses HEAD requests and no '
                                     'check method reads its API yet', 'https://doi.org/10.7294/25856260.v3'),
     'atal_bhujal_wells': manual('data.gov.in serves the file only after a login; the layer is CoRE Stack\'s copy, '
                                 'pinned by sha256 (scripts/bake_atal_bhujal_wells.py), and the 2015-2022 series is '
                                 'complete', 'https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana'),
+    # scripts/bake_gem_active_faults.py pins the newest commit of the file; a new commit is a new version
+    'gem_active_faults': {'method': 'github_commit',
+                          'url': 'https://github.com/GEMScienceTools/gem-global-active-faults/tree/master/'
+                                 'geojson/gem_active_faults.geojson'},
+    'glhymps_permeability': manual('a paper\'s published data on Borealis, pinned at version 1.0 by md5 and sha256 '
+                                   '(scripts/bake_glhymps_permeability.py); no check method reads the Dataverse '
+                                   'API yet', 'https://doi.org/10.5683/SP2/TTJNIU'),
+    'core_mws_water_balance': manual(CORE_MWS, CORE_MWS_STAC),
+    'core_mws_drought': manual(CORE_MWS, CORE_MWS_STAC),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }

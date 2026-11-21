@@ -201,6 +201,25 @@ def test_whole_layer_failure_leaves_no_partial_output(tmp_path, monkeypatch):
     assert errors and not bwl.out_paths('p', 'w')['geojson'].exists()
 
 
+def test_whole_layer_geojson_can_keep_full_precision_so_fine_polygons_stay_polygons(tmp_path):
+    """RFC 7946 output rounds to 7 decimals (~1 cm), which collapses a polygon whose vertices are closer
+    than that (GLHYMPS, reprojected from metres) into lines; coordinate_precision keeps it whole."""
+    from bake_whole_layer import write_geojson_whole
+    con = pipeline.make_con()
+    con.execute('INSTALL spatial; LOAD spatial;')
+    pq = tmp_path / 'fine.parquet'
+    con.execute(f"""COPY (SELECT 1 AS id, ST_GeomFromText('POLYGON((77 12, 77.00000002 12, 77.00000002 12.00000002,
+                    77 12.00000002, 77 12))') AS geometry) TO '{pq}' (FORMAT PARQUET)""")
+    kinds = {}
+    for name, kw in (('rounded', {}), ('full', {'coordinate_precision': 15})):
+        out = tmp_path / f'{name}.geojson'
+        write_geojson_whole(con, pq, out, **kw)
+        kinds[name] = json.loads(out.read_text())['features'][0]['geometry']
+    assert kinds['full']['type'] == 'Polygon'
+    assert kinds['full']['coordinates'][0][2] == [77.00000002, 12.00000002]
+    assert kinds['rounded'] != kinds['full']        # the default stays as it was for every other layer
+
+
 def test_per_state_extract_skip_needs_a_fresh_output(tmp_path):
     src, out = tmp_path / 'src.parquet', tmp_path / 'out.parquet'
     src.write_bytes(b'x')

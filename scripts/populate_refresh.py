@@ -84,10 +84,15 @@ RULES = [
 
 HISTORICAL = 'a historical vintage, kept as published; a newer one is a separate layer'
 ONE_OFF_CENSUS = 'a one-off census: its tables are final once published'
+OSM_AUDIT = ('rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; '
+             'every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns')
 JUDICIARY = 'a bharatlas-derived judiciary map, dissolved from LGD states by a gazette notification'
 
 # Layers the rules get wrong, or whose class audit needs naming.
 # {id: {class?, reason?, tolerance?, tolerance_reason?, audit?}}; a tolerance needs its reason.
+CORE_MWS_YEARLY = ('CoRE Stack adds a year and more tehsils to its micro-watershed series a few times a year '
+                   'at most')
+
 OVERRIDES: dict[str, dict] = {
     'state_finance': {'class': 'frozen', 'reason': 'one-off snapshots of Rajya Sabha answers; an answered '
                                                    'question does not change'},
@@ -104,7 +109,11 @@ OVERRIDES: dict[str, dict] = {
     'ndem_floods_1998_2022': {'class': 'frozen', 'reason': HISTORICAL + ' (flood extents for 1998-2022)'},
     'subsidence_megacities': {'class': 'frozen', 'reason': 'a paper\'s published data (Ohenhen et al. 2025), '
                                                            'pinned at its figshare version'},
+    'core_mws_water_balance': {'class': 'slow', 'reason': CORE_MWS_YEARLY},
+    'core_mws_drought': {'class': 'slow', 'reason': CORE_MWS_YEARLY},
     'atal_bhujal_wells': {'class': 'frozen', 'reason': HISTORICAL + ' (well levels for 2015-2022)'},
+    'glhymps_permeability': {'class': 'frozen', 'reason': 'a paper\'s published data (GLHYMPS 2.0, Huscroft et al. '
+                                                          '2018), pinned at its Borealis version'},
     'high_courts': {'class': 'frozen', 'reason': JUDICIARY},
     'ngt_zones': {'class': 'frozen', 'reason': JUDICIARY},
     'nclt_benches': {'class': 'frozen', 'reason': JUDICIARY},
@@ -119,6 +128,11 @@ OVERRIDES: dict[str, dict] = {
                                      'Delhi Metro from station tags; the Mumbai Monorail out while suspended'},
     'urban_rail_lines': {'audit': 'lines per system against Wikipedia\'s operational lines; operational sections '
                                   'only (Mumbai 2B and 9, Chennai Yellow)'},
+    # scripts/bake_osm_underground.py: OSM changes month to month like the transit layers (owner, 2026-11-21)
+    'osm_tunnels': {'audit': OSM_AUDIT},
+    'osm_underground_utilities': {'audit': OSM_AUDIT},
+    'osm_mines_caves': {'class': 'fast', 'reason': 'mapped in OpenStreetMap, which changes month to month',
+                        'audit': OSM_AUDIT},
     'bus_stops': {'audit': 'stops per city against each GTFS feed\'s stops.txt and the OSM count in the city; '
                            'every row names its source and licence'},
 }

@@ -1251,6 +1251,41 @@
       "label": "Groundwater levels, Atal Bhujal wells (2015-2022)",
       "unit": "wells",
       "description": "Groundwater levels in about 5,500 Atal Bhujal Yojana monitoring wells in seven States, before and after each monsoon from 2015 to 2022, in metres below ground level, with well depth and aquifer."
+    },
+    "active_fault": {
+      "label": "Active faults (GEM)",
+      "unit": "faults",
+      "description": "Active fault traces that touch India, from the GEM Global Active Faults Database (Styron and Pagani 2020): the Himalayan front, Ladakh and the Karakoram, Kashmir, Kutch and the North-East, with slip type and, for some, dip, rake and slip rate."
+    },
+    "glhymps_permeability": {
+      "label": "Permeability and porosity (GLHYMPS 2.0)",
+      "unit": "polygons",
+      "description": "How easily water moves through the ground near the surface (permeability) and how much of it is open space (porosity), mapped as rock and sediment polygons across India, from GLHYMPS 2.0."
+    },
+    "osm_tunnels": {
+      "label": "Tunnels (OpenStreetMap)",
+      "unit": "tunnels",
+      "description": "Road, rail, metro and canal tunnels mapped in OpenStreetMap, one line per mapped stretch, with every tag OpenStreetMap gives them."
+    },
+    "osm_underground_utilities": {
+      "label": "Underground pipelines and cables (OpenStreetMap)",
+      "unit": "lines",
+      "description": "Pipelines and power cables mapped below ground or under water in OpenStreetMap, with what they carry where mapped and every tag OpenStreetMap gives them."
+    },
+    "osm_mines_caves": {
+      "label": "Mine shafts and caves (OpenStreetMap)",
+      "unit": "places",
+      "description": "Mine shafts, adits, old mines, cave entrances and sinkholes mapped in OpenStreetMap, one point each, with every tag OpenStreetMap gives them."
+    },
+    "core_mws_water_balance": {
+      "label": "Water balance by micro-watershed (CoRE Stack, 2017-2025)",
+      "unit": "micro-watersheds",
+      "description": "Yearly water balance for each micro-watershed CoRE Stack has mapped, 2017-18 to 2024-25: rainfall, runoff, evapotranspiration, the change in groundwater and the estimated change in depth to water, with net change over 5-year windows."
+    },
+    "core_mws_drought": {
+      "label": "Drought by micro-watershed (CoRE Stack, 2017-2024)",
+      "unit": "micro-watersheds",
+      "description": "Drought weeks for each micro-watershed CoRE Stack has mapped, each monsoon from 2017 to 2022 or 2024: weeks in mild, moderate and severe drought, dry spells, monsoon onset, kharif sown area and weekly rainfall deviation."
     }
   },
   "level_order": [
@@ -1412,7 +1447,14 @@
     "gsi_mineral_deposits",
     "gsi_geothermal_springs",
     "subsidence_point",
-    "atal_bhujal_wells"
+    "atal_bhujal_wells",
+    "active_fault",
+    "glhymps_permeability",
+    "osm_tunnels",
+    "osm_underground_utilities",
+    "osm_mines_caves",
+    "core_mws_water_balance",
+    "core_mws_drought"
   ],
   "layers": [
     {
@@ -11856,6 +11898,466 @@
         "audited_at": null,
         "next_due": null
       }
+    },
+    {
+      "id": "gem_active_faults",
+      "level": "active_fault",
+      "source": "GEM Global Active Faults",
+      "rows": 75,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.976a04c3.parquet",
+        "bytes": 22615
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.ab60cf78.pmtiles",
+        "bytes": 655360
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.a4bf8df2.geojson",
+        "bytes": 93727
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.5cb9fb96.kml",
+        "bytes": 79062
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/gem-active-faults/GEM_Active_Faults.8479dc65.shp.zip",
+        "bytes": 22341
+      },
+      "licence": "CC-BY-SA-4.0",
+      "attribution": {
+        "primary": {
+          "name": "GEM Foundation, GEM Global Active Faults Database (Styron and Pagani 2020)",
+          "url": "https://github.com/GEMScienceTools/gem-global-active-faults"
+        },
+        "publisher": null
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "notes": "From the GEM Foundation's Global Active Faults Database (GEM GAF-DB), published on GitHub (GEMScienceTools/gem-global-active-faults, file geojson/gem_active_faults.geojson at commit 850fd05, June 2021) under CC BY-SA 4.0. Cite it as GEM asks: Styron, Richard, and Marco Pagani. \"The GEM Global Active Faults Database.\" Earthquake Spectra, vol. 36, no. 1_suppl, Oct. 2020, pp. 160-180, doi:10.1177/8755293020944182. bharatlas keeps every fault trace in the file that touches India as bharatlas shows it (the India boundary layer, claimed areas included), whole, not cut at the border, with every column as published. Dip, rake, slip rates and depths are (most likely, minimum, maximum) text, as published. In and around India the traces come from HimaTibetMap (Styron et al. 2010), the Earthquake Model of the Middle East (EMME) and a Southeast Asia compilation. The database maps no faults in peninsular India or the Andaman and Nicobar Islands. slip_type also names folds (Anticline), and some columns (name, accuracy and others) are empty for every trace here, as published. GEM also publishes a \"harmonized\" file with some of these traces left out; this layer is the full file. Share-alike: anything you make from this layer and share must carry the same licence (CC BY-SA 4.0) and credit GEM.",
+      "tags": [
+        "active faults",
+        "faults",
+        "fault lines",
+        "earthquakes",
+        "seismic hazard",
+        "tectonics",
+        "Himalaya",
+        "Main Frontal Thrust",
+        "GEM",
+        "Global Earthquake Model"
+      ],
+      "fetched_at": "2026-11-20T19:23:25+00:00",
+      "source_check": {
+        "method": "github_commit",
+        "url": "https://github.com/GEMScienceTools/gem-global-active-faults/tree/master/geojson/gem_active_faults.geojson",
+        "fingerprint": "commit=850fd05b48841eb806d61a37043b5567f5bb99dd",
+        "checked_at": "2026-11-20T19:23:25+00:00",
+        "changed_at": "2021-06-24T16:48:23Z"
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "glhymps_permeability",
+      "level": "glhymps_permeability",
+      "source": "GLHYMPS 2.0 (Huscroft et al. 2018)",
+      "rows": 7795,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.3d26649d.parquet",
+        "bytes": 8132161
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.20e62c98.pmtiles",
+        "bytes": 4570164
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.4b1782f4.geojson",
+        "bytes": 51972180
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.2c81f857.kml",
+        "bytes": 49796160
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/glhymps-permeability/GLHYMPS_India.c0fe3f8a.shp.zip",
+        "bytes": 10321020
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, GLHYMPS 2.0 (Geophysical Research Letters)",
+          "url": "https://doi.org/10.5683/SP2/TTJNIU"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "GLHYMPS 2.0, the global hydrogeology map of Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, \"Compiling and mapping global permeability of the unconsolidated and consolidated Earth\", Geophysical Research Letters 45 (https://doi.org/10.1002/2017GL075860), published on Borealis (https://doi.org/10.5683/SP2/TTJNIU, version 1.0) under CC-BY 4.0. Every polygon that touches India (its boundary as shown on bharatlas, claimed areas included) is kept whole, so some reach past the border; every column is as published, with the shapefile's short names. Permeability is log10 of permeability in m\u00b2, times 100: logK_Ferr_ (without permafrost) and logK_Ice_x (with permafrost) of -1300 mean 10^-13 m\u00b2. Higher (less negative) values let water through more easily. For hydraulic conductivity of water in m/s, K = 10^(value/100) x 10^7. Porosity_x is porosity in percent (porosity x 100), K_stdev_x1 the standard deviation of log10 permeability x 100. GUM_K says where the values come from (1 GLHYMPS, 2 the Global Unconsolidated Sediments Map) and 0 marks a polygon with no permeability value, whose permeability columns read 0 as published. Prmfrst is 1 inside the permafrost boundary. The source readme describes every column. The map is global and coarse (half the polygons are under 15 km\u00b2, the largest cover hundreds of thousands of km\u00b2): use it for regional patterns, not for a single site.",
+      "tags": [
+        "groundwater",
+        "hydrogeology",
+        "permeability",
+        "porosity",
+        "hydraulic conductivity",
+        "aquifer",
+        "subsurface",
+        "GLHYMPS",
+        "unconsolidated sediments",
+        "permafrost"
+      ],
+      "fetched_at": "2026-11-20T19:23:59+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://doi.org/10.5683/SP2/TTJNIU",
+        "reason": "a paper's published data on Borealis, pinned at version 1.0 by md5 and sha256 (scripts/bake_glhymps_permeability.py); no check method reads the Dataverse API yet",
+        "fingerprint": "sha256=ef28bfaeefcadf35e3bc6eb6450d0023110a88bcad380767ee450aa66714bf58",
+        "checked_at": "2026-11-20T19:23:59+00:00",
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "frozen",
+        "check": "never",
+        "rebuild": "never",
+        "release": "once",
+        "audit": "none while frozen: re-check by hand if the source publishes a correction",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "osm_tunnels",
+      "level": "osm_tunnels",
+      "source": "OpenStreetMap",
+      "rows": 22868,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.241e7c5d.parquet",
+        "bytes": 1822263
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.1dc9dbe5.pmtiles",
+        "bytes": 8947451
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.35b426f6.geojson",
+        "bytes": 19194162
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.1bb475c6.kml",
+        "bytes": 16994509
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Tunnels.29d3be15.shp.zip",
+        "bytes": 2416405
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-19",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap. A tunnel is a way tagged tunnel=yes, or tunnel=flooded (a canal or stream tunnel full of water). Culverts (tunnel=culvert, small drains under a road), passages through buildings and covered drains are left out. Many short road tunnels are underpasses beneath a railway or a road. A tunnel mapped as two ways (one per direction or per bore) is two rows. Features still tagged as under construction or disused keep those tags. Every OpenStreetMap tag is kept as mapped: a tag used on at least 1% of the rows is its own column, every other tag is in other_tags (a JSON object). osm_type and osm_id link each row to openstreetmap.org/<osm_type>/<osm_id>; as_of is the extract date. OpenStreetMap is mapped by volunteers, so coverage is incomplete and uneven: a place with no feature here may simply not be mapped yet.",
+      "tags": [
+        "tunnels",
+        "underground",
+        "below ground",
+        "road tunnels",
+        "rail tunnels",
+        "metro",
+        "canal tunnels",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns",
+        "audited_at": null,
+        "next_due": "2026-12-19"
+      }
+    },
+    {
+      "id": "osm_underground_utilities",
+      "level": "osm_underground_utilities",
+      "source": "OpenStreetMap",
+      "rows": 857,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.07edf70b.parquet",
+        "bytes": 291285
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.b9a3aacd.pmtiles",
+        "bytes": 1438287
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.b141de00.geojson",
+        "bytes": 1143913
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.e80b8bdb.kml",
+        "bytes": 1027152
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Underground_Utilities.b0078434.shp.zip",
+        "bytes": 285622
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "infrastructure",
+      "provenance": "curated",
+      "fetched_at": "2026-11-19",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap. Pipelines (man_made=pipeline) mapped location=underground or underwater, power cables (power=cable, which OpenStreetMap uses for buried and submarine cables) unless mapped above ground, and power lines mapped location=underground. About as many pipelines again are mapped with no location, and are left out because it is not known where they run. Every OpenStreetMap tag is kept as mapped: a tag used on at least 1% of the rows is its own column, every other tag is in other_tags (a JSON object). osm_type and osm_id link each row to openstreetmap.org/<osm_type>/<osm_id>; as_of is the extract date. OpenStreetMap is mapped by volunteers, so coverage is incomplete and uneven: a place with no feature here may simply not be mapped yet.",
+      "tags": [
+        "pipelines",
+        "power cables",
+        "underground",
+        "below ground",
+        "utilities",
+        "water pipelines",
+        "gas pipelines",
+        "OpenStreetMap",
+        "infrastructure"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns",
+        "audited_at": null,
+        "next_due": "2026-12-19"
+      }
+    },
+    {
+      "id": "osm_mines_caves",
+      "level": "osm_mines_caves",
+      "source": "OpenStreetMap",
+      "rows": 1093,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.946e9e72.parquet",
+        "bytes": 60156
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.b8f8d86a.pmtiles",
+        "bytes": 255307
+      },
+      "geojson": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.d0be2a92.geojson",
+        "bytes": 662426
+      },
+      "kml": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.dd9181a3.kml",
+        "bytes": 664285
+      },
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/below-ground/osm/OSM_Mines_Caves.409b6835.shp.zip",
+        "bytes": 66047
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "environment",
+      "provenance": "curated",
+      "fetched_at": "2026-11-19",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and share changed versions of the data under ODbL. From a dated Geofabrik extract of OpenStreetMap. Mine shafts and adits (man_made=mineshaft, adit), old mines (historic=mine, mine_shaft, mine_adit), cave entrances (natural=cave_entrance) and sinkholes (natural=sinkhole). A feature drawn as an area is one point at its centre (osm_type says way). Most mine shafts mapped so far are small coal pits in Meghalaya, tagged resource=coal. Every OpenStreetMap tag is kept as mapped: a tag used on at least 1% of the rows is its own column, every other tag is in other_tags (a JSON object). osm_type and osm_id link each row to openstreetmap.org/<osm_type>/<osm_id>; as_of is the extract date. OpenStreetMap is mapped by volunteers, so coverage is incomplete and uneven: a place with no feature here may simply not be mapped yet.",
+      "tags": [
+        "mines",
+        "mine shafts",
+        "coal mines",
+        "caves",
+        "sinkholes",
+        "underground",
+        "below ground",
+        "OpenStreetMap",
+        "environment"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: rows per tag set (tunnel, buried pipeline or cable, mine or cave) against the previous build; every row in the tiles at the top zoom; no mapper data (user, uid, changeset) in the columns",
+        "audited_at": null,
+        "next_due": "2026-12-19"
+      }
+    },
+    {
+      "id": "core_mws_water_balance",
+      "level": "core_mws_water_balance",
+      "source": "CoRE Stack",
+      "rows": 63703,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/core-mws-water-balance/CoRE_MWS_Water_Balance.a7f8b559.parquet",
+        "bytes": 149346275
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/core-mws-water-balance/CoRE_MWS_Water_Balance.95f711d0.pmtiles",
+        "bytes": 66630595
+      },
+      "geojson": null,
+      "kml": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/water/core-mws-water-balance/CoRE_MWS_Water_Balance.c65e581f.shp.zip",
+        "bytes": 154259770
+      },
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        },
+        "publisher": null
+      },
+      "category": "water",
+      "provenance": "curated",
+      "notes": "Each year column (2017_2018 to 2024_2025, July to June) holds a JSON string with Precipitation, RunOff, ET, DeltaG and G in mm and WellDepth in metres: the water balance is rainfall minus runoff minus evapotranspiration, and WellDepth turns it into a change in depth to water using the aquifer's specific yield (weighted_avg_yeild, spelled as published; some tehsil files name it weighted_a, and a few add their own STATE, District and TEHSIL columns, all kept as published). Net2017_22 to Net2020_25 are the net change in depth to water in metres over each 5-year window; where the aquifer's yield is near zero they run very large (about 110 beyond 1,000 m), as published. CoRE Stack notes this counts only vertical flow, not water moving underground between micro-watersheds. Rainfall is from JAXA GSMaP, evapotranspiration from the FLDAS Noah land surface model (NASA, USGS). CoRE Stack computes this layer itself and publishes it per tehsil on its GeoServer, listed in its tehsil-wise STAC files, under CC-BY-4.0. bharatlas puts every tehsil file together as published: one row per micro-watershed per tehsil file, every column as published, with stac_state, stac_district and stac_tehsil added from the STAC path (CoRE Stack's spelling). A micro-watershed that crosses a tehsil boundary is in each tehsil's file, so the same uid can appear more than once, with values CoRE Stack computed for that tehsil. CoRE Stack covers the tehsils it has computed so far, not all of India. Methods: CoRE Stack's technical manual and code (github.com/core-stack-org).",
+      "tags": [
+        "water balance",
+        "groundwater",
+        "groundwater recharge",
+        "depth to water",
+        "well depth",
+        "evapotranspiration",
+        "runoff",
+        "rainfall",
+        "micro-watershed",
+        "watershed",
+        "hydrology",
+        "CoRE Stack"
+      ],
+      "fetched_at": "2026-11-20T19:27:17+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/CorestackCatalogs_merged_collection/tehsil_wise/catalog.json",
+        "reason": "CoRE Stack serves these per tehsil from its GeoServer (about 600 files each, named by its tehsil-wise STAC files); the set is pinned by sha256 (scripts/bake_core_mws.py) and no check method reads per-tehsil files yet",
+        "fingerprint": "sha256=4bee1ae6d0c865468c5205492c1b2fe2e00d9e5d887f4f1b9c5a797c444bf406",
+        "checked_at": "2026-11-20T19:27:17+00:00",
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
+    },
+    {
+      "id": "core_mws_drought",
+      "level": "core_mws_drought",
+      "source": "CoRE Stack",
+      "rows": 58368,
+      "parquet": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/core-mws-drought/CoRE_MWS_Drought.3ad35821.parquet",
+        "bytes": 181513186
+      },
+      "pmtiles": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/agriculture/core-mws-drought/CoRE_MWS_Drought.e8e7ef65.pmtiles",
+        "bytes": 49609971
+      },
+      "geojson": null,
+      "kml": null,
+      "shapefile": null,
+      "licence": "CC-BY-4.0",
+      "attribution": {
+        "primary": {
+          "name": "CoRE Stack",
+          "url": "https://core-stack.org/"
+        },
+        "publisher": null
+      },
+      "category": "agriculture",
+      "provenance": "curated",
+      "notes": "CoRE Stack follows the Manual for Drought Management (2016, Ministry of Agriculture and Farmers Welfare), using CHIRPS rainfall, Landsat vegetation, MODIS crop data and IndiaSAT land cover. Per year: w_no, w_mld, w_mod and w_sev are weeks in no, mild, moderate and severe drought out of t_wks weeks analysed; drlb holds the weekly drought labels (0 none, 1 mild, 2 moderate, 3 severe); frth0 to frth3 and inth0 to inth3 are drought frequency and intensity at thresholds 0 to 3; drysp is dry spell length; m_ons the monsoon onset date; kh_cr kharif cropped area in sq km and pcr_k its percent; columns rdYY-M-D are the rainfall deviation in percent for the week starting that date. Most tehsils run to 2024, about a third stop at 2022, so a later year's columns are empty where a tehsil has no data; the weekly columns differ by tehsil, as published. CoRE Stack computes this layer itself and publishes it per tehsil on its GeoServer, listed in its tehsil-wise STAC files, under CC-BY-4.0. bharatlas puts every tehsil file together as published: one row per micro-watershed per tehsil file, every column as published, with stac_state, stac_district and stac_tehsil added from the STAC path (CoRE Stack's spelling). A micro-watershed that crosses a tehsil boundary is in each tehsil's file, so the same uid can appear more than once, with values CoRE Stack computed for that tehsil. CoRE Stack covers the tehsils it has computed so far, not all of India. Methods: CoRE Stack's technical manual and code (github.com/core-stack-org).",
+      "tags": [
+        "drought",
+        "drought frequency",
+        "dry spell",
+        "monsoon",
+        "monsoon onset",
+        "rainfall deviation",
+        "kharif",
+        "micro-watershed",
+        "watershed",
+        "agriculture",
+        "climate",
+        "CoRE Stack"
+      ],
+      "fetched_at": "2026-11-20T19:30:40+00:00",
+      "source_check": {
+        "method": "manual",
+        "url": "https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/CorestackCatalogs_merged_collection/tehsil_wise/catalog.json",
+        "reason": "CoRE Stack serves these per tehsil from its GeoServer (about 600 files each, named by its tehsil-wise STAC files); the set is pinned by sha256 (scripts/bake_core_mws.py) and no check method reads per-tehsil files yet",
+        "fingerprint": "sha256=81257d8caefee617df1ddcaeeb86bd66a084a6eb6e97d2c63ea641ee6771094b",
+        "checked_at": "2026-11-20T19:30:40+00:00",
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "slow",
+        "check": "weekly",
+        "rebuild": "on_change",
+        "release": "on_rebuild",
+        "audit": "row count within 2% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode",
+        "audited_at": null,
+        "next_due": null
+      }
     }
   ],
   "state_extracts": [],
@@ -14340,6 +14842,22 @@
     "Atal Bhujal Yojana (data.gov.in)": {
       "name": "Atal Bhujal Yojana, Ministry of Jal Shakti (data.gov.in)",
       "url": "https://www.data.gov.in/catalog/ground-water-level-data-under-atal-bhujal-yojana"
+    },
+    "GEM Global Active Faults": {
+      "name": "GEM Foundation, GEM Global Active Faults Database (Styron and Pagani 2020)",
+      "url": "https://github.com/GEMScienceTools/gem-global-active-faults"
+    },
+    "GLHYMPS 2.0 (Huscroft et al. 2018)": {
+      "name": "Huscroft, Gleeson, Hartmann and B\u00f6rker 2018, GLHYMPS 2.0 (Geophysical Research Letters)",
+      "url": "https://doi.org/10.5683/SP2/TTJNIU"
+    },
+    "OpenStreetMap": {
+      "name": "\u00a9 OpenStreetMap contributors",
+      "url": "https://www.openstreetmap.org/copyright"
+    },
+    "CoRE Stack": {
+      "name": "CoRE Stack",
+      "url": "https://core-stack.org/"
     }
   },
   "licence_summary": {

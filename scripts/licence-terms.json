@@ -1088,7 +1088,10 @@
    "layers": [
     "wards_hyderabad_osm",
     "urban_rail_stations",
-    "urban_rail_lines"
+    "urban_rail_lines",
+    "osm_tunnels",
+    "osm_underground_utilities",
+    "osm_mines_caves"
    ],
    "sha256": "1e34b0f089065b13e61872aecebadeb5ab8b49871c43745a1d73dda62c643327",
    "labels": {
@@ -1493,6 +1496,74 @@
    "sha256": "7d47300ad7583a7dad5c9f7cbfed040ccd6e960c2a7694cc692b2d831b90d9bc",
    "seen_at": "2026-11-20",
    "quote": "\"license\": \"CC-BY-4.0\""
+  },
+  {
+   "id": "gem_global_active_faults",
+   "publisher": "GEM Foundation (GEM Global Active Faults Database, GEMScienceTools/gem-global-active-faults)",
+   "url": "https://api.github.com/repos/GEMScienceTools/gem-global-active-faults/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "CC-BY-SA-4.0 (LICENSE.txt and README since Sept 2019; the 2019.0 tag was CC-BY-4.0); cite Styron and Pagani 2020, Earthquake Spectra, doi:10.1177/8755293020944182",
+   "quote": "The dataset is freely and publicly available here, under a Creative Commons attribution sharealike license.",
+   "verdict": "ok",
+   "seen_at": "2026-11-21",
+   "layers": [
+    "gem_active_faults"
+   ],
+   "sha256": "0ccccf9cc7da9081b488713d97d43fe4cc02ab1cd9d639c7a1b216293d299763",
+   "labels": {
+    "licence": "CC-BY-SA-4.0",
+    "credit": {
+     "name": "GEM Foundation, GEM Global Active Faults Database (Styron and Pagani 2020)",
+     "url": "https://github.com/GEMScienceTools/gem-global-active-faults"
+    }
+   },
+   "decided": "2026-11-21: labels applied at ingest"
+  },
+  {
+   "id": "borealis_glhymps_2",
+   "publisher": "Huscroft, Gleeson, Hartmann and Börker 2018, GLHYMPS 2.0 (Borealis, the Canadian Dataverse)",
+   "url": "https://borealisdata.ca/api/datasets/:persistentId/?persistentId=doi:10.5683/SP2/TTJNIU",
+   "kind": "json",
+   "json_path": "data.latestVersion.license.name",
+   "stated": "CC-BY-4.0",
+   "quote": "\"license\": {\"name\": \"CC-BY 4.0\", \"uri\": \"http://creativecommons.org/licenses/by/4.0\"}",
+   "verdict": "ok",
+   "layers": [
+    "glhymps_permeability"
+   ],
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "credit": {
+     "name": "Huscroft, Gleeson, Hartmann and Börker 2018, GLHYMPS 2.0 (Geophysical Research Letters)",
+     "url": "https://doi.org/10.5683/SP2/TTJNIU"
+    }
+   },
+   "sha256": "090376c32b961b252c53f1ccd22580f6c3a1cbe5906dd556caa754110d4bc2f0",
+   "seen_at": "2026-11-21"
+  },
+  {
+   "id": "core_stack_tehsil_wise",
+   "publisher": "CoRE Stack (tehsil-wise STAC catalogue; its own micro-watershed layers)",
+   "url": "https://spatio-temporal-asset-catalog.s3.ap-south-1.amazonaws.com/CorestackCatalogs_merged_collection/tehsil_wise/jharkhand/collection.json",
+   "kind": "json",
+   "json_path": "license",
+   "stated": "CC-BY-4.0 on every state collection, CoRE Stack as provider; CoRE Stack computes these layers itself",
+   "quote": "\"license\": \"CC-BY-4.0\"; providers: CoRE Stack; rel license https://spdx.org/licenses/CC-BY-4.0.html",
+   "verdict": "ok",
+   "seen_at": "2026-11-21",
+   "layers": [
+    "core_mws_water_balance",
+    "core_mws_drought"
+   ],
+   "sha256": "7d47300ad7583a7dad5c9f7cbfed040ccd6e960c2a7694cc692b2d831b90d9bc",
+   "labels": {
+    "licence": "CC-BY-4.0",
+    "credit": {
+     "name": "CoRE Stack",
+     "url": "https://core-stack.org/"
+    }
+   }
   }
  ]
 }

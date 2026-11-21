@@ -140,6 +140,13 @@ def test_whole_number_columns_become_integers_others_doubles():
     assert t.types() == {'year': 'BIGINT', 'area': 'DOUBLE'}
 
 
+def test_text_python_reads_as_a_number_stays_text():
+    # float() accepts '12_319549' (digit grouping), 'nan' and 'infinity': codes like these are text
+    t = w.NumericTracker(['uid', 'n', 'inf', 'ok'])
+    t.add({'uid': '12_319549', 'n': 'nan', 'inf': 'Infinity', 'ok': ' 1e3 '})
+    assert t.numeric() == ['ok']
+
+
 def test_cast_sql_turns_na_into_null():
     import duckdb
     sql = w.cast_sql('v', 'BIGINT')
