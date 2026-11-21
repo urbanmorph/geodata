@@ -28,7 +28,9 @@ describe('offline page', () => {
   it('wears the current brand: the shared wordmark, a saffron action with navy text, 44px targets', () => {
     // Self-contained (it shows with no network), so the markup is a copy: this keeps it from drifting.
     expect(OFFLINE).toContain(wordmarkHtml({ size: 28 }));
-    expect(OFFLINE).toMatch(new RegExp(`\\.go\\{[^}]*background:${PALETTE.saffron}[^}]*color:${PALETTE.navy}`));
+    expect(OFFLINE).toMatch(/\.go\{[^}]*background:var\(--accent-fill\);color:var\(--on-accent-fill\)/);
+    expect(OFFLINE).toContain(`--accent-fill: ${PALETTE.saffron};`);
+    expect(OFFLINE).toContain(`--on-accent-fill: ${PALETTE.navy};`);
     expect(OFFLINE).toMatch(/\.links a\{[^}]*min-height:44px/);
   });
 });

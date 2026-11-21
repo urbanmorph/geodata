@@ -6,7 +6,7 @@
 // go stale. Navigation preload lets the browser request the page while this worker
 // starts, so the worker adds no delay to a page load. VERSION is the offline page's
 // content hash (tests/offline.test.ts), so changing that page ships a new worker.
-const VERSION = '81a7678cd227';
+const VERSION = 'c45b90dc7df1';
 const CACHE = `offline-${VERSION}`;
 const OFFLINE = '/offline/';
 

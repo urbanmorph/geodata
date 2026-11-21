@@ -219,7 +219,7 @@ export async function planExport(file: AsyncBuffer, sel: Selection): Promise<Exp
   return { total, estimatedBytes, shapeBytes };
 }
 
-const MB = (n: number) => `${Math.round(n / (1024 * 1024)).toLocaleString('en-US')} MB`;
+const MB = (n: number) => `${Math.round(n / (1024 * 1024)).toLocaleString('en-IN')} MB`;
 const FORMAT_LABEL: Record<ExportFormat, string> = { geojson: 'GeoJSON', kml: 'KML', csv: 'CSV' };
 
 /**
@@ -247,13 +247,13 @@ export async function exportRows(
   const instead = `Narrow the filter${opts.tooManyHint ? `, or ${opts.tooManyHint}` : ''}.`;
   if (total > maxRows) {
     throw new QueryInputError(
-      `${total.toLocaleString('en-US')} rows match: more than this export's ${maxRows.toLocaleString('en-US')}. ${instead}`,
+      `${total.toLocaleString('en-IN')} rows match: more than this export's ${maxRows.toLocaleString('en-IN')}. ${instead}`,
     );
   }
   const est = estimatedBytes[opts.format];
   if (est > maxBytes) {
     throw new QueryInputError(
-      `${total.toLocaleString('en-US')} rows match, an estimated ${MB(est)} as ${FORMAT_LABEL[opts.format]}: `
+      `${total.toLocaleString('en-IN')} rows match, an estimated ${MB(est)} as ${FORMAT_LABEL[opts.format]}: `
       + `more than this export's ${MB(maxBytes)}. ${instead}`,
     );
   }
@@ -262,7 +262,7 @@ export async function exportRows(
   const shapeCol = format === 'csv' ? undefined : geomCol;
   if (shapeCol && shapeBytes > (opts.maxShapeBytes ?? EXPORT_MAX_SHAPE_BYTES)) {
     throw new QueryInputError(
-      `${total.toLocaleString('en-US')} rows match, spread over too much of this layer to export their shapes in one go. `
+      `${total.toLocaleString('en-IN')} rows match, spread over too much of this layer to export their shapes in one go. `
       + `${instead} Or export CSV (each row with its centre point).`,
     );
   }

@@ -1,40 +1,17 @@
-// Stable design tokens + nav + footer, in the "survey sheet" look (Direction A):
+// The page chrome (nav, footer, page system) in the "survey sheet" look (Direction A):
 // grid paper behind the page, 1.5px navy edges, 4px corners, a navy offset shadow
-// on actions, system monospace for map-sheet labels. Colours and the logo come from
-// shared/brand.mjs (saffron / India green / chakra navy). Type scale
-// (--fs-*) 12/13/15/16/18/22/24/32/44/72: every font size on every page uses it
-// (tests/type-scale.test.ts). Radii 4/6/8/12. Pure module so vitest can test
-// renderNav() etc.
-import { themeDecls, wordmarkHtml, WORDMARK_CSS, PALETTE } from '../../shared/brand.mjs';
+// on actions, system monospace for map-sheet labels. Every token (colours, type
+// scale, weights, spacing, radii, shadows, layers, motion) comes from
+// shared/tokens.mjs, which collect uses too; /design documents them. Pure module
+// so vitest can test renderNav() etc.
+import { wordmarkHtml, WORDMARK_CSS, PALETTE } from '../../shared/brand.mjs';
+import { tokensCss } from '../../shared/tokens.mjs';
 import { footerHtml } from '../../shared/footer.mjs';
 
-export const TOKENS = `
-  :root {
-    --fs-xs: 12px; --fs-sm: 13px; --fs-base: 15px; --fs-md: 16px; --fs-lg: 18px;
-    --fs-xl: 22px; --fs-2xl: 24px; --fs-3xl: 32px; --fs-4xl: 44px; --fs-display: 72px;
-    --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
-    --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
-    --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px; --radius-xl: 12px;
-    /* Paper behind the page, white panels on it; --bg-card is the hover / selected tint. */
-    --bg: #F3F6F1; --bg-elevated: #ffffff; --bg-card: #E9EFEA;
-    --muted: #4B5563; --muted-strong: #374151;
-    --subtle: #9ca3af; --line: #D5DED7; --line-bright: #B8C4BC;
-    /* Survey sheet: land fill, the navy edge and its offset shadow, the grid. */
-    --land: #E6F2EA; --edge: ${PALETTE.navy}; --grid: rgba(18, 128, 74, .07);
-    --shadow: 4px 4px 0 var(--edge); --shadow-sm: 3px 3px 0 var(--edge);
-    --font-mono: ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
-    ${themeDecls('light')}
-    --ok: #16a34a; --warn: #d97706; --err: #dc2626;
-  }
+// Pages with a map (the layer map, the contribute preview) use MAP_TOKENS, which
+// adds MapLibre's controls in dark mode; the rest skip those bytes.
+const MAP_CONTROLS_DARK = `
   @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #0a0a0a; --bg-elevated: #15151a; --bg-card: #1a1a1f;
-      --muted: #9ca3af; --muted-strong: #d4d4d8;
-      --subtle: #525252; --line: #262626; --line-bright: #404040;
-      --land: #13261C; --edge: #C8D0E3; --grid: rgba(63, 203, 126, .06);
-      ${themeDecls('dark')}
-      --ok: #4ade80; --warn: #fbbf24; --err: #f87171;
-    }
     /* MapLibre's zoom and compass buttons: a dark panel, not a white box.
        :root outranks MapLibre's stylesheet, which loads after these tokens. */
     :root .maplibregl-ctrl-group:not(:empty) { background: var(--bg-elevated); box-shadow: 0 0 0 1px var(--line-bright); }
@@ -45,7 +22,10 @@ export const TOKENS = `
     :root .maplibregl-ctrl.maplibregl-ctrl-attrib, :root .maplibregl-ctrl-attrib.maplibregl-compact { background-color: var(--bg-elevated); color: var(--fg); }
     :root .maplibregl-ctrl-attrib a { color: var(--muted-strong); }
     :root .maplibregl-ctrl-attrib-button { background-color: transparent; filter: invert(1); }
-  }
+  }`;
+
+export const TOKENS = `
+  ${tokensCss()}
   *, *::before, *::after { box-sizing: border-box; }
   /* Reduced motion: nothing slides, pings or spins (a spinner stays a still ring). */
   @media (prefers-reduced-motion: reduce) {
@@ -58,7 +38,7 @@ export const TOKENS = `
     background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
     background-size: 48px 48px;
   }
-  body { font: var(--fs-base)/1.55 ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Inter", sans-serif; }
+  body { font: var(--fs-base)/var(--lh-base) var(--font-sans); }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   a:focus-visible, button:focus-visible, [role=button]:focus-visible,
@@ -71,14 +51,13 @@ export const TOKENS = `
     position: absolute; left: -9999px; top: var(--sp-2);
     background: var(--bg); color: var(--accent);
     padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line);
-    border-radius: var(--radius-md); z-index: 1000;
+    border-radius: var(--radius-md); z-index: var(--z-skip);
   }
   .skip-link:focus { left: var(--sp-2); }
   main :is(p, li, dd) a { text-decoration: underline; text-underline-offset: 2px; }
   /* Page column: one width for every page, so the logo, nav and footer stay put
      between pages (reading text keeps a 720px measure inside it). The header is
      a full-width bar whose content lines up with that column. */
-  :root { --page-max: 1120px; }
   html { overflow-x: clip; }
   body { padding-top: 0 !important; }
   .site-header {
@@ -102,13 +81,13 @@ export const TOKENS = `
     align-items: center;
   }
   .site-nav a:hover { color: var(--fg); }
-  .site-nav a[data-active] { color: var(--fg); font-weight: 650; }
+  .site-nav a[aria-current] { color: var(--fg); font-weight: 650; }
   .site-nav a.nav-cta {
     min-height: 44px; padding: 0 16px; color: var(--fg); font-weight: 650;
     border: 1.5px solid var(--edge); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
   }
-  .site-nav a.nav-cta:hover, .site-nav a.nav-cta[data-active] { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
-  .site-nav a[data-active]:not(.nav-cta) { box-shadow: inset 0 -3px 0 var(--accent-fill); }
+  .site-nav a.nav-cta:hover, .site-nav a.nav-cta[aria-current] { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
+  .site-nav a[aria-current]:not(.nav-cta) { box-shadow: inset 0 -3px 0 var(--accent-fill); }
   /* mobile hamburger (CSS-only, checkbox toggle) */
   .nav-toggle { position: absolute; width: 1px; height: 1px; opacity: 0; overflow: hidden; }
   .nav-burger {
@@ -131,10 +110,10 @@ export const TOKENS = `
   .site-nav { margin-left: auto; }
   .install-app {
     display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--sp-3);
-    font: inherit; font-size: var(--fs-sm); font-weight: 500; color: var(--accent);
-    background: transparent; border: 1px solid var(--line-bright); border-radius: 999px; cursor: pointer;
+    font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--fg);
+    background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm); cursor: pointer;
   }
-  .install-app:hover { border-color: var(--accent); }
+  .install-app:hover { background: var(--land); }
   .install-app[hidden] { display: none; }
   @media (max-width: 640px) {
     .install-app { order: 1; margin-left: auto; }
@@ -158,8 +137,8 @@ export const TOKENS = `
   .install-guide li + li { margin-top: var(--sp-2); }
   .install-guide form { display: flex; justify-content: flex-end; }
   .install-guide button {
-    min-height: 44px; padding: 0 var(--sp-5); font: inherit; font-weight: 600; color: var(--on-accent-fill);
-    background: var(--accent-fill); border: 0; border-radius: var(--radius-md); cursor: pointer;
+    min-height: 44px; padding: 0 var(--sp-5); font: inherit; font-weight: var(--fw-bold); color: var(--on-accent-fill);
+    background: var(--accent-fill); border: var(--border-edge); border-radius: var(--radius-sm); cursor: pointer;
   }
   .install-guide button:hover { background: var(--accent-fill-hover); }
   /* Content pages: one type scale for every page (the home page's too). */
@@ -178,6 +157,15 @@ export const TOKENS = `
   .btn--fill:active { box-shadow: none; transform: translate(4px, 4px); }
   .btn--line { background: var(--bg-elevated); color: var(--fg) !important; }
   .btn--line:hover { background: var(--land); }
+  .btn:disabled, .btn[aria-disabled=true] { opacity: .55; cursor: not-allowed; box-shadow: none; transform: none; }
+  /* Forced colours (Windows contrast themes) drop fills and shadows: keep the
+     primary action, the current page and focus distinguishable. */
+  @media (forced-colors: active) {
+    .btn--fill, .site-nav a.nav-cta[aria-current] { forced-color-adjust: none; background: Highlight; color: HighlightText !important; border-color: Highlight; }
+    .btn--line { border-color: ButtonText; }
+    .site-nav a[aria-current] { text-decoration: underline 3px; text-underline-offset: 6px; }
+    :focus-visible { outline-color: Highlight !important; }
+  }
   @media (max-width: 640px) {
     .page-title { font-size: var(--fs-3xl); }
     .page-lead { font-size: var(--fs-md); }
@@ -227,7 +215,7 @@ export const TOKENS = `
   }
   /* Shared by the home page and /layers: the search box text, its status line,
      and the theme symbols (THEME_GLYPH) in the legend and the theme index. */
-  .catalog-search { flex: 1; min-width: 0; padding: 6px 0; font: var(--fs-md) ui-sans-serif, system-ui, sans-serif; color: var(--fg); background: transparent; border: none; outline: none; }
+  .catalog-search { flex: 1; min-width: 0; padding: 6px 0; font: var(--fs-md) var(--font-sans); color: var(--fg); background: transparent; border: none; outline: none; }
   .catalog-search::placeholder { color: var(--muted); }
   .catalog-search:focus-visible { outline: none !important; }
   .search-meta { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
@@ -275,6 +263,9 @@ export const TOKENS = `
   .site-footer a:hover { color: var(--fg); }
 `;
 
+/** TOKENS plus MapLibre's controls in dark mode, for pages with a map. */
+export const MAP_TOKENS = TOKENS + MAP_CONTROLS_DARK;
+
 // The mockup's nav. `keys` are the page keys a link is active on; labels are
 // HTML (escaped). Adding a map (/preview) is the outlined button after them.
 export const NAV_LINKS = [
@@ -284,6 +275,11 @@ export const NAV_LINKS = [
   { keys: ['docs', 'mcp'], href: '/docs', label: 'API &amp; MCP' },
   { keys: ['about'], href: '/about', label: 'About' },
 ];
+
+/** aria-current for a nav link: "page" on its own page, "true" on a page it
+ *  stands for (API & MCP on /mcp). Also what the active style keys on. */
+const current = (keys, activeKey) =>
+  keys[0] === activeKey ? ' aria-current="page"' : keys.includes(activeKey) ? ' aria-current="true"' : '';
 
 /** The site header. Edge-rendered pages pass installScript: false (no /src there). */
 export function renderNav(activeKey, { installScript = true } = {}) {
@@ -295,9 +291,9 @@ export function renderNav(activeKey, { installScript = true } = {}) {
       <nav class="site-nav" id="site-nav" aria-label="Primary">
         ${NAV_LINKS.map(
           (l) =>
-            `<a href="${l.href}"${l.keys.includes(activeKey) ? ' data-active' : ''}${l.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${l.label}</a>`,
+            `<a href="${l.href}"${current(l.keys, activeKey)}${l.href.startsWith('http') ? ' target="_blank" rel="noopener"' : ''}>${l.label}</a>`,
         ).join('\n        ')}
-        <a class="nav-cta" href="/preview"${activeKey === 'preview' ? ' data-active' : ''}>Add a map</a>
+        <a class="nav-cta" href="/preview"${current(['preview'], activeKey)}>Add a map</a>
       </nav>
       <button type="button" id="install-app" class="install-app" hidden>Install app</button>
     </header>${installScript ? '\n    <script type="module" src="/src/install.ts"></script>' : ''}`;

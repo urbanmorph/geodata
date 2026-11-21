@@ -2,7 +2,7 @@
 // page is the deployment's own dist/404.html (scripts/not-found-page.mjs: site
 // header, logo, footer, search), read once per isolate through env.ASSETS and
 // filled in here. If it can't be read, a small inline page stands in.
-import { THEME } from '../../../shared/brand.mjs';
+import { COLORS, FONT, FONT_SIZE } from '../../../shared/tokens.mjs';
 import { escapeHtml as esc } from '../../../shared/format.mjs';
 import { fetchAsset, type AssetCtx } from './catalog-loader';
 import { SECURITY_HEADERS_HTML } from './security-headers';
@@ -14,12 +14,13 @@ export type NotFound = {
   extra?: string;
 };
 
-const L = THEME.light;
-const D = THEME.dark;
+// Small on purpose: the token values it needs, written in, not the whole set.
+const L = COLORS.light;
+const D = COLORS.dark;
 const CSS =
-  `:root{color-scheme:light dark}body{font:15px/1.6 ui-sans-serif,system-ui,sans-serif;max-width:600px;margin:80px auto;padding:0 24px;color:${L['--fg']};background:#fff}` +
-  `h1{font-size:22px;margin:0 0 8px}a{color:${L['--accent']}}` +
-  `@media(prefers-color-scheme:dark){body{color:${D['--fg']};background:#0a0a0a}a{color:${D['--accent']}}}`;
+  `:root{color-scheme:light dark}body{font:${FONT_SIZE['--fs-base']}/1.6 ${FONT['--font-sans']};max-width:600px;margin:80px auto;padding:0 24px;color:${L['--fg']};background:${L['--bg']}}` +
+  `h1{font-size:${FONT_SIZE['--fs-xl']};margin:0 0 8px}a{color:${L['--accent']}}` +
+  `@media(prefers-color-scheme:dark){body{color:${D['--fg']};background:${D['--bg']}}a{color:${D['--accent']}}}`;
 
 /** The inline fallback, for when dist/404.html can't be read. */
 export function notFoundHtml(title: string, message: string): string {

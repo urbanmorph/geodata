@@ -49,10 +49,12 @@ describe('renderNav', () => {
     expect(html).toContain('India&#39;s open atlas');
   });
 
-  it('marks the active link with data-active', () => {
+  it('marks the current page for assistive tech (aria-current), which the active style keys on', () => {
     const html = renderNav('preview');
-    expect(html).toMatch(/href="\/preview"[^>]*\bdata-active\b/);
-    expect(html).not.toMatch(/href="\/about"[^>]*\bdata-active\b/);
+    expect(html).toMatch(/href="\/preview" aria-current="page"/);
+    expect(html).not.toMatch(/href="\/about"[^>]*aria-current/);
+    expect(TOKENS).toContain('.site-nav a[aria-current]');
+    expect(html).not.toContain('data-active');
   });
 
   it('renders every link in NAV_LINKS', () => {
@@ -78,24 +80,24 @@ describe('renderNav', () => {
     const html = renderNav('layers');
     expect(NAV_LINKS.map((l: { label: string }) => l.label)).toEqual(['Home', 'Layers', 'Collect', 'API &amp; MCP', 'About']);
     expect(html).toMatch(/<a class="nav-cta" href="\/preview"[^>]*>Add a map<\/a>/);
-    expect(html).toMatch(/href="\/layers"[^>]*\bdata-active\b[^>]*>Layers</);
+    expect(html).toMatch(/href="\/layers" aria-current="page">Layers</);
   });
 
   // Layers is /layers since the list moved off the home page, so Home is its own
   // link (not only the logo), active on the home page and nowhere else.
   it('has a Home link, distinct from Layers, active only on the home page', () => {
-    expect(renderNav('home')).toMatch(/<a href="\/"[^>]*\bdata-active\b[^>]*>Home<\/a>/);
-    expect(renderNav('home')).not.toMatch(/href="\/layers"[^>]*\bdata-active\b/);
-    expect(renderNav('layers')).not.toMatch(/<a href="\/"[^>]*\bdata-active\b/);
+    expect(renderNav('home')).toMatch(/<a href="\/" aria-current="page">Home<\/a>/);
+    expect(renderNav('home')).not.toMatch(/href="\/layers"[^>]*aria-current/);
+    expect(renderNav('layers')).not.toMatch(/<a href="\/"[^>]*aria-current/);
   });
 
   it('marks API & MCP active on both the docs and the MCP page', () => {
-    expect(renderNav('mcp')).toMatch(/href="\/docs"[^>]*\bdata-active\b/);
-    expect(renderNav('docs')).toMatch(/href="\/docs"[^>]*\bdata-active\b/);
+    expect(renderNav('mcp')).toMatch(/href="\/docs" aria-current="true"/);
+    expect(renderNav('docs')).toMatch(/href="\/docs" aria-current="page"/);
   });
 
   it('marks Add a map active on the contribute page', () => {
-    expect(renderNav('preview')).toMatch(/class="nav-cta" href="\/preview" data-active/);
+    expect(renderNav('preview')).toMatch(/class="nav-cta" href="\/preview" aria-current="page"/);
   });
 
   it('can leave out the install-button script (edge-rendered pages have no /src)', () => {
@@ -105,7 +107,7 @@ describe('renderNav', () => {
 
   it('emits a unique active marker even when no key matches', () => {
     const html = renderNav('nonexistent');
-    expect(html).not.toContain('data-active');
+    expect(html).not.toContain('aria-current');
   });
 });
 

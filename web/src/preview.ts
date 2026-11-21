@@ -346,7 +346,7 @@ function buildReport(file: File, r: Report): Row[] {
 
   rows.push({ k: file.name, v: fmtBytes(file.size), level: 'ok' });
   rows.push({
-    k: `${r.count.toLocaleString()} features`,
+    k: `${r.count.toLocaleString('en-IN')} features`,
     v: Object.entries(r.byType).map(([t, n]) => `${t} ${n}`).join(', '),
     level: 'ok',
   });

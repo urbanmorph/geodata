@@ -2,13 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { manifestProblems, manifestContentType, readManifest, screenshotProblems, MANIFEST_LINK } from '../../web/tests/helpers/manifest-checks';
+import { COLORS } from '../../shared/tokens.mjs';
 
 const root = resolve(__dirname, '..');
 const pub = resolve(root, 'public');
 
 describe('collect web app manifest', () => {
   it('meets the install criteria and opens on "Your maps"', () => {
-    expect(manifestProblems(pub, '#ffffff')).toEqual([]);
+    expect(manifestProblems(pub, COLORS.light['--bg'])).toEqual([]);
     const m = readManifest(pub);
     expect(m.start_url).toBe('/');
     expect(m.id).toBe('/');

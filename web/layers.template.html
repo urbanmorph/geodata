@@ -10,8 +10,8 @@
     <link rel="icon" sizes="any" href="/favicon.ico" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F3F6F1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <!-- ?q=… opens every section before first paint (no layout shift). -->
     <script src="/q-precheck.js"></script>
     <style>
@@ -86,8 +86,8 @@
         padding: 6px 14px;
         color: var(--muted); font-size: var(--fs-xs);
         text-decoration: none;
-        border: 1px dashed var(--line); border-radius: 999px;
-        transition: all 140ms ease;
+        border: 1px dashed var(--line); border-radius: var(--radius-pill);
+        transition: color 140ms ease, border-color 140ms ease;
       }
       .category-cta:hover { color: var(--accent); border-color: var(--accent); border-style: solid; }
 
@@ -183,7 +183,7 @@
       }
       .row--compact .row__expand .row__desc { font-size: var(--fs-sm); margin: 0 0 8px; }
       .row--compact .row__lic-line { font-size: var(--fs-xs); color: var(--muted); margin: 0 0 6px; }
-      .row--compact .row__lic-line code { font: var(--fs-xs) ui-monospace, SFMono-Regular, monospace; background: var(--bg-card); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+      .row--compact .row__lic-line code { font: var(--fs-xs) var(--font-mono); background: var(--bg-card); padding: 1px 5px; border-radius: var(--radius-sm); color: var(--fg); }
 
       /* Tablet: drop source column, count keeps room. Downloads are already
          in row__expand so nothing to hide in the action area. */
@@ -226,12 +226,12 @@
         padding: 8px 12px;
         background: transparent;
         border: 1px dashed var(--line);
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         color: var(--muted);
         font: inherit;
         font-size: var(--fs-xs);
         cursor: pointer;
-        transition: all 120ms ease;
+        transition: color 120ms ease, border-color 120ms ease;
       }
       .show-more:hover { color: var(--accent); border-color: var(--accent); }
       .category-section.expanded .show-more { display: none; }
@@ -288,7 +288,7 @@
         font-size: var(--fs-xs);
         padding: 1px 5px;
         margin-left: 4px;
-        border-radius: 999px;
+        border-radius: var(--radius-pill);
         background: color-mix(in srgb, var(--accent) 14%, transparent);
         color: var(--accent);
         cursor: help;
@@ -322,7 +322,7 @@
       .alt__row .links a { color: var(--fg); }
       .alt__row .links .dot { color: var(--line); margin: 0 4px; }
       .alt__row--primary { padding-bottom: 6px; border-bottom: 1px dashed var(--line); margin-bottom: 4px; }
-      .alt__row .tag { font-size: var(--fs-xs); padding: 1px 6px; background: var(--accent-fill); color: var(--on-accent-fill); border-radius: 999px; margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
+      .alt__row .tag { font-size: var(--fs-xs); padding: 1px 6px; background: var(--accent-fill); color: var(--on-accent-fill); border-radius: var(--radius-pill); margin-left: 4px; vertical-align: middle; letter-spacing: .04em; }
       /* Site-wide use (scripts/usage-totals.mjs): downloads, and API queries once past the threshold. */
       .usage-block { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 22px; }
       .usage-block__item { display: flex; align-items: baseline; gap: 6px; color: var(--muted); font-size: var(--fs-sm); }

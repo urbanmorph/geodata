@@ -22,6 +22,7 @@ export const STATIC: Array<{ loc: string; changefreq: string; priority: string }
   { loc: ORIGIN + '/releases', changefreq: 'monthly', priority: '0.5' },
   { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
   { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
+  { loc: ORIGIN + '/design', changefreq: 'monthly', priority: '0.4' },
 ];
 
 const escXml = (s: string) =>

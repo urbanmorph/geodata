@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const PAGES = ['/', '/index.html', '/layers', '/about', '/docs', '/preview', '/mcp', '/privacy', '/terms'];
+const PAGES = ['/', '/index.html', '/layers', '/about', '/docs', '/preview', '/mcp', '/privacy', '/terms', '/design'];
 const FILES = ['/catalog.json', '/sitemap.xml', '/llms.txt', '/layer-index.json', '/og-default.png', '/og-about.png', '/og-preview.png'];
 
 /** Every URL a deploy can change: pages, layer pages (built from index.html), share images, data files. */

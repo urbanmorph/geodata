@@ -11,8 +11,8 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev" crossorigin />
-    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0b0b0d" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#F3F6F1" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
     <style>
       <!-- TOKENS -->
       :root { --card-bg: var(--bg-card); --row-hover: var(--bg-card); }
@@ -59,7 +59,7 @@
       }
       .search-bar:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
       .search-bar__icon { flex: none; color: var(--fg); }
-      .search-bar__key { font: 600 12px ui-sans-serif, system-ui, sans-serif; color: var(--muted); border: 1px solid var(--line-bright); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px; }
+      .search-bar__key { font: 600 var(--fs-xs) var(--font-sans); color: var(--muted); border: 1px solid var(--line-bright); border-bottom-width: 2px; border-radius: var(--radius-md); padding: 2px 7px; }
       /* Actions under the search, not part of it: the shared buttons (.btn),
          set apart from the bar, so neither reads as the search's go button.
          Find my ward is the hero's main action (fill), Open a file the line. */
@@ -75,12 +75,12 @@
       }
       .search-pop[hidden] { display: none; }
       .search-pop__keys { display: flex; gap: 6px; align-items: center; margin: 0; padding: 10px 16px; border-top: 1px solid var(--line); font-size: var(--fs-xs); color: var(--muted); }
-      .search-pop__keys kbd { font: inherit; border: 1px solid var(--line-bright); border-radius: 4px; padding: 0 5px; }
+      .search-pop__keys kbd { font: inherit; border: 1px solid var(--line-bright); border-radius: var(--radius-sm); padding: 0 5px; }
       .search-pop__results:empty { display: none; }
       .search-pop__head { margin: 0; padding: 12px 16px 6px; font-size: var(--fs-sm); font-weight: 650; color: var(--muted); }
       .search-hit { display: flex; align-items: center; gap: 14px; padding: 10px 16px; color: var(--fg); text-decoration: none !important; }
       .search-hit[aria-selected="true"], .search-hit:hover { background: var(--bg-card); }
-      .search-hit__ico { flex: none; width: 36px; height: 36px; border-radius: 9px; display: grid; place-items: center; background: color-mix(in srgb, var(--accent-fill) 16%, var(--bg)); color: var(--fg); }
+      .search-hit__ico { flex: none; width: 36px; height: 36px; border-radius: var(--radius-lg); display: grid; place-items: center; background: color-mix(in srgb, var(--accent-fill) 16%, var(--bg)); color: var(--fg); }
       .search-hit__text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
       .search-hit__title { font-weight: 650; font-size: var(--fs-md); }
       .search-hit__sub { font-size: var(--fs-sm); color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -88,7 +88,7 @@
 
       .ward-answer {
         display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 4px 16px;
-        margin: 10px; padding: 16px; border-radius: 12px;
+        margin: 10px; padding: 16px; border-radius: var(--radius-xl);
         background: color-mix(in srgb, var(--accent-fill) 12%, var(--bg));
         border: 1.5px solid color-mix(in srgb, var(--accent-fill) 55%, var(--bg));
       }
@@ -146,7 +146,7 @@
       .realm-group__desc { margin: 0 0 12px; color: var(--muted); font-size: var(--fs-base); }
       .realm-group__note { margin: 12px 0 0; color: var(--muted); font-size: var(--fs-sm); }
       .realm-group__note a { display: inline-block; padding: 12px 0; margin: -12px 0; font-weight: 650; text-decoration: underline; text-underline-offset: 2px; }
-      .popular-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+      .popular-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border: 1px solid var(--line); border-radius: var(--radius-xl); overflow: hidden; }
       .popular-item { display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none !important; }
       .popular-item:hover { background: var(--bg-card); }
       .popular-item__name { font-weight: 600; }
@@ -156,7 +156,7 @@
       /* AI / API band: fixed navy ground in both themes. */
       .ask-ai {
         display: flex; flex-wrap: wrap; gap: 24px; align-items: center;
-        margin: 48px 0 0; padding: 28px; border-radius: 16px;
+        margin: 48px 0 0; padding: 28px; border-radius: var(--radius-xl);
         background: #0B1B3F; color: #fff;
       }
       .ask-ai__text { flex: 1 1 320px; }
@@ -164,14 +164,14 @@
       .ask-ai p { margin: 0; color: #C8D0E3; font-size: var(--fs-base); line-height: 1.5; }
       .ask-ai__links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px !important; }
       .ask-ai__code code { background: none; padding: 0; color: inherit; font: inherit; }
-      .ask-ai__code { flex: 1 1 320px; margin: 0; padding: 16px; border-radius: 12px; background: #13265A; color: #E6EAF4; font: var(--fs-sm)/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
+      .ask-ai__code { flex: 1 1 320px; margin: 0; padding: 16px; border-radius: var(--radius-xl); background: #13265A; color: #E6EAF4; font: var(--fs-sm)/1.6 var(--font-mono); overflow-x: auto; }
 
       /* Drag-anywhere overlay */
       body.is-dragging::after {
         content: 'Drop to verify and share →';
         position: fixed; inset: 0;
         display: flex; align-items: center; justify-content: center;
-        font: 600 22px/1.2 ui-sans-serif, system-ui, sans-serif;
+        font: 600 var(--fs-xl)/1.2 var(--font-sans);
         color: var(--accent);
         background: color-mix(in srgb, var(--accent) 8%, var(--bg));
         border: 4px dashed var(--accent);
@@ -182,7 +182,7 @@
       footer { margin-top: 56px; color: var(--muted); font-size: var(--fs-xs); line-height: 1.7; }
       footer p { margin: 6px 0; }
       footer a { color: var(--muted); text-decoration: underline; }
-      code { font: var(--fs-xs) ui-monospace, SFMono-Regular, Menlo, monospace; background: var(--row-hover); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
+      code { font: var(--fs-xs) var(--font-mono); background: var(--row-hover); padding: 1px 5px; border-radius: var(--radius-sm); color: var(--fg); }
 
       @media (max-width: 900px) {
         /* The map goes under the search: the search is the page's job. */
@@ -192,7 +192,7 @@
       @media (max-width: 640px) {
         body { padding: 0 16px 60px; }
         h1 { font-size: var(--fs-lg); }
-        .card { padding: 20px; border-radius: 12px; }
+        .card { padding: 20px; border-radius: var(--radius-xl); }
 
         .home-hero { margin-top: -16px; padding: 28px 16px 32px; }
         .hero__title { font-size: var(--fs-4xl); }
@@ -217,7 +217,7 @@
          reads correctly for no-JS users; links underlined to be distinguishable
          from body text (was hardcoded #444/#0a58ca inline — failed both). */
       .view-seo { max-width: 720px; margin: 80px auto; padding: 0 24px;
-        font: var(--fs-base)/1.6 ui-sans-serif, system-ui, sans-serif; color: var(--fg); }
+        font: var(--fs-base)/1.6 var(--font-sans); color: var(--fg); }
       .view-seo h1 { font-size: var(--fs-2xl); font-weight: 600; margin: 8px 0; }
       .view-seo p { margin: 8px 0; }
       .view-seo__crumb { font-size: var(--fs-sm); color: var(--muted); }
@@ -270,14 +270,14 @@
       #map-overlay button.tbtn[data-filter-count] { position: relative; }
       #map-overlay button.tbtn[data-filter-count]::after {
         content: attr(data-filter-count); display: inline-grid; place-items: center; min-width: 18px; height: 18px; margin-left: 6px; padding: 0 4px;
-        box-sizing: border-box; border-radius: 999px; background: var(--accent-fill); color: var(--on-accent-fill);
+        box-sizing: border-box; border-radius: var(--radius-pill); background: var(--accent-fill); color: var(--on-accent-fill);
         font: 700 var(--fs-xs)/1 var(--font-mono); vertical-align: 1px;
       }
       /* ... and a pill over the map while the panel is closed: what is filtered, and × to clear. */
       .filter-pill {
         position: absolute; top: 10px; left: 50%; transform: translateX(-50%); z-index: 3;
         display: flex; align-items: center; max-width: calc(100% - 140px);
-        background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: 999px; box-shadow: var(--shadow-sm);
+        background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-pill); box-shadow: var(--shadow-sm);
       }
       .filter-pill[hidden] { display: none; }
       .filter-pill button { min-height: 36px; border: 0; background: transparent; color: var(--fg); font: inherit; font-size: var(--fs-sm); cursor: pointer; }
@@ -311,7 +311,7 @@
       .ls-dist { color: var(--accent); font-weight: 600; }
       .ls-actions { display: flex; gap: 8px; margin-top: 14px; }
       .ls-actions button { flex: 1; min-height: 44px; cursor: pointer; touch-action: manipulation;
-        font: 700 var(--fs-base)/1 ui-sans-serif, system-ui, sans-serif; border-radius: var(--radius-sm);
+        font: 700 var(--fs-base)/1 var(--font-sans); border-radius: var(--radius-sm);
         border: 1.5px solid var(--edge); background: var(--bg-elevated); color: var(--fg); }
       /* :hover only on real pointers — on iOS the first tap would land as hover,
          not a click (same trap that broke the catalog pills). */
@@ -340,7 +340,7 @@
       .map-legend__unit { font: var(--fs-xs) var(--font-mono); color: var(--muted); font-weight: 400; }
       .map-legend ul { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 3px; font-variant-numeric: tabular-nums; }
       .map-legend li { display: flex; align-items: center; gap: 8px; }
-      .map-legend__sw { flex: none; width: 18px; height: 12px; border: 1px solid var(--edge); border-radius: 2px; }
+      .map-legend__sw { flex: none; width: 18px; height: 12px; border: 1px solid var(--edge); border-radius: var(--radius-sm); }
       .map-legend__sw--none { background: #f5f3ef repeating-linear-gradient(135deg, rgba(11, 27, 63, .6) 0 1px, transparent 1px 4px); }
       .map-legend__note { margin: 6px 0 0; font-size: var(--fs-xs); color: var(--muted); }
 
@@ -375,7 +375,7 @@
         column-gap: 10px;
         row-gap: 2px;
         padding: 9px 10px;
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         cursor: pointer;
         color: var(--fg);
         text-decoration: none;
@@ -449,7 +449,7 @@
       }
       .filter-panel__field { display: flex; flex-direction: column; gap: 6px; }
       .filter-panel__label { font-size: var(--fs-xs); color: var(--muted); }
-      .filter-panel__row { font-size: var(--fs-sm); padding: 10px 12px; background: var(--card-bg); border-radius: 6px; }
+      .filter-panel__row { font-size: var(--fs-sm); padding: 10px 12px; background: var(--card-bg); border-radius: var(--radius-md); }
       .filter-panel__muted { color: var(--muted); }
       .filter-panel__err { color: #b91c1c; }
       .filter-panel__ok { color: #166534; }
@@ -459,27 +459,23 @@
         justify-content: space-between;
         align-items: baseline;
         padding: 9px 13px;
-        background: transparent;
+        background: var(--bg-elevated);
         color: var(--fg);
-        border: 1px solid var(--line);
-        border-radius: 6px;
-        font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+        border: var(--border-edge);
+        border-radius: var(--radius-sm);
+        font: 500 var(--fs-sm)/1.2 var(--font-sans);
         cursor: pointer;
-        transition: background 120ms ease, border-color 120ms ease;
+        transition: background 120ms ease;
       }
       .filter-panel__btn .fmt { font-weight: 600; }
       .filter-panel__btn .muted { color: var(--muted); font-weight: 400; font-size: var(--fs-xs); }
-      .filter-panel__btn:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
-      .filter-panel__btn:hover:not(:disabled) .muted { color: var(--accent); opacity: .7; }
-      .filter-panel__btn--primary {
-        background: var(--fg);
-        color: var(--bg);
-        border-color: var(--fg);
-      }
-      .filter-panel__btn--primary .muted { color: color-mix(in srgb, var(--bg) 70%, var(--fg)); }
-      .filter-panel__btn--primary:hover:not(:disabled) { background: var(--accent-fill); border-color: var(--accent-fill); color: var(--on-accent-fill); }
-      .filter-panel__btn--primary:hover:not(:disabled) .muted { color: rgba(255,255,255,0.7); }
-      .filter-panel__btn:disabled { background: transparent; color: var(--muted); border-color: var(--line); cursor: not-allowed; opacity: .55; }
+      .filter-panel__btn:hover:not(:disabled) { background: var(--land); }
+      /* The panel's one primary action: saffron, navy text, the offset shadow, pressed in on click. */
+      .filter-panel__btn--primary { background: var(--accent-fill); color: var(--on-accent-fill); font-weight: var(--fw-bold); box-shadow: var(--shadow-sm); }
+      .filter-panel__btn--primary .muted { color: var(--on-accent-fill); }
+      .filter-panel__btn--primary:hover:not(:disabled) { background: var(--accent-fill-hover); }
+      .filter-panel__btn--primary:active:not(:disabled) { box-shadow: none; transform: translate(3px, 3px); }
+      .filter-panel__btn:disabled { color: var(--muted); box-shadow: none; cursor: not-allowed; opacity: .55; }
       .filter-panel__hint { font-size: var(--fs-xs); color: var(--muted); line-height: 1.5; margin: 0; padding-bottom: 18px; }
       .filter-panel__status { font-size: var(--fs-sm); min-height: 18px; }
       .filter-panel__status:empty { min-height: 0; } /* stays rendered: it is the live region */
@@ -492,8 +488,8 @@
         padding: 5px 10px;
         background: var(--card-bg);
         border: 1px solid var(--line);
-        border-radius: 999px;
-        font: 500 12px/1.2 ui-sans-serif, system-ui, sans-serif;
+        border-radius: var(--radius-pill);
+        font: 500 var(--fs-xs)/1.2 var(--font-sans);
         color: var(--fg);
         cursor: pointer;
         transition: background 120ms ease, border-color 120ms ease;
@@ -510,10 +506,10 @@
       .filter-range { display: flex; align-items: center; gap: 8px; }
       .filter-range__input {
         width: 100%;
-        font: var(--fs-sm) ui-sans-serif, system-ui, sans-serif;
+        font: var(--fs-sm) var(--font-sans);
         padding: 6px 10px;
         border: 1px solid var(--line);
-        border-radius: 6px;
+        border-radius: var(--radius-md);
         background: var(--bg);
         color: var(--fg);
         min-width: 0;
@@ -521,10 +517,10 @@
       .filter-range__sep { color: var(--muted); font-size: var(--fs-xs); }
 
       .filter-search {
-        font: var(--fs-sm) ui-sans-serif, system-ui, sans-serif;
+        font: var(--fs-sm) var(--font-sans);
         padding: 7px 11px;
-        border: 1px solid var(--line);
-        border-radius: 6px;
+        border: var(--border-edge);
+        border-radius: var(--radius-sm);
         background: var(--bg);
         color: var(--fg);
         width: 100%;
@@ -534,7 +530,7 @@
         position: absolute; z-index: 10; top: 100%; left: 0; right: 0;
         margin: 2px 0 0; padding: 0; list-style: none;
         background: var(--bg-elevated); border: 1px solid var(--line);
-        border-radius: 6px; max-height: 200px; overflow-y: auto;
+        border-radius: var(--radius-md); max-height: 200px; overflow-y: auto;
       }
       .filter-typeahead__list:empty { display: none; }
       .filter-typeahead__item {
@@ -554,8 +550,8 @@
         padding: 7px 12px;
         background: var(--card-bg);
         border: 1px solid var(--line);
-        border-radius: 6px;
-        font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+        border-radius: var(--radius-md);
+        font: 500 var(--fs-sm)/1.2 var(--font-sans);
         color: var(--fg);
         cursor: pointer;
       }
@@ -586,7 +582,7 @@
         .about-panel {
           top: auto; right: 0; width: 100%; height: 52vh;
           border-right: none; border-top: 1px solid var(--line);
-          border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,0.10); z-index: 16;
+          border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,0.10); z-index: 16;
         }
         .filter-panel {
           top: auto; left: 0; right: 0; bottom: 0;
@@ -607,7 +603,7 @@
         /* Drag-handle affordance */
         .filter-panel__head::before {
           content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
-          width: 36px; height: 4px; border-radius: 999px; background: var(--line);
+          width: 36px; height: 4px; border-radius: var(--radius-pill); background: var(--line);
         }
         /* Three download buttons in a row */
         .filter-panel__actions {
@@ -644,7 +640,7 @@
         /* Two lines, so the year that tells sibling layers apart stays visible. */
         #map-overlay .map-title { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; line-height: 1.25; }
         /* The pill may wrap to two lines rather than cut off the count. */
-        .filter-pill { max-width: calc(100% - 128px); border-radius: 20px; }
+        .filter-pill { max-width: calc(100% - 128px); border-radius: var(--radius-pill); }
         .filter-pill .filter-pill__open { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-align: left; line-height: 1.3; padding-block: 4px; }
         #map-overlay button.close { flex: 0 0 auto; font-size: var(--fs-sm); }
 
@@ -703,7 +699,7 @@
         #map-overlay .locate-sheet.open {
           left: 0; right: 0; bottom: var(--map-toolbar-h); width: 100%;
           border: none; border-top: 1px solid var(--line);
-          border-radius: 14px 14px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,0.18);
+          border-radius: var(--radius-xl) var(--radius-xl) 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,0.18);
           padding: 14px 18px calc(18px + env(safe-area-inset-bottom));
           animation: filter-slide-up 220ms ease;
         }
@@ -718,7 +714,7 @@
           border-width: 1px 0 0; border-color: var(--line);
           padding-top: 18px;
           max-height: 52vh;
-          border-radius: 14px 14px 0 0;
+          border-radius: var(--radius-xl) var(--radius-xl) 0 0;
           box-shadow: 0 -8px 24px rgba(0,0,0,0.18);
           z-index: 16;
           overflow-y: auto;
@@ -727,7 +723,7 @@
         /* Grab handle, as on the Filter and About sheets. */
         .map-popover::before {
           content: ""; position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
-          width: 36px; height: 4px; border-radius: 999px; background: var(--line);
+          width: 36px; height: 4px; border-radius: var(--radius-pill); background: var(--line);
         }
 
         /* Scrim is shown only while a sheet is open (toggled in map.ts). */
@@ -777,7 +773,7 @@
         animation: ml-spin 0.85s linear infinite;
       }
       .map-loader__verb {
-        font: 500 13px/1.2 ui-sans-serif, system-ui, sans-serif;
+        font: 500 var(--fs-sm)/1.2 var(--font-sans);
         color: var(--muted);
         letter-spacing: .02em;
       }
@@ -798,18 +794,18 @@
       /* Hover popup styling */
       .geo-popup .maplibregl-popup-content {
         padding: 10px 12px;
-        border-radius: 8px;
+        border-radius: var(--radius-lg);
         background: #ffffff;
         color: #111;
         box-shadow: 0 6px 20px rgba(0,0,0,0.12);
-        font: var(--fs-xs)/1.35 ui-sans-serif, system-ui, sans-serif;
+        font: var(--fs-xs)/1.35 var(--font-sans);
       }
       .geo-popup .maplibregl-popup-tip { border-top-color: #ffffff; border-bottom-color: #ffffff; }
       .geo-popup__row { display: flex; gap: 10px; justify-content: space-between; align-items: baseline; padding: 2px 0; }
       .geo-popup__k { color: #6b7280; font-size: var(--fs-xs); text-transform: lowercase; letter-spacing: .02em; white-space: nowrap; }
       .geo-popup__v { color: #111; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; word-break: break-word; }
       .geo-popup__photos { display: inline-flex; gap: 4px; flex-wrap: wrap; justify-content: flex-end; }
-      .geo-popup__photos img { width: 72px; height: 72px; object-fit: cover; border-radius: 6px; display: block; }
+      .geo-popup__photos img { width: 72px; height: 72px; object-fit: cover; border-radius: var(--radius-md); display: block; }
     </style>
   </head>
   <body>

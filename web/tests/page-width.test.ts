@@ -3,6 +3,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
+// @ts-expect-error: plain .mjs
+import { TOKENS } from '../scripts/shared-chrome.mjs';
+import { LAYOUT } from '../../shared/tokens.mjs';
 
 const web = resolve(__dirname, '..');
 const chrome = readFileSync(resolve(web, 'scripts/shared-chrome.mjs'), 'utf8');
@@ -10,7 +13,8 @@ const pages = [...readdirSync(web).filter((f) => f.endsWith('.template.html'))];
 
 describe('one page width', () => {
   it('the shared styles set the column to 1120px', () => {
-    expect(chrome).toMatch(/:root \{ --page-max: 1120px; \}/);
+    expect(LAYOUT['--page-max']).toBe('1120px');
+    expect(TOKENS).toContain('--page-max: 1120px;');
   });
   for (const f of pages) {
     it(`${f} does not set its own width`, () => {
