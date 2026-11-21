@@ -19,7 +19,6 @@ import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { chunkRanges, coalesced } from './parquet-coalesce';
 import { groupBoxes, overlappingRowGroups, queryBbox } from './nearby';
 import { parseWKB } from './wkb-geojson';
-import { pointInPolygon } from './point-in-polygon';
 import { GIS_ARTEFACT_COLUMNS } from './junk-columns';
 import { ResolvedCache } from './isolate-cache';
 import type { CatalogData } from './catalog-api';

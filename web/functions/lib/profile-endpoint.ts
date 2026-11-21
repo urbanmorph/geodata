@@ -36,7 +36,6 @@ export function countingBucket(r2: R2Bucket): { bucket: R2Bucket; reads: () => n
 export function profileHandler(name: string, run: ProfileRun, version: string): PagesFunction<Env> {
   const label = name[0].toUpperCase() + name.slice(1);
   return async (ctx) => {
-    const t0 = Date.now();
     const url = new URL(ctx.request.url);
     if (!pointProfilesOn(ctx.env, url)) return notPublished(url.pathname);
     const pt = parseIndiaPoint(url.searchParams);
@@ -46,7 +45,6 @@ export function profileHandler(name: string, run: ProfileRun, version: string): 
     const { lat, lng } = snapPoint(pt.lat, pt.lng);
     try {
       const { catalog, version: catalogVersion } = await loadCatalogVersioned(ctx);
-      const tCatalog = Date.now();
       const keyUrl = new URL(url.origin + url.pathname);
       keyUrl.searchParams.set('lat', lat.toFixed(SNAP_DECIMALS));
       keyUrl.searchParams.set('lng', lng.toFixed(SNAP_DECIMALS));
@@ -54,11 +52,8 @@ export function profileHandler(name: string, run: ProfileRun, version: string): 
       keyUrl.searchParams.set('v', version);
       return await cached(ctx, cacheKey(catalogVersion, keyUrl), EDGE_TTL.r2, async () => {
         const { bucket, reads } = countingBucket(ctx.env.R2);
-        const tRun = Date.now();
         const profile = await run(lat, lng, catalog, bucket, { openOnly, waitUntil: (p) => ctx.waitUntil(p) });
-        const tDone = Date.now();
         return json(200, profile, {
-          'server-timing': `catalog;dur=${tCatalog - t0}, cache;dur=${tRun - tCatalog}, run;dur=${tDone - tRun}`,
           'cache-control': 'private, no-store',
           'x-profile-reads': String(reads()),
           ...(partialByChance(profile) ? { [NO_STORE]: '1' } : {}),

@@ -284,7 +284,7 @@ async function readContains(spec: ProfileLayer, lat: number, lng: number, catalo
 /** The columns a nearest entry uses (its fields and its median's), or undefined for all
  *  (no field list, or a decoder that reads columns it does not show). Decoding only these
  *  keeps a wide layer cheap (Soil Health Cards: 15 of 50 columns of a 122,880-row group). */
-export function columnsOf(spec: ProfileLayer): string[] | undefined {
+function columnsOf(spec: ProfileLayer): string[] | undefined {
   if (!spec.fields || spec.decode) return undefined;
   const m = spec.median;
   return [...new Set([...spec.fields, ...(m ? [m.field, ...(m.perPoint ?? [])] : [])])];
