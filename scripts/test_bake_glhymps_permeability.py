@@ -21,6 +21,18 @@ sys.path.insert(0, str(HERE))
 import bake_glhymps_permeability as g  # noqa: E402
 import pipeline  # noqa: E402
 
+
+def gdal_has_parquet() -> bool:
+    try:
+        out = subprocess.run(['ogrinfo', '--formats'], capture_output=True, text=True, timeout=60).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return 'Parquet' in out
+
+
+# build_table reprojects through GDAL's Parquet driver; Ubuntu's apt GDAL (CI) is built without it
+needs_gdal_parquet = pytest.mark.skipif(not gdal_has_parquet(), reason="needs GDAL's Parquet driver")
+
 BOUNDARY_URL = 'https://r2/reference/india_boundary.463f149c.parquet'
 
 
@@ -103,6 +115,7 @@ def boundary(tmp_path: Path) -> Path:
     return out
 
 
+@needs_gdal_parquet
 def test_the_table_keeps_whole_polygons_touching_india_with_every_published_column(tmp_path):
     out = tmp_path / 't.parquet'
     assert g.build_table(pipeline.make_con(), source_shapefile(tmp_path), boundary(tmp_path), out) == 2

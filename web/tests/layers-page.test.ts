@@ -75,9 +75,11 @@ describe('/layers weight', () => {
       expect(layers, attr).not.toContain(`${attr}=`);
     }
   });
-  it('is under 50 KB gzipped', async () => {
+  // 55 KB since the seven below-ground layers (180 layers, Nov 2026); CI's build, with live download
+  // counts and community entries, runs about 1.7 KB heavier than a local one
+  it('is under 55 KB gzipped', async () => {
     const { gzipSync } = await import('node:zlib');
-    expect(gzipSync(layers).length).toBeLessThan(50 * 1024);
+    expect(gzipSync(layers).length).toBeLessThan(55 * 1024);
   });
 });
 
