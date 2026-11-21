@@ -1,8 +1,9 @@
 // The home page's India map (build time). One outline, defined once and reused
 // as land, clip and edge; the city-ward markers come from the ward bounding
-// boxes, so a new ward layer shows up on the next build. The other themes are
-// fetched on demand from /map-themes.json (scripts/build_map_themes.py) and drawn
-// by src/india-map.ts. Pure, so tests/india-map.test.ts can check it.
+// boxes, so a new ward layer shows up on the next build. The other themes come
+// from /map-themes.json (scripts/build_map_themes.py); src/india-map.ts picks a
+// few at random on each visit and draws them. Pure, so tests/india-map.test.ts
+// can check it.
 import { INDIA_PATH } from '../functions/lib/og-india-path.ts';
 import { escapeHtml as esc, fmtInt } from '../../shared/format.mjs';
 
@@ -60,31 +61,27 @@ export function hexPath(cells) {
     .join('');
 }
 
-/** The five themes, in chip order, with captions built from the catalogue's counts. */
+/** The five themes: the name the caption shows, the layer's map it links to, and a
+ *  longer caption (the link's title) built from the catalogue's counts. */
 export function mapThemes(catalog, cityCount) {
   const rows = (id) => fmtInt(catalog.layers.find((l) => l.id === id)?.rows);
   return [
-    { key: 'wards', label: 'City wards', caption: `Ward maps for ${cityCount} cities. Village and town boundaries everywhere.` },
-    { key: 'rail', label: 'Rail', caption: `Indian Railways: ${rows('ir_tracks')} track sections, ${rows('ir_stations')} stations` },
-    { key: 'rivers', label: 'Water', caption: `The 40 longest of ${rows('wris_rivers')} rivers mapped by India-WRIS` },
-    { key: 'schools', label: 'Schools', caption: `${rows('udise_schools')} schools (UDISE+); darker hexagons have more` },
-    { key: 'forests', label: 'Forests', caption: `${rows('soi_forests')} forest areas (Survey of India); darker hexagons have more` },
+    { key: 'wards', name: 'city wards', href: '/layers?q=wards', caption: `Ward maps for ${cityCount} cities` },
+    { key: 'rail', name: 'railways', href: '/view/ir_tracks', caption: `Indian Railways: ${rows('ir_tracks')} track sections, ${rows('ir_stations')} stations` },
+    { key: 'rivers', name: 'rivers', href: '/view/wris_rivers', caption: `The 40 longest of ${rows('wris_rivers')} rivers mapped by India-WRIS` },
+    { key: 'schools', name: 'schools', href: '/view/udise_schools', caption: `${rows('udise_schools')} schools (UDISE+); darker hexagons have more` },
+    { key: 'forests', name: 'forests', href: '/view/soi_forests', caption: `${rows('soi_forests')} forest areas (Survey of India); darker hexagons have more` },
   ];
 }
 
-/** The map figure: theme switch, the outline, and the inline ward theme.
+/** The map figure: the outline and the inline ward theme (what shows without
+ *  JS), with the themes as data for the random pick.
  *  cityCount: the cities with ward maps (nearby cities can share one marker). */
 export function indiaMapHtml({ wardBboxes, catalog, cityCount }) {
   const cities = wardCities(wardBboxes);
   const themes = mapThemes(catalog, cityCount ?? cities.length);
-  const chips = themes
-    .map(
-      (t, i) =>
-        `<button type="button" class="india-map__chip" data-map-theme="${t.key}" aria-pressed="${i === 0}" data-caption="${esc(t.caption)}">${esc(t.label)}</button>`,
-    )
-    .join('');
-  return `<figure class="india-map" data-india-map>
-  <div class="india-map__chips" role="group" aria-label="Show on the map">${chips}</div>
+  const wards = themes[0];
+  return `<figure class="india-map" data-india-map data-themes="${esc(JSON.stringify(themes))}">
   <div class="india-map__frame">
     <svg viewBox="${MAP_VIEWBOX}" role="img" aria-labelledby="india-map-caption">
       <defs>
@@ -99,7 +96,7 @@ export function indiaMapHtml({ wardBboxes, catalog, cityCount }) {
       </g>
       <use class="india-map__edge" href="#india-shape"/>
     </svg>
-    <figcaption class="india-map__caption" id="india-map-caption" data-map-caption aria-live="polite">${esc(themes[0].caption)}</figcaption>
+    <figcaption class="india-map__caption" id="india-map-caption" data-map-caption>Showing: <a href="${wards.href}" title="${esc(wards.caption)}">${esc(wards.name)}</a> (${esc(cityCount ?? cities.length)} cities) and village boundaries everywhere</figcaption>
   </div>
 </figure>`;
 }

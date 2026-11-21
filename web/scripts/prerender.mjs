@@ -189,7 +189,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   // v4.7: link to the canonical /view/<id> path. Edge function serves the
   // home HTML with layer-specific OG meta; main.ts opens the map on load.
   const viewBtn = viewable
-    ? viewMapLink(`/view/${primary.id}`, wholeFileBytes(primary), 'btn-primary', 'View map')
+    ? viewMapLink(`/view/${primary.id}`, wholeFileBytes(primary), 'btn btn--line btn-primary', 'View map')
     : `<span class="btn-primary disabled" title="No map for this layer">no map</span>`;
 
   const downloads = downloadLinks(primary);
@@ -589,7 +589,10 @@ const popularHtml = popularIds.length
   : '';
 
 // Quick searches under the search box: real queries people make (ward
-// lookups lead search demand). Each must find layers (tests/home-counts).
+// lookups lead search demand). The whole pool is rendered; the page shows one
+// line of it, shuffled (src/home-hero.ts), and without JS the first line, so
+// the first few are the best defaults. Each must find layers, and each
+// "Ward N, City" must name its ward (tests/home-hero).
 const QUICK_SEARCHES = [
   ['Ward 9, Ahmedabad', 'ward 9 ahmedabad'],
   ['Bengaluru wards', 'bengaluru wards'],
@@ -597,6 +600,22 @@ const QUICK_SEARCHES = [
   ['Villages', 'villages'],
   ['MGNREGA', 'mgnrega'],
   ['Groundwater', 'groundwater'],
+  ['Ward 100, Delhi', 'ward 100 delhi'],
+  ['Ward 50, Hyderabad', 'ward 50 hyderabad'],
+  ['Ward 30, Lucknow', 'ward 30 lucknow'],
+  ['Ward 8, Indore', 'ward 8 indore'],
+  ['Ward 20, Pune', 'ward 20 pune'],
+  ['Mumbai wards', 'mumbai wards'],
+  ['Chennai wards', 'chennai wards'],
+  ['Kolkata wards', 'kolkata wards'],
+  ['Forests', 'forests'],
+  ['Rivers', 'rivers'],
+  ['Hospitals', 'hospitals'],
+  ['Schools', 'schools'],
+  ['Railways', 'railways'],
+  ['Seismic zones', 'seismic zones'],
+  ['Aquifers', 'aquifers'],
+  ['National highways', 'national highways'],
 ];
 const quickSearchHtml = `<nav class="quick-search" aria-label="Try a search"><span class="quick-search__label">Try:</span>${QUICK_SEARCHES
   .map(([label, q]) => `<a href="/?q=${encodeURIComponent(q).replace(/%20/g, '+')}" data-q="${esc(q)}">${esc(label)}</a>`)

@@ -33,12 +33,6 @@
 
       /* The India map (scripts/india-map.mjs, src/india-map.ts). */
       .india-map { margin: 0; display: flex; flex-direction: column; gap: 12px; }
-      .india-map__chips { display: flex; flex-wrap: wrap; gap: 6px; }
-      .india-map__chip {
-        min-height: 44px; padding: 0 11px; font: inherit; font-size: var(--fs-base); font-weight: 700;
-        color: var(--fg); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); cursor: pointer;
-      }
-      .india-map__chip[aria-pressed="true"] { color: var(--bg-elevated); background: var(--edge); }
       .india-map__frame { background: var(--bg-elevated); border: 1.5px solid var(--edge); padding: 16px 20px 12px; }
       .india-map svg { display: block; width: 100%; height: auto; }
       .india-map__land { fill: var(--land); }
@@ -53,31 +47,24 @@
       .india-map__dense--forests { fill: var(--brand-green); }
       .india-map__shade--0 { opacity: .4; } .india-map__shade--1 { opacity: .6; }
       .india-map__shade--2 { opacity: .8; } .india-map__shade--3 { opacity: 1; }
-      .india-map__caption { margin: 8px 0 0; min-height: 2.6em; font: var(--fs-xs)/1.5 var(--font-mono); color: var(--muted); }
+      .india-map__caption { margin: 8px 0 0; min-height: 3em; font: var(--fs-xs)/1.5 var(--font-mono); color: var(--muted); }
+      .india-map__caption a { color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
 
       .search-wrap { position: relative; margin: 28px 0 0; text-align: left; }
-      .search-row { display: flex; flex-wrap: wrap; gap: 12px; }
       .search-bar {
-        flex: 1 1 340px; min-width: 0; height: 64px;
-        display: flex; align-items: center; gap: 12px; padding: 0 12px 0 18px;
+        height: 64px;
+        display: flex; align-items: center; gap: 12px; padding: 0 16px 0 18px;
         background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm);
         box-shadow: var(--shadow);
       }
       .search-bar:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; box-shadow: var(--shadow), 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
       .search-bar__icon { flex: none; color: var(--fg); }
       .search-bar__key { font: 600 12px ui-sans-serif, system-ui, sans-serif; color: var(--muted); border: 1px solid var(--line-bright); border-bottom-width: 2px; border-radius: 6px; padding: 2px 7px; }
-      .search-bar__attach {
-        display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px;
-        color: var(--muted); border-radius: 10px; text-decoration: none;
-      }
-      .search-bar__attach:hover { color: var(--fg); background: var(--bg-card); }
-      .find-ward {
-        flex: none; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-        height: 64px; padding: 0 22px; font: inherit; font-size: var(--fs-md); font-weight: 700;
-        color: var(--on-accent-fill); background: var(--accent-fill); border: 2px solid var(--edge); border-radius: var(--radius-sm);
-        box-shadow: var(--shadow); cursor: pointer;
-      }
-      .find-ward:hover { background: var(--accent-fill-hover); }
+      /* Actions under the search, not part of it: the shared buttons (.btn),
+         set apart from the bar, so neither reads as the search's go button.
+         Find my ward is the hero's main action (fill), Open a file the line. */
+      .hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 18px 0 0; }
+      .hero-actions__hint { flex: 1 0 100%; margin: 0; font-size: var(--fs-sm); color: var(--muted); }
       .find-ward__status { font-size: var(--fs-base); color: var(--fg); margin: 12px 0 0; }
 
       /* Search results: a popover under the bar (answer first, then layers). */
@@ -109,14 +96,23 @@
       .ward-answer__title { grid-column: 1 / 3; margin: 0; font-size: var(--fs-xl); font-weight: 600; letter-spacing: -.02em; color: var(--fg); }
       .ward-answer__title strong { font-weight: 760; }
       .ward-answer__meta { grid-column: 1 / 3; margin: 0; font-size: var(--fs-base); color: var(--muted); }
-      .ward-answer__go {
-        grid-column: 3; grid-row: 1 / span 2; display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px;
-        border-radius: 10px; background: var(--accent-fill); color: var(--on-accent-fill) !important; font-weight: 700; text-decoration: none !important;
-      }
+      .ward-answer__go { grid-column: 3; grid-row: 1 / span 2; }
 
-      .quick-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 18px 0 0; font-size: var(--fs-base); }
+      /* One line of quick searches, whatever the width: the row is one pill
+         tall (plus room for the focus ring) and the pills that wrap fall out
+         of sight, so none is cut in half and nothing shifts. main.ts shuffles
+         them and makes the wrapped ones inert (home-hero.ts). */
+      .quick-search {
+        display: flex; flex-wrap: wrap; align-content: flex-start; align-items: center; gap: 24px 8px;
+        height: 52px; padding: 4px; margin: 14px -4px 0; overflow: hidden; font-size: var(--fs-base);
+      }
+      /* With JS the pills wait (a moment at most) for the shuffle, so they never visibly reorder. */
+      @media (scripting: enabled) {
+        .quick-search:not([data-ready]) a { animation: quick-reveal 0s 1.5s both; }
+      }
+      @keyframes quick-reveal { from { visibility: hidden; } to { visibility: visible; } }
       .quick-search__label { color: var(--muted); }
-      .quick-search a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--fg); font-weight: 600; text-decoration: none; }
+      .quick-search a { white-space: nowrap; display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); background: var(--bg-elevated); color: var(--fg); font-weight: 600; text-decoration: none; }
       .quick-search a:hover { background: var(--land); }
       .search-meta { margin: 16px 0 0; min-height: 18px; }
       .search-meta a { color: var(--accent); }
@@ -167,9 +163,6 @@
       .ask-ai h2 { margin: 0 0 8px; font-size: var(--fs-xl); letter-spacing: -.02em; color: #fff; }
       .ask-ai p { margin: 0; color: #C8D0E3; font-size: var(--fs-base); line-height: 1.5; }
       .ask-ai__links { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px !important; }
-      .ask-ai__links a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 10px; font-weight: 650; text-decoration: none; }
-      .ask-ai__primary { background: var(--accent-fill); color: var(--on-accent-fill) !important; }
-      .ask-ai__secondary { border: 1.5px solid #5A6A94; color: #fff !important; }
       .ask-ai__code code { background: none; padding: 0; color: inherit; font: inherit; }
       .ask-ai__code { flex: 1 1 320px; margin: 0; padding: 16px; border-radius: 12px; background: #13265A; color: #E6EAF4; font: var(--fs-sm)/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; overflow-x: auto; }
 
@@ -204,10 +197,10 @@
         .home-hero { margin-top: -16px; padding: 28px 16px 32px; }
         .hero__title { font-size: var(--fs-4xl); }
         .hero__sub { font-size: var(--fs-md); }
-        /* Phone: Find my ward first and full width (the thumb's main job), search below. */
-        .search-row { flex-direction: column; }
-        .find-ward { order: -1; height: 56px; }
-        .search-bar { flex: 0 0 auto; height: 56px; padding: 0 10px 0 14px; }
+        .search-bar { height: 56px; padding: 0 14px; }
+        /* Phone: the two actions share a row, each half wide and thumb sized;
+           Find my ward (the thumb's main job) on the left, under the bar. */
+        .hero-actions .btn { flex: 1 1 0; min-height: 52px; padding: 0 12px; }
         .search-bar__key { display: none; }
         .ask-ai { padding: 20px; }
         /* Two cards a row, the count under the name, so three realms stay short. */
@@ -828,21 +821,23 @@
         <h1 class="hero__title">Every boundary in India, one search away</h1>
         <p class="hero__sub">Wards, districts, villages, forests, water and public money. View it on a map, ask it a question, or download it for your own tools.</p>
         <div class="search-wrap">
-          <div class="search-row">
-            <div class="search-bar" id="search-bar">
-              <svg class="search-bar__icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-              <input type="search" id="catalog-search" class="catalog-search" placeholder="Search a ward, place or map"
-                aria-label="Search maps" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" />
-              <kbd class="search-bar__key" aria-hidden="true">/</kbd>
-              <a href="/preview" class="search-bar__attach" id="search-attach" aria-label="Preview or share a file" title="Preview or share a file"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 11-8.6 8.6a5.5 5.5 0 0 1-7.8-7.8l8.6-8.6a3.7 3.7 0 0 1 5.2 5.2l-8.6 8.6a1.8 1.8 0 0 1-2.6-2.6l7.9-7.9"/></svg></a>
-            </div>
-            <button type="button" class="find-ward" id="find-my-ward"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>Find my ward</button>
+          <div class="search-bar" id="search-bar">
+            <svg class="search-bar__icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" id="catalog-search" class="catalog-search" placeholder="Search a ward, place or map"
+              aria-label="Search maps" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="search-results" aria-autocomplete="list" />
+            <kbd class="search-bar__key" aria-hidden="true">/</kbd>
           </div>
           <div class="search-pop" id="search-pop" hidden>
             <div class="ward-answer" id="ward-answer" aria-live="polite" hidden></div>
             <div class="search-pop__results" id="search-results" role="listbox" aria-label="Matching layers"></div>
             <p class="search-pop__keys" aria-hidden="true"><kbd>↑</kbd> <kbd>↓</kbd> move <kbd>Enter</kbd> open <kbd>Esc</kbd> close</p>
           </div>
+        </div>
+        <div class="hero-actions">
+          <button type="button" class="btn btn--fill" id="find-my-ward"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="6.5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg>Find my ward</button>
+          <a class="btn btn--line" id="open-file" href="/preview" aria-describedby="open-file-hint"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4"/><path d="m7 9 5-5 5 5"/><path d="M4 20h16"/></svg>Open a file</a>
+          <input type="file" id="open-file-input" accept=".geojson,.json,.kml,.kmz,.gpx,.tcx,.parquet" hidden />
+          <p class="hero-actions__hint" id="open-file-hint">Or drop a file anywhere on this page. GeoJSON, KML, KMZ, GPX, TCX or Parquet.</p>
         </div>
         <p class="find-ward__status" id="find-ward-status" role="status" hidden></p>
         <!-- QUICK_SEARCH -->
@@ -863,7 +858,7 @@
       <div class="ask-ai__text">
         <h2 id="ask-ai-title">Ask your AI assistant instead</h2>
         <p>Connect Claude, ChatGPT or any MCP client and ask in plain words, such as "Which ward is MG Road, Bengaluru in?" Every answer cites its source and licence.</p>
-        <p class="ask-ai__links"><a class="ask-ai__primary" href="/mcp">Connect via MCP</a><a class="ask-ai__secondary" href="/docs">REST API docs</a></p>
+        <p class="ask-ai__links"><a class="btn btn--fill" href="/mcp">Connect via MCP</a><a class="btn btn--line" href="/docs">REST API docs</a></p>
       </div>
       <pre class="ask-ai__code" tabindex="0" aria-label="Example API request"><code>GET /api/v1/locate?lat=12.9757&amp;lng=77.6061
 &rarr; Ward 25 Ashokanagar · Central corporation

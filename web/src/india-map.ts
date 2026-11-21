@@ -1,10 +1,16 @@
-// The home map's theme switch. The ward theme ships in the page; the other four
-// come from /map-themes.json (scripts/build_map_themes.py), fetched once, the
-// first time someone picks one of them.
+// The home map: a picture of what the layers hold, not a working map. Each
+// visit draws 2 or 3 themes picked at random and names them in the caption.
+// The ward theme ships in the page (and is what shows without JS); the other
+// four come from /map-themes.json (scripts/build_map_themes.py).
 
-import { memoRetry } from './memo-retry';
+import { escapeHtml } from './util';
 
 export type MapTheme = { kind: 'line' | 'dense'; paths: string[] };
+/** A theme as the page carries it (scripts/india-map.mjs mapThemes). */
+export type ThemeInfo = { key: string; name: string; href: string; caption?: string };
+
+/** Themes drawn as shaded hexagons over the whole country: two would muddle each other. */
+export const DENSE = new Set(['schools', 'forests']);
 
 /** SVG for one fetched theme: a stroked line, or four shades of hexagons (lightest first). */
 export function themeMarkup(theme: MapTheme, key: string): string {
@@ -14,43 +20,60 @@ export function themeMarkup(theme: MapTheme, key: string): string {
     .join('');
 }
 
-// A failed fetch is retried on the next pick.
-const loadThemes = memoRetry(() =>
-  fetch('/map-themes.json').then((r) => {
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    return r.json() as Promise<Record<string, MapTheme>>;
-  }));
+// Lines vanish into shaded hexagons: a hexagon theme goes only with the ward
+// markers, which are drawn on top of it.
+const clash = (a: ThemeInfo, b: ThemeInfo) =>
+  (DENSE.has(a.key) && b.key !== 'wards') || (DENSE.has(b.key) && a.key !== 'wards');
+
+/**
+ * 2 or 3 themes at random, in draw order (hexagons, lines, wards on top), kept
+ * legible at the map's size: a hexagon theme comes only as a pair with the wards.
+ */
+export function pickThemes(all: ThemeInfo[], random: () => number = Math.random): ThemeInfo[] {
+  const pool = [...all];
+  const picked: ThemeInfo[] = [];
+  let n = random() < 0.5 ? 2 : 3;
+  while (picked.length < n && pool.length) {
+    const [t] = pool.splice(Math.floor(random() * pool.length), 1);
+    if (picked.some((p) => clash(p, t)) || (DENSE.has(t.key) && picked.length > 1)) continue;
+    picked.push(t);
+    if (DENSE.has(t.key)) n = 2;
+  }
+  const rank = (t: ThemeInfo) => (DENSE.has(t.key) ? 0 : t.key === 'wards' ? 2 : 1);
+  return picked.sort((a, b) => rank(a) - rank(b));
+}
+
+/** "Showing: a, b and c", each linked to its layer's map. */
+export function captionHtml(shown: ThemeInfo[]): string {
+  const links = shown.map((t) =>
+    `<a href="${escapeHtml(t.href)}"${t.caption ? ` title="${escapeHtml(t.caption)}"` : ''}>${escapeHtml(t.name)}</a>`);
+  return `Showing: ${links.length > 1 ? `${links.slice(0, -1).join(', ')} and ${links[links.length - 1]}` : links[0]}`;
+}
+
+/** The map layer for the picked themes, or null if a theme's data is missing. */
+export function layerMarkup(shown: ThemeInfo[], data: Record<string, MapTheme>, wardsSvg: string): string | null {
+  const fetched = shown.filter((t) => t.key !== 'wards');
+  if (fetched.some((t) => !data[t.key])) return null;
+  const clipped = fetched.map((t) => themeMarkup(data[t.key], t.key)).join('');
+  return `<g clip-path="url(#india-clip)">${clipped}</g>${shown.some((t) => t.key === 'wards') ? wardsSvg : ''}`;
+}
 
 export function initIndiaMap(root: HTMLElement): void {
   const layer = root.querySelector<SVGGElement>('[data-map-layer]');
   const caption = root.querySelector<HTMLElement>('[data-map-caption]');
-  const chips = [...root.querySelectorAll<HTMLButtonElement>('[data-map-theme]')];
-  if (!layer || !caption) return;
-  const wards = layer.innerHTML;
-  let current = 'wards';
-
-  const show = async (chip: HTMLButtonElement): Promise<void> => {
-    const key = chip.dataset.mapTheme!;
-    current = key;
-    for (const c of chips) c.setAttribute('aria-pressed', String(c === chip));
-    if (key === 'wards') {
-      layer.innerHTML = wards;
-      caption.textContent = chip.dataset.caption ?? '';
-      return;
-    }
-    caption.textContent = `Loading ${chip.textContent?.toLowerCase()}…`;
-    try {
-      const data = await loadThemes();
-      if (current !== key) return; // another chip was picked meanwhile
-      if (!data[key]) {
-        caption.textContent = "This map isn't available right now.";
-        return;
-      }
-      layer.innerHTML = `<g clip-path="url(#india-clip)">${themeMarkup(data[key], key)}</g>`;
-      caption.textContent = chip.dataset.caption ?? '';
-    } catch {
-      if (current === key) caption.textContent = "Couldn't load this map. Check your connection and try again.";
-    }
-  };
-  for (const chip of chips) chip.addEventListener('click', () => void show(chip));
+  const wardsSvg = layer?.querySelector('.india-map__wards')?.outerHTML ?? '';
+  let all: ThemeInfo[] = [];
+  try { all = JSON.parse(root.dataset.themes || '[]'); } catch { /* keep the default */ }
+  if (!layer || !caption || !all.length) return;
+  const shown = pickThemes(all);
+  // A failed fetch keeps the default (city wards), which the caption already names.
+  void fetch('/map-themes.json')
+    .then((r) => (r.ok ? (r.json() as Promise<Record<string, MapTheme>>) : Promise.reject(new Error(`HTTP ${r.status}`))))
+    .then((data) => {
+      const svg = layerMarkup(shown, data, wardsSvg);
+      if (svg === null) return;
+      layer.innerHTML = svg;
+      caption.innerHTML = captionHtml(shown);
+    })
+    .catch(() => {});
 }

@@ -184,7 +184,6 @@
       .row--compact .row__expand .row__desc { font-size: var(--fs-sm); margin: 0 0 8px; }
       .row--compact .row__lic-line { font-size: var(--fs-xs); color: var(--muted); margin: 0 0 6px; }
       .row--compact .row__lic-line code { font: var(--fs-xs) ui-monospace, SFMono-Regular, monospace; background: var(--bg-card); padding: 1px 5px; border-radius: 3px; color: var(--fg); }
-      .row--compact .btn-primary { padding: 0 14px; font-size: var(--fs-sm); }
 
       /* Tablet: drop source column, count keeps room. Downloads are already
          in row__expand so nothing to hide in the action area. */
@@ -266,22 +265,13 @@
         gap: 14px;
         flex-wrap: wrap;
       }
+      /* View map: the shared line button (.btn .btn--line), sized for a row.
+         Outlined: a column of solid buttons outweighs the layers they open. */
       .btn-primary {
-        display: inline-flex; align-items: center; min-height: 44px;
-        padding: 0 14px;
-        /* Outlined: a column of solid buttons outweighs the layers they open.
-           Saffron (the primary action colour) on hover. */
-        background: var(--bg-elevated);
-        color: var(--fg);
-        border: 1.5px solid var(--edge);
-        border-radius: var(--radius-sm);
-        font-weight: 650;
-        font-size: var(--fs-sm);
-        text-decoration: none;
-        transition: background 140ms ease;
+        display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px;
+        font-size: var(--fs-sm); font-weight: 650;
         white-space: nowrap;
       }
-      .btn-primary:hover { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
       /* Opens a map that downloads one large file (shared/large-load.mjs): warning edge + hourglass. */
       .btn-primary--large { gap: 6px; border-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, var(--bg-elevated)); }
       .btn-primary--large .large-icon { flex: none; color: var(--warn); }

@@ -104,7 +104,7 @@ describe('renderCommunityActions — visual parity markup', () => {
   // curated row — the .btn-primary pill — in both baked and unbaked states.
   it('baked card uses the .btn-primary View pill → /view/c_<id> + dl-inline strip', () => {
     const html = renderCommunityActions(sub, baked, { esc, fmtBytes });
-    expect(html).toContain('class="btn-primary comm-card__view"');
+    expect(html).toContain('class="btn btn--line btn-primary comm-card__view"');
     expect(html).toContain('href="/view/c_x9"');
     expect(html).toContain('class="dl-inline"');
     expect(html).toContain('/api/dl/community/x9/x9.parquet');
@@ -113,9 +113,9 @@ describe('renderCommunityActions — visual parity markup', () => {
 
   it('unbaked card uses the SAME .btn-primary View pill → /preview + single raw download', () => {
     const html = renderCommunityActions(sub, null, { esc, fmtBytes });
-    expect(html).toContain('class="btn-primary comm-card__view"');
+    expect(html).toContain('class="btn btn--line btn-primary comm-card__view"');
     expect(html).toContain('/preview?url=');
-    expect(html).toContain('class="btn comm-card__dl"');
+    expect(html).toContain('class="btn btn--line comm-card__dl"');
     expect(html).toMatch(/href="\/api\/r2\/community\/x9\/goa\.geojson"[^>]*download=/);
   });
 });

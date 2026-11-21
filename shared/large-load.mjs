@@ -29,13 +29,14 @@ export const LARGE_ICON = '<svg class="large-icon" width="16" height="16" viewBo
 export const largeViewNote = (bytes) => `Loads one ${fmtBytes(bytes)} file in full`;
 
 /** The View map link. A whole-file layer carries its size (data-load-bytes) so the
- *  page can apply the speed rule; over the size rule it gets its own label and style. */
+ *  page can apply the speed rule; over the size rule it gets its own label and style
+ *  (the last class in `cls`, plus "--large"). */
 export function viewMapLink(href, bytes, cls, label) {
   const big = loadCost(bytes).large;
   const attrs = bytes ? ` data-load-bytes="${bytes}"` : '';
   if (!big) return `<a href="${escapeHtml(href)}" class="${cls}"${attrs}>${escapeHtml(label)}</a>`;
   const note = largeViewNote(bytes);
-  return `<a href="${escapeHtml(href)}" class="${cls} ${cls}--large"${attrs} title="${escapeHtml(note)}" ` +
+  return `<a href="${escapeHtml(href)}" class="${cls} ${cls.split(' ').pop()}--large"${attrs} title="${escapeHtml(note)}" ` +
     `aria-label="${escapeHtml(`${LARGE_VIEW_LABEL}: ${note.charAt(0).toLowerCase()}${note.slice(1)}`)}">${LARGE_ICON}${LARGE_VIEW_LABEL}</a>`;
 }
 
