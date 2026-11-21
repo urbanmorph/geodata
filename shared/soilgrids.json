@@ -116,5 +116,9 @@
     "Umbrisols",
     "Vertisols"
   ],
-  "file": null
+  "file": {
+    "key": "soil/soilgrids/SoilGrids_India_250m.f9ff474e.tif",
+    "bytes": 2249223105,
+    "md5": "f9ff474eacdc0638064388e3bcf17eec"
+  }
 }
