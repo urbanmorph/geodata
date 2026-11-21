@@ -2005,14 +2005,17 @@
         "bytes": 39341155
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.geojson",
-        "bytes": 417864960
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.cddbdb65.geojson",
+        "bytes": 417865281
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.kml",
-        "bytes": 329636203
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.403ff510.kml",
+        "bytes": 329636449
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/blocks/bhuvan_blocks.e93503c2.shp.zip",
+        "bytes": 168613475
+      },
       "licence": "NRSC terms",
       "attribution": {
         "primary": {
@@ -2493,14 +2496,17 @@
         "bytes": 9352459
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.geojson",
-        "bytes": 48629227
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.b38f1109.geojson",
+        "bytes": 76782693
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.kml",
-        "bytes": 36977513
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.3f43f076.kml",
+        "bytes": 60590750
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.8ae2f728.shp.zip",
+        "bytes": 19537883
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -2607,14 +2613,17 @@
         "bytes": 22672948
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.geojson",
-        "bytes": 269196187
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.6a949498.geojson",
+        "bytes": 269196068
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.kml",
-        "bytes": 238778383
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.95622d94.kml",
+        "bytes": 238778264
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/forests/SOI_Forests.03b12e2e.shp.zip",
+        "bytes": 106814205
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -2939,14 +2948,17 @@
         "bytes": 1240690
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.geojson",
-        "bytes": 7795626
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.6854dc54.geojson",
+        "bytes": 12584138
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.kml",
-        "bytes": 6148864
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.e8c099a0.kml",
+        "bytes": 10566387
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/environment/seismic/Seismic_Zones.057103db.shp.zip",
+        "bytes": 3210307
+      },
       "licence": "GODL-India",
       "attribution": {
         "primary": {
@@ -3172,14 +3184,17 @@
         "bytes": 35937968
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.geojson",
-        "bytes": 147030550
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.36da3cc0.geojson",
+        "bytes": 220154883
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.kml",
-        "bytes": 134688700
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.f9d62add.kml",
+        "bytes": 201973780
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/infra/national-highways/GatiShakti_MORTH_National_Highways.d14e8ac5.shp.zip",
+        "bytes": 53695258
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -3277,14 +3292,17 @@
         "bytes": 789655
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.geojson",
-        "bytes": 3052581
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.a181f1d8.geojson",
+        "bytes": 4623478
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.kml",
-        "bytes": 2812404
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.17a72518.kml",
+        "bytes": 4183402
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bengaluru-gba/wards_bengaluru_gba.2bc9c29b.shp.zip",
+        "bytes": 1154950
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -3331,14 +3349,17 @@
         "bytes": 20745
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.geojson",
-        "bytes": 282030
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.14543cb7.geojson",
+        "bytes": 447746
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.kml",
-        "bytes": 222283
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.3dd64ca5.kml",
+        "bytes": 375489
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/corporation-bengaluru/corporation_bengaluru.5ddc2751.shp.zip",
+        "bytes": 123624
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -3556,14 +3577,17 @@
         "bytes": 214930
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.geojson",
-        "bytes": 2281098
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.c127cc50.geojson",
+        "bytes": 3431682
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.kml",
-        "bytes": 1578548
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.a5350860.kml",
+        "bytes": 2571178
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-chennai/wards_chennai.d85deffd.shp.zip",
+        "bytes": 743473
+      },
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -3836,14 +3860,17 @@
         "bytes": 122240
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.geojson",
-        "bytes": 2113398
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.90b0e97f.geojson",
+        "bytes": 3127106
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.kml",
-        "bytes": 1442655
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.b4cd4dfc.kml",
+        "bytes": 2365539
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-kolkata/wards_kolkata.35333a37.shp.zip",
+        "bytes": 742202
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -4175,14 +4202,17 @@
         "bytes": 268512
       },
       "geojson": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.geojson",
-        "bytes": 533045
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.b0716c6a.geojson",
+        "bytes": 794286
       },
       "kml": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.kml",
-        "bytes": 509525
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.cb2fa978.kml",
+        "bytes": 734472
       },
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/admin/wards-bhubaneshwar/wards_bhubaneshwar.cda5fbfd.shp.zip",
+        "bytes": 195138
+      },
       "licence": "CC-BY-SA-4.0",
       "attribution": {
         "primary": {
