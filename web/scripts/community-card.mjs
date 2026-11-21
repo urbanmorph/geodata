@@ -53,7 +53,7 @@ export function communityCardActions(s, baked) {
 
 // Render the card's actions block (View pill + downloads). Shared by prerender
 // and a vitest so the visual parity is one source of truth: the "View map"
-// control is the SAME .btn-primary pill as curated rows in BOTH states, baked
+// control is the SAME .btn-primary pill (shared .btn .btn--line) as curated rows in BOTH states, baked
 // gets the curated dl-inline multi-format strip, unbaked the single raw button.
 // `esc`/`fmtBytes` are injected to avoid duplicating prerender's helpers.
 export function renderCommunityActions(s, baked, { esc, fmtBytes }) {
@@ -69,10 +69,10 @@ export function renderCommunityActions(s, baked, { esc, fmtBytes }) {
   } else {
     const d = a.downloads[0];
     const filename = s.r2_key.split('/').pop() || `${s.id}.${s.format}`;
-    dl = `<a class="btn comm-card__dl" href="${esc(d.url)}" download="${esc(filename)}">Download .${esc(s.format)}<span class="size">${d.size != null ? fmtBytes(d.size) : ''}</span></a>`;
+    dl = `<a class="btn btn--line comm-card__dl" href="${esc(d.url)}" download="${esc(filename)}">Download .${esc(s.format)}<span class="size">${d.size != null ? fmtBytes(d.size) : ''}</span></a>`;
   }
   return `<div class="comm-card__actions">
-      ${viewMapLink(a.viewUrl, a.loadBytes, 'btn-primary', 'View map').replace('class="btn-primary', 'class="btn-primary comm-card__view')}
+      ${viewMapLink(a.viewUrl, a.loadBytes, 'btn btn--line btn-primary', 'View map').replace(' btn-primary', ' btn-primary comm-card__view')}
       ${dl}
     </div>`;
 }

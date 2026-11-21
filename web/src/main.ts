@@ -5,7 +5,8 @@ import { fetchLayerIndex, filterCards, type CardLike } from './catalog-filter';
 import { openDialog, closeDialog } from '../../shared/modal';
 import { refreshLiveCounts } from './live-counts';
 import { showLayerError } from './layer-errors';
-import { findMyWard } from './find-my-ward';
+import { wireFindMyWard } from './find-my-ward';
+import { fitQuickSearch, wireOpenFile } from './home-hero';
 import { fetchWardIndex } from './ward-index';
 import { rankHits, hitsHtml, moveActive, allLayersUrl, focusOnSlash, matchSummaryHtml, type Hit } from './search-pop';
 
@@ -144,12 +145,20 @@ for (const a of document.querySelectorAll<HTMLAnchorElement>('a.btn-primary[href
 const findWardBtn = document.getElementById('find-my-ward');
 const findWardStatus = document.getElementById('find-ward-status');
 if (findWardBtn && findWardStatus) {
-  const say = (message: string) => { findWardStatus.hidden = false; findWardStatus.textContent = message; };
-  findWardBtn.addEventListener('click', () => {
-    if (!('geolocation' in navigator)) return say("Your browser can't share your location. Search your area instead.");
-    findMyWard({ geolocation: navigator.geolocation, fetch: (url) => fetch(url), go: (url) => location.assign(url), say });
+  wireFindMyWard(findWardBtn, findWardStatus, {
+    geolocation: 'geolocation' in navigator ? navigator.geolocation : undefined,
+    fetch: (url) => fetch(url),
+    go: (url) => location.assign(url),
   });
 }
+
+// Quick searches: one line, shuffled (home-hero.ts). "Open a file" picks a
+// file here and hands it to /preview, as a drop does (below).
+const quickNav = document.querySelector<HTMLElement>('.quick-search');
+if (quickNav) fitQuickSearch(quickNav);
+const openFile = document.getElementById('open-file') as HTMLAnchorElement | null;
+const openFileInput = document.getElementById('open-file-input') as HTMLInputElement | null;
+if (openFile && openFileInput) wireOpenFile(openFile, openFileInput, (file) => void handOffFile(file));
 
 // Answer-first search: "ward 9 ahmedabad" shows "Ward 9, Ahmedabad is
 // Naranpura" above the results. The parser and city list load only once a
@@ -291,9 +300,23 @@ if (searchInput) {
   }
 }
 
-// Drag-anywhere on the home page → stash file via the existing handoff and
-// navigate to /verify. The 📎 button is a plain anchor — click works for
-// users who want to navigate without dragging.
+// A file picked or dropped on the home page: stash it via the handoff and
+// open /preview, which picks it up.
+async function handOffFile(file: File): Promise<void> {
+  console.log('[home] file:', file.name, file.size, file.type);
+  try {
+    const { stashForSubmit } = await import('./handoff');
+    await stashForSubmit(file);
+    console.log('[home] stashed · sessionStorage:', sessionStorage.getItem('geodata:handoff'));
+  } catch (err) {
+    console.error('[home] handoff stash failed', err);
+  }
+  console.log('[home] → /preview');
+  location.assign('/preview');
+}
+
+// Drag-anywhere on the home page → handOffFile. "Open a file" (an anchor to
+// /preview) is the click route for the same flow.
 {
   let dragDepth = 0;
   const hasFiles = (dt: DataTransfer | null) =>
@@ -326,17 +349,7 @@ if (searchInput) {
     e.preventDefault();
     document.body.classList.remove('is-dragging');
     dragDepth = 0;
-    const file = dt.files[0];
-    console.log('[home] file:', file.name, file.size, file.type);
-    try {
-      const { stashForSubmit } = await import('./handoff');
-      await stashForSubmit(file);
-      console.log('[home] stashed · sessionStorage:', sessionStorage.getItem('geodata:handoff'));
-    } catch (err) {
-      console.error('[home] handoff stash failed', err);
-    }
-    console.log('[home] → /preview');
-    location.assign('/preview');
+    await handOffFile(dt.files[0]);
   });
 }
 

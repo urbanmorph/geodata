@@ -93,7 +93,7 @@ describe('home hero', () => {
     }
   });
 
-  it('offers Find my ward next to the search box', () => {
+  it('offers Find my ward under the search box (tests/home-hero pins where)', () => {
     expect(html).toMatch(/<button[^>]*id="find-my-ward"[^>]*>[\s\S]*?Find my ward<\/button>/);
   });
 });

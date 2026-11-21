@@ -203,7 +203,7 @@ describe('Community cards have parity with curated rows (View + Download)', () =
         );
       }
       // Visual parity: same pill class as curated rows.
-      expect(card, `comm-card ${id} uses .btn-primary View pill`).toMatch(/class="btn-primary comm-card__view"/);
+      expect(card, `comm-card ${id} uses .btn-primary View pill`).toMatch(/class="btn btn--line btn-primary comm-card__view"/);
       expect(card, `comm-card ${id} View map text`).toMatch(/View map/);
     }
   });

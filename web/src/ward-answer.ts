@@ -47,5 +47,5 @@ export function wardCities(): Record<string, string> {
 export function wardAnswerHtml(q: WardQuery, a: { number: string; name: string; total: number }): string {
   return `<p class="ward-answer__title">Ward ${escapeHtml(a.number)}, ${escapeHtml(q.place)} is <strong>${escapeHtml(a.name)}</strong></p>` +
     `<p class="ward-answer__meta">1 of ${a.total} wards in ${escapeHtml(q.place)}</p>` +
-    `<a class="ward-answer__go" href="/view/${encodeURIComponent(q.layerId)}">View map</a>`;
+    `<a class="btn btn--fill ward-answer__go" href="/view/${encodeURIComponent(q.layerId)}">View map</a>`;
 }

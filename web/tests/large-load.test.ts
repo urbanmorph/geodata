@@ -68,6 +68,10 @@ describe('the View map button says so up front', () => {
     expect(html).toMatch(/title="Loads one 101\.0 MB file in full"/);
     expect(html).toMatch(/aria-label="View large map: loads one 101\.0 MB file in full"/);
   });
+  it('with the shared button classes, the --large modifier comes from the last class', () => {
+    expect(viewMapLink('/view/x', 101 * MB, 'btn btn--line btn-primary', 'View map'))
+      .toMatch(/class="btn btn--line btn-primary btn-primary--large"/);
+  });
   it('a small whole-file layer keeps the plain button but carries its size for the speed rule', () => {
     const html = viewMapLink('/view/x', 2 * MB, 'btn-primary', 'View map');
     expect(html).not.toMatch(/--large/);

@@ -27,6 +27,19 @@ type Deps = {
   say: (message: string) => void;
 };
 
+/**
+ * Wire the home button. The click handler calls findMyWard, and so
+ * getCurrentPosition, synchronously: keep any await or import() out of it.
+ */
+export function wireFindMyWard(btn: HTMLElement, status: HTMLElement, deps: Omit<Deps, 'say' | 'geolocation'> & { geolocation?: Geo }): void {
+  const say = (message: string) => { status.hidden = false; status.textContent = message; };
+  btn.addEventListener('click', () => {
+    const { geolocation } = deps;
+    if (!geolocation) return say("Your browser can't share your location. Search your area instead.");
+    findMyWard({ ...deps, geolocation, say });
+  });
+}
+
 export function findMyWard({ geolocation, fetch, go, say }: Deps): void {
   say('Finding your ward…');
   geolocation.getCurrentPosition(

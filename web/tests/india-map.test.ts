@@ -1,6 +1,8 @@
 // The home page's India map: one outline (the share cards' INDIA_PATH), city
 // ward markers made at build time from the ward bounding boxes, and four more
-// themes (rail, water, schools, forests) fetched from /map-themes.json on demand.
+// themes (rail, water, schools, forests) in /map-themes.json. A picture, not a
+// working map: each visit shows 2 or 3 themes at random, named in the caption
+// (owner, 2026-11-21); no theme switch.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -8,7 +10,7 @@ import { resolve } from 'node:path';
 import { project, wardCities, hexPath, mapThemes, indiaMapHtml, lightenPath, MAP_VIEWBOX } from '../scripts/india-map.mjs';
 import { INDIA_PATH } from '../functions/lib/og-india-path';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes';
-import { themeMarkup } from '../src/india-map';
+import { themeMarkup, pickThemes, captionHtml, layerMarkup, DENSE } from '../src/india-map';
 
 const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../catalog.json'), 'utf8'));
 const themesFile = JSON.parse(readFileSync(resolve(__dirname, '../public/map-themes.json'), 'utf8'));
@@ -63,6 +65,14 @@ describe('mapThemes', () => {
   it('five themes, wards first (the one that ships inline)', () => {
     expect(themes.map((t: { key: string }) => t.key)).toEqual(['wards', 'rail', 'rivers', 'schools', 'forests']);
   });
+  it('each theme names itself and links to its layer\'s map', () => {
+    for (const t of themes as { key: string; name: string; href: string }[]) {
+      expect(t.name, t.key).toMatch(/^[a-z ]+$/);
+      const id = t.href.match(/^\/view\/([a-z0-9_]+)$/)?.[1];
+      if (t.key === 'wards') expect(t.href).toBe('/layers?q=wards');
+      else expect(catalog.layers.some((l: { id: string }) => l.id === id), t.href).toBe(true);
+    }
+  });
   it('captions name the source and use the catalogue counts', () => {
     const cap = (k: string) => themes.find((t: { key: string }) => t.key === k).caption;
     expect(cap('wards')).toContain('31 cities');
@@ -75,10 +85,14 @@ describe('mapThemes', () => {
 
 describe('indiaMapHtml', () => {
   const html = indiaMapHtml({ wardBboxes: WARD_BBOXES, catalog });
-  it('one switch per theme, the first pressed', () => {
-    const chips = [...html.matchAll(/<button[^>]*data-map-theme="([a-z]+)"[^>]*aria-pressed="(true|false)"/g)];
-    expect(chips.map((m) => m[1])).toEqual(['wards', 'rail', 'rivers', 'schools', 'forests']);
-    expect(chips.map((m) => m[2])).toEqual(['true', 'false', 'false', 'false', 'false']);
+  it('no theme switch: the themes ride along as data for the random pick', () => {
+    expect(html).not.toMatch(/<button|data-map-theme=/);
+    const data = JSON.parse(html.match(/data-themes="([^"]+)"/)![1].replace(/&quot;/g, '"'));
+    expect(data.map((t: { key: string }) => t.key)).toEqual(['wards', 'rail', 'rivers', 'schools', 'forests']);
+  });
+  it('without JS the caption names what is drawn: the city wards, linked', () => {
+    const cap = html.match(/<figcaption[^>]*>([\s\S]*?)<\/figcaption>/)![1];
+    expect(cap).toMatch(/^Showing: <a href="\/layers\?q=wards"[^>]*>city wards<\/a>/);
   });
   it('ships the outline and the ward markers inline, and no other theme data', () => {
     expect(html).toContain(`viewBox="${MAP_VIEWBOX}"`);
@@ -109,6 +123,51 @@ describe('/map-themes.json (scripts/build_map_themes.py)', () => {
         expect(+m[2]).toBeLessThanOrEqual(vy + vh + 10);
       }
     }
+  });
+});
+
+type T = { key: string; name: string; href: string };
+const T = (key: string): T => ({ key, name: key, href: `/view/${key}` });
+const ALL = ['wards', 'rail', 'rivers', 'schools', 'forests'].map(T);
+
+describe('pickThemes (client)', () => {
+  it('picks 2 or 3, no repeats, at most one dense theme, and draws wards last', () => {
+    for (let i = 0; i < 300; i++) {
+      const p = pickThemes(ALL).map((t: T) => t.key);
+      expect(p.length).toBeGreaterThanOrEqual(2);
+      expect(p.length).toBeLessThanOrEqual(3);
+      expect(new Set(p).size).toBe(p.length);
+      expect(p.filter((k: string) => DENSE.has(k)).length).toBeLessThanOrEqual(1);
+      // Legible at the map's size: lines vanish into shaded hexagons, so a hexagon
+      // theme pairs only with the ward markers drawn on top of it.
+      if (p.some((k: string) => DENSE.has(k))) expect(p.length === 2 && p[1] === 'wards').toBe(true);
+      // Draw order: shaded hexagons under lines under the ward markers.
+      const rank = (k: string) => (DENSE.has(k) ? 0 : k === 'wards' ? 2 : 1);
+      expect(p.map(rank)).toEqual([...p.map(rank)].sort());
+    }
+  });
+  it('varies from visit to visit', () => {
+    const seen = new Set(Array.from({ length: 100 }, () => pickThemes(ALL).map((t: T) => t.key).sort().join()));
+    expect(seen.size).toBeGreaterThan(3);
+  });
+});
+
+describe('captionHtml (client)', () => {
+  it('names each theme shown, linked to its map', () => {
+    expect(captionHtml([T('rail'), T('wards')])).toBe('Showing: <a href="/view/rail">rail</a> and <a href="/view/wards">wards</a>');
+    expect(captionHtml([T('forests'), T('rivers'), T('wards')]))
+      .toBe('Showing: <a href="/view/forests">forests</a>, <a href="/view/rivers">rivers</a> and <a href="/view/wards">wards</a>');
+  });
+});
+
+describe('layerMarkup (client)', () => {
+  it('stacks the fetched themes in the clip, then the inline ward markers', () => {
+    const data = { rail: { kind: 'line' as const, paths: ['Mr'] }, forests: { kind: 'dense' as const, paths: ['M1', 'M2', 'M3', 'M4'] } };
+    const svg = layerMarkup([T('forests'), T('rail'), T('wards')], data, '<path class="india-map__wards"/>')!;
+    expect(svg.indexOf('dense--forests')).toBeLessThan(svg.indexOf('line--rail'));
+    expect(svg.indexOf('line--rail')).toBeLessThan(svg.indexOf('india-map__wards'));
+    expect(svg).toMatch(/^<g clip-path="url\(#india-clip\)">/);
+    expect(layerMarkup([T('rail')], {}, '')).toBeNull(); // missing data: keep the default
   });
 });
 
