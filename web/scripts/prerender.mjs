@@ -19,6 +19,7 @@ import { WARD_PLACES } from '../functions/lib/ward-places.ts';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
 import { OPENAPI } from '../functions/lib/openapi.ts';
 import { fillTemplate } from './fill-template.mjs';
+import { minifyInlineStyles } from './minify-inline-css.mjs';
 import { ogImage } from './og-image-url.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
@@ -695,7 +696,7 @@ const out = fillTemplate(tmpl, {
   API_TOTAL: homeUsageSuffix(apiUse),
 });
 
-await writeFile(resolve(WEB, 'index.html'), out);
+await writeFile(resolve(WEB, 'index.html'), await minifyInlineStyles(out));
 
 const layersSeo = seoHead({
   title: 'All layers',
@@ -713,7 +714,7 @@ const layersSeo = seoHead({
 const layersTmpl = await readFile(resolve(WEB, 'layers.template.html'), 'utf8');
 await writeFile(
   resolve(WEB, 'layers.html'),
-  fillTemplate(layersTmpl, {
+  await minifyInlineStyles(fillTemplate(layersTmpl, {
     SEO_HEAD: layersSeo,
     TOKENS,
     NAV: renderNav('layers'),
@@ -723,7 +724,7 @@ await writeFile(
     LAYER_TOTAL: String(totalLayers),
     THEME_TOTAL: String(sectionCats.length),
     USAGE_BLOCK: usageBlockHtml(siteUse),
-  }),
+  })),
 );
 await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));
 console.log(`prerendered /layers: ${sectionCats.length} themes, ${layerIndex.length} rows in the search index`);
@@ -741,7 +742,7 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
     FOOTER,
     ...extra,
   });
-  await writeFile(resolve(WEB, `${name}.html`), out);
+  await writeFile(resolve(WEB, `${name}.html`), await minifyInlineStyles(out));
   console.log(`prerendered /${name}`);
 }
 
