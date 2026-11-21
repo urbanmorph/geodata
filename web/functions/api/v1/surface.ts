@@ -7,4 +7,4 @@ import { surfaceAt } from '../../lib/surface';
 import { SURFACE_RASTER_VERSION } from '../../lib/surface-rasters';
 import { profileHandler } from '../../lib/profile-endpoint';
 
-export const onRequestGet = profileHandler('Surface', (lat, lng, catalog, r2, opts) => surfaceAt(lat, lng, catalog, r2, undefined, opts), SURFACE_RASTER_VERSION);
+export const onRequestGet = profileHandler('surface', (lat, lng, catalog, r2, opts) => surfaceAt(lat, lng, catalog, r2, undefined, opts), SURFACE_RASTER_VERSION);

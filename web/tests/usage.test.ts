@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { usageChannel, incrementApiUse, shapeUsage, usageLine } from '../functions/lib/usage';
+import { usageChannel, incrementApiUse, shapeUsage, usageLine, endpointUsageId } from '../functions/lib/usage';
 import { availableDownloads } from '../src/format-hints';
 
 const read = (f: string) => readFileSync(resolve(__dirname, '..', f), 'utf8');
@@ -49,6 +49,24 @@ describe('incrementApiUse', () => {
     const { db, batches } = fakeDb();
     await incrementApiUse(db as never, 'x', 'api', new Date('2026-11-19T02:00:00+05:30'));
     expect(batches[0][1].args[0]).toBe('2026-11-18');
+  });
+});
+
+describe('shapeUsage: the point lookups (plan F13)', () => {
+  // /api/v1/ground and /api/v1/surface name no layer: they count under their
+  // endpoint (endpoint:ground, endpoint:surface), listed apart from the layers.
+  it('endpoint rows go to `endpoints`, not `layers`, and count in the totals', () => {
+    const out = shapeUsage([], [
+      { layer_id: 'endpoint:ground', channel: 'mcp', count: 4 },
+      { layer_id: 'endpoint:surface', channel: 'api', count: 2 },
+      { layer_id: 'a', channel: 'api', count: 1 },
+    ]);
+    expect(out.layers).toEqual({ a: { downloads: 0, api: 1, mcp: 0 } });
+    expect(out.endpoints).toEqual({ ground: { api: 0, mcp: 4 }, surface: { api: 2, mcp: 0 } });
+    expect(out.total).toEqual({ downloads: 0, api: 3, mcp: 4 });
+  });
+  it('the usage id of an endpoint', () => {
+    expect(endpointUsageId('ground')).toBe('endpoint:ground');
   });
 });
 

@@ -12,12 +12,11 @@
 import { VectorTile } from '@mapbox/vector-tile';
 import Pbf from 'pbf';
 import type { CatalogData } from './catalog-api';
-import { pmtilesFor, tileAt } from './locate';
+import { pmtilesFor, tilesAt } from './locate';
 import { lngLatToTile, tileBounds } from './tile-math';
 import { r2KeyFromUrl } from './r2-keys';
 import { queryBbox } from './nearby';
 import { closestOnGeometry, type GeomHit, type NearestShapeOpts } from './nearby-geometry';
-import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { GIS_ARTEFACT_COLUMNS } from './junk-columns';
 
 /** Most tiles one search reads; past this it steps down a zoom (and says the count may be short). */
@@ -100,9 +99,7 @@ export async function nearbyFromTiles(
   let z = header.maxZoom;
   let cover = tilesCovering(bbox, z);
   while (cover.length > MAX_TILES && z > header.minZoom) cover = tilesCovering(bbox, --z);
-  const tiles = (await mapConcurrent(cover, R2_CONCURRENCY, async ({ x, y }) => {
-    const data = await tileAt(pm, key, z, x, y);
-    return data ? { z, x, y, data } : null;
-  })).filter((t): t is TileData => !!t);
+  const data = await tilesAt(pm, key, z, cover);
+  const tiles = cover.flatMap(({ x, y }, i) => (data[i] ? [{ z, x, y, data: data[i]! }] : []));
   return { ...nearestInTiles(tiles, lat, lng, radiusKm, opts), capped: z < header.maxZoom };
 }

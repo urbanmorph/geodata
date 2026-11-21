@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { cachedMetadata, clearMetadataCache, clearHeadCache, asyncBufferFromR2 } from '../functions/lib/parquet-r2';
+import { cachedMetadata, clearMetadataCache, clearHeadCache, asyncBufferFromR2, METADATA_CACHE_MAX } from '../functions/lib/parquet-r2';
+import { GROUND_LAYERS } from '../functions/lib/ground';
+import { SURFACE_LAYERS } from '../functions/lib/surface';
 
 // Parsing the Overture footer (217 row groups) cost ~4 s per request on the
 // live site; footers only change when a layer is rebaked (new key or etag).
@@ -81,5 +83,16 @@ describe('asyncBufferFromR2: R2 head cached per isolate', () => {
     await expect(asyncBufferFromR2(r2(heads, false) as never, 'gone')).rejects.toThrow(/not found/);
     await expect(asyncBufferFromR2(r2(heads, false) as never, 'gone')).rejects.toThrow(/not found/);
     expect(heads.n).toBe(2);
+  });
+});
+
+describe('the footer cache holds a point profile', () => {
+  // /api/v1/ground and /api/v1/surface read about 30 parquet layers between them:
+  // a cache of 16 footers was thrashed on every call, re-reading each one from R2.
+  it('keeps every parquet footer the two profiles read, with room for the rest of the API', () => {
+    const parquet = new Set([...GROUND_LAYERS, ...SURFACE_LAYERS]
+      .filter((l) => l.match === 'nearest' && (!l.shape || l.shapeFrom === 'parquet')).map((l) => l.id));
+    expect(parquet.size).toBeGreaterThan(25);
+    expect(METADATA_CACHE_MAX).toBeGreaterThanOrEqual(parquet.size + 16);
   });
 });

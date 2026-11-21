@@ -24,7 +24,10 @@ export interface AsyncBuffer {
 // the life of the Worker isolate. The Overture footer (217 row groups) took
 // ~4 s to fetch and parse on every request. Only parsed footers are shared
 // across requests (isolate-cache.ts): a read in flight dies with its request.
-const metaCache = new ResolvedCache<FileMetaData>(16);
+// Room for the ~30 layers the point profiles read plus the rest of the API: 16
+// was thrashed by every /api/v1/surface call.
+export const METADATA_CACHE_MAX = 64;
+const metaCache = new ResolvedCache<FileMetaData>(METADATA_CACHE_MAX);
 
 export function clearMetadataCache(): void {
   metaCache.clear();

@@ -1,6 +1,8 @@
 // API and MCP use per layer, beside downloads: proof that a layer is used.
 // Only calls that name a layer count (detail, query, schema, counts, export,
-// nearby; not locate, which the viewer's button calls on every tap). Crawlers and
+// nearby; not locate, which the viewer's button calls on every tap), plus the
+// point lookups (/ground, /surface), which name none: they count under
+// endpoint:<name> and are listed as `endpoints`. Crawlers and
 // our own smoke test don't. The bharatlas MCP sends
 // "bharatlas-mcp/<version>" (mcp/index.js), which is how its calls are told apart.
 import { fmtCount } from '../../../shared/format.mjs';
@@ -53,22 +55,32 @@ export function countApiUse(
 }
 
 export type Usage = { downloads: number; api: number; mcp: number };
+export type EndpointUsage = Omit<Usage, 'downloads'>;
 
-/** Per-layer downloads (all formats and states) and API/MCP calls, plus totals. */
+const ENDPOINT = 'endpoint:';
+/** The api_usage id a call to an endpoint that names no layer counts under. */
+export const endpointUsageId = (name: string): string => `${ENDPOINT}${name}`;
+
+/** Per-layer downloads (all formats and states) and API/MCP calls, the endpoints'
+ *  calls, plus totals (API and MCP totals include the endpoints'). */
 export function shapeUsage(
   downloads: { layer_id: string; count: number }[],
   api: { layer_id: string; channel: string; count: number }[],
-): { layers: Record<string, Usage>; total: Usage } {
+): { layers: Record<string, Usage>; endpoints: Record<string, EndpointUsage>; total: Usage } {
   const layers: Record<string, Usage> = {};
+  const endpoints: Record<string, EndpointUsage> = {};
   const total: Usage = { downloads: 0, api: 0, mcp: 0 };
   const at = (id: string) => (layers[id] ??= { downloads: 0, api: 0, mcp: 0 });
   for (const r of downloads) { at(r.layer_id).downloads += r.count; total.downloads += r.count; }
   for (const r of api) {
     const k = r.channel === 'mcp' ? 'mcp' : 'api';
-    at(r.layer_id)[k] += r.count;
+    const row = r.layer_id.startsWith(ENDPOINT)
+      ? (endpoints[r.layer_id.slice(ENDPOINT.length)] ??= { api: 0, mcp: 0 })
+      : at(r.layer_id);
+    row[k] += r.count;
     total[k] += r.count;
   }
-  return { layers, total };
+  return { layers, endpoints, total };
 }
 
 /** "1.2k downloads · 4.3k API queries (900 via MCP)". API queries include the MCP's. */

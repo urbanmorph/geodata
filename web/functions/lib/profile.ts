@@ -281,6 +281,15 @@ async function readContains(spec: ProfileLayer, lat: number, lng: number, catalo
   };
 }
 
+/** The columns a nearest entry uses (its fields and its median's), or undefined for all
+ *  (no field list, or a decoder that reads columns it does not show). Decoding only these
+ *  keeps a wide layer cheap (Soil Health Cards: 15 of 50 columns of a 122,880-row group). */
+export function columnsOf(spec: ProfileLayer): string[] | undefined {
+  if (!spec.fields || spec.decode) return undefined;
+  const m = spec.median;
+  return [...new Set([...spec.fields, ...(m ? [m.field, ...(m.perPoint ?? [])] : [])])];
+}
+
 async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, deps: ProfileDeps): Promise<LayerAnswer> {
   const radiusKm = spec.radiusKm!;
   const show = spec.show ?? 3;
@@ -295,14 +304,14 @@ async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog
     count = g.total;
     capped = g.capped;
   } else {
-    const n = await deps.nearby(lat, lng, radiusKm, spec.id, catalog, r2, spec.candidates ?? show);
+    const n = await deps.nearby(lat, lng, radiusKm, spec.id, catalog, r2, spec.candidates ?? show, columnsOf(spec));
     items = n.features.map((f) => ({ distance_km: f._distance_km, lat: f._lat, lng: f._lng, properties: f.properties, raw: f.properties }));
     count = n.total;
     capped = n.total > n.features.length && !!spec.median; // a median over fewer than all
   }
   let status: ProfileStatus = count ? 'found' : 'none_within_radius';
   // Only when nothing is near: is the layer anywhere around? (Outside its row groups' bounds this reads only the footer.)
-  if (!count && spec.coverageKm && !(await deps.nearby(lat, lng, spec.coverageKm, spec.id, catalog, r2, 1)).total) status = 'not_covered';
+  if (!count && spec.coverageKm && !(await deps.nearby(lat, lng, spec.coverageKm, spec.id, catalog, r2, 1, [])).total) status = 'not_covered';
   const nearest: NearestItem[] = items.slice(0, show).map(({ raw, ...it }) => ({
     ...it, properties: pick(raw, spec.fields), ...(spec.decode ? { decoded: spec.decode(raw) } : {}),
   }));

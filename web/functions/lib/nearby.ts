@@ -30,6 +30,7 @@ import { compressors } from 'hyparquet-compressors';
 import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2';
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
+import { chunkRanges, coalesced } from './parquet-coalesce';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
@@ -154,12 +155,13 @@ export async function nearestRows(
 ): Promise<{ winners: BboxWinner[]; total: number; rowsScanned: number }> {
   type Candidate = { idx: number; cLat: number; cLng: number; d: number };
   const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
+  const bboxFile = coalesced(file, spans.flatMap((s) => chunkRanges(metadata, [...BBOX_COLS], s.start, s.end)));
 
   // Pass 1, row groups in parallel (bounded): each group keeps only its own
   // nearest `limit` (the global top K is within their union) and a count.
   const perGroup = await mapConcurrent(spans, R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
-      file, metadata, compressors, columns: [...BBOX_COLS], rowStart: span.start, rowEnd: span.end,
+      file: bboxFile, metadata, compressors, columns: [...BBOX_COLS], rowStart: span.start, rowEnd: span.end,
     }) as Array<Record<string, unknown>>;
     const inRadius: Candidate[] = [];
     rows.forEach((row, i) => {
@@ -181,12 +183,14 @@ export async function nearestRows(
   // of at most READ_WINDOW_ROWS rows (winners far apart in one row group must
   // not decode every row between them).
   const readCols = cols.filter((c) => c !== geomCol);
+  if (!readCols.length) return { winners: candidates.map((c) => ({ row: {}, cLat: c.cLat, cLng: c.cLng, d: c.d })), total, rowsScanned };
   const byIdx = new Map(candidates.map((c) => [c.idx, c]));
   const windows = readWindows([...byIdx.keys()].sort((a, b) => a - b), READ_WINDOW_ROWS);
+  const rowFile = coalesced(file, windows.flatMap((w) => chunkRanges(metadata, readCols, w[0], w[w.length - 1] + 1)));
   const found = await mapConcurrent(windows, R2_CONCURRENCY, async (idxs) => {
     const lo = idxs[0];
     const rows = await parquetReadObjects({
-      file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
+      file: rowFile, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
     }) as Array<Record<string, unknown>>;
     return idxs.map((i): BboxWinner => {
       const c = byIdx.get(i)!;
@@ -196,10 +200,11 @@ export async function nearestRows(
   return { winners: topKByDistance(found.flat(), limit), total, rowsScanned };
 }
 
+/** `columns`: decode only these for the features (default all); [] decodes none (a count). */
 export async function nearby(
   lat: number, lng: number, radiusKm: number,
   layerId: string, catalog: CatalogData, r2: R2Bucket,
-  limit = 50,
+  limit = 50, columns?: string[],
 ): Promise<NearbyResult> {
   const start = Date.now();
 
@@ -227,7 +232,8 @@ export async function nearby(
   let winners: BboxWinner[];
 
   if (hasBboxCols) {
-    const r = await nearestRows(file, metadata, allCols, geomCol, lat, lng, radiusKm, limit);
+    const cols = columns ? allCols.filter((c) => c === geomCol || columns.includes(c)) : allCols;
+    const r = await nearestRows(file, metadata, cols, geomCol, lat, lng, radiusKm, limit);
     skip = new Set([geomCol, 'xmin', 'ymin', 'xmax', 'ymax', 'bbox']);
     winners = r.winners;
     total = r.total;
