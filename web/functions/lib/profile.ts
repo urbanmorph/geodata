@@ -55,6 +55,8 @@ export interface ProfileLayer {
   about?: { scale?: string; vintage?: string; note?: string };
   /** One sentence for the summary, or null. */
   say?: (e: ProfileEntry) => string | null | undefined;
+  /** Related downloads for the entry (e.g. a layer's full readings), from its catalog entry. */
+  links?: (layer: CatalogLayer) => Record<string, string>;
 }
 
 // ── small helpers ────────────────────────────────────────────────────────────
@@ -168,6 +170,7 @@ export interface ProfileEntry {
   count_capped?: true;
   nearest?: NearestItem[];
   stats?: Record<string, number | null>;
+  links?: Record<string, string>;
   /** pixel: the raster's values at the point (field names carry units) */
   values?: Props | null;
   resolution_m?: number;
@@ -360,6 +363,8 @@ export async function profileAt(
         about: { ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },
         ...got, ...(spec.units && got.status === 'found' ? { units: spec.units } : {}),
       };
+      const links = spec.links?.(layer);
+      if (links && Object.keys(links).length) entry.links = links;
       sections[spec.section][key] = entry;
       const line = spec.say?.(entry);
       if (line) said.push([order, line]);

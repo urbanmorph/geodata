@@ -534,6 +534,7 @@ const POINT_PROFILE_SCHEMAS = {
               count: { type: 'integer', description: 'nearest: features within radius_km.' },
               count_capped: { type: 'boolean', description: 'More features were in range than were read; `count` and `stats` cover those read.' },
               nearest: { type: 'array', items: { type: 'object', properties: { distance_km: { type: 'number' }, lat: { type: 'number', description: 'The feature point, or the nearest point of the line.' }, lng: { type: 'number' }, properties: { type: 'object' }, decoded: { type: 'object' } } } },
+              links: { type: 'object', additionalProperties: { type: 'string', format: 'uri' }, description: 'Related downloads, e.g. a station layer\'s full readings.' },
               stats: { type: 'object', additionalProperties: { type: ['number', 'null'] }, description: 'e.g. subsidence: median_VLM_cm_per_yr, the median over points of each point\'s median reading, with points and readings counted.' },
               values: { type: ['object', 'null'], description: 'pixel: the raster values at the point (field names carry units).' },
               resolution_m: { type: 'integer' },

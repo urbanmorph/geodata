@@ -326,6 +326,23 @@ describe('groundAt', () => {
   });
 });
 
+describe('WRIS groundwater levels', () => {
+  it('gives the nearest stations with their depths and trend, and links the readings', async () => {
+    const url = 'https://pub-x.r2.dev/water/wris-groundwater-levels/WRIS_Groundwater_Manual_Readings.ab41da73.parquet';
+    const cat = { ...catalog, layers: catalog.layers.map((l) => (l.id === 'wris_groundwater_levels' ? { ...l, notes: `The readings are a separate Parquet download: ${url}` } : l)) };
+    const d = deps();
+    const g = await run(28.525, 77.085, cat, {
+      nearby: async (lat, lng, r, id, ...rest) => (id === 'wris_groundwater_levels'
+        ? nearbyResult([{ props: { station_name: 'Kapashera', premonsoon_depth_m: 31.2, premonsoon_year: 2024, premonsoon_trend_m_per_yr: 0.85, last_depth_m: 30.1, objectid: 1 }, d: 1.4 }])
+        : d.nearby(lat, lng, r, id, ...rest)),
+    });
+    const e = g.sections.groundwater.wris_groundwater_levels;
+    expect(e).toMatchObject({ status: 'found', links: { readings: url }, nearest: [{ distance_km: 1.4, properties: { station_name: 'Kapashera', premonsoon_depth_m: 31.2 } }] });
+    expect(e.nearest![0].properties).not.toHaveProperty('objectid');
+    expect(g.summary).toMatch(/Water table 31.2 m below ground before the 2024 monsoon at a WRIS station 1.4 km away, falling 0.85 m\/yr/);
+  });
+});
+
 describe('cleanText (summary only; the data stays as published)', () => {
   it('collapses line breaks, drops "-" and NA, decodes entities, says a same-ended range once', () => {
     expect(cleanText('Unconfined\nSemi-confined')).toBe('Unconfined Semi-confined');

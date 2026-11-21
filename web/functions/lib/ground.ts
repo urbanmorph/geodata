@@ -150,8 +150,24 @@ export const GROUND_LAYERS: ProfileLayer[] = [
       const pre = n?.decoded?.latest_pre_monsoon as { year: number; depth_m_below_ground: number } | null | undefined;
       return n && pre ? `Groundwater ${pre.depth_m_below_ground} m below ground before the ${pre.year} monsoon at an Atal Bhujal well ${km(n.distance_km)} away` : null;
     } },
-  // WRIS groundwater level stations, once published, are one row like:
-  // { id: 'wris_groundwater_levels', section: 'groundwater', match: 'nearest', radiusKm: 10 },
+  { id: 'wris_groundwater_levels', section: 'groundwater', match: 'nearest', radiusKm: 10,
+    about: { scale: 'monitoring stations (CGWB and state ground water departments)', vintage: 'manual readings to 2024',
+      note: 'depths are metres below ground; a positive trend means the water table is getting deeper' },
+    fields: ['station_name', 'station_code', 'station_type', 'agency_name', 'last_reading', 'last_depth_m',
+      'premonsoon_depth_m', 'premonsoon_year', 'postmonsoon_depth_m', 'postmonsoon_year', 'premonsoon_trend_m_per_yr', 'trend_n_years', 'years_of_record'],
+    units: { last_depth_m: 'm below ground', premonsoon_depth_m: 'm below ground', postmonsoon_depth_m: 'm below ground', premonsoon_trend_m_per_yr: 'm/yr (positive: deeper)' },
+    links: (layer) => {
+      const readings = (layer.notes ?? '').match(/https:\/\/\S+?Manual_Readings[\w.]*\.parquet/)?.[0];
+      return readings ? { readings } : ({} as Record<string, string>);
+    },
+    say: (e) => {
+      const n = e.nearest?.[0];
+      const pre = num(first(e, 'premonsoon_depth_m'));
+      if (!n || pre === null) return null;
+      const trend = num(first(e, 'premonsoon_trend_m_per_yr'));
+      const t = trend === null ? '' : `, ${trend > 0 ? 'falling' : 'rising'} ${Math.abs(trend)} m/yr`;
+      return `Water table ${pre} m below ground before the ${first(e, 'premonsoon_year')} monsoon at a WRIS station ${km(n.distance_km)} away${t}`;
+    } },
   { id: 'gw_quality_premonsoon', section: 'groundwater', ...GW_QUALITY, say: gwQualitySay('Pre-monsoon') },
   { id: 'gw_quality_postmonsoon', section: 'groundwater', ...GW_QUALITY, say: gwQualitySay('Post-monsoon') },
   { id: 'mi6_wells_districts', section: 'groundwater', match: 'contains', about: { scale: 'per district', vintage: '6th Minor Irrigation Census, 2017-18' },
