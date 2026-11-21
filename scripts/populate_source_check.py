@@ -117,6 +117,9 @@ OVERRIDES: dict[str, dict] = {
                                    'API yet', 'https://doi.org/10.5683/SP2/TTJNIU'),
     'core_mws_water_balance': manual(CORE_MWS, CORE_MWS_STAC),
     'core_mws_drought': manual(CORE_MWS, CORE_MWS_STAC),
+    'wris_groundwater_levels': manual('a live API with no version, change date or row count; the readings are '
+                                      'pulled per district and year by scripts/bake_wris_groundwater.py',
+                                      'https://indiawris.gov.in/v3/api-docs'),
     'property_tax_chennai_wards': manual('the Smart Cities portal puts each download behind a captcha',
                                          'https://smartcities.data.gov.in/catalog/property-tax-chennai'),
 }

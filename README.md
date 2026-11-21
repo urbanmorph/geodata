@@ -65,13 +65,13 @@ bharatlas is an atlas of India's open geo layers, from the national boundary dow
 
 ## Layers and sources
 
-bharatlas has 181 layers (checked 21 November 2026): the curated layers, plus the community submissions that have been approved, from the Contribute page or from collect. A submission that has been baked into a curated layer (`c_<id>`) counts once. `GET /api/v1/layers` lists the 180 curated entries (one of them a baked community layer) and `GET /api/v1/submissions` the approved submissions. Curated layers by theme, from `GET /api/v1/categories`:
+bharatlas has 182 layers (checked 21 November 2026): the curated layers, plus the community submissions that have been approved, from the Contribute page or from collect. A submission that has been baked into a curated layer (`c_<id>`) counts once. `GET /api/v1/layers` lists the 181 curated entries (one of them a baked community layer) and `GET /api/v1/submissions` the approved submissions. Curated layers by theme, from `GET /api/v1/categories`:
 
 | Theme | Layers | Examples |
 |---|---:|---|
 | Boundaries | 26 | `lgd_states` to `lgd_villages`; SOI, Bhuvan and geoBoundaries alternates; PMGSY blocks and habitations; town and city boundaries (SBM); West Bengal town boundaries (AMRUT); land parcels for Delhi, Goa and the Puducherry and Andaman coasts |
 | City wards | 42 | `wards_bengaluru_gba`, `wards_chennai`, `wards_mumbai`, `wards_delhi`; BDA jurisdiction and layouts; `sbm_wards` (about 3,300 towns and cities); Kalyan-Dombivli wards; Pune 2025 administrative wards; zones for Greater Bengaluru, Pune and Chennai; West Bengal wards (AMRUT, 52 towns) |
-| Water | 29 | WRIS rivers, canals, basins, watersheds, lakes, dams, reservoirs; CGWB aquifers and groundwater extraction; groundwater quality and prospects (Bhuvan); Atal Bhujal well water levels 2015-2022; micro-watershed water balance 2017-2025 (CoRE Stack); rock permeability and porosity (GLHYMPS 2.0); 1st Census of Water Bodies; Amrit Sarovar ponds; India Flood Inventory; NDEM floods 1998-2022 |
+| Water | 30 | WRIS rivers, canals, basins, watersheds, lakes, dams, reservoirs; CGWB aquifers and groundwater extraction; groundwater quality and prospects (Bhuvan); India-WRIS groundwater-level stations (about 93,000) with their manual readings to 2024; Atal Bhujal well water levels 2015-2022; micro-watershed water balance 2017-2025 (CoRE Stack); rock permeability and porosity (GLHYMPS 2.0); 1st Census of Water Bodies; Amrit Sarovar ponds; India Flood Inventory; NDEM floods 1998-2022 |
 | Infrastructure and utilities | 14 | pincode polygons, VEDAS power plants and transmission lines, Jal Jeevan Mission facilities, Overture places; underground pipelines and power cables (OpenStreetMap) |
 | Environment | 33 | forest circles, divisions, ranges, beats and recorded forest area (FSI); wildlife sanctuaries, reserves and corridors; eco-sensitive zones; Coastal Regulation Zones 2019; geology, lithology, coal blocks, critical minerals, mineral deposits, exploration boreholes, geothermal springs and lineaments (GSI); oil and gas blocks (NGDR); geomorphology and land degradation (Bhuvan); seismic zones, active faults (GEM), landslides, earthquakes, cyclone tracks; mines and caves (OpenStreetMap); land subsidence in five megacities (InSAR) |
 | People and places | 13 | parliament and assembly constituencies, high courts, NGT zones, NCLT benches; police station jurisdictions (Andhra Pradesh, Bihar, Delhi, Tamil Nadu, Telangana, marine) |
@@ -88,13 +88,13 @@ Each layer downloads whole from its card or its view page:
 
 | Format | Use it for | Layers that have it |
 |---|---|---:|
-| Parquet (GeoParquet) | analysis in DuckDB, pandas, GeoPandas, QGIS | 180 of 180 |
-| PMTiles | web maps, including the map view itself | 179 of 180 |
-| GeoJSON | web tools, most GIS software | 163 of 180 |
-| KML | Google Earth | 158 of 180 |
-| Shapefile (zipped) | desktop GIS | 146 of 180 |
+| Parquet (GeoParquet) | analysis in DuckDB, pandas, GeoPandas, QGIS | 181 of 181 |
+| PMTiles | web maps, including the map view itself | 180 of 181 |
+| GeoJSON | web tools, most GIS software | 164 of 181 |
+| KML | Google Earth | 159 of 181 |
+| Shapefile (zipped) | desktop GIS | 157 of 181 |
 
-Counts are of the curated entries in `catalog.json` (19 November 2026). The files are served from Cloudflare R2. `GET /api/v1/layers/<id>` returns the URL and size of each format the layer has. A filtered slice exports from the Filter panel, or from `GET /api/v1/layers/<id>/export`, as GeoJSON, KML or CSV. Very large layers (gram panchayats, villages) are best sliced by state in the viewer or read from the parquet.
+Counts are of the curated entries in `catalog.json` (21 November 2026). The files are served from Cloudflare R2. `GET /api/v1/layers/<id>` returns the URL and size of each format the layer has. A filtered slice exports from the Filter panel, or from `GET /api/v1/layers/<id>/export`, as GeoJSON, KML or CSV. Very large layers (gram panchayats, villages) are best sliced by state in the viewer or read from the parquet.
 
 ## Use it from an AI assistant (MCP)
 
