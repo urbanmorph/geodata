@@ -4,6 +4,7 @@
 // _middleware, and could answer with another deployment's file.
 import type { CatalogData } from './catalog-api';
 import { sha256Hex } from './crypto';
+import { ResolvedCache } from './isolate-cache';
 
 type Assets = { fetch(input: Request | string, init?: RequestInit): Promise<Response> };
 /** What a handler has: its request (for the origin) and, on Pages, env.ASSETS. */
@@ -19,8 +20,9 @@ export function fetchAsset(ctx: AssetCtx, path: string): Promise<Response> {
 export type LoadedCatalog = { catalog: CatalogData; version: string };
 
 // One load per isolate: catalog.json changes only with a deploy, which starts
-// new isolates. A rejected load is dropped, so the next request tries again.
-let pending: Promise<LoadedCatalog> | null = null;
+// new isolates. Only a loaded catalog is shared across requests (a load in
+// flight dies with its request, isolate-cache.ts); a rejected load is dropped.
+const loaded = new ResolvedCache<LoadedCatalog>();
 
 async function load(ctx: AssetCtx): Promise<LoadedCatalog> {
   const [r, build] = await Promise.all([
@@ -38,11 +40,7 @@ async function load(ctx: AssetCtx): Promise<LoadedCatalog> {
  *  catalog text. Every deploy gets a new one, so cache keys built on it move
  *  on and nothing needs purging. */
 export function loadCatalogVersioned(ctx: AssetCtx): Promise<LoadedCatalog> {
-  if (!pending) {
-    pending = load(ctx);
-    pending.catch(() => { pending = null; });
-  }
-  return pending;
+  return loaded.get('', () => load(ctx), ctx.request);
 }
 
 export async function loadCatalog(ctx: AssetCtx): Promise<CatalogData> {
@@ -50,7 +48,7 @@ export async function loadCatalog(ctx: AssetCtx): Promise<CatalogData> {
 }
 
 export function __resetCatalogForTest(): void {
-  pending = null;
+  loaded.clear();
 }
 
 /** First 12 hex characters of the SHA-256 of `text`. */

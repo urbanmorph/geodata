@@ -8,17 +8,18 @@
 import { initWasm, Resvg } from '@resvg/resvg-wasm';
 import { OG_FONT_FILES } from './og-template';
 import { fetchAsset, type AssetCtx } from './catalog-loader';
+import { ResolvedCache } from './isolate-cache';
 // @ts-expect-error — Pages' bundler resolves this; Node test env never
 // reaches this line because og-render itself is mocked in unit tests.
 import wasmModule from '@resvg/resvg-wasm/index_bg.wasm';
 
 let initPromise: Promise<void> | null = null;
-let fontPromise: Promise<Uint8Array[]> | null = null;
+const fontCache = new ResolvedCache<Uint8Array[]>();
 
 async function ensureInit(): Promise<void> {
   if (initPromise) return initPromise;
   // A failed init must not stay cached, or every later render in this
-  // isolate fails too (ensureFont resets the same way).
+  // isolate fails too.
   initPromise = initWasm(wasmModule as WebAssembly.Module).catch((e) => {
     initPromise = null;
     throw e;
@@ -26,19 +27,17 @@ async function ensureInit(): Promise<void> {
   return initPromise;
 }
 
-async function ensureFont(ctx: AssetCtx): Promise<Uint8Array[]> {
-  if (fontPromise) return fontPromise;
-  fontPromise = Promise.all(
+// Fonts are fetched (request I/O), so only loaded fonts are shared across
+// requests (isolate-cache.ts). initWasm above is not request I/O, and may run
+// only once, so it keeps its shared promise.
+function ensureFont(ctx: AssetCtx): Promise<Uint8Array[]> {
+  return fontCache.get('', () => Promise.all(
     OG_FONT_FILES.map(async (f) => {
       const r = await fetchAsset(ctx, `/${f}`);
       if (!r.ok) throw new Error(`failed to load OG font ${f}: ${r.status}`);
       return new Uint8Array(await r.arrayBuffer());
     }),
-  ).catch((e) => {
-    fontPromise = null;
-    throw e;
-  });
-  return fontPromise;
+  ), ctx.request);
 }
 
 export async function renderOgPng(svg: string, ctx: AssetCtx): Promise<Uint8Array> {
@@ -65,5 +64,5 @@ export async function renderOgPng(svg: string, ctx: AssetCtx): Promise<Uint8Arra
 
 export function __resetForTest(): void {
   initPromise = null;
-  fontPromise = null;
+  fontCache.clear();
 }

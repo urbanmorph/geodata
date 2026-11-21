@@ -10,6 +10,7 @@
 //   /releases/<dataset>/latest[/<file>]        302 to the dataset's newest release (or that file of it)
 import { R2_PUBLIC_BASE } from './r2-keys';
 import { fetchAsset, type AssetCtx } from './catalog-loader';
+import { ResolvedCache } from './isolate-cache';
 
 export type ReleaseRoute =
   | { kind: 'page'; dataset: string | null }
@@ -76,19 +77,17 @@ export const latestCode = (index: { latest?: Record<string, string> }, dataset: 
 /** The release index (/releases/index.json, static, changes only with a
  *  deploy), read once per isolate through env.ASSETS; null when it can't be
  *  read (a failed read is retried on the next request). */
-let releaseIndexPending: Promise<ReleaseIndex | null> | null = null;
+const releaseIndex = new ResolvedCache<ReleaseIndex>();
 export type ReleaseIndex = { latest?: Record<string, string> } & Record<string, unknown>;
 
 export function loadReleaseIndex(ctx: AssetCtx): Promise<ReleaseIndex | null> {
-  if (!releaseIndexPending) {
-    releaseIndexPending = fetchAsset(ctx, '/releases/index.json')
-      .then((r) => (r.ok ? (r.json() as Promise<ReleaseIndex>) : null))   // the SPA fallback (HTML) fails to parse
-      .catch(() => null);
-    releaseIndexPending.then((v) => { if (!v) releaseIndexPending = null; });
-  }
-  return releaseIndexPending;
+  return releaseIndex.get('', async () => {
+    const r = await fetchAsset(ctx, '/releases/index.json');
+    if (!r.ok) throw new Error(`release index: ${r.status}`);
+    return r.json() as Promise<ReleaseIndex>;   // the SPA fallback (HTML) fails to parse
+  }, ctx.request).catch(() => null);
 }
 
 export function __resetReleaseIndexForTest(): void {
-  releaseIndexPending = null;
+  releaseIndex.clear();
 }

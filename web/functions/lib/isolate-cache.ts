@@ -1,0 +1,62 @@
+// Caches that live for the life of a Worker isolate, shared by its requests.
+//
+// Only RESOLVED values are shared across requests. Workers cancels the I/O a
+// request started once that request ends, and a promise left behind never
+// settles ("This promise was created by a request that has since ended, so it
+// can never settle"). A cache that kept such a pending promise made every later
+// request for that key wait until the platform limit (~60 s on /api/v1/nearby).
+
+/**
+ * Values by key, least recently used out past `max`. A load in flight is
+ * shared only with callers passing the same `scope` (the request, or an object
+ * that lives only as long as it); a rejected load is not kept.
+ */
+export class ResolvedCache<V> {
+  private values = new Map<string, V>();
+  private inflight = new WeakMap<object, Map<string, Promise<V>>>();
+
+  constructor(private readonly max = Infinity) {}
+
+  get(key: string, load: () => Promise<V>, scope?: object): Promise<V> {
+    if (this.values.has(key)) {
+      const v = this.values.get(key)!;
+      this.values.delete(key);
+      this.values.set(key, v); // most recently used last
+      return Promise.resolve(v);
+    }
+    const pending = scope ? this.inflight.get(scope) : undefined;
+    const shared = pending?.get(key);
+    if (shared) return shared;
+
+    const p = load().then((v) => {
+      this.values.set(key, v);
+      while (this.values.size > this.max) this.values.delete(this.values.keys().next().value!);
+      return v;
+    });
+    if (scope) {
+      const mine = pending ?? new Map<string, Promise<V>>();
+      if (!pending) this.inflight.set(scope, mine);
+      mine.set(key, p);
+      p.finally(() => mine.delete(key)).catch(() => {});
+    }
+    return p;
+  }
+
+  clear(): void {
+    this.values.clear();
+    this.inflight = new WeakMap();
+  }
+}
+
+/** Generous bound on one R2 read: a stuck read fails with a clear error
+ *  instead of holding the request until the platform limit. */
+export const READ_TIMEOUT_MS = 20_000;
+
+/** `p`, or a rejection naming `what` if it hasn't settled within `ms`. */
+export function withTimeout<T>(p: Promise<T>, ms: number, what: string): Promise<T> {
+  let timer!: ReturnType<typeof setTimeout>; // set synchronously below
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} timed out after ${ms / 1000} s`)), ms);
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+}

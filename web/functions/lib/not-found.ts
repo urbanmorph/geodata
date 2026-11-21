@@ -5,6 +5,7 @@
 import { COLORS, FONT, FONT_SIZE } from '../../../shared/tokens.mjs';
 import { escapeHtml as esc } from '../../../shared/format.mjs';
 import { fetchAsset, type AssetCtx } from './catalog-loader';
+import { ResolvedCache } from './isolate-cache';
 import { SECURITY_HEADERS_HTML } from './security-headers';
 
 export type NotFound = {
@@ -71,25 +72,20 @@ export function suggestLayers(id: string, layers: ReadonlyArray<{ id: string }>,
 }
 
 const MARKER = '<!-- NF_TITLE -->';
-let shell: Promise<string> | null = null;
+const shell = new ResolvedCache<string>();
 
 /** dist/404.html, once per isolate (it changes only with a deploy). A failed or
  *  wrong read (no regions in it) is dropped, so the next request tries again. */
 function loadShell(ctx: AssetCtx): Promise<string> {
-  if (!shell) {
-    shell = fetchAsset(ctx, '/404.html')
-      .then((r) => r.text())
-      .then((t) => {
-        if (!t.includes(MARKER)) throw new Error('404.html has no regions');
-        return t;
-      });
-    shell.catch(() => { shell = null; });
-  }
-  return shell;
+  return shell.get('', async () => {
+    const t = await (await fetchAsset(ctx, '/404.html')).text();
+    if (!t.includes(MARKER)) throw new Error('404.html has no regions');
+    return t;
+  }, ctx.request);
 }
 
 export function __resetNotFoundForTest(): void {
-  shell = null;
+  shell.clear();
 }
 
 /** A 404 with the themed page (or the inline one), noindex, security headers. */

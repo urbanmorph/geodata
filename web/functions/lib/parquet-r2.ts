@@ -6,6 +6,7 @@ import { parquetMetadataAsync } from 'hyparquet';
 import type { FileMetaData } from 'hyparquet';
 import type { CatalogLayer } from './catalog-api';
 import { r2KeyFromUrl } from './r2-keys';
+import { ResolvedCache, READ_TIMEOUT_MS, withTimeout } from './isolate-cache';
 
 export interface AsyncBuffer {
   byteLength: number;
@@ -21,9 +22,9 @@ export interface AsyncBuffer {
 
 // Parsed parquet footers, per object version (key + size + etag), kept for
 // the life of the Worker isolate. The Overture footer (217 row groups) took
-// ~4 s to fetch and parse on every request.
-const META_CACHE_MAX = 16;
-const metaCache = new Map<string, Promise<FileMetaData>>();
+// ~4 s to fetch and parse on every request. Only parsed footers are shared
+// across requests (isolate-cache.ts): a read in flight dies with its request.
+const metaCache = new ResolvedCache<FileMetaData>(16);
 
 export function clearMetadataCache(): void {
   metaCache.clear();
@@ -32,17 +33,7 @@ export function clearMetadataCache(): void {
 export function cachedMetadata(file: AsyncBuffer): Promise<FileMetaData> {
   const key = file.cacheKey;
   if (!key) return parquetMetadataAsync(file);
-  const hit = metaCache.get(key);
-  if (hit) {
-    metaCache.delete(key);
-    metaCache.set(key, hit); // most recently used last
-    return hit;
-  }
-  const p = parquetMetadataAsync(file);
-  metaCache.set(key, p);
-  p.catch(() => metaCache.delete(key));
-  while (metaCache.size > META_CACHE_MAX) metaCache.delete(metaCache.keys().next().value!);
-  return p;
+  return metaCache.get(key, () => parquetMetadataAsync(file), file);
 }
 
 export function r2KeyFromLayer(layer: Pick<CatalogLayer, 'parquet'>): string | null {
@@ -64,7 +55,7 @@ async function headOf(r2: R2Bucket, key: string): Promise<{ size: number; etag: 
   const now = Date.now();
   const hit = headCache.get(key);
   if (hit && now - hit.at < HEAD_TTL_MS) return hit;
-  const head = await r2.head(key);
+  const head = await withTimeout(r2.head(key), READ_TIMEOUT_MS, `R2 head ${key}`);
   if (!head) throw new Error(`R2 key not found: ${key}`);
   headCache.delete(key);
   headCache.set(key, { size: head.size, etag: head.etag, at: now });
@@ -82,9 +73,12 @@ export async function asyncBufferFromR2(r2: R2Bucket, key: string): Promise<Asyn
     cacheKey: `${key}@${byteLength}:${head.etag}`,
     async slice(start: number, end?: number): Promise<ArrayBuffer> {
       const length = (end ?? byteLength) - start;
-      const obj = await r2.get(key, { range: { offset: start, length } });
-      if (!obj) throw new Error(`R2 range read failed: ${key} [${start}:${start + length}]`);
-      return obj.arrayBuffer();
+      const read = async () => {
+        const obj = await r2.get(key, { range: { offset: start, length } });
+        if (!obj) throw new Error(`R2 range read failed: ${key} [${start}:${start + length}]`);
+        return obj.arrayBuffer();
+      };
+      return withTimeout(read(), READ_TIMEOUT_MS, `R2 read ${key} [${start}:${start + length}]`);
     },
     async* stream(start: number, end: number): AsyncGenerator<Uint8Array> {
       const obj = await r2.get(key, { range: { offset: start, length: end - start } });

@@ -86,6 +86,14 @@ describe('renderOgPng', () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 404 });
     await expect(renderOgPng('<svg/>', X)).rejects.toThrow(/OG font.*404/);
   });
+
+  it('a font read whose request ended does not hang the next render', async () => {
+    fetchMock.mockReturnValueOnce(new Promise(() => {}));
+    void renderOgPng('<svg/>', { request: new Request('https://x/og/view/a.png'), env: {} });
+    const next = renderOgPng('<svg/>', { request: new Request('https://x/og/view/b.png'), env: {} });
+    const hung = new Promise((r) => setTimeout(() => r('hung'), 300));
+    expect(await Promise.race([next.then(() => 'ok'), hung])).toBe('ok');
+  });
 });
 
 describe('renderOgPng frees WASM memory and recovers from a failed init', () => {
