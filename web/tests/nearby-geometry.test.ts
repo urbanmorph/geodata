@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { parquetMetadataAsync } from 'hyparquet';
 import { closestOnGeometry, bboxDistanceKm, nearestByGeometry, nearbyByGeometry, clearShapeCache, type NearestShapeOpts } from '../functions/lib/nearby-geometry';
 import type { CatalogData } from '../functions/lib/catalog-api';
+import { fakeR2 } from './helpers/fake-r2';
 
 // Fixture (duckdb spatial, GeoParquet, 4 rows per row group): a 4-degree
 // north-south line 'long' at 77.0E (26-30N, its bbox centre 55 km from the test
@@ -115,16 +116,9 @@ describe('a small layer is read whole, once per isolate (India\'s outline: one 5
   // distance to the coast or border. Small files are now kept parsed (flat
   // coordinates); the answers are the same as the row-group search's.
   const r2 = () => {
-    const n = { gets: 0 };
-    const bucket = {
-      head: async () => ({ size: buf.byteLength, etag: 'e1' }),
-      get: async (_k: string, o?: { range?: { offset: number; length: number } }) => {
-        n.gets++;
-        const s = o?.range?.offset ?? 0, len = o?.range?.length ?? buf.byteLength;
-        return { arrayBuffer: async () => buf.buffer.slice(buf.byteOffset + s, buf.byteOffset + s + len) };
-      },
-    } as unknown as R2Bucket;
-    return { n, bucket };
+    const gets: Array<[string, number, number]> = [];
+    const bucket = fakeR2({ 't/lines.parquet': buf }, gets);
+    return { n: { get gets() { return gets.length; } }, bucket };
   };
   const catalog = { layers: [{ id: 'lines', parquet: { url: 'https://pub-x.r2.dev/t/lines.parquet', bytes: buf.byteLength } }] } as unknown as CatalogData;
   const cases: Array<[number, number, number, NearestShapeOpts]> = [

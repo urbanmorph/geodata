@@ -27,7 +27,7 @@
 import { parquetQuery, parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
-import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2';
+import { openParquet, r2KeyFromLayer } from './parquet-r2';
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { chunkRanges, coalesced } from './parquet-coalesce';
@@ -265,8 +265,7 @@ export async function nearby(
   const r2Key = r2KeyFromLayer(layer);
   if (!r2Key) throw new QueryInputError(`Layer ${layerId} has no R2 parquet key`);
 
-  const file = await asyncBufferFromR2(r2, r2Key);
-  const metadata = await cachedMetadata(file);
+  const { file, metadata } = await openParquet(r2, r2Key);
   // Top-level fields only; a flat schema.slice(1) would false-match struct
   // children like `bbox.{xmin,ymin,xmax,ymax}` as top-level cols.
   const allCols = topLevelColumns(metadata).map((c) => c.name);

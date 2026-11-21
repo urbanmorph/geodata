@@ -5,6 +5,7 @@ import { compressors } from 'hyparquet-compressors';
 import { chunkRanges, coalesced, mergeRanges } from '../functions/lib/parquet-coalesce';
 import { clearBoxCache, groupBoxes, nearby, nearestRows } from '../functions/lib/nearby';
 import type { CatalogData } from '../functions/lib/catalog-api';
+import { fakeR2 } from './helpers/fake-r2';
 import { nearestByGeometry } from '../functions/lib/nearby-geometry';
 
 // On Workers every R2 read waits for one of six connections, so a point profile
@@ -88,11 +89,8 @@ describe('the nearby engines read less, and answer the same', () => {
   });
 
   it('nearby decodes only the columns asked for; [] decodes none and still counts', async () => {
-    const { file, reads } = tracked();
-    const r2 = {
-      head: async () => ({ size: buf.byteLength, etag: 'cols' }),
-      get: async (_k: string, o: { range: { offset: number; length: number } }) => ({ arrayBuffer: () => file.slice(o.range.offset, o.range.offset + o.range.length) }),
-    } as unknown as R2Bucket;
+    const reads: Array<[string, number, number]> = [];
+    const r2 = fakeR2({ 't/rg-cols.parquet': buf }, reads);
     const catalog = { layers: [{ id: 'rg', parquet: { url: 'https://pub-x.r2.dev/t/rg-cols.parquet', bytes: buf.byteLength } }] } as unknown as CatalogData;
     const all = await nearby(12.9, 77.05, 5, 'rg', catalog, r2, 3);
     const some = await nearby(12.9, 77.05, 5, 'rg', catalog, r2, 3, ['id']);

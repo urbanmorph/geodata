@@ -54,20 +54,62 @@ export function clearHeadCache(): void {
   headCache.clear();
 }
 
-async function headOf(r2: R2Bucket, key: string): Promise<{ size: number; etag: string }> {
-  const now = Date.now();
+type Head = { size: number; etag: string };
+
+function freshHead(key: string): Head | undefined {
   const hit = headCache.get(key);
-  if (hit && now - hit.at < HEAD_TTL_MS) return hit;
+  return hit && Date.now() - hit.at < HEAD_TTL_MS ? hit : undefined;
+}
+
+function rememberHead(key: string, head: Head): void {
+  headCache.delete(key);
+  headCache.set(key, { size: head.size, etag: head.etag, at: Date.now() });
+  while (headCache.size > HEAD_CACHE_MAX) headCache.delete(headCache.keys().next().value!);
+}
+
+async function headOf(r2: R2Bucket, key: string): Promise<Head> {
+  const hit = freshHead(key);
+  if (hit) return hit;
   const head = await withTimeout(r2.head(key), READ_TIMEOUT_MS, `R2 head ${key}`);
   if (!head) throw new Error(`R2 key not found: ${key}`);
-  headCache.delete(key);
-  headCache.set(key, { size: head.size, etag: head.etag, at: now });
-  while (headCache.size > HEAD_CACHE_MAX) headCache.delete(headCache.keys().next().value!);
+  rememberHead(key, head);
   return head;
 }
 
 export async function asyncBufferFromR2(r2: R2Bucket, key: string): Promise<AsyncBuffer> {
-  const head = await headOf(r2, key);
+  return bufferFor(r2, key, await headOf(r2, key));
+}
+
+/** How much of a file's end openParquet reads: hyparquet's first footer read. */
+export const FOOTER_READ_BYTES = 1 << 19;
+
+/** A parquet on R2 and its parsed footer. Without a remembered head, one read of
+ *  the file's tail gives its size, etag and footer (a head, then a footer read,
+ *  cost two round trips one after the other: a point profile opens ~30 files). */
+export async function openParquet(r2: R2Bucket, key: string): Promise<{ file: AsyncBuffer; metadata: FileMetaData }> {
+  const head = freshHead(key);
+  if (head) {
+    const file = bufferFor(r2, key, head);
+    return { file, metadata: await cachedMetadata(file) };
+  }
+  const read = async () => {
+    const obj = await r2.get(key, { range: { suffix: FOOTER_READ_BYTES } });
+    return obj && { obj, data: await obj.arrayBuffer() };
+  };
+  const got = await withTimeout(read(), READ_TIMEOUT_MS, `R2 read ${key} [tail]`);
+  if (!got) throw new Error(`R2 key not found: ${key}`);
+  rememberHead(key, got.obj);
+  const base = bufferFor(r2, key, got.obj);
+  const tailStart = got.obj.size - got.data.byteLength;
+  const file: AsyncBuffer = {
+    ...base,
+    slice: (start, end = base.byteLength) =>
+      (start >= tailStart ? Promise.resolve(got.data.slice(start - tailStart, end - tailStart)) : base.slice(start, end)),
+  };
+  return { file, metadata: await cachedMetadata(file) };
+}
+
+function bufferFor(r2: R2Bucket, key: string, head: Head): AsyncBuffer {
   const byteLength = head.size;
 
   return {
