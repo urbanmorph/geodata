@@ -11,6 +11,7 @@ export type Env = {
   ASSETS: Fetcher;     // Pages' static assets (e.g. /releases/index.json)
   TURNSTILE_SECRET?: string;
   IP_SALT?: string;    // salts hashed IPs (rate-limit keys); unsalted when absent
+  POINT_PROFILES?: string; // "on" publishes /api/v1/ground and /surface (lib/point-profiles.ts)
 };
 
 const READS = new Set(['GET', 'HEAD']);

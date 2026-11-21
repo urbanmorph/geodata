@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { readTiffInfo, pixelOf, readPixel, undoPredictor16, type RangeReader } from '../functions/lib/tiff-pixel';
+import { readTiffInfo, pixelOf, readPixel, readWindow, undoPredictor16, type RangeReader } from '../functions/lib/tiff-pixel';
 
 // Fixtures (GDAL COG, 40 x 40 px, 3 Int16 bands pixel-interleaved, 16 x 16
 // tiles, DEFLATE + horizontal predictor, origin 70E 30N, 0.25 degree pixels):
@@ -69,6 +69,51 @@ describe.each(Object.entries(FIXTURES))('tiff-pixel (%s)', (_name, buf) => {
     expect(r.reads[0][1]).toBe(info.offsetSize);
     expect(r.reads[1][1]).toBe(info.countSize);
     expect(info.offsetSize).toBe(info.bigtiff ? 8 : 4);
+  });
+});
+
+// Single-band fixtures (40 x 40, 16 px tiles, same grid): Byte (r + c) % 250,
+// Float32 r * 40 + c + 0.5 (nodata -99999), Int16 plane 100 + 10c + 20r with
+// predictor (nodata at (0, 0)).
+const one = (name: string) => readFileSync(new URL(`./fixtures/tiff-pixel-${name}.tif`, import.meta.url));
+
+describe('tiff-pixel: other sample types', () => {
+  it('reads Byte', async () => {
+    const r = reader(one('byte'));
+    const info = await readTiffInfo(r);
+    expect(info).toMatchObject({ bits: 8, samples: 1, float: false });
+    expect(await readPixel(r, info, lngOf(25), latOf(17))).toEqual([42]);
+  });
+
+  it('reads Float32', async () => {
+    const r = reader(one('float'));
+    const info = await readTiffInfo(r);
+    expect(info).toMatchObject({ bits: 32, float: true, nodata: -99999 });
+    expect(await readPixel(r, info, lngOf(5), latOf(7))).toEqual([285.5]);
+  });
+});
+
+describe('readWindow', () => {
+  it('reads the 3 x 3 pixels around a point, across tile edges', async () => {
+    const r = reader(one('dem'));
+    const info = await readTiffInfo(r);
+    // (16, 16) is a tile corner: its neighbours sit in four tiles
+    const w = await readWindow(r, info, lngOf(16), latOf(16), 1);
+    expect(w).toEqual([
+      [100 + 150 + 300, 100 + 160 + 300, 100 + 170 + 300],
+      [100 + 150 + 320, 100 + 160 + 320, 100 + 170 + 320],
+      [100 + 150 + 340, 100 + 160 + 340, 100 + 170 + 340],
+    ]);
+  });
+
+  it('gives null for pixels off the image or at nodata', async () => {
+    const r = reader(one('dem'));
+    const info = await readTiffInfo(r);
+    const w = await readWindow(r, info, lngOf(0), latOf(0), 1);
+    expect(w![0]).toEqual([null, null, null]);
+    expect(w![1][0]).toBeNull();
+    expect(w![1][1]).toBeNull(); // nodata
+    expect(w![1][2]).toBe(110);
   });
 });
 

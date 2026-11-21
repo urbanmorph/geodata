@@ -114,6 +114,22 @@ test("ground_at is a read tool that needs lat and lng", async () => {
   assert.match(t.description, /unavailable/);
 });
 
-test("the instructions point at ground_at for what lies below a point", () => {
-  assert.match(INSTRUCTIONS_CORE, /\*\*Below a point\*\*: ground_at/);
+test("the point lookups are named in the instructions only while they are published", async () => {
+  const { instructionsCore, readToolsFor } = await import("./read-tools.js");
+  assert.doesNotMatch(INSTRUCTIONS_CORE, /ground_at|surface_at/);
+  assert.match(instructionsCore(true), /\*\*A point's profile\*\*: ground_at .* surface_at/);
+  assert.deepEqual(readToolsFor(false).map((x) => x.name).filter((n) => n.endsWith("_at")), []);
+  assert.deepEqual(readToolsFor(true).map((x) => x.name).filter((n) => n.endsWith("_at")), ["ground_at", "surface_at"]);
+});
+
+test("surface_at asks /surface", () => {
+  assert.deepEqual(readToolRequest("surface_at", { lat: 22.57, lng: 88.36, open_only: true }), { path: "/surface", params: { lat: 22.57, lng: 88.36, open_only: "true" } });
+});
+
+test("the npm server offers the point lookups only with BHARATLAS_POINT_PROFILES=on", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./index.js", import.meta.url), "utf8");
+  assert.match(src, /process\.env\.BHARATLAS_POINT_PROFILES === "on"/);
+  assert.match(src, /readToolsFor\(POINT_PROFILES\)/);
+  assert.match(src, /instructionsCore\(POINT_PROFILES\)/);
 });

@@ -87,6 +87,22 @@ describe('nearestByGeometry', () => {
     expect(r.features.map((f) => f.properties.name)).toEqual(['short_near', 'long']);
   });
 
+  it('with edge, measures to the outline from inside a polygon (distance to a coast or border)', async () => {
+    const md = await parquetMetadataAsync(file);
+    const r = await nearestByGeometry(file, md, 28.62, 76.92, 5, { limit: 10, edge: true });
+    const poly = r.features.find((f) => f.properties.name === 'poly')!;
+    // 76.92 is 0.02 degrees of longitude from the west edge (76.9), nearer than the south edge (0.02 of latitude)
+    expect(poly.distance_km).toBeCloseTo(0.02 * 111.195 * Math.cos(28.62 * Math.PI / 180), 1);
+    expect(poly.lng).toBeCloseTo(76.9, 4);
+  });
+
+  it('counts only the rows `keep` keeps', async () => {
+    const md = await parquetMetadataAsync(file);
+    const r = await nearestByGeometry(file, md, LAT, LNG, 20, { limit: 10, keep: (p) => p.kind !== 'river' });
+    expect(r.features.map((f) => f.properties.name)).toEqual(['short_near', 'poly']);
+    expect(r.total).toBe(2);
+  });
+
   it('answers nothing, not an error, far from every feature', async () => {
     const md = await parquetMetadataAsync(file);
     expect(await nearestByGeometry(file, md, 10, 90, 5, { limit: 3 })).toEqual({ features: [], total: 0, capped: false });

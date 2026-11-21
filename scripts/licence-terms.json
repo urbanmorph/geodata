@@ -1596,6 +1596,40 @@
    "layers": [],
    "sha256": "fc995280e25b8d3849fa3fe78219acb170cbd662e33afd6165ad2822d5aeb5c5",
    "seen_at": "2026-11-21"
+  },
+  {
+   "id": "copernicus_dem_glo90",
+   "publisher": "Copernicus DEM GLO-90 (ESA, DLR, Airbus Defence and Space; not a layer: read by /api/v1/surface)",
+   "url": "https://documentation.dataspace.copernicus.eu/APIs/SentinelHub/Data/DEM/resources/license/License-COPDEM-30.pdf",
+   "kind": "manual",
+   "stated": "Copernicus DEM licence (free: reproduction, distribution, communication to the public, adaptation)",
+   "quote": "Article 4. Right of Use: (a) reproduction; (b) distribution; (c) communication to the General Public; (d) adaptation, modification and combination with other data and information. Article 6(b): \"produced using Copernicus WorldDEM-30 [GLO-90: WorldDEM-90] (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved\". Article 6(c): \"The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-30\".",
+   "verdict": "ok",
+   "seen_at": "2026-11-21",
+   "layers": [],
+   "note": "GLO-90 is released on the same free terms (dataspace.copernicus.eu COP-DEM page, which gives the WorldDEM-90 notice)."
+  },
+  {
+   "id": "worldpop_2020_constrained",
+   "publisher": "WorldPop, University of Southampton (not a layer: read by /api/v1/surface)",
+   "url": "https://hub.worldpop.org/geodata/summary?id=49727",
+   "kind": "manual",
+   "stated": "CC-BY-4.0",
+   "quote": "Global 2020 constrained population counts (Bondarenko et al. 2020, doi:10.5258/SOTON/WP00684): Creative Commons Attribution 4.0 International (CC BY 4.0).",
+   "verdict": "ok",
+   "seen_at": "2026-11-21",
+   "layers": []
+  },
+  {
+   "id": "esa_worldcover_2021",
+   "publisher": "ESA WorldCover 2021 v200 (not yet used: its India file is over the 3 GB limit)",
+   "url": "https://esa-worldcover.org/en/data-access",
+   "kind": "manual",
+   "stated": "CC-BY-4.0",
+   "quote": "The ESA WorldCover product is provided free of charge, without restriction of use, under CC BY 4.0. Notice: (c) ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium.",
+   "verdict": "ok",
+   "seen_at": "2026-11-21",
+   "layers": []
   }
  ]
 }

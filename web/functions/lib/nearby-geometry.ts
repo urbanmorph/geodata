@@ -61,13 +61,13 @@ function parts(g: Geo | null): { polygons: Coord[][][]; runs: Coord[][] } {
   return out;
 }
 
-/** The point of a shape nearest to lat/lng and its distance (km; 0 inside a polygon),
- *  on a local flat projection, or null for no readable shape. */
-export function closestOnGeometry(lat: number, lng: number, geometry: unknown): { km: number; lat: number; lng: number } | null {
+/** The point of a shape nearest to lat/lng and its distance (km; 0 inside a polygon unless
+ *  `edge`, which measures to the outline), on a local flat projection, or null for no readable shape. */
+export function closestOnGeometry(lat: number, lng: number, geometry: unknown, edge = false): { km: number; lat: number; lng: number } | null {
   let g: Geo | null;
   try { g = geoJSONOf(geometry); } catch { return null; }
   const { polygons, runs } = parts(g);
-  if (polygons.some((rings) => pointInPolygon([lng, lat], rings))) return { km: 0, lat, lng };
+  if (!edge && polygons.some((rings) => pointInPolygon([lng, lat], rings))) return { km: 0, lat, lng };
   const kx = KM_PER_DEG * Math.cos((lat * Math.PI) / 180), ky = KM_PER_DEG;
   let best = { d2: Infinity, x: 0, y: 0 };
   const consider = (x: number, y: number) => {
@@ -95,6 +95,15 @@ export function bboxDistanceKm(lat: number, lng: number, b: { xmin: number; ymin
   return Math.hypot(dx, dy);
 }
 
+/** limit: features returned; maxCandidates: shapes read at most; edge: measure to the
+ *  outline from inside a polygon; keep: only rows it keeps count. */
+export interface NearestShapeOpts {
+  limit: number;
+  maxCandidates?: number;
+  edge?: boolean;
+  keep?: (properties: Record<string, unknown>) => boolean;
+}
+
 export interface GeomHit {
   properties: Record<string, unknown>;
   /** The nearest point of the shape (the query point itself when inside a polygon). */
@@ -110,7 +119,7 @@ const round = (n: number, p: number) => Math.round(n * 10 ** p) / 10 ** p;
  *  within the radius) were not read, so `total` may be short. */
 export async function nearestByGeometry(
   file: AsyncBuffer, metadata: FileMetaData, lat: number, lng: number, radiusKm: number,
-  opts: { limit: number; maxCandidates?: number },
+  opts: NearestShapeOpts,
 ): Promise<{ features: GeomHit[]; total: number; capped: boolean }> {
   const cols = topLevelColumns(metadata).map((c) => c.name);
   const geomCol = cols.find(isGeomColumn);
@@ -142,13 +151,14 @@ export async function nearestByGeometry(
     }) as Array<Record<string, unknown>>;
     return idxs.flatMap((i): GeomHit[] => {
       const row = rows[i - lo];
-      const near = closestOnGeometry(lat, lng, row[geomCol]);
+      const near = closestOnGeometry(lat, lng, row[geomCol], opts.edge);
       if (!near || near.km > radiusKm) return [];
       const properties: Record<string, unknown> = {};
       for (const [k, v] of Object.entries(row)) {
         if (skip.has(k) || GIS_ARTEFACT_COLUMNS.has(k.toLowerCase())) continue;
         properties[k] = v instanceof Uint8Array ? new TextDecoder().decode(v) : v;
       }
+      if (opts.keep && !opts.keep(properties)) return [];
       return [{ properties, lat: round(near.lat, 5), lng: round(near.lng, 5), distance_km: round(near.km, 2) }];
     });
   });
@@ -159,7 +169,7 @@ export async function nearestByGeometry(
 /** nearestByGeometry over a catalog layer's parquet on R2. */
 export async function nearbyByGeometry(
   lat: number, lng: number, radiusKm: number, layerId: string, catalog: CatalogData, r2: R2Bucket,
-  opts: { limit: number; maxCandidates?: number },
+  opts: NearestShapeOpts,
 ): Promise<{ features: GeomHit[]; total: number; capped: boolean }> {
   const layer = catalog.layers.find((l) => l.id === layerId);
   const key = layer && r2KeyFromLayer(layer);

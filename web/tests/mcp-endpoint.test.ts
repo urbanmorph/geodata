@@ -23,6 +23,7 @@ function stubRoutes(body: unknown = { data: [] }, status = 200) {
     [/^\/locate$/, handler],
     [/^\/nearby$/, handler],
     [/^\/ground$/, handler],
+    [/^\/surface$/, handler],
     [/^\/categories$/, handler],
     [/^\/submissions$/, handler],
   ];
@@ -41,11 +42,12 @@ function post(body: unknown, headers: Record<string, string> = {}) {
 
 type Json = any; // JSON-RPC replies, checked field by field
 
-async function rpc(body: unknown, opts: { routes?: ApiRoute[]; rateLimit?: McpDeps['rateLimit'] } = {}) {
+async function rpc(body: unknown, opts: { routes?: ApiRoute[]; rateLimit?: McpDeps['rateLimit']; pointProfiles?: boolean } = {}) {
   const res = await handleMcp(post(body), {} as never, {
     routes: opts.routes ?? stubRoutes().routes,
     rateLimit: opts.rateLimit ?? allow,
     waitUntil: () => {},
+    pointProfiles: opts.pointProfiles,
   });
   const json: Json = res.status === 200 ? await res.json() : null;
   return { res, json };
@@ -70,12 +72,12 @@ describe('/mcp protocol', () => {
     expect(json.result.protocolVersion).toBe('2025-06-18');
   });
 
-  it('tools/list offers exactly the nine read tools, all marked read-only', async () => {
+  it('tools/list offers exactly the eight read tools, all marked read-only (the point lookups are unpublished)', async () => {
     const { json } = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
     const names = json.result.tools.map((t: { name: string }) => t.name);
     expect(names).toEqual([
       'list_layers', 'get_layer_schema', 'query_layer', 'locate',
-      'nearby', 'ground_at', 'list_categories', 'get_layer_detail', 'list_submissions',
+      'nearby', 'list_categories', 'get_layer_detail', 'list_submissions',
     ]);
     for (const t of json.result.tools) {
       expect(t.annotations.readOnlyHint).toBe(true);
@@ -160,7 +162,7 @@ describe('/mcp tools/call', () => {
 
   it('ground_at asks /ground for the point', async () => {
     const { routes, seen } = stubRoutes({ summary: 'x' });
-    await rpc(call('ground_at', { lat: 28.525, lng: 77.085 }), { routes });
+    await rpc(call('ground_at', { lat: 28.525, lng: 77.085 }), { routes, pointProfiles: true });
     expect(seen[0].url.pathname).toBe('/api/v1/ground');
     expect(seen[0].url.searchParams.get('lat')).toBe('28.525');
     expect(seen[0].url.searchParams.get('lng')).toBe('77.085');

@@ -6,7 +6,7 @@
   "remote": {
     "url": "https://bharatlas.com/mcp",
     "transport": "streamable-http",
-    "tools": "read-only (the nine query tools)"
+    "tools": "read-only (the eight query tools)"
   },
   "server": {
     "command": "npx",

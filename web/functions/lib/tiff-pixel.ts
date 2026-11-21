@@ -1,8 +1,9 @@
-// One pixel, every band, out of a tiled GeoTIFF over HTTP range reads: just
-// enough TIFF for the SoilGrids file /api/v1/ground reads (scripts/bake_soilgrids.py):
-// classic or BigTIFF, tiled, chunky (pixel-interleaved) 16-bit integer
-// samples, no compression or DEFLATE, with or without the horizontal
-// predictor, north-up with a ModelPixelScale + ModelTiepoint georeference.
+// One pixel (every band), or a small window, out of a tiled GeoTIFF over HTTP
+// range reads: just enough TIFF for the rasters the point lookups read
+// (scripts/bake_soilgrids.py, bake_surface_rasters.py): classic or BigTIFF,
+// tiled, chunky (pixel-interleaved) 8 or 16-bit integer or 32-bit float
+// samples, no compression or DEFLATE, the horizontal predictor on integers,
+// north-up with a ModelPixelScale + ModelTiepoint georeference.
 // Anything else is refused, not misread. geotiff.js does all of this and much
 // more for ~100 KB of bundle; a point read needs three range reads and a
 // DEFLATE stream the runtime already has.
@@ -26,6 +27,8 @@ export interface TiffInfo {
   samples: number;
   bits: number;
   signed: boolean;
+  /** IEEE floating point samples (SampleFormat 3). */
+  float: boolean;
   compression: number;
   predictor: number;
   planar: number;
@@ -117,7 +120,9 @@ export async function readTiffInfo(r: RangeReader): Promise<TiffInfo> {
   const [scale, tie, nodataChars] = await Promise.all([values(TAG.pixelScale), values(TAG.tiepoint), values(TAG.nodata)]);
   const offsets = entries.get(TAG.tileOffsets), counts = entries.get(TAG.tileByteCounts);
 
-  if (bits !== 16) throw new Error(`only 16-bit samples are supported (got ${bits})`);
+  const float = sampleFormat === 3;
+  if (float ? bits !== 32 : bits !== 8 && bits !== 16) throw new Error(`unsupported samples: ${bits}-bit, format ${sampleFormat}`);
+  if (float && predictor !== 1) throw new Error('the floating-point predictor is not supported');
   if (planar !== 1 && samples > 1) throw new Error('only pixel-interleaved (chunky) TIFFs are supported');
   if (![1, 8, 32946].includes(compression)) throw new Error(`unsupported TIFF compression ${compression}`);
   if (predictor !== 1 && predictor !== 2) throw new Error(`unsupported TIFF predictor ${predictor}`);
@@ -127,7 +132,7 @@ export async function readTiffInfo(r: RangeReader): Promise<TiffInfo> {
   const nodataText = nodataChars ? String.fromCharCode(...nodataChars.filter((c) => c !== 0)).trim() : '';
   return {
     le, bigtiff, width, height, tileWidth, tileHeight, tilesAcross: Math.ceil(width / tileWidth), samples, bits,
-    signed: sampleFormat === 2, compression, predictor, planar,
+    signed: sampleFormat === 2, float, compression, predictor, planar,
     origin: [tie[3], tie[4]], scale: [scale[0], scale[1]],
     nodata: nodataText ? Number(nodataText) : null,
     offsetsAt: offsets.at, countsAt: counts.at,
@@ -148,9 +153,13 @@ export function pixelOf(info: TiffInfo, lng: number, lat: number):
 /** Horizontal predictor, undone in place: each sample plus the same sample of
  *  the pixel before it, row by row, modulo 2^16. */
 export function undoPredictor16(a: Uint16Array, width: number, samples: number): void {
+  undoPredictor(a, width, samples, 0xffff);
+}
+
+function undoPredictor(a: Uint8Array | Uint16Array, width: number, samples: number, mask: number): void {
   const rowLen = width * samples;
   for (let start = 0; start < a.length; start += rowLen) {
-    for (let i = start + samples; i < start + rowLen; i++) a[i] = (a[i] + a[i - samples]) & 0xffff;
+    for (let i = start + samples; i < start + rowLen; i++) a[i] = (a[i] + a[i - samples]) & mask;
   }
 }
 
@@ -159,33 +168,70 @@ async function inflate(data: Uint8Array): Promise<Uint8Array> {
   return new Uint8Array(await new Response(stream).arrayBuffer());
 }
 
-/** Every band's value at lng/lat (null for nodata), or null outside the image. */
-export async function readPixel(r: RangeReader, info: TiffInfo, lng: number, lat: number): Promise<(number | null)[] | null> {
-  const px = pixelOf(info, lng, lat);
-  if (!px) return null;
+/** Every sample of one tile, decoded (nodata as null); null for a sparse (unwritten) tile. */
+async function readTile(r: RangeReader, info: TiffInfo, tile: number): Promise<(number | null)[] | null> {
   const [ov, cv] = await Promise.all([
-    r.read(info.offsetsAt + px.tile * info.offsetSize, info.offsetSize),
-    r.read(info.countsAt + px.tile * info.countSize, info.countSize),
+    r.read(info.offsetsAt + tile * info.offsetSize, info.offsetSize),
+    r.read(info.countsAt + tile * info.countSize, info.countSize),
   ]);
   const view = (b: Uint8Array) => new DataView(b.buffer, b.byteOffset, b.byteLength);
   const offset = readUint(view(ov), 0, info.offsetSize, info.le);
   const count = readUint(view(cv), 0, info.countSize, info.le);
-  const blank = new Array<number | null>(info.samples).fill(null);
-  if (!count) return blank; // a sparse tile: nothing written there
+  if (!count) return null;
   if (count > MAX_TILE_BYTES) throw new Error(`tile of ${count} bytes is larger than a point read should fetch`);
-
   const raw = await r.read(offset, count);
   const bytes = info.compression === 1 ? raw : await inflate(raw);
-  // Only the pixel's own row is needed, and only up to the pixel (the predictor runs left to right).
-  const s = info.samples;
-  const rowStart = px.y * info.tileWidth * s * 2;
-  const need = (px.x + 1) * s;
-  const dv = new DataView(bytes.buffer, bytes.byteOffset + rowStart, need * 2);
-  const row = new Uint16Array(need);
-  for (let i = 0; i < need; i++) row[i] = dv.getUint16(i * 2, info.le);
-  if (info.predictor === 2) undoPredictor16(row, px.x + 1, s);
-  return Array.from(row.subarray(px.x * s), (u) => {
-    const v = info.signed && u > 0x7fff ? u - 0x10000 : u;
-    return v === info.nodata ? null : v;
+  const n = info.tileWidth * info.tileHeight * info.samples;
+  const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  let values: ArrayLike<number>;
+  if (info.float) {
+    const f = new Float32Array(n);
+    for (let i = 0; i < n; i++) f[i] = dv.getFloat32(i * 4, info.le);
+    values = f;
+  } else {
+    const u = info.bits === 8 ? new Uint8Array(n) : new Uint16Array(n);
+    for (let i = 0; i < n; i++) u[i] = info.bits === 8 ? dv.getUint8(i) : dv.getUint16(i * 2, info.le);
+    if (info.predictor === 2) undoPredictor(u, info.tileWidth, info.samples, info.bits === 8 ? 0xff : 0xffff);
+    values = u;
+  }
+  const top = 2 ** (info.bits - 1);
+  return Array.from(values, (u) => {
+    const v = info.signed && u >= top ? u - 2 * top : u;
+    return v === info.nodata || Number.isNaN(v) ? null : v;
   });
+}
+
+/** Every band's value at lng/lat (null for nodata), or null outside the image. */
+export async function readPixel(r: RangeReader, info: TiffInfo, lng: number, lat: number): Promise<(number | null)[] | null> {
+  const px = pixelOf(info, lng, lat);
+  if (!px) return null;
+  const tile = await readTile(r, info, px.tile);
+  if (!tile) return new Array<number | null>(info.samples).fill(null);
+  const at = (px.y * info.tileWidth + px.x) * info.samples;
+  return tile.slice(at, at + info.samples);
+}
+
+/** The first band's values in the (2 * radius + 1)-pixel square centred on lng/lat,
+ *  rows north to south; null off the image or at nodata. Reads each tile it touches once. */
+export async function readWindow(r: RangeReader, info: TiffInfo, lng: number, lat: number, radius: number): Promise<(number | null)[][] | null> {
+  const px = pixelOf(info, lng, lat);
+  if (!px) return null;
+  const cells: Array<{ row: number; col: number; inside: boolean }> = [];
+  for (let dr = -radius; dr <= radius; dr++) {
+    for (let dc = -radius; dc <= radius; dc++) {
+      const row = px.row + dr, col = px.col + dc;
+      cells.push({ row, col, inside: row >= 0 && row < info.height && col >= 0 && col < info.width });
+    }
+  }
+  const tileOf = (row: number, col: number) => Math.floor(row / info.tileHeight) * info.tilesAcross + Math.floor(col / info.tileWidth);
+  const ids = [...new Set(cells.filter((c) => c.inside).map((c) => tileOf(c.row, c.col)))];
+  const tiles = new Map(await Promise.all(ids.map(async (id) => [id, await readTile(r, info, id)] as const)));
+  const side = 2 * radius + 1;
+  const out: (number | null)[][] = [];
+  cells.forEach((c, i) => {
+    if (i % side === 0) out.push([]);
+    const t = c.inside ? tiles.get(tileOf(c.row, c.col)) : null;
+    out[out.length - 1].push(t ? t[((c.row % info.tileHeight) * info.tileWidth + (c.col % info.tileWidth)) * info.samples] : null);
+  });
+  return out;
 }

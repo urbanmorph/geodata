@@ -7,7 +7,7 @@ license: MIT
 
 # bharatlas: India's open geo atlas via MCP
 
-bharatlas (bharatlas.com) is India's open geo atlas: open data layers you can map, query and download. This skill drives 18 MCP tools: a read side over curated layers plus community submissions, and an authoring side for collect maps.
+bharatlas (bharatlas.com) is India's open geo atlas: open data layers you can map, query and download. This skill drives 17 MCP tools: a read side over curated layers plus community submissions, and an authoring side for collect maps.
 
 ## When to use
 

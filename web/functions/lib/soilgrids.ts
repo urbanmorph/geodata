@@ -3,7 +3,8 @@
 // depths, then the WRB class), decoded to plain units with ISRIC's conversion
 // factors. shared/soilgrids.json is the one table of bands, units and the R2 key.
 import spec from '../../../shared/soilgrids.json';
-import { readPixel, readTiffInfo, type RangeReader, type TiffInfo } from './tiff-pixel';
+import { readPixel } from './tiff-pixel';
+import { r2Tiff } from './r2-tiff';
 
 export const SOILGRIDS = spec;
 type PropKey = keyof typeof spec.properties;
@@ -48,31 +49,12 @@ export type SoilResult =
   | { status: 'none'; reason: string }
   | { status: 'unavailable'; reason: string };
 
-function r2Reader(r2: R2Bucket, key: string): RangeReader {
-  return {
-    async read(offset, length) {
-      const obj = await r2.get(key, { range: { offset, length } });
-      if (!obj) throw new Error(`R2 key not found: ${key}`);
-      return new Uint8Array(await obj.arrayBuffer());
-    },
-  };
-}
-
-// Parsed headers per R2 key, for the life of the isolate (keys are content-versioned).
-const infos = new Map<string, Promise<TiffInfo>>();
-
 /** SoilGrids at lat/lng from the file at `key` (the registered one by default). */
 export async function soilAt(
   r2: R2Bucket, key: string | null | undefined = (spec.file as { key: string } | null)?.key, lat: number, lng: number,
 ): Promise<SoilResult> {
   if (!key) return { status: 'unavailable', reason: 'the SoilGrids file is not published yet' };
-  const reader = r2Reader(r2, key);
-  let info = infos.get(key);
-  if (!info) {
-    info = readTiffInfo(reader);
-    infos.set(key, info);
-    info.catch(() => infos.delete(key));
-  }
+  const { reader, info } = r2Tiff(r2, key);
   const values = await readPixel(reader, await info, lng, lat);
   if (!values) return { status: 'none', reason: 'outside the SoilGrids India file (68-98 E, 6-38 N)' };
   const soil = decodeSoil(values);

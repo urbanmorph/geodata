@@ -1,0 +1,72 @@
+{
+  "about": "Rasters /api/v1/surface reads by pixel, clipped to India's bounding box as EPSG:4326 COGs. Written by scripts/bake_surface_rasters.py (file); credits and units here are the one table for the API and /about.",
+  "rasters": {
+    "dem": {
+      "label": "elevation",
+      "credit": {
+        "name": "Copernicus DEM GLO-90",
+        "url": "https://doi.org/10.5270/ESA-c5d3d65",
+        "licence": "Copernicus DEM licence",
+        "licence_url": "https://dataspace.copernicus.eu/explore-data/data-collections/copernicus-contributing-missions/collections-description/COP-DEM",
+        "notice": "produced using Copernicus WorldDEM-90 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved. The organisations in charge of the Copernicus programme by law or by delegation do not incur any liability for any use of the Copernicus WorldDEM-90."
+      },
+      "about": {
+        "scale": "3 arcsec grid (about 90 m), a surface model (tops of trees and buildings)",
+        "vintage": "radar acquired 2011 to 2015"
+      },
+      "units": "m above the EGM2008 geoid",
+      "file": {
+        "key": "surface/dem/Copernicus_GLO90_India.de8a2272.tif",
+        "bytes": 690663561,
+        "md5": "de8a22728242e4ea2cc39f5eead76439"
+      }
+    },
+    "worldpop": {
+      "label": "population",
+      "credit": {
+        "name": "WorldPop 2020, constrained (Bondarenko et al. 2020, University of Southampton)",
+        "url": "https://doi.org/10.5258/SOTON/WP00684",
+        "licence": "CC-BY-4.0",
+        "licence_url": "https://creativecommons.org/licenses/by/4.0/"
+      },
+      "about": {
+        "scale": "3 arcsec grid (about 100 m), modelled from census projections",
+        "vintage": "2020"
+      },
+      "units": "people per pixel",
+      "file": {
+        "key": "surface/worldpop/WorldPop_2020_constrained_India.d85be9be.tif",
+        "bytes": 379065836,
+        "md5": "d85be9bedba1542f66ca8d430ea89170"
+      }
+    },
+    "worldcover": {
+      "label": "land cover",
+      "credit": {
+        "name": "ESA WorldCover 2021 v200 (Zanaga et al. 2022)",
+        "url": "https://doi.org/10.5281/zenodo.7254221",
+        "licence": "CC-BY-4.0",
+        "licence_url": "https://creativecommons.org/licenses/by/4.0/",
+        "notice": "© ESA WorldCover project 2021 / Contains modified Copernicus Sentinel data (2021) processed by ESA WorldCover consortium"
+      },
+      "about": {
+        "scale": "10 m classes from Sentinel-1 and Sentinel-2",
+        "vintage": "2021"
+      },
+      "classes": {
+        "10": "Tree cover",
+        "20": "Shrubland",
+        "30": "Grassland",
+        "40": "Cropland",
+        "50": "Built-up",
+        "60": "Bare / sparse vegetation",
+        "70": "Snow and ice",
+        "80": "Permanent water bodies",
+        "90": "Herbaceous wetland",
+        "95": "Mangroves",
+        "100": "Moss and lichen"
+      },
+      "file": null
+    }
+  }
+}

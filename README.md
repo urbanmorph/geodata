@@ -61,7 +61,7 @@ bharatlas is an atlas of India's open geo layers, from the national boundary dow
 - **Collect** ([collect.bharatlas.com](https://collect.bharatlas.com)): design a small form, share a link, and anyone with it adds points, lines and areas from their phone with no account. Review contributions, then download them or submit them to bharatlas as a layer (reviewed before it appears). Links are token-scoped (view, collect, admin); a map's admin controls their own map.
 - **API** (`/api/v1`): list, schema, query, filter, `group_by` with per-group sums, export a filtered slice, locate (point-in-polygon across layers, or in one layer) and nearby (features within a radius).
 - **Releases** ([`/releases`](https://bharatlas.com/releases)): dated copies that never change, pinned by SHA-256, each with a permanent [w3id.org](https://w3id.org/bharatlas) address to cite.
-- **MCP server** ([`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp)): 18 tools for LLMs, for reading layers and for authoring collect maps. Also shipped as a Claude Code plugin.
+- **MCP server** ([`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp)): 17 tools for LLMs, for reading layers and for authoring collect maps. Also shipped as a Claude Code plugin.
 
 ## Layers and sources
 
@@ -100,7 +100,7 @@ Counts are of the curated entries in `catalog.json` (21 November 2026). The file
 
 `bharatlas-mcp` is a stdio MCP server published on [npm](https://www.npmjs.com/package/bharatlas-mcp) and in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.sathya-sankaran/bharatlas-mcp) as `io.github.sathya-sankaran/bharatlas-mcp` (the npm badge above shows the current version). It is also listed on Glama, as the [repository](https://glama.ai/mcp/servers/urbanmorph/geodata) and as the [hosted connector](https://glama.ai/mcp/connectors/io.github.sathya-sankaran/bharatlas-mcp). Read tools need no key; collect tools act only on maps whose share link you register.
 
-**Hosted, nothing to install.** The nine read tools also run at `https://bharatlas.com/mcp` (Streamable HTTP, no key, read-only). Add it as a custom connector in Claude.ai or ChatGPT, or:
+**Hosted, nothing to install.** The eight read tools also run at `https://bharatlas.com/mcp` (Streamable HTTP, no key, read-only). Add it as a custom connector in Claude.ai or ChatGPT, or:
 
 ```bash
 claude mcp add --transport http bharatlas https://bharatlas.com/mcp

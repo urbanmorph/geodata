@@ -2,10 +2,13 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
-  GROUND_LAYERS, SECTIONS, DECODERS, dedupeFeatures, median, groundAt, snapPoint, type GroundDeps,
+  GROUND_LAYERS, SECTIONS, DECODERS, groundAt,
 } from '../functions/lib/ground';
+import { dedupeFeatures, median, snapPoint, cleanText, partialByChance } from '../functions/lib/profile';
+type GroundDeps = ProfileDeps & { soil: (r2: R2Bucket, lat: number, lng: number) => Promise<PixelResult> };
 import type { CatalogData, CatalogLayer } from '../functions/lib/catalog-api';
 import type { NearbyResult } from '../functions/lib/nearby';
+import type { PixelResult, ProfileDeps } from '../functions/lib/profile';
 import type { LocateResponse } from '../functions/lib/locate';
 
 const CATALOG = JSON.parse(readFileSync(resolve(__dirname, '..', '..', 'catalog.json'), 'utf8')) as CatalogData;
@@ -19,7 +22,7 @@ describe('the ground layer table', () => {
       expect(SECTIONS).toContain(l.section);
       if (l.match === 'nearest') expect(l.radiusKm).toBeGreaterThan(0);
       if (l.coverageKm) expect(l.coverageKm).toBeGreaterThan(l.radiusKm!);
-      if (l.decode) expect(DECODERS[l.decode]).toBeTypeOf('function');
+      if (l.decode) expect(l.decode).toBeTypeOf('function');
     }
   });
 
@@ -140,12 +143,20 @@ function deps(over: Partial<GroundDeps> = {}): GroundDeps {
       if (id === 'atal_bhujal_wells' && _r > 10) return nearbyResult([{ props: {}, d: 30 }]);
       return nearbyResult([]);
     },
+    nearbyFromTiles: (...a) => deps().nearbyByGeometry(...a),
     nearbyByGeometry: async (_lat, _lng, _r, id) => (id === 'gem_active_faults'
       ? { features: [{ properties: { name: 'Main Boundary Thrust' }, lat: 28.5, lng: 77.0, distance_km: 0.98 }], total: 1, capped: false }
       : { features: [], total: 0, capped: false }),
-    soil: async () => ({ status: 'ok', soil: { depths: { '0-5cm': { clay_pct: 24.7, ph_water: 7.8 } }, wrb_class: 'Cambisols' } }),
+    soil: async () => ({ status: 'ok', data: { depths: { '0-5cm': { clay_pct: 24.7, ph_water: 7.8 } }, wrb_class: 'Cambisols' } }),
+    pixels: {},
     ...over,
   };
+}
+
+/** The fake engines as the runner takes them: the soil answer as the soilgrids pixel source. */
+function run(lat: number, lng: number, cat: typeof catalog, over: Partial<GroundDeps> = {}, opts = {}) {
+  const d = deps(over);
+  return groundAt(lat, lng, cat, {} as R2Bucket, { ...d, pixels: { soilgrids: d.soil as () => Promise<PixelResult> } }, opts);
 }
 
 describe('snapPoint', () => {
@@ -157,7 +168,7 @@ describe('snapPoint', () => {
 
 describe('groundAt', () => {
   it('groups every layer by section with its credit and licence', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     expect(g.point).toEqual({ lat: 28.525, lng: 77.085 });
     const sz = g.sections.seismic.seismic_zones;
     expect(sz).toMatchObject({ layer_id: 'seismic_zones', match: 'contains', features: [{ seismic_zo: 'Seismic Zone-IV' }] });
@@ -166,23 +177,23 @@ describe('groundAt', () => {
   });
 
   it('dedupes identical containing features', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     expect(g.sections.geology.gsi_lithology_50k.features).toHaveLength(1);
   });
 
   it('flags a non-commercial layer the way other endpoints do', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     expect(g.sections.geology.bhuvan_geomorphology_50k).toMatchObject({ non_commercial: true, licence_notice: expect.stringMatching(/Non-commercial/) });
     expect(g.sections.seismic.seismic_zones.non_commercial).toBeUndefined();
   });
 
   it('decodes GLHYMPS units on the containing feature', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     expect(g.sections.groundwater.glhymps_permeability.decoded).toMatchObject({ log10_permeability_m2: -10.52, porosity_fraction: null });
   });
 
   it('gives nearest features with distance and a count, and a median where the table asks', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     const eq = g.sections.seismic.ngdr_earthquakes;
     expect(eq).toMatchObject({ match: 'nearest', radius_km: 50, count: 7 });
     expect(eq.nearest![0]).toMatchObject({ distance_km: 12.3, properties: { mw: '4.10000000' } });
@@ -198,16 +209,16 @@ describe('groundAt', () => {
   it('asks line layers for the true distance to the line', async () => {
     const asked: string[] = [];
     const d = deps();
-    const g = await groundAt(28.5, 77.01, catalog, {} as R2Bucket, { ...d, nearbyByGeometry: async (...a) => { asked.push(a[3]); return d.nearbyByGeometry(...a); } });
+    const g = await groundAt(28.5, 77.01, catalog, {} as R2Bucket, { ...d, pixels: { soilgrids: d.soil }, nearbyFromTiles: async (...a) => { asked.push(a[3]); return d.nearbyByGeometry(...a); } });
     expect(asked.sort()).toEqual(['bhuvan_lineaments_50k', 'gem_active_faults', 'gsi_coal_blocks', 'gsi_hydrocarbon_blocks',
       'gsi_lineaments_250k', 'osm_tunnels', 'osm_underground_utilities']);
     const f = g.sections.seismic.gem_active_faults;
-    expect(f).toMatchObject({ distance_to: 'line', count: 1, status: 'found', nearest: [{ distance_km: 0.98, properties: { name: 'Main Boundary Thrust' } }] });
+    expect(f).toMatchObject({ distance_to: 'shape', count: 1, status: 'found', nearest: [{ distance_km: 0.98, properties: { name: 'Main Boundary Thrust' } }] });
     expect(g.sections.seismic.ngdr_earthquakes.distance_to).toBe('point');
   });
 
   it('tells "not covered" from "none within the radius"', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     // atal_bhujal_wells has a well 30 km off: covered, none within 10 km
     expect(g.sections.groundwater.atal_bhujal_wells).toMatchObject({ status: 'none_within_radius', count: 0 });
     // slusi_soil_health has nothing within 25 km: not covered
@@ -220,7 +231,7 @@ describe('groundAt', () => {
   });
 
   it('adds SoilGrids with the ISRIC credit', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     expect(g.sections.soil.soilgrids).toMatchObject({
       match: 'pixel', wrb_class: 'Cambisols', depths: { '0-5cm': { clay_pct: 24.7 } },
       credit: { name: 'ISRIC SoilGrids 2.0 (Poggio et al. 2021)', licence: 'CC-BY-4.0' },
@@ -229,12 +240,12 @@ describe('groundAt', () => {
   });
 
   it('a layer that fails or runs past its budget is listed as unavailable; the rest still answer', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps({
+    const g = await run(28.525, 77.085, catalog, ({
       nearby: async (lat, lng, r, id, ...rest) => {
         if (id === 'slusi_soil_health') return new Promise(() => {}); // never answers
         return deps().nearby(lat, lng, r, id, ...rest);
       },
-      nearbyByGeometry: async (...a) => {
+      nearbyFromTiles: async (...a) => {
         if (a[3] === 'osm_tunnels') throw new Error('R2 down');
         return deps().nearbyByGeometry(...a);
       },
@@ -244,12 +255,13 @@ describe('groundAt', () => {
       { layer_id: 'slusi_soil_health', reason: 'took longer than 50 ms' },
     ]));
     expect(g.sections.underground.osm_tunnels).toBeUndefined();
+    expect(partialByChance(g)).toBe(true); // missed by chance: not cached
     expect(g.sections.seismic.seismic_zones.features).toHaveLength(1);
   });
 
   it('keeps the request open (waitUntil) for a layer past its budget, so its reads settle in this request', async () => {
     const held: Promise<unknown>[] = [];
-    await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps({
+    await run(28.525, 77.085, catalog, ({
       nearby: async (lat, lng, r, id, ...rest) => (id === 'ngdr_earthquakes'
         ? new Promise((res) => setTimeout(() => res(deps().nearby(lat, lng, r, id, ...rest)), 80))
         : deps().nearby(lat, lng, r, id, ...rest)),
@@ -259,7 +271,7 @@ describe('groundAt', () => {
   });
 
   it('collapses line breaks a source put inside a text field', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps({
+    const g = await run(28.525, 77.085, catalog, ({
       locate: async (_lat, _lng, ids) => ({
         point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1,
         results: { water: ids.filter((id) => id === 'cgwb_aquifers').map((id) => ({ layer_id: id, level: id, category: 'water', feature: { properties: { aquifer0: 'Basalt', aquifers: 'Unconfined\nSemi-confined\nto Confined' } } })) },
@@ -270,39 +282,40 @@ describe('groundAt', () => {
 
   it('says each section\'s scale, vintage and fetch date, and the screening disclaimer once', async () => {
     const withDates = { ...catalog, layers: catalog.layers.map((l) => ({ ...l, fetched_at: '2026-05-25T17:02:55+00:00' })) };
-    const g = await groundAt(28.525, 77.085, withDates, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, withDates);
     expect(g.sections.seismic.seismic_zones.about).toEqual({ scale: 'national zoning map', vintage: 'BIS IS 1893:2016', fetched_at: '2026-05-25' });
     expect(g.sections.soil.soilgrids.about?.scale).toMatch(/250 m/);
     expect(g.disclaimer).toMatch(/not for engineering/);
   });
 
   it('open_only leaves out non-commercial layers and says which', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps(), { openOnly: true });
+    const g = await run(28.525, 77.085, catalog, {}, { openOnly: true });
     expect(g.sections.geology.bhuvan_geomorphology_50k).toBeUndefined();
     expect(g.omitted_non_commercial).toEqual(['bhuvan_geomorphology_50k']);
     expect(JSON.stringify(g.sections)).not.toContain('"non_commercial":true');
-    expect((await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps())).omitted_non_commercial).toBeUndefined();
+    expect((await run(28.525, 77.085, catalog)).omitted_non_commercial).toBeUndefined();
   });
 
   it('SoilGrids without a published file is unavailable, not "not covered"', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps({ soil: async () => ({ status: 'unavailable', reason: 'the SoilGrids file is not published yet' }) }));
+    const g = await run(28.525, 77.085, catalog, ({ soil: async () => ({ status: 'unavailable', reason: 'the SoilGrids file is not published yet' }) }));
     expect(g.sections.soil.soilgrids).toBeUndefined();
     expect(g.unavailable).toContainEqual({ layer_id: 'soilgrids', reason: 'the SoilGrids file is not published yet' });
+    expect(partialByChance(g)).toBe(false); // a lasting gap: the answer may be cached
   });
 
   it('a layer the site does not have yet is unavailable, not an error', async () => {
     const small = { ...catalog, layers: catalog.layers.filter((l) => l.id !== 'osm_mines_caves') };
-    const g = await groundAt(28.525, 77.085, small, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, small);
     expect(g.unavailable).toContainEqual({ layer_id: 'osm_mines_caves', reason: 'not published' });
   });
 
   it('soil with no prediction is null with its reason', async () => {
-    const g = await groundAt(20, 70, catalog, {} as R2Bucket, deps({ soil: async () => ({ status: 'none', reason: 'no SoilGrids prediction here' }) }));
+    const g = await run(20, 70, catalog, ({ soil: async () => ({ status: 'none', reason: 'no SoilGrids prediction here' }) }));
     expect(g.sections.soil.soilgrids).toMatchObject({ status: 'not_covered', depths: null, wrb_class: null, reason: 'no SoilGrids prediction here' });
   });
 
   it('says it in one readable line', async () => {
-    const g = await groundAt(28.525, 77.085, catalog, {} as R2Bucket, deps());
+    const g = await run(28.525, 77.085, catalog);
     expect(g.summary).toMatch(/Seismic Zone-IV/);
     expect(g.summary).toMatch(/SILT-CLAY/);
     expect(g.summary).toMatch(/Cambisols/);
@@ -310,5 +323,17 @@ describe('groundAt', () => {
     expect(g.summary).toMatch(/sinking about 2.5 cm\/yr \(median of 4 satellite points within 500 m\)/);
     expect(g.summary).toMatch(/12.3 km away \(M 4.1, 1998\)/);
     expect(g.summary).not.toMatch(/—/);
+  });
+});
+
+describe('cleanText (summary only; the data stays as published)', () => {
+  it('collapses line breaks, drops "-" and NA, decodes entities, says a same-ended range once', () => {
+    expect(cleanText('Unconfined\nSemi-confined')).toBe('Unconfined Semi-confined');
+    expect(cleanText('-')).toBeNull();
+    expect(cleanText('NA')).toBeNull();
+    expect(cleanText('Jammu &amp; Kashmir')).toBe('Jammu & Kashmir');
+    expect(cleanText('05 °C To 05 °C')).toBe('5 °C');
+    expect(cleanText('10 °C To 20 °C')).toBe('10 °C To 20 °C');
+    expect(cleanText('4.77000000')).toBe('4.77');
   });
 });

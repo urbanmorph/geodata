@@ -4,7 +4,7 @@
 // a GET on the bharatlas API (/api/v1) and its result is shaped the same way.
 
 /** How an agent should use the read tools; each server adds its own intro. */
-export const INSTRUCTIONS_CORE = `Workflow patterns:
+const CORE = `Workflow patterns:
 
 - **Discovery**: start with list_layers or list_categories to find relevant layers. Use the q parameter for text search.
 - **Schema first**: always call get_layer_schema BEFORE query_layer. Column names vary per layer (e.g. "state" vs "State_LGD" vs "stname"). The schema shows exact names and sample values.
@@ -17,7 +17,6 @@ export const INSTRUCTIONS_CORE = `Workflow patterns:
   2. Use query_layer with a where filter to narrow the other layer by that admin context
   3. For precise spatial containment, test individual points via locate against the target layer
 - **Near a point**: nearby returns a layer's features nearest first within radius_km (default 25, max 200), with the true count inside the radius. Use it for "X near Y" once you have Y's coordinate.
-- **Below a point**: ground_at returns the subsurface profile of a lat/lng in one call (seismic zone, faults, lineaments and earthquakes, rock, minerals and wells, aquifer, groundwater level and quality, SoilGrids soil, subsidence, tunnels and buried utilities), each part with its source, licence, scale and vintage. Use it instead of many locate/nearby calls for "what is under this site?". Say "not covered" (the layer does not reach the point) apart from "none within the radius"; layers in "unavailable" were not read, so say nothing about them. Pass on its disclaimer: screening information, not for site or engineering decisions. open_only: true leaves out non-commercial layers.
 - **Community layers**: list_submissions returns user-contributed datasets. These work with query_layer and get_layer_schema exactly like curated layers.
 - **Downloads**: get_layer_detail returns direct URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most).
 - **Citing**: get_layer_detail also returns "versions", the layer's dated releases, newest first. When you cite or publish a result, name the version you used by its code (e.g. bharatlas-lgd_states-2026.12) and sha256, or its w3id address. An empty list means no release yet: cite the layer's /view page and the date you read it.
@@ -230,6 +229,26 @@ export const READ_TOOLS = [
     },
   },
   {
+    name: "surface_at",
+    description:
+      "What is on the ground at a point, in one call: the admin units, ward and pincode; land cover, elevation and slope, " +
+      "population density and block land use; climate zones; the river basin, nearest river, water body, dam and wetland, and flood history; " +
+      "hazards (seismic zone, landslides, cyclone tracks, coastal regulation zone); forests and protected areas with the nearest one; " +
+      "the nearest highway, railway and metro station, airport and bus stop; the nearest hospital (three sources) and school, and places within 1 km; " +
+      "the nearest power line, power plant and water-supply facility; distance to India's outline. Returns a one-line `summary` and `sections`, " +
+      "each with its credit, licence, scale, vintage and status; for the air above the point, `air` points to the mugilu MCP's conditions_at. " +
+      "Example: 'what is around this plot in Kolkata?' -> lat: 22.57, lng: 88.36.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lat: { type: "number", description: "Latitude (6 to 38, India bounding box)" },
+        lng: { type: "number", description: "Longitude (68 to 98, India bounding box)" },
+        open_only: { type: "boolean", description: "true leaves out the non-commercial layers (for commercial use); default false" },
+      },
+      required: ["lat", "lng"],
+    },
+  },
+  {
     name: "list_categories",
     description: "List all data categories with layer counts.",
     inputSchema: { type: "object", properties: {} },
@@ -273,6 +292,24 @@ export const READ_TOOLS = [
 ].map((t) => ({ ...t, annotations: READ_ONLY }));
 
 const READ_NAMES = new Set(READ_TOOLS.map((t) => t.name));
+
+/** The point lookups: built, but offered only while they are published (the API's POINT_PROFILES flag). */
+export const POINT_PROFILE_TOOLS = new Set(["ground_at", "surface_at"]);
+
+/** The read tools a server offers: without the point lookups unless they are on. */
+export function readToolsFor(pointProfiles) {
+  return pointProfiles ? READ_TOOLS : READ_TOOLS.filter((t) => !POINT_PROFILE_TOOLS.has(t.name));
+}
+
+const POINT_PROFILE_PATTERN = `- **A point's profile**: ground_at says what is below a lat/lng (seismic zone, faults, rock, aquifer, groundwater, SoilGrids soil, subsidence, tunnels and buried utilities); surface_at what is on the ground there (place, land cover, elevation, population, water, hazards, protected areas, access, services). One call each instead of many locate/nearby calls; each part carries its source, licence, scale and vintage. Tell "not_covered" (the layer does not reach the point) apart from "none_within_radius"; say nothing about layers in "unavailable". Pass on the disclaimer (screening information, not for site or engineering decisions). open_only: true leaves out non-commercial layers.`;
+
+/** How an agent should use the read tools; each server adds its own intro. */
+export function instructionsCore(pointProfiles) {
+  return pointProfiles ? CORE.replace("\n- **Community layers**", `\n${POINT_PROFILE_PATTERN}\n- **Community layers**`) : CORE;
+}
+
+/** The instructions as published while the point lookups are off. */
+export const INSTRUCTIONS_CORE = instructionsCore(false);
 
 // Mirrors QUERY_OPTIONS in web/functions/lib/query-params.ts (a web test holds
 // the two equal): these names are query options, so a where column with one of
@@ -372,7 +409,11 @@ export function readToolRequest(name, args = {}) {
       return { path: "/locate", params };
     }
     case "ground_at":
-      return { path: "/ground", params: { lat: args.lat, lng: args.lng, ...(args.open_only === true ? { open_only: "true" } : {}) } };
+    case "surface_at":
+      return {
+        path: name === "ground_at" ? "/ground" : "/surface",
+        params: { lat: args.lat, lng: args.lng, ...(args.open_only === true ? { open_only: "true" } : {}) },
+      };
     case "list_categories":
       return { path: "/categories", params: {} };
     case "get_layer_detail":
