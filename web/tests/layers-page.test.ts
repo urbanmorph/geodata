@@ -58,13 +58,25 @@ describe('/layers realms', () => {
     expect(realmHtml('ground')).not.toContain('data-id="cgwb_aquifers"');
     expect(realmHtml('air')).toContain('data-id="ndem_cyclone_tracks"');
   });
-  it('keep /layers#<theme> working: the theme\'s first section heading carries the plain id', () => {
-    const cats = [...new Set([...layers.matchAll(/<section class="category-section" id="[a-z]+-([a-z-]+)"/g)].map((m) => m[1]))];
+  it('keep /layers#<theme> working: the heading of the theme\'s largest section carries the plain id', () => {
+    const secs = [...layers.matchAll(/<section class="category-section" id="[a-z]+-([a-z-]+)" data-category="\1">\s*<header class="category-section__head">\s*<h3 class="category-section__title"( id="[a-z-]+")?>[^<]*<\/h3>\s*<span class="category-section__count">(\d+) layer/g)]
+      .map((m) => ({ cat: m[1], plain: m[2], n: Number(m[3]) }));
+    const cats = [...new Set(secs.map((s) => s.cat))];
     expect(cats.length).toBeGreaterThan(5);
     for (const cat of cats) {
-      const first = layers.match(new RegExp(`<section class="category-section" id="([a-z]+)-${cat}"[^>]*>\\s*<header class="category-section__head">\\s*<h3 class="category-section__title"( id="[a-z-]+")?`))!;
-      expect(first[2], cat).toBe(` id="${cat}"`);
+      const mine = secs.filter((s) => s.cat === cat);
+      const tagged = mine.filter((s) => s.plain);
+      expect(tagged, cat).toHaveLength(1);
+      expect(tagged[0].plain).toBe(` id="${cat}"`);
+      expect(tagged[0].n, cat).toBe(Math.max(...mine.map((s) => s.n)));
     }
+    // Water: rivers on the ground outnumber groundwater below.
+    expect(layers).toMatch(/id="ground-water"[^>]*>\s*<header class="category-section__head">\s*<h3 class="category-section__title" id="water"/);
+  });
+  it('separate sections with a rule only after a visible one (a hidden first theme leaves no stray border)', () => {
+    const tmpl = read('layers.template.html');
+    expect(tmpl).toMatch(/\.category-section:not\(\.hidden\) ~ \.category-section \{[^}]*border-top/);
+    expect(tmpl).not.toContain('.category-section:first-of-type');
   });
   it('point to mugilu, the sister site, for live air and weather', () => {
     expect(realmHtml('air')).toMatch(/<a [^>]*href="https:\/\/mugilu\.live\/?"/);

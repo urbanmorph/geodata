@@ -45,6 +45,29 @@ if (input && grid) {
       index?.classList.toggle('is-empty', n === 0);
     });
   };
+  // Desktop index: every realm, but only the themes of the one in view (the
+  // CSS keys off .is-following + .is-active). Every realm stays open while
+  // searching, and without IntersectionObserver (or JS). No animation.
+  const nav = document.querySelector<HTMLElement>('.theme-index');
+  const follow = !!nav && realms.length > 0 && typeof IntersectionObserver === 'function';
+  const groupOf = (id: string) => nav?.querySelector(`a[href="#${id}"]`)?.closest('.theme-index__group');
+  const activate = (g: Element | null | undefined): void => {
+    if (!g || g.classList.contains('is-active')) return;
+    nav?.querySelector('.theme-index__group.is-active')?.classList.remove('is-active');
+    g.classList.add('is-active');
+  };
+  if (follow) {
+    activate(groupOf(realms[0].id));
+    nav.classList.add('is-following');
+    // The realm crossing a band a third of the way down the window is the one in view.
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) activate(groupOf(e.target.id));
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    for (const r of realms) io.observe(r);
+    // Keyboard: tabbing onto a realm opens its themes.
+    nav.addEventListener('focusin', (e) => activate((e.target as Element).closest('.theme-index__group')));
+  }
+
   const showEmpty = (query: string | null): void => {
     if (!empty) return;
     empty.hidden = query == null;
@@ -74,6 +97,7 @@ if (input && grid) {
 
   const apply = (): void => {
     const query = input.value.trim();
+    nav?.classList.toggle('is-following', follow && !query);
     if (query && !cards) {
       // q-precheck.js has opened every section for a ?q= arrival: it stays so until the index lands.
       loadIndex().then(apply, () => {});

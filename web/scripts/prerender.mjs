@@ -622,17 +622,17 @@ const updatedHtml = newestFetch
 const VISIBLE_LIMIT = 6;
 
 // One theme's layers within one realm: curated levels (LEVEL_ORDER) and community cards.
-const sectionContent = (realm, cat) => ({
-  levelsInCat: LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat && realmByLevel[lvl] === realm),
-  commInCat: (communityByCategory[cat] || []).filter((s) => realmOf({ id: s.id, category: cat }) === realm),
-});
+const sectionContent = (realm, cat) => {
+  const levelsInCat = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat && realmByLevel[lvl] === realm);
+  const commInCat = (communityByCategory[cat] || []).filter((s) => realmOf({ id: s.id, category: cat }) === realm);
+  return { levelsInCat, commInCat, total: levelsInCat.reduce((n, lvl) => n + byLevel[lvl].length, 0) + commInCat.length };
+};
 
-// A theme's section within a realm, id "<realm>-<theme>". The theme's first
-// section on the page also carries the plain theme id on its heading, so
-// /layers#water (home theme cards, the sitemap, old links) still lands.
-function renderCategorySection(realm, cat, { levelsInCat, commInCat }, plainId) {
+// A theme's section within a realm, id "<realm>-<theme>". The theme's largest
+// section also carries the plain theme id on its heading, so /layers#water
+// (home theme cards, the sitemap, old links) still lands.
+function renderCategorySection(realm, cat, { levelsInCat, commInCat, total }, plainId) {
   const catLabel = (catalog.categories || {})[cat] || cat;
-  const total = levelsInCat.reduce((n, lvl) => n + byLevel[lvl].length, 0) + commInCat.length;
   const overflows = levelsInCat.length + commInCat.length > VISIBLE_LIMIT;
 
   // Tag rows beyond VISIBLE_LIMIT with `row--collapsed`; main.ts toggles
@@ -674,18 +674,21 @@ const sortedCats = [...new Set([...CATEGORY_ORDER, 'other'])].filter((c) => allC
 // with a section per theme that has layers there, and an index beside them
 // grouped the same way. Rendered in page order: renderRow fills the search
 // index (/layer-index.json) as it goes, and it must follow the rows.
-const placedCats = new Set();
-const realmBlocks = REALMS.map((realm) => {
-  const sections = sortedCats
-    .map((cat) => [cat, sectionContent(realm.id, cat)])
-    .filter(([, c]) => c.levelsInCat.length || c.commInCat.length)
-    .map(([cat, c]) => {
-      const first = !placedCats.has(cat);
-      placedCats.add(cat);
-      return { cat, ...renderCategorySection(realm.id, cat, c, first) };
-    });
-  return { ...realm, sections, total: sections.reduce((n, s) => n + s.total, 0) };
-}).filter((r) => r.sections.length);
+const planned = REALMS.map((realm) => ({
+  realm,
+  parts: sortedCats.map((cat) => ({ cat, c: sectionContent(realm.id, cat) })).filter(({ c }) => c.total),
+}));
+// Each theme's largest section (the first on a tie) takes the plain anchor.
+const largest = new Map();
+for (const { parts } of planned) {
+  for (const p of parts) if (!largest.has(p.cat) || p.c.total > largest.get(p.cat).c.total) largest.set(p.cat, p);
+}
+const realmBlocks = planned
+  .filter(({ parts }) => parts.length)
+  .map(({ realm, parts }) => {
+    const sections = parts.map((p) => ({ cat: p.cat, ...renderCategorySection(realm.id, p.cat, p.c, largest.get(p.cat) === p) }));
+    return { ...realm, sections, total: sections.reduce((n, s) => n + s.total, 0) };
+  });
 
 // In the air: the live sky over a place is mugilu's job, not a layer.
 const MUGILU_CARD = `<aside class="sister-card" aria-label="Sister site">
@@ -711,7 +714,7 @@ const themeIndexHtml = realmBlocks
     .map((s) => indexLink(`${r.id}-${esc(s.cat)}`, `${legendGlyph(s.cat)}<span>${esc(s.label)}</span>`, s.total))
     .join('')}</div>`)
   .join('');
-const sectionCats = [...placedCats];
+const sectionCats = [...largest.keys()];
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
 const homeDownloads = totalDownloads(dlCounts);

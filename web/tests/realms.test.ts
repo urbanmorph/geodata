@@ -60,6 +60,10 @@ describe('realms', () => {
     expect(realmOf(byId.get('seismic_zones')!)).toBe('below');
     expect(realmOf(byId.get('ndem_cyclone_tracks')!)).toBe('air');
     expect(realmOf(byId.get('lgd_districts')!)).toBe('ground');
+    // Owner, 2026-11-21: agro-climatic zones are land zones; soil, mines and seismic zones stay below.
+    expect(realmOf(byId.get('agro_climatic_zones')!)).toBe('ground');
+    for (const id of ['slusi_soil_health', 'osm_mines_caves', 'seismic_zones']) expect(realmOf(byId.get(id)!), id).toBe('below');
+    expect(REALMS.find((r: { id: string }) => r.id === 'air').desc).not.toMatch(/climate zones/);
     // Community layers take their theme's default.
     expect(realmOf({ id: 'Ab3dEfGh', category: 'water' })).toBe('ground');
     expect(realmOf({ id: 'x', category: 'no-such-theme' })).toBe('ground');

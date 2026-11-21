@@ -2,7 +2,7 @@
   "realms": [
     { "id": "below", "name": "Below ground", "desc": "Rocks, faults, minerals, aquifers and groundwater under the surface." },
     { "id": "ground", "name": "On the ground", "desc": "Boundaries, wards, rivers, forests, roads and the places people use." },
-    { "id": "air", "name": "In the air", "desc": "Weather and climate over the land: cyclone tracks and climate zones." }
+    { "id": "air", "name": "In the air", "desc": "Weather over the land: the tracks of past cyclones." }
   ],
   "categories": {
     "boundaries": "ground",
@@ -28,6 +28,6 @@
       "glhymps_permeability", "core_mws_water_balance", "slusi_soil_health", "osm_tunnels", "osm_underground_utilities",
       "vedas_oil_wells", "wris_groundwater_levels"
     ],
-    "air": ["ndem_cyclone_tracks", "agro_climatic_zones"]
+    "air": ["ndem_cyclone_tracks"]
   }
 }

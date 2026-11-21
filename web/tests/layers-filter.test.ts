@@ -177,3 +177,50 @@ describe('/layers filter: realms', () => {
     expect(document.querySelector('.theme-index a.is-empty')).toBeNull();
   });
 });
+
+// The desktop index lists every realm but opens only the one in view (CSS
+// keys off .is-active while the nav has .is-following); a search opens all.
+describe('/layers index: follows the realm in view', () => {
+  let seen: (entries: { target: Element; isIntersecting: boolean }[]) => void = () => {};
+  beforeEach(() => {
+    document.body.innerHTML = `
+      <input id="catalog-search"><p id="search-meta"></p><p id="catalog-empty" hidden></p>
+      <nav class="theme-index">
+        <div class="theme-index__group"><a class="theme-index__realm" href="#below">Below</a><a href="#below-environment">Env</a></div>
+        <div class="theme-index__group"><a class="theme-index__realm" href="#ground">Ground</a><a href="#ground-boundaries">Bound</a></div>
+      </nav>
+      <div id="catalog-grid">
+        <section class="realm" id="below"><section class="category-section" id="below-environment"><section class="row" data-id="forest_cover" data-layers="1"></section></section></section>
+        <section class="realm" id="ground"><section class="category-section" id="ground-boundaries"><section class="row" data-id="lgd_districts" data-layers="4"></section></section></section>
+      </div>`;
+    history.replaceState(null, '', '/layers');
+    vi.stubGlobal('IntersectionObserver', class { constructor(cb: typeof seen) { seen = cb; } observe() {} });
+  });
+  const active = () => [...document.querySelectorAll('.theme-index__group.is-active a.theme-index__realm')].map((a) => a.getAttribute('href'));
+  const following = () => document.querySelector('.theme-index')!.classList.contains('is-following');
+
+  it('opens the realm in view, a focused realm, and every realm while searching', async () => {
+    await import('../src/layers');
+    release();
+    expect(following()).toBe(true);
+    expect(active()).toEqual(['#below']);
+    seen([{ target: document.getElementById('ground')!, isIntersecting: true }]);
+    expect(active()).toEqual(['#ground']);
+    document.querySelector<HTMLElement>('a[href="#below"]')!.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    expect(active()).toEqual(['#below']);
+    const input = document.getElementById('catalog-search') as HTMLInputElement;
+    input.value = 'forest';
+    input.dispatchEvent(new Event('input'));
+    await flush(); await flush();
+    expect(following()).toBe(false);
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    expect(following()).toBe(true);
+  });
+
+  it('leaves every realm open without IntersectionObserver', async () => {
+    vi.stubGlobal('IntersectionObserver', undefined);
+    await import('../src/layers');
+    expect(following()).toBe(false);
+  });
+});

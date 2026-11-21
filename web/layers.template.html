@@ -28,6 +28,8 @@
       .layers-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: 28px; }
       .theme-index { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; border: 1.5px solid var(--edge); background: var(--bg-elevated); }
       .theme-index__group + .theme-index__group { border-top: 1.5px solid var(--edge); }
+      /* Desktop, with JS and no search: every realm, but only the themes of the one in view (layers.ts). */
+      @media (min-width: 901px) { .theme-index.is-following .theme-index__group:not(.is-active) a:not(.theme-index__realm) { display: none; } }
       .theme-index a.theme-index__realm { grid-template-columns: 1fr auto; font-weight: 800; background: var(--land); }
       .theme-index a {
         display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 10px; min-height: 44px; padding: 6px 12px;
@@ -67,8 +69,9 @@
       .link-btn { font: inherit; color: var(--accent); background: none; border: 0; padding: 11px 0; margin: -11px 0; text-decoration: underline; cursor: pointer; }
 
       .catalog { margin-top: 8px; }
-      .category-section { padding: 24px 0 28px; border-top: 1.5px solid var(--edge); scroll-margin-top: 16px; }
-      .category-section:first-of-type { border-top: none; padding-top: 4px; }
+      .category-section { padding: 4px 0 28px; scroll-margin-top: 16px; }
+      /* A rule only after a visible section, so a search that hides a realm's first theme leaves none on top. */
+      .category-section:not(.hidden) ~ .category-section { padding-top: 24px; border-top: 1.5px solid var(--edge); }
       .category-section.hidden { display: none; }
       .category-section__head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 0 0 12px; }
       .category-section__title { margin: 0; font-size: var(--fs-xl); font-weight: 800; letter-spacing: -.015em; color: var(--fg); scroll-margin-top: 16px; }
