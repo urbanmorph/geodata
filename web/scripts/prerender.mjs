@@ -18,10 +18,11 @@ import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
 import { WARD_PLACES } from '../functions/lib/ward-places.ts';
 import { DEFAULT_LOCATE_LAYERS } from '../functions/lib/locate-layers.ts';
-import { OPENAPI } from '../functions/lib/openapi.ts';
+import { openapiFor } from '../functions/lib/openapi.ts';
 import { fillTemplate } from './fill-template.mjs';
 import { minifyInlineStyles as minifyCss } from './minify-inline-css.mjs';
 import { designPageBody } from './design-page.mjs';
+import { gatePointProfiles, POINT_PROFILE_ATTRIBUTION, POINT_PROFILE_FAQ, POINT_PROFILE_CREDITS } from './point-profiles.mjs';
 import { ogImage } from './og-image-url.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
@@ -41,6 +42,10 @@ const SCRIPT_TOKENS = new Set(['src', '../shared'].flatMap((dir) =>
   readdirSync(resolve(WEB, dir)).filter((f) => /\.(ts|mjs)$/.test(f) && f !== 'tokens.mjs')
     .flatMap((f) => [...readFileSync(resolve(WEB, dir, f), 'utf8').matchAll(/var\((--[\w-]+)/g)].map((m) => m[1]))));
 const minifyInlineStyles = (html) => minifyCss(html, { keepTokens: SCRIPT_TOKENS });
+
+// The point lookups (/api/v1/ground, /api/v1/surface, MCP ground_at and surface_at) stay out of every
+// page until the release gate passes: POINT_PROFILES=on at build time shows their docs, FAQ and credits.
+const POINT_PROFILES = process.env.POINT_PROFILES === 'on';
 
 const catalogPath = resolve(ROOT, 'catalog.json');
 if (!existsSync(catalogPath)) {
@@ -350,7 +355,7 @@ for (const lvl of Object.keys(byLevel)) {
 
 // Attribution links — used by the /about page footer only (the home page
 // now shows per-card source links instead of a global dump).
-const attrLinks = Object.entries(catalog.attribution || {})
+const attrLinks = Object.entries({ ...catalog.attribution, ...(POINT_PROFILES ? POINT_PROFILE_ATTRIBUTION : {}) })
   .filter(([k]) => !k.startsWith('_'))
   .map(([, val]) => `<a href="${esc(val.url)}" target="_blank" rel="noopener">${esc(val.name)}</a>`)
   .join(' · ');
@@ -824,7 +829,7 @@ console.log(`prerendered home: ${sortedCats.length} categories, ${LEVEL_ORDER.fi
 async function renderPage(name, seoOpts, extra = {}, navKey = name) {
   const path = resolve(WEB, `${name}.template.html`);
   if (!existsSync(path)) return;
-  const tmpl = await readFile(path, 'utf8');
+  const tmpl = gatePointProfiles(await readFile(path, 'utf8'), POINT_PROFILES);
   const out = fillTemplate(tmpl, {
     SEO_HEAD: seoHead(seoOpts),
     TOKENS,
@@ -879,6 +884,7 @@ const ABOUT_FAQ = [
         <p>Curated layers come from Indian government bodies (central, state and city), public institutions, open-data communities such as DataMeet and OpenCity, and openly licensed research and industry datasets. We favour data you can't get from a map app: official boundaries and jurisdictions, regulatory zones, and measured or surveyed records.</p>
         <p><strong>Government data.</strong> Publicly funded geospatial data is meant to be freely available (National Geospatial Guidelines 2021, National Geospatial Policy 2022). We republish it with full credit to the publishing department, including where a portal's general website terms ask visitors to seek permission. A few layers carry a non-commercial licence: they are marked <strong>Non-commercial only</strong> on their card, on their map page and in every API and MCP answer, so check before using them in a product or for a client. We leave out privately owned data without an open licence, and personal data.</p>
         <p><strong>Licence labels.</strong> Where the publisher states an open licence (for example GODL-India or CC BY), the layer carries it. Where the publisher states none, the layer carries the licence of the open-data republisher we took it from (for example CC0 from DataMeet's indianopenmaps), and the card and notes credit both.</p>
+${POINT_PROFILES ? POINT_PROFILE_CREDITS : ''}
         <p><strong>Changes and removal.</strong> If you publish a dataset shown here and want it corrected, credited differently or removed, email <a href="mailto:sathya@urbanmorph.com">sathya@urbanmorph.com</a> or open a <a href="https://github.com/urbanmorph/geodata/issues">GitHub issue</a>. We act on publisher requests promptly.</p>
       `,
   },
@@ -1069,6 +1075,7 @@ const DOCS_FAQ = [
     q: 'How do I find features near a point?',
     a: 'GET https://bharatlas.com/api/v1/nearby?lat=12.97&lng=77.59&layer=wris_reservoirs&radius_km=50 finds features from any layer within a radius. Works for points, polygons and lines: reads bounding-box columns from the layer parquet and ranks features by Haversine distance to their bounding-box centres.',
   },
+  ...(POINT_PROFILES ? POINT_PROFILE_FAQ : []),
   {
     q: 'How do I query a layer with column filters?',
     a: 'GET https://bharatlas.com/api/v1/layers/:id/query?where=col=val&select=col1,col2&group_by=col. Reads parquet directly from R2 at runtime. Call /schema first to discover column names.',
@@ -1122,7 +1129,7 @@ await renderPage('docs', {
       {
         '@type': 'WebAPI',
         name: 'bharatlas API v1',
-        description: `Public JSON API for India's open geo layers. ${Object.keys(OPENAPI.paths).length} endpoints: locate a point, find features nearby, list layers, read a layer's schema, query, filter, group and export its rows, usage and download counts, themes, levels, community submissions and dated releases.`,
+        description: `Public JSON API for India's open geo layers. ${Object.keys(openapiFor(POINT_PROFILES).paths).length} endpoints: locate a point, find features nearby, list layers, read a layer's schema, query, filter, group and export its rows, usage and download counts, themes, levels, community submissions and dated releases.`,
         url: ORIGIN + '/docs',
         provider: PUBLISHER_LD,
         documentation: ORIGIN + '/docs',

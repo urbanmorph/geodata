@@ -34,7 +34,7 @@ const LNG = ref('parameters', 'Lng');
 const LAYER_ID = ref('parameters', 'LayerId');
 const data = (schema: Record<string, unknown>) => ({ type: 'object', properties: { data: schema } });
 
-export const OPENAPI = {
+const BASE = {
   openapi: '3.1.0',
   info: {
     title: 'bharatlas API',
@@ -451,3 +451,126 @@ export const OPENAPI = {
     },
   },
 } as const;
+
+// The point lookups, described only while they are published (lib/point-profiles.ts).
+const POINT_PROFILE_PATHS_SPEC = {
+  '/ground': {
+    get: {
+      operationId: 'groundAt',
+      tags: ['Spatial'],
+      summary: 'What is below a point: its subsurface profile in one call',
+      description:
+        'Seismic zone, nearest active faults, mapped lineaments and recorded earthquakes; rock (GSI lithology) and landform; aquifer, stage of groundwater extraction, near-surface permeability (GLHYMPS, decoded to m2 and m/s) and nearby groundwater wells; ' +
+        'soil properties at 0-5, 5-15 and 15-30 cm and the WRB soil group from ISRIC SoilGrids 2.0 (250 m, CC BY 4.0), plus the nearest Soil Health Card sample; ground subsidence in megacities (median of satellite points within 500 m); ' +
+        'tunnels, buried pipelines and cables, mines and caves nearby; and, in rural areas, the CoRE Stack micro-watershed water balance and drought. ' +
+        'Each layer is one entry under `sections.<section>.<layer_id>` with its `credit` (source, licence) and, for non-commercial layers, `non_commercial` and `licence_notice`; units are in field names or `units`. ' +
+        '`contains` entries list the features holding the point; `nearest` entries give `count` within `radius_km` and the nearest few with `distance_km` (points by distance to the point, lines by true distance to the line: `distance_to`). ' +
+        'Every entry has a `status`: `found`, `none_within_radius` (the layer covers the area, nothing is that close) or `not_covered` (the layer does not reach this point, e.g. subsidence outside its cities). ' +
+        'Each entry also says its `about`: scale or resolution, vintage and the date bharatlas fetched it; `disclaimer` says once that this is screening information, not for site or engineering decisions. ' +
+        'A layer that cannot be read in time is listed in `unavailable` and the rest still answer. `summary` says it in one line. ' +
+        'The answer is for the point snapped to 3 decimal places (about 100 m; `point` says which), kept in the edge cache for an hour when every layer answered, never by clients. Uses the locate rate limit (60 a minute).',
+      parameters: [
+        LAT, LNG,
+        q('open_only', 'true leaves out the non-commercial layers (NRSC geomorphology, lineaments, groundwater quality and prospects, NDEM floods); they are named in `omitted_non_commercial`.', { type: 'boolean', default: false }),
+      ],
+      responses: {
+        '200': ok('The profile', ref('schemas', 'GroundResult')),
+        ...errors('400', '429', '500'),
+      },
+    },
+  },
+  '/surface': {
+    get: {
+      operationId: 'surfaceAt',
+      tags: ['Spatial'],
+      summary: 'What is on the ground at a point, in one call',
+      description:
+        'Sections: `place` (state, district, sub-district, block, constituencies, pincode, city or national ward), `land` (land cover, elevation and slope from Copernicus DEM GLO-90, population per km2 from WorldPop 2020, CoRE Stack block land use, land degradation), ' +
+        '`climate` (agro-climatic, agro-ecological, eco and biogeographic zones), `water` (basin and sub-basin; the nearest river, water body, reservoir, dam, wetland and Ramsar site by true distance; Amrit Sarovar ponds; recorded floods and NDEM flood extents), ' +
+        '`hazards` (seismic zone, landslide hazard and recorded landslides, cyclone tracks within 100 km, coastal regulation zone), `protected` (recorded forest, the nearest protected area and wildlife corridor, 0 km when inside), ' +
+        '`access` (nearest national highway, railway station, metro or suburban station, airport, bus stop), `services` (nearest hospital from three sources, school, places within 1 km), `infrastructure` (power line, power plant, water-supply facility, distance to India\'s outline). ' +
+        'Entries follow /ground: `credit`, `about`, `status` (found, none_within_radius, not_covered), `non_commercial` and `licence_notice`, `units`, `summary`, `disclaimer`, `unavailable`. Raster entries (`match: pixel`) carry `values`. ' +
+        '`air` points to the mugilu MCP (conditions_at) for the air above the point. Snapped to about 100 m and edge-cached like /ground; uses the locate rate limit (60 a minute).',
+      parameters: [
+        LAT, LNG,
+        q('open_only', 'true leaves out the non-commercial layers (NRSC land degradation, NDEM floods, landslide hazard and cyclone tracks); they are named in `omitted_non_commercial`.', { type: 'boolean', default: false }),
+      ],
+      responses: {
+        '200': ok('The profile', ref('schemas', 'SurfaceResult')),
+        ...errors('400', '429', '500'),
+      },
+    },
+  },
+} as const;
+
+const POINT_PROFILE_SCHEMAS = {
+  GroundResult: {
+    type: 'object',
+    properties: {
+      point: ref('schemas', 'Point'),
+      summary: { type: 'string', description: 'The profile in one readable line.' },
+      disclaimer: { type: 'string', description: 'Screening information, not for site or engineering decisions.' },
+      omitted_non_commercial: { type: 'array', items: { type: 'string' }, description: 'With open_only=true: the non-commercial layers left out.' },
+      sections: {
+        type: 'object',
+        description: 'seismic, geology, resources, groundwater, soil, subsidence, underground, watershed: each maps a layer id (or `soilgrids`) to its entry.',
+        additionalProperties: {
+          type: 'object',
+          additionalProperties: {
+            type: 'object',
+            properties: {
+              layer_id: { type: 'string' },
+              match: { type: 'string', enum: ['contains', 'nearest', 'pixel'] },
+              status: { type: 'string', enum: ['found', 'none_within_radius', 'not_covered'], description: 'not_covered: the layer does not reach this point; none_within_radius: it does, but nothing is within radius_km.' },
+              distance_to: { type: 'string', enum: ['point', 'shape'], description: 'nearest: distance to the feature point, or to the nearest part of the line or outline (0 inside a polygon).' },
+              credit: { type: 'object', properties: { name: { type: 'string' }, url: { type: 'string' }, publisher: { type: 'object' }, licence: { type: 'string' }, licence_url: { type: 'string' } } },
+              non_commercial: { type: 'boolean' },
+              licence_notice: { type: 'string' },
+              units: { type: 'object', additionalProperties: { type: 'string' } },
+              about: { type: 'object', properties: { scale: { type: 'string' }, vintage: { type: 'string' }, note: { type: 'string' }, fetched_at: { type: 'string', format: 'date' } } },
+              features: { type: 'array', items: { type: 'object' }, description: 'contains: the features holding the point (identical ones once).' },
+              decoded: { type: 'object', description: 'Source encodings in plain units (e.g. GLHYMPS permeability in m2).' },
+              radius_km: { type: 'number' },
+              count: { type: 'integer', description: 'nearest: features within radius_km.' },
+              count_capped: { type: 'boolean', description: 'More features were in range than were read; `count` and `stats` cover those read.' },
+              nearest: { type: 'array', items: { type: 'object', properties: { distance_km: { type: 'number' }, lat: { type: 'number', description: 'The feature point, or the nearest point of the line.' }, lng: { type: 'number' }, properties: { type: 'object' }, decoded: { type: 'object' } } } },
+              links: { type: 'object', additionalProperties: { type: 'string', format: 'uri' }, description: 'Related downloads, e.g. a station layer\'s full readings.' },
+              stats: { type: 'object', additionalProperties: { type: ['number', 'null'] }, description: 'e.g. subsidence: median_VLM_cm_per_yr, the median over points of each point\'s median reading, with points and readings counted.' },
+              values: { type: ['object', 'null'], description: 'pixel: the raster values at the point (field names carry units).' },
+              resolution_m: { type: 'integer' },
+              depths: { type: ['object', 'null'], description: 'SoilGrids: depth interval (0-5cm, 5-15cm, 15-30cm) to clay_pct, sand_pct, silt_pct, ph_water, soc_g_per_kg, bulk_density_g_per_cm3, cec_cmolc_per_kg, nitrogen_g_per_kg.' },
+              wrb_class: { type: ['string', 'null'], description: 'SoilGrids: most probable WRB reference soil group.' },
+              reason: { type: 'string', description: 'Why SoilGrids has no value here (water, built-up land, outside its land mask).' },
+            },
+          },
+        },
+      },
+      unavailable: { type: 'array', items: { type: 'object', properties: { layer_id: { type: 'string' }, reason: { type: 'string' } } }, description: 'Layers that could not be read in time: their absence says nothing about the point.' },
+      attribution: { type: 'array', items: { type: 'string' }, description: 'The sources that answered, with their licences: credit them when you use the result.' },
+      timing_ms: { type: 'integer' },
+      layer_timing_ms: { type: 'object', additionalProperties: { type: 'integer' } },
+    },
+  },
+  SurfaceResult: {
+    allOf: [ref('schemas', 'GroundResult'), {
+      type: 'object',
+      properties: {
+        air: { type: 'object', description: 'Where to ask about the air above the point: the mugilu MCP server, its tool and arguments.' },
+      },
+    }],
+  },
+} as const;
+
+/** The full description (every route file, point lookups included): what the tests hold the handlers to. */
+export const OPENAPI = openapiFor(true);
+
+/** The description as published: without the point lookups while they are off. */
+export function openapiFor(pointProfiles: boolean) {
+  if (!pointProfiles) return BASE;
+  return {
+    ...BASE,
+    info: { ...BASE.info, description: BASE.info.description + ' The point lookups /ground and /surface share the locate limit.' },
+    paths: { ...BASE.paths, ...POINT_PROFILE_PATHS_SPEC },
+    components: { ...BASE.components, schemas: { ...BASE.components.schemas, ...POINT_PROFILE_SCHEMAS } },
+  };
+}

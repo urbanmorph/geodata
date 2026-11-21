@@ -37,6 +37,7 @@ CONTENT_TYPES = {
     '.zip':     'application/zip',  # for *.shp.zip
     '.csv':     'text/csv; charset=utf-8',
     '.md':      'text/markdown; charset=utf-8',
+    '.tif':     'image/tiff',  # Cloud-Optimized GeoTIFF (SoilGrids)
 }
 
 # Whole-layer geojson/kml/shapefile bakes only run when the source parquet is

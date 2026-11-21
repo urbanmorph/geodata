@@ -2,7 +2,10 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { buildViewDataset, type CatalogLayer } from '../functions/lib/view-dataset';
-import { OPENAPI } from '../functions/lib/openapi';
+import { openapiFor } from '../functions/lib/openapi';
+
+// The pages are built with the point lookups off (POINT_PROFILES unset), so they describe the published API.
+const OPENAPI = openapiFor(process.env.POINT_PROFILES === 'on');
 import { PUBLISHER_LD } from '../../shared/brand.mjs';
 
 // Structured data that used to drift from the site: the publisher named three

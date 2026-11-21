@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { cached, cacheKey, type EdgeCache } from '../functions/lib/edge-cache';
+import { cached, cacheKey, NO_STORE, type EdgeCache } from '../functions/lib/edge-cache';
 
 /** An in-memory stand-in for caches.default (which vitest's node env lacks). */
 function memoryCache() {
@@ -62,6 +62,16 @@ describe('cached', () => {
     expect(store.get('k')!.headers.get('cache-control')).toBe('public, max-age=600');
     const hit = await cached(ctxFor('https://bharatlas.com/x').ctx, 'k', 600, body('{}'), cache);
     expect(hit.headers.get('cache-control')).toBe('public, max-age=3600');
+  });
+
+  it('does not store an answer the handler marks partial (x-edge-no-store), and strips the mark', async () => {
+    const { cache, store } = memoryCache();
+    const c = ctxFor('https://bharatlas.com/api/v1/ground?lat=1&lng=2');
+    const r = await cached(c.ctx, 'k', 600, body('{"unavailable":["x"]}', { [NO_STORE]: '1' }), cache);
+    await c.settle();
+    expect(r.status).toBe(200);
+    expect(r.headers.has(NO_STORE)).toBe(false);
+    expect(store.size).toBe(0);
   });
 
   it('never stores an error', async () => {

@@ -21,7 +21,7 @@ REBAKED_KEY = {
 }
 REBAKE_SUFFIX = re.compile(r'\.(?:[0-9a-f]{8}|z\d+)(?=\.(?:pmtiles|parquet)$)')
 _VERSIONED = re.compile(
-    r'^(.*?)(?:\.[0-9a-f]{8})?\.((?:shp|geojson|kml)\.zip|pmtiles|parquet|geojson|kml|kmz|csv|json|zip)$')
+    r'^(.*?)(?:\.[0-9a-f]{8})?\.((?:shp|geojson|kml)\.zip|pmtiles|parquet|geojson|kml|kmz|csv|json|zip|tif)$')
 
 
 def versioned_key(key: str, md5: str, ext: str | None = None) -> str:

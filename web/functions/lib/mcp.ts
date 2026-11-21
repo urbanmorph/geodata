@@ -1,6 +1,6 @@
 // bharatlas's hosted MCP server at https://bharatlas.com/mcp: a stateless JSON-RPC
 // 2.0 endpoint over Streamable HTTP (MCP 2025-06-18), JSON responses, no sessions.
-// It offers the eight read tools only (mcp/read-tools.js, shared with the npm
+// It offers the read tools only (mcp/read-tools.js, shared with the npm
 // package). Map authoring (collect) needs the share links the npm package keeps on
 // the user's machine, so it stays there and no share token ever reaches this server.
 //
@@ -9,7 +9,7 @@
 
 import type { Env } from '../api/_middleware';
 import {
-  INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams,
+  instructionsCore, readToolsFor, readToolRequest, shapeReadResult, toSearchParams,
 } from '../../../mcp/read-tools.js';
 import { apiLimitFor } from './api-ratelimit';
 import { safeStringify } from './http';
@@ -19,6 +19,8 @@ import { onRequestGet as layerSchema } from '../api/v1/layers/[id]/schema';
 import { onRequestGet as layerQuery } from '../api/v1/layers/[id]/query';
 import { onRequestGet as locate } from '../api/v1/locate';
 import { onRequestGet as nearby } from '../api/v1/nearby';
+import { onRequestGet as ground } from '../api/v1/ground';
+import { onRequestGet as surface } from '../api/v1/surface';
 import { onRequestGet as categories } from '../api/v1/categories';
 import { onRequestGet as submissions } from '../api/v1/submissions/index';
 
@@ -28,9 +30,9 @@ const SUPPORTED_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 const SERVER_INFO = { name: 'bharatlas', title: "bharatlas: India's open geo data", version: '1.7.0' };
 const MAX_BODY = 64 * 1024;
 
-export const INSTRUCTIONS = `bharatlas MCP server (hosted, read-only). India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, rivers, canals, groundwater, agro-climatic zones, floods, seismic zones) plus community submissions.
+export const instructions = (pointProfiles: boolean) => `bharatlas MCP server (hosted, read-only). India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, rivers, canals, groundwater, agro-climatic zones, floods, seismic zones) plus community submissions.
 
-${INSTRUCTIONS_CORE}
+${instructionsCore(pointProfiles)}
 
 Authoring your own maps (collect.bharatlas.com: register a share link, moderate, import, publish) is not on this hosted server. It needs the npm package, which keeps share links on the user's machine: npx -y bharatlas-mcp.`;
 
@@ -54,7 +56,8 @@ type Handler = (ctx: { request: Request; env: Env; params: Record<string, string
 /** An /api/v1 path pattern (one capture = the layer id) and its handler. */
 export type ApiRoute = [RegExp, Handler];
 type RateLimit = (req: Request, tool: string) => Promise<{ ok: true } | { ok: false; retryAfter: number }>;
-export interface McpDeps { routes: ApiRoute[]; rateLimit: RateLimit; waitUntil: WaitUntil }
+/** pointProfiles: offer ground_at and surface_at (lib/point-profiles.ts; off unless published). */
+export interface McpDeps { routes: ApiRoute[]; rateLimit: RateLimit; waitUntil: WaitUntil; pointProfiles?: boolean }
 
 const asHandler = (h: unknown) => h as Handler;
 export const API_ROUTES: ApiRoute[] = [
@@ -64,14 +67,16 @@ export const API_ROUTES: ApiRoute[] = [
   [/^\/layers\/([^/]+)\/query$/, asHandler(layerQuery)],
   [/^\/locate$/, asHandler(locate)],
   [/^\/nearby$/, asHandler(nearby)],
+  [/^\/ground$/, asHandler(ground)],
+  [/^\/surface$/, asHandler(surface)],
   [/^\/categories$/, asHandler(categories)],
   [/^\/submissions$/, asHandler(submissions)],
 ];
 
 /** The API's own per-IP limit, shared with /api/v1 (same keys, same D1 rows, and
- *  the same non-blocking check): 120 calls a minute, locate 60 on its own key. */
+ *  the same non-blocking check): 120 calls a minute, locate and ground_at 60 on the locate key. */
 export function apiRateLimit(env: Env, waitUntil: WaitUntil): RateLimit {
-  return (req, tool) => apiLimitFor(req, env, tool === 'locate', waitUntil);
+  return (req, tool) => apiLimitFor(req, env, tool === 'locate' || tool === 'ground_at' || tool === 'surface_at', waitUntil);
 }
 
 const ok = (id: Id, result: unknown) => rpc({ jsonrpc: '2.0', id, result });
@@ -126,17 +131,17 @@ export async function handleMcp(req: Request, env: Env, deps: McpDeps): Promise<
           protocolVersion: requested && SUPPORTED_VERSIONS.includes(requested) ? requested : PROTOCOL_VERSION,
           capabilities: { tools: {} },
           serverInfo: SERVER_INFO,
-          instructions: INSTRUCTIONS,
+          instructions: instructions(!!deps.pointProfiles),
         });
       }
       case 'ping':
         return ok(id, {});
       case 'tools/list':
-        return ok(id, { tools: READ_TOOLS });
+        return ok(id, { tools: readToolsFor(!!deps.pointProfiles) });
       case 'tools/call': {
         const name = typeof params.name === 'string' ? params.name : '';
         const args = (params.arguments ?? {}) as Record<string, unknown>;
-        if (!READ_TOOLS.some((t) => t.name === name)) return err(id, INVALID_PARAMS, `Unknown tool: ${name}`);
+        if (!readToolsFor(!!deps.pointProfiles).some((t) => t.name === name)) return err(id, INVALID_PARAMS, `Unknown tool: ${name}`);
         if (typeof args !== 'object' || Array.isArray(args)) return err(id, INVALID_PARAMS, 'arguments must be an object');
         return ok(id, await callTool(req, env, deps, name, args));
       }

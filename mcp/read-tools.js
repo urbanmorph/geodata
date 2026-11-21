@@ -4,7 +4,7 @@
 // a GET on the bharatlas API (/api/v1) and its result is shaped the same way.
 
 /** How an agent should use the read tools; each server adds its own intro. */
-export const INSTRUCTIONS_CORE = `Workflow patterns:
+const CORE = `Workflow patterns:
 
 - **Discovery**: start with list_layers or list_categories to find relevant layers. Use the q parameter for text search.
 - **Schema first**: always call get_layer_schema BEFORE query_layer. Column names vary per layer (e.g. "state" vs "State_LGD" vs "stname"). The schema shows exact names and sample values.
@@ -209,6 +209,46 @@ export const READ_TOOLS = [
     },
   },
   {
+    name: "ground_at",
+    description:
+      "What is below a point, in one call: seismic zone, nearest active faults, lineaments and recorded earthquakes, " +
+      "rock type (GSI lithology) and landform, aquifer, near-surface permeability (GLHYMPS, in m2 and m/s), " +
+      "nearby groundwater wells, soil at 0-5, 5-15 and 15-30 cm (ISRIC SoilGrids 2.0: clay, sand, silt, pH, organic carbon, " +
+      "bulk density, CEC, nitrogen, WRB soil group) and the nearest Soil Health Card sample, ground subsidence (cm/yr) in megacities, " +
+      "and tunnels, buried pipelines and cables, mines and caves nearby. Returns a one-line `summary` plus `sections`, " +
+      "each layer with its credit, licence (non-commercial ones flagged) and status (found, none_within_radius, or not_covered where the layer does not reach the point); layers that could not be read are listed in `unavailable`. " +
+      "Example: 'what is under this plot in Delhi?' -> lat: 28.525, lng: 77.085.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lat: { type: "number", description: "Latitude (6 to 38, India bounding box)" },
+        lng: { type: "number", description: "Longitude (68 to 98, India bounding box)" },
+        open_only: { type: "boolean", description: "true leaves out the non-commercial layers (for commercial use); default false" },
+      },
+      required: ["lat", "lng"],
+    },
+  },
+  {
+    name: "surface_at",
+    description:
+      "What is on the ground at a point, in one call: the admin units, ward and pincode; land cover, elevation and slope, " +
+      "population density and block land use; climate zones; the river basin, nearest river, water body, dam and wetland, and flood history; " +
+      "hazards (seismic zone, landslides, cyclone tracks, coastal regulation zone); forests and protected areas with the nearest one; " +
+      "the nearest highway, railway and metro station, airport and bus stop; the nearest hospital (three sources) and school, and places within 1 km; " +
+      "the nearest power line, power plant and water-supply facility; distance to India's outline. Returns a one-line `summary` and `sections`, " +
+      "each with its credit, licence, scale, vintage and status; for the air above the point, `air` points to the mugilu MCP's conditions_at. " +
+      "Example: 'what is around this plot in Kolkata?' -> lat: 22.57, lng: 88.36.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        lat: { type: "number", description: "Latitude (6 to 38, India bounding box)" },
+        lng: { type: "number", description: "Longitude (68 to 98, India bounding box)" },
+        open_only: { type: "boolean", description: "true leaves out the non-commercial layers (for commercial use); default false" },
+      },
+      required: ["lat", "lng"],
+    },
+  },
+  {
     name: "list_categories",
     description: "List all data categories with layer counts.",
     inputSchema: { type: "object", properties: {} },
@@ -252,6 +292,24 @@ export const READ_TOOLS = [
 ].map((t) => ({ ...t, annotations: READ_ONLY }));
 
 const READ_NAMES = new Set(READ_TOOLS.map((t) => t.name));
+
+/** The point lookups: built, but offered only while they are published (the API's POINT_PROFILES flag). */
+export const POINT_PROFILE_TOOLS = new Set(["ground_at", "surface_at"]);
+
+/** The read tools a server offers: without the point lookups unless they are on. */
+export function readToolsFor(pointProfiles) {
+  return pointProfiles ? READ_TOOLS : READ_TOOLS.filter((t) => !POINT_PROFILE_TOOLS.has(t.name));
+}
+
+const POINT_PROFILE_PATTERN = `- **A point's profile**: ground_at says what is below a lat/lng (seismic zone, faults, rock, aquifer, groundwater, SoilGrids soil, subsidence, tunnels and buried utilities); surface_at what is on the ground there (place, land cover, elevation, population, water, hazards, protected areas, access, services). One call each instead of many locate/nearby calls; each part carries its source, licence, scale and vintage. Tell "not_covered" (the layer does not reach the point) apart from "none_within_radius"; say nothing about layers in "unavailable". Pass on the disclaimer (screening information, not for site or engineering decisions). open_only: true leaves out non-commercial layers.`;
+
+/** How an agent should use the read tools; each server adds its own intro. */
+export function instructionsCore(pointProfiles) {
+  return pointProfiles ? CORE.replace("\n- **Community layers**", `\n${POINT_PROFILE_PATTERN}\n- **Community layers**`) : CORE;
+}
+
+/** The instructions as published while the point lookups are off. */
+export const INSTRUCTIONS_CORE = instructionsCore(false);
 
 // Mirrors QUERY_OPTIONS in web/functions/lib/query-params.ts (a web test holds
 // the two equal): these names are query options, so a where column with one of
@@ -350,6 +408,12 @@ export function readToolRequest(name, args = {}) {
       if (layers) params.layers = layers.join(",");
       return { path: "/locate", params };
     }
+    case "ground_at":
+    case "surface_at":
+      return {
+        path: name === "ground_at" ? "/ground" : "/surface",
+        params: { lat: args.lat, lng: args.lng, ...(args.open_only === true ? { open_only: "true" } : {}) },
+      };
     case "list_categories":
       return { path: "/categories", params: {} };
     case "get_layer_detail":

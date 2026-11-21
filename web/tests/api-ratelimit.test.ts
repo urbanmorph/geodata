@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, beforeEach, vi } from 'vitest';
-import { checkApiRateLimit, apiRateKey, rateKeySource, apiLimit, apiLimitFor, __resetApiLimiterForTest } from '../functions/lib/api-ratelimit';
+import { checkApiRateLimit, apiRateKey, rateKeySource, apiLimit, apiLimitFor, isPointLookup, __resetApiLimiterForTest } from '../functions/lib/api-ratelimit';
 import { onRequest as apiMiddleware } from '../functions/api/v1/_middleware';
 import { migratedDb, asD1 } from './helpers/sqlite-d1';
 
@@ -81,6 +81,17 @@ describe('apiLimit: the isolate answers, D1 follows in waitUntil', () => {
     apiLimit({ db: broken as never, key: 'k5', limit: 120, waitUntil: (p) => { waited.push(p); } });
     await Promise.all(waited);
     expect(apiLimit({ db: broken as never, key: 'k5', limit: 120, waitUntil: () => {} }).ok).toBe(true);
+  });
+});
+
+describe('isPointLookup: the endpoints on the locate limit', () => {
+  it('covers locate, a layer locate and ground; nothing else', () => {
+    expect(isPointLookup('/api/v1/locate')).toBe(true);
+    expect(isPointLookup('/api/v1/layers/lgd_states/locate')).toBe(true);
+    expect(isPointLookup('/api/v1/ground')).toBe(true);
+    expect(isPointLookup('/api/v1/layers')).toBe(false);
+    expect(isPointLookup('/api/v1/nearby')).toBe(false);
+    expect(isPointLookup('/api/v1/groundwater')).toBe(false);
   });
 });
 

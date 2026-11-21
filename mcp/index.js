@@ -9,7 +9,10 @@ import {
 import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { INSTRUCTIONS_CORE, READ_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
+import { instructionsCore, readToolsFor, POINT_PROFILE_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
+
+// The point lookups (ground_at, surface_at) stay unpublished until their release; BHARATLAS_POINT_PROFILES=on offers them.
+const POINT_PROFILES = process.env.BHARATLAS_POINT_PROFILES === "on";
 import { withClientIds, importSummary } from "./import-records.js";
 import { parseShareLink, atLeastScope } from "./collect-links.js";
 import { createMapBody } from "./create-map.js";
@@ -29,7 +32,7 @@ const COLLECT_STORE = process.env.COLLECT_MCP_STORE || join(homedir(), ".bharatl
 
 const SERVER_INSTRUCTIONS = `bharatlas MCP server. India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, rivers, canals, groundwater, agro-climatic zones, floods, seismic zones) plus community submissions. It also drives collect.bharatlas.com for authoring your own maps (see "Collect" below).
 
-${INSTRUCTIONS_CORE}
+${instructionsCore(POINT_PROFILES)}
 
 Collect (author your own map): this server also drives collect.bharatlas.com, the crowd map-capture tool in the bharatlas suite.
 - Create maps ONLINE at collect.bharatlas.com: the browser handles the anti-abuse check, so no account and no API key are needed. Point the user there to make one. They get three share links, each with a token in the URL #fragment: admin (full control), collect (add points), view (read published points).
@@ -43,7 +46,7 @@ Collect (author your own map): this server also drives collect.bharatlas.com, th
 // The eight read tools live in read-tools.js (shared with bharatlas.com/mcp);
 // the collect tools need the local credential store, so they are npm-only.
 const TOOLS = [
-  ...READ_TOOLS,
+  ...readToolsFor(POINT_PROFILES),
   // --- collect (authoring): act only on maps whose share link you registered ---
   {
     name: "register_map",
@@ -231,7 +234,9 @@ async function handleTool(name, args) {
   switch (name) {
     // --- read tools (read-tools.js) ---
     case "list_layers": case "get_layer_schema": case "query_layer": case "nearby":
-    case "locate": case "list_categories": case "get_layer_detail": case "list_submissions": {
+    case "locate": case "list_categories": case "get_layer_detail": case "list_submissions":
+    case "ground_at": case "surface_at": {
+      if (POINT_PROFILE_TOOLS.has(name) && !POINT_PROFILES) throw new Error(`Unknown tool: ${name}`);
       const req = readToolRequest(name, args);
       return shapeReadResult(name, await callApi(req.path, req.params));
     }
