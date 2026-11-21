@@ -1,4 +1,5 @@
-// /layers: every layer, one section per theme (Option B). The box filters rows
+// /layers: every layer, in three realms (below ground, on the ground, in the
+// air) with a section per theme in each (Option B). The box filters rows
 // across every theme with the same matcher as the home search (catalog-filter),
 // over the same /layer-index.json (the rows carry no search text of their own);
 // "show all N" opens a long section; ?q= pre-fills the box.
@@ -18,28 +19,55 @@ const meta = document.getElementById('search-meta');
 
 if (input && grid) {
   const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
+  // Realms (below ground, on the ground, in the air) hold the theme sections.
+  const realms = Array.from(grid.querySelectorAll<HTMLElement>('.realm'));
   const cardEls = Array.from(grid.querySelectorAll<HTMLElement>('.row, .comm-card'));
   const sectionOf = cardEls.map((el) => el.closest<HTMLElement>('.category-section'));
-  // Each theme's count, in its section header and the theme index: the page's
-  // own figure, or while filtering the number of its layers that match.
-  const countEls = sections.map((sec) => ({
-    head: sec.querySelector<HTMLElement>('.category-section__count'),
-    index: document.querySelector<HTMLElement>(`.theme-index a[href="#${sec.id}"]`),
+  // Each theme's and realm's count, in its section header (themes only) and
+  // the index: the page's own figure, or while filtering the number of its
+  // layers that match.
+  const groups = [...sections, ...realms];
+  const countEls = groups.map((g) => ({
+    head: g.classList.contains('category-section') ? g.querySelector<HTMLElement>('.category-section__count') : null,
+    index: document.querySelector<HTMLElement>(`.theme-index a[href="#${g.id}"]`),
   }));
   const baked = countEls.map(({ head, index }) => ({
     head: head?.textContent ?? '',
     index: index?.querySelector('.theme-index__n')?.textContent ?? '',
   }));
-  const showCounts = (perSection: Map<HTMLElement | null, number> | null): void => {
-    sections.forEach((sec, i) => {
+  const showCounts = (perGroup: Map<HTMLElement | null, number> | null): void => {
+    groups.forEach((sec, i) => {
       const { head, index } = countEls[i];
-      const n = perSection ? perSection.get(sec) ?? 0 : null;
+      const n = perGroup ? perGroup.get(sec) ?? 0 : null;
       if (head) head.textContent = n == null ? baked[i].head : `${n} layer${n === 1 ? '' : 's'}`;
       const num = index?.querySelector('.theme-index__n');
       if (num) num.textContent = n == null ? baked[i].index : String(n);
       index?.classList.toggle('is-empty', n === 0);
     });
   };
+  // Desktop index: every realm, but only the themes of the one in view (the
+  // CSS keys off .is-following + .is-active). Every realm stays open while
+  // searching, and without IntersectionObserver (or JS). No animation.
+  const nav = document.querySelector<HTMLElement>('.theme-index');
+  const follow = !!nav && realms.length > 0 && typeof IntersectionObserver === 'function';
+  const groupOf = (id: string) => nav?.querySelector(`a[href="#${id}"]`)?.closest('.theme-index__group');
+  const activate = (g: Element | null | undefined): void => {
+    if (!g || g.classList.contains('is-active')) return;
+    nav?.querySelector('.theme-index__group.is-active')?.classList.remove('is-active');
+    g.classList.add('is-active');
+  };
+  if (follow) {
+    activate(groupOf(realms[0].id));
+    nav.classList.add('is-following');
+    // The realm crossing a band a third of the way down the window is the one in view.
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) activate(groupOf(e.target.id));
+    }, { rootMargin: '-30% 0px -60% 0px' });
+    for (const r of realms) io.observe(r);
+    // Keyboard: tabbing onto a realm opens its themes.
+    nav.addEventListener('focusin', (e) => activate((e.target as Element).closest('.theme-index__group')));
+  }
+
   const showEmpty = (query: string | null): void => {
     if (!empty) return;
     empty.hidden = query == null;
@@ -69,6 +97,7 @@ if (input && grid) {
 
   const apply = (): void => {
     const query = input.value.trim();
+    nav?.classList.toggle('is-following', follow && !query);
     if (query && !cards) {
       // q-precheck.js has opened every section for a ?q= arrival: it stays so until the index lands.
       loadIndex().then(apply, () => {});
@@ -86,7 +115,11 @@ if (input && grid) {
       // While filtering every match shows: open the section, hide empty ones.
       sec.classList.toggle('expanded', !!query);
       sec.classList.toggle('hidden', !perSection.get(sec));
+      // A realm's count is its sections' sum; a realm with no match hides.
+      const realm = sec.closest<HTMLElement>('.realm');
+      if (realm) perSection.set(realm, (perSection.get(realm) ?? 0) + (perSection.get(sec) ?? 0));
     }
+    for (const realm of realms) realm.hidden = !perSection.get(realm);
     showCounts(result ? perSection : null);
     showEmpty(result && result.totalMatches === 0 ? query : null);
     if (meta) meta.textContent = result ? matchLine(result.totalLayers, query) : '';

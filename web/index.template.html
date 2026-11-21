@@ -129,11 +129,12 @@
       .searching .home-browse { display: none; }
       .home-section .section-title { margin: 0 0 18px; }
       /* Theme cards read as a map legend: symbol, name, count; ruled cells. */
-      .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border-top: 1.5px solid var(--edge); border-left: 1.5px solid var(--edge); }
+      /* Each card has its own ruled box, overlapping its neighbours' rules, so a short last row (one card in a realm) leaves no stray line. */
+      .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); padding: 0 1.5px 1.5px 0; }
       .theme-card {
         display: grid; grid-template-columns: auto 1fr auto; gap: 4px 12px; align-items: center; text-align: left;
         min-height: 72px; padding: 14px 16px; color: var(--fg); background: var(--bg-elevated); text-decoration: none;
-        border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge);
+        border: 1.5px solid var(--edge); margin: 0 -1.5px -1.5px 0;
       }
       @media (hover: hover) { .theme-card:hover { background: var(--land); text-decoration: none; } }
       .legend-glyph { grid-row: 1 / span 2; }
@@ -141,6 +142,14 @@
       .theme-card__n { font: 600 var(--fs-sm) var(--font-mono); color: var(--muted); white-space: nowrap; }
       .see-all { margin: 20px 0 0; }
       .theme-card__desc { grid-column: 2 / -1; font-size: var(--fs-sm); line-height: 1.45; color: var(--muted); }
+      /* Themes grouped by realm (scripts/realms.json), as on /layers. */
+      .realm-group + .realm-group { margin-top: 28px; }
+      .realm-group__title { margin: 0; font-size: var(--fs-xl); font-weight: 800; letter-spacing: -.015em; }
+      .realm-group__title a { display: inline-flex; align-items: center; min-height: 44px; color: var(--fg); }
+      .realm-group__title a:hover { text-decoration: underline; text-underline-offset: 3px; }
+      .realm-group__desc { margin: 0 0 12px; color: var(--muted); font-size: var(--fs-base); }
+      .realm-group__note { margin: 12px 0 0; color: var(--muted); font-size: var(--fs-sm); }
+      .realm-group__note a { display: inline-block; padding: 12px 0; margin: -12px 0; font-weight: 650; text-decoration: underline; text-underline-offset: 2px; }
       .popular-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
       .popular-item { display: flex; flex-direction: column; gap: 2px; padding: 14px 18px; border-bottom: 1px solid var(--line); color: var(--fg); text-decoration: none !important; }
       .popular-item:hover { background: var(--bg-card); }
@@ -201,9 +210,13 @@
         .search-bar { flex: 0 0 auto; height: 56px; padding: 0 10px 0 14px; }
         .search-bar__key { display: none; }
         .ask-ai { padding: 20px; }
-        .theme-grid { grid-template-columns: minmax(0, 1fr); }
-        .theme-card { min-height: 56px; padding: 8px 14px; }
+        /* Two cards a row, the count under the name, so three realms stay short. */
+        .theme-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .theme-card { min-height: 56px; padding: 8px 10px; grid-template-columns: auto minmax(0, 1fr); gap: 0 8px; }
+        .theme-card__name { font-size: var(--fs-sm); line-height: 1.25; }
+        .theme-card__n { grid-column: 2; font-size: var(--fs-xs); }
         .theme-card__desc { display: none; }
+        .theme-card .legend-glyph { width: 22px; height: 22px; }
       }
 
       /* Crawler / no-JS SEO article injected on /view/<id> (sits behind the map
@@ -840,9 +853,7 @@
 
     <section class="home-section home-browse" id="themes" aria-labelledby="themes-title">
       <h2 class="section-title" id="themes-title">Browse by theme</h2>
-      <nav class="theme-grid" aria-label="Browse by theme">
-        <!-- CATEGORY_CHIPS -->
-      </nav>
+      <!-- REALM_GROUPS -->
       <p class="see-all"><a class="btn btn--line" href="/layers">See all <!-- LAYER_TOTAL --> layers</a></p>
     </section>
 

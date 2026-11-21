@@ -85,19 +85,29 @@ describe('counts from their source', () => {
 
 describe('/layers themes', () => {
   const layers = read('layers.html');
-  const sections = [...layers.matchAll(/<section class="category-section" id="([a-z-]+)"/g)].map((m) => m[1]);
-  it('follow the catalogue order, water included and other last', () => {
+  // [realm, theme] per section, in page order.
+  const sections = [...layers.matchAll(/<section class="category-section" id="([a-z]+)-([a-z-]+)"/g)].map((m) => [m[1], m[2]]);
+  it('follow the catalogue order within each realm, water included and other last', () => {
     const order = Object.keys(catalog.categories);
-    expect(sections).toEqual(order.filter((c) => sections.includes(c)));
-    expect(sections).toContain('water');
-    if (sections.includes('other')) expect(sections.at(-1)).toBe('other');
-    for (const s of sections) expect(order, s).toContain(s);
+    for (const realm of new Set(sections.map(([r]) => r))) {
+      const cats = sections.filter(([r]) => r === realm).map(([, c]) => c);
+      expect(cats, realm).toEqual(order.filter((c) => cats.includes(c)));
+      if (cats.includes('other')) expect(cats.at(-1)).toBe('other');
+      for (const s of cats) expect(order, s).toContain(s);
+    }
+    expect(sections.map(([, c]) => c)).toContain('water');
   });
-  it('the theme index counts match the section counts', () => {
+  it('the theme index counts match the section counts, and each realm\'s count is its sections\' sum', () => {
     const idx = layers.match(/<nav class="theme-index"[^>]*>([\s\S]*?)<\/nav>/)![1];
-    for (const m of idx.matchAll(/href="#([a-z-]+)"[\s\S]*?theme-index__n">(\d+)</g)) {
-      const sec = layers.match(new RegExp(`id="${m[1]}" data-category[\\s\\S]*?category-section__count">(\\d+) layer`))!;
-      expect(sec[1], m[1]).toBe(m[2]);
+    const secCount = (id: string) => Number(layers.match(new RegExp(`<section class="category-section" id="${id}"[\\s\\S]*?category-section__count">(\\d+) layer`))![1]);
+    for (const m of idx.matchAll(/href="#([a-z]+-[a-z-]+)"[\s\S]*?theme-index__n">(\d+)</g)) {
+      expect(String(secCount(m[1])), m[1]).toBe(m[2]);
+    }
+    const realmLinks = [...idx.matchAll(/href="#([a-z]+)"[\s\S]*?theme-index__n">(\d+)</g)];
+    expect(realmLinks.map((m) => m[1])).toEqual(['below', 'ground', 'air']);
+    for (const m of realmLinks) {
+      const sum = sections.filter(([r]) => r === m[1]).reduce((n, [r, c]) => n + secCount(`${r}-${c}`), 0);
+      expect(Number(m[2]), m[1]).toBe(sum);
     }
   });
   it('carry no build-time "updated N ago" (the panel shows the date)', () => {
