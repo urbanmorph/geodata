@@ -10,6 +10,8 @@ import {
 } from '../../shared/tokens.mjs';
 // @ts-expect-error: plain .mjs
 import { TOKENS } from '../scripts/shared-chrome.mjs';
+// @ts-expect-error: plain .mjs
+import { HEAD_ICONS } from '../scripts/seo-head.mjs';
 
 const root = resolve(__dirname, '..', '..');
 const read = (p: string) => readFileSync(resolve(root, p), 'utf8');
@@ -95,13 +97,11 @@ describe('pages that cannot import the module carry exact copies', () => {
 });
 
 describe('theme-color is the paper (--bg) in each theme', () => {
-  const files = [
-    ...['index', 'layers', 'about', 'docs', 'mcp', 'preview', 'privacy', 'terms', 'releases', '404', 'design'].map((p) => `web/${p}.template.html`),
-    'collect/index.html', 'collect/c.html', 'collect/404.html',
-  ];
+  // The web page templates take theirs from HEAD_ICONS (seo-head.test.ts checks each uses it).
+  const files = ['HEAD_ICONS', 'collect/index.html', 'collect/c.html', 'collect/404.html'];
   for (const f of files) {
     it(f, () => {
-      const html = read(f);
+      const html = f === 'HEAD_ICONS' ? HEAD_ICONS : read(f);
       for (const mode of MODES) {
         const m = html.match(new RegExp(`<meta name="theme-color" content="(#[0-9a-fA-F]{6})" media="\\(prefers-color-scheme: ${mode}\\)"`));
         expect(m?.[1].toLowerCase(), `${f} ${mode}`).toBe(COLORS[mode]['--bg'].toLowerCase());

@@ -3,7 +3,20 @@
 // /view pages rewrite theirs at the edge (functions/view).
 import { escapeHtml as esc } from '../../shared/format.mjs';
 import { SITE_ORIGIN } from '../../shared/sitemap.mjs';
+import { COLORS } from '../../shared/tokens.mjs';
 import { ogImage } from './og-image-url.mjs';
+
+// Every page's icons, install manifest and browser-bar colours: the
+// <!-- HEAD_ICONS --> placeholder in each *.template.html.
+export const HEAD_ICONS = [
+  '<link rel="icon" type="image/svg+xml" href="/favicon.svg" />',
+  '<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />',
+  '<link rel="icon" sizes="any" href="/favicon.ico" />',
+  '<link rel="apple-touch-icon" href="/apple-touch-icon.png" />',
+  '<link rel="manifest" href="/manifest.webmanifest" />',
+  // The browser bar takes the paper colour (--bg) of each theme.
+  ...['light', 'dark'].map((mode) => `<meta name="theme-color" content="${COLORS[mode]['--bg']}" media="(prefers-color-scheme: ${mode})" />`),
+].join('\n    ');
 
 /** BreadcrumbList from [name, path] pairs, Home first. */
 export function crumbs(...trail) {

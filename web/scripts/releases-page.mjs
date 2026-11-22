@@ -10,7 +10,7 @@ import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { fillTemplate } from './fill-template.mjs';
 import { escapeHtml as esc, fmtBytes, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { PUBLISHER_LD } from '../../shared/brand.mjs';
-import { seoHead, crumbs } from './seo-head.mjs';
+import { seoHead, crumbs, HEAD_ICONS } from './seo-head.mjs';
 import { SITE_ORIGIN } from '../../shared/sitemap.mjs';
 
 const TEMPLATE = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'releases.template.html');
@@ -47,7 +47,7 @@ function head({ title, description, path, trail }) {
 
 function page(seo, main) {
   return fillTemplate(readFileSync(TEMPLATE, 'utf8'), {
-    SEO_HEAD: head(seo), TOKENS, NAV: renderNav('', { installScript: false }), FOOTER, MAIN: main,
+    SEO_HEAD: head(seo), HEAD_ICONS, TOKENS, NAV: renderNav('', { installScript: false }), FOOTER, MAIN: main,
   });
 }
 

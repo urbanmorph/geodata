@@ -25,7 +25,7 @@ import { minifyInlineStyles as minifyCss } from './minify-inline-css.mjs';
 import { designPageBody } from './design-page.mjs';
 import { gatePointProfiles, POINT_PROFILE_ATTRIBUTION, POINT_PROFILE_FAQ, POINT_PROFILE_CREDITS } from './point-profiles.mjs';
 import { ogImage } from './og-image-url.mjs';
-import { seoHead, crumbs } from './seo-head.mjs';
+import { seoHead, crumbs, HEAD_ICONS } from './seo-head.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
@@ -741,6 +741,7 @@ const siteUse = { downloads: homeDownloads, ...apiUse };
 const out = fillTemplate(tmpl, {
   REALM_GROUPS: homeRealmsHtml,
   SEO_HEAD: homeSeo,
+  HEAD_ICONS,
   TOKENS: MAP_TOKENS,
   NAV: renderNav('home'),
   FOOTER,
@@ -772,6 +773,7 @@ await writeFile(
   resolve(WEB, 'layers.html'),
   dropIndent(await minifyInlineStyles(fillTemplate(layersTmpl, {
     SEO_HEAD: layersSeo,
+    HEAD_ICONS,
     TOKENS,
     NAV: renderNav('layers'),
     FOOTER,
@@ -793,6 +795,7 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
   const tmpl = gatePointProfiles(await readFile(path, 'utf8'), POINT_PROFILES);
   const out = fillTemplate(tmpl, {
     SEO_HEAD: seoHead(seoOpts),
+    HEAD_ICONS,
     TOKENS,
     NAV: renderNav(navKey),
     FOOTER,
