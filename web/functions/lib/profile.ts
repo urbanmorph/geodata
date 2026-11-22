@@ -339,7 +339,7 @@ export async function profileAt(
   const unavailable: ProfileResponse['unavailable'] = [];
   const timing: Record<string, number> = {};
   const said: Array<[number, string]> = [];
-  const credits = new Set<string>();
+  const creditOfKey = new Map<string, string>();
   const omitted: string[] = [];
 
   const timed = async <T>(id: string, p: () => Promise<T>): Promise<T> => {
@@ -377,7 +377,7 @@ export async function profileAt(
       sections[spec.section][key] = entry;
       const line = spec.say?.(entry);
       if (line) said.push([order, line]);
-      if (entry.status === 'found') credits.add(`${entry.credit.name} (${layer.licence ?? 'see source'})`);
+      if (entry.status === 'found') creditOfKey.set(key, `${entry.credit.name} (${layer.licence ?? 'see source'})`);
     } catch (e) {
       failed(key, e);
     }
@@ -393,7 +393,7 @@ export async function profileAt(
       sections[px.section][px.id] = entry;
       const line = px.say?.(entry);
       if (line) said.push([layers.findIndex((l) => l.section === px.section) - 1 + (i + 1) / (profile.pixels.length + 1), line]);
-      if (entry.status === 'found') credits.add(px.credit);
+      if (entry.status === 'found') creditOfKey.set(px.id, px.credit);
     } catch (e) {
       failed(px.id, e);
     }
@@ -408,6 +408,9 @@ export async function profileAt(
   }
   unavailable.sort((a, b) => order(a.layer_id) - order(b.layer_id));
   said.sort((a, b) => a[0] - b[0]);
+  // Credits follow the sections too, so the list is the same however the reads finish.
+  const credits = new Set(profile.sections.flatMap((s) => Object.keys(sections[s]))
+    .flatMap((k) => creditOfKey.get(k) ?? []));
   const lines = [...said.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])];
 
   return {

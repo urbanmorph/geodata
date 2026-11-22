@@ -296,6 +296,16 @@ describe('groundAt', () => {
     await Promise.all(held);
   });
 
+  it('lists credits in the table order, however the layers finish', async () => {
+    const late = (ms: number) => <T>(v: Promise<T>) => new Promise<T>((res) => setTimeout(() => res(v), ms));
+    const fast = await run(28.525, 77.085, catalog, ({ soil: () => late(30)(deps().soil()) }));
+    const slow = await run(28.525, 77.085, catalog, ({
+      nearby: (...a: Parameters<GroundDeps['nearby']>) => late(30)(deps().nearby(...a)),
+    }));
+    expect(fast.attribution.length).toBeGreaterThan(2);
+    expect(slow.attribution).toEqual(fast.attribution);
+  });
+
   it('collapses line breaks a source put inside a text field', async () => {
     const g = await run(28.525, 77.085, catalog, ({
       locate: async (_lat, _lng, ids) => ({
