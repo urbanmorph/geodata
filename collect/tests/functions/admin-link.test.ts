@@ -3,19 +3,13 @@
 // an old admin link (another device, the MCP's saved token) gets a plain 401.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { O, req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import { onRequest } from '../../functions/api/collect/[[path]]';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 let env: Env & { DB: ReturnType<typeof sqliteD1> };
 
-function req(method: string, path: string, token = '', body?: unknown): Request {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
 /** Through the real router, as a phone or the MCP would call it. */
 const call = async (method: string, path: string, token = '', body?: unknown) =>
@@ -25,13 +19,7 @@ const call = async (method: string, path: string, token = '', body?: unknown) =>
     waitUntil: () => {},
   } as unknown as Parameters<typeof onRequest>[0]));
 
-async function newMap(): Promise<{ id: string; admin: string; edit: string }> {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Ward trees', purpose: 'Street trees', license: 'CC-BY-4.0',
-    schema_doc: { version: 1, geometry: ['point'], fields: [{ key: 'name', label: 'Name', type: 'text' }] },
-  })));
-  return { id: r.body.id, admin: r.body.tokens.admin, edit: r.body.tokens.edit };
-}
+const newMap = () => makeMap(env, { fields: [{ key: 'name', label: 'Name', type: 'text' }] });
 
 beforeEach(() => {
   env = { DB: sqliteD1(), R2: {} as R2Bucket, LOCATE_ORIGIN: 'http://locate.stub' } as typeof env;

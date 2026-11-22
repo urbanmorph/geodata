@@ -5,28 +5,15 @@
 // Downloads and published data carry it as added_at.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 let env: Env & { DB: ReturnType<typeof sqliteD1> };
 let objects: Map<string, string>;
 
-function req(method: string, path: string, token = '', body?: unknown): Request {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
-async function newMap() {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Ward trees', purpose: 'Street trees', license: 'CC-BY-4.0',
-    schema_doc: { version: 1, geometry: ['point'], fields: [{ key: 'name', label: 'Name', type: 'text', required: true }] },
-    moderation: 0,
-  })));
-  return { id: r.body.id as string, edit: r.body.tokens.edit as string, admin: r.body.tokens.admin as string };
-}
+const newMap = () => makeMap(env, { moderation: 0 });
 const point = { type: 'Point', coordinates: [77.59, 12.97] };
 const add = async (m: { id: string; edit: string }, extra: Record<string, unknown> = {}) =>
   j(await h.addRecord(env, req('POST', `/collections/${m.id}/records`, m.edit, { geometry: point, properties: { name: 'Neem' }, ...extra }), m.id));

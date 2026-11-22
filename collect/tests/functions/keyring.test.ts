@@ -4,6 +4,7 @@
 // merge; keyrings unused for 12 months are deleted.
 import { describe, it, expect, beforeEach } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { j } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import type { Env } from '../../functions/types';
 
@@ -18,7 +19,6 @@ function req(method: string, token = '', body?: unknown): Request {
     method, headers, body: body === undefined ? undefined : JSON.stringify(body),
   });
 }
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 const put = (blob: string, base: string | null, key = KEY, id = ID) => h.putKeyring(env, req('PUT', key, { blob, base }), id);
 
 beforeEach(() => { env = { DB: sqliteD1(), R2: {} as R2Bucket }; });

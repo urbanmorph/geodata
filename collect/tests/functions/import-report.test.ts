@@ -6,31 +6,19 @@
 // part way, and a failed write is reported with how many were saved.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 let env: Env & { DB: ReturnType<typeof sqliteD1> };
 let pending: Promise<unknown>[];
 const defer = (p: Promise<unknown>) => { pending.push(p); };
 
-function req(method: string, path: string, token = '', body?: unknown): Request {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
-async function newMap() {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Footpaths', purpose: 'Rate footpaths', license: 'CC-BY-4.0',
-    schema_doc: { version: 1, geometry: ['point'], fields: [
-      { key: 'segment', label: 'Segment', type: 'text', required: true },
-      { key: 'surface', label: 'Surface', type: 'select', options: ['Good', 'Bad'] },
-    ] },
-  })));
-  return { id: r.body.id as string, admin: r.body.tokens.admin as string };
-}
+const newMap = () => makeMap(env, { name: 'Footpaths', purpose: 'Rate footpaths', fields: [
+  { key: 'segment', label: 'Segment', type: 'text', required: true },
+  { key: 'surface', label: 'Surface', type: 'select', options: ['Good', 'Bad'] },
+] });
 const rec = (segment: string, surface?: string) =>
   ({ geometry: { type: 'Point', coordinates: [77.59, 12.99] }, properties: { segment, ...(surface ? { surface } : {}) } });
 async function importRows(m: { id: string; admin: string }, records: unknown[], extra: Record<string, unknown> = {}) {
