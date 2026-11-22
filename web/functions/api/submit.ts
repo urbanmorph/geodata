@@ -18,6 +18,7 @@ import { checkRateLimit } from '../lib/ratelimit';
 import { json as j } from '../lib/http';
 import { findDuplicateByHash } from '../lib/submissions';
 import { persistSubmission } from '../lib/persist-submission';
+import { mimeFor } from '../../../shared/mime.mjs';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
 import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, submitterSalt, parseDataYear } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
@@ -29,16 +30,6 @@ const codeForReason = (reason: string): number => {
   if (/format/i.test(reason)) return 415;
   if (/duplicate/i.test(reason)) return 409;
   return 400;
-};
-
-const contentTypeFor = (ext: string): string => {
-  if (ext === 'geojson' || ext === 'json') return 'application/geo+json';
-  if (ext === 'kml') return 'application/vnd.google-earth.kml+xml';
-  if (ext === 'kmz') return 'application/vnd.google-earth.kmz';
-  if (ext === 'gpx') return 'application/gpx+xml';
-  if (ext === 'tcx') return 'application/vnd.garmin.tcx+xml';
-  if (ext === 'parquet') return 'application/x-parquet';
-  return 'application/octet-stream';
 };
 
 // Shown to the contributor when storage fails: plain, and honest that nothing was kept.
@@ -191,7 +182,7 @@ async function handleSubmit(
       files: [{
         key: r2Key,
         body: bytes,
-        httpMetadata: { contentType: contentTypeFor(ext), contentDisposition: `attachment; filename="${filename}"` },
+        httpMetadata: { contentType: mimeFor(ext), contentDisposition: `attachment; filename="${filename}"` },
       }],
       submission: {
         id,

@@ -3,6 +3,7 @@ import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
 import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial } from '../../../shared/licences.mjs';
 import { LEVEL_META, pickPrimary, type LevelMeta } from '../../../shared/level-meta.mjs';
 import { PUBLISHER_LD } from '../../../shared/brand.mjs';
+import { mimeFor } from '../../../shared/mime.mjs';
 import type { CatalogLayer as ApiCatalogLayer } from './catalog-api';
 // Pure builder for the /view/<id> page's per-layer meta + Dataset JSON-LD.
 // Extracted from functions/view/[id].ts so the description-length rule
@@ -118,11 +119,11 @@ const DISTRIBUTION_FORMATS: Array<[
   'parquet' | 'pmtiles' | 'geojson' | 'kml' | 'shapefile',
   string,
 ]> = [
-  ['parquet', 'application/vnd.apache.parquet'],
-  ['pmtiles', 'application/vnd.pmtiles'],
-  ['geojson', 'application/geo+json'],
-  ['kml', 'application/vnd.google-earth.kml+xml'],
-  ['shapefile', 'application/zip'],
+  ['parquet', mimeFor('parquet')],
+  ['pmtiles', mimeFor('pmtiles')],
+  ['geojson', mimeFor('geojson')],
+  ['kml', mimeFor('kml')],
+  ['shapefile', mimeFor('zip')],
 ];
 
 const FORMAT_NAMES: Record<(typeof DISTRIBUTION_FORMATS)[number][0], string> = {
@@ -165,7 +166,7 @@ function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> 
       out.push({
         '@type': 'DataDownload',
         // A layer split per state ships its GeoJSON/KML as a zip of state files.
-        encodingFormat: ref.url.endsWith('.zip') ? 'application/zip' : encodingFormat,
+        encodingFormat: ref.url.endsWith('.zip') ? mimeFor('zip') : encodingFormat,
         contentUrl: ref.url,
         ...(ref.bytes ? { contentSize: String(ref.bytes) } : {}),
       });

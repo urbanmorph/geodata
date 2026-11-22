@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { SERVER_SHAPE_EXPORT } from '../../../../../../shared/large-load.mjs';
+import { mimeFor } from '../../../../../../shared/mime.mjs';
 import { countApiUse } from '../../../../lib/usage';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { queryFailure } from '../../../../lib/parquet-query';
@@ -11,12 +12,6 @@ import { parseQueryParams } from '../../../../lib/query-params';
 import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
-
-const CONTENT_TYPES: Record<ExportFormat, string> = {
-  geojson: 'application/geo+json',
-  kml: 'application/vnd.google-earth.kml+xml',
-  csv: 'text/csv; charset=utf-8',
-};
 
 /** Where the whole layer lives, for the over-the-cap message: a layer split
  *  per state ships its GeoJSON/KML/shapefile as zips of state files. */
@@ -99,7 +94,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     const out = await exportRows(file, { where, filters, format, name: layer.id, tooManyHint: downloadsHint(layer) });
     return new Response(exportBody(out.chunks), {
       headers: {
-        'content-type': CONTENT_TYPES[format],
+        'content-type': mimeFor(format),
         'content-disposition': `attachment; filename="${layer.id}.${format}"`,
         'cache-control': 'no-store',
         'x-match-count': String(out.total),

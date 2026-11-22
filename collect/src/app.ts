@@ -50,6 +50,7 @@ import { newClientId, stuckReason } from './outbox';
 import { uploadPhoto } from './send-queue';
 import { aiNotesHtml, type Notes } from './review-ai';
 import { PALETTE } from '../../shared/brand.mjs';
+import { mimeFor } from '../../shared/mime.mjs';
 import { fetchAllPages } from './paging';
 import './register-sw';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
@@ -1499,11 +1500,11 @@ async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
     if (!features.length) { toast('No points to download yet'); return; }
     // The owner's download keeps hidden fields too: hiding keeps the data.
     const keys = meta.schema.fields.map((f) => f.key);
-    const [content, mime, ext] =
-      format === 'geojson' ? [toGeoJSON(features, keys), 'application/geo+json', 'geojson']
-      : format === 'csv' ? [toCSV(features, keys), 'text/csv', 'csv']
-      : [toKML(features, keys, meta.name), 'application/vnd.google-earth.kml+xml', 'kml'];
-    downloadText(content, `${slug(meta.name)}.${ext}`, mime);
+    const [content, ext] =
+      format === 'geojson' ? [toGeoJSON(features, keys), 'geojson']
+      : format === 'csv' ? [toCSV(features, keys), 'csv']
+      : [toKML(features, keys, meta.name), 'kml'];
+    downloadText(content, `${slug(meta.name)}.${ext}`, mimeFor(ext));
     toast(`Downloaded ${plural(features.length, 'point')} as ${ext.toUpperCase()}`);
   } catch (e) {
     toast((e as Error).message, 'error');

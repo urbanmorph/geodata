@@ -19,14 +19,8 @@ import { escapeHtml as esc, fmtBytes, ldJsonScript } from '../../../shared/forma
 import { licenceUrl } from '../../../shared/licences.mjs';
 import { footerHtml } from '../../../shared/footer.mjs';
 import { SITE_ORIGIN } from '../../../shared/brand.mjs';
+import { mimeFor } from '../../../shared/mime.mjs';
 
-const FORMAT_MIME: Record<string, string> = {
-  geojson: 'application/geo+json',
-  json: 'application/json',
-  kml: 'application/vnd.google-earth.kml+xml',
-  kmz: 'application/vnd.google-earth.kmz',
-  parquet: 'application/x-parquet',
-};
 
 function relativeTime(iso: string, now: Date = new Date()): string {
   const t = new Date(iso).getTime();
@@ -88,7 +82,7 @@ export function renderViewPage(opts: RenderOpts): string {
     distribution: [
       {
         '@type': 'DataDownload',
-        encodingFormat: FORMAT_MIME[s.format] || 'application/octet-stream',
+        encodingFormat: mimeFor(s.format),
         contentUrl: r2Url,
         contentSize: String(s.bytes),
       },
