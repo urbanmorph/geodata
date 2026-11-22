@@ -27,8 +27,10 @@ import {
 import { bboxDistanceKm, nearestByGeometry, type GeomHit } from './nearby-geometry';
 import { nearbyFromTiles } from './nearby-tiles';
 
-/** Most geometry (compressed bytes, over the row groups the search touches) read from the parquet. */
-export const PARQUET_SHAPE_BYTES = 8_000_000;
+/** Most geometry (compressed bytes, over the row groups the search touches) read from the parquet.
+ *  Measured 22 Nov 2026 on a preview: at 8 MB, soi_forests (7.7 MB of polygons a row group) ran
+ *  out of CPU (Cloudflare 1102) at Delhi, Leh and Lucknow, and lgd_villages at Port Blair. */
+export const PARQUET_SHAPE_BYTES = 2_000_000;
 /** Most parquet rows read to give tile hits their full columns. */
 const MAX_JOIN_ROWS = 2000;
 
