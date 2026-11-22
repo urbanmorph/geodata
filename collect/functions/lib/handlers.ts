@@ -16,7 +16,7 @@ import * as db from './db';
 import { recordStatusFor } from './moderation';
 import { validateNewCollection, validateCollectionEdit, validateFormEdit, schemaFits } from '../../src/schema/validate-collection';
 import { validateRecordProperties, CLIENT_ID, type Field } from '../../src/schema/validate-record';
-import { checkIndiaBounds } from '../../src/geo/bounds';
+import { checkIndiaBounds, geometryAllowed } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
 import { composeAttribution } from '../../src/publish/attribution';
 import { modeOf, usesAi } from '../../src/schema/modes';
@@ -89,13 +89,6 @@ async function withAttempt(
 async function turnstileOk(env: Env, token: unknown): Promise<boolean> {
   if (!env.TURNSTILE_SECRET) return true;
   return typeof token === 'string' && (await verifyTurnstile(token, env.TURNSTILE_SECRET));
-}
-
-function geomBucket(type: string): 'point' | 'line' | 'polygon' | null {
-  if (type === 'Point' || type === 'MultiPoint') return 'point';
-  if (type === 'LineString' || type === 'MultiLineString') return 'line';
-  if (type === 'Polygon' || type === 'MultiPolygon') return 'polygon';
-  return null;
 }
 
 /** A refusal that logs its gate (and reason, when given) before answering. */
@@ -484,10 +477,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   if (!bounds.ok) return reject(400, 'bounds', bounds.error, bounds.error);
 
   const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
-  const bucket = geomBucket((geometry as { type: string }).type);
-  if (!bucket || !schema.geometry.includes(bucket)) {
-    return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
-  }
+  if (!geometryAllowed(geometry, schema.geometry)) return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
 
   const mode = modeOf(schema);
   const validated = validateRecordProperties(schema.fields, body.properties, { photosOnly: mode === 'photos_ai' });
@@ -686,10 +676,7 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   if (body.geometry !== undefined) {
     const bounds = checkIndiaBounds(body.geometry);
     if (!bounds.ok) return bad(400, bounds.error);
-    const bucket = geomBucket((body.geometry as { type: string }).type);
-    if (!bucket || !schema.geometry.includes(bucket)) {
-      return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
-    }
+    if (!geometryAllowed(body.geometry, schema.geometry)) return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
     patch.geometry = JSON.stringify(body.geometry);
     movedGeometry = body.geometry;
   }
@@ -801,8 +788,7 @@ async function importInto(env: Env, req: Request, id: string, ipHash: string, { 
     }
     const bounds = checkIndiaBounds(r?.geometry);
     if (!bounds.ok) { errors.push({ index: i, error: bounds.error }); continue; }
-    const bucket = geomBucket((r.geometry as { type: string }).type);
-    if (!bucket || !schema.geometry.includes(bucket)) { errors.push({ index: i, error: `geometry not allowed here` }); continue; }
+    if (!geometryAllowed(r.geometry, schema.geometry)) { errors.push({ index: i, error: `geometry not allowed here` }); continue; }
     const v = validateRecordProperties(schema.fields, r?.properties);
     if (!v.ok) { errors.push({ index: i, error: v.error }); continue; }
     rows.push({

@@ -37,7 +37,7 @@ import { startAutoSync } from './syncing';
 import { modeOf, photoFields } from './schema/modes';
 import { readDataYear } from './schema/data-year';
 import { modeChoices } from './create/plan';
-import { isInIndia } from './geo/bounds';
+import { isInIndia, geomBucket } from './geo/bounds';
 import { metresBetween, ringArea, lineLength, formatArea, formatLength, simplify } from './geo/measure';
 import { createTrace, averageFix, type Trace, type Fix } from './capture/trace';
 import { saveWalk, loadWalk, clearWalk } from './capture/walk-store';
@@ -608,11 +608,7 @@ function fitToFeatures(feats: Feature[]): void {
 }
 
 const NOUN: Record<GeomMode, string> = { point: 'point', line: 'line', polygon: 'area' };
-function nounFor(geometryType: string): string {
-  if (geometryType === 'Polygon' || geometryType === 'MultiPolygon') return NOUN.polygon;
-  if (geometryType === 'LineString' || geometryType === 'MultiLineString') return NOUN.line;
-  return NOUN.point;
-}
+const nounFor = (geometryType: string): string => NOUN[geomBucket(geometryType) ?? 'point'];
 const CAP_HELP: Record<GeomMode, string> = {
   point: 'Move the map so the crosshair sits on the spot.',
   line: 'Pan the map so the crosshair sits on a point, then tap "Add point here". Repeat along the line.',

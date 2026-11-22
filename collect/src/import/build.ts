@@ -3,7 +3,7 @@
 // Valid rows become records to POST; invalid rows go to the error file.
 
 import { validateRecordProperties, type Field } from '../schema/validate-record';
-import { checkIndiaBounds } from '../geo/bounds';
+import { checkIndiaBounds, geometryAllowed } from '../geo/bounds';
 import { isDate, datePart } from '../schema/dates';
 import type { ParsedFeature } from './parse';
 import { csvCell } from '../../../shared/csv.mjs';
@@ -57,13 +57,6 @@ export function cellValue(field: Field, raw: unknown): { value: unknown; timeDro
   return { value: raw };
 }
 
-function bucket(t: string): 'point' | 'line' | 'polygon' | null {
-  if (t === 'Point' || t === 'MultiPoint') return 'point';
-  if (t === 'LineString' || t === 'MultiLineString') return 'line';
-  if (t === 'Polygon' || t === 'MultiPolygon') return 'polygon';
-  return null;
-}
-
 /** Best-guess field↔column + lng/lat mapping by normalized name. */
 export function autoMapping(fields: Field[], columns: string[]): Mapping {
   const byNorm = new Map(columns.map((c) => [norm(c), c]));
@@ -101,8 +94,7 @@ export function buildRecords(
     if (!geometry) { errors.push({ row: i, error: 'no geometry (needs a geometry or lng/lat columns)', source: f.props }); return; }
     const b = checkIndiaBounds(geometry);
     if (!b.ok) { errors.push({ row: i, error: b.error, source: f.props }); return; }
-    const gb = bucket(geometry.type || '');
-    if (!gb || !geometryTypes.includes(gb)) { errors.push({ row: i, error: `geometry ${geometry.type} not allowed here`, source: f.props }); return; }
+    if (!geometryAllowed(geometry, geometryTypes)) { errors.push({ row: i, error: `geometry ${geometry.type} not allowed here`, source: f.props }); return; }
 
     const raw: Record<string, unknown> = {};
     for (const fl of fields) {
