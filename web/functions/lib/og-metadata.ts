@@ -2,6 +2,7 @@
 
 import type { OgMetadata } from './og-template';
 import type { CatalogLayer as ApiCatalogLayer } from './catalog-api';
+import { isAlternateSource, layerLevelMeta, viewTitle, type LevelLayer, type LevelMeta } from './view-dataset';
 
 type CatalogLayer = Pick<ApiCatalogLayer, 'id' | 'source' | 'rows' | 'licence'>;
 
@@ -13,11 +14,13 @@ type LayerLevelMeta = {
 export type CuratedInput = {
   layer: CatalogLayer;
   levelMeta?: LayerLevelMeta;
+  /** Overrides the level label as the card title. */
+  title?: string;
 };
 
 export function curatedMetadata(input: CuratedInput): OgMetadata {
   const { layer, levelMeta } = input;
-  const title = levelMeta?.label || layer.id.replace(/_/g, ' ');
+  const title = input.title || levelMeta?.label || layer.id.replace(/_/g, ' ');
   const unit = levelMeta?.unit || 'features';
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
   const subtitle = count
@@ -29,6 +32,19 @@ export function curatedMetadata(input: CuratedInput): OgMetadata {
     tag: 'curated',
     footerLeft: layer.licence ? `licence · ${layer.licence}` : undefined,
   };
+}
+
+/** A curated layer's card, titled by the /view page's level rule. An alternate
+ *  source takes the page's own title ("Blocks from Bhuvan"), since its
+ *  siblings share the level label; every other layer keeps the short label. */
+export function curatedCard(
+  layer: CatalogLayer & LevelLayer,
+  catalogLevelMeta: Record<string, LevelMeta> | undefined,
+  layers: readonly LevelLayer[],
+): OgMetadata {
+  const levelMeta = layerLevelMeta(layer, catalogLevelMeta, layers);
+  const alternate = isAlternateSource(layer, catalogLevelMeta, layers);
+  return curatedMetadata({ layer, levelMeta, title: alternate ? viewTitle(layer, levelMeta) : undefined });
 }
 
 type Submission = {

@@ -76,9 +76,10 @@ export function ownYear(layer: LevelLayer): string | null {
   return [layer.name, layer.title].map((s) => clean(s).match(YEAR)?.[0]).find(Boolean) ?? null;
 }
 
-/** True when the layer borrows its level's built-in meta: it shares a level
- *  with other curated layers and is not the one the meta describes. */
-function borrowsLevelMeta(
+/** True for an alternate source: the layer borrows its level's built-in meta,
+ *  sharing a level with other curated layers without being the one the meta
+ *  describes (Bhuvan, PMGSY and geoBoundaries blocks next to LGD's). */
+export function isAlternateSource(
   layer: LevelLayer, catalogLevelMeta: Record<string, LevelMeta> | undefined, layers: readonly LevelLayer[],
 ): boolean {
   if (!layer.level || catalogLevelMeta?.[layer.id]) return false;
@@ -98,11 +99,16 @@ export function layerLevelMeta(
   layers: readonly LevelLayer[],
 ): LevelMeta | undefined {
   const meta = resolveLevelMeta(layer as CatalogLayer, catalogLevelMeta);
-  if (!meta || !borrowsLevelMeta(layer, catalogLevelMeta, layers)) return meta;
+  if (!meta || !isAlternateSource(layer, catalogLevelMeta, layers)) return meta;
   const year = ownYear(layer);
   const label = meta.label.replace(LABEL_YEAR, '') + (year ? ` (${year})` : '');
   const source = clean(layer.source);
   return { label, unit: meta.unit, ...(source ? { seo_title: `${label} from ${source}` } : {}) };
+}
+
+/** The /view page's title (its <title>, JSON-LD name and crawler <h1>). */
+export function viewTitle(layer: Pick<CatalogLayer, 'id' | 'name'>, levelMeta: LevelMeta | undefined): string {
+  return levelMeta?.seo_title || levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
 }
 
 // schema.org DataDownload entries for every format the layer publishes. This
@@ -354,7 +360,7 @@ export function buildViewDataset(
   origin: string,
   wardIndex?: WardIndex | null,
 ): ViewDataset {
-  const title = levelMeta?.seo_title || levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
+  const title = viewTitle(layer, levelMeta);
   const unit = levelMeta?.unit || 'features';
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
   // Ward layers are the #1 search intent ("which ward am I in"); override the
@@ -477,7 +483,7 @@ export function buildViewContent(
 ): string {
   // H1 uses the SEO title (keyword-aligned with the <title>); the body
   // paragraph keeps the richer `description` (official corp name + zones).
-  const title = levelMeta?.seo_title || levelMeta?.label || layer.name || layer.id.replace(/_/g, ' ');
+  const title = viewTitle(layer, levelMeta);
   const count = layer.rows != null ? layer.rows.toLocaleString('en-IN') : null;
   const unit = levelMeta?.unit || 'features';
   const desc = levelMeta?.description || layer.description || layer.notes || '';
