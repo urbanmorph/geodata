@@ -48,6 +48,38 @@ export class ResolvedCache<V> {
   }
 }
 
+/** Resolved values by key, least recently used out once their sizes pass `maxBytes`. */
+export class ByteLru<V> {
+  private values = new Map<string, { v: V; size: number }>();
+  private bytes = 0;
+
+  constructor(private readonly maxBytes: number) {}
+
+  /** The value (now most recently used), or undefined when not kept. */
+  get(key: string): V | undefined {
+    const hit = this.values.get(key);
+    if (!hit) return undefined;
+    this.values.delete(key);
+    this.values.set(key, hit);
+    return hit.v;
+  }
+
+  set(key: string, v: V, size: number): void {
+    this.values.set(key, { v, size });
+    this.bytes += size;
+    for (const [k, e] of this.values) {
+      if (this.bytes <= this.maxBytes) break;
+      this.values.delete(k);
+      this.bytes -= e.size;
+    }
+  }
+
+  clear(): void {
+    this.values.clear();
+    this.bytes = 0;
+  }
+}
+
 /** Generous bound on one R2 read: a stuck read fails with a clear error
  *  instead of holding the request until the platform limit. */
 export const READ_TIMEOUT_MS = 20_000;

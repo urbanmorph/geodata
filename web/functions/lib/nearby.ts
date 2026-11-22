@@ -31,6 +31,7 @@ import { openParquet, r2KeyFromLayer } from './parquet-r2';
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { chunkRanges, coalesced } from './parquet-coalesce';
+import { ByteLru } from './isolate-cache';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
@@ -151,26 +152,13 @@ export function overlappingRowGroups(metadata: FileMetaData, q: Bbox): RowSpan[]
 export interface GroupBoxes { xmin: Float64Array; ymin: Float64Array; xmax: Float64Array; ymax: Float64Array }
 
 // Decoded bbox columns per row group, per isolate, least recently used out past
-// BOX_CACHE_BYTES: decoding them (zstd, 20,000 to 122,880 rows a group) was most
+// 32 MB: decoding them (zstd, 20,000 to 122,880 rows a group) was most
 // of a point profile's CPU, and the "is it covered" search and the next point
 // nearby ask for the same groups again. Keys carry the object version (cacheKey).
-const BOX_CACHE_BYTES = 32 * 1024 * 1024;
-const boxCache = new Map<string, GroupBoxes>();
-let boxBytes = 0;
+const boxCache = new ByteLru<GroupBoxes>(32 * 1024 * 1024);
 
 export function clearBoxCache(): void {
   boxCache.clear();
-  boxBytes = 0;
-}
-
-function keepBoxes(key: string, b: GroupBoxes): void {
-  boxCache.set(key, b);
-  boxBytes += b.xmin.byteLength * 4;
-  for (const [k, v] of boxCache) {
-    if (boxBytes <= BOX_CACHE_BYTES) break;
-    boxCache.delete(k);
-    boxBytes -= v.xmin.byteLength * 4;
-  }
 }
 
 /** The bbox columns of each span's row group: from the cache, the rest read together. */
@@ -178,9 +166,7 @@ export async function groupBoxes(file: AsyncBuffer & { cacheKey?: string }, meta
   const keyOf = (s: RowSpan) => (file.cacheKey ? `${file.cacheKey}#${s.start}` : null);
   const out = spans.map((s) => {
     const k = keyOf(s);
-    const hit = k ? boxCache.get(k) : undefined;
-    if (hit && k) { boxCache.delete(k); boxCache.set(k, hit); } // most recently used last
-    return hit;
+    return k ? boxCache.get(k) : undefined;
   });
   const missing = spans.map((_, i) => i).filter((i) => !out[i]);
   const bboxFile = coalesced(file, missing.flatMap((i) => chunkRanges(metadata, [...BBOX_COLS], spans[i].start, spans[i].end)));
@@ -191,7 +177,7 @@ export async function groupBoxes(file: AsyncBuffer & { cacheKey?: string }, meta
     const col = (c: string) => Float64Array.from(rows, (r) => Number(r[c]));
     const b = { xmin: col('xmin'), ymin: col('ymin'), xmax: col('xmax'), ymax: col('ymax') };
     const k = keyOf(spans[i]);
-    if (k) keepBoxes(k, b);
+    if (k) boxCache.set(k, b, b.xmin.byteLength * 4);
     out[i] = b;
   });
   return out as GroupBoxes[];

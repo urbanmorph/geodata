@@ -4,7 +4,9 @@ import { lngLatToTile } from './tile-math';
 import { findFeaturesAtPoint } from './mvt-locate';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 import { r2KeyFromUrl } from './r2-keys';
-import { mergeRanges } from './parquet-coalesce';
+import type { AsyncBuffer } from 'hyparquet';
+import { coalesced, type ByteRange } from './parquet-coalesce';
+import { ByteLru } from './isolate-cache';
 
 export { DEFAULT_LOCATE_LAYERS } from './locate-layers';
 
@@ -100,32 +102,15 @@ export function pmtilesFor(r2: R2Bucket, key: string): PMTiles {
 // lookup) asks the same ~15 tiles again and again. Keys are versioned R2 keys,
 // so a tile never changes under its key. Bounded by bytes, least recently used out.
 const TILE_CACHE_BYTES = 16 * 1024 * 1024;
-const tiles = new Map<string, ArrayBuffer | null>();
-let tileBytes = 0;
+const tiles = new ByteLru<ArrayBuffer | null>(TILE_CACHE_BYTES);
 
 export function clearTileCache(): void {
   tiles.clear();
-  tileBytes = 0;
-}
-
-function cachedTile(id: string): ArrayBuffer | null | undefined {
-  if (!tiles.has(id)) return undefined;
-  const hit = tiles.get(id)!;
-  tiles.delete(id);
-  tiles.set(id, hit); // most recently used last
-  return hit;
 }
 
 function keepTile(id: string, data: ArrayBuffer | null): void {
   const size = data?.byteLength ?? 0;
-  if (size > TILE_CACHE_BYTES / 4) return;
-  tiles.set(id, data);
-  tileBytes += size;
-  for (const [k, v] of tiles) {
-    if (tileBytes <= TILE_CACHE_BYTES) break;
-    tiles.delete(k);
-    tileBytes -= v?.byteLength ?? 0;
-  }
+  if (size <= TILE_CACHE_BYTES / 4) tiles.set(id, data, size);
 }
 
 /** Tile z/x/y of `pm` (cached; `null` for a tile the archive doesn't have). */
@@ -133,7 +118,7 @@ export async function tileAt(
   pm: Pick<PMTiles, 'getZxy'>, key: string, z: number, x: number, y: number,
 ): Promise<ArrayBuffer | null> {
   const id = `${key}/${z}/${x}/${y}`;
-  const hit = cachedTile(id);
+  const hit = tiles.get(id);
   if (hit !== undefined) return hit;
   const data = (await pm.getZxy(z, x, y))?.data ?? null;
   keepTile(id, data);
@@ -147,7 +132,7 @@ type Directory = Awaited<ReturnType<PMTiles['cache']['getDirectory']>>;
  *  (the reader's cache; `dirs` shares a directory being read between the tiles of one call). */
 async function tileRange(
   pm: PMTiles, header: Header, dirs: Map<string, Promise<Directory>>, z: number, x: number, y: number,
-): Promise<{ start: number; end: number } | null> {
+): Promise<ByteRange | null> {
   if (z < header.minZoom || z > header.maxZoom) return null;
   const tileId = zxyToTileId(z, x, y);
   const directory = (offset: number, length: number) => {
@@ -175,7 +160,7 @@ async function tileRange(
 export async function tilesAt(pm: PMTiles, key: string, z: number, coords: Array<{ x: number; y: number }>): Promise<Array<ArrayBuffer | null>> {
   const header = await pm.getHeader();
   const ids = coords.map(({ x, y }) => `${key}/${z}/${x}/${y}`);
-  const out = ids.map(cachedTile);
+  const out = ids.map((id) => tiles.get(id));
   const missing = coords.map((c, i) => i).filter((i) => out[i] === undefined);
   if (header.specVersion < 3) {
     await Promise.all(missing.map(async (i) => { out[i] = await tileAt(pm, key, z, coords[i].x, coords[i].y); }));
@@ -183,16 +168,14 @@ export async function tilesAt(pm: PMTiles, key: string, z: number, coords: Array
   }
   const dirs = new Map<string, Promise<Directory>>();
   const ranges = await Promise.all(missing.map((i) => tileRange(pm, header, dirs, z, coords[i].x, coords[i].y)));
-  const runs = mergeRanges(ranges.filter((r): r is { start: number; end: number } => !!r)).map((r) => ({
-    ...r, data: pm.source.getBytes(r.start, r.end - r.start, undefined, header.etag).then((b) => b.data),
-  }));
+  const archive: AsyncBuffer = {
+    byteLength: Infinity,
+    slice: (start, end = Infinity) => pm.source.getBytes(start, end - start, undefined, header.etag).then((b) => b.data),
+  };
+  const file = coalesced(archive, ranges.filter((r): r is ByteRange => !!r));
   await Promise.all(missing.map(async (i, k) => {
     const r = ranges[k];
-    let data: ArrayBuffer | null = null;
-    if (r) {
-      const run = runs.find((u) => u.start <= r.start && r.end <= u.end)!;
-      data = await pm.decompress((await run.data).slice(r.start - run.start, r.end - run.start), header.tileCompression);
-    }
+    const data = r ? await pm.decompress(await file.slice(r.start, r.end), header.tileCompression) : null;
     keepTile(ids[i], data);
     out[i] = data;
   }));
