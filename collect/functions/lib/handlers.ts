@@ -10,7 +10,7 @@ import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
 import { bearer, permissionFor, linkFor, atLeast, isAdmin, adminMap, type Refuse } from './auth';
 import { checkCreateRate, checkRecordRate, recordRateKey, checkKeyDayRate, checkKeyringRate } from './ratelimit';
-import { deferLog, type CollectAttempt } from './collect-log';
+import { deferLog, type CollectAttempt, type CollectEvent } from './collect-log';
 import { nanoid, sha256Hex, collectIpHash, verifyTurnstile, persistSubmission } from './reuse';
 import * as db from './db';
 import { recordStatusFor } from './moderation';
@@ -55,6 +55,35 @@ async function enrichRecord(env: Env, recordId: string, geometry: unknown): Prom
 }
 
 type Defer = (p: Promise<unknown>) => void;
+
+type AttemptLog = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => void;
+type Attempt = { attemptId: string; log: AttemptLog; refuse: Refuse };
+
+/** One logged admin write (import, publish): a reference (att_...) returned with
+ *  every answer, a log that stamps each row with it and the time since
+ *  `started`, a refuse that logs its gate, and an unexpected exception logged
+ *  with its stack and answered as a 500 saying `failMsg`, not left to the router. */
+async function withAttempt(
+  defer: Defer | undefined, env: Env, event: CollectEvent, id: string,
+  { started, ip_hash }: { started: number; ip_hash?: string },
+  failMsg: string, run: (a: Attempt) => Promise<Response>,
+): Promise<Response> {
+  const attemptId = `att_${nanoid(10)}`;
+  const log: AttemptLog = (row) => deferLog(defer, env.DB, {
+    ...row, event, collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started, ...(ip_hash === undefined ? {} : { ip_hash }),
+  });
+  const refuse: Refuse = (status, gate, error) => {
+    log({ outcome: 'rejected', gate, reason: error });
+    return json(status, { error, attempt_id: attemptId });
+  };
+  try {
+    return await run({ attemptId, log, refuse });
+  } catch (e) {
+    const err = e as Error;
+    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
+    return json(500, { error: failMsg, attempt_id: attemptId });
+  }
+}
 
 // Turnstile: verify when a secret is configured (prod); skip in local dev.
 async function turnstileOk(env: Env, token: unknown): Promise<boolean> {
@@ -740,23 +769,11 @@ export async function deidentifyRecordHandler(env: Env, req: Request, recordId: 
 // without client_id are added every time, as before.
 
 export async function importRecords(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
-  const attemptId = `att_${nanoid(10)}`;
   const started = Date.now();
   const ipHash = await collectIpHash(req, env);
-  const log = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => deferLog(defer, env.DB, {
-    ...row, event: 'import', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started, ip_hash: ipHash,
-  });
-  const refuse = (status: number, gate: string, error: string) => {
-    log({ outcome: 'rejected', gate, reason: error });
-    return json(status, { error, attempt_id: attemptId });
-  };
-  try {
-    return await importInto(env, req, id, ipHash, attemptId, log, refuse);
-  } catch (e) {
-    const err = e as Error;
-    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
-    return json(500, { error: 'Something went wrong on our side and nothing was imported. Please try again.', attempt_id: attemptId });
-  }
+  return withAttempt(defer, env, 'import', id, { started, ip_hash: ipHash },
+    'Something went wrong on our side and nothing was imported. Please try again.',
+    (a) => importInto(env, req, id, ipHash, a));
 }
 
 const IMPORT_BATCH = 100; // rows per D1 batch (one transaction each)
@@ -764,11 +781,7 @@ const IMPORT_CLIENT_ID_MAX = 128;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 const reasonList = (rs: Array<{ reason: string; count: number }>): string => rs.map((r) => `${r.reason} (${r.count})`).join('; ');
 
-async function importInto(
-  env: Env, req: Request, id: string, ipHash: string, attemptId: string,
-  log: (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => void,
-  refuse: Refuse,
-): Promise<Response> {
+async function importInto(env: Env, req: Request, id: string, ipHash: string, { attemptId, log, refuse }: Attempt): Promise<Response> {
   const c = await adminMap(env, req, id, refuse);
   if (c instanceof Response) return c;
   if (c.status === 'closed') return refuse(403, 'closed', 'this collection is closed');
@@ -883,34 +896,15 @@ async function importInto(
 /** The most approved points one publish takes (it builds the whole file in memory). */
 export const PUBLISH_MAX_POINTS = 100_000;
 
-type PublishLog = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms'>) => void;
-
 /** Publish a map to the catalog. Every exit is logged with a reference
- *  (attempt_id) that is also returned, and an unexpected exception becomes a
- *  logged 500 instead of escaping to the router. */
+ *  (attempt_id) that is also returned (see withAttempt). */
 export async function publish(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
-  const attemptId = `att_${nanoid(10)}`;
-  const started = Date.now();
-  const log: PublishLog = (row) => deferLog(defer, env.DB, {
-    ...row, event: 'publish', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started,
-  });
-  const refuse = (status: number, gate: string, error: string) => {
-    log({ outcome: 'rejected', gate, reason: error });
-    return json(status, { error, attempt_id: attemptId });
-  };
-  try {
-    return await publishMap(env, req, id, attemptId, log, refuse);
-  } catch (e) {
-    const err = e as Error;
-    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
-    return json(500, { error: 'Something went wrong on our side and the map was not published. Please try again.', attempt_id: attemptId });
-  }
+  return withAttempt(defer, env, 'publish', id, { started: Date.now() },
+    'Something went wrong on our side and the map was not published. Please try again.',
+    (a) => publishMap(env, req, id, a));
 }
 
-async function publishMap(
-  env: Env, req: Request, id: string, attemptId: string, log: PublishLog,
-  refuse: Refuse,
-): Promise<Response> {
+async function publishMap(env: Env, req: Request, id: string, { attemptId, log, refuse }: Attempt): Promise<Response> {
   const c = await adminMap(env, req, id, refuse);
   if (c instanceof Response) return c;
 

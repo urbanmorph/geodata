@@ -64,6 +64,19 @@ describe('import report', () => {
     expect(String(log.detail)).toContain('no geometry (needs a geometry or lng/lat columns) (4)');
   });
 
+  it('turns an unexpected crash into a logged, referenced 500 that says nothing was imported', async () => {
+    const m = await newMap();
+    env.DB.raw.exec(`UPDATE collections SET schema_doc = '{not json'`);
+    const r = await importRows(m, [rec('A', 'Good')]);
+    expect(r.status).toBe(500);
+    expect(r.body).toEqual({ error: 'Something went wrong on our side and nothing was imported. Please try again.', attempt_id: expect.stringMatching(/^att_/) });
+    const [log] = await importLogs();
+    expect(log).toMatchObject({ outcome: 'rejected', gate: 'internal', step: 'internal', attempt_id: r.body.attempt_id, collection_id: m.id });
+    expect(typeof log.ip_hash).toBe('string');
+    expect(typeof log.duration_ms).toBe('number');
+    expect(String(log.detail)).toMatch(/JSON[\s\S]*at /);
+  });
+
   it('writes 1200 rows in batches, not one database call per row', async () => {
     const m = await newMap();
     const batch = vi.spyOn(env.DB, 'batch');
