@@ -68,7 +68,10 @@ export function resolveLevelMeta(
   layer: CatalogLayer,
   catalogLevelMeta: Record<string, LevelMeta> | undefined,
 ): LevelMeta | undefined {
-  return catalogLevelMeta?.[layer.id] ?? (layer.level ? LEVEL_META[layer.level] : undefined);
+  // The layer's own entry, then its level's: the catalog's (some layers' meta
+  // is keyed by level, e.g. subsidence_point), else the built-in table.
+  if (catalogLevelMeta?.[layer.id]) return catalogLevelMeta[layer.id];
+  return layer.level ? catalogLevelMeta?.[layer.level] ?? LEVEL_META[layer.level] : undefined;
 }
 
 /** The layer fields the alternate-source rule reads. */

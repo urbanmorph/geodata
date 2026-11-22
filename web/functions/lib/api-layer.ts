@@ -11,6 +11,27 @@ export const LAYER_ID = /^[a-zA-Z0-9_-]+$/;
 export type ResolvedLayer = { layer: CatalogLayer; catalog: CatalogData; version: string; url: URL };
 
 /**
+ * The shared lookup behind every route that names a curated layer (/api/v1,
+ * /view, /og/view): the id is well formed, a retired id answers 301, then the
+ * catalog lookup. Each caller turns `invalid` and `missing` into its own error
+ * response. A catalog that fails to load rejects; the caller decides on that too.
+ */
+export type LayerLookup =
+  | ({ kind: 'found' } & ResolvedLayer)
+  | { kind: 'invalid' }
+  | { kind: 'moved'; response: Response }
+  | { kind: 'missing'; catalog: CatalogData };
+
+export async function findLayer(ctx: AssetCtx, id: string, url: URL, param?: string): Promise<LayerLookup> {
+  if (!LAYER_ID.test(id)) return { kind: 'invalid' };
+  const moved = retiredRedirect(url, id, param);
+  if (moved) return { kind: 'moved', response: moved };
+  const { catalog, version } = await loadCatalogVersioned(ctx);
+  const layer = catalog.layers.find((l) => l.id === id);
+  return layer ? { kind: 'found', layer, catalog, version, url } : { kind: 'missing', catalog };
+}
+
+/**
  * The layer a request names, or the response to send instead: 400 for a
  * malformed id, 301 for a retired one (same URL, successor id), 404 for an
  * unknown one. `param` names a query parameter holding the id (/nearby?layer=);
@@ -23,13 +44,13 @@ export async function resolveLayer(
 ): Promise<ResolvedLayer | Response> {
   const url = new URL(ctx.request.url);
   const id = opts.param ? url.searchParams.get(opts.param) ?? '' : String((ctx.params as { id?: string })?.id ?? '');
-  if (!LAYER_ID.test(id)) return apiError(400, 'Invalid layer ID');
-  const moved = retiredRedirect(url, id, opts.param);
-  if (moved) return moved;
-  const { catalog, version } = await loadCatalogVersioned(ctx);
-  const layer = catalog.layers.find((l) => l.id === id);
-  if (!layer) return apiError(opts.missingStatus ?? 404, `Layer ${id} not found`);
-  return { layer, catalog, version, url };
+  const found = await findLayer(ctx, id, url, opts.param);
+  switch (found.kind) {
+    case 'invalid': return apiError(400, 'Invalid layer ID');
+    case 'moved': return found.response;
+    case 'missing': return apiError(opts.missingStatus ?? 404, `Layer ${id} not found`);
+    default: return { layer: found.layer, catalog: found.catalog, version: found.version, url };
+  }
 }
 
 /** India's bounding box, as the API checks it. */

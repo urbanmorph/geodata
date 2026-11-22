@@ -8,12 +8,11 @@
 
 import { buildViewDataset, buildViewContent, layerLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
-import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../lib/catalog-loader';
+import { fetchAsset, type AssetCtx } from '../lib/catalog-loader';
 import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundResponse, suggestLayers } from '../lib/not-found';
 import { escapeHtml as esc } from '../../../shared/format.mjs';
-import { retiredRedirect } from '../lib/retired-layers';
-import { LAYER_ID } from '../lib/api-layer';
+import { findLayer } from '../lib/api-layer';
 
 type Params = { id: string };
 
@@ -49,19 +48,18 @@ function layerNotFound(ctx: AssetCtx, id: string, catalog: Catalog): Promise<Res
 
 export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
-  if (!LAYER_ID.test(id)) return notFoundResponse(ctx, LAYER_NOT_FOUND);
-  const moved = retiredRedirect(new URL(ctx.request.url), id);
-  if (moved) return moved;
-
+  const url = new URL(ctx.request.url);
   // The catalog is cached per isolate; a rejected load is a 503, not a crash.
-  const loaded = await loadCatalogVersioned(ctx).catch(() => null);
-  if (!loaded) return new Response('upstream unavailable', { status: 503 });
-  const catalog = loaded.catalog as unknown as Catalog;
-  const layer = catalog.layers?.find((l) => l.id === id);
-  if (!layer) return layerNotFound(ctx, id, catalog);
+  const found = await findLayer(ctx, id, url).catch(() => null);
+  if (!found) return new Response('upstream unavailable', { status: 503 });
+  if (found.kind === 'invalid') return notFoundResponse(ctx, LAYER_NOT_FOUND);
+  if (found.kind === 'moved') return found.response;
+  const catalog = found.catalog as unknown as Catalog;
+  if (found.kind === 'missing') return layerNotFound(ctx, id, catalog);
 
   // The page depends only on the layer and the deploy: keyed by path, not query.
-  const key = cacheKey(loaded.version, new URL(ctx.request.url), { query: false });
+  const layer = found.layer as unknown as CatalogLayer;
+  const key = cacheKey(found.version, url, { query: false });
   return cached(ctx, key, EDGE_TTL.page, () => renderPage(ctx, layer, catalog));
 };
 

@@ -51,6 +51,15 @@ describe('SEO title and meta for alternate sources', () => {
     expect(ds.description).toMatch(/LGD snapshot 2024/);
   });
 
+  it("a layer whose catalog level_meta is keyed by its level (not its id) uses that entry", () => {
+    for (const id of ['subsidence_megacities', 'gem_active_faults']) {
+      const layer = byId(id);
+      expect(catalog.level_meta[id], id).toBeUndefined();
+      expect(layerLevelMeta(layer, catalog.level_meta, catalog.layers), id).toBe(catalog.level_meta[layer.level]);
+      expect(page(layer).html, id).toContain(`<h1>${catalog.level_meta[layer.level].label}</h1>`);
+    }
+  });
+
   it('a layer with its own level_meta entry keeps its SEO title', () => {
     const id = 'wards_bengaluru_bbmp_2022';
     expect(layerLevelMeta(byId(id), catalog.level_meta, catalog.layers)).toBe(catalog.level_meta[id]);
