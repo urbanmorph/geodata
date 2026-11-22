@@ -29,7 +29,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from collections.abc import Callable
@@ -233,17 +232,9 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    a = ap.parse_args()
-    if a.step == 'pull':
-        log(json.dumps(pull(RAW, figshare_json, download_md5), indent=2))
-    elif a.step == 'bake':
-        bake()
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {
+        'pull': lambda a: log(json.dumps(pull(RAW, figshare_json, download_md5), indent=2)),
+        'bake': lambda a: bake(), 'upload': lambda a: upload(), 'register': lambda a: register()})
 
 
 if __name__ == '__main__':

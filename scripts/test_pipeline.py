@@ -698,6 +698,18 @@ def test_upload_layer_puts_every_local_file_at_its_versioned_key(tmp_path, monke
     assert keys == [('S3', 'X.parquet', f'e/x/{names["parquet"]}'), ('S3', 'X.pmtiles', f'e/x/{names["pmtiles"]}')]
 
 
+def test_step_cli_runs_the_named_step_with_its_options(capsys):
+    seen = []
+    steps = {'pull': lambda a: seen.append(('pull', a.max_minutes)) or 'pulled', 'bake': lambda a: seen.append('bake')}
+    assert pipeline.step_cli('doc', steps, ('--max-minutes', {'type': float, 'default': 5}),
+                             argv=['pull', '--max-minutes', '2']) == 'pulled'
+    pipeline.step_cli('doc', steps, argv=['bake'])
+    assert seen == [('pull', 2.0), 'bake']
+    with pytest.raises(SystemExit):
+        pipeline.step_cli('doc', steps, argv=['upload'])
+    assert "invalid choice: 'upload'" in capsys.readouterr().err
+
+
 def test_versioned_names_name_each_file_by_its_content(tmp_path):
     a, b = tmp_path / 'X.parquet', tmp_path / 'X.shp.zip'
     a.write_bytes(b'one')

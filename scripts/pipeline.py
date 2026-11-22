@@ -638,6 +638,20 @@ class OutOfTime(Exception):
     pass
 
 
+def step_cli(doc: str, steps: dict[str, Callable[[Any], Any]], *options: tuple[str, dict],
+             argv: list[str] | None = None) -> Any:
+    """A bake's command line, `<script> <step> [options]`: each option is
+    (flag, add_argument keywords). Runs steps[step] with the parsed arguments
+    and returns what it returns."""
+    import argparse
+    ap = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('step', choices=list(steps))
+    for flag, kw in options:
+        ap.add_argument(flag, **kw)
+    a = ap.parse_args(argv)
+    return steps[a.step](a)
+
+
 def take_max_minutes(argv: list[str], default: float) -> tuple[list[str], float]:
     """Split `--max-minutes N` off a plain argv list: (the other args, N or `default`)."""
     if '--max-minutes' not in argv:

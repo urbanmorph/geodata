@@ -28,7 +28,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import gzip
 import json
 import re
@@ -377,24 +376,17 @@ def pull(refresh: bool = False, max_minutes: float = 50) -> tuple[list[dict], li
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--refresh', action='store_true', help='refetch every page (the source updates daily)')
-    ap.add_argument('--max-minutes', type=float, default=50, help='pull stops cleanly after this long')
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         try:
             with cache_backup(RAW, 'bake_mgnrega_districts'):
                 pull(a.refresh, a.max_minutes)
         except pipeline.OutOfTime as e:
             log(f'STOPPED: {e}; finished pages are cached, rerun to continue')
             sys.exit(3)
-    elif a.step == 'bake':
-        bake()
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: bake(), 'upload': lambda a: upload(),
+                                'register': lambda a: register()},
+                      ('--refresh', {'action': 'store_true', 'help': 'refetch every page (the source updates daily)'}),
+                      ('--max-minutes', {'type': float, 'default': 50, 'help': 'pull stops cleanly after this long'}))
 
 
 if __name__ == '__main__':

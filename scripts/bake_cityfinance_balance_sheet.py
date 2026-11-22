@@ -19,7 +19,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import json
 import re
 import sys
@@ -381,22 +380,14 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--max-minutes', type=float, default=50)
-    ap.add_argument('--raw', type=Path, default=RAW)
-    ap.add_argument('--out', type=Path, default=ROOT / 'data' / 'baked' / R2_PREFIX)
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         with cache_backup(a.raw, CACHE_NAME):
             done = pull(a.raw, a.max_minutes)
         sys.exit(0 if done else 3)
-    elif a.step == 'bake':
-        log(json.dumps(bake(a.out, a.raw), indent=2))
-    elif a.step == 'upload':
-        upload(a.out)
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: log(json.dumps(bake(a.out, a.raw), indent=2)),
+                                'upload': lambda a: upload(a.out), 'register': lambda a: register()},
+                      ('--max-minutes', {'type': float, 'default': 50}), ('--raw', {'type': Path, 'default': RAW}),
+                      ('--out', {'type': Path, 'default': ROOT / 'data' / 'baked' / R2_PREFIX}))
 
 
 if __name__ == '__main__':

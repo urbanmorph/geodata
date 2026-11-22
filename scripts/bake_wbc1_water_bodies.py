@@ -26,7 +26,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import gzip
 import hashlib
 import json
@@ -544,22 +543,15 @@ def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--refresh', action='store_true', help='refetch the listing and every page')
-    ap.add_argument('--max-minutes', type=float, default=50, help='pull stops cleanly after this long')
-    ap.add_argument('--workers', type=int, default=4, help='resources pulled at once')
-    ap.add_argument('--force', action='store_true', help='rebake even if inputs are unchanged')
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         with cache_backup(RAW, 'bake_wbc1_water_bodies'):
             pull(a.refresh, a.max_minutes, a.workers)
-    elif a.step == 'bake':
-        bake(force=a.force)
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: bake(force=a.force),
+                                'upload': lambda a: upload(), 'register': lambda a: register()},
+                      ('--refresh', {'action': 'store_true', 'help': 'refetch the listing and every page'}),
+                      ('--max-minutes', {'type': float, 'default': 50, 'help': 'pull stops cleanly after this long'}),
+                      ('--workers', {'type': int, 'default': 4, 'help': 'resources pulled at once'}),
+                      ('--force', {'action': 'store_true', 'help': 'rebake even if inputs are unchanged'}))
 
 
 if __name__ == '__main__':

@@ -27,7 +27,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import gzip
 import json
 import sys
@@ -353,19 +352,12 @@ def pull(refresh: bool = False) -> None:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--refresh', action='store_true', help='refetch every table')
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         with cache_backup(RAW, 'bake_state_finance'):
             pull(a.refresh)
-    elif a.step == 'bake':
-        bake()
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: bake(), 'upload': lambda a: upload(),
+                                'register': lambda a: register()},
+                      ('--refresh', {'action': 'store_true', 'help': 'refetch every table'}))
 
 
 if __name__ == '__main__':

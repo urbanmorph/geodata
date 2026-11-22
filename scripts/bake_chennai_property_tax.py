@@ -20,7 +20,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import json
 import re
 import sys
@@ -231,16 +230,9 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['bake', 'upload', 'register'])
-    ap.add_argument('--out', type=Path, default=ROOT / 'data' / 'baked' / R2_PREFIX)
-    a = ap.parse_args()
-    if a.step == 'bake':
-        log(json.dumps(bake(a.out), indent=2))
-    elif a.step == 'upload':
-        upload(a.out)
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'bake': lambda a: log(json.dumps(bake(a.out), indent=2)),
+                                'upload': lambda a: upload(a.out), 'register': lambda a: register()},
+                      ('--out', {'type': Path, 'default': ROOT / 'data' / 'baked' / R2_PREFIX}))
 
 
 if __name__ == '__main__':
