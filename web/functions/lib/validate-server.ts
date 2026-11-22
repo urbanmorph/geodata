@@ -47,7 +47,8 @@ export type ValidationDeps = {
 
 /** What a Worker (128 MB) can read and JSON-parse; the largest submission so far was 14 MB. */
 export const MAX_SUBMIT_BYTES = 25 * 1024 * 1024;
-const VALID_EXTENSIONS = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
+/** The file types a submission may be (the 415 lists them in this order). */
+export const SUBMIT_EXTENSIONS: ReadonlySet<string> = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
 const MIN_NAME = 3;
 const MAX_NAME = 120;
 const MIN_ATTRIB = 3;
@@ -61,7 +62,7 @@ const OK_CRS = new Set([
   'EPSG:4326',
 ]);
 
-function extOf(filename: string): string | null {
+export function extOf(filename: string): string | null {
   const m = filename.toLowerCase().match(/\.([a-z0-9]+)$/);
   return m ? m[1] : null;
 }
@@ -126,7 +127,7 @@ export async function validateSubmission(
   report.filename = { ok: true };
 
   const ext = extOf(input.filename);
-  if (!ext || !VALID_EXTENSIONS.has(ext)) {
+  if (!ext || !SUBMIT_EXTENSIONS.has(ext)) {
     report.format = { ok: false, info: ext ? { ext } : undefined };
     return reject(report, 'format', 'format unsupported');
   }

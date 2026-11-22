@@ -3,6 +3,7 @@
 // *named* contributors and notes anonymous separately, because distinct
 // anonymous people can't be counted; every anonymous record is tallied into one
 // bucket in the breakdown.
+import { plural } from '../../../shared/format.mjs';
 
 export interface ContributorTally {
   name: string;
@@ -40,7 +41,7 @@ export function composeAttribution(
   let who = '';
   if (n === 0 && anon > 0) who = 'anonymous contributors';
   else if (n > 0) {
-    who = `${n} contributor${n === 1 ? '' : 's'}`;
+    who = `${plural(n, 'contributor')}`;
     if (anon > 0) who += ' + anonymous';
   }
 

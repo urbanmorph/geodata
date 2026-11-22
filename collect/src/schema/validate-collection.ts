@@ -5,6 +5,7 @@
 // community submissions use.
 
 import { readDataYear } from './data-year';
+import { plural } from '../../../shared/format.mjs';
 import { isOpenLicence } from '../../../web/functions/lib/licenses';
 import { validateRecordProperties, type Field } from './validate-record';
 import { isBasemapId } from '../basemap-ids';
@@ -272,7 +273,7 @@ export function validateFormEdit(
   if (broken) {
     return {
       ok: false,
-      error: `${broken} point${broken === 1 ? '' : 's'} would no longer fit this form`,
+      error: `${plural(broken, 'point')} would no longer fit this form`,
       problems: [...problems].map(([reason, count]) => ({ reason, count })).sort((a, b) => b.count - a.count),
     };
   }

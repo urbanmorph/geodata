@@ -2,10 +2,10 @@ import type { Env } from '../../../_middleware';
 import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
-import { query, QueryInputError } from '../../../../lib/parquet-query';
+import { query, queryFailure } from '../../../../lib/parquet-query';
 import { parseQueryParams, queryCacheUrl } from '../../../../lib/query-params';
 import { parseFilterParam } from '../../../../lib/parquet-export';
-import { apiError, safeStringify, serverError } from '../../../../lib/http';
+import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
@@ -28,16 +28,12 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters });
       const timing = Date.now() - start;
 
-      return new Response(safeStringify({ data: result, layer_id: layer.id, ...ncFields(layer), timing_ms: timing }), {
-        headers: {
-          'content-type': 'application/json',
-          'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
-          ...(groupBy ? { etag: `"${version}-${file.etag}"` } : {}),
-        },
+      return json(200, { data: result, layer_id: layer.id, ...ncFields(layer), timing_ms: timing }, {
+        'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
+        ...(groupBy ? { etag: `"${version}-${file.etag}"` } : {}),
       });
     } catch (e) {
-      if (e instanceof QueryInputError) return apiError(400, e.message);
-      return serverError('Query', e);
+      return queryFailure('Query')(e);
     }
   };
 

@@ -9,10 +9,10 @@
 
 import type { Env } from '../api/_middleware';
 import {
-  instructionsCore, readToolsFor, readToolRequest, shapeReadResult, toSearchParams,
+  instructionsCore, readToolsFor, readToolRequest, shapeReadResult, toSearchParams, POINT_PROFILE_TOOLS,
 } from '../../../mcp/read-tools.js';
 import { apiLimitFor } from './api-ratelimit';
-import { safeStringify } from './http';
+import { json, safeStringify } from './http';
 import { onRequestGet as layersIndex } from '../api/v1/layers/index';
 import { onRequestGet as layerDetail } from '../api/v1/layers/[id]';
 import { onRequestGet as layerSchema } from '../api/v1/layers/[id]/schema';
@@ -76,7 +76,7 @@ export const API_ROUTES: ApiRoute[] = [
 /** The API's own per-IP limit, shared with /api/v1 (same keys, same D1 rows, and
  *  the same non-blocking check): 120 calls a minute, locate and ground_at 60 on the locate key. */
 export function apiRateLimit(env: Env, waitUntil: WaitUntil): RateLimit {
-  return (req, tool) => apiLimitFor(req, env, tool === 'locate' || tool === 'ground_at' || tool === 'surface_at', waitUntil);
+  return (req, tool) => apiLimitFor(req, env, tool === 'locate' || POINT_PROFILE_TOOLS.has(tool), waitUntil);
 }
 
 const ok = (id: Id, result: unknown) => rpc({ jsonrpc: '2.0', id, result });
@@ -188,7 +188,7 @@ async function callTool(req: Request, env: Env, deps: McpDeps, name: string, arg
 /** Run the /api/v1 handler for `path` in-process (no fetch back to bharatlas.com). */
 async function runRoute(req: Request, env: Env, deps: McpDeps, path: string, search: URLSearchParams): Promise<Response> {
   const route = deps.routes.find(([re]) => re.test(path));
-  if (!route) return new Response(JSON.stringify({ error: `No API route for ${path}` }), { status: 404 });
+  if (!route) return json(404, { error: `No API route for ${path}` });
   const layerId = route[0].exec(path)?.[1];
   const url = new URL(`/api/v1${path}`, req.url);
   url.search = search.toString();

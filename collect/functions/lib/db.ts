@@ -2,6 +2,8 @@
 // web/functions/lib/submissions.ts. Geometry / properties / admin_ctx are stored
 // as JSON TEXT; callers stringify on write and parse on read.
 
+import type { Field } from '../../src/schema/validate-record';
+
 type DB = Pick<D1Database, 'prepare'>;
 
 const now = () => new Date().toISOString();
@@ -22,6 +24,13 @@ export interface CollectionRow {
   moderation: number;
   ip_hash: string;
 }
+
+/** A map's form and settings as stored in schema_doc (validate-collection
+ *  writes it; extra keys such as basemap and reference_layer ride along). */
+export type SchemaDoc = { geometry: string[]; fields: Field[]; mode?: string; category?: string } & Record<string, unknown>;
+
+/** The map's schema_doc, parsed (a fresh object each call). */
+export const schemaOf = (c: Pick<CollectionRow, 'schema_doc'>): SchemaDoc => JSON.parse(c.schema_doc) as SchemaDoc;
 
 export interface NewCollectionRow {
   id: string;
@@ -390,6 +399,15 @@ export async function nextVersion(db: DB, collectionId: string): Promise<number>
     .bind(collectionId)
     .first()) as { v: number } | null;
   return (row?.v ?? 0) + 1;
+}
+
+/** The content hash of one published version, or null when there is none. */
+export async function publicationHash(db: DB, collectionId: string, version: number): Promise<string | null> {
+  const row = (await db
+    .prepare(`SELECT content_hash FROM publications WHERE collection_id = ? AND version = ?`)
+    .bind(collectionId, version)
+    .first()) as { content_hash: string } | null;
+  return row?.content_hash ?? null;
 }
 
 /** The INSERT for one publication row, unrun, for a D1 batch. */

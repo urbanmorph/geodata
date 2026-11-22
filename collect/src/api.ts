@@ -27,7 +27,7 @@ export function parseCtx(): Ctx | null {
 export async function api(path: string, token: string, init?: RequestInit): Promise<Response> {
   const headers = new Headers(init?.headers);
   if (token) headers.set('authorization', `Bearer ${token}`);
-  if (init?.body) headers.set('content-type', 'application/json');
+  if (init?.body && !headers.has('content-type')) headers.set('content-type', 'application/json');
   return fetch(`/api/collect/v1${path}`, { ...init, headers });
 }
 

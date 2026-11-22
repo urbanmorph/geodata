@@ -1,9 +1,10 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   submissionInsert,
   tokenInsert,
   findDuplicateByHash,
   getSubmissionForView,
+  acceptedSubmission,
   type SubmissionRow,
 } from '../functions/lib/submissions';
 
@@ -243,6 +244,17 @@ describe('findDuplicateByHash', () => {
     await submissionInsert(db as never, { ...baseRow(), id: 'sub1', status: 'rejected' }).run();
     const match = await findDuplicateByHash(db as never, 'a'.repeat(64));
     expect(match).toBeNull();
+  });
+});
+
+describe('acceptedSubmission', () => {
+  it('a malformed id is null without a query; a well-formed one is looked up', async () => {
+    const db = fakeD1();
+    await submissionInsert(db as never, { ...baseRow(), id: 'sub1abcd' }).run();
+    const prepare = vi.spyOn(db, 'prepare');
+    expect(await acceptedSubmission(db as never, 'bad id!')).toBeNull();
+    expect(prepare).not.toHaveBeenCalled();
+    expect((await acceptedSubmission(db as never, 'sub1abcd'))?.name).toBe('Mumbai bike lanes');
   });
 });
 

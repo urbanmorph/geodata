@@ -143,3 +143,22 @@ def test_pmtiles_args_keep_every_point_at_every_zoom_when_asked():
     assert args[args.index('-r') + 1] == '1'   # drop rate 1: no thinning below the base zoom
     assert '--drop-densest-as-needed' not in args and '--extend-zooms-if-still-dropping' not in args
     assert '-r' not in f.pmtiles_args(Path('in.geojson'), Path('o.pmtiles'), 'l', ('a',))
+
+
+def test_write_all_formats_writes_every_format_from_the_parquet(tmp_path):
+    import json
+
+    import pipeline
+    pq = tmp_path / 'X.parquet'
+    con = pipeline.make_con()
+    con.execute(f"""COPY (SELECT * FROM (VALUES ('a', 1, ST_Point(77.1, 12.1)), ('b', 2, ST_Point(78.2, 13.2)))
+                    t(name, a_very_long_column, geometry)) TO '{pq}' (FORMAT PARQUET)""")
+    exts = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'geojson': 'geojson', 'kml': 'kml', 'shapefile': 'shp.zip'}
+    path = pipeline.layer_paths(tmp_path, 'X', exts)
+    got = f.write_all_formats(con, path, 'x', ['name', 'a_very_long_column'], ('name',), max_zoom=8)
+    assert got == pipeline.sizes_and_names(path)
+    assert list(got['sizes']) == list(exts) and all(got['sizes'].values())
+    assert [ft['properties']['name'] for ft in json.loads(path['geojson'].read_text())['features']] == ['a', 'b']
+    assert '<Placemark' in path['kml'].read_text()
+    with zipfile.ZipFile(path['shapefile']) as z:
+        assert 'a_very_lon  a_very_long_column' in z.read('columns.txt').decode()

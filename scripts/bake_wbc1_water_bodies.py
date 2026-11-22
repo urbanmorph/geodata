@@ -26,12 +26,9 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
-import gzip
 import hashlib
 import json
 import math
-import os
 import re
 import shutil
 import sys
@@ -112,12 +109,6 @@ def api_fetch(uuid: str, key: str, tries: int = 10) -> Fetcher:
     return lambda offset, limit: pipeline.datagov_get(uuid, key, tries=tries, timeout=300, offset=offset, limit=limit)
 
 
-def _write_atomic(path: Path, data: bytes) -> None:
-    part = path.with_name(path.name + '.part')
-    part.write_bytes(data)
-    os.replace(part, path)
-
-
 def _page(cache: Path, offset: int) -> Path:
     return cache / f'offset_{offset:07d}.json.gz'
 
@@ -136,7 +127,7 @@ def pull_resource(cache: Path, fetch: Fetcher, limit: int = LIMIT, refresh: bool
             raise TimeUp(f'{cache.name}: time limit reached at offset {offset:,}')
         resp = fetch(offset, limit)
         recs = resp.get('records') or []
-        _write_atomic(_page(cache, offset), gzip.compress(json.dumps(recs).encode(), mtime=0))
+        pipeline.write_json_gz(_page(cache, offset), recs)
         return resp
 
     if meta is None:
@@ -145,7 +136,7 @@ def pull_resource(cache: Path, fetch: Fetcher, limit: int = LIMIT, refresh: bool
                 'status': first.get('status'), 'message': first.get('message')}
         if meta['total'] == 0:
             _page(cache, 0).unlink(missing_ok=True)
-        _write_atomic(meta_path, json.dumps(meta, indent=1).encode())
+        pipeline.write_atomic(meta_path, json.dumps(meta, indent=1).encode())
         log(f'  {cache.name}: total {meta["total"]:,}')
     for offset in range(0, meta['total'], limit):
         if refresh and offset == 0:
@@ -158,7 +149,7 @@ def pull_resource(cache: Path, fetch: Fetcher, limit: int = LIMIT, refresh: bool
 
 def cached_records(cache: Path) -> Iterator[dict]:
     for p in sorted(cache.glob('offset_*.json.gz')):
-        yield from json.loads(gzip.decompress(p.read_bytes()))
+        yield from pipeline.read_json_gz(p)
 
 
 def pull(refresh: bool = False, max_minutes: float = 50, workers: int = 4) -> None:
@@ -173,7 +164,7 @@ def pull(refresh: bool = False, max_minutes: float = 50, workers: int = 4) -> No
         def listing() -> bytes:
             with urllib.request.urlopen(req, timeout=120) as r:
                 return r.read()
-        _write_atomic(listing_path, with_retries(listing))
+        pipeline.write_atomic(listing_path, with_retries(listing))
     res = resources(json.loads(listing_path.read_text()))
     key = pipeline.datagov_api_key()
 
@@ -395,9 +386,8 @@ TAGS = ['water bodies', 'ponds', 'tanks', 'lakes', 'reservoirs', 'check dams', '
 def catalog_entry(s: dict, fetched_at: str, r2_public: str, names: dict[str, str] | None = None) -> dict:
     names = names or pipeline.plain_names(BASENAME, EXT)
     from build_catalog import ATTR
-    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': s['rows']}
-    for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': s['sizes'][fmt]}
+    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': s['rows'],
+             **pipeline.format_blocks(EXT, names, s['sizes'], f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': 'GODL-India', 'attribution': {'primary': dict(ATTR[SOURCE]), 'publisher': dict(PUBLISHER)},
                   'category': 'water', 'provenance': 'curated', 'fetched_at': fetched_at,
                   'notes': notes(s), 'tags': TAGS})
@@ -410,8 +400,7 @@ def manifest_entry(s: dict, names: dict[str, str] | None = None) -> dict:
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'water',
             'source': SOURCE, 'description': description(), 'unit': 'water bodies', 'features': s['rows'],
             'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-            'parquet_file': names['parquet'], 'parquet_bytes': s['sizes']['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': s['sizes']['pmtiles'],
+            **pipeline.manifest_files(names, s['sizes']),
             'source_url': CATALOG_PAGE, 'source_org': ATTR[SOURCE]['name'], 'notes': notes(s), 'tags': TAGS}
 
 
@@ -447,7 +436,6 @@ def coverage(res: list[dict], metas: dict[str, dict]) -> tuple[list[str], dict[s
 
 def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     import bake_formats
-    from bake_extracts import gdal_geojson_available
     from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
@@ -505,7 +493,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     log(f'points: {points}')
 
     path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))
+    write_geojson_whole(con, parquet, path['geojson'])
     log('geojson written')
     assert write_kml(con, parquet, path['kml']) == rows
     log('kml written')
@@ -531,15 +519,10 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
                'numeric_columns': sorted(types), 'shapefiles': shp_files, 'fingerprint': fingerprint,
                'fetched_at': datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                'resources': {r['state']: r['uuid'] for r in res},
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               **pipeline.sizes_and_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     log(json.dumps({k: v for k, v in summary.items() if k not in ('resources', 'numeric_columns')}, indent=2))
     return summary
-
-
-def local_paths(out_dir: Path) -> dict[str, Path]:
-    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
 
 
 def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
@@ -547,27 +530,20 @@ def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     the multi-GB GeoJSON/KML kept losing the connection, and a plain upload
     starts over each time."""
     s3 = pipeline.r2_client(read_timeout=300, connect_timeout=60, retries={'max_attempts': 5, 'mode': 'standard'})
-    return pipeline.upload_versioned(s3, local_paths(out_dir), R2_PREFIX, put=lambda s3, local, key:
-                                     pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads'))
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX, s3, put=lambda s3, local, key:
+                                 pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads'))
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--refresh', action='store_true', help='refetch the listing and every page')
-    ap.add_argument('--max-minutes', type=float, default=50, help='pull stops cleanly after this long')
-    ap.add_argument('--workers', type=int, default=4, help='resources pulled at once')
-    ap.add_argument('--force', action='store_true', help='rebake even if inputs are unchanged')
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         with cache_backup(RAW, 'bake_wbc1_water_bodies'):
             pull(a.refresh, a.max_minutes, a.workers)
-    elif a.step == 'bake':
-        bake(force=a.force)
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: bake(force=a.force),
+                                'upload': lambda a: upload(), 'register': lambda a: register()},
+                      ('--refresh', {'action': 'store_true', 'help': 'refetch the listing and every page'}),
+                      ('--max-minutes', {'type': float, 'default': 50, 'help': 'pull stops cleanly after this long'}),
+                      ('--workers', {'type': int, 'default': 4, 'help': 'resources pulled at once'}),
+                      ('--force', {'action': 'store_true', 'help': 'rebake even if inputs are unchanged'}))
 
 
 if __name__ == '__main__':

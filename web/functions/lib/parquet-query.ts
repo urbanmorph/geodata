@@ -9,6 +9,7 @@ import { compressors } from 'hyparquet-compressors';
 import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { QUERY_JUNK_COLUMNS } from './junk-columns';
+import { apiError, serverError } from './http';
 
 export interface ColumnSchema {
   name: string;
@@ -35,6 +36,11 @@ export interface GroupByResult {
 
 /** A caller mistake (bad column, wrong type, missing group_by): maps to HTTP 400. */
 export class QueryInputError extends Error {}
+
+/** The catch for a read route: a QueryInputError is the caller's 400, anything
+ *  else the generic 500 for `what` (its detail goes to the log only). */
+export const queryFailure = (what: string) => (e: unknown): Response =>
+  e instanceof QueryInputError ? apiError(400, e.message) : serverError(what, e);
 
 /** The Filter panel's filters (web/src/filter-where.ts ActiveFilter), sent as
  *  `filter=` JSON for layers too large to filter in the browser. */

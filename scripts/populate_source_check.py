@@ -125,6 +125,11 @@ OVERRIDES: dict[str, dict] = {
 }
 
 
+def override(layer_id: str) -> dict:
+    """A copy of the layer's recorded check, for a bake to build its source_check on."""
+    return dict(OVERRIDES[layer_id])
+
+
 def _source_url(layer: dict, ext: dict | None) -> str | None:
     return (ext or {}).get('source_url') or ((layer.get('attribution') or {}).get('primary') or {}).get('url')
 
@@ -133,7 +138,7 @@ def infer(layer: dict, ext: dict | None) -> dict:
     """{method, url} (plus reason for manual) for one layer. `ext` is its external-ingested.json row, if any."""
     lid = layer['id']
     if lid in OVERRIDES:
-        return dict(OVERRIDES[lid])
+        return override(lid)
     src = _source_url(layer, ext)
     if layer.get('provenance') == 'community':
         return manual('a community submission: the contributor sends a new version through /submit', src)

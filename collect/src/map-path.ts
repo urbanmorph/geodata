@@ -12,3 +12,12 @@ export function parseMapPath(pathname: string): MapPath | null {
   if (!m) return null;
   return { id: m[1], ...(m[2] ? { page: m[2] as 'admin' | 'view' } : {}), ...(m[3] ? { recordId: m[3] } : {}) };
 }
+
+/** A map's link: the edit link opens the map, the admin and view links their
+ *  pages; the token rides the hash. No permission or token: the bare address. */
+export const mapUrl = (origin: string, id: string, perm?: 'admin' | 'edit' | 'view', token?: string): string =>
+  `${origin}/c/${id}${perm === 'admin' || perm === 'view' ? `/${perm}` : ''}${token ? `#${token}` : ''}`;
+
+/** One record's own page, opened with its edit (rec_) or the map's token. */
+export const recordUrl = (origin: string, id: string, recordId: string, token: string): string =>
+  `${origin}/c/${id}/r/${recordId}#${token}`;

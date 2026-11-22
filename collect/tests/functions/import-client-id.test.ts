@@ -9,27 +9,15 @@
 // imported row's id must never hand anyone that record's edit token.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 let env: Env & { DB: ReturnType<typeof sqliteD1> };
 
-function req(method: string, path: string, token = '', body?: unknown): Request {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
 type Map = { id: string; admin: string; edit: string };
-async function newMap(): Promise<Map> {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Clinics', purpose: 'Clinics', license: 'CC-BY-4.0', moderation: 0,
-    schema_doc: { version: 1, geometry: ['point'], fields: [{ key: 'name', label: 'Name', type: 'text', required: true }] },
-  })));
-  return { id: r.body.id, admin: r.body.tokens.admin, edit: r.body.tokens.edit };
-}
+const newMap = (): Promise<Map> => makeMap(env, { name: 'Clinics', purpose: 'Clinics', moderation: 0 });
 const pt = (name: string, client_id?: unknown, lng = 77.59) =>
   ({ geometry: { type: 'Point', coordinates: [lng, 12.97] }, properties: { name }, ...(client_id === undefined ? {} : { client_id }) });
 const THREE = [pt('PHC Hebbal', 'phc-001'), pt('PHC Yelahanka', 'phc-002'), pt('PHC Jakkur', 'phc-003')];

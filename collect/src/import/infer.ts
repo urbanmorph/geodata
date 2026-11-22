@@ -3,6 +3,7 @@
 // author still reviews/edits before creating; this is a head start, not magic.
 
 import { deriveKey } from '../schema/derive-key';
+import { geomBucket } from '../geo/bounds';
 import { isDate, normalizeDateTime, looksLikeLocalDate } from '../schema/dates';
 import type { Parsed } from './parse';
 import type { BuilderField } from '../schema-builder';
@@ -14,13 +15,6 @@ export interface Inferred {
   geometry: string[];
   fields: BuilderField[];
   mapping: Record<string, string>; // fieldKey -> source column
-}
-
-function bucket(t?: string): string | null {
-  if (t === 'Point' || t === 'MultiPoint') return 'point';
-  if (t === 'LineString' || t === 'MultiLineString') return 'line';
-  if (t === 'Polygon' || t === 'MultiPolygon') return 'polygon';
-  return null;
 }
 
 // A column becomes a pick list only when it clearly repeats a set of values: up
@@ -65,7 +59,7 @@ export function inferSchema(parsed: Parsed, format: string): Inferred {
   if (format === 'csv') geometry = ['point'];
   else {
     const set = new Set<string>();
-    for (const f of parsed.features) { const b = bucket((f.geometry as { type?: string } | null)?.type); if (b) set.add(b); }
+    for (const f of parsed.features) { const b = geomBucket((f.geometry as { type?: string } | null)?.type); if (b) set.add(b); }
     geometry = set.size ? [...set] : ['point'];
   }
 

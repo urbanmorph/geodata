@@ -3,7 +3,7 @@
 // names) is routed through it before landing in innerHTML. The CSP blocks
 // inline script, but escaping also stops markup/phishing-link injection on
 // the admin's high-value screen.
-export { escapeHtml } from '../../shared/format.mjs';
+export { escapeHtml, plural } from '../../shared/format.mjs';
 
 /** Hand the person a file made in the browser. */
 export function downloadText(content: string, filename: string, mime: string): void {

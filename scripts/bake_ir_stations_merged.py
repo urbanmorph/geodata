@@ -39,7 +39,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import csv
 import difflib
 import hashlib
@@ -56,7 +55,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import log  # noqa: E402
+from pipeline import haversine_m, log  # noqa: E402
 import pipeline  # noqa: E402
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
@@ -138,12 +137,6 @@ class WD:
 def norm_code(s) -> str | None:
     s = (s or '').strip().upper()
     return s or None
-
-
-def haversine_m(x1: float, y1: float, x2: float, y2: float) -> float:
-    p1, p2 = math.radians(y1), math.radians(y2)
-    a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(x2 - x1) / 2) ** 2
-    return 2 * 6_371_008.8 * math.asin(math.sqrt(a))
 
 
 def _d(a, b) -> float:
@@ -508,7 +501,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
     script does nothing (tippecanoe and zip output differ byte-for-byte run to
     run, so re-baking would re-upload unchanged layers)."""
     import tempfile
-    from bake_extracts import gdal_geojson_available, make_con, write_kml_from_geojson
+    from bake_extracts import make_con, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
@@ -526,7 +519,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
         merged = Path(tmp) / 'merged.parquet'
         stats = write_merged_parquet(con, raw, merged)
         rows, prop_cols = rebake_flatten_bbox(merged, stage['parquet'], con)
-        write_geojson_whole(con, stage['parquet'], stage['geojson'], gdal_geojson_available(con))
+        write_geojson_whole(con, stage['parquet'], stage['geojson'])
         write_kml_from_geojson(stage['geojson'], LAYER_ID, stage['kml'])
         bake_formats.shapefile_zip_from_geojson(stage['geojson'], stage['shapefile'],
                                                 bake_formats.short_field_names(prop_cols))
@@ -535,8 +528,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
             os.replace(p, path[fmt])
 
     summary = {'rows': rows, 'inputs': inputs, **stats, 'sources': json.loads((raw / 'sources.json').read_text()),
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               **pipeline.sizes_and_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2) + '\n')
     return summary
 
@@ -595,9 +587,8 @@ def level_meta() -> dict:
 def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str,
                   names: dict[str, str] | None = None) -> dict:
     names = names or pipeline.plain_names(BASENAME, EXT)
-    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
-    for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows,
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({
         'licence': 'CC-BY-4.0',
         'attribution': {'primary': dict(ATTRIBUTION), 'publisher': dict(PUBLISHER)},
@@ -616,21 +607,16 @@ def manifest_entry(rows: int, sizes: dict[str, int], names: dict[str, str] | Non
         'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'transport',
         'source': SOURCE, 'description': description(), 'unit': 'stations', 'features': rows,
         'license': 'CC-BY-4.0', 'r2_prefix': R2_PREFIX,
-        'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-        'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+        **pipeline.manifest_files(names, sizes),
         'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
         'notes': notes(), 'tags': TAGS,
     }
 
 
-def local_paths(out_dir: Path) -> dict[str, Path]:
-    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
-
-
 def upload(out_dir: Path) -> dict[str, str]:
     """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
     changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
-    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX)
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summary_path: Path = SUMMARY,
@@ -658,18 +644,10 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summa
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--out', type=Path, default=ROOT / 'data' / 'baked' / R2_PREFIX)
-    a = ap.parse_args()
-    if a.step == 'pull':
-        log(json.dumps(pull(), indent=2))
-    elif a.step == 'bake':
-        log(json.dumps(bake(a.out), indent=2))
-    elif a.step == 'upload':
-        upload(a.out)
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': lambda a: log(json.dumps(pull(), indent=2)),
+                                'bake': lambda a: log(json.dumps(bake(a.out), indent=2)),
+                                'upload': lambda a: upload(a.out), 'register': lambda a: register()},
+                      ('--out', {'type': Path, 'default': ROOT / 'data' / 'baked' / R2_PREFIX}))
 
 
 if __name__ == '__main__':

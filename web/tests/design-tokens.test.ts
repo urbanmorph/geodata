@@ -10,6 +10,8 @@ import {
 } from '../../shared/tokens.mjs';
 // @ts-expect-error: plain .mjs
 import { TOKENS } from '../scripts/shared-chrome.mjs';
+// @ts-expect-error: plain .mjs
+import { HEAD_ICONS } from '../scripts/seo-head.mjs';
 
 const root = resolve(__dirname, '..', '..');
 const read = (p: string) => readFileSync(resolve(root, p), 'utf8');
@@ -33,8 +35,10 @@ describe('the token module', () => {
     expect(Object.keys(SCALES.FONT_WEIGHT)).toHaveLength(4);
     expect(BREAKPOINTS).toEqual({ sm: 640, md: 900, lg: 1100 });
   });
-  it('spaces on a 4 px grid and gives buttons 4 px corners', () => {
-    for (const v of Object.values(SCALES.SPACE)) expect(parseInt(v as string) % 4).toBe(0);
+  it('spaces on a 4 px grid, with 2 px half steps named --sp-N-5, and gives buttons 4 px corners', () => {
+    for (const [k, v] of Object.entries(SCALES.SPACE)) expect(parseInt(v as string) % 4, k).toBe(/-\d-5$/.test(k) ? 2 : 0);
+    const px = Object.values(SCALES.SPACE).map((v) => parseInt(v as string));
+    expect(px).toEqual([...px].sort((a, b) => a - b));
     expect(SCALES.RADIUS['--radius-sm']).toBe('4px');
   });
   it('uses hard offset shadows only (no blur)', () => {
@@ -95,13 +99,11 @@ describe('pages that cannot import the module carry exact copies', () => {
 });
 
 describe('theme-color is the paper (--bg) in each theme', () => {
-  const files = [
-    ...['index', 'layers', 'about', 'docs', 'mcp', 'preview', 'privacy', 'terms', 'releases', '404', 'design'].map((p) => `web/${p}.template.html`),
-    'collect/index.html', 'collect/c.html', 'collect/404.html',
-  ];
+  // The web page templates take theirs from HEAD_ICONS (seo-head.test.ts checks each uses it).
+  const files = ['HEAD_ICONS', 'collect/index.html', 'collect/c.html', 'collect/404.html'];
   for (const f of files) {
     it(f, () => {
-      const html = read(f);
+      const html = f === 'HEAD_ICONS' ? HEAD_ICONS : read(f);
       for (const mode of MODES) {
         const m = html.match(new RegExp(`<meta name="theme-color" content="(#[0-9a-fA-F]{6})" media="\\(prefers-color-scheme: ${mode}\\)"`));
         expect(m?.[1].toLowerCase(), `${f} ${mode}`).toBe(COLORS[mode]['--bg'].toLowerCase());

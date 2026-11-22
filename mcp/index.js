@@ -9,7 +9,7 @@ import {
 import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { instructionsCore, readToolsFor, POINT_PROFILE_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
+import { instructionsCore, readToolsFor, isReadTool, POINT_PROFILE_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
 
 // The point lookups (ground_at, surface_at) stay unpublished until their release; BHARATLAS_POINT_PROFILES=on offers them.
 const POINT_PROFILES = process.env.BHARATLAS_POINT_PROFILES === "on";
@@ -231,16 +231,13 @@ function collectApi(method, path, { token, apiKey, body } = {}) {
 }
 
 async function handleTool(name, args) {
+  // --- read tools (read-tools.js) ---
+  if (isReadTool(name)) {
+    if (POINT_PROFILE_TOOLS.has(name) && !POINT_PROFILES) throw new Error(`Unknown tool: ${name}`);
+    const req = readToolRequest(name, args);
+    return shapeReadResult(name, await callApi(req.path, req.params));
+  }
   switch (name) {
-    // --- read tools (read-tools.js) ---
-    case "list_layers": case "get_layer_schema": case "query_layer": case "nearby":
-    case "locate": case "list_categories": case "get_layer_detail": case "list_submissions":
-    case "ground_at": case "surface_at": {
-      if (POINT_PROFILE_TOOLS.has(name) && !POINT_PROFILES) throw new Error(`Unknown tool: ${name}`);
-      const req = readToolRequest(name, args);
-      return shapeReadResult(name, await callApi(req.path, req.params));
-    }
-
     // --- collect (authoring) ---
     case "register_map": {
       const { id, token, scope, link } = parseShareLink(args.link);

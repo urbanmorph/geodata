@@ -1,12 +1,13 @@
 // Tiny helpers used by the /api/submit endpoint (and collect, via its
 // reuse.ts). Pure functions where possible so they unit-test without a live
 // request / D1.
-import { randomUrlSafe, sha256Hex } from './crypto';
-
-export { ipSalt } from './crypto';
+import { ipSalt, randomUrlSafe, sha256Hex } from './crypto';
 import { rateKeySource } from './api-ratelimit';
 
-export { sha256Hex };
+export { ipSalt, sha256Hex };
+
+/** The salt for hashing a submitter's or voter's IP (submit and rate share it). */
+export const submitterSalt = (env: { IP_SALT?: string }): string => ipSalt(env.IP_SALT, 'geodata-v1');
 
 export const nanoid = (length: number): string => randomUrlSafe(length);
 

@@ -32,14 +32,14 @@ describe('collect controls', () => {
     expect(css).toMatch(/button, \.btn \{[^}]*border-radius: var\(--radius-sm\)/);
   });
   it('buttons and inputs have the navy edge', () => {
-    expect(css).toMatch(/button, \.btn \{[^}]*border: 1\.5px solid var\(--edge\)/);
-    expect(css).toMatch(/input, textarea, select \{[^}]*border: 1\.5px solid var\(--edge\)/);
+    expect(css).toMatch(/button, \.btn \{[^}]*border: var\(--border-edge\)/);
+    expect(css).toMatch(/input, textarea, select \{[^}]*border: var\(--border-edge\)/);
   });
   it('the main action casts the offset shadow', () => {
     expect(css).toMatch(/button\.primary, \.btn\.primary \{[^}]*box-shadow: var\(--shadow-sm\)/);
   });
   it('the top bar is edged in navy and pages sit on grid paper', () => {
-    expect(css).toMatch(/\.topbar \{[^}]*border-bottom: 1\.5px solid var\(--edge\)/);
+    expect(css).toMatch(/\.topbar \{[^}]*border-bottom: var\(--border-edge\)/);
     expect(css).toMatch(/\nbody \{[^}]*background-image:[^}]*var\(--grid\)/);
   });
 });
@@ -52,5 +52,5 @@ describe('collect over the map', () => {
 });
 
 it("MapLibre's zoom buttons carry the navy edge and offset shadow", () => {
-  expect(css).toMatch(/\.maplibregl-map \.maplibregl-ctrl-group:not\(:empty\) \{[^}]*border: 1\.5px solid var\(--edge\)[^}]*box-shadow: var\(--shadow-sm\)/);
+  expect(css).toMatch(/\.maplibregl-map \.maplibregl-ctrl-group:not\(:empty\) \{[^}]*border: var\(--border-edge\)[^}]*box-shadow: var\(--shadow-sm\)/);
 });

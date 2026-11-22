@@ -3,13 +3,13 @@
 // after upload within a daily allowance, kept apart until a person accepts them.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { O, req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import * as ph from '../../functions/lib/photos';
 import * as ai from '../../functions/lib/ai';
 import type { Env } from '../../functions/types';
 import { readExif, writeExif } from '../../src/photos/exif';
 
-const O = 'https://collect.test';
 type TestEnv = Env & { DB: ReturnType<typeof sqliteD1> };
 let env: TestEnv;
 let objects: Map<string, Uint8Array>;
@@ -18,15 +18,6 @@ let aiReply: string;
 
 const JPEG = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0, 0xff, 0xd9]);
 
-function req(method: string, path: string, token = '', body?: unknown, headers: Record<string, string> = {}): Request {
-  const hd: Record<string, string> = { ...headers };
-  if (token) hd.authorization = `Bearer ${token}`;
-  let b: BodyInit | undefined;
-  if (body instanceof Uint8Array) { b = body; hd['content-type'] ??= 'image/jpeg'; }
-  else if (body !== undefined) { b = JSON.stringify(body); hd['content-type'] = 'application/json'; }
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers: hd, body: b });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
 const FIELDS = [
   { key: 'pic', label: 'Photo', type: 'photo', max_photos: 2, required: true },
@@ -35,14 +26,8 @@ const FIELDS = [
   { key: 'note', label: 'Note', type: 'text' },
 ];
 
-async function newMap(mode = 'form', moderation = 1) {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Garbage spots', purpose: 'Find them', license: 'CC-BY-4.0', moderation,
-    schema_doc: { version: 1, geometry: ['point'], fields: FIELDS, mode },
-  })));
-  expect(r.status).toBe(200);
-  return { id: r.body.id as string, edit: r.body.tokens.edit as string, admin: r.body.tokens.admin as string, view: r.body.tokens.view as string };
-}
+const newMap = (mode = 'form', moderation = 1) =>
+  makeMap(env, { name: 'Garbage spots', purpose: 'Find them', fields: FIELDS, mode, moderation });
 type M = Awaited<ReturnType<typeof newMap>>;
 
 let n = 0;

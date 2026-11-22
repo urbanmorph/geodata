@@ -7,6 +7,8 @@
 // do their own checks first (validation, the layer lookup, countApiUse) and
 // wrap only the work: a hit still counts the call.
 
+import { apiError } from './http';
+
 export type EdgeCache = Pick<Cache, 'match' | 'put'>;
 type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void };
 
@@ -14,6 +16,14 @@ type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void };
  *  (the key moves with the catalog); R2 answers allow for an object replaced
  *  under the same key. */
 export const EDGE_TTL = { catalog: 86_400, r2: 3_600, page: 86_400, live: 60 } as const;
+
+/** The cache-control the answers carry for browsers and the CDN: catalog API
+ *  answers, rendered pages (/view, /c, community files), and live counters. */
+export const CACHE_CONTROL = {
+  catalog: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
+  page: 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+  live: 'public, max-age=30, stale-while-revalidate=120',
+} as const;
 
 const KEY_ORIGIN ='https://bharatlas.com/__cache/';
 // Restores the handler's own cache-control on a hit: the stored copy carries
@@ -125,9 +135,7 @@ export function cachedLive(
       return await compute();
     } catch (e) {
       console.error(`${new URL(ctx.request.url).pathname} failed:`, (e as Error)?.message ?? e);
-      return new Response(JSON.stringify({ error: 'Temporarily unavailable, please try again', status: 503 }), {
-        status: 503, headers: { 'content-type': 'application/json', 'retry-after': '30' },
-      });
+      return apiError(503, 'Temporarily unavailable, please try again', { 'retry-after': '30' });
     }
   }, cache);
 }

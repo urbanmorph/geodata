@@ -5,8 +5,7 @@
 // so production is off by default and local dev and tests are on.
 // web/scripts/point-profiles.mjs is the build-time side (docs, FAQ, credits).
 
-export const POINT_PROFILE_PATHS = ['/ground', '/surface'] as const;
-export const POINT_PROFILE_TOOLS = ['ground_at', 'surface_at'] as const;
+import { notFoundJson } from './api-not-found';
 
 const LOCAL = new Set(['localhost', '127.0.0.1', '[::1]']);
 
@@ -18,8 +17,4 @@ export function pointProfilesOn(env: { POINT_PROFILES?: string } | undefined, ur
 }
 
 /** The answer an endpoint gives while the flag is off: the same 404 as any path that is not an endpoint. */
-export function notPublished(pathname: string): Response {
-  return new Response(JSON.stringify({ error: `Not found: ${pathname}`, status: 404 }), {
-    status: 404, headers: { 'content-type': 'application/json' },
-  });
-}
+export const notPublished = notFoundJson;

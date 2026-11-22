@@ -171,7 +171,7 @@ def _column_types() -> dict[str, str]:
 
 def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
     sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
+    from bake_extracts import write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
@@ -218,7 +218,7 @@ def bake(results_path: Path, blocks_parquet: Path, out_dir: Path) -> dict:
 
     geojson = out_dir / f'{BASENAME}.geojson'
     geojson.unlink(missing_ok=True)
-    write_geojson_whole(con, parquet, geojson, gdal_geojson_available(con))
+    write_geojson_whole(con, parquet, geojson)
     kml = out_dir / f'{BASENAME}.kml'
     write_kml_from_geojson(geojson, LAYER_ID, kml)
     shp = out_dir / f'{BASENAME}.shp.zip'

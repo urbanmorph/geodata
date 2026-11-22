@@ -230,19 +230,14 @@ def pull_one(raw: Path, row: dict, get: Callable[[str], bytes]) -> dict:
     else:
         got.update(sha256=hashlib.sha256(body).hexdigest(), bytes=len(body),
                    features=len(json.loads(body)['features']))
-        file_of(raw, row).parent.mkdir(parents=True, exist_ok=True)
-        with pipeline.atomic_output(file_of(raw, row)) as part:
-            part.write_bytes(gzip.compress(body, mtime=0))
+        pipeline.write_atomic(file_of(raw, row), gzip.compress(body, mtime=0))
     rec.parent.mkdir(parents=True, exist_ok=True)
     pipeline.write_json(rec, got)
     return got
 
 
 def http_get(url: str) -> bytes:
-    import urllib.request
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=300).read(),
-                                 give_up=pipeline.is_client_error)
+    return pipeline.get_bytes(url, timeout=300, give_up=pipeline.is_client_error)
 
 
 def cached_get(path: Path, url: str, get: Callable[[str], bytes]) -> bytes:
@@ -315,7 +310,7 @@ def build_table(con, raw: Path, rows: list[dict], out: Path) -> int:
     nums = NumericTracker([])
     with ndjson.open('w') as f:
         for row in rows:
-            body = json.loads(gzip.decompress(file_of(raw, row).read_bytes()))
+            body = pipeline.read_json_gz(file_of(raw, row))
             crs = ((body.get('crs') or {}).get('properties') or {}).get('name', 'CRS84')
             if not crs.endswith(CRS_OK):
                 raise ValueError(f'{item_name(row)}: the file is in {crs}, not lon/lat WGS84')
@@ -379,7 +374,7 @@ def bake(spec: Spec, raw: Path = RAW) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
+    from bake_extracts import write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
 
     got = json.loads((raw / f'{spec.id}.pull.json').read_text())
@@ -400,7 +395,7 @@ def bake(spec: Spec, raw: Path = RAW) -> dict:
                   .fetchall())
     log(f'{n} micro-watershed rows: {states}')
     path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))   # the tiles' input
+    write_geojson_whole(con, path['parquet'], path['geojson'])   # the tiles' input
     formats = published_formats(path['parquet'].stat().st_size, shapefile_fits(con, path['parquet'], prop_cols))
     if 'kml' in formats:
         write_kml_from_geojson(path['geojson'], spec.id, path['kml'])
@@ -412,8 +407,7 @@ def bake(spec: Spec, raw: Path = RAW) -> dict:
     log(f'  publishing {formats}')
     path = {fmt: path[fmt] for fmt in formats}
     summary = {'rows': n, 'states': states, 'pull': got,
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               **pipeline.sizes_and_names(path)}
     pipeline.write_json(spec.summary_path, summary)
     log(json.dumps({k: v for k, v in summary.items() if k != 'states'}, indent=2))
     return summary
@@ -422,8 +416,7 @@ def bake(spec: Spec, raw: Path = RAW) -> dict:
 def upload(spec: Spec) -> dict[str, str]:
     """Every format to its content-versioned key; a key R2 already holds is never overwritten."""
     names = json.loads(spec.summary_path.read_text())['names']
-    paths = {fmt: spec.out_dir / name for fmt, name in pipeline.plain_names(spec.basename, EXT).items()
-             if fmt in names}
+    paths = {fmt: p for fmt, p in pipeline.layer_paths(spec.out_dir, spec.basename, EXT).items() if fmt in names}
 
     def put(s3, local: Path, key: str) -> None:
         pipeline.r2_upload(s3, local, key, new_only=True)
@@ -440,19 +433,9 @@ def level_meta(spec: Spec) -> dict:
     return {'label': spec.label, 'unit': 'micro-watersheds', 'description': spec.description}
 
 
-def refresh_block(entry: dict, prev: dict, built_at: str) -> dict:
-    from populate_refresh import infer, next_due
-    block, _ = infer(entry)
-    return {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
-            'next_due': next_due(block['rebuild'], built_at)}
-
-
-def source_check(spec: Spec) -> dict:
-    from populate_source_check import OVERRIDES
-    return dict(OVERRIDES[spec.id])
-
-
 def catalog_entry(spec: Spec, summ: dict, prev: dict, r2_public: str) -> dict:
+    from populate_refresh import refresh_block
+    from populate_source_check import override
     names, sizes, got = summ['names'], summ['sizes'], summ['pull']
     entry = {'id': spec.id, 'level': spec.id, 'source': SOURCE, 'rows': summ['rows']}
     for fmt in EXT:
@@ -461,7 +444,7 @@ def catalog_entry(spec: Spec, summ: dict, prev: dict, r2_public: str) -> dict:
     entry.update({'licence': LICENCE, 'attribution': {'primary': dict(CORE), 'publisher': None},
                   'category': spec.category, 'provenance': 'curated', 'notes': notes(spec),
                   'tags': list(spec.tags), 'fetched_at': got['pulled_at'],
-                  'source_check': {**source_check(spec), 'fingerprint': f'sha256={got["sha256"]}',
+                  'source_check': {**override(spec.id), 'fingerprint': f'sha256={got["sha256"]}',
                                    'checked_at': got['pulled_at'], 'changed_at': None}})
     entry['refresh'] = refresh_block(entry, prev, got['pulled_at'])
     return entry
@@ -472,8 +455,7 @@ def manifest_entry(spec: Spec, summ: dict) -> dict:
     return {'id': spec.id, 'name': spec.label, 'level': spec.id, 'category': spec.category, 'source': SOURCE,
             'description': spec.description, 'unit': 'micro-watersheds', 'features': summ['rows'],
             'license': LICENCE, 'r2_prefix': spec.r2_prefix,
-            'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+            **pipeline.manifest_files(names, sizes),
             'source_url': STAC_URL, 'source_org': 'CoRE Stack',
             'source_version': f'sha256 {summ["pull"]["sha256"][:12]}, {summ["pull"]["tehsils"]} tehsils',
             'notes': notes(spec), 'tags': list(spec.tags)}
@@ -484,15 +466,10 @@ def register(spec: Spec, catalog_path: Path = CATALOG, manifest_path: Path = MAN
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent."""
     summ = json.loads((summary_path or spec.summary_path).read_text())
     pipeline.summary_names(summ)
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((x for x in catalog.get('layers', []) if x.get('id') == spec.id), {})
-    entry = pipeline.licence_labelled(catalog_entry(spec, summ, prev, r2_public or pipeline.R2_PUBLIC))
-    pipeline.upsert_layer(catalog, entry, level_meta(spec), level=spec.id, attribution=(SOURCE, CORE))
-    # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], entry)
-    pipeline.write_json(catalog_path, catalog)
-    pipeline.write_json(manifest_path,
-                        pipeline.upsert_by_id(json.loads(manifest_path.read_text()), manifest_entry(spec, summ)))
+    pipeline.register_layer(catalog_path, manifest_path,
+                            lambda prev: catalog_entry(spec, summ, prev, r2_public or pipeline.R2_PUBLIC),
+                            manifest_entry(spec, summ), level_meta(spec), as_built=True, level=spec.id,
+                            attribution=(SOURCE, CORE))
 
 
 def main() -> None:

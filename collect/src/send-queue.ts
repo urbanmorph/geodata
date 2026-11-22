@@ -2,6 +2,7 @@
 // real page, so this can't run in the service worker. It runs when a point is
 // saved, when collect opens and when the signal comes back.
 import { api } from './api';
+import { recordUrl } from './map-path';
 import { turnstileToken } from './turnstile';
 import { rememberRecord } from './maps-store';
 import { flush, idbOutbox, newClientId, sendBody, uploadPhotos, forgetUploads, photosMissing, type QueuedPoint, type QueuedPhoto, type SendResult, type FlushResult, type UploadResult } from './outbox';
@@ -17,9 +18,9 @@ const LINK_GONE = 'this collect link no longer works; the map owner may have tur
 /** One photo to the map (raw JPEG; where and when it was taken in a header). */
 export async function uploadPhoto(collectionId: string, token: string, photo: Pick<QueuedPhoto, 'client_id' | 'bytes' | 'meta'>): Promise<UploadResult> {
   try {
-    const res = await fetch(`/api/collect/v1/collections/${collectionId}/photos`, {
+    const res = await api(`/collections/${collectionId}/photos`, token, {
       method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'image/jpeg', 'x-client-id': photo.client_id, 'x-photo-meta': JSON.stringify(photo.meta) },
+      headers: { 'content-type': 'image/jpeg', 'x-client-id': photo.client_id, 'x-photo-meta': JSON.stringify(photo.meta) },
       body: photo.bytes,
     });
     const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
@@ -61,7 +62,7 @@ async function sendOnce(p: QueuedPoint): Promise<SendResult> {
 }
 
 export const editLink = (collectionId: string, recordId: string, editToken: string): string =>
-  `${location.origin}/c/${collectionId}/r/${recordId}#${editToken}`;
+  recordUrl(location.origin, collectionId, recordId, editToken);
 
 /** Sends what's waiting; each sent point's edit link joins "Your additions". */
 export async function sendQueued(): Promise<FlushResult> {

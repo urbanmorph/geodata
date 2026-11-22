@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { loadCatalog, loadCatalogVersioned, __resetCatalogForTest, fetchAsset } from '../functions/lib/catalog-loader';
+import { loadCatalog, loadCatalogVersioned, __resetCatalogForTest, fetchAsset, isSpaFallback } from '../functions/lib/catalog-loader';
 
 const CATALOG = { layers: [{ id: 'a' }], categories: {} };
 
@@ -10,6 +10,14 @@ const ok = (body: unknown) => async () => new Response(JSON.stringify(body));
 
 beforeEach(() => __resetCatalogForTest());
 afterEach(() => vi.unstubAllGlobals());
+
+describe('isSpaFallback', () => {
+  it("is true for Pages' index.html stand-in for a missing file, false for a real file", () => {
+    expect(isSpaFallback(new Response('<html>', { headers: { 'content-type': 'text/html; charset=utf-8' } }))).toBe(true);
+    expect(isSpaFallback(new Response('a  b', { headers: { 'content-type': 'text/plain' } }))).toBe(false);
+    expect(isSpaFallback(new Response('{}'))).toBe(false);
+  });
+});
 
 describe('catalog loader', () => {
   it('reads catalog.json through env.ASSETS, not through the zone', async () => {

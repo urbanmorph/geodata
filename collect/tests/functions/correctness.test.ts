@@ -4,36 +4,21 @@
 // router answering JSON when something throws.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import * as ph from '../../functions/lib/photos';
 import { checkRecordRate } from '../../functions/lib/ratelimit';
 import { onRequest } from '../../functions/api/collect/[[path]]';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 type TestEnv = Env & { DB: ReturnType<typeof sqliteD1> };
 let env: TestEnv;
 let objects: Map<string, Uint8Array>;
 
-function req(method: string, path: string, token = '', body?: unknown, headers: Record<string, string> = {}): Request {
-  const hd: Record<string, string> = { ...headers };
-  if (token) hd.authorization = `Bearer ${token}`;
-  let b: BodyInit | undefined;
-  if (body instanceof Uint8Array) { b = body; hd['content-type'] ??= 'image/jpeg'; }
-  else if (body !== undefined) { b = JSON.stringify(body); hd['content-type'] = 'application/json'; }
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers: hd, body: b });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
 const FIELDS = [{ key: 'name', label: 'Name', type: 'text', required: true }];
-async function newMap(opts: { moderation?: number; fields?: unknown[]; mode?: string } = {}) {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Ward trees', purpose: 'Street trees', license: 'CC-BY-4.0', moderation: opts.moderation ?? 1,
-    schema_doc: { version: 1, geometry: ['point'], fields: opts.fields ?? FIELDS, ...(opts.mode ? { mode: opts.mode } : {}) },
-  })));
-  expect(r.status).toBe(200);
-  return { id: r.body.id as string, edit: r.body.tokens.edit as string, admin: r.body.tokens.admin as string };
-}
+const newMap = (opts: { moderation?: number; fields?: unknown[]; mode?: string } = {}) =>
+  makeMap(env, { fields: FIELDS, moderation: 1, ...opts });
 type M = Awaited<ReturnType<typeof newMap>>;
 const point = { type: 'Point', coordinates: [77.59, 12.97] };
 

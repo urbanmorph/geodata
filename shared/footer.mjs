@@ -2,8 +2,7 @@
 // (via web/scripts/shared-chrome.mjs), the community layer pages (/c/<id>)
 // and collect's home (absolute links). Add a link here once.
 import { escapeHtml as esc } from './format.mjs';
-
-const SITE = 'https://bharatlas.com';
+import { SITE_ORIGIN } from './brand.mjs';
 
 // [label, href]; a leading "/" is a bharatlas.com page.
 const LINKS = [
@@ -18,7 +17,7 @@ const DEFAULT_NOTE = 'Open licences only. Each layer carries its source link on 
 
 /** The links line. `absolute` for pages on another host (collect). */
 export function footerLinksHtml({ absolute = false } = {}) {
-  const link = ([label, href]) => `<a href="${absolute && href.startsWith('/') ? SITE + href : href}">${label}</a>`;
+  const link = ([label, href]) => `<a href="${absolute && href.startsWith('/') ? SITE_ORIGIN + href : href}">${label}</a>`;
   return `${LINKS.map(link).join(' · ')} · made by <a href="https://urbanmorph.com">urbanmorph</a> · a digital commons · <a href="https://pdgi.org">pdgi.org</a>`;
 }
 

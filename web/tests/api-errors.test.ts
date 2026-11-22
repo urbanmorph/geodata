@@ -2,7 +2,7 @@
 // fault such as a missing R2 object is a 500, not "your request was bad".
 import { describe, it, expect, vi, beforeAll } from 'vitest';
 import { nearby } from '../functions/lib/nearby';
-import { QueryInputError } from '../functions/lib/parquet-query';
+import { QueryInputError, queryFailure } from '../functions/lib/parquet-query';
 import { onRequestGet as queryRoute } from '../functions/api/v1/layers/[id]/query';
 import { onRequestGet as nearbyRoute } from '../functions/api/v1/nearby';
 
@@ -31,5 +31,17 @@ describe('routes map errors to status codes', () => {
   it('nearby: an unknown layer is a 400, a missing R2 object a 500', async () => {
     expect((await nearbyRoute(ctx('https://b.test/api/v1/nearby?lat=12&lng=77&layer=nope'))).status).toBe(400);
     expect((await nearbyRoute(ctx('https://b.test/api/v1/nearby?lat=12&lng=77&layer=roads'))).status).toBe(500);
+  });
+});
+
+describe('queryFailure', () => {
+  it("is a 400 with the message for the caller's mistake, else the generic 500", async () => {
+    const bad = queryFailure('Query')(new QueryInputError('unknown column x'));
+    expect(bad.status).toBe(400);
+    expect(await bad.json()).toEqual({ error: 'unknown column x', status: 400 });
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const broken = queryFailure('Query')(new Error('r2 key secret/path'));
+    expect(broken.status).toBe(500);
+    expect(((await broken.json()) as { error: string }).error).toMatch(/^Query failed\./);
   });
 });

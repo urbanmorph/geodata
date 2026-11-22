@@ -1,27 +1,19 @@
 // Fixes from the code review of the data-aware forms change.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { req, j, createMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 let env: Env & { DB: ReturnType<typeof sqliteD1> };
 let objects: Map<string, string>;
 
-function req(method: string, path: string, token = '', body?: unknown): Request {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 const FORM = [
   { key: 'name', label: 'Name', type: 'text', required: true },
   { key: 'phone', label: 'Phone', type: 'text' },
 ];
 async function newMap(fields: unknown = FORM) {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Shops', purpose: 'Shops', license: 'CC-BY-4.0', schema_doc: { version: 1, geometry: ['point'], fields }, moderation: 0,
-  })));
+  const r = await j(await createMap(env, { name: 'Shops', purpose: 'Shops', fields, moderation: 0 }));
   return { id: r.body.id as string, edit: r.body.tokens?.edit as string, admin: r.body.tokens?.admin as string, status: r.status, error: r.body.error };
 }
 const point = { type: 'Point', coordinates: [77.59, 12.97] };

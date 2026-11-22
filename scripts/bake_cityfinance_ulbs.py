@@ -21,11 +21,9 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import csv
 import difflib
 import json
-import os
 import re
 import sys
 import tempfile
@@ -307,10 +305,7 @@ def fetch_cached(url: str, dest: Path, getter: Callable[[str], bytes] = http_get
         return False
     body = getter(url)
     json.loads(body)  # refuse an HTML block page or a truncated answer
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    part = dest.with_name(dest.name + '.part')
-    part.write_bytes(body)
-    os.replace(part, dest)
+    pipeline.write_atomic(dest, body)
     return True
 
 
@@ -476,8 +471,6 @@ def write_joined_parquet(sbm: Path, raw: Path, out: Path) -> dict:
 
 
 def bake(out_dir: Path, raw: Path = RAW) -> dict:
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -491,14 +484,9 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
 
     con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
-    path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))
-    write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
-    bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
-    bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
+    files = bake_formats.write_all_formats(con, path, LAYER_ID, prop_cols, TILE_FIELDS)
 
-    summary = {'rows': rows, **stats, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+    summary = {'rows': rows, **stats, **files}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     return summary
 
@@ -541,9 +529,8 @@ def level_meta() -> dict:
 def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str,
                   names: dict[str, str] | None = None) -> dict:
     names = names or pipeline.plain_names(BASENAME, EXT)
-    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
-    for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows,
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({
         'licence': 'GODL-India',
         'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
@@ -562,21 +549,16 @@ def manifest_entry(rows: int, sizes: dict[str, int], names: dict[str, str] | Non
         'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'economy',
         'source': SOURCE, 'description': description(), 'unit': 'ULBs', 'features': rows,
         'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-        'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-        'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+        **pipeline.manifest_files(names, sizes),
         'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
         'notes': notes(), 'tags': TAGS,
     }
 
 
-def local_paths(out_dir: Path) -> dict[str, Path]:
-    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
-
-
 def upload(out_dir: Path) -> dict[str, str]:
     """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
     changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
-    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX)
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
@@ -593,21 +575,14 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--max-minutes', type=float, default=20)
-    ap.add_argument('--out', type=Path, default=ROOT / 'data' / 'baked' / R2_PREFIX)
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         with cache_backup(RAW, CACHE_NAME):
             done = pull(max_minutes=a.max_minutes)
         sys.exit(0 if done else 3)
-    elif a.step == 'bake':
-        log(json.dumps(bake(a.out), indent=2))
-    elif a.step == 'upload':
-        upload(a.out)
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: log(json.dumps(bake(a.out), indent=2)),
+                                'upload': lambda a: upload(a.out), 'register': lambda a: register()},
+                      ('--max-minutes', {'type': float, 'default': 20}),
+                      ('--out', {'type': Path, 'default': ROOT / 'data' / 'baked' / R2_PREFIX}))
 
 
 if __name__ == '__main__':

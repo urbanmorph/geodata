@@ -1,6 +1,6 @@
 import { notFoundForUnmatched } from '../lib/api-not-found';
 import { SECURITY_HEADERS_NON_HTML } from '../lib/security-headers';
-import { serverError } from '../lib/http';
+import { apiError, serverError } from '../lib/http';
 
 // CORS preflight + shared environment shape.
 // Pages Functions read this from each /api/* handler via the `data` arg.
@@ -41,9 +41,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
     });
   }
   if (crossSiteWrite(ctx.request)) {
-    return new Response(JSON.stringify({ error: 'writes are only accepted from bharatlas.com', status: 403 }), {
-      status: 403, headers: { 'content-type': 'application/json', ...SECURITY_HEADERS_NON_HTML },
-    });
+    return apiError(403, 'writes are only accepted from bharatlas.com', SECURITY_HEADERS_NON_HTML);
   }
   // A handler that throws would otherwise reach the caller as Cloudflare's HTML
   // error page (1101): every /api answer is JSON {error, status}.

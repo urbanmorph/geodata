@@ -51,8 +51,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
-import gzip
 import json
 import os
 import ssl
@@ -70,7 +68,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
-from pipeline import atomic_output, log, make_con  # noqa: E402
+from pipeline import log, make_con  # noqa: E402
 
 LAYER_ID = 'wris_groundwater_levels'
 LEVEL = LAYER_ID
@@ -162,8 +160,7 @@ def fetch_intermediates(host: str, hops: int = 3) -> Path:
         url = _aia_issuer_url(cert)
         if not url or cert.issuer == cert.subject:
             break
-        req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-        certs = _load_certs(pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=60).read()))
+        certs = _load_certs(pipeline.get_bytes(url))
         found += certs
         cert = certs[0]
     out = _ca_dir() / f'{host}.pem'
@@ -224,16 +221,6 @@ def api_fetch(ctx: ssl.SSLContext) -> Fetch:
     return fetch
 
 
-def _read_gz(path: Path):
-    return json.loads(gzip.decompress(path.read_bytes()))
-
-
-def _write_gz(path: Path, data) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with atomic_output(path) as part:
-        part.write_bytes(gzip.compress(json.dumps(data).encode(), mtime=0))
-
-
 # ── stations ─────────────────────────────────────────────────────────────────
 
 def pull_stations(raw: Path, get_json: Callable[[str], dict]) -> list[dict]:
@@ -247,9 +234,9 @@ def pull_stations(raw: Path, get_json: Callable[[str], dict]) -> list[dict]:
             got = get_json(f'{STATIONS_URL}/query?{urllib.parse.urlencode(q)}')
             if 'error' in got:
                 raise ValueError(f'station layer: {got["error"]}')
-            _write_gz(page, got['features'])
+            pipeline.write_json_gz(page, got['features'])
             log(f'  stations: {offset + len(got["features"]):,}')
-        got = _read_gz(page)
+        got = pipeline.read_json_gz(page)
         feats += got
         if len(got) < STATION_PAGE:
             return feats
@@ -333,8 +320,8 @@ def pull_window(fetch: Fetch, raw: Path, combo: tuple[str, str, str], start: str
                 deadline.check(f'{wdir.name} page {n}')
             answer = fetch({**params, 'page': n, 'size': PAGE})
             rows_of(answer)
-            _write_gz(path, answer)
-        return rows_of(_read_gz(path))
+            pipeline.write_json_gz(path, answer)
+        return rows_of(pipeline.read_json_gz(path))
 
     first = page(0)
     if len(first) < PAGE:
@@ -373,7 +360,7 @@ def window_rows(wdir: Path) -> list[dict]:
     """The rows of a finished full or paged window, in page order."""
     out = []
     for n in range(json.loads((wdir / 'window.json').read_text())['pages']):
-        out += rows_of(_read_gz(wdir / f'page_{n:05d}.json.gz'))
+        out += rows_of(pipeline.read_json_gz(wdir / f'page_{n:05d}.json.gz'))
     return out
 
 
@@ -445,11 +432,7 @@ def pull(fetch: Fetch | None = None, deadline: pipeline.Deadline | None = None, 
     ctx = verified_context() if fetch is None else None
     fetch = fetch or api_fetch(ctx)
 
-    def get_json(url: str) -> dict:
-        req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-        return pipeline.with_retries(lambda: json.loads(urllib.request.urlopen(req, timeout=300, context=ctx).read()))
-
-    stations = pull_stations(RAW, get_json)
+    stations = pull_stations(RAW, lambda url: pipeline.get_json(url, timeout=300, context=ctx))
     groups = combos(stations)
     log(f'{len(stations):,} stations in {len(groups):,} (state, district, agency) groups, '
         f'{sum(groups.values()):,} with telemetry')
@@ -644,15 +627,13 @@ def build_station_table(con, stations: list[dict], summaries: dict[str, dict],
 
 
 def load_stations(raw: Path = RAW) -> list[dict]:
-    return [f for p in sorted((raw / 'stations').glob('offset_*.json.gz')) for f in _read_gz(p)]
+    return [f for p in sorted((raw / 'stations').glob('offset_*.json.gz')) for f in pipeline.read_json_gz(p)]
 
 
 def bake(out_dir: Path = OUT_DIR, raw: Path = RAW) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
 
     got = json.loads((raw / 'pull.json').read_text())
     stations = load_stations(raw)
@@ -683,14 +664,8 @@ def bake(out_dir: Path = OUT_DIR, raw: Path = RAW) -> dict:
                   readings_by_code=dict(con.execute(f"SELECT datatypeCode, count(*) FROM '{r}' GROUP BY 1 "
                                                     "ORDER BY 2 DESC").fetchall()))
     log(json.dumps(counts))
-    path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, p, path['geojson'], gdal_geojson_available(con))
-    write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
-    bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
-    bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
-    summary = {'rows': rows, 'counts': counts, 'pull': got,
-               'sizes': {fmt: f.stat().st_size for fmt, f in path.items()},
-               'names': pipeline.versioned_names(path)}
+    files = bake_formats.write_all_formats(con, path, LAYER_ID, prop_cols, TILE_FIELDS)   # and the readings' sizes, names
+    summary = {'rows': rows, 'counts': counts, 'pull': got, **files}
     pipeline.write_json(SUMMARY, summary)
     log(json.dumps(summary, indent=2))
     return summary
@@ -698,7 +673,7 @@ def bake(out_dir: Path = OUT_DIR, raw: Path = RAW) -> dict:
 
 def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     """Every file to its content-versioned key: unchanged files keep theirs (md5-skipped)."""
-    paths = {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+    paths = pipeline.layer_paths(out_dir, BASENAME, EXT)
     paths['readings'] = out_dir / f'{READINGS_BASENAME}.parquet'
     return pipeline.upload_versioned(pipeline.r2_client(), paths, R2_PREFIX)
 
@@ -740,31 +715,20 @@ def level_meta() -> dict:
     return {'label': 'Groundwater levels, India-WRIS stations', 'unit': 'stations', 'description': description()}
 
 
-def refresh_block(entry: dict, prev: dict, built_at: str) -> dict:
-    from populate_refresh import infer, next_due
-    block, _ = infer(entry)
-    return {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
-            'next_due': next_due(block['rebuild'], built_at)}
-
-
-def source_check() -> dict:
-    from populate_source_check import OVERRIDES
-    return dict(OVERRIDES[LAYER_ID])
-
-
 def readings_url(summ: dict, r2_public: str) -> str:
     return f'{r2_public}/{R2_PREFIX}/{summ["names"]["readings"]}'
 
 
 def catalog_entry(summ: dict, prev: dict, r2_public: str) -> dict:
+    from populate_refresh import refresh_block
+    from populate_source_check import override
     names, sizes, got = summ['names'], summ['sizes'], summ['pull']
-    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows']}
-    for fmt in EXT:
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows'],
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': LICENCE, 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
                   'category': CATEGORY, 'provenance': 'curated', 'notes': notes(summ, readings_url(summ, r2_public)),
                   'tags': TAGS, 'fetched_at': got['pulled_at'],
-                  'source_check': {**source_check(), 'fingerprint': None, 'checked_at': None, 'changed_at': None}})
+                  'source_check': {**override(LAYER_ID), 'fingerprint': None, 'checked_at': None, 'changed_at': None}})
     entry['refresh'] = refresh_block(entry, prev, got['pulled_at'])
     return entry
 
@@ -774,8 +738,7 @@ def manifest_entry(summ: dict, r2_public: str) -> dict:
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LEVEL, 'category': CATEGORY,
             'source': SOURCE, 'description': description(), 'unit': 'stations', 'features': summ['rows'],
             'license': LICENCE, 'r2_prefix': R2_PREFIX,
-            'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+            **pipeline.manifest_files(names, sizes),
             'readings_file': names['readings'], 'readings_bytes': sizes['readings'],
             'source_url': API_DOCS,
             'source_org': 'India-WRIS (Ministry of Jal Shakti): CGWB and state ground water departments',
@@ -789,23 +752,13 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     r2_public = r2_public or pipeline.R2_PUBLIC
     summ = json.loads(summary_path.read_text())
     pipeline.summary_names(summ)
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((x for x in catalog.get('layers', []) if x.get('id') == LAYER_ID), {})
-    entry = pipeline.licence_labelled(catalog_entry(summ, prev, r2_public))
-    pipeline.upsert_layer(catalog, entry, level_meta(), level=LEVEL, attribution=(SOURCE, ATTRIBUTION))
-    # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], entry)
-    pipeline.write_json(catalog_path, catalog)
-    pipeline.write_json(manifest_path, pipeline.upsert_by_id(json.loads(manifest_path.read_text()),
-                                                             manifest_entry(summ, r2_public)))
+    pipeline.register_layer(catalog_path, manifest_path, lambda prev: catalog_entry(summ, prev, r2_public),
+                            manifest_entry(summ, r2_public), level_meta(), as_built=True, level=LEVEL,
+                            attribution=(SOURCE, ATTRIBUTION))
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--max-minutes', type=float, default=330)
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         deadline = pipeline.Deadline(a.max_minutes)
         with pipeline.cache_backup(RAW, LAYER_ID):
             try:
@@ -813,12 +766,9 @@ def main() -> None:
             except pipeline.OutOfTime as e:
                 log(f'stopped: {e}; run again to continue')
                 sys.exit(3)
-    elif a.step == 'bake':
-        bake()
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: bake(), 'upload': lambda a: upload(),
+                                'register': lambda a: register()},
+                      ('--max-minutes', {'type': float, 'default': 330}))
 
 
 if __name__ == '__main__':
