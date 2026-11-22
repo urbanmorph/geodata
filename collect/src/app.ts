@@ -23,6 +23,7 @@ import { focusSheet, SHEET_TITLE } from './sheet-focus';
 import { escapeHtml, downloadText, plural } from './util';
 import { toast } from './toast';
 import { confirmTwice, busy } from './buttons';
+import { wireLocate } from './geo/locate-button';
 import { linkProblemHtml, isLinkProblem } from './link-problem';
 import { fieldsHtml, setPressed, wireChips, fillAnswers, readAnswers } from './form-fields';
 import type { ExportFeature } from './export/formats';
@@ -286,6 +287,18 @@ function safetyFooter(): string {
   return `<p class="hint" style="margin-top:12px">Public places and assets only, not people. <a href="mailto:sathya@urbanmorph.com?subject=${subject}&body=${body}">Report this map</a> · <a href="${TERMS}" target="_blank" rel="noopener">Terms</a></p>`;
 }
 
+/** The map in #map: compact attribution bottom-left (so it never sits under the
+ *  locate button, bottom-right), and the "Loading map…" note gone once it loads. */
+function mountMap(style: maplibregl.StyleSpecification, center: [number, number], zoom: number): maplibregl.Map {
+  const m = new maplibregl.Map({ container: 'map', style, center, zoom, attributionControl: false });
+  m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  m.on('load', () => document.getElementById('maploading')?.remove());
+  return m;
+}
+
+/** Brings a located position under the crosshair. */
+const easeToFix = (lngLat: [number, number]): void => { map.easeTo({ center: lngLat, zoom: 16, offset: crosshairScreenOffset() }); };
+
 async function boot(): Promise<void> {
   ctx = parseCtx()!;
   // Saved on each online load, so a map opened once with signal opens without it.
@@ -316,19 +329,13 @@ async function boot(): Promise<void> {
   installSheetMetrics();
 
   const initialBasemap = getStoredBasemap() ?? normalizeBasemap(meta.schema.basemap);
-  map = new maplibregl.Map({
-    container: 'map', style: buildBaseStyle(initialBasemap), center: INDIA_CENTER, zoom: 4,
-    attributionControl: false,
-  });
-  // Attribution bottom-left so it never sits under the locate button (bottom-right).
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  map = mountMap(buildBaseStyle(initialBasemap), INDIA_CENTER, 4);
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
   installBasemapSwitcher(initialBasemap);
   watchBasemapConnection();
   drawReady = false; verts = [];
   allowsShapes = orderedModes(meta.schema.geometry).some((m) => m !== 'point');
   map.on('load', () => {
-    document.getElementById('maploading')?.remove();
     if (!isView && allowsShapes) setupDrawLayers();
     // Loaded only when the form has a reference layer (it pulls in pmtiles).
     if (meta.schema.reference_layer) {
@@ -349,15 +356,7 @@ async function boot(): Promise<void> {
   };
 
   if (!isView) {
-    const locate = document.getElementById('locate') as HTMLButtonElement;
-    locate.onclick = () => {
-      if (!navigator.geolocation) return toast('Location not available', 'error');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }),
-        () => toast("Couldn't get your location", 'error'),
-        { enableHighAccuracy: true, timeout: 8000 },
-      );
-    };
+    wireLocate(document.getElementById('locate') as HTMLButtonElement, easeToFix);
     if (isAdmin) {
       // Admin lands on Manage (review + CRUD + publish); the ⚙ button returns here.
       (document.getElementById('manage') as HTMLButtonElement).onclick = () => void manageSheet();
@@ -1923,14 +1922,12 @@ async function recordEditor(): Promise<void> {
         </div>` })}</div>`;
   installSheetMetrics();
 
-  map = new maplibregl.Map({ container: 'map', style: buildBaseStyle(getStoredBasemap() ?? normalizeBasemap(rec.schema.basemap)), center, zoom: isPoint ? 16 : 14, attributionControl: false });
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  map = mountMap(buildBaseStyle(getStoredBasemap() ?? normalizeBasemap(rec.schema.basemap)), center, isPoint ? 16 : 14);
   // Only rewrite the point's location if the user actually repositioned it — a
   // plain "fix a typo and Save" must leave the point exactly where it was.
   let moved = false;
   map.on('dragstart', () => { moved = true; });
   map.on('load', () => {
-    document.getElementById('maploading')?.remove();
     if (isPoint) {
       marker(center);
       // Sit the point UNDER the crosshair (which rides above map centre), so the
@@ -1952,13 +1949,7 @@ async function recordEditor(): Promise<void> {
   fillAnswers(panel, fields, rec.properties);
 
   const locateBtn = document.getElementById('locate') as HTMLButtonElement | null;
-  if (locateBtn) locateBtn.onclick = () => {
-    if (!navigator.geolocation) return toast('Location not available', 'error');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { moved = true; map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }); },
-      () => toast("Couldn't get your location", 'error'), { enableHighAccuracy: true, timeout: 8000 },
-    );
-  };
+  if (locateBtn) wireLocate(locateBtn, (lngLat) => { moved = true; easeToFix(lngLat); });
 
   (document.getElementById('save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
