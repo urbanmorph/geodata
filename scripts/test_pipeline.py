@@ -113,6 +113,16 @@ def test_get_bytes_gives_up_on_a_client_error():
     assert len(seen) == 1
 
 
+def test_json_gz_pages_read_back_and_keep_their_bytes(tmp_path):
+    import gzip
+    page = tmp_path / 'cache' / 'offset_0000000.json.gz'
+    pipeline.write_json_gz(page, [{'a': 1}, {'b': 'ā'}])
+    assert pipeline.read_json_gz(page) == [{'a': 1}, {'b': 'ā'}]
+    # the bytes the bakes' caches always held: compact JSON, gzip with mtime 0
+    assert page.read_bytes() == gzip.compress(json.dumps([{'a': 1}, {'b': 'ā'}]).encode(), mtime=0)
+    assert [p.name for p in page.parent.iterdir()] == [page.name]   # no .part left
+
+
 def test_ingest_ramseraph_downloads_through_the_shared_helper():
     import ingest_ramseraph as ir
     assert ir.http_download is pipeline.download

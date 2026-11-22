@@ -8,6 +8,7 @@ heavy imports): boto3 and duckdb load inside the functions that need them.
 from __future__ import annotations
 
 import contextlib
+import gzip
 import hashlib
 import http.client
 import json
@@ -314,6 +315,23 @@ def write_json(path: Path, data: Any) -> None:
     """The house JSON style for catalog.json and the manifest: 2-space
     indent, ASCII escapes, trailing newline (no diff churn)."""
     path.write_text(json.dumps(data, indent=2, ensure_ascii=True) + '\n')
+
+
+def write_atomic(path: Path, data: bytes) -> None:
+    """`data` to `path` whole or not at all (atomic_output), making its folder:
+    a killed run never leaves a cut-off cache file under the real name."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with atomic_output(path) as part:
+        part.write_bytes(data)
+
+
+def write_json_gz(path: Path, data: Any) -> None:
+    """A cached answer as gzipped compact JSON (mtime 0: the same data, the same bytes), atomically."""
+    write_atomic(path, gzip.compress(json.dumps(data).encode(), mtime=0))
+
+
+def read_json_gz(path: Path) -> Any:
+    return json.loads(gzip.decompress(path.read_bytes()))
 
 
 def parquet_rows(path: Path) -> int:

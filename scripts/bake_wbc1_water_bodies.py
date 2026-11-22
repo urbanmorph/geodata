@@ -26,11 +26,9 @@ Usage:
 """
 from __future__ import annotations
 
-import gzip
 import hashlib
 import json
 import math
-import os
 import re
 import shutil
 import sys
@@ -111,12 +109,6 @@ def api_fetch(uuid: str, key: str, tries: int = 10) -> Fetcher:
     return lambda offset, limit: pipeline.datagov_get(uuid, key, tries=tries, timeout=300, offset=offset, limit=limit)
 
 
-def _write_atomic(path: Path, data: bytes) -> None:
-    part = path.with_name(path.name + '.part')
-    part.write_bytes(data)
-    os.replace(part, path)
-
-
 def _page(cache: Path, offset: int) -> Path:
     return cache / f'offset_{offset:07d}.json.gz'
 
@@ -135,7 +127,7 @@ def pull_resource(cache: Path, fetch: Fetcher, limit: int = LIMIT, refresh: bool
             raise TimeUp(f'{cache.name}: time limit reached at offset {offset:,}')
         resp = fetch(offset, limit)
         recs = resp.get('records') or []
-        _write_atomic(_page(cache, offset), gzip.compress(json.dumps(recs).encode(), mtime=0))
+        pipeline.write_json_gz(_page(cache, offset), recs)
         return resp
 
     if meta is None:
@@ -144,7 +136,7 @@ def pull_resource(cache: Path, fetch: Fetcher, limit: int = LIMIT, refresh: bool
                 'status': first.get('status'), 'message': first.get('message')}
         if meta['total'] == 0:
             _page(cache, 0).unlink(missing_ok=True)
-        _write_atomic(meta_path, json.dumps(meta, indent=1).encode())
+        pipeline.write_atomic(meta_path, json.dumps(meta, indent=1).encode())
         log(f'  {cache.name}: total {meta["total"]:,}')
     for offset in range(0, meta['total'], limit):
         if refresh and offset == 0:
@@ -157,7 +149,7 @@ def pull_resource(cache: Path, fetch: Fetcher, limit: int = LIMIT, refresh: bool
 
 def cached_records(cache: Path) -> Iterator[dict]:
     for p in sorted(cache.glob('offset_*.json.gz')):
-        yield from json.loads(gzip.decompress(p.read_bytes()))
+        yield from pipeline.read_json_gz(p)
 
 
 def pull(refresh: bool = False, max_minutes: float = 50, workers: int = 4) -> None:
@@ -172,7 +164,7 @@ def pull(refresh: bool = False, max_minutes: float = 50, workers: int = 4) -> No
         def listing() -> bytes:
             with urllib.request.urlopen(req, timeout=120) as r:
                 return r.read()
-        _write_atomic(listing_path, with_retries(listing))
+        pipeline.write_atomic(listing_path, with_retries(listing))
     res = resources(json.loads(listing_path.read_text()))
     key = pipeline.datagov_api_key()
 

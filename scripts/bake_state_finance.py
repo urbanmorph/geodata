@@ -27,7 +27,6 @@ Usage:
 """
 from __future__ import annotations
 
-import gzip
 import json
 import sys
 import time
@@ -172,11 +171,9 @@ def pull_resources(cache: Path, ids: list[str], fetch: Callable[[str], dict] | N
                 raise ValueError(f"{rid}: {d.get('message') or 'no records'}")
             if int(d.get('total') or 0) > len(d['records']):
                 raise ValueError(f"{rid}: {d['total']} rows but one page holds {len(d['records'])}")
-            tmp = path.with_suffix('.part')
-            tmp.write_bytes(gzip.compress(json.dumps(d).encode(), mtime=0))
-            tmp.replace(path)
+            pipeline.write_json_gz(path, d)
             log(f"  {rid}: {len(d['records'])} rows  {d.get('title', '')[:80]}")
-        out[rid] = json.loads(gzip.decompress(path.read_bytes()))
+        out[rid] = pipeline.read_json_gz(path)
     return out
 
 

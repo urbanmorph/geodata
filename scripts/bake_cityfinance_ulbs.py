@@ -24,7 +24,6 @@ from __future__ import annotations
 import csv
 import difflib
 import json
-import os
 import re
 import sys
 import tempfile
@@ -306,10 +305,7 @@ def fetch_cached(url: str, dest: Path, getter: Callable[[str], bytes] = http_get
         return False
     body = getter(url)
     json.loads(body)  # refuse an HTML block page or a truncated answer
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    part = dest.with_name(dest.name + '.part')
-    part.write_bytes(body)
-    os.replace(part, dest)
+    pipeline.write_atomic(dest, body)
     return True
 
 

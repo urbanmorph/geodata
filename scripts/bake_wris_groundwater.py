@@ -51,7 +51,6 @@ Usage:
 """
 from __future__ import annotations
 
-import gzip
 import json
 import os
 import ssl
@@ -69,7 +68,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import pipeline  # noqa: E402
-from pipeline import atomic_output, log, make_con  # noqa: E402
+from pipeline import log, make_con  # noqa: E402
 
 LAYER_ID = 'wris_groundwater_levels'
 LEVEL = LAYER_ID
@@ -222,16 +221,6 @@ def api_fetch(ctx: ssl.SSLContext) -> Fetch:
     return fetch
 
 
-def _read_gz(path: Path):
-    return json.loads(gzip.decompress(path.read_bytes()))
-
-
-def _write_gz(path: Path, data) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with atomic_output(path) as part:
-        part.write_bytes(gzip.compress(json.dumps(data).encode(), mtime=0))
-
-
 # ── stations ─────────────────────────────────────────────────────────────────
 
 def pull_stations(raw: Path, get_json: Callable[[str], dict]) -> list[dict]:
@@ -245,9 +234,9 @@ def pull_stations(raw: Path, get_json: Callable[[str], dict]) -> list[dict]:
             got = get_json(f'{STATIONS_URL}/query?{urllib.parse.urlencode(q)}')
             if 'error' in got:
                 raise ValueError(f'station layer: {got["error"]}')
-            _write_gz(page, got['features'])
+            pipeline.write_json_gz(page, got['features'])
             log(f'  stations: {offset + len(got["features"]):,}')
-        got = _read_gz(page)
+        got = pipeline.read_json_gz(page)
         feats += got
         if len(got) < STATION_PAGE:
             return feats
@@ -331,8 +320,8 @@ def pull_window(fetch: Fetch, raw: Path, combo: tuple[str, str, str], start: str
                 deadline.check(f'{wdir.name} page {n}')
             answer = fetch({**params, 'page': n, 'size': PAGE})
             rows_of(answer)
-            _write_gz(path, answer)
-        return rows_of(_read_gz(path))
+            pipeline.write_json_gz(path, answer)
+        return rows_of(pipeline.read_json_gz(path))
 
     first = page(0)
     if len(first) < PAGE:
@@ -371,7 +360,7 @@ def window_rows(wdir: Path) -> list[dict]:
     """The rows of a finished full or paged window, in page order."""
     out = []
     for n in range(json.loads((wdir / 'window.json').read_text())['pages']):
-        out += rows_of(_read_gz(wdir / f'page_{n:05d}.json.gz'))
+        out += rows_of(pipeline.read_json_gz(wdir / f'page_{n:05d}.json.gz'))
     return out
 
 
@@ -638,7 +627,7 @@ def build_station_table(con, stations: list[dict], summaries: dict[str, dict],
 
 
 def load_stations(raw: Path = RAW) -> list[dict]:
-    return [f for p in sorted((raw / 'stations').glob('offset_*.json.gz')) for f in _read_gz(p)]
+    return [f for p in sorted((raw / 'stations').glob('offset_*.json.gz')) for f in pipeline.read_json_gz(p)]
 
 
 def bake(out_dir: Path = OUT_DIR, raw: Path = RAW) -> dict:

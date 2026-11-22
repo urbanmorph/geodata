@@ -230,9 +230,7 @@ def pull_one(raw: Path, row: dict, get: Callable[[str], bytes]) -> dict:
     else:
         got.update(sha256=hashlib.sha256(body).hexdigest(), bytes=len(body),
                    features=len(json.loads(body)['features']))
-        file_of(raw, row).parent.mkdir(parents=True, exist_ok=True)
-        with pipeline.atomic_output(file_of(raw, row)) as part:
-            part.write_bytes(gzip.compress(body, mtime=0))
+        pipeline.write_atomic(file_of(raw, row), gzip.compress(body, mtime=0))
     rec.parent.mkdir(parents=True, exist_ok=True)
     pipeline.write_json(rec, got)
     return got
@@ -312,7 +310,7 @@ def build_table(con, raw: Path, rows: list[dict], out: Path) -> int:
     nums = NumericTracker([])
     with ndjson.open('w') as f:
         for row in rows:
-            body = json.loads(gzip.decompress(file_of(raw, row).read_bytes()))
+            body = pipeline.read_json_gz(file_of(raw, row))
             crs = ((body.get('crs') or {}).get('properties') or {}).get('name', 'CRS84')
             if not crs.endswith(CRS_OK):
                 raise ValueError(f'{item_name(row)}: the file is in {crs}, not lon/lat WGS84')

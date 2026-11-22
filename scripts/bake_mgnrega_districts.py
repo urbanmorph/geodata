@@ -28,7 +28,6 @@ Usage:
 """
 from __future__ import annotations
 
-import gzip
 import json
 import re
 import sys
@@ -102,10 +101,9 @@ def pull_pages(cache: Path, filters: dict, fetch: Fetcher, limit: int = LIMIT, r
             if deadline:
                 deadline.check(f'{cache.name} offset {offset:,}')
             recs = fetch(offset, limit, filters)['records']
-            with atomic_output(page) as part:
-                part.write_bytes(gzip.compress(json.dumps(recs).encode(), mtime=0))
+            pipeline.write_json_gz(page, recs)
             log(f'  {cache.name}: rows {offset:,}-{offset + len(recs):,} of {total:,}')
-        records.extend(json.loads(gzip.decompress(page.read_bytes())))
+        records.extend(pipeline.read_json_gz(page))
     return records
 
 
@@ -319,7 +317,7 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 # ── bake ─────────────────────────────────────────────────────────────────────
 
 def load_pages(cache: Path) -> list[dict]:
-    return [r for p in sorted(cache.glob('offset_*.json.gz')) for r in json.loads(gzip.decompress(p.read_bytes()))]
+    return [r for p in sorted(cache.glob('offset_*.json.gz')) for r in pipeline.read_json_gz(p)]
 
 
 def bake(out_dir: Path = OUT_DIR) -> dict:
