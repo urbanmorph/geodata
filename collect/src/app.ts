@@ -51,6 +51,7 @@ import { uploadPhoto } from './send-queue';
 import { aiNotesHtml, type Notes } from './review-ai';
 import { PALETTE } from '../../shared/brand.mjs';
 import { mimeFor } from '../../shared/mime.mjs';
+import { savedLine, pendingLine } from './publish/confirm';
 import { fetchAllPages } from './paging';
 import './register-sw';
 interface Counts { pending: number; published: number; total: number; rejected: number; }
@@ -1865,8 +1866,8 @@ function confirmPublish(): void {
   const panel = document.getElementById('panel')!;
   panel.innerHTML = sheetHtml(`
     <strong>Submit to bharatlas?</strong>
-    <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com, so it won't be public until then. Do this once the map is ready to share widely.</p>
-    ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}`,
+    <p class="hint">${savedLine(c.published)} Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com, so it won't be public until then. Do this once the map is ready to share widely.</p>
+    ${c.pending ? `<p class="hint">${pendingLine(c.pending)}</p>` : ''}`,
   { back: 'pub-cancel', primary: ['pub-go', c.published ? `Submit ${c.published} for review` : 'Submit'] });
   (document.getElementById('pub-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
   (document.getElementById('pub-go') as HTMLButtonElement).onclick = (e) => void runPublish(e.currentTarget as HTMLButtonElement);

@@ -2,7 +2,7 @@
 // api(): the one fetch to collect's API. A JSON body is sent as JSON unless the
 // caller names its own content-type (a photo upload sends image/jpeg).
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { api } from '../src/api';
+import { api, LINK_OFF_REASON } from '../src/api';
 import { uploadPhoto } from '../src/send-queue';
 
 type Call = { url: string; headers: Headers; body: unknown; method?: string };
@@ -49,7 +49,7 @@ describe('uploadPhoto', () => {
 
   it('says a turned-off link plainly, and no connection when fetch fails', async () => {
     stubFetch(() => new Response('{"error":"unauthorised"}', { status: 401 }));
-    expect(await uploadPhoto('abc123', 'edt_x', photo)).toMatchObject({ ok: false, status: 401, error: expect.stringMatching(/no longer works/) });
+    expect(await uploadPhoto('abc123', 'edt_x', photo)).toMatchObject({ ok: false, status: 401, error: LINK_OFF_REASON });
     vi.stubGlobal('fetch', async () => { throw new TypeError('offline'); });
     expect(await uploadPhoto('abc123', 'edt_x', photo)).toEqual({ ok: false, status: 0, error: 'no connection' });
   });
