@@ -135,21 +135,20 @@ async function handleSubmit(
   let rawJson: unknown;
   let fc: ReturnType<typeof normaliseFC>;
   try {
+    let text: string;
     if (ext === 'geojson' || ext === 'json') {
-      rawJson = JSON.parse(new TextDecoder().decode(bytes));
-      fc = normaliseFC(rawJson);
+      text = new TextDecoder().decode(bytes);
     } else {
       // Browser parsed it; trust the FC the client sent.
       const fcField = form.get('fc_json') as unknown;
-      const fcText =
-        fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
-      if (!fcText) {
+      text = fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
+      if (!text) {
         log(attemptRowReject('parse', 'missing fc_json for non-GeoJSON upload', logMeta));
         return reply(400, { error: 'missing fc_json for non-GeoJSON upload' });
       }
-      rawJson = JSON.parse(fcText);
-      fc = normaliseFC(rawJson);
     }
+    rawJson = JSON.parse(text);
+    fc = normaliseFC(rawJson);
   } catch (e) {
     log({ ...attemptRowReject('parse', 'failed to parse FeatureCollection', logMeta), detail: parseErrorSummary(e) });
     return reply(400, { error: 'failed to parse FeatureCollection', detail: (e as Error).message });
