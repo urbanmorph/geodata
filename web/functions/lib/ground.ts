@@ -16,26 +16,23 @@ export const DISCLAIMER = 'Screening information from published maps and models 
   'not a site investigation, and not for engineering, construction or safety decisions. ' +
   'Check each section\'s scale and vintage, and confirm on site (boreholes, utility surveys, soil tests) before relying on it.';
 
-const sig = (v: number, digits = 3) => Number(v.toPrecision(digits));
 
 // ── decoders: source encodings to plain units ────────────────────────────────
 
 
 export const DECODERS = {
   /** GLHYMPS 2.0 (readme, Borealis doi:10.5683/SP2/TTJNIU): logK_Ferr_ is log10 permeability (m2)
-   *  x 100, without permafrost; K (m/s) = k x 1e7 for water. Porosity_x is porosity x 100 from
-   *  GLHYMPS 1.0; it reads 0 on polygons whose values come from the unconsolidated sediments map
-   *  (GUM_K 2) or that have none (GUM_K 0), so 0 means "not given". A logK of 0 marks no value. */
+   *  x 100, without permafrost; a logK of 0 marks no value (GUM_K 0). The map is global and
+   *  coarse: one polygon of sediments from the Global Unconsolidated Sediments Map (GUM_K 2,
+   *  Porosity_x 0 as published) holds Delhi, Majuli and Kolkata alike. So the profile gives
+   *  only a class, by Bear (1972): pervious from 1e-11 m2, semi-pervious to 1e-15, impervious
+   *  below. The published columns stay in `features`. */
   glhymps(p: Props): Props {
     const logK = num(p.logK_Ferr_);
     const k = logK ? Math.round(logK) / 100 : null;
-    const por = num(p.Porosity_x);
     return {
       log10_permeability_m2: k,
-      permeability_m2: k === null ? null : sig(10 ** k),
-      hydraulic_conductivity_m_per_s: k === null ? null : sig(10 ** k * 1e7),
-      porosity_fraction: por ? por / 100 : null,
-      ...(por ? {} : { porosity_note: 'not given here: GLHYMPS 2.0 has no porosity for unconsolidated sediments mapped from GUM' }),
+      permeability_class: k === null ? null : k >= -11 ? 'pervious' : k >= -15 ? 'semi-pervious' : 'impervious',
     };
   },
   /** Columns named "<Pre|Post>-monsoon_<year> (meters below ground level)": the latest reading of each season. */
@@ -136,11 +133,12 @@ export const GROUND_LAYERS: ProfileLayer[] = [
     } },
   { id: 'bhuvan_gw_prospects', section: 'groundwater', match: 'contains', about: { scale: '1:50,000' } },
   { id: 'glhymps_permeability', section: 'groundwater', match: 'contains', decode: DECODERS.glhymps,
-    about: { scale: 'global, coarse polygons (regional patterns, not a site value)', vintage: 'GLHYMPS 2.0 (2018)' },
-    units: { log10_permeability_m2: 'log10 m2', permeability_m2: 'm2', hydraulic_conductivity_m_per_s: 'm/s', porosity_fraction: 'fraction (0-1)' },
+    about: { scale: 'global, coarse polygons (regional patterns, not a site value)', vintage: 'GLHYMPS 2.0 (2018)',
+      note: 'a class only: one polygon can span hundreds of km; Porosity_x is 0 where the values come from the unconsolidated sediments map (GUM_K 2), as published' },
+    units: { log10_permeability_m2: 'log10 m2 (the polygon\'s value, not the site\'s)', permeability_class: 'Bear (1972): pervious from 1e-11 m2, semi-pervious to 1e-15 m2, impervious below' },
     say: (e) => {
-      const k = e.decoded?.log10_permeability_m2;
-      return typeof k === 'number' ? `Near-surface permeability about 10^${k} m2 (GLHYMPS)` : null;
+      const c = e.decoded?.permeability_class;
+      return typeof c === 'string' ? `Permeability class (GLHYMPS, global and coarse): ${c}` : null;
     } },
   { id: 'atal_bhujal_wells', section: 'groundwater', match: 'nearest', radiusKm: 10, coverageKm: 50, decode: DECODERS.monsoon_depths,
     about: { scale: 'monitoring wells in seven states', vintage: '2015 to 2022' },

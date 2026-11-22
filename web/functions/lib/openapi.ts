@@ -462,7 +462,7 @@ const POINT_PROFILE_PATHS_SPEC = {
       tags: ['Spatial'],
       summary: 'What is below a point: its subsurface profile in one call',
       description:
-        'Seismic zone, nearest active faults, mapped lineaments and recorded earthquakes; rock (GSI lithology) and landform; aquifer, stage of groundwater extraction, near-surface permeability (GLHYMPS, decoded to m2 and m/s) and nearby groundwater wells; ' +
+        'Seismic zone, nearest active faults, mapped lineaments and recorded earthquakes; rock (GSI lithology) and landform; aquifer, stage of groundwater extraction, a permeability class from GLHYMPS (global and coarse: pervious, semi-pervious or impervious) and nearby groundwater wells; ' +
         'soil properties at 0-5, 5-15 and 15-30 cm and the WRB soil group from ISRIC SoilGrids 2.0 (250 m, CC BY 4.0), plus the nearest Soil Health Card sample; ground subsidence in megacities (median of satellite points within 500 m); ' +
         'tunnels, buried pipelines and cables, mines and caves nearby; and, in rural areas, the CoRE Stack micro-watershed water balance and drought. ' +
         'Each layer is one entry under `sections.<section>.<layer_id>` with its `credit` (source, licence) and, for non-commercial layers, `non_commercial` and `licence_notice`; units are in field names or `units`. ' +
@@ -531,7 +531,7 @@ const POINT_PROFILE_SCHEMAS = {
               units: { type: 'object', additionalProperties: { type: 'string' } },
               about: { type: 'object', properties: { scale: { type: 'string' }, vintage: { type: 'string' }, note: { type: 'string' }, fetched_at: { type: 'string', format: 'date' } } },
               features: { type: 'array', items: { type: 'object' }, description: 'contains: the features holding the point (identical ones once).' },
-              decoded: { type: 'object', description: 'Source encodings in plain units (e.g. GLHYMPS permeability in m2).' },
+              decoded: { type: 'object', description: 'Source encodings in plain units (e.g. the GLHYMPS permeability class).' },
               radius_km: { type: 'number' },
               count: { type: 'integer', description: 'nearest: features within radius_km.' },
               count_capped: { type: 'boolean', description: 'More features were in range than were read; `count` and `stats` cover those read.' },

@@ -50,22 +50,18 @@ describe('dedupeFeatures', () => {
 });
 
 describe('decoders', () => {
-  it('GLHYMPS: log10 permeability x 100 to m2 and hydraulic conductivity; porosity x 100 to a fraction', () => {
-    const d = DECODERS.glhymps({ logK_Ferr_: -1300, logK_Ice_x: -1300, Porosity_x: 19 });
-    expect(d.log10_permeability_m2).toBe(-13);
-    expect(d.permeability_m2).toBeCloseTo(1e-13, 20);
-    expect(d.hydraulic_conductivity_m_per_s).toBeCloseTo(1e-6, 12);
-    expect(d.porosity_fraction).toBe(0.19);
+  // Plan B2: GLHYMPS is global and coarse (one polygon of GUM sediments holds Delhi, Majuli
+  // and Kolkata alike, logK_Ferr_ -1052, Porosity_x 0 as published), so ground_at gives
+  // only a permeability class (Bear 1972) from log10 k = logK_Ferr_ / 100, not site numbers.
+  it('GLHYMPS: a permeability class from log10 permeability x 100, and no site numbers', () => {
+    expect(DECODERS.glhymps({ logK_Ferr_: -1052, Porosity_x: 0 })).toEqual({ log10_permeability_m2: -10.52, permeability_class: 'pervious' });
+    expect(DECODERS.glhymps({ logK_Ferr_: -1100 }).permeability_class).toBe('pervious');
+    expect(DECODERS.glhymps({ logK_Ferr_: -1250, Porosity_x: 9 })).toEqual({ log10_permeability_m2: -12.5, permeability_class: 'semi-pervious' });
+    expect(DECODERS.glhymps({ logK_Ferr_: -1650, Porosity_x: 1 }).permeability_class).toBe('impervious');
   });
 
-  it('GLHYMPS: porosity 0 is "not given" (unconsolidated sediments from GUM), and permeability 0 is no value', () => {
-    const d = DECODERS.glhymps({ logK_Ferr_: -1052, Porosity_x: 0 });
-    expect(d.log10_permeability_m2).toBe(-10.52);
-    expect(d.porosity_fraction).toBeNull();
-    expect(String(d.porosity_note)).toMatch(/not given/);
-    const none = DECODERS.glhymps({ logK_Ferr_: 0, Porosity_x: 0 });
-    expect(none.log10_permeability_m2).toBeNull();
-    expect(none.permeability_m2).toBeNull();
+  it('GLHYMPS: permeability 0 is no value (GUM_K 0)', () => {
+    expect(DECODERS.glhymps({ logK_Ferr_: 0, Porosity_x: 0 })).toEqual({ log10_permeability_m2: null, permeability_class: null });
   });
 
   it('monsoon depths: the latest pre- and post-monsoon readings, in metres below ground', () => {
@@ -187,9 +183,13 @@ describe('groundAt', () => {
     expect(g.sections.seismic.seismic_zones.non_commercial).toBeUndefined();
   });
 
-  it('decodes GLHYMPS units on the containing feature', async () => {
+  it('gives GLHYMPS as a permeability class, labelled global and coarse, and says it in the summary', async () => {
     const g = await run(28.525, 77.085, catalog);
-    expect(g.sections.groundwater.glhymps_permeability.decoded).toMatchObject({ log10_permeability_m2: -10.52, porosity_fraction: null });
+    const e = g.sections.groundwater.glhymps_permeability;
+    expect(e.decoded).toEqual({ log10_permeability_m2: -10.52, permeability_class: 'pervious' });
+    expect(e.about?.scale).toMatch(/^global, coarse/);
+    expect(Object.keys(e.units ?? {})).toEqual(['log10_permeability_m2', 'permeability_class']);
+    expect(g.summary).toContain('Permeability class (GLHYMPS, global and coarse): pervious');
   });
 
   it('gives nearest features with distance and a count, and a median where the table asks', async () => {

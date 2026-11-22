@@ -212,7 +212,7 @@ export const READ_TOOLS = [
     name: "ground_at",
     description:
       "What is below a point, in one call: seismic zone, nearest active faults, lineaments and recorded earthquakes, " +
-      "rock type (GSI lithology) and landform, aquifer, near-surface permeability (GLHYMPS, in m2 and m/s), " +
+      "rock type (GSI lithology) and landform, aquifer, a permeability class (GLHYMPS, global and coarse), " +
       "nearby groundwater wells, soil at 0-5, 5-15 and 15-30 cm (ISRIC SoilGrids 2.0: clay, sand, silt, pH, organic carbon, " +
       "bulk density, CEC, nitrogen, WRB soil group) and the nearest Soil Health Card sample, ground subsidence (cm/yr) in megacities, " +
       "and tunnels, buried pipelines and cables, mines and caves nearby. Returns a one-line `summary` plus `sections`, " +
