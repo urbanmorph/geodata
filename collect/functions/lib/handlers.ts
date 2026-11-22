@@ -23,6 +23,7 @@ import { modeOf, usesAi } from '../../src/schema/modes';
 import { noteColumns, areaColumn, addedAt } from '../../src/export/derived';
 import { photoIdsIn, checkPhotos, setPhotos, deletePhotosOf, photoLinks, photoUrl } from './photos';
 import { runAi, drainAi, publicNotes } from './ai';
+import { mapUrl } from '../../src/map-path';
 
 const BHARATLAS_ORIGIN = 'https://bharatlas.com';
 
@@ -149,9 +150,9 @@ export async function createCollection(env: Env, req: Request, defer?: Defer): P
   return json(200, {
     id,
     links: {
-      edit: `${origin}/c/${id}#${tokens.edit}`,
-      admin: `${origin}/c/${id}/admin#${tokens.admin}`,
-      view: `${origin}/c/${id}/view#${tokens.view}`,
+      edit: mapUrl(origin, id, 'edit', tokens.edit),
+      admin: mapUrl(origin, id, 'admin', tokens.admin),
+      view: mapUrl(origin, id, 'view', tokens.view),
     },
     tokens, // shown once
   });
@@ -287,7 +288,7 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
   }
 
   const origin = new URL(req.url).origin;
-  const linkUrl = (token: string): string => (want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`);
+  const linkUrl = (token: string): string => mapUrl(origin, id, want, token);
   if (!label && typeof body?.reuse === 'string') {
     const held = await linkFor(env.DB, id, body.reuse);
     const row = held?.permission === want ? await db.getLink(env.DB, id, held.id) : null;
@@ -315,7 +316,7 @@ export async function replaceAdminLink(env: Env, req: Request, id: string): Prom
   if (!(await isAdmin(env, req, id))) return bad(401, 'unauthorised');
   const token = generateToken('admin');
   await db.swapAdminToken(env.DB, id, tokenPrefix(token), await hashToken(token));
-  return json(200, { permission: 'admin', token, link: `${new URL(req.url).origin}/c/${id}/admin#${token}` });
+  return json(200, { permission: 'admin', token, link: mapUrl(new URL(req.url).origin, id, 'admin', token) });
 }
 
 // A refused call made with a link that was turned off (or an admin link that
@@ -931,7 +932,7 @@ async function publishMap(env: Env, req: Request, id: string, { attemptId, log, 
             attribution: attribution.line,
             contributors: attribution.contributors,
             sources: attribution.sources,
-            collection_url: `${new URL(req.url).origin}/c/${id}`,
+            collection_url: mapUrl(new URL(req.url).origin, id),
             version,
           }),
           httpMetadata: { contentType: 'application/json' },
@@ -946,7 +947,7 @@ async function publishMap(env: Env, req: Request, id: string, { attemptId, log, 
         category: db.schemaOf(c).category || 'other',
         license: c.license,
         attribution: attribution.line,
-        source_url: `https://collect.bharatlas.com/c/${id}`,
+        source_url: mapUrl('https://collect.bharatlas.com', id),
         data_year: c.data_year,
         is_original: 1,
         format: 'geojson',

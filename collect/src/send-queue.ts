@@ -2,6 +2,7 @@
 // real page, so this can't run in the service worker. It runs when a point is
 // saved, when collect opens and when the signal comes back.
 import { api } from './api';
+import { recordUrl } from './map-path';
 import { turnstileToken } from './turnstile';
 import { rememberRecord } from './maps-store';
 import { flush, idbOutbox, newClientId, sendBody, uploadPhotos, forgetUploads, photosMissing, type QueuedPoint, type QueuedPhoto, type SendResult, type FlushResult, type UploadResult } from './outbox';
@@ -61,7 +62,7 @@ async function sendOnce(p: QueuedPoint): Promise<SendResult> {
 }
 
 export const editLink = (collectionId: string, recordId: string, editToken: string): string =>
-  `${location.origin}/c/${collectionId}/r/${recordId}#${editToken}`;
+  recordUrl(location.origin, collectionId, recordId, editToken);
 
 /** Sends what's waiting; each sent point's edit link joins "Your additions". */
 export async function sendQueued(): Promise<FlushResult> {

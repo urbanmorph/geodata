@@ -9,6 +9,7 @@ import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, api, apiJson, jsonWithOfflineCopy, loadErrorText, ApiError, type Ctx } from './api';
+import { mapUrl, recordUrl } from './map-path';
 import type { BuilderField } from './schema-builder';
 import type { ImportReply } from './import/report';
 import { basemapOfflineNote, isConnectionError } from './offline-notes';
@@ -266,7 +267,7 @@ const TERMS = 'https://bharatlas.com/terms';
 // Content-safety: a report/takedown path (mailto, no accounts) + terms link.
 function safetyFooter(): string {
   const subject = encodeURIComponent(`Report: collect map ${ctx.id}`);
-  const body = encodeURIComponent(`Reporting this map:\n${location.origin}/c/${ctx.id}\n\nReason:\n`);
+  const body = encodeURIComponent(`Reporting this map:\n${mapUrl(location.origin, ctx.id)}\n\nReason:\n`);
   return `<p class="hint" style="margin-top:12px">Public places and assets only, not people. <a href="mailto:sathya@urbanmorph.com?subject=${subject}&body=${body}">Report this map</a> · <a href="${TERMS}" target="_blank" rel="noopener">Terms</a></p>`;
 }
 
@@ -1853,7 +1854,7 @@ function openReview(idx: number): void {
   // A point filled in from its photo is approved with its notes ("Looks right, approve").
   if (document.getElementById('ai-approve')) document.getElementById('rv-approve')?.remove();
   wireAiReview(String(f.id), back);
-  (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = `/c/${ctx.id}/r/${f.id}#${ctx.token}`; };
+  (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = recordUrl('', ctx.id, String(f.id), ctx.token); };
   const moderate = async (s: string) => {
     try { await apiJson(`/records/${f.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: s }) }); patchReview(withStatus(allFeats, String(f.id), s)); back(); }
     catch (e) { toast((e as Error).message, 'error'); }
