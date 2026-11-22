@@ -19,3 +19,12 @@ describe('/docs User-Agent request', () => {
     expect(docs).toContain('-H "User-Agent: my-app/1.0"');
   });
 });
+
+describe('/docs no longer teaches the retiring counts endpoint (2026-11-22)', () => {
+  it('its examples use /query with group_by instead', () => {
+    const docs = readFileSync(resolve(__dirname, '..', 'docs.template.html'), 'utf8');
+    expect(docs).not.toMatch(/curl [^\n]*\/layers\/[^/\s]+\/counts/);
+    expect(docs).toMatch(/Retires on 22 December 2026/);
+    expect(docs).toContain('curl https://bharatlas.com/api/v1/layers/wards_pcmc/query?group_by=zone');
+  });
+});
