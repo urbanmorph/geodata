@@ -10,7 +10,7 @@ const landing = readFileSync(resolve(__dirname, '../src/landing.ts'), 'utf8');
 
 describe('collect focus ring', () => {
   it('links and summaries get the 2 px accent outline, not the browser default', () => {
-    const rule = css.match(/([^}]*)\{ outline: 2px solid var\(--accent-strong\); outline-offset: 2px; \}/)?.[1] ?? '';
+    const rule = css.match(/([^}]*)\{ outline: var\(--border-focus\); outline-offset: 2px; \}/)?.[1] ?? '';
     expect(rule).toContain('a:focus-visible');
     expect(rule).toContain('summary:focus-visible');
   });

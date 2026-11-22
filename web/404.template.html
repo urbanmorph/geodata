@@ -11,11 +11,11 @@
       <!-- TOKENS -->
       .nf-search { display: flex; gap: var(--sp-3); flex-wrap: wrap; max-width: 640px; margin: 0 0 var(--sp-7); }
       .nf-search label {
-        display: flex; align-items: center; gap: 10px; flex: 1 1 260px; min-height: 52px; padding: 0 14px;
-        background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm);
+        display: flex; align-items: center; gap: var(--sp-2-5); flex: 1 1 260px; min-height: 52px; padding: 0 var(--sp-3-5);
+        background: var(--bg-elevated); border: var(--border-strong); border-radius: var(--radius-sm);
       }
-      .nf-search label:focus-within { box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent); }
-      .nf-search input { flex: 1; min-width: 0; padding: 6px 0; font: inherit; font-size: var(--fs-md); color: var(--fg); background: transparent; border: none; outline: none; }
+      .nf-search label:focus-within { box-shadow: var(--shadow-halo); }
+      .nf-search input { flex: 1; min-width: 0; padding: var(--sp-1-5) 0; font: inherit; font-size: var(--fs-md); color: var(--fg); background: transparent; border: none; outline: none; }
       .nf-search input::placeholder { color: var(--muted); }
       .nf-search .btn { min-height: 52px; }
       .nf-links { display: flex; gap: var(--sp-3); flex-wrap: wrap; margin: 0 0 var(--sp-7); }

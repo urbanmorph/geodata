@@ -24,7 +24,8 @@ describe('TOKENS', () => {
   });
 
   it('emits a keyboard-only focus ring (WCAG 2.4.7)', () => {
-    expect(TOKENS).toMatch(/:focus-visible[\s\S]*outline:.*var\(--accent-strong\)/);
+    expect(TOKENS).toMatch(/:focus-visible[\s\S]*outline:.*var\(--border-focus\)/);
+    expect(TOKENS).toContain('--border-focus: 2px solid var(--accent-strong)');
   });
 
   it('draws the header as a full-width bar aligned to the page column (--page-max)', () => {
