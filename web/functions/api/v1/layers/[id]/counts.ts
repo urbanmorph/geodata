@@ -1,6 +1,7 @@
 // GET /api/v1/layers/{id}/counts[?group_by=col][&filter_col=c&filter_val=v]
-// Deprecated (kept for old callers): /layers/{id}/query?group_by=col does the
-// same for every layer. Pre-computed stats (/api-data/layers/<id>.json) exist
+// Deprecated, retiring on 22 December 2026 (owner, 2026-11-22): /layers/{id}/query?group_by=col
+// does the same for every layer. Every answer carries Deprecation (RFC 9745), Sunset
+// (RFC 8594) and a Link to /query. Pre-computed stats (/api-data/layers/<id>.json) exist
 // for a few ward layers only; any other group_by is counted from the parquet
 // by the query engine, and filter_col/filter_val narrow it as a where filter
 // (without group_by, to the filtered total).
@@ -24,8 +25,22 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const { layer, version, url } = r;
   countApiUse(ctx, layer.id);
 
-  return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, () => answer(ctx, layer, url.searchParams));
+  const res = await cached(ctx, cacheKey(version, url), EDGE_TTL.r2, () => answer(ctx, layer, url.searchParams));
+  return retiring(res, layer.id, url.searchParams.get('group_by'));
 };
+
+const DEPRECATED_AT = '@1795305600';               // 2026-11-22
+const SUNSET = 'Tue, 22 Dec 2026 00:00:00 GMT';
+
+/** The answer, saying the endpoint is retiring and where to go instead. */
+function retiring(res: Response, id: string, groupBy: string | null): Response {
+  const headers = new Headers(res.headers);
+  const q = groupBy ? `?group_by=${encodeURIComponent(groupBy)}` : '';
+  headers.set('deprecation', DEPRECATED_AT);
+  headers.set('sunset', SUNSET);
+  headers.set('link', `</api/v1/layers/${encodeURIComponent(id)}/query${q}>; rel="successor-version"`);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
 
 async function answer(ctx: CountsCtx, layer: CatalogLayer, params: URLSearchParams): Promise<Response> {
   const id = layer.id;

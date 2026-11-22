@@ -129,6 +129,15 @@ describe('catalog answers are edge-cached', () => {
     expect(counted).toEqual(['dist', 'dist']);
   });
 
+  it('counts is retiring: every answer, fresh or cached, says so and names /query (2026-11-22)', async () => {
+    for (let i = 0; i < 2; i++) {
+      const r = await call(counts, '/api/v1/layers/dist/counts?group_by=state', { id: 'dist' });
+      expect(r.headers.get('deprecation')).toBe('@1795305600');
+      expect(r.headers.get('sunset')).toBe('Tue, 22 Dec 2026 00:00:00 GMT');
+      expect(r.headers.get('link')).toBe('</api/v1/layers/dist/query?group_by=state>; rel="successor-version"');
+    }
+  });
+
   it('answers 304 to If-None-Match with the ETag it gave', async () => {
     const a = await call(layerDetail, '/api/v1/layers/dist', { id: 'dist' });
     const etag = a.headers.get('etag')!;

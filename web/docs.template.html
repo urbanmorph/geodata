@@ -423,18 +423,14 @@ curl "https://bharatlas.com/api/v1/surface?lat=22.57&amp;lng=88.36"</code></pre>
       <h2>Counts and Stats</h2>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/counts</span></h3>
-      <p>Deprecated, kept for existing callers: <code>/layers/:id/query?group_by=&lt;col&gt;</code> gives the same counts, with <code>where</code>, <code>filter</code> and <code>sum</code>. Without <code>group_by</code>, returns the total and lists the groupable columns; with <code>filter_col</code> and <code>filter_val</code>, the total of matching rows. With <code>group_by</code>, returns value-level counts for that column.</p>
+      <p>Deprecated. Retires on 22 December 2026; until then every answer carries <code>Deprecation</code>, <code>Sunset</code> and a <code>Link</code> to its replacement. Use <code>/layers/:id/query?group_by=&lt;col&gt;</code>, which gives the same counts for any column of any layer, with <code>where</code>, <code>filter</code> and <code>sum</code>. Without <code>group_by</code>, returns the total and lists the groupable columns; with <code>filter_col</code> and <code>filter_val</code>, the total of matching rows. With <code>group_by</code>, returns value-level counts for that column.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
         <tr><td><code>group_by</code></td><td>string</td><td>Column name to group by (one listed in <code>groupable_columns</code>, e.g. <code>zone</code>)</td></tr>
         <tr><td><code>filter_col</code>, <code>filter_val</code></td><td>string</td><td>Count only rows whose <code>filter_col</code> equals <code>filter_val</code> (exact, case-insensitive), with or without <code>group_by</code>. An unknown column, or one of the two without the other, is a <code>400</code>.</td></tr>
       </table>
-      <pre><code># Total and groupable columns
-curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts
-
-# Count wards per zone in PCMC
-curl https://bharatlas.com/api/v1/layers/wards_pcmc/counts?group_by=zone</code></pre>
-      <p>Grouped counts come from pre-computed statistics where they exist, otherwise they are counted from the Parquet file (the 500 largest groups). Use <code>/query</code> with <code>group_by</code> for any column of any layer.</p>
+      <pre><code># Count wards per zone in PCMC (the replacement)
+curl https://bharatlas.com/api/v1/layers/wards_pcmc/query?group_by=zone</code></pre>
 
       <h2>Downloads</h2>
 

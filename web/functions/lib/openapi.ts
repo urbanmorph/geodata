@@ -197,7 +197,7 @@ const BASE = {
         tags: ['Layers'],
         deprecated: true,
         summary: 'Feature total, or counts per value of one column (deprecated: use /query with group_by)',
-        description: 'Deprecated, kept for existing callers: `/layers/{id}/query?group_by=<col>` gives the same counts, with `where`, `filter` and `sum`. Without `group_by`: the total and the columns with precomputed counts, or with `filter_col` and `filter_val` the total of matching rows. With `group_by`: precomputed counts where they exist, otherwise counted from the Parquet file (the 500 largest groups). An unknown filter column, or one of `filter_col` and `filter_val` without the other, is a 400.',
+        description: 'Deprecated; retires on 22 December 2026 (every answer carries `Deprecation`, `Sunset` and a `Link` to /query). `/layers/{id}/query?group_by=<col>` gives the same counts, with `where`, `filter` and `sum`. Without `group_by`: the total and the columns with precomputed counts, or with `filter_col` and `filter_val` the total of matching rows. With `group_by`: precomputed counts where they exist, otherwise counted from the Parquet file (the 500 largest groups). An unknown filter column, or one of `filter_col` and `filter_val` without the other, is a 400.',
         parameters: [
           LAYER_ID,
           q('group_by', 'Column to count values of.', { type: 'string' }),
