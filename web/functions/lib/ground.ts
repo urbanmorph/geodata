@@ -136,7 +136,7 @@ export const GROUND_LAYERS: ProfileLayer[] = [
     units: { sgw_dev_pe: '% (stage of groundwater extraction)' },
     say: (e) => {
       const stage = num(first(e, 'sgw_dev_pe'));
-      return first(e, 'class') && `Groundwater extraction: ${first(e, 'class')}${stage ? ` (${Math.round(stage)}% of the annual extractable resource${first(e, 'block') ? `, ${first(e, 'block')} block` : ''})` : ''}`;
+      return first(e, 'class') && `Groundwater extraction: ${first(e, 'class')}${stage !== null && stage >= 0 ? ` (${Math.round(stage)}% of the annual extractable resource${first(e, 'block') ? `, ${first(e, 'block')} block` : ''})` : ''}`;
     } },
   { id: 'bhuvan_gw_prospects', section: 'groundwater', match: 'contains', about: { scale: '1:50,000' } },
   { id: 'glhymps_permeability', section: 'groundwater', match: 'contains', decode: DECODERS.glhymps,

@@ -258,6 +258,13 @@ describe('groundAt', () => {
     expect(g.sections.watershed.ndem_floods_1998_2022).toMatchObject({ status: 'none_within_radius', radius_km: 0, features: [] });
   });
 
+  it('says no extraction percentage where CGWB did not assess the unit (-9999 as published)', () => {
+    const say = GROUND_LAYERS.find((l) => l.id === 'cgwb_gw_extraction')!.say!;
+    const entry = (p: Record<string, unknown>) => ({ layer_id: 'x', match: 'contains', status: 'found', credit: { name: 'c' }, features: [p] }) as never;
+    expect(say(entry({ class: 'Not Assessed', sgw_dev_pe: -9999, block: 'Kolkata' }))).toBe('Groundwater extraction: Not Assessed');
+    expect(say(entry({ class: 'Safe', sgw_dev_pe: 41.6, block: 'Latur' }))).toBe('Groundwater extraction: Safe (42% of the annual extractable resource, Latur block)');
+  });
+
   it('gives every partial-coverage layer of plan A2 a footprint (A2: not_covered vs none_within_radius)', () => {
     const row = (id: string) => GROUND_LAYERS.find((l) => l.id === id)!;
     for (const id of ['subsidence_megacities', 'atal_bhujal_wells', 'slusi_soil_health']) expect(row(id).coverageKm, id).toBeGreaterThan(row(id).radiusKm!);
