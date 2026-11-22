@@ -7,7 +7,7 @@
 
 import type { Env } from '../types';
 import { bad, json } from './http';
-import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
+import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken, firstVerified } from './tokens';
 import { bearer, permissionFor, linkFor, atLeast, isAdmin, adminMap, type Refuse } from './auth';
 import { checkCreateRate, checkRecordRate, recordRateKey, checkKeyDayRate, checkKeyringRate } from './ratelimit';
 import { deferLog, type CollectAttempt, type CollectEvent } from './collect-log';
@@ -112,11 +112,8 @@ async function readJson(req: Request): Promise<Record<string, unknown> | null> {
 // Programmatic-abuse gate: verify an X-API-Key (prefix lookup + constant-time
 // hash compare, not revoked). Returns the key's id + daily limit + stored hash.
 async function verifyApiKey(env: Env, key: string): Promise<{ id: string; daily_limit: number; hash: string } | null> {
-  const rows = await db.apiKeysByPrefix(env.DB, tokenPrefix(key));
-  for (const r of rows) {
-    if (await verifyToken(key, r.key_hash)) return { id: r.id, daily_limit: r.daily_limit, hash: r.key_hash };
-  }
-  return null;
+  const r = await firstVerified(key, await db.apiKeysByPrefix(env.DB, tokenPrefix(key)), (x) => x.key_hash);
+  return r ? { id: r.id, daily_limit: r.daily_limit, hash: r.key_hash } : null;
 }
 
 export async function createCollection(env: Env, req: Request, defer?: Defer): Promise<Response> {
@@ -326,12 +323,9 @@ export async function replaceAdminLink(env: Env, req: Request, id: string): Prom
 export async function explainRefusal(env: Env, req: Request, res: Response): Promise<Response> {
   const token = bearer(req);
   if (res.status !== 401 || !token) return res;
-  for (const r of await db.retiredTokens(env.DB, tokenPrefix(token))) {
-    if (await verifyToken(token, r.token_hash)) {
-      return bad(401, r.permission === 'admin' ? 'this admin link was replaced or turned off' : 'this link was turned off by the map owner');
-    }
-  }
-  return res;
+  const r = await firstVerified(token, await db.retiredTokens(env.DB, tokenPrefix(token)), (x) => x.token_hash);
+  if (!r) return res;
+  return bad(401, r.permission === 'admin' ? 'this admin link was replaced or turned off' : 'this link was turned off by the map owner');
 }
 
 // ---- GET /collections/:id/tokens --------------------------------------------

@@ -3,7 +3,7 @@
 // collection and constant-time verify the hash.
 
 import type { Env } from '../types';
-import { tokenPrefix, verifyToken, type Permission } from './tokens';
+import { tokenPrefix, firstVerified, type Permission } from './tokens';
 import { tokensForCollection, getCollection, type CollectionRow } from './db';
 import { bad } from './http';
 
@@ -22,11 +22,9 @@ export async function linkFor(
   token: string | null,
 ): Promise<{ id: string; permission: Permission } | null> {
   if (!token) return null;
-  const rows = await tokensForCollection(db, collectionId, tokenPrefix(token));
-  for (const r of rows) {
-    if (r.is_active && (await verifyToken(token, r.token_hash))) return { id: r.id, permission: r.permission };
-  }
-  return null;
+  const rows = (await tokensForCollection(db, collectionId, tokenPrefix(token))).filter((r) => r.is_active);
+  const r = await firstVerified(token, rows, (x) => x.token_hash);
+  return r ? { id: r.id, permission: r.permission } : null;
 }
 
 export async function permissionFor(
