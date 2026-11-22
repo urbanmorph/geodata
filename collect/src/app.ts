@@ -1244,11 +1244,11 @@ function renderReviewTab(body: HTMLElement, revealRow?: string): void {
     <div id="points"><p class="hint">Loading points…</p></div>`;
   const approveAll = document.getElementById('approve-all') as HTMLButtonElement | null;
   if (approveAll) approveAll.onclick = () => busy(approveAll, async () => {
-      const res = await apiJson<{ changed: number; skipped?: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
-      invalidateReview();
-      await ensureReviewData(true);
-      toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
-      renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
+    const res = await apiJson<{ changed: number; skipped?: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
+    invalidateReview();
+    await ensureReviewData(true);
+    toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
+    renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
   });
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {

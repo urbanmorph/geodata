@@ -4,7 +4,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
 import { O, req, j, makeMap } from './helpers/api';
-import * as h from '../../functions/lib/handlers';
 import { onRequest } from '../../functions/api/collect/[[path]]';
 import type { Env } from '../../functions/types';
 
