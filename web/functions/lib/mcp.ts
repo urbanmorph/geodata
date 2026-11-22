@@ -9,7 +9,7 @@
 
 import type { Env } from '../api/_middleware';
 import {
-  instructionsCore, readToolsFor, readToolRequest, shapeReadResult, toSearchParams,
+  instructionsCore, readToolsFor, readToolRequest, shapeReadResult, toSearchParams, POINT_PROFILE_TOOLS,
 } from '../../../mcp/read-tools.js';
 import { apiLimitFor } from './api-ratelimit';
 import { json, safeStringify } from './http';
@@ -76,7 +76,7 @@ export const API_ROUTES: ApiRoute[] = [
 /** The API's own per-IP limit, shared with /api/v1 (same keys, same D1 rows, and
  *  the same non-blocking check): 120 calls a minute, locate and ground_at 60 on the locate key. */
 export function apiRateLimit(env: Env, waitUntil: WaitUntil): RateLimit {
-  return (req, tool) => apiLimitFor(req, env, tool === 'locate' || tool === 'ground_at' || tool === 'surface_at', waitUntil);
+  return (req, tool) => apiLimitFor(req, env, tool === 'locate' || POINT_PROFILE_TOOLS.has(tool), waitUntil);
 }
 
 const ok = (id: Id, result: unknown) => rpc({ jsonrpc: '2.0', id, result });

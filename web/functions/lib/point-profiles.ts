@@ -7,9 +7,6 @@
 
 import { notFoundJson } from './api-not-found';
 
-export const POINT_PROFILE_PATHS = ['/ground', '/surface'] as const;
-export const POINT_PROFILE_TOOLS = ['ground_at', 'surface_at'] as const;
-
 const LOCAL = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 export function pointProfilesOn(env: { POINT_PROFILES?: string } | undefined, url: URL): boolean {
