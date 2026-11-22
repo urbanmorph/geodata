@@ -82,13 +82,18 @@ let allowsShapes = false; // collection declares line/polygon → draw layers ar
 
 const emptyFC = (): GeoJSON.FeatureCollection => ({ type: 'FeatureCollection', features: [] });
 
+/** A GeoJSON source's area fill (<id>-fill) and its line and area edges (<id>-line). */
+function addShapeLayers(id: string, fill: maplibregl.FillLayerSpecification['paint'], line: maplibregl.LineLayerSpecification['paint']): void {
+  map.addLayer({ id: `${id}-fill`, type: 'fill', source: id, filter: ['==', '$type', 'Polygon'], paint: fill });
+  map.addLayer({ id: `${id}-line`, type: 'line', source: id, filter: ['!=', '$type', 'Point'], paint: line });
+}
+
 // Add the in-progress draw source + layers once the style is up (only needed
 // for line/polygon collections — points-only stays light).
 function setupDrawLayers(): void {
   if (drawReady || !allowsShapes || !map.isStyleLoaded()) return;
   map.addSource('draw', { type: 'geojson', data: emptyFC() });
-  map.addLayer({ id: 'draw-fill', type: 'fill', source: 'draw', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.15 } });
-  map.addLayer({ id: 'draw-line', type: 'line', source: 'draw', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2.5 } });
+  addShapeLayers('draw', { 'fill-color': ACCENT, 'fill-opacity': 0.15 }, { 'line-color': ACCENT, 'line-width': 2.5 });
   map.addLayer({ id: 'draw-vert', type: 'circle', source: 'draw', filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 5, 'circle-color': '#fff', 'circle-stroke-color': ACCENT, 'circle-stroke-width': 2 } });
   drawReady = true;
 }
@@ -412,14 +417,9 @@ function syncReviewLayer(): void {
   const src = map.getSource('review') as maplibregl.GeoJSONSource | undefined;
   if (src) { src.setData(reviewFC()); return; }
   map.addSource('review', { type: 'geojson', data: reviewFC() });
-  map.addLayer({
-    id: 'review-fill', type: 'fill', source: 'review', filter: ['==', '$type', 'Polygon'],
-    paint: { 'fill-color': STATUS_COLOR, 'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.3, 0.12] },
-  });
-  map.addLayer({
-    id: 'review-line', type: 'line', source: 'review', filter: ['!=', '$type', 'Point'],
-    paint: { 'line-color': STATUS_COLOR, 'line-width': ['case', ['boolean', ['feature-state', 'sel'], false], 4, 2] },
-  });
+  addShapeLayers('review',
+    { 'fill-color': STATUS_COLOR, 'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.3, 0.12] },
+    { 'line-color': STATUS_COLOR, 'line-width': ['case', ['boolean', ['feature-state', 'sel'], false], 4, 2] });
   map.addLayer({
     id: 'review-pt', type: 'circle', source: 'review', filter: ['==', '$type', 'Point'],
     paint: {
@@ -549,8 +549,7 @@ function syncRecordShapes(): void {
   const src = map.getSource('records') as maplibregl.GeoJSONSource | undefined;
   if (src) { src.setData(data); return; }
   map.addSource('records', { type: 'geojson', data });
-  map.addLayer({ id: 'records-fill', type: 'fill', source: 'records', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.1 } });
-  map.addLayer({ id: 'records-line', type: 'line', source: 'records', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2, 'line-opacity': 0.7 } });
+  addShapeLayers('records', { 'fill-color': ACCENT, 'fill-opacity': 0.1 }, { 'line-color': ACCENT, 'line-width': 2, 'line-opacity': 0.7 });
   map.addLayer({ id: 'records-point', type: 'circle', source: 'records', filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 6, 'circle-color': ACCENT, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
 }
 
@@ -1959,8 +1958,7 @@ async function recordEditor(): Promise<void> {
       return;
     }
     map.addSource('rec', { type: 'geojson', data: { type: 'Feature', geometry: rec.geometry as GeoJSON.Geometry, properties: {} } });
-    map.addLayer({ id: 'rec-fill', type: 'fill', source: 'rec', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.15 } });
-    map.addLayer({ id: 'rec-line', type: 'line', source: 'rec', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2.5 } });
+    addShapeLayers('rec', { 'fill-color': ACCENT, 'fill-opacity': 0.15 }, { 'line-color': ACCENT, 'line-width': 2.5 });
   });
 
   const panel = document.getElementById('panel')!;
