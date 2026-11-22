@@ -8,7 +8,7 @@
 import type { Env } from '../types';
 import { bad, json } from './http';
 import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
-import { bearer, permissionFor, linkFor, atLeast } from './auth';
+import { bearer, permissionFor, linkFor, atLeast, isAdmin, adminMap, type Refuse } from './auth';
 import { checkCreateRate, checkRecordRate, recordRateKey, checkKeyDayRate, checkKeyringRate } from './ratelimit';
 import { deferLog, type CollectAttempt } from './collect-log';
 import { nanoid, sha256Hex, collectIpHash, verifyTurnstile, persistSubmission } from './reuse';
@@ -203,10 +203,8 @@ export async function getStats(env: Env, req?: Request, defer?: Defer): Promise<
 // reference_layer (+ licence only while the map has no records). Fields untouched.
 
 export async function editCollection(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  const c = await adminMap(env, req, id);
+  if (c instanceof Response) return c;
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
@@ -237,10 +235,8 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
     log({ outcome: 'rejected', gate, reason: error, detail: (extra.problems as Array<{ reason: string; count: number }> | undefined)?.map((p) => `${p.reason} (${p.count})`).join('; ') });
     return json(status, { error, ...extra, attempt_id: attemptId });
   };
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return refuse(404, 'not_found', 'not found');
+  const c = await adminMap(env, req, id, refuse);
+  if (c instanceof Response) return c;
   const body = await readJson(req);
   if (!body) return refuse(400, 'body', 'invalid JSON body');
 
@@ -263,10 +259,8 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
 // as is, so opening the Share tab doesn't add a new link every visit.
 
 export async function mintToken(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  const c = await adminMap(env, req, id);
+  if (c instanceof Response) return c;
 
   const body = await readJson(req);
   const want = body?.permission;
@@ -306,8 +300,7 @@ const LINK_LABEL_MAX = 60;
 // new admin link is minted and every older one for this map stops working.
 
 export async function replaceAdminLink(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, id))) return bad(401, 'unauthorised');
   const token = generateToken('admin');
   await db.swapAdminToken(env.DB, id, tokenPrefix(token), await hashToken(token));
   return json(200, { permission: 'admin', token, link: `${new URL(req.url).origin}/c/${id}/admin#${token}` });
@@ -331,8 +324,7 @@ export async function explainRefusal(env: Env, req: Request, res: Response): Pro
 // token itself is hash-only and never returned here.
 
 export async function listTokens(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, id))) return bad(401, 'unauthorised');
   const rows = await db.listLinks(env.DB, id);
   return json(200, {
     links: rows.map((r) => ({
@@ -346,8 +338,7 @@ export async function listTokens(env: Env, req: Request, id: string): Promise<Re
 // revoked here (the caller would lock themselves out).
 
 export async function revokeToken(env: Env, req: Request, id: string, tokenId: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, id))) return bad(401, 'unauthorised');
   const link = await db.getLink(env.DB, id, tokenId);
   if (!link) return bad(404, 'not found');
   if (link.permission === 'admin') return bad(400, 'admin links cannot be revoked');
@@ -586,8 +577,7 @@ async function resendRecord(env: Env, c: db.CollectionRow, rec: { id: string; st
 export async function moderateRecord(env: Env, req: Request, recordId: string): Promise<Response> {
   const rec = await db.getRecord(env.DB, recordId);
   if (!rec) return bad(404, 'not found');
-  const perm = await permissionFor(env.DB, rec.collection_id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, rec.collection_id))) return bad(401, 'unauthorised');
 
   const body = await readJson(req);
   const status = body?.status;
@@ -613,10 +603,8 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
 // Bulk moderation: move every record in one status to another in a single call
 // (the "Approve all N" action). Defaults to pending → published. Admin only.
 export async function moderateAll(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  const c = await adminMap(env, req, id);
+  if (c instanceof Response) return c;
   const body = await readJson(req);
   const from = body?.from === 'rejected' ? 'rejected' : 'pending';
   const to = body?.to === 'rejected' ? 'rejected' : 'published';
@@ -779,12 +767,10 @@ const reasonList = (rs: Array<{ reason: string; count: number }>): string => rs.
 async function importInto(
   env: Env, req: Request, id: string, ipHash: string, attemptId: string,
   log: (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => void,
-  refuse: (status: number, gate: string, error: string) => Response,
+  refuse: Refuse,
 ): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return refuse(404, 'not_found', 'not found');
+  const c = await adminMap(env, req, id, refuse);
+  if (c instanceof Response) return c;
   if (c.status === 'closed') return refuse(403, 'closed', 'this collection is closed');
 
   const body = await readJson(req);
@@ -923,13 +909,10 @@ export async function publish(env: Env, req: Request, id: string, defer?: Defer)
 
 async function publishMap(
   env: Env, req: Request, id: string, attemptId: string, log: PublishLog,
-  refuse: (status: number, gate: string, error: string) => Response,
+  refuse: Refuse,
 ): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
-
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return refuse(404, 'not_found', 'not found');
+  const c = await adminMap(env, req, id, refuse);
+  if (c instanceof Response) return c;
 
   // Every approved point goes into one file built in memory, so a map over the
   // limit is refused rather than published with points cut off.
