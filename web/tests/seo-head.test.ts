@@ -33,9 +33,9 @@ describe('seoHead', () => {
     expect(h).not.toContain('ld+json');
   });
 
-  it('escapes < in JSON-LD', () => {
+  it('escapes < and > in JSON-LD (one rule, ldJsonScript)', () => {
     const h = seoHead({ ...base, structuredData: { name: '</script>' } });
-    expect(h).toContain('<script type="application/ld+json">{"name":"\\u003c/script>"}</script>');
+    expect(h).toContain('<script type="application/ld+json">{"name":"\\u003c/script\\u003e"}</script>');
   });
 
   it('brief leaves out og:locale and the twitter title and description', () => {
