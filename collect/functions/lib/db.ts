@@ -401,6 +401,15 @@ export async function nextVersion(db: DB, collectionId: string): Promise<number>
   return (row?.v ?? 0) + 1;
 }
 
+/** The content hash of one published version, or null when there is none. */
+export async function publicationHash(db: DB, collectionId: string, version: number): Promise<string | null> {
+  const row = (await db
+    .prepare(`SELECT content_hash FROM publications WHERE collection_id = ? AND version = ?`)
+    .bind(collectionId, version)
+    .first()) as { content_hash: string } | null;
+  return row?.content_hash ?? null;
+}
+
 /** The INSERT for one publication row, unrun, for a D1 batch. */
 export function publicationInsert(
   db: DB,

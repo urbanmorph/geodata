@@ -903,11 +903,7 @@ async function publishMap(env: Env, req: Request, id: string, { attemptId, log, 
   // R6: refuse a republish with byte-identical content ("nothing new since v{N}").
   const version = await db.nextVersion(env.DB, id);
   if (version > 1) {
-    const prev = (await env.DB
-      .prepare(`SELECT content_hash FROM publications WHERE collection_id = ? AND version = ?`)
-      .bind(id, version - 1)
-      .first()) as { content_hash: string } | null;
-    if (prev?.content_hash === contentHash) return refuse(409, 'unchanged', `nothing new since v${version - 1}`);
+    if ((await db.publicationHash(env.DB, id, version - 1)) === contentHash) return refuse(409, 'unchanged', `nothing new since v${version - 1}`);
   }
 
   // Imported records are credited via their source, not the contributor tally;

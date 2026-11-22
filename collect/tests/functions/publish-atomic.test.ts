@@ -72,6 +72,18 @@ describe('publish', () => {
     expect(r.body.message).not.toMatch(/—|catalog/i);
   });
 
+  it('refuses a republish with nothing new, naming the version; a changed map publishes v2', async () => {
+    const m = await mapWithAPoint();
+    expect((await publish(m)).status).toBe(200);
+    const again = await publish(m);
+    expect(again.status).toBe(409);
+    expect(again.body.error).toBe('nothing new since v1');
+    expect((await publishAttempts()).map((a) => a.gate)).toContain('unchanged');
+    env.DB.raw.exec(`UPDATE records SET properties = '{"name":"Peepal"}'`);
+    expect((await publish(m)).status).toBe(200);
+    expect(await n('publications')).toBe(2);
+  });
+
   it('keeps nothing when a file cannot be stored, and logs why', async () => {
     const m = await mapWithAPoint();
     failPut = true;
