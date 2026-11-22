@@ -13,14 +13,10 @@ import { fetchAsset, type AssetCtx } from '../lib/catalog-loader';
 import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundResponse, suggestLayers } from '../lib/not-found';
 import { escapeHtml as esc, ldJsonScript } from '../../../shared/format.mjs';
+import { SITE_ORIGIN } from '../../../shared/brand.mjs';
 import { findLayer } from '../lib/api-layer';
 
 type Params = { id: string };
-
-// SEO URLs (canonical / OG / JSON-LD) must always be the primary apex, so www.*
-// and pages.dev variants consolidate there instead of self-referencing as
-// canonical and splitting the ranking signal. Mirrors render-view.ts's PUBLIC_ORIGIN.
-const CANONICAL_ORIGIN = 'https://bharatlas.com';
 
 const LAYER_NOT_FOUND = { title: 'Layer not found', message: "There's no layer with this id. It may have been renamed, or the link has a typo." };
 
@@ -76,10 +72,10 @@ async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: CatalogDa
   const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd, howToJsonLd, wardListJsonLd } = buildViewDataset(
     layer,
     levelMeta,
-    CANONICAL_ORIGIN,
+    SITE_ORIGIN,
     wardIndex,
   );
-  const contentHtml = buildViewContent(layer, levelMeta, CANONICAL_ORIGIN, wardIndex);
+  const contentHtml = buildViewContent(layer, levelMeta, SITE_ORIGIN, wardIndex);
 
   // [selector, attribute, value] for every head tag the page rewrites.
   const attrs: Array<[string, string, string]> = [

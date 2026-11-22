@@ -2,8 +2,9 @@
 // from it (web/scripts/prerender.mjs); the edge sitemap (web/functions/sitemap.xml.ts),
 // which overrides that file, adds the layer and community pages to the same list.
 import { escXml } from './kml.mjs';
+import { SITE_ORIGIN } from './brand.mjs';
 
-export const SITE_ORIGIN = 'https://bharatlas.com';
+export { SITE_ORIGIN };
 
 export const STATIC_PAGES = [
   { loc: SITE_ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },

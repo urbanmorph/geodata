@@ -7,7 +7,7 @@
 // everything's fine. In dev, vite forwards /c/* to wrangler on :8788 — so
 // `request.url`'s origin reads ":8788" even though the user is on :5173.
 // Strategy:
-//   • Canonical + OG meta tags use the hardcoded PUBLIC_ORIGIN (bharatlas.com)
+//   • Canonical + OG meta tags use SITE_ORIGIN (shared/brand.mjs, bharatlas.com)
 //     so SEO doesn't ever index a port-bound dev URL.
 //   • User-facing internal links use RELATIVE paths — the browser resolves
 //     against the page's actual origin (5173 in dev, bharatlas.com in prod).
@@ -18,8 +18,8 @@ import { MAP_TOKENS, renderNav } from '../../scripts/shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, ldJsonScript } from '../../../shared/format.mjs';
 import { licenceUrl } from '../../../shared/licences.mjs';
 import { footerHtml } from '../../../shared/footer.mjs';
+import { SITE_ORIGIN } from '../../../shared/brand.mjs';
 
-const PUBLIC_ORIGIN = 'https://bharatlas.com';
 
 const FORMAT_MIME: Record<string, string> = {
   geojson: 'application/geo+json',
@@ -62,8 +62,8 @@ export function renderViewPage(opts: RenderOpts): string {
   const verifyUrl = `/preview?url=${encodeURIComponent(r2Path)}`;
   // CANONICAL paths for SEO/OG meta — always the public origin, never the
   // port-bound dev URL.
-  const r2Url = `${PUBLIC_ORIGIN}${r2Path}`;
-  const canonical = `${PUBLIC_ORIGIN}/c/${s.id}`;
+  const r2Url = `${SITE_ORIGIN}${r2Path}`;
+  const canonical = `${SITE_ORIGIN}/c/${s.id}`;
   const licenseUrl = licenceUrl(s.license) ?? s.license;
   const filename = s.r2_key.split('/').pop() || 'download';
 
@@ -113,7 +113,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta property="og:title" content="${esc(s.name)}" />
     <meta property="og:description" content="${esc(description)}" />
     <meta property="og:url" content="${esc(canonical)}" />
-    <meta property="og:image" content="${PUBLIC_ORIGIN}/og/c/${esc(s.id)}.png" />
+    <meta property="og:image" content="${SITE_ORIGIN}/og/c/${esc(s.id)}.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="bharatlas" />
@@ -121,7 +121,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="${esc(s.name)}" />
     <meta name="twitter:description" content="${esc(description)}" />
-    <meta name="twitter:image" content="${PUBLIC_ORIGIN}/og/c/${esc(s.id)}.png" />
+    <meta name="twitter:image" content="${SITE_ORIGIN}/og/c/${esc(s.id)}.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
     ${ldJsonScript(ld)}
