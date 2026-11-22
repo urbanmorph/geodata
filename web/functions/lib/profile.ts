@@ -233,7 +233,10 @@ export interface ProfileSpec {
   conclude?: (sections: ProfileResponse['sections']) => string[];
 }
 
-export const BASE_DEPS: Omit<ProfileDeps, 'pixels'> = { locate: locateEngine, nearby: nearbyEngine, nearbyByGeometry, nearbyFromTiles };
+/** An entry's vintage where its source gives no date: the answer then dates it by fetched_at, never by silence. */
+export const UNDATED = 'not dated by the source (see fetched_at, when bharatlas fetched it)';
+
+export const BASE_DEPS:Omit<ProfileDeps, 'pixels'> = { locate: locateEngine, nearby: nearbyEngine, nearbyByGeometry, nearbyFromTiles };
 export const LAYER_BUDGET_MS = 6000;
 const ZOOM = 14;
 
@@ -373,7 +376,7 @@ export async function profileAt(
       const got = await timed(key, () => read(spec, lat, lng, catalog, r2, deps));
       const entry: ProfileEntry = {
         layer_id: spec.id, credit: creditOf(layer), ...ncFields(layer),
-        about: { ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },
+        about: { vintage: UNDATED, ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },
         ...got, ...(spec.units && got.status === 'found' ? { units: spec.units } : {}),
       };
       const links = spec.links?.(layer);

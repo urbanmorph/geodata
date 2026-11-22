@@ -376,7 +376,7 @@ curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_w
         <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68-98)</td></tr>
         <tr><td><code>open_only</code></td><td>bool</td><td><code>true</code> leaves out the non-commercial layers (listed in <code>omitted_non_commercial</code>)</td></tr>
       </table>
-      <p>Every entry says its <code>about</code>: scale or resolution, the period its data describe and the date we fetched it. This is screening information, not a site investigation: the answer's <code>disclaimer</code> says so. The answer is for the point snapped to about 100 m.</p>
+      <p>Every entry says its <code>about</code>: scale or resolution, the period its data describe (or "not dated by the source", where the source gives none) and the date we fetched it. This is screening information, not a site investigation: the answer's <code>disclaimer</code> says so. The answer is for the point snapped to about 100 m.</p>
       <pre><code># What is under this plot in south-west Delhi?
 curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085"</code></pre>
 

@@ -529,7 +529,7 @@ const POINT_PROFILE_SCHEMAS = {
               non_commercial: { type: 'boolean' },
               licence_notice: { type: 'string' },
               units: { type: 'object', additionalProperties: { type: 'string' } },
-              about: { type: 'object', properties: { scale: { type: 'string' }, vintage: { type: 'string' }, note: { type: 'string' }, fetched_at: { type: 'string', format: 'date' } } },
+              about: { type: 'object', properties: { scale: { type: 'string' }, vintage: { type: 'string', description: 'The period the data describe, or "not dated by the source" (then fetched_at dates it).' }, note: { type: 'string' }, fetched_at: { type: 'string', format: 'date' } } },
               features: { type: 'array', items: { type: 'object' }, description: 'contains: the features holding the point (identical ones once).' },
               decoded: { type: 'object', description: 'Source encodings in plain units (e.g. the GLHYMPS permeability class).' },
               radius_km: { type: 'number' },
