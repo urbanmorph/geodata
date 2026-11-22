@@ -7,6 +7,7 @@ import type { FileMetaData } from 'hyparquet';
 import type { CatalogLayer } from './catalog-api';
 import { r2KeyFromUrl } from './r2-keys';
 import { ResolvedCache, READ_TIMEOUT_MS, withTimeout } from './isolate-cache';
+import { coloOf, type ColoCache } from './colo-cache';
 
 export interface AsyncBuffer {
   byteLength: number;
@@ -15,6 +16,8 @@ export interface AsyncBuffer {
   cacheKey?: string;
   /** The R2 object's etag, when read from R2. */
   etag?: string;
+  /** The colo cache of the bucket it was opened through (colo-cache.ts), for data decoded from it. */
+  colo?: ColoCache;
   /** Bytes [start, end) as a stream of pieces, in one request: for reading a
    *  large page without holding it (parquet-column-stream.ts). */
   stream?(start: number, end: number): AsyncIterable<Uint8Array>;
@@ -111,6 +114,21 @@ async function openWithTail(r2: R2Bucket, key: string): Promise<AsyncBuffer> {
   };
 }
 
+/** A whole file, versioned (cacheKey), kept in the colo for a day. */
+const WHOLE_COLO_TTL = 86_400;
+
+/** The whole of a small file in memory, in one read, or from the colo's cache when
+ *  the file was opened through one (file.colo): read whole and parsed, it is the same
+ *  for every point (India's outline, 3 MB, was read again on every fresh isolate). */
+export async function readWhole(file: AsyncBuffer): Promise<AsyncBuffer> {
+  const ck = file.colo && file.cacheKey ? `whole/${file.cacheKey}` : null;
+  const hit = ck ? await file.colo!.get(ck) : null;
+  const kept = hit?.data.byteLength === file.byteLength ? hit.data : null;
+  const data = kept ?? await file.slice(0, file.byteLength);
+  if (ck && !kept) file.colo!.put(ck, data, {}, WHOLE_COLO_TTL);
+  return { byteLength: data.byteLength, cacheKey: file.cacheKey, slice: async (s, e) => data.slice(s, e) };
+}
+
 function bufferFor(r2: R2Bucket, key: string, head: Head): AsyncBuffer {
   const byteLength = head.size;
 
@@ -118,6 +136,7 @@ function bufferFor(r2: R2Bucket, key: string, head: Head): AsyncBuffer {
     byteLength,
     etag: head.etag,
     cacheKey: `${key}@${byteLength}:${head.etag}`,
+    colo: coloOf(r2),
     async slice(start: number, end?: number): Promise<ArrayBuffer> {
       const length = (end ?? byteLength) - start;
       const read = async () => {

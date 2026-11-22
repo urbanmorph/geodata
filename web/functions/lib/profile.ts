@@ -237,7 +237,9 @@ export interface ProfileSpec {
 export const UNDATED = 'not dated by the source (see fetched_at, when bharatlas fetched it)';
 
 export const BASE_DEPS:Omit<ProfileDeps, 'pixels'> = { locate: locateEngine, nearby: nearbyEngine, nearbyByGeometry, nearbyFromTiles };
-export const LAYER_BUDGET_MS = 6000;
+/** Each layer's time (ms): past it the answer names the layer in `unavailable`, is not
+ *  cached, and the layer's reads still run on (waitUntil) to fill the colo's cache. */
+export const LAYER_BUDGET_MS = 2500;
 const ZOOM = 14;
 
 export function creditOf(layer: CatalogLayer): Credit {

@@ -4,6 +4,8 @@ import { parquetMetadataAsync } from 'hyparquet';
 import { closestOnGeometry, bboxDistanceKm, nearestByGeometry, nearbyByGeometry, clearShapeCache, type NearestShapeOpts } from '../functions/lib/nearby-geometry';
 import type { CatalogData } from '../functions/lib/catalog-api';
 import { fakeR2 } from './helpers/fake-r2';
+import { coloCache } from '../functions/lib/colo-cache';
+import { readWhole } from '../functions/lib/parquet-r2';
 
 // Fixture (duckdb spatial, GeoParquet, 4 rows per row group): a 4-degree
 // north-south line 'long' at 77.0E (26-30N, its bbox centre 55 km from the test
@@ -142,5 +144,28 @@ describe('a small layer is read whole, once per isolate (India\'s outline: one 5
     await nearbyByGeometry(28.62, 76.92, 5, 'lines', catalog, bucket, { limit: 3, edge: true });
     expect(first).toBeGreaterThan(0);
     expect(n.gets).toBe(first);
+  });
+
+  it("and kept in the colo's cache: a fresh isolate reads nothing (readWhole)", async () => {
+    // India's outline is 3 MB, past the footer read: the rest was read from R2 on every fresh isolate.
+    const store = new Map<string, Response>();
+    const cache = { match: async (k: RequestInfo) => store.get(String(k))?.clone(), put: async (k: RequestInfo, r: Response) => { store.set(String(k), r); } };
+    const tracked = (colo: ReturnType<typeof coloCache>) => {
+      const reads: Array<[number, number | undefined]> = [];
+      return { reads, file: { ...file, cacheKey: 'k@1:e', colo, slice: (s: number, e?: number) => { reads.push([s, e]); return file.slice(s, e); } } };
+    };
+    const pending: Promise<unknown>[] = [];
+    const c1 = coloCache(cache, (p) => { pending.push(p); });
+    const one = tracked(c1);
+    const a = await readWhole(one.file);
+    expect(one.reads).toEqual([[0, buf.byteLength]]); // one read for the whole file
+    c1.startPuts();
+    await Promise.all(pending);
+
+    const two = tracked(coloCache(cache, () => {}));
+    const b = await readWhole(two.file);
+    expect(two.reads).toEqual([]);
+    expect(new Uint8Array(await b.slice(0))).toEqual(new Uint8Array(await a.slice(0)));
+    expect(b.byteLength).toBe(buf.byteLength);
   });
 });

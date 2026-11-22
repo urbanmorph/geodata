@@ -32,6 +32,7 @@ import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { chunkRanges, coalesced } from './parquet-coalesce';
 import { ByteLru } from './isolate-cache';
+import type { ColoCache } from './colo-cache';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
@@ -161,10 +162,43 @@ export function clearBoxCache(): void {
   boxCache.clear();
 }
 
-/** The bbox columns of each span's row group: from the cache, the rest read together. */
-export async function groupBoxes(file: AsyncBuffer & { cacheKey?: string }, metadata: FileMetaData, spans: RowSpan[]): Promise<GroupBoxes[]> {
+/** Decoded bbox columns in the colo for a day: the key carries the object's size and etag, so they never go stale. */
+export const BOX_COLO_TTL = 86_400;
+
+// The four columns end to end, as one buffer for the colo cache.
+function packBoxes(b: GroupBoxes): ArrayBuffer {
+  const n = b.xmin.length;
+  const all = new Float64Array(n * 4);
+  [b.xmin, b.ymin, b.xmax, b.ymax].forEach((c, k) => all.set(c, k * n));
+  return all.buffer;
+}
+
+function unpackBoxes(buf: ArrayBuffer): GroupBoxes {
+  const n = buf.byteLength / 32;
+  const col = (k: number) => new Float64Array(buf, k * n * 8, n);
+  return { xmin: col(0), ymin: col(1), xmax: col(2), ymax: col(3) };
+}
+
+/** The bbox columns of each span's row group: from the isolate's cache, then the
+ *  colo's (file.colo), the rest read together and decoded. */
+export async function groupBoxes(
+  file: AsyncBuffer & { cacheKey?: string; colo?: ColoCache }, metadata: FileMetaData, spans: RowSpan[],
+): Promise<GroupBoxes[]> {
   const keys = spans.map((s) => (file.cacheKey ? `${file.cacheKey}#${s.start}` : null));
   const out = keys.map((k) => (k ? boxCache.get(k) : undefined));
+  const keep = (i: number, b: GroupBoxes) => {
+    const k = keys[i];
+    if (k) boxCache.set(k, b, b.xmin.byteLength * 4);
+    out[i] = b;
+  };
+  const colo = file.colo;
+  if (colo) {
+    await Promise.all(spans.map(async (_, i) => {
+      if (out[i] || !keys[i]) return;
+      const hit = await colo.get(`boxes/${keys[i]}`);
+      if (hit && hit.data.byteLength % 32 === 0) keep(i, unpackBoxes(hit.data));
+    }));
+  }
   const missing = spans.map((_, i) => i).filter((i) => !out[i]);
   const bboxFile = coalesced(file, missing.flatMap((i) => chunkRanges(metadata, [...BBOX_COLS], spans[i].start, spans[i].end)));
   await mapConcurrent(missing, R2_CONCURRENCY, async (i) => {
@@ -173,9 +207,8 @@ export async function groupBoxes(file: AsyncBuffer & { cacheKey?: string }, meta
     }) as Array<Record<string, unknown>>;
     const col = (c: string) => Float64Array.from(rows, (r) => Number(r[c]));
     const b = { xmin: col('xmin'), ymin: col('ymin'), xmax: col('xmax'), ymax: col('ymax') };
-    const k = keys[i];
-    if (k) boxCache.set(k, b, b.xmin.byteLength * 4);
-    out[i] = b;
+    keep(i, b);
+    if (colo && keys[i]) colo.put(`boxes/${keys[i]}`, packBoxes(b), {}, BOX_COLO_TTL);
   });
   return out as GroupBoxes[];
 }

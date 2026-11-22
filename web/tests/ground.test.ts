@@ -4,7 +4,7 @@ import { resolve } from 'node:path';
 import {
   GROUND_LAYERS, SECTIONS, DECODERS, SEISMIC_ABOUT, groundAt,
 } from '../functions/lib/ground';
-import { dedupeFeatures, median, snapPoint, cleanText, partialByChance } from '../functions/lib/profile';
+import { dedupeFeatures, median, snapPoint, cleanText, partialByChance, LAYER_BUDGET_MS } from '../functions/lib/profile';
 type GroundDeps = ProfileDeps & { soil: (r2: R2Bucket, lat: number, lng: number) => Promise<PixelResult> };
 import type { CatalogData, CatalogLayer } from '../functions/lib/catalog-api';
 import type { NearbyResult } from '../functions/lib/nearby';
@@ -300,6 +300,12 @@ describe('groundAt', () => {
     expect(g.sections.underground.osm_tunnels).toBeUndefined();
     expect(partialByChance(g)).toBe(true); // missed by chance: not cached
     expect(g.sections.seismic.seismic_zones.features).toHaveLength(1);
+  });
+
+  it('by default a layer gets 2.5 s, so one slow layer cannot hold an answer past the 3 s target', () => {
+    // A cold read (a fresh isolate and colo) can take seconds; the answer names that layer
+    // instead, is not cached, and the layer's reads still fill the colo's cache for the next ask.
+    expect(LAYER_BUDGET_MS).toBe(2500);
   });
 
   it('keeps the request open (waitUntil) for a layer past its budget, so its reads settle in this request', async () => {
