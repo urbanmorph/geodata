@@ -117,4 +117,13 @@ describe('cached', () => {
     await c.settle();
     expect(await r.text()).toBe('{"a":1}');
   });
+
+  it('computes when the cache lookup hangs: a stuck lookup never holds the answer up', async () => {
+    const hung: EdgeCache = { match: () => new Promise(() => {}), put: async () => {} };
+    const c = ctxFor('https://bharatlas.com/x');
+    const t0 = Date.now();
+    const r = await cached(c.ctx, 'k', 600, body('{"a":2}'), hung, 30);
+    expect(await r.text()).toBe('{"a":2}');
+    expect(Date.now() - t0).toBeLessThan(1000);
+  });
 });

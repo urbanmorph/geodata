@@ -4,13 +4,17 @@
 // lib/profile.ts and kept in the colo's cache under the snapped point, the option
 // and the rasters' versions, unless a layer was missed by chance (a timeout or a
 // failed read). Clients are told not to store it (a point is personal).
+// R2 reads go through the colo's cache (colo-cache.ts), so a fresh isolate does not
+// read every layer's metadata again; x-profile-reads, x-profile-colo-hits and
+// server-timing (catalog, lookup, profile) say where an answer's time went.
 import type { Env } from '../api/_middleware';
 import { loadCatalogVersioned } from './catalog-loader';
 import { partialByChance, snapPoint, SNAP_DECIMALS, type ProfileOpts, type ProfileResponse } from './profile';
 import type { CatalogData } from './catalog-api';
 import { apiError, json, serverError } from './http';
 import { parseIndiaPoint } from './api-layer';
-import { cached, cacheKey, EDGE_TTL, NO_STORE } from './edge-cache';
+import { cached, cacheKey, defaultCache, EDGE_TTL, NO_STORE } from './edge-cache';
+import { coloBucket, coloCache } from './colo-cache';
 import { notPublished, pointProfilesOn } from './point-profiles';
 import { countApiUse, endpointUsageId } from './usage';
 
@@ -44,21 +48,39 @@ export function profileHandler(name: string, run: ProfileRun, version: string): 
     const openOnly = url.searchParams.get('open_only') === 'true';
     const { lat, lng } = snapPoint(pt.lat, pt.lng);
     try {
+      const t0 = Date.now();
       const { catalog, version: catalogVersion } = await loadCatalogVersioned(ctx);
+      const tCatalog = Date.now();
+      let tRun: number | undefined;
       const keyUrl = new URL(url.origin + url.pathname);
       keyUrl.searchParams.set('lat', lat.toFixed(SNAP_DECIMALS));
       keyUrl.searchParams.set('lng', lng.toFixed(SNAP_DECIMALS));
       if (openOnly) keyUrl.searchParams.set('open_only', 'true');
       keyUrl.searchParams.set('v', version);
-      return await cached(ctx, cacheKey(catalogVersion, keyUrl), EDGE_TTL.r2, async () => {
+      const res = await cached(ctx, cacheKey(catalogVersion, keyUrl), EDGE_TTL.r2, async () => {
+        tRun = Date.now();
         const { bucket, reads } = countingBucket(ctx.env.R2);
-        const profile = await run(lat, lng, catalog, bucket, { openOnly, waitUntil: (p) => ctx.waitUntil(p) });
+        const colo = coloCache(defaultCache(), (p) => ctx.waitUntil(p));
+        let profile: ProfileResponse;
+        try {
+          profile = await run(lat, lng, catalog, coloBucket(bucket, colo, catalogVersion), { openOnly, waitUntil: (p) => ctx.waitUntil(p) });
+        } finally {
+          colo.startPuts(); // the answer is done: what it read for the next isolate, without slowing this one
+        }
         return json(200, profile, {
           'cache-control': 'private, no-store',
           'x-profile-reads': String(reads()),
+          'x-profile-colo-hits': String(colo.hits()),
           ...(partialByChance(profile) ? { [NO_STORE]: '1' } : {}),
         });
       });
+      // Where the time went, for this request (never the stored copy's): the catalog, the
+      // edge cache lookup, and the profile itself when it ran.
+      const tEnd = Date.now();
+      const phases = [`catalog;dur=${tCatalog - t0}`, `lookup;dur=${(tRun ?? tEnd) - tCatalog}`, ...(tRun ? [`profile;dur=${tEnd - tRun}`] : [])];
+      const out = new Response(res.body, res);
+      out.headers.set('server-timing', phases.join(', '));
+      return out;
     } catch (e) {
       return serverError(label, e);
     }

@@ -13,7 +13,7 @@
 import { parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
-import { openParquet, r2KeyFromLayer } from './parquet-r2';
+import { openParquet, r2KeyFromLayer, readWhole } from './parquet-r2';
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { chunkRanges, coalesced } from './parquet-coalesce';
@@ -264,6 +264,6 @@ export async function nearbyByGeometry(
   if (!key) throw new QueryInputError(`Layer ${layerId} has no parquet`);
   const { file, metadata } = await openParquet(r2, key);
   if (file.byteLength > WHOLE_LAYER_MAX_BYTES || !file.cacheKey) return nearestByGeometry(file, metadata, lat, lng, radiusKm, opts);
-  const rows = await shapeRows.get(file.cacheKey, () => readShapeRows(file, metadata), file);
+  const rows = await shapeRows.get(file.cacheKey, async () => readShapeRows(await readWhole(file), metadata), file);
   return nearestInShapeRows(rows, lat, lng, radiusKm, opts);
 }

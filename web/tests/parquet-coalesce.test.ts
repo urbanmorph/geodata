@@ -7,6 +7,7 @@ import { clearBoxCache, groupBoxes, nearby, nearestRows } from '../functions/lib
 import type { CatalogData } from '../functions/lib/catalog-api';
 import { fakeR2 } from './helpers/fake-r2';
 import { nearestByGeometry } from '../functions/lib/nearby-geometry';
+import { coloCache } from '../functions/lib/colo-cache';
 
 // On Workers every R2 read waits for one of six connections, so a point profile
 // that reads 30 layers paid for each column chunk separately (hyparquet fetches
@@ -130,5 +131,29 @@ describe('decoded bbox columns are kept per isolate', () => {
     expect(a[1].xmin.length).toBe(2048);
     await groupBoxes(file, md, spans); // no cacheKey: nothing is kept
     expect(reads.length).toBe(2);
+  });
+
+  it("and in the colo's cache: a fresh isolate gets them without reading or decoding", async () => {
+    const store = new Map<string, Response>();
+    const cache = { match: async (k: RequestInfo) => store.get(String(k))?.clone(), put: async (k: RequestInfo, r: Response) => { store.set(String(k), r); } };
+    const pending: Promise<unknown>[] = [];
+    const md = await parquetMetadataAsync(tracked().file);
+    const spans = [{ start: 0, end: 2048 }, { start: 2048, end: 4096 }];
+
+    clearBoxCache();
+    const first = tracked();
+    const c1 = coloCache(cache, (p) => { pending.push(p); });
+    const a = await groupBoxes({ ...first.file, cacheKey: 'rg@1:e', colo: c1 }, md, spans);
+    c1.startPuts();
+    await Promise.all(pending);
+    expect(first.reads.length).toBe(1);
+
+    clearBoxCache(); // another isolate
+    const second = tracked();
+    const c2 = coloCache(cache, () => {});
+    const b = await groupBoxes({ ...second.file, cacheKey: 'rg@1:e', colo: c2 }, md, spans);
+    expect(second.reads.length).toBe(0);
+    expect(c2.hits()).toBe(2);
+    expect(b).toEqual(a);
   });
 });

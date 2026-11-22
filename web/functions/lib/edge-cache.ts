@@ -8,6 +8,7 @@
 // wrap only the work: a hit still counts the call.
 
 import { apiError } from './http';
+import { withTimeout } from './isolate-cache';
 
 export type EdgeCache = Pick<Cache, 'match' | 'put'>;
 type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void };
@@ -87,6 +88,15 @@ function withHeaders(res: Response, set: Record<string, string | null>): Respons
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
+/** How long a cache lookup may take before the answer is computed instead: a lookup
+ *  is milliseconds, and nothing outside a handler's own work may hold an answer up. */
+export const MATCH_TIMEOUT_MS = 2_000;
+
+/** `cache.match(key)`, or undefined when it fails or takes longer than `ms`. */
+export function matchWithin(cache: EdgeCache, key: string, ms: number): Promise<Response | undefined> {
+  return withTimeout(cache.match(key), ms, 'cache lookup').catch(() => undefined);
+}
+
 /** The stored answer for `key`, or `compute()`'s, stored for `ttl` seconds when
  *  it is a 200. Adds an ETag (from the key, unless the handler set one) and
  *  answers 304 to a matching If-None-Match. Cache failures fall back to compute. */
@@ -96,8 +106,9 @@ export async function cached(
   ttl: number,
   compute: () => Promise<Response>,
   cache: EdgeCache | null = defaultCache(),
+  matchTimeoutMs = MATCH_TIMEOUT_MS,
 ): Promise<Response> {
-  const hit = cache ? await cache.match(key).catch(() => undefined) : undefined;
+  const hit = cache ? await matchWithin(cache, key, matchTimeoutMs) : undefined;
   if (hit) {
     const cc = hit.headers.get(CLIENT_CC);
     return notModified(ctx.request, withHeaders(hit, { 'cache-control': cc, [CLIENT_CC]: null, 'x-edge-cache': 'HIT' }));
