@@ -3,7 +3,7 @@ import { countApiUse } from '../../../../lib/usage';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
-import { apiError, safeStringify, serverError } from '../../../../lib/http';
+import { apiError, json, serverError } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
@@ -22,9 +22,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     try {
       const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
       const schema = await getSchema(file);
-      return new Response(safeStringify({ data: schema, ...ncFields(layer) }), {
-        headers: { 'content-type': 'application/json', 'cache-control': CACHE, etag: `"${version}-${file.etag}"` },
-      });
+      return json(200, { data: schema, ...ncFields(layer) }, { 'cache-control': CACHE, etag: `"${version}-${file.etag}"` });
     } catch (e) {
       return serverError('Schema read', e);
     }

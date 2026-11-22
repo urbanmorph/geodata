@@ -2,6 +2,7 @@ import type { Env } from '../../_middleware';
 import { loadCatalogVersioned } from '../../../lib/catalog-loader';
 import { filterLayers, paginateResults, toApiLayer } from '../../../lib/catalog-api';
 import { cached, cacheKey, EDGE_TTL } from '../../../lib/edge-cache';
+import { json } from '../../../lib/http';
 
 const CACHE = 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400';
 
@@ -25,8 +26,6 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       },
     );
 
-    return new Response(JSON.stringify(page), {
-      headers: { 'content-type': 'application/json', 'cache-control': CACHE },
-    });
+    return json(200, page, { 'cache-control': CACHE });
   });
 };
