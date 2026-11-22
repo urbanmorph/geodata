@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { fieldsHtml, setPressed } from '../src/form-fields';
+import { fieldsHtml, setPressed, wireChips, fillAnswers, readAnswers } from '../src/form-fields';
 import type { Field } from '../src/schema/validate-record';
 
 const FIELDS: Field[] = [
@@ -78,5 +78,47 @@ describe('the other collect forms', () => {
   });
   it('no fake menus (role=menu promises arrow keys the base map list does not have)', () => {
     expect(app).not.toMatch(/aria-haspopup|role="menu|menuitem/);
+  });
+});
+
+describe('filling a form and reading it back', () => {
+  const F: Field[] = [
+    { key: 'name', label: 'Name', type: 'text' },
+    { key: 'kind', label: 'Kind', type: 'multiselect', options: ['Neem', 'Peepal', 'Banyan'] },
+    { key: 'seen', label: 'Seen', type: 'datetime' },
+    { key: 'at', label: 'At', type: 'datetime' },
+    { key: 'pic', label: 'Photo', type: 'photo' },
+  ];
+  const mount = () => { document.body.innerHTML = `<form>${fieldsHtml(F)}</form>`; return document.body.querySelector('form') as HTMLElement; };
+
+  it('wireChips makes each chip toggle its pressed state', () => {
+    const root = mount();
+    wireChips(root);
+    const chip = root.querySelector<HTMLElement>('.chip')!;
+    chip.click();
+    expect([chip.classList.contains('on'), chip.getAttribute('aria-pressed')]).toEqual([true, 'true']);
+    chip.click();
+    expect([chip.classList.contains('on'), chip.getAttribute('aria-pressed')]).toEqual([false, 'false']);
+  });
+
+  it('fillAnswers presses saved chips and fills values; readAnswers returns the same answers', () => {
+    const root = mount();
+    const saved = { name: 'Neem by gate', kind: ['Neem', 'Banyan'], seen: '2026-11-01T10:30', at: '2026-11-01T10:30:00+05:30' };
+    fillAnswers(root, F, saved);
+    expect([...root.querySelectorAll('.chip')].map((c) => c.getAttribute('aria-pressed'))).toEqual(['true', 'false', 'true']);
+    expect(readAnswers(root, F)).toEqual(saved);
+  });
+
+  it('shows a date-time the picker cannot hold (an offset) as text, so it is kept', () => {
+    const root = mount();
+    fillAnswers(root, F, { seen: '2026-11-01T10:30', at: '2026-11-01T10:30:00+05:30' });
+    expect((root.querySelector('#fld-seen') as HTMLInputElement).type).toBe('datetime-local');
+    expect((root.querySelector('#fld-at') as HTMLInputElement).type).toBe('text');
+  });
+
+  it('leaves unanswered questions empty and out of the answers', () => {
+    const root = mount();
+    fillAnswers(root, F, { name: null });
+    expect(readAnswers(root, F)).toEqual({});
   });
 });

@@ -11,7 +11,7 @@
 // says how many rows it would refuse, and after Create existing fields are
 // hidden rather than removed and types the saved points don't fit are disabled.
 import { deriveKey } from './schema/derive-key';
-import { escapeHtml } from './util';
+import { escapeHtml, plural } from './util';
 import { checkField, type FieldCheck } from './import/check';
 import { cellValue } from './import/build';
 import type { Field } from './schema/validate-record';
@@ -61,7 +61,6 @@ const TYPES: [string, string][] = [
 ];
 const needsOptions = (t: string) => t === 'select' || t === 'multiselect';
 const typeLabel = (t: string) => TYPES.find(([v]) => v === t)?.[1] ?? t;
-const plural = (n: number, noun: string) => `${n} ${noun}${n === 1 ? '' : 's'}`;
 
 /** The distinct values in the data, as options for a choice of this type. */
 function dataOptions(data: BuilderData, f: BuilderField, type: string): string[] {

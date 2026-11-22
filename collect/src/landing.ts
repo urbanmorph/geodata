@@ -1,7 +1,8 @@
 // The home screen: your maps, "Make a new map" (the guided flow in
 // create/wizard.ts) and "Your maps on all your devices" (passkey sync).
 import { apiJson } from './api';
-import { escapeHtml } from './util';
+import { escapeHtml, plural } from './util';
+import { confirmTwice } from './buttons';
 import { myMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { mountInstallButton } from '../../web/src/install-button';
 import { collectTopbarHtml } from './topbar';
@@ -121,13 +122,11 @@ function renderSync(note = ''): void {
       ${warn}
       <p class="hint">Adding a device? Open collect there and tap <strong>I've set this up already</strong>.</p>
       <button type="button" class="linklike" id="sync-off">Turn off sync</button>`;
-    let armed = false;
-    box.querySelector<HTMLButtonElement>('#sync-off')!.onclick = async (e) => {
-      const b = e.currentTarget as HTMLButtonElement;
-      if (!armed) { armed = true; b.textContent = 'Tap again: stops sync on all your devices and deletes the copy (your maps stay on each device)'; return; }
-      b.disabled = true;
+    const off = box.querySelector<HTMLButtonElement>('#sync-off')!;
+    confirmTwice(off, 'Tap again: stops sync on all your devices and deletes the copy (your maps stay on each device)', async () => {
+      off.disabled = true;
       try { await turnOffSync(); renderSync(); } catch (ex) { renderSync((ex as Error).message); }
-    };
+    });
     return;
   }
   // Not set up here (or an older copy with no passkey): one question.
@@ -196,7 +195,7 @@ async function renderQueueNote(): Promise<void> {
   const waiting = queued.filter((p) => !p.error).length;
   const refused = queued.length - waiting;
   note.textContent = [
-    waiting ? `⏳ ${waiting} point${waiting === 1 ? '' : 's'} kept on this phone, sent as soon as there's signal.` : '',
+    waiting ? `⏳ ${plural(waiting, 'point')} kept on this phone, sent as soon as there's signal.` : '',
     refused ? `${refused} couldn't be sent; open the map to see why.` : '',
   ].join(' ');
   const list = app.querySelector('#mymaps');

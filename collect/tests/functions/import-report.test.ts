@@ -6,31 +6,19 @@
 // part way, and a failed write is reported with how many were saved.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 let env: Env & { DB: ReturnType<typeof sqliteD1> };
 let pending: Promise<unknown>[];
 const defer = (p: Promise<unknown>) => { pending.push(p); };
 
-function req(method: string, path: string, token = '', body?: unknown): Request {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
-async function newMap() {
-  const r = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Footpaths', purpose: 'Rate footpaths', license: 'CC-BY-4.0',
-    schema_doc: { version: 1, geometry: ['point'], fields: [
-      { key: 'segment', label: 'Segment', type: 'text', required: true },
-      { key: 'surface', label: 'Surface', type: 'select', options: ['Good', 'Bad'] },
-    ] },
-  })));
-  return { id: r.body.id as string, admin: r.body.tokens.admin as string };
-}
+const newMap = () => makeMap(env, { name: 'Footpaths', purpose: 'Rate footpaths', fields: [
+  { key: 'segment', label: 'Segment', type: 'text', required: true },
+  { key: 'surface', label: 'Surface', type: 'select', options: ['Good', 'Bad'] },
+] });
 const rec = (segment: string, surface?: string) =>
   ({ geometry: { type: 'Point', coordinates: [77.59, 12.99] }, properties: { segment, ...(surface ? { surface } : {}) } });
 async function importRows(m: { id: string; admin: string }, records: unknown[], extra: Record<string, unknown> = {}) {
@@ -74,6 +62,19 @@ describe('import report', () => {
     expect(String(log.detail)).toContain('Surface: "Missing" is not an allowed option (2)');
     expect(String(log.detail)).toContain('skipped in the browser: 4');
     expect(String(log.detail)).toContain('no geometry (needs a geometry or lng/lat columns) (4)');
+  });
+
+  it('turns an unexpected crash into a logged, referenced 500 that says nothing was imported', async () => {
+    const m = await newMap();
+    env.DB.raw.exec(`UPDATE collections SET schema_doc = '{not json'`);
+    const r = await importRows(m, [rec('A', 'Good')]);
+    expect(r.status).toBe(500);
+    expect(r.body).toEqual({ error: 'Something went wrong on our side and nothing was imported. Please try again.', attempt_id: expect.stringMatching(/^att_/) });
+    const [log] = await importLogs();
+    expect(log).toMatchObject({ outcome: 'rejected', gate: 'internal', step: 'internal', attempt_id: r.body.attempt_id, collection_id: m.id });
+    expect(typeof log.ip_hash).toBe('string');
+    expect(typeof log.duration_ms).toBe('number');
+    expect(String(log.detail)).toMatch(/JSON[\s\S]*at /);
   });
 
   it('writes 1200 rows in batches, not one database call per row', async () => {

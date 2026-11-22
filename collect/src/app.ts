@@ -9,6 +9,7 @@ import { type RefLayer } from './geo/catalog';
 import { mountLayerPicker } from './geo/layer-picker';
 import { CATEGORIES, OPEN_LICENCES } from './options';
 import { parseCtx, api, apiJson, jsonWithOfflineCopy, loadErrorText, ApiError, type Ctx } from './api';
+import { mapUrl, recordUrl } from './map-path';
 import type { BuilderField } from './schema-builder';
 import type { ImportReply } from './import/report';
 import { basemapOfflineNote, isConnectionError } from './offline-notes';
@@ -19,16 +20,17 @@ import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
 import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace, withStatus, withoutRecord, withAiReview, rowsToShow, reviewSignature } from './review';
 import { focusSheet, SHEET_TITLE } from './sheet-focus';
-import { escapeHtml, downloadText } from './util';
+import { escapeHtml, downloadText, plural } from './util';
 import { toast } from './toast';
+import { confirmTwice, busy } from './buttons';
+import { wireLocate } from './geo/locate-button';
 import { linkProblemHtml, isLinkProblem } from './link-problem';
-import { fieldsHtml, setPressed } from './form-fields';
+import { fieldsHtml, setPressed, wireChips, fillAnswers, readAnswers } from './form-fields';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
 import type { Mapping } from './import/build';
 import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps, backLink, replaceAdminLink } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
-import { fitsLocalPicker } from './schema/dates';
 import { wireSheetSwipe } from './sheet-swipe';
 import { pickNearest } from './pick-nearest';
 import { linksMailtoHref, shareTabLinks, heldToken, type MapLinks, type LinkInfo } from './share';
@@ -37,7 +39,7 @@ import { startAutoSync } from './syncing';
 import { modeOf, photoFields } from './schema/modes';
 import { readDataYear } from './schema/data-year';
 import { modeChoices } from './create/plan';
-import { isInIndia } from './geo/bounds';
+import { isInIndia, geomBucket } from './geo/bounds';
 import { metresBetween, ringArea, lineLength, formatArea, formatLength, simplify } from './geo/measure';
 import { createTrace, averageFix, type Trace, type Fix } from './capture/trace';
 import { saveWalk, loadWalk, clearWalk } from './capture/walk-store';
@@ -82,13 +84,18 @@ let allowsShapes = false; // collection declares line/polygon → draw layers ar
 
 const emptyFC = (): GeoJSON.FeatureCollection => ({ type: 'FeatureCollection', features: [] });
 
+/** A GeoJSON source's area fill (<id>-fill) and its line and area edges (<id>-line). */
+function addShapeLayers(id: string, fill: maplibregl.FillLayerSpecification['paint'], line: maplibregl.LineLayerSpecification['paint']): void {
+  map.addLayer({ id: `${id}-fill`, type: 'fill', source: id, filter: ['==', '$type', 'Polygon'], paint: fill });
+  map.addLayer({ id: `${id}-line`, type: 'line', source: id, filter: ['!=', '$type', 'Point'], paint: line });
+}
+
 // Add the in-progress draw source + layers once the style is up (only needed
 // for line/polygon collections — points-only stays light).
 function setupDrawLayers(): void {
   if (drawReady || !allowsShapes || !map.isStyleLoaded()) return;
   map.addSource('draw', { type: 'geojson', data: emptyFC() });
-  map.addLayer({ id: 'draw-fill', type: 'fill', source: 'draw', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.15 } });
-  map.addLayer({ id: 'draw-line', type: 'line', source: 'draw', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2.5 } });
+  addShapeLayers('draw', { 'fill-color': ACCENT, 'fill-opacity': 0.15 }, { 'line-color': ACCENT, 'line-width': 2.5 });
   map.addLayer({ id: 'draw-vert', type: 'circle', source: 'draw', filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 5, 'circle-color': '#fff', 'circle-stroke-color': ACCENT, 'circle-stroke-width': 2 } });
   drawReady = true;
 }
@@ -165,6 +172,16 @@ window.addEventListener(OUTBOX_CHANGED, (e) => {
 
 // A grab handle — the first child of every collapsible bottom sheet.
 const GRAB = '<button type="button" class="grab" aria-expanded="true" aria-label="Collapse or expand this panel"></button>';
+
+/** A bottom sheet: the grab handle, its body (a form when `form` names one) and
+ *  a footer, either the usual "← Back | primary" row or `foot`'s own markup. */
+function sheetHtml(body: string, o: { form?: string; back?: string | [id: string, label: string]; primary?: [id: string, label: string]; foot?: string } = {}): string {
+  const [backId, backLabel] = typeof o.back === 'string' ? [o.back, '← Back'] : o.back ?? [];
+  const foot = o.foot !== undefined ? `<div class="foot">${o.foot}</div>`
+    : backId && o.primary ? `<div class="foot row"><button type="button" id="${backId}">${backLabel}</button><button class="primary" id="${o.primary[0]}" style="flex:1">${o.primary[1]}</button></div>`
+      : '';
+  return `<div class="sheet">${GRAB}${o.form ? `<form class="body" id="${o.form}">${body}</form>` : `<div class="body">${body}</div>`}${foot}</div>`;
+}
 
 // ── sheet metrics ────────────────────────────────────────────────────────
 // Keep --sheet-h current so the crosshair + floating map buttons sit above the
@@ -266,9 +283,21 @@ const TERMS = 'https://bharatlas.com/terms';
 // Content-safety: a report/takedown path (mailto, no accounts) + terms link.
 function safetyFooter(): string {
   const subject = encodeURIComponent(`Report: collect map ${ctx.id}`);
-  const body = encodeURIComponent(`Reporting this map:\n${location.origin}/c/${ctx.id}\n\nReason:\n`);
+  const body = encodeURIComponent(`Reporting this map:\n${mapUrl(location.origin, ctx.id)}\n\nReason:\n`);
   return `<p class="hint" style="margin-top:12px">Public places and assets only, not people. <a href="mailto:sathya@urbanmorph.com?subject=${subject}&body=${body}">Report this map</a> · <a href="${TERMS}" target="_blank" rel="noopener">Terms</a></p>`;
 }
+
+/** The map in #map: compact attribution bottom-left (so it never sits under the
+ *  locate button, bottom-right), and the "Loading map…" note gone once it loads. */
+function mountMap(style: maplibregl.StyleSpecification, center: [number, number], zoom: number): maplibregl.Map {
+  const m = new maplibregl.Map({ container: 'map', style, center, zoom, attributionControl: false });
+  m.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  m.on('load', () => document.getElementById('maploading')?.remove());
+  return m;
+}
+
+/** Brings a located position under the crosshair. */
+const easeToFix = (lngLat: [number, number]): void => { map.easeTo({ center: lngLat, zoom: 16, offset: crosshairScreenOffset() }); };
 
 async function boot(): Promise<void> {
   ctx = parseCtx()!;
@@ -300,19 +329,13 @@ async function boot(): Promise<void> {
   installSheetMetrics();
 
   const initialBasemap = getStoredBasemap() ?? normalizeBasemap(meta.schema.basemap);
-  map = new maplibregl.Map({
-    container: 'map', style: buildBaseStyle(initialBasemap), center: INDIA_CENTER, zoom: 4,
-    attributionControl: false,
-  });
-  // Attribution bottom-left so it never sits under the locate button (bottom-right).
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  map = mountMap(buildBaseStyle(initialBasemap), INDIA_CENTER, 4);
   map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
   installBasemapSwitcher(initialBasemap);
   watchBasemapConnection();
   drawReady = false; verts = [];
   allowsShapes = orderedModes(meta.schema.geometry).some((m) => m !== 'point');
   map.on('load', () => {
-    document.getElementById('maploading')?.remove();
     if (!isView && allowsShapes) setupDrawLayers();
     // Loaded only when the form has a reference layer (it pulls in pmtiles).
     if (meta.schema.reference_layer) {
@@ -333,15 +356,7 @@ async function boot(): Promise<void> {
   };
 
   if (!isView) {
-    const locate = document.getElementById('locate') as HTMLButtonElement;
-    locate.onclick = () => {
-      if (!navigator.geolocation) return toast('Location not available', 'error');
-      navigator.geolocation.getCurrentPosition(
-        (pos) => map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }),
-        () => toast("Couldn't get your location", 'error'),
-        { enableHighAccuracy: true, timeout: 8000 },
-      );
-    };
+    wireLocate(document.getElementById('locate') as HTMLButtonElement, easeToFix);
     if (isAdmin) {
       // Admin lands on Manage (review + CRUD + publish); the ⚙ button returns here.
       (document.getElementById('manage') as HTMLButtonElement).onclick = () => void manageSheet();
@@ -356,12 +371,11 @@ async function boot(): Promise<void> {
 function viewPanel(): void {
   const panel = document.getElementById('panel')!;
   const n = meta.counts.published;
-  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
+  panel.innerHTML = sheetHtml(`
     <strong>${escapeHtml(meta.name)}</strong>
     ${meta.purpose ? `<p class="hint">${escapeHtml(meta.purpose)}</p>` : ''}
-    <p class="hint">${n ? `${n} point${n === 1 ? '' : 's'} on the map.` : 'No points published yet.'}</p>
-    ${safetyFooter()}
-  </div></div>`;
+    <p class="hint">${n ? `${plural(n, 'point')} on the map.` : 'No points published yet.'}</p>
+    ${safetyFooter()}`);
 }
 
 let recordShapes: GeoJSON.Feature[] = [];
@@ -403,14 +417,9 @@ function syncReviewLayer(): void {
   const src = map.getSource('review') as maplibregl.GeoJSONSource | undefined;
   if (src) { src.setData(reviewFC()); return; }
   map.addSource('review', { type: 'geojson', data: reviewFC() });
-  map.addLayer({
-    id: 'review-fill', type: 'fill', source: 'review', filter: ['==', '$type', 'Polygon'],
-    paint: { 'fill-color': STATUS_COLOR, 'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.3, 0.12] },
-  });
-  map.addLayer({
-    id: 'review-line', type: 'line', source: 'review', filter: ['!=', '$type', 'Point'],
-    paint: { 'line-color': STATUS_COLOR, 'line-width': ['case', ['boolean', ['feature-state', 'sel'], false], 4, 2] },
-  });
+  addShapeLayers('review',
+    { 'fill-color': STATUS_COLOR, 'fill-opacity': ['case', ['boolean', ['feature-state', 'sel'], false], 0.3, 0.12] },
+    { 'line-color': STATUS_COLOR, 'line-width': ['case', ['boolean', ['feature-state', 'sel'], false], 4, 2] });
   map.addLayer({
     id: 'review-pt', type: 'circle', source: 'review', filter: ['==', '$type', 'Point'],
     paint: {
@@ -540,8 +549,7 @@ function syncRecordShapes(): void {
   const src = map.getSource('records') as maplibregl.GeoJSONSource | undefined;
   if (src) { src.setData(data); return; }
   map.addSource('records', { type: 'geojson', data });
-  map.addLayer({ id: 'records-fill', type: 'fill', source: 'records', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.1 } });
-  map.addLayer({ id: 'records-line', type: 'line', source: 'records', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2, 'line-opacity': 0.7 } });
+  addShapeLayers('records', { 'fill-color': ACCENT, 'fill-opacity': 0.1 }, { 'line-color': ACCENT, 'line-width': 2, 'line-opacity': 0.7 });
   map.addLayer({ id: 'records-point', type: 'circle', source: 'records', filter: ['==', '$type', 'Point'], paint: { 'circle-radius': 6, 'circle-color': ACCENT, 'circle-stroke-color': '#fff', 'circle-stroke-width': 2 } });
 }
 
@@ -608,11 +616,7 @@ function fitToFeatures(feats: Feature[]): void {
 }
 
 const NOUN: Record<GeomMode, string> = { point: 'point', line: 'line', polygon: 'area' };
-function nounFor(geometryType: string): string {
-  if (geometryType === 'Polygon' || geometryType === 'MultiPolygon') return NOUN.polygon;
-  if (geometryType === 'LineString' || geometryType === 'MultiLineString') return NOUN.line;
-  return NOUN.point;
-}
+const nounFor = (geometryType: string): string => NOUN[geomBucket(geometryType) ?? 'point'];
 const CAP_HELP: Record<GeomMode, string> = {
   point: 'Move the map so the crosshair sits on the spot.',
   line: 'Pan the map so the crosshair sits on a point, then tap "Add point here". Repeat along the line.',
@@ -668,7 +672,7 @@ function shapeSummary(): string {
   const n = verts.length;
   const need = drawMode === 'line' ? 2 : 3;
   const size = drawMode === 'polygon' && n >= 3 ? formatArea(ringArea(verts)) : drawMode === 'line' && n >= 2 ? formatLength(lineLength(verts)) : '';
-  const count = n < need ? `${n} point${n === 1 ? '' : 's'} · add ${need - n} more` : `${n} points`;
+  const count = n < need ? `${plural(n, 'point')} · add ${need - n} more` : `${n} points`;
   const gps = drawHow !== 'map' && lastFix ? ` · GPS ±${Math.round(lastFix.accuracy)} m` : '';
   return [count, size].filter(Boolean).join(' · ') + gps;
 }
@@ -946,25 +950,18 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   const panel = document.getElementById('panel')!;
   const aiNote = modeOf(meta.schema) === 'form_ai' && fields.some((f) => f.type === 'photo')
     ? `<p class="hint">After it's sent, a model describes the photo and suggests answers for the map's owner to check. It won't change your answers.</p>` : '';
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <form class="body" id="capform">
+  panel.innerHTML = sheetHtml(`
       <strong ${SHEET_TITLE}>${cap(noun)} details</strong>
       <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
       ${fieldsHtml(fields)}
       <div id="photo-place" aria-live="polite"></div>
       ${aiNote}
       <label for="contributor">Your name <span class="hint">(optional, published with the data, remembered on this device)</span></label>
-      <input id="contributor" autocomplete="name" maxlength="120" />
-    </form>
-    <div class="foot row">
-      <button type="button" id="cancel">← Back</button>
-      <button class="primary" id="save" style="flex:1">Save ${noun}</button>
-    </div>
-  </div>`;
+      <input id="contributor" autocomplete="name" maxlength="120" />`,
+  { form: 'capform', back: 'cancel', primary: ['save', `Save ${noun}`] });
   (document.getElementById('contributor') as HTMLInputElement).value = loadContributorName();
   focusSheet(panel);
-  panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => setPressed(c, !c.classList.contains('on')); });
+  wireChips(panel);
 
   // A point can move to where its photo was taken (and take the photo's time).
   let place = geometry;
@@ -1042,24 +1039,6 @@ function mountPhotoFields(root: HTMLElement, fields: Field[], dataSaver: boolean
     mountPhotoField(root.querySelector<HTMLElement>(`[data-k="${f.key}"]`)!, f, { dataSaver, onError: (m) => toast(m, 'error'), ...per(f) }));
 }
 
-// The non-photo answers on a form, as typed.
-function readAnswers(root: HTMLElement, fields: Field[]): Record<string, unknown> {
-  const raw: Record<string, unknown> = {};
-  for (const f of fields) {
-    if (f.type === 'photo') continue;
-    const el = root.querySelector(`[data-k="${f.key}"]`);
-    if (!el) continue;
-    if (f.type === 'multiselect') {
-      const on = [...el.querySelectorAll('.chip.on')].map((c) => (c as HTMLElement).dataset.v);
-      if (on.length) raw[f.key] = on;
-    } else {
-      const v = (el as HTMLInputElement).value;
-      if (v) raw[f.key] = v;
-    }
-  }
-  return raw;
-}
-
 // Admin "Edit map settings" — fix the name/description/purpose/category/data
 // year + map background/reference layer. Licence editable only with no records.
 async function editSettings(): Promise<void> {
@@ -1067,9 +1046,7 @@ async function editSettings(): Promise<void> {
   const s = meta.schema;
   const locked = meta.counts.total > 0;
   const sel = (v: string, cur: string): string => (v === cur ? ' selected' : '');
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <form class="body" id="editform">
+  panel.innerHTML = sheetHtml(`
       <strong ${SHEET_TITLE}>Edit map settings</strong>
       <label for="e-name">Name</label><input id="e-name" maxlength="120" value="${escapeHtml(meta.name)}" required />
       <label for="e-purpose">What's it for?</label><textarea id="e-purpose" maxlength="2000">${escapeHtml(meta.purpose)}</textarea>
@@ -1085,13 +1062,8 @@ async function editSettings(): Promise<void> {
       <input id="e-ref-search" placeholder="Browse layers, or type to filter…" autocomplete="off" />
       <div id="e-ref-results" class="ref-results"></div>
       <label${locked ? '' : ' for="e-license"'}>Licence</label>
-      ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}
-    </form>
-    <div class="foot row">
-      <button type="button" id="e-cancel">← Back</button>
-      <button class="primary" id="e-save" style="flex:1">Save settings</button>
-    </div>
-  </div>`;
+      ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}`,
+  { form: 'editform', back: 'e-cancel', primary: ['e-save', 'Save settings'] });
 
   focusSheet(panel);
 
@@ -1128,8 +1100,7 @@ async function editSettings(): Promise<void> {
     // Only a reference-overlay change needs a reload to re-style the map; the
     // basemap is a per-viewer runtime switch, not an author setting.
     const mapChanged = refChange !== undefined;
-    btn.disabled = true;
-    try {
+    await busy(btn, async () => {
       await apiJson(`/collections/${ctx.id}`, ctx.token, { method: 'PATCH', body: JSON.stringify(patch) });
       toast('Settings saved ✓');
       if (mapChanged) { location.reload(); return; } // reload to apply the new basemap/overlay
@@ -1140,7 +1111,7 @@ async function editSettings(): Promise<void> {
       if (nameEl) nameEl.textContent = meta.name;
       rememberMap(ctx.id, meta.name, 'owner', location.href);
       void manageSheet();
-    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
+    });
   };
 }
 
@@ -1151,7 +1122,7 @@ async function editSettings(): Promise<void> {
 async function editFormSheet(): Promise<void> {
   const { mountSchemaBuilder } = await import('./schema-builder'); // admin-only code, loaded on demand
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body"><p class="hint">Loading the points to check the form against…</p></div></div>`;
+  panel.innerHTML = sheetHtml('<p class="hint">Loading the points to check the form against…</p>');
   let points: Record<string, unknown>[];
   try {
     points = (await allRecords<{ properties: Record<string, unknown> }>()).map((f) => f.properties);
@@ -1163,19 +1134,12 @@ async function editFormSheet(): Promise<void> {
     if (!v) byKey.set(k, (v = points.map((p) => p[k])));
     return v;
   };
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <div class="body">
+  panel.innerHTML = sheetHtml(`
       <strong ${SHEET_TITLE}>Edit form</strong>
-      <p class="hint">${n ? `Checked against the map's ${n} point${n === 1 ? '' : 's'}. You can add options and fields; options the points use stay, and a field can be hidden (its data is kept) but not removed.` : 'The map has no points yet, so the form can change freely.'}</p>
+      <p class="hint">${n ? `Checked against the map's ${plural(n, 'point')}. You can add options and fields; options the points use stay, and a field can be hidden (its data is kept) but not removed.` : 'The map has no points yet, so the form can change freely.'}</p>
       <div id="ef-builder"></div>
-      <div id="ef-result" aria-live="polite"></div>
-    </div>
-    <div class="foot row">
-      <button type="button" id="ef-cancel">← Back</button>
-      <button class="primary" id="ef-save" style="flex:1">Save form</button>
-    </div>
-  </div>`;
+      <div id="ef-result" aria-live="polite"></div>`,
+  { back: 'ef-cancel', primary: ['ef-save', 'Save form'] });
   const builder = mountSchemaBuilder(document.getElementById('ef-builder')!, meta.schema.fields as BuilderField[], {
     data: { noun: 'point', values: (f) => valuesOf(f.key) },
     existing: n > 0,
@@ -1224,9 +1188,7 @@ async function manageSheet(focus: false | string | { row: string } = ''): Promis
   // per-open refetch (this ran on every tab-in and every back-out of a review).
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <div class="body">
+  panel.innerHTML = sheetHtml(`
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong ${SHEET_TITLE}>Manage map</strong>
         <span class="row" style="gap:6px">
@@ -1239,13 +1201,8 @@ async function manageSheet(focus: false | string | { row: string } = ''): Promis
         <button type="button" data-t="share">Share</button>
         <button type="button" data-t="data">Data</button>
       </div>
-      <div id="tabbody"></div>
-    </div>
-    <div class="foot row">
-      <button id="back">+ Add points</button>
-      <button class="primary" id="publish" style="flex:1">Submit to bharatlas</button>
-    </div>
-  </div>`;
+      <div id="tabbody"></div>`,
+  { back: ['back', '+ Add points'], primary: ['publish', 'Submit to bharatlas'] });
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
   (document.getElementById('publish') as HTMLButtonElement).onclick = confirmPublish;
   (document.getElementById('edit-settings') as HTMLButtonElement).onclick = () => void editSettings();
@@ -1275,7 +1232,7 @@ function renderReviewTab(body: HTMLElement, revealRow?: string): void {
   body.innerHTML = `
     <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
     ${c.pending ? `<div class="notice">
-      <div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to bharatlas until you approve.</div>
+      <div><strong>${plural(c.pending, 'point')} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to bharatlas until you approve.</div>
       <button type="button" class="primary" id="approve-all">✓ Approve all ${c.pending}</button>
     </div>` : ''}
     <div class="row" id="pfilter" role="group" aria-label="Show points" style="margin:8px 0 4px">
@@ -1286,16 +1243,13 @@ function renderReviewTab(body: HTMLElement, revealRow?: string): void {
     </div>
     <div id="points"><p class="hint">Loading points…</p></div>`;
   const approveAll = document.getElementById('approve-all') as HTMLButtonElement | null;
-  if (approveAll) approveAll.onclick = async () => {
-    approveAll.disabled = true;
-    try {
-      const res = await apiJson<{ changed: number; skipped?: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
-      invalidateReview();
-      await ensureReviewData(true);
-      toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
-      renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
-    } catch (e) { toast((e as Error).message, 'error'); approveAll.disabled = false; }
-  };
+  if (approveAll) approveAll.onclick = () => busy(approveAll, async () => {
+    const res = await apiJson<{ changed: number; skipped?: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
+    invalidateReview();
+    await ensureReviewData(true);
+    toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
+    renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
+  });
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
       document.querySelectorAll('#pfilter .chip').forEach((x) => setPressed(x, x === b));
@@ -1346,7 +1300,7 @@ const LINK_ROWS: LinkRow[] = [
 function pendingHint(): string {
   const c = reviewLoaded ? countsOf(allFeats) : meta.counts;
   if (!c.pending) return '';
-  return `<div class="notice notice--inline"><div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} pending.</strong> Held back from people you share with, and from exports, until approved in Review.</div></div>`;
+  return `<div class="notice notice--inline"><div><strong>${plural(c.pending, 'point')} pending.</strong> Held back from people you share with, and from exports, until approved in Review.</div></div>`;
 }
 
 function renderShareTab(body: HTMLElement): void {
@@ -1400,9 +1354,7 @@ function renderShareTab(body: HTMLElement): void {
   // Replace the admin link (it leaked, or a device that had it is lost): two
   // taps, then the new link is shown once and this page carries on with it.
   const replaceBtn = body.querySelector<HTMLButtonElement>('#replace-admin')!;
-  let replaceArmed = false;
-  replaceBtn.onclick = async () => {
-    if (!replaceArmed) { replaceArmed = true; replaceBtn.textContent = 'Tap again to replace. The current admin link stops working everywhere.'; return; }
+  confirmTwice(replaceBtn, 'Tap again to replace. The current admin link stops working everywhere.', async (rearm) => {
     replaceBtn.disabled = true;
     try {
       const res = await apiJson<{ link: string; token: string }>(`/collections/${ctx.id}/admin-link`, ctx.token, { method: 'POST' });
@@ -1422,11 +1374,11 @@ function renderShareTab(body: HTMLElement): void {
       replaceBtn.hidden = true;
     } catch (e) {
       toast((e as Error).message, 'error');
-      replaceArmed = false;
+      rearm();
       replaceBtn.textContent = 'Replace admin link';
       replaceBtn.disabled = false;
     }
-  };
+  });
 
   let busy = false; // a mint is in flight — block other taps (else double-mint / two rows open)
   LINK_ROWS.forEach((r) => {
@@ -1466,21 +1418,15 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
   const render = async (): Promise<void> => {
     try {
       const { links } = await apiJson<{ links: LinkInfo[] }>(`/collections/${ctx.id}/tokens`, ctx.token);
-      const plural = (n: number, w: string): string => `${n} ${w}${n === 1 ? '' : 's'}`;
       list.innerHTML = shareTabLinks(links).map((l) => `<div class="link-box${l.active ? '' : ' link-box--off'}">
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.name)}
             <span class="hint">· ${l.permission === 'view' ? 'view only' : plural(l.records, 'point')}${l.active ? '' : ' · turned off'}</span></span>
           ${l.active ? `<button type="button" data-revoke="${escapeHtml(l.id)}">Turn off</button>` : ''}
         </div>`).join('');
-      list.querySelectorAll<HTMLButtonElement>('button[data-revoke]').forEach((b) => {
-        let armed = false;
-        b.onclick = async () => {
-          if (!armed) { armed = true; b.textContent = 'Tap again to turn off'; return; }
-          b.disabled = true;
-          try { await apiJson(`/collections/${ctx.id}/tokens/${b.dataset.revoke}`, ctx.token, { method: 'DELETE' }); await render(); }
-          catch (e) { toast((e as Error).message, 'error'); b.disabled = false; }
-        };
-      });
+      list.querySelectorAll<HTMLButtonElement>('button[data-revoke]').forEach((b) => confirmTwice(b, 'Tap again to turn off', () => busy(b, async () => {
+        await apiJson(`/collections/${ctx.id}/tokens/${b.dataset.revoke}`, ctx.token, { method: 'DELETE' });
+        await render();
+      })));
     } catch (e) {
       list.innerHTML = `<p class="warn">${escapeHtml((e as Error).message)}</p>`;
     }
@@ -1491,8 +1437,7 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
   make.onclick = async () => {
     const label = input.value.trim();
     if (!label) { input.focus(); return; }
-    make.disabled = true;
-    try {
+    await busy(make, async () => {
       const res = await apiJson<{ link: string; label: string }>(`/collections/${ctx.id}/tokens`, ctx.token, {
         method: 'POST', body: JSON.stringify({ permission: 'edit', label }),
       });
@@ -1501,8 +1446,7 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
       wireShareItems(fresh, title);
       input.value = '';
       await render();
-    } catch (e) { toast((e as Error).message, 'error'); }
-    make.disabled = false;
+    }, true);
   };
   await render();
 }
@@ -1560,7 +1504,7 @@ async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
       : format === 'csv' ? [toCSV(features, keys), 'text/csv', 'csv']
       : [toKML(features, keys, meta.name), 'application/vnd.google-earth.kml+xml', 'kml'];
     downloadText(content, `${slug(meta.name)}.${ext}`, mime);
-    toast(`Downloaded ${features.length} point${features.length === 1 ? '' : 's'} as ${ext.toUpperCase()}`);
+    toast(`Downloaded ${plural(features.length, 'point')} as ${ext.toUpperCase()}`);
   } catch (e) {
     toast((e as Error).message, 'error');
   }
@@ -1588,7 +1532,7 @@ async function importFlow(file: File): Promise<void> {
   const n = parsed.features.length;
   // A column map (applies to ALL rows), not a single-record form.
   panel.innerHTML = `
-    <p class="hint"><strong>${n} row${n === 1 ? '' : 's'}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file. This applies to <strong>all ${n}</strong> at once, not one point.</p>
+    <p class="hint"><strong>${plural(n, 'row')}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file. This applies to <strong>all ${n}</strong> at once, not one point.</p>
     ${needsLngLat
       ? `<div class="maplabel">Location <span class="hint">(a CSV keeps coordinates in columns)</span></div>
          <div class="maprow"><span>Longitude</span><select data-map="lng" aria-label="Longitude column">${opts(guess.lng)}</select></div>
@@ -1772,7 +1716,7 @@ function wirePointRows(q: HTMLElement): void {
 
 const photoCount = (v: unknown): string => {
   const n = Array.isArray(v) ? v.length : 0;
-  return n ? `${n} photo${n === 1 ? '' : 's'}` : 'No photos';
+  return n ? `${plural(n, 'photo')}` : 'No photos';
 };
 const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? 'n/a' : String(v));
 
@@ -1823,9 +1767,7 @@ function openReview(idx: number): void {
   const meta = [recordWho(p._source, p._contributor), recordVia(p._link_label), recordWhen(p._captured_at, p._created_at), recordPlace(p._admin_ctx)]
     .filter(Boolean).map(escapeHtml).join(' · ');
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <div class="body">
+  panel.innerHTML = sheetHtml(`
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px">
         <strong ${SHEET_TITLE} style="flex:1">${escapeHtml(cardTitle(p))}</strong>
         <span class="badge badge--${st}">${st}</span>
@@ -1833,9 +1775,7 @@ function openReview(idx: number): void {
       ${meta ? `<p class="hint">${meta}</p>` : ''}
       ${p._photos?.length ? '<div class="review-photos" id="rv-photos"></div>' : ''}
       <div class="attrs">${attrs || '<p class="hint">No fields on this map.</p>'}</div>
-      ${aiNotesHtml(p._ai ?? null, mapFields(), p, modeOf(mapSchema()), st)}
-    </div>
-    <div class="foot">
+      ${aiNotesHtml(p._ai ?? null, mapFields(), p, modeOf(mapSchema()), st)}`, { foot: `
       ${st === 'pending'
         ? `<div class="row" style="margin-bottom:8px"><button class="danger" id="rv-reject" style="flex:1">✗ Reject</button><button class="primary" id="rv-approve" style="flex:1">✓ Approve</button></div>`
         : st === 'rejected'
@@ -1845,9 +1785,7 @@ function openReview(idx: number): void {
         <button id="rv-back" style="flex:1">← List</button>
         <button id="rv-edit" style="flex:1">✎ Edit</button>
         <button class="danger" id="rv-delete" style="flex:1">🗑 Delete</button>
-      </div>
-    </div>
-  </div>`;
+      </div>` });
 
   focusSheet(panel);
   // Back to the list, focus on this point's row (the title, if it has gone).
@@ -1857,20 +1795,17 @@ function openReview(idx: number): void {
   // A point filled in from its photo is approved with its notes ("Looks right, approve").
   if (document.getElementById('ai-approve')) document.getElementById('rv-approve')?.remove();
   wireAiReview(String(f.id), back);
-  (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = `/c/${ctx.id}/r/${f.id}#${ctx.token}`; };
+  (document.getElementById('rv-edit') as HTMLButtonElement).onclick = () => { location.href = recordUrl('', ctx.id, String(f.id), ctx.token); };
   const moderate = async (s: string) => {
     try { await apiJson(`/records/${f.id}/moderate`, ctx.token, { method: 'POST', body: JSON.stringify({ status: s }) }); patchReview(withStatus(allFeats, String(f.id), s)); back(); }
     catch (e) { toast((e as Error).message, 'error'); }
   };
   document.getElementById('rv-approve')?.addEventListener('click', () => void moderate('published'));
   document.getElementById('rv-reject')?.addEventListener('click', () => void moderate('rejected'));
-  let armed = false;
-  (document.getElementById('rv-delete') as HTMLButtonElement).onclick = async (ev) => {
-    const b = ev.currentTarget as HTMLButtonElement;
-    if (!armed) { armed = true; b.textContent = 'Tap to confirm'; return; }
+  confirmTwice(document.getElementById('rv-delete') as HTMLButtonElement, 'Tap to confirm', async () => {
     try { await apiJson(`/records/${f.id}`, ctx.token, { method: 'DELETE' }); patchReview(withoutRecord(allFeats, String(f.id))); back(); }
     catch (e) { toast((e as Error).message, 'error'); }
-  };
+  });
 }
 
 // The point's photos in review: the first one large, the rest as thumbnails;
@@ -1927,35 +1862,28 @@ const mapFields = (): Field[] => meta.schema.fields;
 function confirmPublish(): void {
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
+  panel.innerHTML = sheetHtml(`
     <strong>Submit to bharatlas?</strong>
     <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com, so it won't be public until then. Do this once the map is ready to share widely.</p>
-    ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}
-  </div><div class="foot row">
-    <button id="pub-cancel">← Back</button>
-    <button class="primary" id="pub-go" style="flex:1">${c.published ? `Submit ${c.published} for review` : 'Submit'}</button>
-  </div></div>`;
+    ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}`,
+  { back: 'pub-cancel', primary: ['pub-go', c.published ? `Submit ${c.published} for review` : 'Submit'] });
   (document.getElementById('pub-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
   (document.getElementById('pub-go') as HTMLButtonElement).onclick = (e) => void runPublish(e.currentTarget as HTMLButtonElement);
 }
 
 async function runPublish(btn: HTMLButtonElement): Promise<void> {
-  btn.disabled = true;
-  try {
+  await busy(btn, async () => {
     const res = await apiJson<{ version: number; feature_count: number; message?: string }>(
       `/collections/${ctx.id}/publish`, ctx.token, { method: 'POST' },
     );
     toast(`Submitted v${res.version} · ${res.feature_count} features`);
     const panel = document.getElementById('panel')!;
-    panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
+    panel.innerHTML = sheetHtml(`
       <strong>Submitted for review ✓</strong>
-      <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live on bharatlas.')}</p>
-      </div><div class="foot"><button id="back">← Back to manage</button></div></div>`;
+      <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live on bharatlas.')}</p>`,
+    { foot: '<button id="back">← Back to manage</button>' });
     (document.getElementById('back') as HTMLButtonElement).onclick = () => void manageSheet();
-  } catch (e) {
-    toast((e as Error).message, 'error');
-    btn.disabled = false;
-  }
+  });
 }
 
 // The contributor's own record: edit / delete / de-identify via the rec_ token
@@ -1983,31 +1911,23 @@ async function recordEditor(): Promise<void> {
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isPoint ? '<button class="locate" id="locate" aria-label="Use my location">◎</button>' : ''}
     </div>
-    <div id="panel"><div class="sheet">
-      ${GRAB}
-      <form class="body" id="recform">
+    <div id="panel">${sheetHtml(`
         <strong>Edit your ${noun}</strong>
         <p class="hint">${isPoint ? 'Move the map to reposition; update the details.' : 'Update the details below.'} Status: ${escapeHtml(rec.status)}.</p>
-        ${fieldsHtml(fields)}
-      </form>
-      <div class="foot">
+        ${fieldsHtml(fields)}`, { form: 'recform', foot: `
         <button class="primary" id="save">Save changes</button>
         <div class="row" style="margin-top:8px">
           <button type="button" id="deid" style="flex:1"${rec.contributor ? '' : ' disabled'}>Remove my name</button>
           <button type="button" id="del" style="flex:1">Delete ${noun}</button>
-        </div>
-      </div>
-    </div></div>`;
+        </div>` })}</div>`;
   installSheetMetrics();
 
-  map = new maplibregl.Map({ container: 'map', style: buildBaseStyle(getStoredBasemap() ?? normalizeBasemap(rec.schema.basemap)), center, zoom: isPoint ? 16 : 14, attributionControl: false });
-  map.addControl(new maplibregl.AttributionControl({ compact: true }), 'bottom-left');
+  map = mountMap(buildBaseStyle(getStoredBasemap() ?? normalizeBasemap(rec.schema.basemap)), center, isPoint ? 16 : 14);
   // Only rewrite the point's location if the user actually repositioned it — a
   // plain "fix a typo and Save" must leave the point exactly where it was.
   let moved = false;
   map.on('dragstart', () => { moved = true; });
   map.on('load', () => {
-    document.getElementById('maploading')?.remove();
     if (isPoint) {
       marker(center);
       // Sit the point UNDER the crosshair (which rides above map centre), so the
@@ -2016,8 +1936,7 @@ async function recordEditor(): Promise<void> {
       return;
     }
     map.addSource('rec', { type: 'geojson', data: { type: 'Feature', geometry: rec.geometry as GeoJSON.Geometry, properties: {} } });
-    map.addLayer({ id: 'rec-fill', type: 'fill', source: 'rec', filter: ['==', '$type', 'Polygon'], paint: { 'fill-color': ACCENT, 'fill-opacity': 0.15 } });
-    map.addLayer({ id: 'rec-line', type: 'line', source: 'rec', filter: ['!=', '$type', 'Point'], paint: { 'line-color': ACCENT, 'line-width': 2.5 } });
+    addShapeLayers('rec', { 'fill-color': ACCENT, 'fill-opacity': 0.15 }, { 'line-color': ACCENT, 'line-width': 2.5 });
   });
 
   const panel = document.getElementById('panel')!;
@@ -2026,41 +1945,18 @@ async function recordEditor(): Promise<void> {
   const photoInputs = mountPhotoFields(panel, fields, !!rec.schema.data_saver, (f) => ({
     token: ctx.token, canAdd: isAdmin, initial: (rec.photos ?? []).filter((x) => x.field === f.key),
   }));
-  for (const f of fields) {
-    if (f.type === 'photo') continue;
-    const el = panel.querySelector(`[data-k="${f.key}"]`);
-    if (!el) continue;
-    const val = rec.properties[f.key];
-    if (f.type === 'multiselect') {
-      const arr = Array.isArray(val) ? val : [];
-      el.querySelectorAll<HTMLElement>('.chip').forEach((c) => {
-        c.onclick = () => setPressed(c, !c.classList.contains('on'));
-        setPressed(c, arr.includes(c.dataset.v));
-      });
-    } else if (val != null) {
-      // A saved date-time the picker can't show (date only, or with an offset)
-      // is edited as text, so saving never blanks it or drops the offset.
-      if (f.type === 'datetime' && !fitsLocalPicker(String(val))) (el as HTMLInputElement).type = 'text';
-      (el as HTMLInputElement).value = String(val);
-    }
-  }
+  wireChips(panel);
+  fillAnswers(panel, fields, rec.properties);
 
   const locateBtn = document.getElementById('locate') as HTMLButtonElement | null;
-  if (locateBtn) locateBtn.onclick = () => {
-    if (!navigator.geolocation) return toast('Location not available', 'error');
-    navigator.geolocation.getCurrentPosition(
-      (pos) => { moved = true; map.easeTo({ center: [pos.coords.longitude, pos.coords.latitude], zoom: 16, offset: crosshairScreenOffset() }); },
-      () => toast("Couldn't get your location", 'error'), { enableHighAccuracy: true, timeout: 8000 },
-    );
-  };
+  if (locateBtn) wireLocate(locateBtn, (lngLat) => { moved = true; easeToFix(lngLat); });
 
   (document.getElementById('save') as HTMLButtonElement).onclick = async (ev) => {
     const btn = ev.currentTarget as HTMLButtonElement;
     const form = document.getElementById('recform') as HTMLFormElement;
     if (!form.reportValidity()) return;
     if (photoInputs.some((p) => p.busy())) { toast('One moment: a photo is still being made ready'); return; }
-    btn.disabled = true;
-    try {
+    await busy(btn, async () => {
       const raw = readAnswers(panel, fields);
       for (const p of photoInputs) {
         const ids: string[] = [];
@@ -2073,37 +1969,28 @@ async function recordEditor(): Promise<void> {
         if (ids.length) raw[p.field.key] = ids;
       }
       const valid = validateRecordProperties(fields, raw, { photosOnly: !isAdmin && modeOf(rec.schema) === 'photos_ai' });
-      if (!valid.ok) { toast(valid.error, 'error'); btn.disabled = false; return; }
+      if (!valid.ok) { toast(valid.error, 'error'); return; }
       // Points can be repositioned by panning; shapes edit properties only. Only
       // write geometry when the user actually moved the map (else leave it put).
       const body: Record<string, unknown> = { properties: valid.properties };
       if (isPoint && moved) body.geometry = { type: 'Point', coordinates: crosshairLngLat() };
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'PATCH', body: JSON.stringify(body) });
       toast('Saved ✓');
-    } catch (e) { toast((e as Error).message, 'error'); }
-    btn.disabled = false;
+    }, true);
   };
 
-  (document.getElementById('deid') as HTMLButtonElement).onclick = async (ev) => {
-    const btn = ev.currentTarget as HTMLButtonElement;
-    btn.disabled = true;
-    try {
-      await apiJson(`/records/${ctx.recordId}/deidentify`, ctx.token, { method: 'POST' });
-      toast('Your name was removed ✓');
-    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
-  };
+  const deid = document.getElementById('deid') as HTMLButtonElement;
+  deid.onclick = () => busy(deid, async () => {
+    await apiJson(`/records/${ctx.recordId}/deidentify`, ctx.token, { method: 'POST' });
+    toast('Your name was removed ✓');
+  });
 
-  let delArmed = false;
-  (document.getElementById('del') as HTMLButtonElement).onclick = async (ev) => {
-    const btn = ev.currentTarget as HTMLButtonElement;
-    if (!delArmed) { delArmed = true; btn.textContent = 'Tap again to delete'; return; }
-    btn.disabled = true;
-    try {
-      await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
-      forgetRecord(ctx.id, ctx.recordId!);
-      app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
-    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
-  };
+  const del = document.getElementById('del') as HTMLButtonElement;
+  confirmTwice(del, 'Tap again to delete', () => busy(del, async () => {
+    await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
+    forgetRecord(ctx.id, ctx.recordId!);
+    app.innerHTML = `<div class="pad"><h1>${cap(noun)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
+  }));
 }
 
 startAutoSync(); // if this device turned sync on, saved links follow it to the others
