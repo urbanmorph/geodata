@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
-  GROUND_LAYERS, SECTIONS, DECODERS, groundAt,
+  GROUND_LAYERS, SECTIONS, DECODERS, SEISMIC_ABOUT, groundAt,
 } from '../functions/lib/ground';
 import { dedupeFeatures, median, snapPoint, cleanText, partialByChance } from '../functions/lib/profile';
 type GroundDeps = ProfileDeps & { soil: (r2: R2Bucket, lat: number, lng: number) => Promise<PixelResult> };
@@ -329,7 +329,7 @@ describe('groundAt', () => {
   it('says each section\'s scale, vintage and fetch date, and the screening disclaimer once', async () => {
     const withDates = { ...catalog, layers: catalog.layers.map((l) => ({ ...l, fetched_at: '2026-05-25T17:02:55+00:00' })) };
     const g = await run(28.525, 77.085, withDates);
-    expect(g.sections.seismic.seismic_zones.about).toEqual({ scale: 'national zoning map', vintage: 'BIS IS 1893:2016', fetched_at: '2026-05-25' });
+    expect(g.sections.seismic.seismic_zones.about).toEqual({ ...SEISMIC_ABOUT, vintage: 'BIS IS 1893 (Part 1):2016', fetched_at: '2026-05-25' });
     expect(g.sections.soil.soilgrids.about?.scale).toMatch(/250 m/);
     expect(g.disclaimer).toMatch(/not for engineering/);
   });

@@ -71,9 +71,16 @@ const gwQualitySay = (season: string) => (e: ProfileEntry) => {
   return n && first(e, 'GWQ') ? `${season} groundwater sample ${km(n.distance_km)} away: ${first(e, 'GWQ')}${first(e, 'YEAR') ? ` (${first(e, 'YEAR')})` : ''}` : null;
 };
 
+/** Plan F1: the zones are the 2016 code's. A 2025 revision (with a Zone VI along the Himalaya)
+ *  was issued in November 2025 and reported withdrawn by BIS in March 2026, so 2016 applies. */
+export const SEISMIC_ABOUT = {
+  scale: 'national zoning map', vintage: 'BIS IS 1893 (Part 1):2016',
+  note: 'the 2016 zones II to V; the 2025 revision, which added a Zone VI along the Himalaya, was reported withdrawn in March 2026',
+};
+
 export const GROUND_LAYERS: ProfileLayer[] = [
   // ── seismic ──
-  { id: 'seismic_zones', section: 'seismic', match: 'contains', about: { scale: 'national zoning map', vintage: 'BIS IS 1893:2016' },
+  { id: 'seismic_zones', section: 'seismic', match: 'contains', about: SEISMIC_ABOUT,
     say: (e) => first(e, 'seismic_zo') && `${first(e, 'seismic_zo')}${first(e, 'intensity_') ? ` (${first(e, 'intensity_')})` : ''}` },
   { id: 'gem_active_faults', section: 'seismic', match: 'nearest', shape: true, radiusKm: 50,
     about: { scale: 'regional fault traces (75 in India)', vintage: 'GEM GAF-DB, June 2021' },
@@ -183,7 +190,10 @@ export const GROUND_LAYERS: ProfileLayer[] = [
     } },
   // ── subsidence ──
   { id: 'subsidence_megacities', section: 'subsidence', match: 'nearest', radiusKm: 0.5, coverageKm: 10, candidates: 1000,
-    about: { scale: 'satellite (InSAR) measurement points', vintage: 'Ohenhen et al. 2025; Bengaluru, Chennai, Delhi, Kolkata and Mumbai only' },
+    // Plan F4, checked in the published file: 36,241 rows repeat a coordinate (Delhi 27,858, Kolkata 8,383;
+    // never across cities, never with the same value, spread over each city rather than along a frame edge).
+    about: { scale: 'satellite (InSAR) measurement points', vintage: 'Ohenhen et al. 2025; Bengaluru, Chennai, Delhi, Kolkata and Mumbai only',
+      note: 'in Delhi and Kolkata some coordinates repeat with slightly different rates, as published (likely several measurement points at one position); each coordinate counts once, as the median of its readings' },
     fields: ['VLM_cm_per_yr', 'city'], units: { VLM_cm_per_yr: 'cm/yr of vertical land motion; negative means sinking', median_VLM_cm_per_yr: 'cm/yr' },
     median: { field: 'VLM_cm_per_yr', name: 'median_VLM_cm_per_yr', perPoint: ['Longitude', 'Latitude'] },
     say: (e) => {

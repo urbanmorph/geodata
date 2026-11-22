@@ -4,6 +4,7 @@
 // mugilu's (an MCP pointer in `air`).
 import type { CatalogData } from './catalog-api';
 import { SURFACE_PIXELS, SURFACE_RASTERS } from './surface-rasters';
+import { SEISMIC_ABOUT } from './ground';
 import { fallbackWardLayers, wardLayersAt } from './ward-locate';
 import {
   BASE_DEPS, first, km, nearestSay, num, profileAt,
@@ -76,7 +77,7 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
   { id: 'ndem_floods_1998_2022', section: 'water', match: 'contains', allIndia: true, about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
     say: (e) => (e.status === 'found' ? 'Inside an area NDEM mapped as flooded between 1998 and 2022' : null) },
   // ── hazards ──
-  { id: 'seismic_zones', section: 'hazards', match: 'contains', about: { scale: 'national zoning map', vintage: 'BIS IS 1893:2016' },
+  { id: 'seismic_zones', section: 'hazards', match: 'contains', about: SEISMIC_ABOUT,
     say: (e) => first(e, 'seismic_zo') },
   { id: 'ndem_landslide_hazard', section: 'hazards', match: 'contains', about: { scale: 'landslide hazard zonation (NDEM)' } },
   { id: 'gsi_landslide_inventory', section: 'hazards', match: 'nearest', radiusKm: 5, about: { scale: 'recorded landslides (GSI)' },

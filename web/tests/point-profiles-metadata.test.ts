@@ -28,6 +28,23 @@ describe.each([['ground', GROUND_LAYERS], ['surface', SURFACE_LAYERS]] as const)
   });
 });
 
+// Release gate 8 (plan F1, F4).
+describe('the labels the gate asks for', () => {
+  const row = (rows: typeof GROUND_LAYERS, id: string) => rows.find((r) => r.id === id)!;
+
+  it('labels the seismic zones with their 2016 vintage in both lookups', () => {
+    for (const rows of [GROUND_LAYERS, SURFACE_LAYERS]) {
+      expect(row(rows, 'seismic_zones').about).toMatchObject({ vintage: 'BIS IS 1893 (Part 1):2016', note: expect.stringMatching(/2025.*withdrawn/) });
+    }
+  });
+
+  it('explains the repeated subsidence coordinates and takes their median', () => {
+    const s = row(GROUND_LAYERS, 'subsidence_megacities');
+    expect(s.about?.note).toMatch(/Delhi and Kolkata.*repeat/);
+    expect(s.median?.perPoint).toEqual(['Longitude', 'Latitude']);
+  });
+});
+
 describe('every entry carries its year', () => {
   const layer = (id: string, fetched?: string) => ({
     id, level: id, source: 'S', rows: 1, category: 'x', provenance: 'p', licence: 'CC0-1.0',
