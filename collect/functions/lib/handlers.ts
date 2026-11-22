@@ -177,7 +177,7 @@ export async function getCollectionMeta(env: Env, req: Request, id: string): Pro
     data_year: c.data_year,
     status: c.status,
     moderation: c.moderation,
-    schema: JSON.parse(c.schema_doc),
+    schema: db.schemaOf(c),
     counts,
   });
 }
@@ -224,12 +224,12 @@ export async function editCollection(env: Env, req: Request, id: string): Promis
   if (!body) return bad(400, 'invalid JSON body');
 
   const counts = await db.statusCounts(env.DB, id);
-  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license, schema: JSON.parse(c.schema_doc) });
+  const cur = db.schemaOf(c);
+  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license, schema: cur });
   if (!v.ok) return bad(400, v.error);
 
   let schemaDoc: string | undefined;
   if (Object.keys(v.value.schema).length) {
-    const cur = JSON.parse(c.schema_doc) as Record<string, unknown>;
     for (const [k, val] of Object.entries(v.value.schema)) { if (val === null) delete cur[k]; else cur[k] = val; }
     schemaDoc = JSON.stringify(cur);
   }
@@ -255,7 +255,7 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
   const body = await readJson(req);
   if (!body) return refuse(400, 'body', 'invalid JSON body');
 
-  const doc = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string } & Record<string, unknown>;
+  const doc = db.schemaOf(c);
   const points = (await db.recordAnswers(env.DB, id)).map((r) => r.properties);
   const v = validateFormEdit(doc.fields, body.fields, points, doc.geometry, doc.mode);
   if (!v.ok) return refuse(400, v.problems ? 'points' : 'form', v.error, v.problems ? { problems: v.problems } : {});
@@ -390,7 +390,7 @@ export async function listRecords(env: Env, req: Request, id: string, defer?: De
   const isAdmin = atLeast(perm, 'admin');
   const labels = isAdmin ? await db.linkLabels(env.DB, id) : null;
   const c = await db.getCollection(env.DB, id);
-  const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[]; mode?: string };
+  const schema: { fields: Field[]; mode?: string } = c ? db.schemaOf(c) : { fields: [] };
   // Hidden fields stay in the data for the owner, not for shared links.
   const hidden = isAdmin ? new Set<string>() : new Set(schema.fields.filter((f) => f.deleted).map((f) => f.key));
   const visible = (p: Record<string, unknown>) => (hidden.size ? Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k))) : p);
@@ -476,7 +476,7 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   const bounds = checkIndiaBounds(geometry);
   if (!bounds.ok) return reject(400, 'bounds', bounds.error, bounds.error);
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
+  const schema = db.schemaOf(c);
   if (!geometryAllowed(geometry, schema.geometry)) return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
 
   const mode = modeOf(schema);
@@ -564,7 +564,7 @@ const derivedColumns = (r: { ai: string | null; geometry: string }): Record<stri
 // they are claimed again (a no-op when they already are), or they'd be cleared
 // as abandoned two weeks later.
 async function resendRecord(env: Env, c: db.CollectionRow, rec: { id: string; status: string; properties: string }): Promise<Response> {
-  await setPhotos(env, rec.id, photoIdsIn((JSON.parse(c.schema_doc) as { fields: Field[] }).fields, JSON.parse(rec.properties)));
+  await setPhotos(env, rec.id, photoIdsIn(db.schemaOf(c).fields, JSON.parse(rec.properties)));
   const token = generateRecordToken();
   await db.setRecordTokenHash(env.DB, rec.id, await hashToken(token));
   return json(200, { id: rec.id, status: rec.status, edit_token: token });
@@ -589,8 +589,7 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
     // filled (from the model's notes, or by hand) before the point is approved,
     // whatever the map's mode is now (it may have changed since).
     const c = await db.getCollection(env.DB, rec.collection_id);
-    const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[] };
-    const v = validateRecordProperties(schema.fields, JSON.parse(rec.properties));
+    const v = validateRecordProperties(c ? db.schemaOf(c).fields : [], JSON.parse(rec.properties));
     if (!v.ok) return bad(400, `${v.error} before approving`);
   }
   await db.setRecordStatus(env.DB, recordId, status, reason);
@@ -606,7 +605,7 @@ export async function moderateAll(env: Env, req: Request, id: string): Promise<R
   const body = await readJson(req);
   const from = body?.from === 'rejected' ? 'rejected' : 'pending';
   const to = body?.to === 'rejected' ? 'rejected' : 'published';
-  const schema = JSON.parse(c.schema_doc) as { fields: Field[] };
+  const schema = db.schemaOf(c);
   if (to === 'published') {
     // Approve only points whose answers are all filled in ("just photos" points
     // wait for theirs; the map may have been switched out of that mode since).
@@ -648,14 +647,15 @@ export async function getRecordForEdit(env: Env, req: Request, recordId: string)
   if (!c) return bad(404, 'not found');
   const r = auth.record;
   const props = JSON.parse(r.properties) as Record<string, unknown>;
+  const schema = db.schemaOf(c);
   return json(200, {
     id: r.id,
     status: r.status,
     contributor: r.contributor,
     geometry: JSON.parse(r.geometry),
     properties: props,
-    photos: photoLinks((JSON.parse(c.schema_doc) as { fields: Field[] }).fields, props, new URL(req.url).origin),
-    schema: JSON.parse(c.schema_doc),
+    photos: photoLinks(schema.fields, props, new URL(req.url).origin),
+    schema,
     collection_name: c.name,
   });
 }
@@ -668,7 +668,7 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
+  const schema = db.schemaOf(c);
   const patch: { geometry?: string; properties?: string; status?: string } = {};
   let movedGeometry: unknown;
   let photoIds: string[] | undefined;
@@ -765,7 +765,7 @@ async function importInto(env: Env, req: Request, id: string, ipHash: string, { 
   if (!source) return refuse(400, 'source', 'name the data source (where this data comes from)');
   if (source.length > 200) return refuse(400, 'source', 'source must be under 200 characters');
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
+  const schema = db.schemaOf(c);
   const contributor = contributorOf(body.contributor);
   if (contributor === undefined) return refuse(400, 'body', CONTRIBUTOR_TOO_LONG);
   // Import is admin-only, so this is always the owner's own data → published
@@ -881,7 +881,7 @@ async function publishMap(env: Env, req: Request, id: string, { attemptId, log, 
     return refuse(413, 'too_large', `too many approved points to publish at once (${published}; the limit is ${PUBLISH_MAX_POINTS}). Ask us to publish it for you.`);
   }
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: PUBLISH_MAX_POINTS });
-  const fields = (JSON.parse(c.schema_doc) as { fields: Field[] }).fields;
+  const fields = db.schemaOf(c).fields;
   const hidden = new Set(fields.filter((f) => f.deleted).map((f) => f.key));
   const withoutHidden = (p: Record<string, unknown>) => Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k)));
   const origin = new URL(req.url).origin;
@@ -953,7 +953,7 @@ async function publishMap(env: Env, req: Request, id: string, { attemptId, log, 
         status: 'pending',
         name: c.name,
         description: c.description,
-        category: (JSON.parse(c.schema_doc) as { category?: string }).category || 'other',
+        category: db.schemaOf(c).category || 'other',
         license: c.license,
         attribution: attribution.line,
         source_url: `https://collect.bharatlas.com/c/${id}`,

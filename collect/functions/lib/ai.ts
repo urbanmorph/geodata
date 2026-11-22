@@ -162,7 +162,7 @@ export async function runAi(env: Env, recordId: string): Promise<void> {
   if (!r) return;
   const c = await db.getCollection(env.DB, r.collection_id);
   if (!c) return;
-  const schema = JSON.parse(c.schema_doc) as { fields: Field[]; mode?: string };
+  const schema = db.schemaOf(c);
   if (!usesAi(modeOf(schema))) return;
   const props = JSON.parse(r.properties) as Record<string, unknown>;
   const ids = photoIdsIn(schema.fields, props);
@@ -241,7 +241,7 @@ export async function reviewAi(env: Env, req: Request, recordId: string): Promis
   }
   if (body.action !== 'accept') return bad(400, 'action must be accept or discard');
 
-  const schema = JSON.parse(c.schema_doc) as { fields: Field[]; mode?: string };
+  const schema = db.schemaOf(c);
   const props = JSON.parse(r.properties) as Record<string, unknown>;
   const answers = body.answers !== undefined ? cleanAnswers(schema.fields, body.answers) : notes.answers ?? {};
   const blank = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length);
