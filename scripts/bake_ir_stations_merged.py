@@ -55,7 +55,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import log  # noqa: E402
+from pipeline import haversine_m, log  # noqa: E402
 import pipeline  # noqa: E402
 import bake_formats  # noqa: E402
 from build_catalog import ATTR  # noqa: E402
@@ -137,12 +137,6 @@ class WD:
 def norm_code(s) -> str | None:
     s = (s or '').strip().upper()
     return s or None
-
-
-def haversine_m(x1: float, y1: float, x2: float, y2: float) -> float:
-    p1, p2 = math.radians(y1), math.radians(y2)
-    a = math.sin((p2 - p1) / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(math.radians(x2 - x1) / 2) ** 2
-    return 2 * 6_371_008.8 * math.asin(math.sqrt(a))
 
 
 def _d(a, b) -> float:

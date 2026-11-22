@@ -37,7 +37,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from pipeline import write_if_changed  # noqa: E402
+from pipeline import log, write_if_changed  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / 'data' / 'cache'
@@ -54,10 +54,6 @@ _GH_COMMIT = re.compile(r'^https://github\.com/[^/]+/[^/]+/(?:raw|blob)/([0-9a-f
 COLUMNS = ['id', 'source', 'source_url', 'publisher', 'publisher_url', 'source_link', 'source_version',
            'source_version_date', 'source_sha256', 'fetched_at', 'licence', 'rows', 'served_format', 'served_url',
            'bytes', 'sha256', 'served_etag', 'served_last_modified', 'served_bytes_match_source_digest']
-
-
-def log(*a) -> None:
-    print(*a, flush=True)
 
 
 def github_asset(url: str | None) -> tuple[str, str, str] | None:

@@ -123,6 +123,11 @@ def test_json_gz_pages_read_back_and_keep_their_bytes(tmp_path):
     assert [p.name for p in page.parent.iterdir()] == [page.name]   # no .part left
 
 
+def test_haversine_m_is_the_great_circle_distance_in_metres():
+    assert pipeline.haversine_m(77, 12, 77, 13) == pytest.approx(111_195, rel=1e-4)   # one degree of latitude
+    assert pipeline.haversine_m(77.2, 28.6, 77.2, 28.6) == 0
+
+
 def test_write_if_changed_writes_text_or_bytes_only_when_they_differ(tmp_path):
     p = tmp_path / 'meta' / 'index.json'
     assert pipeline.write_if_changed(p, 'ā\r\n') is True
