@@ -492,7 +492,7 @@ function renderCommunityCard(s, opts = {}) {
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
     <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? fmtInt(s.feature_count) + ' features · ' : ''}${credit} · <span class="comm-card__via">${esc(CHANNEL_LABEL[channelOf(s)])}</span></div>
-    ${renderCommunityActions(s, baked, { esc, fmtBytes })}
+    ${renderCommunityActions(s, baked)}
   </article>`;
 }
 

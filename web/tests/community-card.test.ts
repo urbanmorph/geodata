@@ -1,10 +1,9 @@
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
-import { communityCardActions, dlProxyUrl, renderCommunityActions, channelOf, CHANNEL_LABEL } from '../scripts/community-card.mjs';
+import { communityCardActions, renderCommunityActions, channelOf, CHANNEL_LABEL } from '../scripts/community-card.mjs';
+import { dlProxyUrl } from '../../shared/downloads.mjs';
 
 const R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
-const esc = (s: string) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c] || c));
-const fmtBytes = (n: number) => `${Math.round(n / 1024)} KB`;
 
 describe('channelOf — where a community submission came from', () => {
   it('a collect map stamps collection_id on publish → "collect"', () => {
@@ -89,6 +88,14 @@ describe('communityCardActions — baked submission', () => {
     const pmt = a.downloads.find((d: { fmt: string }) => d.fmt === 'pmtiles');
     expect(pmt.url).toBe(`${R2}/community/x9/x9.pmtiles`);
   });
+
+  it('lists a baked shapefile last, as the curated strip does', () => {
+    const a = communityCardActions(sub, {
+      ...baked,
+      shapefile: { url: `${R2}/community/x9/x9.shp.zip`, bytes: 800000 },
+    });
+    expect(a.downloads.map((d: { fmt: string }) => d.fmt)).toEqual(['parquet', 'geojson', 'kml', 'shapefile']);
+  });
 });
 
 describe('renderCommunityActions — visual parity markup', () => {
@@ -103,7 +110,7 @@ describe('renderCommunityActions — visual parity markup', () => {
   // The whole point: a community "View map" reads as the SAME control as a
   // curated row — the .btn-primary pill — in both baked and unbaked states.
   it('baked card uses the .btn-primary View pill → /view/c_<id> + dl-inline strip', () => {
-    const html = renderCommunityActions(sub, baked, { esc, fmtBytes });
+    const html = renderCommunityActions(sub, baked);
     expect(html).toContain('class="btn btn--line btn-primary comm-card__view"');
     expect(html).toContain('href="/view/c_x9"');
     expect(html).toContain('class="dl-inline"');
@@ -112,7 +119,7 @@ describe('renderCommunityActions — visual parity markup', () => {
   });
 
   it('unbaked card uses the SAME .btn-primary View pill → /preview + single raw download', () => {
-    const html = renderCommunityActions(sub, null, { esc, fmtBytes });
+    const html = renderCommunityActions(sub, null);
     expect(html).toContain('class="btn btn--line btn-primary comm-card__view"');
     expect(html).toContain('/preview?url=');
     expect(html).toContain('class="btn btn--line comm-card__dl"');
