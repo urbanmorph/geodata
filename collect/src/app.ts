@@ -22,6 +22,7 @@ import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia,
 import { focusSheet, SHEET_TITLE } from './sheet-focus';
 import { escapeHtml, downloadText, plural } from './util';
 import { toast } from './toast';
+import { confirmTwice, busy } from './buttons';
 import { linkProblemHtml, isLinkProblem } from './link-problem';
 import { fieldsHtml, setPressed, wireChips, fillAnswers, readAnswers } from './form-fields';
 import type { ExportFeature } from './export/formats';
@@ -1100,8 +1101,7 @@ async function editSettings(): Promise<void> {
     // Only a reference-overlay change needs a reload to re-style the map; the
     // basemap is a per-viewer runtime switch, not an author setting.
     const mapChanged = refChange !== undefined;
-    btn.disabled = true;
-    try {
+    await busy(btn, async () => {
       await apiJson(`/collections/${ctx.id}`, ctx.token, { method: 'PATCH', body: JSON.stringify(patch) });
       toast('Settings saved ✓');
       if (mapChanged) { location.reload(); return; } // reload to apply the new basemap/overlay
@@ -1112,7 +1112,7 @@ async function editSettings(): Promise<void> {
       if (nameEl) nameEl.textContent = meta.name;
       rememberMap(ctx.id, meta.name, 'owner', location.href);
       void manageSheet();
-    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
+    });
   };
 }
 
@@ -1244,16 +1244,13 @@ function renderReviewTab(body: HTMLElement, revealRow?: string): void {
     </div>
     <div id="points"><p class="hint">Loading points…</p></div>`;
   const approveAll = document.getElementById('approve-all') as HTMLButtonElement | null;
-  if (approveAll) approveAll.onclick = async () => {
-    approveAll.disabled = true;
-    try {
+  if (approveAll) approveAll.onclick = () => busy(approveAll, async () => {
       const res = await apiJson<{ changed: number; skipped?: number }>(`/collections/${ctx.id}/moderate-all`, ctx.token, { method: 'POST', body: JSON.stringify({ to: 'published' }) });
       invalidateReview();
       await ensureReviewData(true);
       toast(res.skipped ? `Approved ${res.changed} ✓ ${res.skipped} still need their answers checked` : `Approved ${res.changed} ✓`);
       renderManageTab(); // rebuild: notice clears, points show approved, counts refresh
-    } catch (e) { toast((e as Error).message, 'error'); approveAll.disabled = false; }
-  };
+  });
   document.querySelectorAll<HTMLButtonElement>('#pfilter .chip').forEach((b) => {
     b.onclick = () => {
       document.querySelectorAll('#pfilter .chip').forEach((x) => setPressed(x, x === b));
@@ -1358,9 +1355,7 @@ function renderShareTab(body: HTMLElement): void {
   // Replace the admin link (it leaked, or a device that had it is lost): two
   // taps, then the new link is shown once and this page carries on with it.
   const replaceBtn = body.querySelector<HTMLButtonElement>('#replace-admin')!;
-  let replaceArmed = false;
-  replaceBtn.onclick = async () => {
-    if (!replaceArmed) { replaceArmed = true; replaceBtn.textContent = 'Tap again to replace. The current admin link stops working everywhere.'; return; }
+  confirmTwice(replaceBtn, 'Tap again to replace. The current admin link stops working everywhere.', async (rearm) => {
     replaceBtn.disabled = true;
     try {
       const res = await apiJson<{ link: string; token: string }>(`/collections/${ctx.id}/admin-link`, ctx.token, { method: 'POST' });
@@ -1380,11 +1375,11 @@ function renderShareTab(body: HTMLElement): void {
       replaceBtn.hidden = true;
     } catch (e) {
       toast((e as Error).message, 'error');
-      replaceArmed = false;
+      rearm();
       replaceBtn.textContent = 'Replace admin link';
       replaceBtn.disabled = false;
     }
-  };
+  });
 
   let busy = false; // a mint is in flight — block other taps (else double-mint / two rows open)
   LINK_ROWS.forEach((r) => {
@@ -1429,15 +1424,10 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
             <span class="hint">· ${l.permission === 'view' ? 'view only' : plural(l.records, 'point')}${l.active ? '' : ' · turned off'}</span></span>
           ${l.active ? `<button type="button" data-revoke="${escapeHtml(l.id)}">Turn off</button>` : ''}
         </div>`).join('');
-      list.querySelectorAll<HTMLButtonElement>('button[data-revoke]').forEach((b) => {
-        let armed = false;
-        b.onclick = async () => {
-          if (!armed) { armed = true; b.textContent = 'Tap again to turn off'; return; }
-          b.disabled = true;
-          try { await apiJson(`/collections/${ctx.id}/tokens/${b.dataset.revoke}`, ctx.token, { method: 'DELETE' }); await render(); }
-          catch (e) { toast((e as Error).message, 'error'); b.disabled = false; }
-        };
-      });
+      list.querySelectorAll<HTMLButtonElement>('button[data-revoke]').forEach((b) => confirmTwice(b, 'Tap again to turn off', () => busy(b, async () => {
+        await apiJson(`/collections/${ctx.id}/tokens/${b.dataset.revoke}`, ctx.token, { method: 'DELETE' });
+        await render();
+      })));
     } catch (e) {
       list.innerHTML = `<p class="warn">${escapeHtml((e as Error).message)}</p>`;
     }
@@ -1448,8 +1438,7 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
   make.onclick = async () => {
     const label = input.value.trim();
     if (!label) { input.focus(); return; }
-    make.disabled = true;
-    try {
+    await busy(make, async () => {
       const res = await apiJson<{ link: string; label: string }>(`/collections/${ctx.id}/tokens`, ctx.token, {
         method: 'POST', body: JSON.stringify({ permission: 'edit', label }),
       });
@@ -1458,8 +1447,7 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
       wireShareItems(fresh, title);
       input.value = '';
       await render();
-    } catch (e) { toast((e as Error).message, 'error'); }
-    make.disabled = false;
+    }, true);
   };
   await render();
 }
@@ -1815,13 +1803,10 @@ function openReview(idx: number): void {
   };
   document.getElementById('rv-approve')?.addEventListener('click', () => void moderate('published'));
   document.getElementById('rv-reject')?.addEventListener('click', () => void moderate('rejected'));
-  let armed = false;
-  (document.getElementById('rv-delete') as HTMLButtonElement).onclick = async (ev) => {
-    const b = ev.currentTarget as HTMLButtonElement;
-    if (!armed) { armed = true; b.textContent = 'Tap to confirm'; return; }
+  confirmTwice(document.getElementById('rv-delete') as HTMLButtonElement, 'Tap to confirm', async () => {
     try { await apiJson(`/records/${f.id}`, ctx.token, { method: 'DELETE' }); patchReview(withoutRecord(allFeats, String(f.id))); back(); }
     catch (e) { toast((e as Error).message, 'error'); }
-  };
+  });
 }
 
 // The point's photos in review: the first one large, the rest as thumbnails;
@@ -1888,8 +1873,7 @@ function confirmPublish(): void {
 }
 
 async function runPublish(btn: HTMLButtonElement): Promise<void> {
-  btn.disabled = true;
-  try {
+  await busy(btn, async () => {
     const res = await apiJson<{ version: number; feature_count: number; message?: string }>(
       `/collections/${ctx.id}/publish`, ctx.token, { method: 'POST' },
     );
@@ -1900,10 +1884,7 @@ async function runPublish(btn: HTMLButtonElement): Promise<void> {
       <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live on bharatlas.')}</p>`,
     { foot: '<button id="back">← Back to manage</button>' });
     (document.getElementById('back') as HTMLButtonElement).onclick = () => void manageSheet();
-  } catch (e) {
-    toast((e as Error).message, 'error');
-    btn.disabled = false;
-  }
+  });
 }
 
 // The contributor's own record: edit / delete / de-identify via the rec_ token
@@ -1984,8 +1965,7 @@ async function recordEditor(): Promise<void> {
     const form = document.getElementById('recform') as HTMLFormElement;
     if (!form.reportValidity()) return;
     if (photoInputs.some((p) => p.busy())) { toast('One moment: a photo is still being made ready'); return; }
-    btn.disabled = true;
-    try {
+    await busy(btn, async () => {
       const raw = readAnswers(panel, fields);
       for (const p of photoInputs) {
         const ids: string[] = [];
@@ -1998,37 +1978,28 @@ async function recordEditor(): Promise<void> {
         if (ids.length) raw[p.field.key] = ids;
       }
       const valid = validateRecordProperties(fields, raw, { photosOnly: !isAdmin && modeOf(rec.schema) === 'photos_ai' });
-      if (!valid.ok) { toast(valid.error, 'error'); btn.disabled = false; return; }
+      if (!valid.ok) { toast(valid.error, 'error'); return; }
       // Points can be repositioned by panning; shapes edit properties only. Only
       // write geometry when the user actually moved the map (else leave it put).
       const body: Record<string, unknown> = { properties: valid.properties };
       if (isPoint && moved) body.geometry = { type: 'Point', coordinates: crosshairLngLat() };
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'PATCH', body: JSON.stringify(body) });
       toast('Saved ✓');
-    } catch (e) { toast((e as Error).message, 'error'); }
-    btn.disabled = false;
+    }, true);
   };
 
-  (document.getElementById('deid') as HTMLButtonElement).onclick = async (ev) => {
-    const btn = ev.currentTarget as HTMLButtonElement;
-    btn.disabled = true;
-    try {
-      await apiJson(`/records/${ctx.recordId}/deidentify`, ctx.token, { method: 'POST' });
-      toast('Your name was removed ✓');
-    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
-  };
+  const deid = document.getElementById('deid') as HTMLButtonElement;
+  deid.onclick = () => busy(deid, async () => {
+    await apiJson(`/records/${ctx.recordId}/deidentify`, ctx.token, { method: 'POST' });
+    toast('Your name was removed ✓');
+  });
 
-  let delArmed = false;
-  (document.getElementById('del') as HTMLButtonElement).onclick = async (ev) => {
-    const btn = ev.currentTarget as HTMLButtonElement;
-    if (!delArmed) { delArmed = true; btn.textContent = 'Tap again to delete'; return; }
-    btn.disabled = true;
-    try {
-      await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
-      forgetRecord(ctx.id, ctx.recordId!);
-      app.innerHTML = `<div class="pad"><h1>${cap(noun)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
-    } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
-  };
+  const del = document.getElementById('del') as HTMLButtonElement;
+  confirmTwice(del, 'Tap again to delete', () => busy(del, async () => {
+    await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
+    forgetRecord(ctx.id, ctx.recordId!);
+    app.innerHTML = `<div class="pad"><h1>${cap(noun)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
+  }));
 }
 
 startAutoSync(); // if this device turned sync on, saved links follow it to the others
