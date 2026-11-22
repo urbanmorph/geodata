@@ -152,6 +152,8 @@ function downloadLinks(layer) {
   }));
 }
 const downloadAnchor = (d) => `<a href="${esc(d.url)}" download data-fmt="${esc(d.fmt)}">${esc(d.text)}</a>`;
+/** "1,234 villages": a layer's row count in its level's unit, or '' when unknown. Not escaped. */
+const rowsText = (layer, meta) => (layer.rows != null ? `${fmtInt(layer.rows)} ${meta.unit || 'features'}` : '');
 
 function renderRow(level, layersForLevel, opts = {}) {
   const meta = LEVEL_META[level];
@@ -194,7 +196,7 @@ function renderRow(level, layersForLevel, opts = {}) {
                 .join('<span class="dot">·</span>');
               return `<div class="alt__row${isPrimary ? ' alt__row--primary' : ''}">
                 <span class="src">${esc(o.source)}${isPrimary ? ' <span class="tag">primary</span>' : ''}</span>
-                <span class="meta">${[o.rows != null ? `${fmtInt(o.rows)} ${esc(meta.unit || 'features')}` : '', esc(o.notes || '')].filter(Boolean).join(' · ')}</span>
+                <span class="meta">${[esc(rowsText(o, meta)), esc(o.notes || '')].filter(Boolean).join(' · ')}</span>
                 <span class="links">${links || '<span class="muted">no downloads</span>'}</span>
               </div>`;
             })
@@ -252,7 +254,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     tags: primary.tags,
   });
 
-  const sub = [primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · ');
+  const sub = [rowsText(primary, meta), primary.source].filter(Boolean).join(' · ');
   layerIndex.push({ i: primary.id, p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
@@ -267,6 +269,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   const countDisplay = primary.rows != null
     ? `<span class="row__num">${fmtInt(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
     : '<span class="row__num">n/a</span>';
+  const updated = primary.fetched_at?.slice(0, 10);
   // row__actions lives OUTSIDE <summary> so the interactive <a> links inside
   // don't violate HTML semantics (interactive descendants of an interactive
   // element). row__head is the visible grid: details on the left, actions on
@@ -284,7 +287,7 @@ function renderRow(level, layersForLevel, opts = {}) {
             <p class="row__desc">${esc(meta.description)}</p>
             ${sourceLine}
             ${primary.licence ? `<p class="row__lic-line">Licence: ${licenceBadgeHtml(primary.licence, nc)}</p>` : ''}
-            ${primary.fetched_at ? `<p class="row__updated">Updated: <time datetime="${esc(primary.fetched_at.slice(0, 10))}">${esc(primary.fetched_at.slice(0, 10))}</time></p>` : ''}
+            ${updated ? `<p class="row__updated">Updated: <time datetime="${esc(updated)}">${esc(updated)}</time></p>` : ''}
             ${dlInline ? `<p class="row__downloads">Download: ${dlInline}</p>` : ''}
             ${viewerHint}
             ${altSection}
@@ -559,8 +562,7 @@ const popularHtml = popularIds.length
       .map((id) => {
         const l = curatedById.get(id);
         const meta = LEVEL_META[l.level];
-        const count = l.rows != null ? `${fmtInt(l.rows)} ${meta.unit || 'features'}` : '';
-        return `<a class="popular-item" href="/view/${esc(id)}"><span class="popular-item__name">${esc(meta.label)}</span><span class="popular-item__count">${esc(count)}</span></a>`;
+        return `<a class="popular-item" href="/view/${esc(id)}"><span class="popular-item__name">${esc(meta.label)}</span><span class="popular-item__count">${esc(rowsText(l, meta))}</span></a>`;
       })
       .join('')}<a class="popular-item popular-item--all" href="/layers"><span class="popular-item__name">All ${totalLayers} layers</span><span aria-hidden="true">→</span></a></div></section>`
   : '';
