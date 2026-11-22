@@ -1,7 +1,7 @@
 // Build-time prerender: produce one large card per admin level.
 // Zero JS needed to read or navigate the catalog.
 import { readFile, writeFile } from 'node:fs/promises';
-import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
+import { fetchLiveCounts, bakedCounts, countFor as layerCount, mostDownloaded } from './download-counts.mjs';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,7 @@ import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../sh
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
-import { STATIC_PAGES, releasePages, urlset } from '../../shared/sitemap.mjs';
+import { STATIC_PAGES, releasePages, urlset, SITE_ORIGIN as ORIGIN } from '../../shared/sitemap.mjs';
 import { LEVEL_META as BUILTIN_LEVEL_META, pickPrimary } from '../../shared/level-meta.mjs';
 import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
 import { REALMS, realmOf } from './realms.mjs';
@@ -62,15 +62,11 @@ const layerIndex = [];
 // Live download counts (falls back to the catalog snapshot if unreachable).
 const liveCounts = await fetchLiveCounts();
 const dlCounts = bakedCounts(catalog, liveCounts);
-console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
+console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${dlCounts.total})`);
 // Each layer's dated releases (scripts/release.py) go into the served catalog as `versions`.
 const releaseIndex = JSON.parse(await readFile(resolve(WEB, 'public', 'releases', 'index.json'), 'utf8'));
 await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalog, releaseIndex));
 
-
-// Keep in sync with web/src/util.ts:escapeHtml
-
-const ORIGIN = 'https://bharatlas.com';
 // How many layers /api/v1/locate checks by default (the FAQ copy on /docs and /mcp).
 const LOCATE_N = DEFAULT_LOCATE_LAYERS.length;
 
@@ -734,7 +730,7 @@ const homeRealmsHtml = realmBlocks
   .join('\n');
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
-const homeDownloads = totalDownloads(dlCounts);
+const homeDownloads = dlCounts.total;
 // API/MCP totals for the home line and the /layers block (shown once past API_SHOW_MIN).
 const apiUse = (await fetchUsageTotals()) ?? { api: 0, mcp: 0 };
 const siteUse = { downloads: homeDownloads, ...apiUse };
@@ -1036,7 +1032,7 @@ const DOCS_FAQ = [
   },
 ];
 
-const docs = docsStats(catalog, totalDownloads(dlCounts), community);
+const docs = docsStats(catalog, dlCounts.total, community);
 // Plain-text answers: escaped on the page so "&select=" reads as typed (not "§lect").
 const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) => `      <h3>${esc(q)}</h3>\n      <p>${esc(a)}</p>`).join('\n')}\n`;
 

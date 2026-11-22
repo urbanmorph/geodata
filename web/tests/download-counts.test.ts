@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
-import { bakedCounts, countFor, totalDownloads, fetchLiveCounts, mostDownloaded } from '../scripts/download-counts.mjs';
+import { bakedCounts, countFor, fetchLiveCounts, mostDownloaded } from '../scripts/download-counts.mjs';
 
 // The home page baked a stale catalog snapshot (948) while D1 counted ~22k;
 // crawlers and link previews only see the baked HTML.
@@ -18,11 +18,11 @@ describe('download counts at build time', () => {
   it('falls back to the catalog snapshot when live counts are unavailable', () => {
     const c = bakedCounts(catalog, null);
     expect(countFor(c, 'lgd_states', 'parquet')).toBe(63);
-    expect(totalDownloads(c)).toBe(85);
+    expect(c.total).toBe(85);
   });
 
   it('uses the live _total when present', () => {
-    expect(totalDownloads(bakedCounts(catalog, live))).toBe(3029);
+    expect(bakedCounts(catalog, live).total).toBe(3029);
   });
 
   it('returns null (not a throw) when the fetch fails or answers badly', async () => {

@@ -5,9 +5,9 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SITE_ORIGIN as ORIGIN } from '../../shared/sitemap.mjs';
 
 const PUBLIC = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'public');
-const ORIGIN = 'https://bharatlas.com';
 const cache = new Map();
 
 export function ogImage(name) {
