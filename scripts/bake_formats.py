@@ -14,7 +14,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 # atomic_output is re-exported for scripts on other branches.
-from pipeline import TOOL_TIMEOUT_S, atomic_output, download, run, write_stable_zip  # noqa: E402,F401
+from pipeline import TOOL_TIMEOUT_S, atomic_output, download, log, run, sizes_and_names, write_stable_zip  # noqa: E402,F401
 
 HERE = Path(__file__).resolve().parent
 JUNK_TS = HERE.parent / 'web' / 'functions' / 'lib' / 'junk-columns.ts'
@@ -108,6 +108,25 @@ def write_pmtiles(src: Path, out: Path, layer: str, fields: Iterable[str], paral
                   max_zoom: int | None = None, keep_all: bool = False) -> None:
     out.unlink(missing_ok=True)
     run(pmtiles_args(src, out, layer, fields, parallel, max_zoom, keep_all), timeout=TOOL_TIMEOUT_S)
+
+
+def write_all_formats(con, path: dict[str, Path], layer: str, prop_cols: list[str], tile_fields: Iterable[str],
+                      **tile_kw) -> dict[str, dict]:
+    """From the layer's parquet at path['parquet']: the GeoJSON, and from it the
+    KML, the shapefile zip (short DBF names for prop_cols, with their key) and
+    the pmtiles (tile_kw: write_pmtiles' max_zoom, keep_all). Returns the
+    summary's sizes and names of every file in `path`."""
+    from bake_extracts import write_kml_from_geojson
+    from bake_whole_layer import write_geojson_whole
+    log(f'  {layer}: geojson')
+    write_geojson_whole(con, path['parquet'], path['geojson'])
+    log(f'  {layer}: kml')
+    write_kml_from_geojson(path['geojson'], layer, path['kml'])
+    log(f'  {layer}: shapefile')
+    shapefile_zip_from_geojson(path['geojson'], path['shapefile'], short_field_names(prop_cols))
+    log(f'  {layer}: pmtiles')
+    write_pmtiles(path['geojson'], path['pmtiles'], layer, tile_fields, **tile_kw)
+    return sizes_and_names(path)
 
 
 def short_field_names(columns: list[str]) -> dict[str, str]:

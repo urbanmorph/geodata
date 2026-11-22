@@ -148,12 +148,10 @@ def geojson_changed_features(con: duckdb.DuckDBPyConnection, parquet: Path, geom
         f"EXCEPT ALL SELECT {_shape_sql('geom')} FROM ST_Read('{geojson.as_posix()}'))").fetchone()[0]
 
 
-def write_geojson_whole(
-    con: duckdb.DuckDBPyConnection, parquet: Path, out: Path, gdal_ok: bool = True,
-) -> None:
+def write_geojson_whole(con: duckdb.DuckDBPyConnection, parquet: Path, out: Path) -> None:
     """Whole-layer GeoJSON through GDAL (streams; every column kept, nulls
-    too). `gdal_ok` is kept for callers on other branches: without the GDAL
-    driver this raises instead of hand-building the file in memory.
+    too). Without the GDAL driver this raises instead of hand-building the
+    file in memory.
 
     RFC 7946 output snaps coordinates to 7 decimals (~1 cm) and repairs any
     geometry the snapping made invalid, which turns a polygon or line with
@@ -161,7 +159,7 @@ def write_geojson_whole(
     shapefile can't hold one), or fails the write. Such a layer is written at
     the first of GEOJSON_FALLBACK_PRECISIONS that changes no geometry; every
     other layer keeps its 7-decimal file."""
-    if not gdal_ok:
+    if not gdal_geojson_available(con):
         raise RuntimeError('duckdb-spatial has no GDAL GeoJSON driver: install a spatial build with GDAL')
     out.parent.mkdir(parents=True, exist_ok=True)
     geom_col = _detect_geom_col(con, parquet)
@@ -321,7 +319,6 @@ def bake_one(
     parquet_path: Path,
     r2_prefix: str,
     basename: str,
-    gdal_ok: bool,
     ogr2ogr_ok: bool,
 ) -> tuple[int, int, list[str]]:
     """Bake geojson + kml + shapefile.zip for one source parquet.
@@ -338,7 +335,7 @@ def bake_one(
     else:
         try:
             with atomic_output(paths["geojson"]) as part:
-                write_geojson_whole(con, parquet_path, part, gdal_ok)
+                write_geojson_whole(con, parquet_path, part)
             written += 1
             print(f"wrote {label} fmt=geojson size={file_size(paths['geojson'])}")
         except Exception as e:
@@ -408,7 +405,7 @@ def main() -> int:
                 f"(use the viewer's per-state slices, or set WHOLE_LAYER_MAX_PARQUET_MB)"
             )
             continue
-        w, s, e = bake_one(con, layer_id, parquet_path, r2_prefix, basename, gdal_ok, ogr2ogr_ok)
+        w, s, e = bake_one(con, layer_id, parquet_path, r2_prefix, basename, ogr2ogr_ok)
         total_w += w
         total_s += s
         errors.extend(e)

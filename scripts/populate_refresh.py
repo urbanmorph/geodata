@@ -183,6 +183,14 @@ def next_due(rebuild: str, last: str | None) -> str | None:
     return _add_month(date.fromisoformat(last[:10])).isoformat()
 
 
+def refresh_block(entry: dict, prev: dict, built_at: str) -> dict:
+    """The refresh block a bake writes for its new entry: inferred, the previous
+    entry's audited_at kept, the next rebuild dated from this build."""
+    block, _ = infer(entry)
+    return {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
+            'next_due': next_due(block['rebuild'], built_at)}
+
+
 def last_build(layer: dict, releases: dict | None) -> str | None:
     """YYYY-MM-DD of the layer's last build: its fetched_at, or its newest release if that is later."""
     dates = [r['released'] for r in (releases or {}).get('releases', []) if r.get('dataset') == layer['id']]

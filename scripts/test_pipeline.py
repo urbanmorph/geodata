@@ -100,6 +100,43 @@ def test_failed_download_leaves_no_file_that_counts_as_done(tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
+def test_get_json_retries_a_cut_off_answer_as_the_house_client():
+    with _server([(200, b'{"a": '), (200, b'{"a": 1}')]) as (url, seen):
+        assert pipeline.get_json(url, wait=lambda n: None) == {'a': 1}
+    assert len(seen) == 2 and seen[0] == pipeline.USER_AGENT
+
+
+def test_get_bytes_gives_up_on_a_client_error():
+    with _server([(404, b'gone'), (200, b'never asked')]) as (url, seen):
+        with pytest.raises(OSError):
+            pipeline.get_bytes(url, give_up=pipeline.is_client_error, wait=lambda n: None)
+    assert len(seen) == 1
+
+
+def test_json_gz_pages_read_back_and_keep_their_bytes(tmp_path):
+    import gzip
+    page = tmp_path / 'cache' / 'offset_0000000.json.gz'
+    pipeline.write_json_gz(page, [{'a': 1}, {'b': 'ā'}])
+    assert pipeline.read_json_gz(page) == [{'a': 1}, {'b': 'ā'}]
+    # the bytes the bakes' caches always held: compact JSON, gzip with mtime 0
+    assert page.read_bytes() == gzip.compress(json.dumps([{'a': 1}, {'b': 'ā'}]).encode(), mtime=0)
+    assert [p.name for p in page.parent.iterdir()] == [page.name]   # no .part left
+
+
+def test_haversine_m_is_the_great_circle_distance_in_metres():
+    assert pipeline.haversine_m(77, 12, 77, 13) == pytest.approx(111_195, rel=1e-4)   # one degree of latitude
+    assert pipeline.haversine_m(77.2, 28.6, 77.2, 28.6) == 0
+
+
+def test_write_if_changed_writes_text_or_bytes_only_when_they_differ(tmp_path):
+    p = tmp_path / 'meta' / 'index.json'
+    assert pipeline.write_if_changed(p, 'ā\r\n') is True
+    assert p.read_bytes() == 'ā\r\n'.encode()          # utf-8, newlines as given
+    stamp = p.stat().st_mtime_ns
+    assert pipeline.write_if_changed(p, 'ā\r\n'.encode()) is False and p.stat().st_mtime_ns == stamp
+    assert pipeline.write_if_changed(p, b'new') is True and p.read_bytes() == b'new'
+
+
 def test_ingest_ramseraph_downloads_through_the_shared_helper():
     import ingest_ramseraph as ir
     assert ir.http_download is pipeline.download
@@ -124,6 +161,27 @@ def _zip_twice(tmp_path, make):
 def test_stable_zip_bytes_do_not_depend_on_file_times(tmp_path):
     a, b = _zip_twice(tmp_path, lambda d, out: pipeline.write_stable_zip(sorted(d.iterdir()), out))
     assert a == b
+
+
+def test_stable_zip_streams_and_writes_what_writestr_wrote(tmp_path, monkeypatch):
+    """Shapefiles and GeoJSON run to GBs: stream them, and keep the bytes (and so the md5 and key) the
+    in-memory writer gave."""
+    import random
+    import zipfile
+    files = []
+    for name, body in (('a.dbf', b''), ('b.shp', random.Random(7).randbytes(3 << 20)), ('c.txt', b'k\n' * 999)):
+        files.append(tmp_path / name)
+        files[-1].write_bytes(body)
+    ref = tmp_path / 'ref.zip'
+    with zipfile.ZipFile(ref, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for f in files:
+            info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type, info.external_attr = zipfile.ZIP_DEFLATED, 0o644 << 16
+            zf.writestr(info, f.read_bytes())
+    monkeypatch.setattr(Path, 'read_bytes', lambda self: pytest.fail(f'{self.name} loaded whole'))
+    pipeline.write_stable_zip(files, tmp_path / 'out.zip')
+    monkeypatch.undo()
+    assert (tmp_path / 'out.zip').read_bytes() == ref.read_bytes()
 
 
 def test_bake_formats_zip_with_key_is_byte_stable(tmp_path):
@@ -180,10 +238,10 @@ def test_whole_layer_rebakes_an_output_older_than_its_source(tmp_path, monkeypat
     paths['geojson'].parent.mkdir(parents=True)
     paths['geojson'].write_text('stale')
     os.utime(paths['geojson'], (1000, 1000))
-    written, skipped, errors = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', True, False)
+    written, skipped, errors = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', False)
     assert errors == [] and written == 2  # geojson + kml rebuilt
     assert 'Ward 1' in paths['geojson'].read_text()
-    written, skipped, _ = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', True, False)
+    written, skipped, _ = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', False)
     assert written == 0 and skipped == 3  # second run: nothing to do
 
 
@@ -191,13 +249,13 @@ def test_whole_layer_failure_leaves_no_partial_output(tmp_path, monkeypatch):
     import bake_whole_layer as bwl
     monkeypatch.setattr(bwl, 'OUT', tmp_path / 'baked')
 
-    def half_then_die(con, parquet, out, gdal_ok):
+    def half_then_die(con, parquet, out):
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text('{"type":"FeatureCollection","features":[')
         raise RuntimeError('killed')
     monkeypatch.setattr(bwl, 'write_geojson_whole', half_then_die)
     pq = _tiny_parquet(tmp_path / 'w.parquet')
-    _, _, errors = bwl.bake_one(None, 'w', pq, 'p', 'w', True, False)
+    _, _, errors = bwl.bake_one(None, 'w', pq, 'p', 'w', False)
     assert errors and not bwl.out_paths('p', 'w')['geojson'].exists()
 
 
@@ -228,6 +286,20 @@ def test_whole_layer_geojson_keeps_every_feature_whole_where_7_decimals_would_br
     first = out.read_bytes()
     write_geojson_whole(pipeline.make_con(), pq, out)
     assert out.read_bytes() == first                                      # a re-run writes the same bytes
+
+
+def test_whole_layer_geojson_needs_the_gdal_driver(tmp_path, monkeypatch):
+    import bake_whole_layer as bwl
+    monkeypatch.setattr(bwl, 'gdal_geojson_available', lambda con: False)
+    with pytest.raises(RuntimeError, match='GDAL GeoJSON driver'):
+        bwl.write_geojson_whole(pipeline.make_con(), _tiny_parquet(tmp_path / 'w.parquet'), tmp_path / 'w.geojson')
+
+
+def test_sizes_and_names_record_each_file_by_size_and_content(tmp_path):
+    a = tmp_path / 'X.parquet'
+    a.write_bytes(b'one')
+    assert pipeline.sizes_and_names({'parquet': a}) == {'sizes': {'parquet': 3},
+                                                        'names': pipeline.versioned_names({'parquet': a})}
 
 
 def test_whole_layer_geojson_fails_rather_than_ship_changed_geometry(tmp_path, monkeypatch):
@@ -634,6 +706,66 @@ def test_register_layer_keeps_rebaked_tiles_on_a_rerun(tmp_path):
     layer = json.loads(catalog.read_text())['layers'][0]
     assert layer['pmtiles'] == rebaked
     assert layer['fetched_at'] == '2026-01-01'
+
+
+def test_register_layer_as_built_takes_the_entry_given_the_previous_one(tmp_path):
+    """A bake that makes every file of the layer: its entry (built from the
+    previous one) stands as built, its own tiles and this build's fetched_at."""
+    r2 = 'https://pub.r2.dev'
+    old = {'id': 'x', 'parquet': {'url': f'{r2}/e/X.1.parquet', 'bytes': 3},
+           'pmtiles': {'url': f'{r2}/e/X.c08c0de4.pmtiles', 'bytes': 7}, 'fetched_at': '2026-01-01',
+           'refresh': {'audited_at': '2026-02-02'}}
+    catalog, manifest = tmp_path / 'catalog.json', tmp_path / 'manifest.json'
+    catalog.write_text(json.dumps({'layers': [{'id': 'w'}, old]}))
+    manifest.write_text('[{"id": "x", "old": true}]')
+    seen = []
+
+    def entry_for(prev):
+        seen.append(prev)
+        return {'id': 'x', 'parquet': dict(old['parquet']), 'pmtiles': {'url': f'{r2}/e/X.9.pmtiles', 'bytes': 9},
+                'fetched_at': '2026-11-22', 'refresh': {'audited_at': prev['refresh']['audited_at']}}
+    pipeline.register_layer(catalog, manifest, entry_for, {'id': 'x'}, {'label': 'X'}, as_built=True)
+    assert seen == [old]
+    got = json.loads(catalog.read_text())
+    assert [x['id'] for x in got['layers']] == ['w', 'x'] and got['level_order'] == ['x']
+    assert got['layers'][1] == entry_for(old)
+    assert json.loads(manifest.read_text()) == [{'id': 'x'}]
+
+
+def test_layer_files_name_the_local_files_their_urls_and_manifest_columns(tmp_path):
+    exts = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'shapefile': 'shp.zip'}
+    assert pipeline.layer_paths(tmp_path, 'X', exts) == {
+        'parquet': tmp_path / 'X.parquet', 'pmtiles': tmp_path / 'X.pmtiles', 'shapefile': tmp_path / 'X.shp.zip'}
+    names = {'parquet': 'X.a.parquet', 'pmtiles': 'X.b.pmtiles', 'shapefile': 'X.c.shp.zip'}
+    sizes = {'parquet': 1, 'pmtiles': 2, 'shapefile': 3}
+    blocks = pipeline.format_blocks(exts, names, sizes, 'https://r2/e/x')
+    assert list(blocks) == ['parquet', 'pmtiles', 'shapefile']
+    assert blocks['shapefile'] == {'url': 'https://r2/e/x/X.c.shp.zip', 'bytes': 3}
+    assert list(pipeline.manifest_files(names, sizes).items()) == [
+        ('parquet_file', 'X.a.parquet'), ('parquet_bytes', 1), ('pmtiles_file', 'X.b.pmtiles'), ('pmtiles_bytes', 2)]
+
+
+def test_upload_layer_puts_every_local_file_at_its_versioned_key(tmp_path, monkeypatch):
+    exts = {'parquet': 'parquet', 'pmtiles': 'pmtiles'}
+    for p in pipeline.layer_paths(tmp_path, 'X', exts).values():
+        p.write_bytes(p.name.encode())
+    keys = []
+    monkeypatch.setattr(pipeline, 'r2_client', lambda **kw: 'S3')
+    monkeypatch.setattr(pipeline, 'r2_upload', lambda s3, p, k: keys.append((s3, p.name, k)))
+    names = pipeline.upload_layer(tmp_path, 'X', exts, 'e/x')
+    assert keys == [('S3', 'X.parquet', f'e/x/{names["parquet"]}'), ('S3', 'X.pmtiles', f'e/x/{names["pmtiles"]}')]
+
+
+def test_step_cli_runs_the_named_step_with_its_options(capsys):
+    seen = []
+    steps = {'pull': lambda a: seen.append(('pull', a.max_minutes)) or 'pulled', 'bake': lambda a: seen.append('bake')}
+    assert pipeline.step_cli('doc', steps, ('--max-minutes', {'type': float, 'default': 5}),
+                             argv=['pull', '--max-minutes', '2']) == 'pulled'
+    pipeline.step_cli('doc', steps, argv=['bake'])
+    assert seen == [('pull', 2.0), 'bake']
+    with pytest.raises(SystemExit):
+        pipeline.step_cli('doc', steps, argv=['upload'])
+    assert "invalid choice: 'upload'" in capsys.readouterr().err
 
 
 def test_versioned_names_name_each_file_by_its_content(tmp_path):

@@ -28,8 +28,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
-import gzip
 import json
 import re
 import sys
@@ -103,10 +101,9 @@ def pull_pages(cache: Path, filters: dict, fetch: Fetcher, limit: int = LIMIT, r
             if deadline:
                 deadline.check(f'{cache.name} offset {offset:,}')
             recs = fetch(offset, limit, filters)['records']
-            with atomic_output(page) as part:
-                part.write_bytes(gzip.compress(json.dumps(recs).encode(), mtime=0))
+            pipeline.write_json_gz(page, recs)
             log(f'  {cache.name}: rows {offset:,}-{offset + len(recs):,} of {total:,}')
-        records.extend(json.loads(gzip.decompress(page.read_bytes())))
+        records.extend(pipeline.read_json_gz(page))
     return records
 
 
@@ -287,9 +284,8 @@ TAGS = ['MGNREGA', 'NREGA', 'rural employment', 'jobs scheme', 'wages', 'persond
 def catalog_entry(rows: int, sizes: dict, fetched_at: str, r2_public: str, unmatched: list[str],
                   names: dict[str, str] | None = None) -> dict:
     names = names or pipeline.plain_names(BASENAME, EXT)
-    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
-    for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows,
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': 'GODL-India', 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
                   'category': CATEGORY[0], 'provenance': 'curated', 'fetched_at': fetched_at,
                   'notes': notes(unmatched), 'tags': TAGS})
@@ -301,8 +297,7 @@ def manifest_entry(rows: int, sizes: dict, unmatched: list[str], names: dict[str
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': CATEGORY[0],
             'source': SOURCE, 'description': description(), 'unit': 'districts', 'features': rows,
             'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-            'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+            **pipeline.manifest_files(names, sizes),
             'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
             'notes': notes(unmatched), 'tags': TAGS}
 
@@ -322,15 +317,13 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 # ── bake ─────────────────────────────────────────────────────────────────────
 
 def load_pages(cache: Path) -> list[dict]:
-    return [r for p in sorted(cache.glob('offset_*.json.gz')) for r in json.loads(gzip.decompress(p.read_bytes()))]
+    return [r for p in sorted(cache.glob('offset_*.json.gz')) for r in pipeline.read_json_gz(p)]
 
 
 def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
     full, trend = load_pages(RAW / f'full_{YEAR}'), load_pages(RAW / 'trend_all_years')
@@ -357,27 +350,17 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
     con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
-    path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))
-    write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
-    bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
-    bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
-    summary = {'rows': n, 'districts_with_values': filled, 'unmatched': [f'{s} / {d}' for s, d in unmatched],
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+    files = bake_formats.write_all_formats(con, path, LAYER_ID, prop_cols, TILE_FIELDS)
+    summary = {'rows': n, 'districts_with_values': filled, 'unmatched': [f'{s} / {d}' for s, d in unmatched], **files}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     log(json.dumps(summary, indent=2))
     return summary
 
 
-def local_paths(out_dir: Path) -> dict[str, Path]:
-    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
-
-
 def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
     changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
-    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX)
 
 
 def pull(refresh: bool = False, max_minutes: float = 50) -> tuple[list[dict], list[dict]]:
@@ -391,24 +374,17 @@ def pull(refresh: bool = False, max_minutes: float = 50) -> tuple[list[dict], li
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    ap.add_argument('--refresh', action='store_true', help='refetch every page (the source updates daily)')
-    ap.add_argument('--max-minutes', type=float, default=50, help='pull stops cleanly after this long')
-    a = ap.parse_args()
-    if a.step == 'pull':
+    def pull_step(a) -> None:
         try:
             with cache_backup(RAW, 'bake_mgnrega_districts'):
                 pull(a.refresh, a.max_minutes)
         except pipeline.OutOfTime as e:
             log(f'STOPPED: {e}; finished pages are cached, rerun to continue')
             sys.exit(3)
-    elif a.step == 'bake':
-        bake()
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {'pull': pull_step, 'bake': lambda a: bake(), 'upload': lambda a: upload(),
+                                'register': lambda a: register()},
+                      ('--refresh', {'action': 'store_true', 'help': 'refetch every page (the source updates daily)'}),
+                      ('--max-minutes', {'type': float, 'default': 50, 'help': 'pull stops cleanly after this long'}))
 
 
 if __name__ == '__main__':

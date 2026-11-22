@@ -35,7 +35,7 @@ def _tagged_parquet(tmp_path: Path) -> Path:
 
 def test_whole_layer_geojson_of_an_epsg4326_tagged_parquet_is_lon_lat(tmp_path):
     out = tmp_path / 'out.geojson'
-    write_geojson_whole(make_con(), _tagged_parquet(tmp_path), out, gdal_ok=True)
+    write_geojson_whole(make_con(), _tagged_parquet(tmp_path), out)
     coords = json.loads(out.read_text())['features'][0]['geometry']['coordinates']
     assert coords == list(PATNA)
 
@@ -47,7 +47,7 @@ def test_whole_layer_geojson_is_lon_lat_even_on_a_bare_connection(tmp_path):
     con = duckdb.connect()
     con.execute('LOAD spatial')
     out = tmp_path / 'out.geojson'
-    write_geojson_whole(con, _tagged_parquet(tmp_path), out, gdal_ok=True)
+    write_geojson_whole(con, _tagged_parquet(tmp_path), out)
     coords = json.loads(out.read_text())['features'][0]['geometry']['coordinates']
     assert coords == list(PATNA)
 

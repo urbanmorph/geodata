@@ -34,7 +34,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import bake_formats  # noqa: E402
-from pipeline import USER_AGENT, Deadline, OutOfTime, atomic_output, log, with_retries, write_json  # noqa: E402
+from pipeline import USER_AGENT, Deadline, OutOfTime, atomic_output, log, make_con, with_retries, write_json  # noqa: E402
 CATALOG = ROOT / 'catalog.json'
 MANIFEST = ROOT / 'scripts' / 'external-ingested.json'
 
@@ -241,21 +241,11 @@ def patched_level_meta(meta: dict, release: str) -> dict:
 
 # ── side-effecting steps ─────────────────────────────────────────────────
 
-def _con(tmp: Path):
-    from bake_extracts import make_con
-    tmp.mkdir(parents=True, exist_ok=True)
-    con = make_con()
-    # ~4.8M rows with nested columns: let order-free COPYs stream and spill.
-    con.execute(f"SET preserve_insertion_order = false; SET temp_directory = '{tmp}';")
-    return con
-
-
 def fetch(release: str, src: Path, parts: int = 8, deadline: Deadline | None = None) -> list[Path]:
     """Download only the release files whose row groups overlap India.
     Overture files are spatially sorted, so a release's ~30 files reduce to a
     few; S3 throttles one connection to us-west-2 (~0.7 MB/s from India), so
     each file comes down as `parts` parallel byte ranges (download_ranged)."""
-    from bake_extracts import make_con
     con = make_con()
     con.execute("INSTALL httpfs; LOAD httpfs; SET s3_region = 'us-west-2';")
     cols = ('file', 'row_group_id', 'xmin', 'xmax', 'ymin', 'ymax')
@@ -333,8 +323,8 @@ def bake(release: str, src: Path, out: Path) -> dict:
     delete one file and re-run to rebuild just that format."""
     from pipeline import rebake_flatten_bbox
 
-    out.mkdir(parents=True, exist_ok=True)
-    con = _con(out / 'tmp')
+    (out / 'tmp').mkdir(parents=True, exist_ok=True)
+    con = make_con(out / 'tmp', ordered=False)   # ~4.8M rows with nested columns: stream and spill
     path = {fmt: out / f'{LAYER_ID}.{ext}' for fmt, ext in FORMATS.items()}
     files = sorted(str(p) for p in src.glob('*.parquet'))
     districts = bake_formats.fetch_layer_file(CATALOG, 'lgd_districts', 'parquet', out / 'lgd_districts.parquet')
