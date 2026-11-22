@@ -62,7 +62,7 @@ from bake_formats import (  # noqa: E402
     tile_fields,
 )
 from build_filter_stats import panel_stats, stats_for_parquet, tile_filter_columns  # noqa: E402
-from bake_land_water import decode_tile, tile_bounds, tile_for  # noqa: E402
+import tile_probe  # noqa: E402
 from pipeline import (  # noqa: E402
     R2_PUBLIC,
     Deadline,
@@ -240,30 +240,10 @@ def tile_report(pm: Path, parquet: Path, con, kind: str, points: list[tuple[floa
     """Per probe tile at a low, a mid and the max zoom: decoded features vs
     parquet features meeting the tile, and the area (polygons) or length
     (lines) each covers inside it. Points compare counts only."""
-    measured = kind in ('polygon', 'line')
     max_zoom = at.parse_header(read_head(pm, 127)).max_zoom
-    tmp = pm.with_name(f'{pm.stem}.decoded.geojson')
-    rows, seen = [], set()
-    for lon, lat in points:
-        for z in check_zooms(max_zoom):
-            x, y = tile_for(lon, lat, z)
-            if (z, x, y) in seen:  # probes close together share their low-zoom tiles
-                continue
-            seen.add((z, x, y))
-            w, s, e, n = tile_bounds(z, x, y)
-            env = f'ST_MakeEnvelope({w}, {s}, {e}, {n})'
-            expect, want = con.execute(
-                f"SELECT count(*), {amount_sql(kind, 'geometry', env)} FROM read_parquet('{parquet}') "
-                f"WHERE xmax >= ? AND xmin <= ? AND ymax >= ? AND ymin <= ? AND ST_Intersects(geometry, {env})",
-                [w, e, s, n]).fetchone()
-            decoded = decode_tile(pm, z, x, y, tmp)
-            got = con.execute(
-                f"SELECT {amount_sql(kind, 'geom', env)} FROM ST_Read('{tmp}')").fetchone()[0] \
-                if decoded and measured else 0
-            rows.append({'z': z, 'x': x, 'y': y, 'decoded': decoded, 'parquet': expect,
-                         'cover': round(got / want, 3) if want else None})
-    tmp.unlink(missing_ok=True)
-    return rows
+    return tile_probe.tile_report(pm, parquet, con, points, check_zooms(max_zoom),
+                                  lambda col, env, z: amount_sql(kind, col, env),
+                                  measured=kind in ('polygon', 'line'))
 
 
 def worse_than(live: list[dict] | None, rows: list[dict], kind: str) -> list[str]:
