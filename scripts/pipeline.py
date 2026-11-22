@@ -841,7 +841,8 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
     from tile_keys import keep_all_rebaked
     LICENCE_GATE(entry['id'])
     entry = licence_labelled(entry)
-    prev = next((x for x in catalog.setdefault('layers', []) if x.get('id') == entry['id']), {})
+    prev = prev_layer(catalog, entry['id'])
+    catalog.setdefault('layers', [])
     entry = {**entry, 'fetched_at': prev.get('fetched_at') or entry.get('fetched_at') or now_iso()}
     keep_all_rebaked(entry, prev)  # rebaked tiles (filter columns) stay while the data is unchanged
     catalog['layers'] = upsert_by_id(catalog['layers'], entry)
@@ -874,6 +875,23 @@ def plain_names(basename: str, exts: dict[str, str]) -> dict[str, str]:
     return {fmt: f'{basename}.{ext}' for fmt, ext in exts.items()}
 
 
+def layer_paths(out_dir: Path, basename: str, exts: dict[str, str]) -> dict[str, Path]:
+    """{format: <out_dir>/<basename>.<ext>}: the local files a bake writes."""
+    return {fmt: out_dir / name for fmt, name in plain_names(basename, exts).items()}
+
+
+def format_blocks(formats: Iterable[str], names: dict[str, str], sizes: dict[str, int], base_url: str) -> dict:
+    """{format: {url, bytes}} in the order of `formats`: a catalog entry's download
+    blocks, each at <base_url>/<its content-versioned name>."""
+    return {fmt: {'url': f'{base_url}/{names[fmt]}', 'bytes': sizes[fmt]} for fmt in formats}
+
+
+def manifest_files(names: dict[str, str], sizes: dict[str, int]) -> dict:
+    """The manifest row's parquet and pmtiles file names and sizes."""
+    return {'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
+            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles']}
+
+
 def upload_versioned(s3, paths: dict[str, Path], prefix: str, put: Callable | None = None) -> dict[str, str]:
     """Upload each file to <prefix>/<its content-versioned name> (md5-skipped by
     `put`, r2_upload by default) and return the names: a changed file gets a new
@@ -882,6 +900,13 @@ def upload_versioned(s3, paths: dict[str, Path], prefix: str, put: Callable | No
     for fmt, path in paths.items():
         (put or r2_upload)(s3, path, f'{prefix}/{names[fmt]}')
     return names
+
+
+def upload_layer(out_dir: Path, basename: str, exts: dict[str, str], prefix: str, s3=None,
+                 put: Callable | None = None) -> dict[str, str]:
+    """Every format a bake wrote (layer_paths) to its content-versioned key under
+    `prefix`: unchanged files keep theirs (md5-skipped)."""
+    return upload_versioned(s3 or r2_client(), layer_paths(out_dir, basename, exts), prefix, put)
 
 
 def summary_names(summary: dict) -> dict[str, str]:
@@ -893,11 +918,30 @@ def summary_names(summary: dict) -> dict[str, str]:
     return summary['names']
 
 
-def register_layer(catalog_path: Path, manifest_path: Path, entry: dict, manifest_row: dict,
-                   level_meta: dict, **kw) -> None:
-    """upsert_layer into catalog.json and upsert_by_id into the manifest, on disk."""
+def prev_layer(catalog: dict, layer_id: str) -> dict:
+    """The catalog's entry for layer_id, or {} for a new layer."""
+    return next((x for x in catalog.get('layers', []) if x.get('id') == layer_id), {})
+
+
+def upsert_as_built(catalog: dict, entry: dict, level_meta: dict, **kw) -> dict:
+    """upsert_layer for a bake that makes every file of the layer: its entry
+    stands as built. upsert_layer alone would keep the first fetched_at and,
+    while the parquet is unchanged, the previous tiles as if someone had
+    rebaked them."""
+    upsert_layer(catalog, entry, level_meta, **kw)
+    catalog['layers'] = upsert_by_id(catalog['layers'], licence_labelled(entry))
+    return catalog
+
+
+def register_layer(catalog_path: Path, manifest_path: Path, entry: dict | Callable[[dict], dict],
+                   manifest_row: dict, level_meta: dict, as_built: bool = False, **kw) -> None:
+    """upsert_layer (upsert_as_built when as_built) into catalog.json and
+    upsert_by_id into the manifest, on disk. `entry` may be a function of the
+    layer's previous entry ({} when new), for an entry that carries some of it."""
     catalog = json.loads(catalog_path.read_text())
-    write_json(catalog_path, upsert_layer(catalog, entry, level_meta, **kw))
+    if callable(entry):
+        entry = entry(prev_layer(catalog, manifest_row['id']))
+    write_json(catalog_path, (upsert_as_built if as_built else upsert_layer)(catalog, entry, level_meta, **kw))
     write_json(manifest_path, upsert_by_id(json.loads(manifest_path.read_text()), manifest_row))
 
 

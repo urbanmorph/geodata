@@ -368,9 +368,8 @@ def catalog_entry(lid: str, summ: dict, prev: dict, r2_public: str) -> dict:
     from populate_refresh import infer, next_due
     from populate_source_check import OVERRIDES, merge
     meta, built, src = LAYERS[lid], summ['layers'][lid], summ['sources']
-    entry = {'id': lid, 'level': lid, 'source': 'OpenStreetMap', 'rows': built['rows']}
-    for fmt in EXT:
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{built["names"][fmt]}', 'bytes': built['sizes'][fmt]}
+    entry = {'id': lid, 'level': lid, 'source': 'OpenStreetMap', 'rows': built['rows'],
+             **pipeline.format_blocks(EXT, built['names'], built['sizes'], f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': OSM_LICENCE,
                   'attribution': {'primary': dict(OSM_ATTRIBUTION), 'publisher': dict(PUBLISHER)},
                   'category': meta['category'], 'provenance': 'curated', 'fetched_at': src['as_of'],
@@ -387,8 +386,7 @@ def manifest_entry(lid: str, summ: dict) -> dict:
     return {'id': lid, 'name': meta['label'], 'level': lid, 'category': meta['category'], 'source': 'OpenStreetMap',
             'description': meta['description'], 'unit': meta['unit'], 'features': built['rows'],
             'license': OSM_LICENCE, 'r2_prefix': R2_PREFIX,
-            'parquet_file': built['names']['parquet'], 'parquet_bytes': built['sizes']['parquet'],
-            'pmtiles_file': built['names']['pmtiles'], 'pmtiles_bytes': built['sizes']['pmtiles'],
+            **pipeline.manifest_files(built['names'], built['sizes']),
             'source_url': OSM_ATTRIBUTION['url'], 'source_org': OSM_ATTRIBUTION['name'],
             'source_version': f'Geofabrik India extract of {summ["sources"]["as_of"]}',
             'notes': notes(lid), 'tags': list(meta['tags'])}
@@ -401,12 +399,9 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summa
     catalog = json.loads(catalog_path.read_text())
     manifest = json.loads(manifest_path.read_text())
     for lid, meta in LAYERS.items():
-        prev = next((x for x in catalog.get('layers', []) if x.get('id') == lid), {})
-        entry = pipeline.licence_labelled(catalog_entry(lid, summ, prev, r2_public or pipeline.R2_PUBLIC))
+        entry = catalog_entry(lid, summ, pipeline.prev_layer(catalog, lid), r2_public or pipeline.R2_PUBLIC)
         level_meta = {'label': meta['label'], 'unit': meta['unit'], 'description': meta['description']}
-        pipeline.upsert_layer(catalog, entry, level_meta, attribution=('OpenStreetMap', OSM_ATTRIBUTION))
-        # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-        catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], entry)
+        pipeline.upsert_as_built(catalog, entry, level_meta, attribution=('OpenStreetMap', OSM_ATTRIBUTION))
         manifest = pipeline.upsert_by_id(manifest, manifest_entry(lid, summ))
     pipeline.write_json(catalog_path, catalog)
     pipeline.write_json(manifest_path, manifest)

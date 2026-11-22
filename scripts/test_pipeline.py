@@ -636,6 +636,54 @@ def test_register_layer_keeps_rebaked_tiles_on_a_rerun(tmp_path):
     assert layer['fetched_at'] == '2026-01-01'
 
 
+def test_register_layer_as_built_takes_the_entry_given_the_previous_one(tmp_path):
+    """A bake that makes every file of the layer: its entry (built from the
+    previous one) stands as built, its own tiles and this build's fetched_at."""
+    r2 = 'https://pub.r2.dev'
+    old = {'id': 'x', 'parquet': {'url': f'{r2}/e/X.1.parquet', 'bytes': 3},
+           'pmtiles': {'url': f'{r2}/e/X.c08c0de4.pmtiles', 'bytes': 7}, 'fetched_at': '2026-01-01',
+           'refresh': {'audited_at': '2026-02-02'}}
+    catalog, manifest = tmp_path / 'catalog.json', tmp_path / 'manifest.json'
+    catalog.write_text(json.dumps({'layers': [{'id': 'w'}, old]}))
+    manifest.write_text('[{"id": "x", "old": true}]')
+    seen = []
+
+    def entry_for(prev):
+        seen.append(prev)
+        return {'id': 'x', 'parquet': dict(old['parquet']), 'pmtiles': {'url': f'{r2}/e/X.9.pmtiles', 'bytes': 9},
+                'fetched_at': '2026-11-22', 'refresh': {'audited_at': prev['refresh']['audited_at']}}
+    pipeline.register_layer(catalog, manifest, entry_for, {'id': 'x'}, {'label': 'X'}, as_built=True)
+    assert seen == [old]
+    got = json.loads(catalog.read_text())
+    assert [x['id'] for x in got['layers']] == ['w', 'x'] and got['level_order'] == ['x']
+    assert got['layers'][1] == entry_for(old)
+    assert json.loads(manifest.read_text()) == [{'id': 'x'}]
+
+
+def test_layer_files_name_the_local_files_their_urls_and_manifest_columns(tmp_path):
+    exts = {'parquet': 'parquet', 'pmtiles': 'pmtiles', 'shapefile': 'shp.zip'}
+    assert pipeline.layer_paths(tmp_path, 'X', exts) == {
+        'parquet': tmp_path / 'X.parquet', 'pmtiles': tmp_path / 'X.pmtiles', 'shapefile': tmp_path / 'X.shp.zip'}
+    names = {'parquet': 'X.a.parquet', 'pmtiles': 'X.b.pmtiles', 'shapefile': 'X.c.shp.zip'}
+    sizes = {'parquet': 1, 'pmtiles': 2, 'shapefile': 3}
+    blocks = pipeline.format_blocks(exts, names, sizes, 'https://r2/e/x')
+    assert list(blocks) == ['parquet', 'pmtiles', 'shapefile']
+    assert blocks['shapefile'] == {'url': 'https://r2/e/x/X.c.shp.zip', 'bytes': 3}
+    assert list(pipeline.manifest_files(names, sizes).items()) == [
+        ('parquet_file', 'X.a.parquet'), ('parquet_bytes', 1), ('pmtiles_file', 'X.b.pmtiles'), ('pmtiles_bytes', 2)]
+
+
+def test_upload_layer_puts_every_local_file_at_its_versioned_key(tmp_path, monkeypatch):
+    exts = {'parquet': 'parquet', 'pmtiles': 'pmtiles'}
+    for p in pipeline.layer_paths(tmp_path, 'X', exts).values():
+        p.write_bytes(p.name.encode())
+    keys = []
+    monkeypatch.setattr(pipeline, 'r2_client', lambda **kw: 'S3')
+    monkeypatch.setattr(pipeline, 'r2_upload', lambda s3, p, k: keys.append((s3, p.name, k)))
+    names = pipeline.upload_layer(tmp_path, 'X', exts, 'e/x')
+    assert keys == [('S3', 'X.parquet', f'e/x/{names["parquet"]}'), ('S3', 'X.pmtiles', f'e/x/{names["pmtiles"]}')]
+
+
 def test_versioned_names_name_each_file_by_its_content(tmp_path):
     a, b = tmp_path / 'X.parquet', tmp_path / 'X.shp.zip'
     a.write_bytes(b'one')

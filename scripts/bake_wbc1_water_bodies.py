@@ -395,9 +395,8 @@ TAGS = ['water bodies', 'ponds', 'tanks', 'lakes', 'reservoirs', 'check dams', '
 def catalog_entry(s: dict, fetched_at: str, r2_public: str, names: dict[str, str] | None = None) -> dict:
     names = names or pipeline.plain_names(BASENAME, EXT)
     from build_catalog import ATTR
-    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': s['rows']}
-    for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': s['sizes'][fmt]}
+    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': s['rows'],
+             **pipeline.format_blocks(EXT, names, s['sizes'], f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': 'GODL-India', 'attribution': {'primary': dict(ATTR[SOURCE]), 'publisher': dict(PUBLISHER)},
                   'category': 'water', 'provenance': 'curated', 'fetched_at': fetched_at,
                   'notes': notes(s), 'tags': TAGS})
@@ -410,8 +409,7 @@ def manifest_entry(s: dict, names: dict[str, str] | None = None) -> dict:
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'water',
             'source': SOURCE, 'description': description(), 'unit': 'water bodies', 'features': s['rows'],
             'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-            'parquet_file': names['parquet'], 'parquet_bytes': s['sizes']['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': s['sizes']['pmtiles'],
+            **pipeline.manifest_files(names, s['sizes']),
             'source_url': CATALOG_PAGE, 'source_org': ATTR[SOURCE]['name'], 'notes': notes(s), 'tags': TAGS}
 
 
@@ -538,17 +536,13 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     return summary
 
 
-def local_paths(out_dir: Path) -> dict[str, Path]:
-    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
-
-
 def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     """Every format to its content-versioned key, by resumable multipart uploads:
     the multi-GB GeoJSON/KML kept losing the connection, and a plain upload
     starts over each time."""
     s3 = pipeline.r2_client(read_timeout=300, connect_timeout=60, retries={'max_attempts': 5, 'mode': 'standard'})
-    return pipeline.upload_versioned(s3, local_paths(out_dir), R2_PREFIX, put=lambda s3, local, key:
-                                     pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads'))
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX, s3, put=lambda s3, local, key:
+                                 pipeline.r2_upload_resumable(s3, local, key, WORK / 'r2-uploads'))
 
 
 def main() -> None:

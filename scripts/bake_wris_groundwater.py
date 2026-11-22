@@ -698,7 +698,7 @@ def bake(out_dir: Path = OUT_DIR, raw: Path = RAW) -> dict:
 
 def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     """Every file to its content-versioned key: unchanged files keep theirs (md5-skipped)."""
-    paths = {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
+    paths = pipeline.layer_paths(out_dir, BASENAME, EXT)
     paths['readings'] = out_dir / f'{READINGS_BASENAME}.parquet'
     return pipeline.upload_versioned(pipeline.r2_client(), paths, R2_PREFIX)
 
@@ -758,9 +758,8 @@ def readings_url(summ: dict, r2_public: str) -> str:
 
 def catalog_entry(summ: dict, prev: dict, r2_public: str) -> dict:
     names, sizes, got = summ['names'], summ['sizes'], summ['pull']
-    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows']}
-    for fmt in EXT:
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows'],
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': LICENCE, 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
                   'category': CATEGORY, 'provenance': 'curated', 'notes': notes(summ, readings_url(summ, r2_public)),
                   'tags': TAGS, 'fetched_at': got['pulled_at'],
@@ -774,8 +773,7 @@ def manifest_entry(summ: dict, r2_public: str) -> dict:
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LEVEL, 'category': CATEGORY,
             'source': SOURCE, 'description': description(), 'unit': 'stations', 'features': summ['rows'],
             'license': LICENCE, 'r2_prefix': R2_PREFIX,
-            'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+            **pipeline.manifest_files(names, sizes),
             'readings_file': names['readings'], 'readings_bytes': sizes['readings'],
             'source_url': API_DOCS,
             'source_org': 'India-WRIS (Ministry of Jal Shakti): CGWB and state ground water departments',
@@ -789,15 +787,9 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     r2_public = r2_public or pipeline.R2_PUBLIC
     summ = json.loads(summary_path.read_text())
     pipeline.summary_names(summ)
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((x for x in catalog.get('layers', []) if x.get('id') == LAYER_ID), {})
-    entry = pipeline.licence_labelled(catalog_entry(summ, prev, r2_public))
-    pipeline.upsert_layer(catalog, entry, level_meta(), level=LEVEL, attribution=(SOURCE, ATTRIBUTION))
-    # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], entry)
-    pipeline.write_json(catalog_path, catalog)
-    pipeline.write_json(manifest_path, pipeline.upsert_by_id(json.loads(manifest_path.read_text()),
-                                                             manifest_entry(summ, r2_public)))
+    pipeline.register_layer(catalog_path, manifest_path, lambda prev: catalog_entry(summ, prev, r2_public),
+                            manifest_entry(summ, r2_public), level_meta(), as_built=True, level=LEVEL,
+                            attribution=(SOURCE, ATTRIBUTION))
 
 
 def main() -> None:

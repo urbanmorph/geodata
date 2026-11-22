@@ -172,8 +172,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
 
 def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     """Every format to its content-versioned key: unchanged files keep theirs (md5-skipped)."""
-    paths = {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
-    return pipeline.upload_versioned(pipeline.r2_client(), paths, R2_PREFIX)
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX)
 
 
 # ── register ─────────────────────────────────────────────────────────────────
@@ -207,9 +206,8 @@ def refresh_block(entry: dict, prev: dict, built_at: str) -> dict:
 
 def catalog_entry(summ: dict, prev: dict, r2_public: str) -> dict:
     names, sizes, got = summ['names'], summ['sizes'], summ['pull']
-    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows']}
-    for fmt in EXT:
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows'],
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': LICENCE, 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
                   'category': CATEGORY, 'provenance': 'curated', 'notes': notes(), 'tags': TAGS,
                   'fetched_at': got['pulled_at'],
@@ -230,8 +228,7 @@ def manifest_entry(summ: dict) -> dict:
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LEVEL, 'category': CATEGORY,
             'source': SOURCE, 'description': description(), 'unit': 'points', 'features': summ['rows'],
             'license': LICENCE, 'r2_prefix': R2_PREFIX,
-            'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+            **pipeline.manifest_files(names, sizes),
             'source_url': DOI_URL, 'source_org': 'Virginia Tech (University Libraries)',
             'source_version': f'figshare {ARTICLE} v{summ["pull"]["version"]}', 'notes': notes(), 'tags': TAGS}
 
@@ -241,14 +238,10 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent."""
     summ = json.loads(summary_path.read_text())
     pipeline.summary_names(summ)
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((x for x in catalog.get('layers', []) if x.get('id') == LAYER_ID), {})
-    entry = catalog_entry(summ, prev, r2_public or pipeline.R2_PUBLIC)
-    pipeline.upsert_layer(catalog, entry, level_meta(), level=LEVEL, attribution=(SOURCE, ATTRIBUTION))
-    # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], pipeline.licence_labelled(entry))
-    pipeline.write_json(catalog_path, catalog)
-    pipeline.write_json(manifest_path, pipeline.upsert_by_id(json.loads(manifest_path.read_text()), manifest_entry(summ)))
+    pipeline.register_layer(catalog_path, manifest_path,
+                            lambda prev: catalog_entry(summ, prev, r2_public or pipeline.R2_PUBLIC),
+                            manifest_entry(summ), level_meta(), as_built=True, level=LEVEL,
+                            attribution=(SOURCE, ATTRIBUTION))
 
 
 def main() -> None:

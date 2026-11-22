@@ -123,9 +123,8 @@ def level_meta() -> dict:
 def catalog_entry(rows: int, sizes: dict[str, int], fetched_at: str, r2_public: str,
                   names: dict[str, str] | None = None) -> dict:
     names = names or pipeline.plain_names(BASENAME, EXT)
-    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows}
-    for fmt, ext in EXT.items():
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LAYER_ID, 'source': SOURCE, 'rows': rows,
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({
         'licence': 'GODL-India',
         'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
@@ -149,8 +148,7 @@ def manifest_entry(rows: int, sizes: dict[str, int], names: dict[str, str] | Non
         'id': LAYER_ID, 'name': level_meta()['label'], 'level': LAYER_ID, 'category': 'water',
         'source': SOURCE, 'description': description(), 'unit': 'districts', 'features': rows,
         'license': 'GODL-India', 'r2_prefix': R2_PREFIX,
-        'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-        'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+        **pipeline.manifest_files(names, sizes),
         'source_url': ATTRIBUTION['url'], 'source_org': ATTRIBUTION['name'],
         'notes': notes(), 'tags': TAGS,
     }
@@ -196,14 +194,10 @@ def bake(wells: Path, out_dir: Path) -> dict:
     return summary
 
 
-def local_paths(out_dir: Path) -> dict[str, Path]:
-    return {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
-
-
 def upload(out_dir: Path) -> dict[str, str]:
     """Upload every format to its content-versioned key (<BASENAME>.<md5[:8]>.<ext>):
     changed bytes get a new key, unchanged files keep theirs (md5-skipped)."""
-    return pipeline.upload_versioned(pipeline.r2_client(), local_paths(out_dir), R2_PREFIX)
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX)
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
