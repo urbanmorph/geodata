@@ -161,8 +161,7 @@ def fetch_intermediates(host: str, hops: int = 3) -> Path:
         url = _aia_issuer_url(cert)
         if not url or cert.issuer == cert.subject:
             break
-        req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-        certs = _load_certs(pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=60).read()))
+        certs = _load_certs(pipeline.get_bytes(url))
         found += certs
         cert = certs[0]
     out = _ca_dir() / f'{host}.pem'
@@ -444,11 +443,7 @@ def pull(fetch: Fetch | None = None, deadline: pipeline.Deadline | None = None, 
     ctx = verified_context() if fetch is None else None
     fetch = fetch or api_fetch(ctx)
 
-    def get_json(url: str) -> dict:
-        req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-        return pipeline.with_retries(lambda: json.loads(urllib.request.urlopen(req, timeout=300, context=ctx).read()))
-
-    stations = pull_stations(RAW, get_json)
+    stations = pull_stations(RAW, lambda url: pipeline.get_json(url, timeout=300, context=ctx))
     groups = combos(stations)
     log(f'{len(stations):,} stations in {len(groups):,} (state, district, agency) groups, '
         f'{sum(groups.values()):,} with telemetry')

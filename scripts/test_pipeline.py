@@ -100,6 +100,19 @@ def test_failed_download_leaves_no_file_that_counts_as_done(tmp_path):
     assert list(tmp_path.iterdir()) == []
 
 
+def test_get_json_retries_a_cut_off_answer_as_the_house_client():
+    with _server([(200, b'{"a": '), (200, b'{"a": 1}')]) as (url, seen):
+        assert pipeline.get_json(url, wait=lambda n: None) == {'a': 1}
+    assert len(seen) == 2 and seen[0] == pipeline.USER_AGENT
+
+
+def test_get_bytes_gives_up_on_a_client_error():
+    with _server([(404, b'gone'), (200, b'never asked')]) as (url, seen):
+        with pytest.raises(OSError):
+            pipeline.get_bytes(url, give_up=pipeline.is_client_error, wait=lambda n: None)
+    assert len(seen) == 1
+
+
 def test_ingest_ramseraph_downloads_through_the_shared_helper():
     import ingest_ramseraph as ir
     assert ir.http_download is pipeline.download

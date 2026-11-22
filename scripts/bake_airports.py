@@ -91,10 +91,8 @@ def pull(raw: Path, get_json: Callable[[str], list], download: Callable[[str, Pa
     return got
 
 
-def github_json(url: str) -> list:
-    import urllib.request
-    req = urllib.request.Request(url, headers={'Accept': 'application/vnd.github+json'})
-    return pipeline.with_retries(lambda: json.loads(urllib.request.urlopen(req, timeout=60).read()))
+def github_json(url: str):
+    return pipeline.get_json(url, {'Accept': 'application/vnd.github+json'})
 
 
 # ── bake ─────────────────────────────────────────────────────────────────────

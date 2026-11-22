@@ -239,10 +239,7 @@ def pull_one(raw: Path, row: dict, get: Callable[[str], bytes]) -> dict:
 
 
 def http_get(url: str) -> bytes:
-    import urllib.request
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=300).read(),
-                                 give_up=pipeline.is_client_error)
+    return pipeline.get_bytes(url, timeout=300, give_up=pipeline.is_client_error)
 
 
 def cached_get(path: Path, url: str, get: Callable[[str], bytes]) -> bytes:

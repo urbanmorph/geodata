@@ -91,12 +91,6 @@ def pull(raw: Path, get_json: Callable[[str], dict], download: Callable[[str, Pa
     return got
 
 
-def stac_json(url: str) -> dict:
-    import urllib.request
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: json.loads(urllib.request.urlopen(req, timeout=60).read()))
-
-
 # ── bake ─────────────────────────────────────────────────────────────────────
 
 def build_table(con, src: Path, out: Path) -> int:
@@ -217,7 +211,7 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 
 def main() -> None:
     pipeline.step_cli(__doc__, {
-        'pull': lambda a: log(json.dumps(pull(RAW, stac_json, lambda url, dest: pipeline.download(url, dest)), indent=2)),
+        'pull': lambda a: log(json.dumps(pull(RAW, pipeline.get_json, lambda url, dest: pipeline.download(url, dest)), indent=2)),
         'bake': lambda a: bake(), 'upload': lambda a: upload(), 'register': lambda a: register()})
 
 

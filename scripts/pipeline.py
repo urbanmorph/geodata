@@ -83,6 +83,22 @@ def with_retries(fn: Callable[[], Any], tries: int = 6, wait: Callable[[int], No
 USER_AGENT = 'Mozilla/5.0 (compatible; bharatlas-pipeline/1.0; +https://bharatlas.com)'
 
 
+def get_bytes(url: str, headers: dict | None = None, timeout: float = 60, context=None,
+              parse: Callable[[bytes], Any] | None = None, **retry) -> Any:
+    """GET as the house client (USER_AGENT unless `headers` set another),
+    through with_retries (`retry`: its tries, wait, give_up). `parse` runs
+    inside the retry, so an answer cut off mid-JSON is fetched again."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, **(headers or {})})
+    parse = parse or (lambda body: body)
+    return with_retries(lambda: parse(urllib.request.urlopen(req, timeout=timeout, context=context).read()), **retry)
+
+
+def get_json(url: str, headers: dict | None = None, timeout: float = 60, **kw) -> Any:
+    """get_bytes, parsed as JSON."""
+    return get_bytes(url, headers, timeout, parse=json.loads, **kw)
+
+
 def is_client_error(e: Exception) -> bool:
     import urllib.error
     return isinstance(e, urllib.error.HTTPError) and 400 <= e.code < 500 and e.code not in (408, 429)

@@ -117,12 +117,6 @@ def pull(raw: Path, get_json: Callable[[str], dict], download: Callable[..., obj
     return got
 
 
-def borealis_json(url: str) -> dict:
-    import urllib.request
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: json.loads(urllib.request.urlopen(req, timeout=60).read()))
-
-
 # ── bake ─────────────────────────────────────────────────────────────────────
 
 def extract_once(zip_path: Path, dest: Path, md5: str) -> Path:
@@ -264,7 +258,7 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
 
 def main() -> None:
     pipeline.step_cli(__doc__, {
-        'pull': lambda a: log(json.dumps(pull(RAW, borealis_json, pipeline.download), indent=2)),
+        'pull': lambda a: log(json.dumps(pull(RAW, pipeline.get_json, pipeline.download), indent=2)),
         'bake': lambda a: bake(), 'upload': lambda a: upload(), 'register': lambda a: register()})
 
 

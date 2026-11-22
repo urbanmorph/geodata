@@ -185,8 +185,7 @@ def latest_extract_url() -> str:
 
 
 def get_text(url: str) -> str:
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=60).read().decode())
+    return pipeline.get_bytes(url, parse=bytes.decode)
 
 
 def sources_path() -> Path:
