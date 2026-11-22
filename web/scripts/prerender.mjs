@@ -11,6 +11,7 @@ import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../sh
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
+import { STATIC_PAGES, releasePages, urlset } from '../../shared/sitemap.mjs';
 import { LEVEL_META as BUILTIN_LEVEL_META, pickPrimary } from '../../shared/level-meta.mjs';
 import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
 import { REALMS, realmOf } from './realms.mjs';
@@ -1233,27 +1234,9 @@ await renderPage('mcp', {
   },
 }, { MCP_FAQ: mcpFaqHtml });
 
-// Static sitemap.xml — emitted at build time. Edge function later stitches in /c/[id].
-const sitemapUrls = [
-  { loc: ORIGIN + '/', changefreq: 'weekly', priority: '1.0' },
-  { loc: ORIGIN + '/layers', changefreq: 'weekly', priority: '0.9' },
-  { loc: ORIGIN + '/about', changefreq: 'monthly', priority: '0.8' },
-  { loc: ORIGIN + '/preview', changefreq: 'monthly', priority: '0.8' },
-  { loc: ORIGIN + '/privacy', changefreq: 'yearly', priority: '0.3' },
-  { loc: ORIGIN + '/terms', changefreq: 'yearly', priority: '0.3' },
-  { loc: ORIGIN + '/design', changefreq: 'monthly', priority: '0.4' },
-  { loc: ORIGIN + '/docs', changefreq: 'monthly', priority: '0.7' },
-  { loc: ORIGIN + '/mcp', changefreq: 'monthly', priority: '0.7' },
-  { loc: ORIGIN + '/releases', changefreq: 'monthly', priority: '0.5' },
-  ...Object.keys(releaseIndex.latest || {}).map((d) => ({ loc: `${ORIGIN}/releases/${d}`, changefreq: 'monthly', priority: '0.4' })),
-];
-const sitemapXml = `<?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${sitemapUrls.map((u) => `  <url>
-    <loc>${u.loc}</loc>
-    <changefreq>${u.changefreq}</changefreq>
-    <priority>${u.priority}</priority>
-  </url>`).join('\n')}
-</urlset>`;
+// Static sitemap.xml from the shared page list (shared/sitemap.mjs). The edge sitemap
+// (functions/sitemap.xml.ts) overrides it and adds the layer and community pages.
+const sitemapUrls = [...STATIC_PAGES, ...releasePages(releaseIndex)];
+const sitemapXml = urlset(sitemapUrls);
 await writeFile(resolve(WEB, 'public', 'sitemap.xml'), sitemapXml);
 console.log(`wrote sitemap.xml (${sitemapUrls.length} static URLs)`);
