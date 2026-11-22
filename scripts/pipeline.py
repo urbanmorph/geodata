@@ -299,16 +299,21 @@ def is_fresh(out: Path, *sources: Path) -> bool:
     return st.st_size > 0 and all(st.st_mtime >= s.stat().st_mtime for s in sources)
 
 
-def write_stable_zip(files: Iterable[Path], out: Path) -> None:
+def write_stable_zip(files: Iterable[Path], out: Path, zip64: bool = False) -> None:
     """Zip `files` (flat, in the given order) with a fixed timestamp, so the
-    same input gives the same bytes and md5 (no needless re-upload)."""
+    same input gives the same bytes and md5 (no needless re-upload). Streams
+    each file (they run to GBs). zip64=True gives every entry Zip64 headers
+    (bake_land_water_states' zips have them), not only the ones over 2 GB."""
+    import shutil
     import zipfile
     with atomic_output(out) as part, zipfile.ZipFile(part, 'w', zipfile.ZIP_DEFLATED) as zf:
         for f in files:
             info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
-            zf.writestr(info, f.read_bytes())
+            info.file_size = f.stat().st_size   # as writestr sets it: Zip64 only when the file needs it
+            with f.open('rb') as src, zf.open(info, 'w', force_zip64=zip64) as dst:
+                shutil.copyfileobj(src, dst, CHUNK)
 
 
 def write_json(path: Path, data: Any) -> None:

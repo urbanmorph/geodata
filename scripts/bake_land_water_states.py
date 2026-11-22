@@ -46,7 +46,6 @@ import shutil
 import struct
 import subprocess
 import sys
-import zipfile
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -60,8 +59,9 @@ import ingest_ramseraph as ir  # noqa: E402
 import rebake_tiles as rt  # noqa: E402
 from bake_formats import shapefile_key, short_field_names  # noqa: E402
 from pipeline import (  # noqa: E402
-    CHUNK, OGR_ENV, R2_PUBLIC, Deadline, OutOfTime, _remote_has, atomic_output, cached, download, file_md5,
+    OGR_ENV, R2_PUBLIC, Deadline, OutOfTime, _remote_has, cached, download, file_md5,
     make_con, patient_r2_client, r2_upload_retrying, rebake_flatten_bbox, slug, upload_lock, upsert_by_id, write_json,
+    write_stable_zip,
 )
 from tile_keys import versioned_key  # noqa: E402
 
@@ -250,15 +250,9 @@ def check_counts(fmt: str, expected: dict, got: dict, total: int) -> None:
 # ── zips + keys ──────────────────────────────────────────────────────────────
 
 def stable_zip(files: list[Path], out: Path) -> None:
-    """Zip `files` flat, sorted by name, with a fixed timestamp: the same
-    inputs give the same bytes. Streams each file (they run to GBs)."""
-    with atomic_output(out) as part, zipfile.ZipFile(part, 'w', allowZip64=True) as zf:
-        for f in sorted(files, key=lambda p: p.name):
-            info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
-            info.compress_type = zipfile.ZIP_DEFLATED
-            info.external_attr = 0o644 << 16
-            with f.open('rb') as src, zf.open(info, 'w', force_zip64=True) as dst:
-                shutil.copyfileobj(src, dst, CHUNK)
+    """write_stable_zip of `files` sorted by name, every entry Zip64: the
+    bytes (so the md5s and keys) these zips have always had."""
+    write_stable_zip(sorted(files, key=lambda p: p.name), out, zip64=True)
 
 
 # ── catalog ──────────────────────────────────────────────────────────────────

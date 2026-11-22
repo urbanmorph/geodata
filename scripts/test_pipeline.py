@@ -158,6 +158,27 @@ def test_stable_zip_bytes_do_not_depend_on_file_times(tmp_path):
     assert a == b
 
 
+def test_stable_zip_streams_and_writes_what_writestr_wrote(tmp_path, monkeypatch):
+    """Shapefiles and GeoJSON run to GBs: stream them, and keep the bytes (and so the md5 and key) the
+    in-memory writer gave."""
+    import random
+    import zipfile
+    files = []
+    for name, body in (('a.dbf', b''), ('b.shp', random.Random(7).randbytes(3 << 20)), ('c.txt', b'k\n' * 999)):
+        files.append(tmp_path / name)
+        files[-1].write_bytes(body)
+    ref = tmp_path / 'ref.zip'
+    with zipfile.ZipFile(ref, 'w', zipfile.ZIP_DEFLATED) as zf:
+        for f in files:
+            info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
+            info.compress_type, info.external_attr = zipfile.ZIP_DEFLATED, 0o644 << 16
+            zf.writestr(info, f.read_bytes())
+    monkeypatch.setattr(Path, 'read_bytes', lambda self: pytest.fail(f'{self.name} loaded whole'))
+    pipeline.write_stable_zip(files, tmp_path / 'out.zip')
+    monkeypatch.undo()
+    assert (tmp_path / 'out.zip').read_bytes() == ref.read_bytes()
+
+
 def test_bake_formats_zip_with_key_is_byte_stable(tmp_path):
     import bake_formats
     a, b = _zip_twice(tmp_path, lambda d, out: bake_formats.zip_with_key(d, out, ['k']))
