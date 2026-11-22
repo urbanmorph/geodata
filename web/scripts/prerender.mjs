@@ -25,6 +25,7 @@ import { minifyInlineStyles as minifyCss } from './minify-inline-css.mjs';
 import { designPageBody } from './design-page.mjs';
 import { gatePointProfiles, POINT_PROFILE_ATTRIBUTION, POINT_PROFILE_FAQ, POINT_PROFILE_CREDITS } from './point-profiles.mjs';
 import { ogImage } from './og-image-url.mjs';
+import { seoHead, crumbs } from './seo-head.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
@@ -69,43 +70,9 @@ await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalo
 
 // Keep in sync with web/src/util.ts:escapeHtml
 
-// SEO head block (title, description, canonical, OG/Twitter, JSON-LD) for the
-// prerendered pages. /view pages rewrite theirs at the edge (functions/view).
 const ORIGIN = 'https://bharatlas.com';
 // How many layers /api/v1/locate checks by default (the FAQ copy on /docs and /mcp).
 const LOCATE_N = DEFAULT_LOCATE_LAYERS.length;
-
-// TOKENS, renderNav, FOOTER imported from ./shared-chrome.mjs above
-// (extracted so vitest can test the pure helpers).
-
-
-function seoHead(o) {
-  const title = `${o.title} · bharatlas`;
-  const image = o.image || ogImage('og-default');
-  const type = o.type || 'website';
-  const ld = o.structuredData
-    ? `<script type="application/ld+json">${JSON.stringify(o.structuredData).replace(/</g, '\\u003c')}</script>`
-    : '';
-  return [
-    `<title>${esc(title)}</title>`,
-    `<meta name="description" content="${esc(o.description)}" />`,
-    `<link rel="canonical" href="${esc(o.url)}" />`,
-    `<meta property="og:type" content="${type}" />`,
-    `<meta property="og:title" content="${esc(title)}" />`,
-    `<meta property="og:description" content="${esc(o.description)}" />`,
-    `<meta property="og:url" content="${esc(o.url)}" />`,
-    `<meta property="og:image" content="${esc(image)}" />`,
-    `<meta property="og:image:width" content="1200" />`,
-    `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:site_name" content="bharatlas" />`,
-    `<meta property="og:locale" content="en_IN" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${esc(title)}" />`,
-    `<meta name="twitter:description" content="${esc(o.description)}" />`,
-    `<meta name="twitter:image" content="${esc(image)}" />`,
-    ld,
-  ].filter(Boolean).join('\n    ');
-}
 
 // Per-level labels and descriptions live in shared/level-meta.mjs (the /view
 // page reads the same entries); a copy here so ingested levels can join it.
@@ -794,14 +761,7 @@ const layersSeo = seoHead({
   title: 'All layers',
   description: `All ${totalLayers} of India's open map layers by theme: boundaries, city wards, water, environment and more. View any of them on a map or download it.`,
   url: ORIGIN + '/layers',
-  structuredData: {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-      { '@type': 'ListItem', position: 2, name: 'All layers', item: ORIGIN + '/layers' },
-    ],
-  },
+  structuredData: { '@context': 'https://schema.org', ...crumbs(['All layers', '/layers']) },
 });
 const layersTmpl = await readFile(resolve(WEB, 'layers.template.html'), 'utf8');
 // Source indentation is about 1 KB gzipped on /layers (its 50 KB budget). A
@@ -918,13 +878,7 @@ await renderPage('about', {
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'About', item: ORIGIN + '/about' },
-        ],
-      },
+      crumbs(['About', '/about']),
       {
         '@type': 'AboutPage',
         name: 'About bharatlas',
@@ -962,13 +916,7 @@ await renderPage(
     structuredData: {
       '@context': 'https://schema.org',
       '@graph': [
-        {
-          '@type': 'BreadcrumbList',
-          itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-            { '@type': 'ListItem', position: 2, name: 'Preview', item: ORIGIN + '/preview' },
-          ],
-        },
+        crumbs(['Preview', '/preview']),
         {
           '@type': 'WebApplication',
           name: 'bharatlas · preview',
@@ -990,17 +938,10 @@ await renderPage('privacy', {
   description:
     "Bharatlas runs without accounts, ad-tech or tracking cookies (only cookieless, aggregate traffic counts). This page explains what we store (very little) and what we don't.",
   url: ORIGIN + '/privacy',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'Privacy', item: ORIGIN + '/privacy' },
-        ],
-      },
+      crumbs(['Privacy', '/privacy']),
       {
         '@type': 'WebPage',
         name: 'Privacy',
@@ -1017,17 +958,10 @@ await renderPage('terms', {
   description:
     "Terms for using bharatlas: open-licence content only, no warranty of accuracy, contributor attests right to share. Short and plain-English.",
   url: ORIGIN + '/terms',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'Terms', item: ORIGIN + '/terms' },
-        ],
-      },
+      crumbs(['Terms', '/terms']),
       {
         '@type': 'WebPage',
         name: 'Terms',
@@ -1044,15 +978,7 @@ await renderPage('design', {
   title: 'Design',
   description: 'How bharatlas looks and reads: colours, type, spacing, buttons, accessibility and word rules, shown with the real values the site uses.',
   url: ORIGIN + '/design',
-  image: ogImage('og-default'),
-  structuredData: {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-      { '@type': 'ListItem', position: 2, name: 'Design', item: ORIGIN + '/design' },
-    ],
-  },
+  structuredData: { '@context': 'https://schema.org', ...crumbs(['Design', '/design']) },
 }, { DESIGN_BODY: designPageBody() });
 
 // /docs FAQ — mirrors the visible "Common questions" section emitted into
@@ -1116,17 +1042,10 @@ await renderPage('docs', {
   description:
     "Public JSON API for India's open geo layers. List, query and filter layers, locate a point across every admin and zone layer, find features nearby, download in open formats. No auth, no API key.",
   url: ORIGIN + '/docs',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'API v1', item: ORIGIN + '/docs' },
-        ],
-      },
+      crumbs(['API v1', '/docs']),
       {
         '@type': 'WebAPI',
         name: 'bharatlas API v1',
@@ -1208,17 +1127,10 @@ await renderPage('mcp', {
   description:
     `Ask questions about India's geo data in natural language. Connect Claude, GPT, or any LLM to ${totalLayers} geo layers via the bharatlas MCP server.`,
   url: ORIGIN + '/mcp',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'MCP Server', item: ORIGIN + '/mcp' },
-        ],
-      },
+      crumbs(['MCP Server', '/mcp']),
       {
         '@type': 'SoftwareApplication',
         name: 'bharatlas-mcp',
