@@ -10,7 +10,7 @@ import { buildViewDataset, buildViewContent, layerLevelMeta, type CatalogLayer, 
 import type { CatalogData } from '../lib/catalog-api';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import { fetchAsset, type AssetCtx } from '../lib/catalog-loader';
-import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
+import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundResponse, suggestLayers } from '../lib/not-found';
 import { escapeHtml as esc, ldJsonScript } from '../../../shared/format.mjs';
 import { findLayer } from '../lib/api-layer';
@@ -126,7 +126,7 @@ async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: CatalogDa
       status: 200,
       headers: {
         'content-type': 'text/html; charset=utf-8',
-        'cache-control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+        'cache-control': CACHE_CONTROL.page,
         ...SECURITY_HEADERS_HTML,
       },
     }));

@@ -9,6 +9,7 @@ import { onRequestGet as layerDetail } from '../functions/api/v1/layers/[id]';
 import { onRequestGet as layersIndex } from '../functions/api/v1/layers/index';
 import { onRequestGet as categories } from '../functions/api/v1/categories';
 import { onRequestGet as levels } from '../functions/api/v1/levels';
+import { CACHE_CONTROL } from '../functions/lib/edge-cache';
 import { onRequestGet as counts } from '../functions/api/v1/layers/[id]/counts';
 import { onRequestGet as schema } from '../functions/api/v1/layers/[id]/schema';
 import { onRequestGet as queryRoute } from '../functions/api/v1/layers/[id]/query';
@@ -103,6 +104,7 @@ describe('catalog answers are edge-cached', () => {
     expect(b.headers.get('x-edge-cache')).toBe('HIT');
     expect(await b.text()).toBe(await a.text());
     expect(cache.store.size).toBe(1);
+    expect(a.headers.get('cache-control')).toBe(CACHE_CONTROL.catalog);
   });
 
   it('layer detail: a hit still counts the call', async () => {

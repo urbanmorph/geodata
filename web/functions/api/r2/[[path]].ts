@@ -10,6 +10,7 @@
 import type { Env } from '../_middleware';
 import { getSubmissionForView } from '../../lib/submissions';
 import { apiError } from '../../lib/http';
+import { CACHE_CONTROL } from '../../lib/edge-cache';
 
 const notFound = () => apiError(404, 'not found');
 
@@ -52,7 +53,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const headers = new Headers();
   obj.writeHttpMetadata(headers);
   headers.set('etag', obj.httpEtag);
-  headers.set('cache-control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400');
+  headers.set('cache-control', CACHE_CONTROL.page);
   // CORS (*, for reads) is added by api/_middleware.ts.
 
   return new Response(obj.body, { headers });
