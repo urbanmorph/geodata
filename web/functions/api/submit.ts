@@ -12,7 +12,7 @@
 // so the server parses it natively and `fc_json` is ignored.
 
 import type { Env } from './_middleware';
-import { validateSubmission, gateSubmission, MAX_SUBMIT_BYTES } from '../lib/validate-server';
+import { validateSubmission, gateSubmission, MAX_SUBMIT_BYTES, SUBMIT_EXTENSIONS, extOf } from '../lib/validate-server';
 import { verifyTurnstile } from '../lib/turnstile';
 import { checkRateLimit } from '../lib/ratelimit';
 import { json as j } from '../lib/http';
@@ -105,15 +105,14 @@ async function handleSubmit(
   }
 
   const filename = sanitizeFilename(file.name);
-  const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
-  const ALLOWED = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
+  const ext = extOf(filename) ?? '';
 
   const logMeta = { ext, bytes: file.size, ipHash };
 
-  if (!ALLOWED.has(ext)) {
+  if (!SUBMIT_EXTENSIONS.has(ext)) {
     log(attemptRowReject('format', `unsupported extension .${ext}`, logMeta));
     return reply(415, {
-      error: `unsupported file extension .${ext}; accepts: ${[...ALLOWED].join(', ')}`,
+      error: `unsupported file extension .${ext}; accepts: ${[...SUBMIT_EXTENSIONS].join(', ')}`,
     });
   }
 

@@ -63,6 +63,17 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
+describe('/api/submit: file types', () => {
+  it.each([
+    ['roads.shp', '.shp'],
+    ['no_extension', '.'],
+  ])('%s is a 415 naming what is accepted', async (name, shown) => {
+    const { status, body } = await call(form({}, new File(['x'], name)), { DB: sqliteD1(), R2: fakeR2() });
+    expect(status).toBe(415);
+    expect(body.error).toBe(`unsupported file extension ${shown}; accepts: geojson, json, kml, kmz, gpx, tcx, parquet`);
+  });
+});
+
 describe('/api/submit: reading the FeatureCollection', () => {
   const kml = () => new File(['<kml/>'], 'stands.kml');
 

@@ -20,7 +20,6 @@ import { licenceUrl } from '../../../shared/licences.mjs';
 import { footerHtml } from '../../../shared/footer.mjs';
 import { SITE_ORIGIN } from '../../../shared/brand.mjs';
 
-
 const FORMAT_MIME: Record<string, string> = {
   geojson: 'application/geo+json',
   json: 'application/json',
