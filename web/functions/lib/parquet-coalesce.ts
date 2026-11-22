@@ -8,9 +8,9 @@ import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 export interface ByteRange { start: number; end: number }
 
 /** Join ranges closer than this... */
-export const MERGE_GAP = 1 << 20;
+const MERGE_GAP = 1 << 20;
 /** ...unless the joined read would pass this. */
-export const MERGE_MAX = 16 << 20;
+const MERGE_MAX = 16 << 20;
 
 /** The byte ranges of `columns`' chunks in the row groups that overlap rows [rowStart, rowEnd). */
 export function chunkRanges(metadata: FileMetaData, columns: string[], rowStart: number, rowEnd: number): ByteRange[] {

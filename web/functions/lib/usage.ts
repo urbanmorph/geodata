@@ -14,7 +14,7 @@ type RunnableD1 = Pick<D1Database, 'prepare' | 'batch'>;
 const NOT_COUNTED = /bharatlas-mcp-test|bot\b|bot\/|crawler|spider|slurp|facebookexternalhit/i;
 
 /** Crawlers, bots and our own smoke test: their calls and downloads are not counted. */
-export const isNotCounted = (userAgent: string | null): boolean => NOT_COUNTED.test(userAgent ?? '');
+const isNotCounted = (userAgent: string | null): boolean => NOT_COUNTED.test(userAgent ?? '');
 
 /** The live site: bharatlas.com and the production Pages address. Previews
  *  (<branch>.geodata-3ij.pages.dev) and local dev write nothing. */

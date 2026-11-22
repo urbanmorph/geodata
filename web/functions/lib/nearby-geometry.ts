@@ -43,7 +43,7 @@ function geoJSONOf(v: unknown): Geo | null {
 
 /** A shape as flat x,y coordinates: its polygons (ring lists) and every run of
  *  vertices (each ring and line; a point is a run of one). */
-export interface ShapeParts { polygons: Float64Array[][]; runs: Float64Array[] }
+interface ShapeParts { polygons: Float64Array[][]; runs: Float64Array[] }
 
 const flat = (coords: Coord[]): Float64Array => {
   const out = new Float64Array(coords.length * 2);
@@ -69,7 +69,7 @@ function parts(g: Geo | null, out: ShapeParts = { polygons: [], runs: [] }): Sha
 }
 
 /** A geometry (GeoJSON or WKB) as flat parts, or null when it can't be read. */
-export function shapeParts(geometry: unknown): ShapeParts | null {
+function shapeParts(geometry: unknown): ShapeParts | null {
   try { return parts(geoJSONOf(geometry)); } catch { return null; }
 }
 
@@ -87,7 +87,7 @@ const inPolygon = (x: number, y: number, rings: Float64Array[]) =>
   ringContains(x, y, rings[0]) && !rings.slice(1).some((hole) => ringContains(x, y, hole));
 
 /** closestOnGeometry over parts already read. */
-export function closestOnParts(lat: number, lng: number, { polygons, runs }: ShapeParts, edge = false): { km: number; lat: number; lng: number } | null {
+function closestOnParts(lat: number, lng: number, { polygons, runs }: ShapeParts, edge = false): { km: number; lat: number; lng: number } | null {
   if (!edge && polygons.some((rings) => inPolygon(lng, lat, rings))) return { km: 0, lat, lng };
   const kx = KM_PER_DEG * Math.cos((lat * Math.PI) / 180), ky = KM_PER_DEG;
   let best = Infinity, bx = 0, by = 0;
@@ -117,8 +117,10 @@ export function closestOnGeometry(lat: number, lng: number, geometry: unknown, e
   return p && closestOnParts(lat, lng, p, edge);
 }
 
+type Box = { xmin: number; ymin: number; xmax: number; ymax: number };
+
 /** Distance (km) from the point to a bbox: 0 inside, a lower bound on the distance to the shape. */
-export function bboxDistanceKm(lat: number, lng: number, b: { xmin: number; ymin: number; xmax: number; ymax: number }): number {
+export function bboxDistanceKm(lat: number, lng: number, b: Box): number {
   const dx = Math.max(b.xmin - lng, 0, lng - b.xmax) * KM_PER_DEG * Math.cos((lat * Math.PI) / 180);
   const dy = Math.max(b.ymin - lat, 0, lat - b.ymax) * KM_PER_DEG;
   return Math.hypot(dx, dy);
@@ -141,9 +143,12 @@ export interface GeomHit {
   distance_km: number;
 }
 
+/** Features nearest first; `total` counts every shape read within the radius; `capped`:
+ *  some candidates were not read, so `total` may be short. */
+export interface ShapeAnswer { features: GeomHit[]; total: number; capped: boolean }
+
 const round = (n: number, p: number) => Math.round(n * 10 ** p) / 10 ** p;
 
-type Box = { xmin: number; ymin: number; xmax: number; ymax: number };
 const boxOf = (b: Record<string, unknown>): Box => ({ xmin: Number(b.xmin), ymin: Number(b.ymin), xmax: Number(b.xmax), ymax: Number(b.ymax) });
 
 /** Rows whose box comes within the radius, nearest box first, at most `max`, back in row order;
@@ -171,7 +176,7 @@ function hitOf(lat: number, lng: number, radiusKm: number, shape: ShapeParts | n
   return { properties, lat: round(near.lat, 5), lng: round(near.lng, 5), distance_km: round(near.km, 2) };
 }
 
-function answer(hits: GeomHit[], limit: number, capped: boolean): { features: GeomHit[]; total: number; capped: boolean } {
+function answer(hits: GeomHit[], limit: number, capped: boolean): ShapeAnswer {
   hits.sort((a, b) => a.distance_km - b.distance_km);
   return { features: hits.slice(0, limit), total: hits.length, capped };
 }
@@ -186,13 +191,11 @@ function columnsOf(metadata: FileMetaData): { cols: string[]; geomCol: string } 
 }
 const skipOf = (geomCol: string) => new Set([geomCol, ...BBOX_COLS, 'bbox']);
 
-/** Features within radiusKm by true distance, nearest first. `total` counts every
- *  shape read that is within the radius; `capped` says some candidates (boxes
- *  within the radius) were not read, so `total` may be short. */
+/** Features within radiusKm by true distance (candidates: rows whose box is within it). */
 export async function nearestByGeometry(
   file: AsyncBuffer, metadata: FileMetaData, lat: number, lng: number, radiusKm: number,
   opts: NearestShapeOpts,
-): Promise<{ features: GeomHit[]; total: number; capped: boolean }> {
+): Promise<ShapeAnswer> {
   const { cols, geomCol } = columnsOf(metadata);
   const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
   const boxes = await groupBoxes(file, metadata, spans);
@@ -223,7 +226,7 @@ export async function nearestByGeometry(
 // ── small layers, kept whole ─────────────────────────────────────────────────
 
 /** A parquet this small is read whole once per isolate and kept parsed. */
-export const WHOLE_LAYER_MAX_BYTES = 8_000_000;
+const WHOLE_LAYER_MAX_BYTES = 8_000_000;
 type ShapeRow = { box: Box; shape: ShapeParts | null; properties: Record<string, unknown> };
 const shapeRows = new ResolvedCache<ShapeRow[]>(4);
 
@@ -239,7 +242,7 @@ async function readShapeRows(file: AsyncBuffer, metadata: FileMetaData): Promise
 }
 
 /** nearestByGeometry over rows kept in memory: the same candidates, the same answer. */
-export function nearestInShapeRows(rows: ShapeRow[], lat: number, lng: number, radiusKm: number, opts: NearestShapeOpts) {
+function nearestInShapeRows(rows: ShapeRow[], lat: number, lng: number, radiusKm: number, opts: NearestShapeOpts): ShapeAnswer {
   const near: Array<{ idx: number; d: number }> = [];
   rows.forEach((r, idx) => {
     const d = bboxDistanceKm(lat, lng, r.box);
@@ -254,7 +257,7 @@ export function nearestInShapeRows(rows: ShapeRow[], lat: number, lng: number, r
 export async function nearbyByGeometry(
   lat: number, lng: number, radiusKm: number, layerId: string, catalog: CatalogData, r2: R2Bucket,
   opts: NearestShapeOpts,
-): Promise<{ features: GeomHit[]; total: number; capped: boolean }> {
+): Promise<ShapeAnswer> {
   const layer = catalog.layers.find((l) => l.id === layerId);
   const key = layer && r2KeyFromLayer(layer);
   if (!key) throw new QueryInputError(`Layer ${layerId} has no parquet`);
