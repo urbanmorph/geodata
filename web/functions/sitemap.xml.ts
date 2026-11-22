@@ -9,12 +9,13 @@
 import type { Env } from './api/_middleware';
 import { SECURITY_HEADERS_NON_HTML } from './lib/security-headers';
 import { loadCatalog } from './lib/catalog-loader';
+import type { CatalogLayer } from './lib/catalog-api';
 import { cachedLive } from './lib/edge-cache';
 import { loadReleaseIndex, type ReleaseIndex } from './lib/releases';
 import { STATIC_PAGES, SITE_ORIGIN, releasePages, urlset } from '../../shared/sitemap.mjs';
 
 type Community = { id: string; created_at: string; updated_at: string | null };
-type Parts = { releases: ReleaseIndex | null; curated: Array<{ id: string; fetched_at?: string }>; community: Community[] };
+type Parts = { releases: ReleaseIndex | null; curated: Array<Pick<CatalogLayer, 'id' | 'fetched_at'>>; community: Community[] };
 
 /** The served sitemap: the build's pages (shared/sitemap.mjs), each dataset's
  *  release page, every layer's /view page and every accepted community page. */
@@ -42,10 +43,10 @@ async function render(ctx: Parameters<PagesFunction<Env>>[0]): Promise<Response>
 
   // Curated layers come from catalog.json (the deployment's own copy). v4.7 introduced
   // /view/<id> as the canonical share URL with layer-specific OG cards.
-  let curated: Array<{ id: string; fetched_at?: string }> = [];
+  let curated: Parts['curated'] = [];
   try {
-    const cat = (await loadCatalog(ctx)) as { layers?: Array<{ id: string; fetched_at?: string }> };
-    curated = (cat.layers || []).map((l) => ({ id: l.id, fetched_at: l.fetched_at }));
+    const cat = await loadCatalog(ctx);
+    curated = cat.layers || [];
   } catch {
     // curated /view URLs are nice-to-have for sitemap; fall through quietly
   }

@@ -6,7 +6,8 @@
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
 // The finished page is kept in the edge cache, keyed by the deploy version.
 
-import { buildViewDataset, buildViewContent, layerLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
+import { buildViewDataset, buildViewContent, layerLevelMeta, type CatalogLayer, type WardIndex } from '../lib/view-dataset';
+import type { CatalogData } from '../lib/catalog-api';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import { fetchAsset, type AssetCtx } from '../lib/catalog-loader';
 import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
@@ -16,11 +17,6 @@ import { findLayer } from '../lib/api-layer';
 
 type Params = { id: string };
 
-type Catalog = {
-  layers?: CatalogLayer[];
-  level_meta?: Record<string, LevelMeta>;
-};
-
 // SEO URLs (canonical / OG / JSON-LD) must always be the primary apex, so www.*
 // and pages.dev variants consolidate there instead of self-referencing as
 // canonical and splitting the ranking signal. Mirrors render-view.ts's PUBLIC_ORIGIN.
@@ -29,8 +25,8 @@ const CANONICAL_ORIGIN = 'https://bharatlas.com';
 const LAYER_NOT_FOUND = { title: 'Layer not found', message: "There's no layer with this id. It may have been renamed, or the link has a typo." };
 
 /** The 404 for an unknown layer id, with "Did you mean" links to the closest real ones. */
-function layerNotFound(ctx: AssetCtx, id: string, catalog: Catalog): Promise<Response> {
-  const layers = catalog.layers ?? [];
+function layerNotFound(ctx: AssetCtx, id: string, catalog: CatalogData): Promise<Response> {
+  const layers: CatalogLayer[] = catalog.layers;
   const items = suggestLayers(id, layers).map((sid) => {
     const layer = layers.find((l) => l.id === sid)!;
     const meta = layerLevelMeta(layer, catalog.level_meta, layers);
@@ -54,16 +50,15 @@ export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = as
   if (!found) return new Response('upstream unavailable', { status: 503 });
   if (found.kind === 'invalid') return notFoundResponse(ctx, LAYER_NOT_FOUND);
   if (found.kind === 'moved') return found.response;
-  const catalog = found.catalog as unknown as Catalog;
-  if (found.kind === 'missing') return layerNotFound(ctx, id, catalog);
+  if (found.kind === 'missing') return layerNotFound(ctx, id, found.catalog);
 
   // The page depends only on the layer and the deploy: keyed by path, not query.
-  const layer = found.layer as unknown as CatalogLayer;
-  const key = cacheKey(found.version, url, { query: false });
+  const { layer, catalog, version } = found;
+  const key = cacheKey(version, url, { query: false });
   return cached(ctx, key, EDGE_TTL.page, () => renderPage(ctx, layer, catalog));
 };
 
-async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: Catalog): Promise<Response> {
+async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: CatalogData): Promise<Response> {
   // The home page from this deployment's own files (env.ASSETS: no trip through
   // the zone). Ward pages also read their answer-table sidecar in parallel; it's
   // absent for number-only cities, leaving the page table-less.
@@ -77,7 +72,7 @@ async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: Catalog):
     wardIndex = await wardResp.json<WardIndex>().catch(() => null);
   }
 
-  const levelMeta = layerLevelMeta(layer, catalog.level_meta, catalog.layers ?? []);
+  const levelMeta = layerLevelMeta(layer, catalog.level_meta, catalog.layers);
   const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd, howToJsonLd, wardListJsonLd } = buildViewDataset(
     layer,
     levelMeta,

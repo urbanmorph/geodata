@@ -1,14 +1,9 @@
 // Pure shape-builders: catalog row / D1 submission row → OgMetadata.
 
 import type { OgMetadata } from './og-template';
+import type { CatalogLayer as ApiCatalogLayer } from './catalog-api';
 
-type CatalogLayer = {
-  id: string;
-  level: string;
-  source: string;
-  rows: number | null;
-  licence?: string;
-};
+type CatalogLayer = Pick<ApiCatalogLayer, 'id' | 'source' | 'rows' | 'licence'>;
 
 type LayerLevelMeta = {
   label: string;
