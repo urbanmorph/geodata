@@ -2097,7 +2097,7 @@ async function recordEditor(): Promise<void> {
     try {
       await apiJson(`/records/${ctx.recordId}`, ctx.token, { method: 'DELETE' });
       forgetRecord(ctx.id, ctx.recordId!);
-      app.innerHTML = `<div class="pad"><h1>${noun[0].toUpperCase()}${noun.slice(1)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
+      app.innerHTML = `<div class="pad"><h1>${cap(noun)} deleted</h1><p class="hint">Your contribution was removed.</p><a class="btn" href="${escapeHtml(backLink(myMaps(), ctx.id))}">← Back to the map</a></div>`;
     } catch (e) { toast((e as Error).message, 'error'); btn.disabled = false; }
   };
 }
