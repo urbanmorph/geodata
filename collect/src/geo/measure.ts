@@ -1,4 +1,6 @@
 // Distances and areas on the ground, for marking routes and fields.
+import { plural } from '../../../shared/format.mjs';
+
 export type LngLat = [number, number];
 
 const R = 6_371_008.8; // mean Earth radius, metres
@@ -34,8 +36,8 @@ export function formatArea(m2: number): string {
   const acres = Math.floor(guntasTotal / GUNTAS_PER_ACRE);
   const guntas = guntasTotal % GUNTAS_PER_ACRE;
   const parts = [];
-  if (acres) parts.push(`${acres} acre${acres === 1 ? '' : 's'}`);
-  if (guntas) parts.push(`${guntas} gunta${guntas === 1 ? '' : 's'}`);
+  if (acres) parts.push(`${plural(acres, 'acre')}`);
+  if (guntas) parts.push(`${plural(guntas, 'gunta')}`);
   return parts.join(' ');
 }
 

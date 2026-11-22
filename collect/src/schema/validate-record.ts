@@ -5,6 +5,7 @@
 // A photo answer is a list of photo ids (uploaded first, see photos.ts).
 
 import { isDate, normalizeDateTime } from './dates';
+import { plural } from '../../../shared/format.mjs';
 
 export type FieldType =
   | 'text' | 'paragraph' | 'number' | 'select' | 'multiselect' | 'date' | 'datetime' | 'url' | 'photo';
@@ -128,7 +129,7 @@ export function validateRecordProperties(fields: Field[], input: unknown, opts: 
       case 'photo': {
         if (!Array.isArray(v) || !v.every((id) => typeof id === 'string' && PHOTO_ID.test(id))) return err(`${f.label} must be photos taken here`);
         const most = f.max_photos ?? 3;
-        if (v.length > most) return err(`${f.label}: at most ${most} photo${most === 1 ? '' : 's'}`);
+        if (v.length > most) return err(`${f.label}: at most ${plural(most, 'photo')}`);
         out[f.key] = v;
         break;
       }

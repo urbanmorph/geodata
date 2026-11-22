@@ -29,6 +29,9 @@ export function fmtCount(n) {
   return compact(n / 1_000_000, 'M');
 }
 
+/** "1 point", "3 points": a count and its noun, plural unless the count is one. */
+export const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
+
 /** "26 May 2026" from an ISO date or timestamp (the date part, in UTC). */
 export function fmtDate(iso) {
   return new Date(String(iso).slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-GB', {

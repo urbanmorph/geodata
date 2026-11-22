@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { escapeHtml } from '../src/util';
+import { escapeHtml, plural } from '../src/util';
 
 describe('escapeHtml', () => {
   it('neutralises markup-injection characters', () => {
@@ -13,5 +13,13 @@ describe('escapeHtml', () => {
   });
   it('leaves plain text untouched', () => {
     expect(escapeHtml('Kaveri footpath')).toBe('Kaveri footpath');
+  });
+});
+
+describe('plural', () => {
+  it('counts a noun, adding s for anything but one', () => {
+    expect(plural(1, 'point')).toBe('1 point');
+    expect(plural(0, 'point')).toBe('0 points');
+    expect(plural(12, 'row')).toBe('12 rows');
   });
 });

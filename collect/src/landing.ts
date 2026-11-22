@@ -1,7 +1,7 @@
 // The home screen: your maps, "Make a new map" (the guided flow in
 // create/wizard.ts) and "Your maps on all your devices" (passkey sync).
 import { apiJson } from './api';
-import { escapeHtml } from './util';
+import { escapeHtml, plural } from './util';
 import { myMaps, openLink, type SavedMap, type MapRole } from './maps-store';
 import { mountInstallButton } from '../../web/src/install-button';
 import { collectTopbarHtml } from './topbar';
@@ -196,7 +196,7 @@ async function renderQueueNote(): Promise<void> {
   const waiting = queued.filter((p) => !p.error).length;
   const refused = queued.length - waiting;
   note.textContent = [
-    waiting ? `⏳ ${waiting} point${waiting === 1 ? '' : 's'} kept on this phone, sent as soon as there's signal.` : '',
+    waiting ? `⏳ ${plural(waiting, 'point')} kept on this phone, sent as soon as there's signal.` : '',
     refused ? `${refused} couldn't be sent; open the map to see why.` : '',
   ].join(' ');
   const list = app.querySelector('#mymaps');

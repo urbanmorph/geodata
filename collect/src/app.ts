@@ -20,7 +20,7 @@ import { representativeCoord } from './geo/admin-ctx';
 import { geometryLngLats } from './geo/coords';
 import { statusOf, filterByStatus, countsOf, popupActions, recordWho, recordVia, recordWhen, recordPlace, withStatus, withoutRecord, withAiReview, rowsToShow, reviewSignature } from './review';
 import { focusSheet, SHEET_TITLE } from './sheet-focus';
-import { escapeHtml, downloadText } from './util';
+import { escapeHtml, downloadText, plural } from './util';
 import { toast } from './toast';
 import { linkProblemHtml, isLinkProblem } from './link-problem';
 import { fieldsHtml, setPressed } from './form-fields';
@@ -360,7 +360,7 @@ function viewPanel(): void {
   panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
     <strong>${escapeHtml(meta.name)}</strong>
     ${meta.purpose ? `<p class="hint">${escapeHtml(meta.purpose)}</p>` : ''}
-    <p class="hint">${n ? `${n} point${n === 1 ? '' : 's'} on the map.` : 'No points published yet.'}</p>
+    <p class="hint">${n ? `${plural(n, 'point')} on the map.` : 'No points published yet.'}</p>
     ${safetyFooter()}
   </div></div>`;
 }
@@ -665,7 +665,7 @@ function shapeSummary(): string {
   const n = verts.length;
   const need = drawMode === 'line' ? 2 : 3;
   const size = drawMode === 'polygon' && n >= 3 ? formatArea(ringArea(verts)) : drawMode === 'line' && n >= 2 ? formatLength(lineLength(verts)) : '';
-  const count = n < need ? `${n} point${n === 1 ? '' : 's'} · add ${need - n} more` : `${n} points`;
+  const count = n < need ? `${plural(n, 'point')} · add ${need - n} more` : `${n} points`;
   const gps = drawHow !== 'map' && lastFix ? ` · GPS ±${Math.round(lastFix.accuracy)} m` : '';
   return [count, size].filter(Boolean).join(' · ') + gps;
 }
@@ -1164,7 +1164,7 @@ async function editFormSheet(): Promise<void> {
     ${GRAB}
     <div class="body">
       <strong ${SHEET_TITLE}>Edit form</strong>
-      <p class="hint">${n ? `Checked against the map's ${n} point${n === 1 ? '' : 's'}. You can add options and fields; options the points use stay, and a field can be hidden (its data is kept) but not removed.` : 'The map has no points yet, so the form can change freely.'}</p>
+      <p class="hint">${n ? `Checked against the map's ${plural(n, 'point')}. You can add options and fields; options the points use stay, and a field can be hidden (its data is kept) but not removed.` : 'The map has no points yet, so the form can change freely.'}</p>
       <div id="ef-builder"></div>
       <div id="ef-result" aria-live="polite"></div>
     </div>
@@ -1272,7 +1272,7 @@ function renderReviewTab(body: HTMLElement, revealRow?: string): void {
   body.innerHTML = `
     <p class="hint" id="mcounts">${c.published} approved · ${c.pending} pending · ${c.rejected} rejected</p>
     ${c.pending ? `<div class="notice">
-      <div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to bharatlas until you approve.</div>
+      <div><strong>${plural(c.pending, 'point')} awaiting your approval.</strong> People you share the map with can't see ${c.pending === 1 ? 'it' : 'them'}, and ${c.pending === 1 ? "it isn't" : "they aren't"} exported or published to bharatlas until you approve.</div>
       <button type="button" class="primary" id="approve-all">✓ Approve all ${c.pending}</button>
     </div>` : ''}
     <div class="row" id="pfilter" role="group" aria-label="Show points" style="margin:8px 0 4px">
@@ -1343,7 +1343,7 @@ const LINK_ROWS: LinkRow[] = [
 function pendingHint(): string {
   const c = reviewLoaded ? countsOf(allFeats) : meta.counts;
   if (!c.pending) return '';
-  return `<div class="notice notice--inline"><div><strong>${c.pending} point${c.pending === 1 ? '' : 's'} pending.</strong> Held back from people you share with, and from exports, until approved in Review.</div></div>`;
+  return `<div class="notice notice--inline"><div><strong>${plural(c.pending, 'point')} pending.</strong> Held back from people you share with, and from exports, until approved in Review.</div></div>`;
 }
 
 function renderShareTab(body: HTMLElement): void {
@@ -1463,7 +1463,6 @@ async function wireNamedLinks(body: HTMLElement, title: string): Promise<void> {
   const render = async (): Promise<void> => {
     try {
       const { links } = await apiJson<{ links: LinkInfo[] }>(`/collections/${ctx.id}/tokens`, ctx.token);
-      const plural = (n: number, w: string): string => `${n} ${w}${n === 1 ? '' : 's'}`;
       list.innerHTML = shareTabLinks(links).map((l) => `<div class="link-box${l.active ? '' : ' link-box--off'}">
           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(l.name)}
             <span class="hint">· ${l.permission === 'view' ? 'view only' : plural(l.records, 'point')}${l.active ? '' : ' · turned off'}</span></span>
@@ -1557,7 +1556,7 @@ async function downloadData(format: 'geojson' | 'csv' | 'kml'): Promise<void> {
       : format === 'csv' ? [toCSV(features, keys), 'text/csv', 'csv']
       : [toKML(features, keys, meta.name), 'application/vnd.google-earth.kml+xml', 'kml'];
     downloadText(content, `${slug(meta.name)}.${ext}`, mime);
-    toast(`Downloaded ${features.length} point${features.length === 1 ? '' : 's'} as ${ext.toUpperCase()}`);
+    toast(`Downloaded ${plural(features.length, 'point')} as ${ext.toUpperCase()}`);
   } catch (e) {
     toast((e as Error).message, 'error');
   }
@@ -1585,7 +1584,7 @@ async function importFlow(file: File): Promise<void> {
   const n = parsed.features.length;
   // A column map (applies to ALL rows), not a single-record form.
   panel.innerHTML = `
-    <p class="hint"><strong>${n} row${n === 1 ? '' : 's'}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file. This applies to <strong>all ${n}</strong> at once, not one point.</p>
+    <p class="hint"><strong>${plural(n, 'row')}</strong> found in your ${format.toUpperCase()} file. Match each map field to a column from the file. This applies to <strong>all ${n}</strong> at once, not one point.</p>
     ${needsLngLat
       ? `<div class="maplabel">Location <span class="hint">(a CSV keeps coordinates in columns)</span></div>
          <div class="maprow"><span>Longitude</span><select data-map="lng" aria-label="Longitude column">${opts(guess.lng)}</select></div>
@@ -1769,7 +1768,7 @@ function wirePointRows(q: HTMLElement): void {
 
 const photoCount = (v: unknown): string => {
   const n = Array.isArray(v) ? v.length : 0;
-  return n ? `${n} photo${n === 1 ? '' : 's'}` : 'No photos';
+  return n ? `${plural(n, 'photo')}` : 'No photos';
 };
 const fmtVal = (v: unknown): string => (Array.isArray(v) ? v.join(', ') : v == null || v === '' ? 'n/a' : String(v));
 
