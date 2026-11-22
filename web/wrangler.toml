@@ -19,3 +19,6 @@ bucket_name = "geodata-data"
 # Local dev fallback for the Turnstile site key — overridden in production via env.
 [vars]
 PUBLIC_TURNSTILE_SITEKEY = ""
+# The point lookups (/api/v1/ground, /surface, MCP ground_at/surface_at), released 2026-11-22.
+# "off" is the kill switch; keep it in step with POINT_PROFILES in ci.yml's build env.
+POINT_PROFILES = "on"
