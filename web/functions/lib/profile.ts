@@ -42,6 +42,9 @@ export interface ProfileLayer {
   /** A layer that covers only part of India: when nothing is within radiusKm, a
    *  feature within coverageKm means "none within the radius", none means "not covered". */
   coverageKm?: number;
+  /** contains: the layer maps all of India (an inventory such as NDEM's flood extents), so no
+   *  polygon at the point means none here (none_within_radius, radius 0), not a gap (not_covered). */
+  allIndia?: true;
   /** Keep only these properties (the full rows are a /nearby or /locate call away). */
   fields?: string[];
   /** Plain units of the fields shown, for the response's `units`. */
@@ -230,7 +233,10 @@ export interface ProfileSpec {
   conclude?: (sections: ProfileResponse['sections']) => string[];
 }
 
-export const BASE_DEPS: Omit<ProfileDeps, 'pixels'> = { locate: locateEngine, nearby: nearbyEngine, nearbyByGeometry, nearbyFromTiles };
+/** An entry's vintage where its source gives no date: the answer then dates it by fetched_at, never by silence. */
+export const UNDATED = 'not dated by the source (see fetched_at, when bharatlas fetched it)';
+
+export const BASE_DEPS:Omit<ProfileDeps, 'pixels'> = { locate: locateEngine, nearby: nearbyEngine, nearbyByGeometry, nearbyFromTiles };
 export const LAYER_BUDGET_MS = 6000;
 const ZOOM = 14;
 
@@ -275,8 +281,9 @@ async function readContains(spec: ProfileLayer, lat: number, lng: number, catalo
   if (r.failed_layers?.includes(spec.id)) throw new Error('tiles could not be read');
   const features = dedupeFeatures(Object.values(r.results).flat()
     .filter((h) => h.layer_id === spec.id).map((h) => pick(h.feature.properties, spec.fields)));
+  const none = spec.allIndia ? { status: 'none_within_radius' as const, radius_km: 0 } : { status: 'not_covered' as const };
   return {
-    match: 'contains', status: features.length ? 'found' : 'not_covered', features,
+    match: 'contains', ...(features.length ? { status: 'found' as const } : none), features,
     ...(spec.decode && features[0] ? { decoded: spec.decode(features[0]) } : {}),
   };
 }
@@ -369,7 +376,7 @@ export async function profileAt(
       const got = await timed(key, () => read(spec, lat, lng, catalog, r2, deps));
       const entry: ProfileEntry = {
         layer_id: spec.id, credit: creditOf(layer), ...ncFields(layer),
-        about: { ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },
+        about: { vintage: UNDATED, ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },
         ...got, ...(spec.units && got.status === 'found' ? { units: spec.units } : {}),
       };
       const links = spec.links?.(layer);

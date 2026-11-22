@@ -7,8 +7,8 @@
 // columns of the row groups that overlap the radius and keeps rows whose bbox
 // comes within the radius (a lower bound on the true distance); pass 2 reads
 // those rows' shapes and measures the point to the nearest segment (0 inside a
-// polygon). Used by /api/v1/ground; nearby itself is unchanged and can move
-// over to this separately. A small layer (India's outline: one 5 MB polygon) is
+// polygon). Used by /api/v1/ground and /surface, and by /api/v1/nearby through
+// nearby-true-distance.ts. A small layer (India's outline: one 5 MB polygon) is
 // read whole once per isolate and kept as flat coordinates, not read per call.
 import { parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';

@@ -82,7 +82,7 @@ const BASE = {
         operationId: 'nearby',
         tags: ['Spatial'],
         summary: 'Features from one layer within a radius of a point, nearest first',
-        description: 'Works for points, lines and polygons; distance is measured to each feature’s bounding-box centre.',
+        description: 'Works for points, lines and polygons. Points are measured to the point; lines and polygons to the nearest part of their shape (0 inside a polygon), and `_lat`, `_lng` are that nearest point. `_distance_to` says which (point or shape). `_approximate: true` means the search read coarser map tiles or fewer shapes than it wanted (a large radius on a dense layer): distances to within tens of metres, and the count may be short. Lines and polygons used to be measured to their bounding-box centre; answers for those layers changed when distance to the shape shipped.',
         parameters: [
           LAT, LNG,
           q('layer', 'Layer id to search.', { type: 'string' }, true),
@@ -427,6 +427,8 @@ const BASE = {
           radius_km: { type: 'number' },
           total: { type: 'integer' },
           features: { type: 'array', items: { type: 'object', properties: { properties: { type: 'object' }, _lat: { type: 'number' }, _lng: { type: 'number' }, _distance_km: { type: 'number' } } } },
+          _distance_to: { type: 'string', enum: ['point', 'shape', 'centroid'], description: 'point: distance to each point; shape: to the nearest part of each line or polygon; centroid: to the centre of each feature (a layer without bounding-box columns).' },
+          _approximate: { type: 'boolean', description: 'Present (true) when coarser tiles or fewer shapes were read: distances to within tens of metres, the count may be short.' },
         },
       },
       QueryRows: {
@@ -460,12 +462,12 @@ const POINT_PROFILE_PATHS_SPEC = {
       tags: ['Spatial'],
       summary: 'What is below a point: its subsurface profile in one call',
       description:
-        'Seismic zone, nearest active faults, mapped lineaments and recorded earthquakes; rock (GSI lithology) and landform; aquifer, stage of groundwater extraction, near-surface permeability (GLHYMPS, decoded to m2 and m/s) and nearby groundwater wells; ' +
+        'Seismic zone, nearest active faults, mapped lineaments and recorded earthquakes; rock (GSI lithology) and landform; aquifer, stage of groundwater extraction, a permeability class from GLHYMPS (global and coarse: pervious, semi-pervious or impervious) and nearby groundwater wells; ' +
         'soil properties at 0-5, 5-15 and 15-30 cm and the WRB soil group from ISRIC SoilGrids 2.0 (250 m, CC BY 4.0), plus the nearest Soil Health Card sample; ground subsidence in megacities (median of satellite points within 500 m); ' +
         'tunnels, buried pipelines and cables, mines and caves nearby; and, in rural areas, the CoRE Stack micro-watershed water balance and drought. ' +
         'Each layer is one entry under `sections.<section>.<layer_id>` with its `credit` (source, licence) and, for non-commercial layers, `non_commercial` and `licence_notice`; units are in field names or `units`. ' +
         '`contains` entries list the features holding the point; `nearest` entries give `count` within `radius_km` and the nearest few with `distance_km` (points by distance to the point, lines by true distance to the line: `distance_to`). ' +
-        'Every entry has a `status`: `found`, `none_within_radius` (the layer covers the area, nothing is that close) or `not_covered` (the layer does not reach this point, e.g. subsidence outside its cities). ' +
+        'Every entry has a `status`: `found`, `none_within_radius` (the layer covers the area, nothing is that close; `radius_km: 0` on an all-India map such as the NDEM flood extents means the point is in none of its areas) or `not_covered` (the layer does not reach this point, e.g. subsidence outside its cities). ' +
         'Each entry also says its `about`: scale or resolution, vintage and the date bharatlas fetched it; `disclaimer` says once that this is screening information, not for site or engineering decisions. ' +
         'A layer that cannot be read in time is listed in `unavailable` and the rest still answer. `summary` says it in one line. ' +
         'The answer is for the point snapped to 3 decimal places (about 100 m; `point` says which), kept in the edge cache for an hour when every layer answered, never by clients. Uses the locate rate limit (60 a minute).',
@@ -521,15 +523,15 @@ const POINT_PROFILE_SCHEMAS = {
             properties: {
               layer_id: { type: 'string' },
               match: { type: 'string', enum: ['contains', 'nearest', 'pixel'] },
-              status: { type: 'string', enum: ['found', 'none_within_radius', 'not_covered'], description: 'not_covered: the layer does not reach this point; none_within_radius: it does, but nothing is within radius_km.' },
+              status: { type: 'string', enum: ['found', 'none_within_radius', 'not_covered'], description: 'not_covered: the layer does not reach this point; none_within_radius: it does, but nothing is within radius_km (0: the point is in none of the areas of an all-India map).' },
               distance_to: { type: 'string', enum: ['point', 'shape'], description: 'nearest: distance to the feature point, or to the nearest part of the line or outline (0 inside a polygon).' },
               credit: { type: 'object', properties: { name: { type: 'string' }, url: { type: 'string' }, publisher: { type: 'object' }, licence: { type: 'string' }, licence_url: { type: 'string' } } },
               non_commercial: { type: 'boolean' },
               licence_notice: { type: 'string' },
               units: { type: 'object', additionalProperties: { type: 'string' } },
-              about: { type: 'object', properties: { scale: { type: 'string' }, vintage: { type: 'string' }, note: { type: 'string' }, fetched_at: { type: 'string', format: 'date' } } },
+              about: { type: 'object', properties: { scale: { type: 'string' }, vintage: { type: 'string', description: 'The period the data describe, or "not dated by the source" (then fetched_at dates it).' }, note: { type: 'string' }, fetched_at: { type: 'string', format: 'date' } } },
               features: { type: 'array', items: { type: 'object' }, description: 'contains: the features holding the point (identical ones once).' },
-              decoded: { type: 'object', description: 'Source encodings in plain units (e.g. GLHYMPS permeability in m2).' },
+              decoded: { type: 'object', description: 'Source encodings in plain units (e.g. the GLHYMPS permeability class).' },
               radius_km: { type: 'number' },
               count: { type: 'integer', description: 'nearest: features within radius_km.' },
               count_capped: { type: 'boolean', description: 'More features were in range than were read; `count` and `stats` cover those read.' },

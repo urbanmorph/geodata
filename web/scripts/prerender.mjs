@@ -1001,7 +1001,7 @@ const DOCS_FAQ = [
   },
   {
     q: 'How do I find features near a point?',
-    a: 'GET https://bharatlas.com/api/v1/nearby?lat=12.97&lng=77.59&layer=wris_reservoirs&radius_km=50 finds features from any layer within a radius. Works for points, polygons and lines: reads bounding-box columns from the layer parquet and ranks features by Haversine distance to their bounding-box centres.',
+    a: 'GET https://bharatlas.com/api/v1/nearby?lat=12.97&lng=77.59&layer=wris_reservoirs&radius_km=50 finds features from any layer within a radius. Works for points, polygons and lines: points are measured to the point, lines and polygons to the nearest part of their shape (0 inside a polygon).',
   },
   ...(POINT_PROFILES ? POINT_PROFILE_FAQ : []),
   {

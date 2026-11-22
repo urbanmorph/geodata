@@ -187,8 +187,8 @@ export const READ_TOOLS = [
     name: "nearby",
     description:
       "Find features from a layer that are near a given point, nearest first, within radius_km. " +
-      "Reads the layer's parquet bounding boxes and ranks features by distance to their centres; " +
-      "works for points, polygons and lines. Returns the true count within the radius plus the nearest `limit`. " +
+      "Works for points, polygons and lines: points are measured to the point, lines and polygons to the nearest part of " +
+      "their shape (0 inside a polygon; `_distance_to` says which). Returns the true count within the radius plus the nearest `limit`. " +
       "Example: 'reservoirs near Bengaluru' -> layer_id: 'wris_reservoirs', lat: 12.97, lng: 77.59, radius_km: 50.",
     inputSchema: {
       type: "object",
@@ -212,7 +212,7 @@ export const READ_TOOLS = [
     name: "ground_at",
     description:
       "What is below a point, in one call: seismic zone, nearest active faults, lineaments and recorded earthquakes, " +
-      "rock type (GSI lithology) and landform, aquifer, near-surface permeability (GLHYMPS, in m2 and m/s), " +
+      "rock type (GSI lithology) and landform, aquifer, a permeability class (GLHYMPS, global and coarse), " +
       "nearby groundwater wells, soil at 0-5, 5-15 and 15-30 cm (ISRIC SoilGrids 2.0: clay, sand, silt, pH, organic carbon, " +
       "bulk density, CEC, nitrogen, WRB soil group) and the nearest Soil Health Card sample, ground subsidence (cm/yr) in megacities, " +
       "and tunnels, buried pipelines and cables, mines and caves nearby. Returns a one-line `summary` plus `sections`, " +
@@ -306,7 +306,7 @@ export function readToolsFor(pointProfiles) {
   return pointProfiles ? READ_TOOLS : READ_TOOLS.filter((t) => !POINT_PROFILE_TOOLS.has(t.name));
 }
 
-const POINT_PROFILE_PATTERN = `- **A point's profile**: ground_at says what is below a lat/lng (seismic zone, faults, rock, aquifer, groundwater, SoilGrids soil, subsidence, tunnels and buried utilities); surface_at what is on the ground there (place, land cover, elevation, population, water, hazards, protected areas, access, services). One call each instead of many locate/nearby calls; each part carries its source, licence, scale and vintage. Tell "not_covered" (the layer does not reach the point) apart from "none_within_radius"; say nothing about layers in "unavailable". Pass on the disclaimer (screening information, not for site or engineering decisions). open_only: true leaves out non-commercial layers.`;
+const POINT_PROFILE_PATTERN = `- **A point's profile**: ground_at says what is below a lat/lng (seismic zone, faults, rock, aquifer, groundwater, SoilGrids soil, subsidence, tunnels and buried utilities); surface_at what is on the ground there (place, land cover, elevation, population, water, hazards, protected areas, access, services). One call each instead of many locate/nearby calls; each part carries its source, licence, scale and vintage. Tell "not_covered" (the layer does not reach the point) apart from "none_within_radius" (radius_km 0: the point is in none of an all-India map's areas, e.g. not in a mapped flood area); say nothing about layers in "unavailable". Give a section's year with its values (about.vintage, or "not dated by the source" with about.fetched_at), and its scale: GLHYMPS is global and coarse, SoilGrids a 250 m model. A section with non_commercial: true is for non-commercial use only: say so and quote its licence_notice; open_only: true leaves those sections out. Pass on the disclaimer (screening information, not for site or engineering decisions). For the air above the point, use the mugilu MCP's conditions_at (surface_at's "air" says how).`;
 
 /** How an agent should use the read tools; each server adds its own intro. */
 export function instructionsCore(pointProfiles) {

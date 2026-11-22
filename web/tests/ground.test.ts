@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
-  GROUND_LAYERS, SECTIONS, DECODERS, groundAt,
+  GROUND_LAYERS, SECTIONS, DECODERS, SEISMIC_ABOUT, groundAt,
 } from '../functions/lib/ground';
 import { dedupeFeatures, median, snapPoint, cleanText, partialByChance } from '../functions/lib/profile';
 type GroundDeps = ProfileDeps & { soil: (r2: R2Bucket, lat: number, lng: number) => Promise<PixelResult> };
@@ -50,22 +50,18 @@ describe('dedupeFeatures', () => {
 });
 
 describe('decoders', () => {
-  it('GLHYMPS: log10 permeability x 100 to m2 and hydraulic conductivity; porosity x 100 to a fraction', () => {
-    const d = DECODERS.glhymps({ logK_Ferr_: -1300, logK_Ice_x: -1300, Porosity_x: 19 });
-    expect(d.log10_permeability_m2).toBe(-13);
-    expect(d.permeability_m2).toBeCloseTo(1e-13, 20);
-    expect(d.hydraulic_conductivity_m_per_s).toBeCloseTo(1e-6, 12);
-    expect(d.porosity_fraction).toBe(0.19);
+  // Plan B2: GLHYMPS is global and coarse (one polygon of GUM sediments holds Delhi, Majuli
+  // and Kolkata alike, logK_Ferr_ -1052, Porosity_x 0 as published), so ground_at gives
+  // only a permeability class (Bear 1972) from log10 k = logK_Ferr_ / 100, not site numbers.
+  it('GLHYMPS: a permeability class from log10 permeability x 100, and no site numbers', () => {
+    expect(DECODERS.glhymps({ logK_Ferr_: -1052, Porosity_x: 0 })).toEqual({ log10_permeability_m2: -10.52, permeability_class: 'pervious' });
+    expect(DECODERS.glhymps({ logK_Ferr_: -1100 }).permeability_class).toBe('pervious');
+    expect(DECODERS.glhymps({ logK_Ferr_: -1250, Porosity_x: 9 })).toEqual({ log10_permeability_m2: -12.5, permeability_class: 'semi-pervious' });
+    expect(DECODERS.glhymps({ logK_Ferr_: -1650, Porosity_x: 1 }).permeability_class).toBe('impervious');
   });
 
-  it('GLHYMPS: porosity 0 is "not given" (unconsolidated sediments from GUM), and permeability 0 is no value', () => {
-    const d = DECODERS.glhymps({ logK_Ferr_: -1052, Porosity_x: 0 });
-    expect(d.log10_permeability_m2).toBe(-10.52);
-    expect(d.porosity_fraction).toBeNull();
-    expect(String(d.porosity_note)).toMatch(/not given/);
-    const none = DECODERS.glhymps({ logK_Ferr_: 0, Porosity_x: 0 });
-    expect(none.log10_permeability_m2).toBeNull();
-    expect(none.permeability_m2).toBeNull();
+  it('GLHYMPS: permeability 0 is no value (GUM_K 0)', () => {
+    expect(DECODERS.glhymps({ logK_Ferr_: 0, Porosity_x: 0 })).toEqual({ log10_permeability_m2: null, permeability_class: null });
   });
 
   it('monsoon depths: the latest pre- and post-monsoon readings, in metres below ground', () => {
@@ -187,9 +183,13 @@ describe('groundAt', () => {
     expect(g.sections.seismic.seismic_zones.non_commercial).toBeUndefined();
   });
 
-  it('decodes GLHYMPS units on the containing feature', async () => {
+  it('gives GLHYMPS as a permeability class, labelled global and coarse, and says it in the summary', async () => {
     const g = await run(28.525, 77.085, catalog);
-    expect(g.sections.groundwater.glhymps_permeability.decoded).toMatchObject({ log10_permeability_m2: -10.52, porosity_fraction: null });
+    const e = g.sections.groundwater.glhymps_permeability;
+    expect(e.decoded).toEqual({ log10_permeability_m2: -10.52, permeability_class: 'pervious' });
+    expect(e.about?.scale).toMatch(/^global, coarse/);
+    expect(Object.keys(e.units ?? {})).toEqual(['log10_permeability_m2', 'permeability_class']);
+    expect(g.summary).toContain('Permeability class (GLHYMPS, global and coarse): pervious');
   });
 
   it('gives nearest features with distance and a count, and a median where the table asks', async () => {
@@ -254,6 +254,23 @@ describe('groundAt', () => {
     // a contains layer with no polygon here does not reach the point
     expect(g.sections.watershed.core_mws_water_balance).toMatchObject({ status: 'not_covered', features: [] });
     expect(g.sections.seismic.seismic_zones.status).toBe('found');
+    // an all-India inventory (NDEM's 1998-2022 flood map) with no polygon here: none here, not a gap
+    expect(g.sections.watershed.ndem_floods_1998_2022).toMatchObject({ status: 'none_within_radius', radius_km: 0, features: [] });
+  });
+
+  it('says no extraction percentage where CGWB did not assess the unit (-9999 as published)', () => {
+    const say = GROUND_LAYERS.find((l) => l.id === 'cgwb_gw_extraction')!.say!;
+    const entry = (p: Record<string, unknown>) => ({ layer_id: 'x', match: 'contains', status: 'found', credit: { name: 'c' }, features: [p] }) as never;
+    expect(say(entry({ class: 'Not Assessed', sgw_dev_pe: -9999, block: 'Kolkata' }))).toBe('Groundwater extraction: Not Assessed');
+    expect(say(entry({ class: 'Safe', sgw_dev_pe: 41.6, block: 'Latur' }))).toBe('Groundwater extraction: Safe (42% of the annual extractable resource, Latur block)');
+  });
+
+  it('gives every partial-coverage layer of plan A2 a footprint (A2: not_covered vs none_within_radius)', () => {
+    const row = (id: string) => GROUND_LAYERS.find((l) => l.id === id)!;
+    for (const id of ['subsidence_megacities', 'atal_bhujal_wells', 'slusi_soil_health']) expect(row(id).coverageKm, id).toBeGreaterThan(row(id).radiusKm!);
+    // contains layers that reach only part of India answer not_covered off their polygons; all-India ones say none
+    for (const id of ['core_mws_water_balance', 'core_mws_drought']) expect(row(id).allIndia, id).toBeUndefined();
+    expect(row('ndem_floods_1998_2022').allIndia).toBe(true);
   });
 
   it('adds SoilGrids with the ISRIC credit', async () => {
@@ -319,7 +336,7 @@ describe('groundAt', () => {
   it('says each section\'s scale, vintage and fetch date, and the screening disclaimer once', async () => {
     const withDates = { ...catalog, layers: catalog.layers.map((l) => ({ ...l, fetched_at: '2026-05-25T17:02:55+00:00' })) };
     const g = await run(28.525, 77.085, withDates);
-    expect(g.sections.seismic.seismic_zones.about).toEqual({ scale: 'national zoning map', vintage: 'BIS IS 1893:2016', fetched_at: '2026-05-25' });
+    expect(g.sections.seismic.seismic_zones.about).toEqual({ ...SEISMIC_ABOUT, vintage: 'BIS IS 1893 (Part 1):2016', fetched_at: '2026-05-25' });
     expect(g.sections.soil.soilgrids.about?.scale).toMatch(/250 m/);
     expect(g.disclaimer).toMatch(/not for engineering/);
   });

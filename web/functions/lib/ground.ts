@@ -16,26 +16,23 @@ export const DISCLAIMER = 'Screening information from published maps and models 
   'not a site investigation, and not for engineering, construction or safety decisions. ' +
   'Check each section\'s scale and vintage, and confirm on site (boreholes, utility surveys, soil tests) before relying on it.';
 
-const sig = (v: number, digits = 3) => Number(v.toPrecision(digits));
 
 // ── decoders: source encodings to plain units ────────────────────────────────
 
 
 export const DECODERS = {
   /** GLHYMPS 2.0 (readme, Borealis doi:10.5683/SP2/TTJNIU): logK_Ferr_ is log10 permeability (m2)
-   *  x 100, without permafrost; K (m/s) = k x 1e7 for water. Porosity_x is porosity x 100 from
-   *  GLHYMPS 1.0; it reads 0 on polygons whose values come from the unconsolidated sediments map
-   *  (GUM_K 2) or that have none (GUM_K 0), so 0 means "not given". A logK of 0 marks no value. */
+   *  x 100, without permafrost; a logK of 0 marks no value (GUM_K 0). The map is global and
+   *  coarse: one polygon of sediments from the Global Unconsolidated Sediments Map (GUM_K 2,
+   *  Porosity_x 0 as published) holds Delhi, Majuli and Kolkata alike. So the profile gives
+   *  only a class, by Bear (1972): pervious from 1e-11 m2, semi-pervious to 1e-15, impervious
+   *  below. The published columns stay in `features`. */
   glhymps(p: Props): Props {
     const logK = num(p.logK_Ferr_);
     const k = logK ? Math.round(logK) / 100 : null;
-    const por = num(p.Porosity_x);
     return {
       log10_permeability_m2: k,
-      permeability_m2: k === null ? null : sig(10 ** k),
-      hydraulic_conductivity_m_per_s: k === null ? null : sig(10 ** k * 1e7),
-      porosity_fraction: por ? por / 100 : null,
-      ...(por ? {} : { porosity_note: 'not given here: GLHYMPS 2.0 has no porosity for unconsolidated sediments mapped from GUM' }),
+      permeability_class: k === null ? null : k >= -11 ? 'pervious' : k >= -15 ? 'semi-pervious' : 'impervious',
     };
   },
   /** Columns named "<Pre|Post>-monsoon_<year> (meters below ground level)": the latest reading of each season. */
@@ -74,9 +71,16 @@ const gwQualitySay = (season: string) => (e: ProfileEntry) => {
   return n && first(e, 'GWQ') ? `${season} groundwater sample ${km(n.distance_km)} away: ${first(e, 'GWQ')}${first(e, 'YEAR') ? ` (${first(e, 'YEAR')})` : ''}` : null;
 };
 
+/** Plan F1: the zones are the 2016 code's. A 2025 revision (with a Zone VI along the Himalaya)
+ *  was issued in November 2025 and reported withdrawn by BIS in March 2026, so 2016 applies. */
+export const SEISMIC_ABOUT = {
+  scale: 'national zoning map', vintage: 'BIS IS 1893 (Part 1):2016',
+  note: 'the 2016 zones II to V; the 2025 revision, which added a Zone VI along the Himalaya, was reported withdrawn in March 2026',
+};
+
 export const GROUND_LAYERS: ProfileLayer[] = [
   // ── seismic ──
-  { id: 'seismic_zones', section: 'seismic', match: 'contains', about: { scale: 'national zoning map', vintage: 'BIS IS 1893:2016' },
+  { id: 'seismic_zones', section: 'seismic', match: 'contains', about: SEISMIC_ABOUT,
     say: (e) => first(e, 'seismic_zo') && `${first(e, 'seismic_zo')}${first(e, 'intensity_') ? ` (${first(e, 'intensity_')})` : ''}` },
   { id: 'gem_active_faults', section: 'seismic', match: 'nearest', shape: true, radiusKm: 50,
     about: { scale: 'regional fault traces (75 in India)', vintage: 'GEM GAF-DB, June 2021' },
@@ -117,14 +121,14 @@ export const GROUND_LAYERS: ProfileLayer[] = [
   { id: 'gsi_hydrocarbon_blocks', section: 'resources', match: 'nearest', shape: true, radiusKm: 25, about: { scale: 'block outlines' },
     fields: ['block_name', 'basin_name', 'bid_round', 'block_area', 'operator', 'field_name', 'status'],
     say: (e) => { const n = e.nearest?.[0]; return n && (n.distance_km === 0 ? `Inside hydrocarbon block ${first(e, 'block_name')}` : null); } },
-  { id: 'gsi_critical_minerals', section: 'resources', match: 'nearest', radiusKm: 25,
+  { id: 'gsi_critical_minerals', section: 'resources', match: 'nearest', about: { scale: 'occurrence points (GSI)' }, radiusKm: 25,
     fields: ['commodity', 'locality', 'occurrence', 'host_rock', 'geology', 'age', 'remarks'], say: nearestSay('Critical mineral occurrence', 'commodity') },
-  { id: 'gsi_mineral_deposits', section: 'resources', match: 'nearest', radiusKm: 25,
+  { id: 'gsi_mineral_deposits', section: 'resources', match: 'nearest', about: { scale: 'deposit points (GSI)' }, radiusKm: 25,
     fields: ['mineral_or', 'locality', 'reserve', 'grade', 'hostrock', 'formation'], say: nearestSay('Mineral deposit', 'mineral_or') },
-  { id: 'gsi_geothermal_springs', section: 'resources', match: 'nearest', radiusKm: 50,
+  { id: 'gsi_geothermal_springs', section: 'resources', match: 'nearest', about: { scale: 'spring points (GSI)' }, radiusKm: 50,
     fields: ['location', 'state', 'district', 'temparatur', 'spring_typ', 'tds'], units: { temparatur: 'deg C', tds: 'mg/L (as published)' },
     say: nearestSay('Hot spring', 'location') },
-  { id: 'vedas_oil_wells', section: 'resources', match: 'nearest', radiusKm: 10, fields: ['well_name', 'operator'], say: nearestSay('Oil or gas well', 'well_name') },
+  { id: 'vedas_oil_wells', section: 'resources', match: 'nearest', about: { scale: 'well points (ISRO VEDAS)' }, radiusKm: 10, fields: ['well_name', 'operator'], say: nearestSay('Oil or gas well', 'well_name') },
   // ── groundwater ──
   { id: 'cgwb_aquifers', section: 'groundwater', match: 'contains', about: { scale: 'principal aquifer map (regional)' },
     say: (e) => first(e, 'aquifer0') && `Aquifer: ${first(e, 'aquifer0')}${first(e, 'aquifers') ? `, ${first(e, 'aquifers')}` : ''}` },
@@ -132,15 +136,16 @@ export const GROUND_LAYERS: ProfileLayer[] = [
     units: { sgw_dev_pe: '% (stage of groundwater extraction)' },
     say: (e) => {
       const stage = num(first(e, 'sgw_dev_pe'));
-      return first(e, 'class') && `Groundwater extraction: ${first(e, 'class')}${stage ? ` (${Math.round(stage)}% of the annual extractable resource${first(e, 'block') ? `, ${first(e, 'block')} block` : ''})` : ''}`;
+      return first(e, 'class') && `Groundwater extraction: ${first(e, 'class')}${stage !== null && stage >= 0 ? ` (${Math.round(stage)}% of the annual extractable resource${first(e, 'block') ? `, ${first(e, 'block')} block` : ''})` : ''}`;
     } },
   { id: 'bhuvan_gw_prospects', section: 'groundwater', match: 'contains', about: { scale: '1:50,000' } },
   { id: 'glhymps_permeability', section: 'groundwater', match: 'contains', decode: DECODERS.glhymps,
-    about: { scale: 'global, coarse polygons (regional patterns, not a site value)', vintage: 'GLHYMPS 2.0 (2018)' },
-    units: { log10_permeability_m2: 'log10 m2', permeability_m2: 'm2', hydraulic_conductivity_m_per_s: 'm/s', porosity_fraction: 'fraction (0-1)' },
+    about: { scale: 'global, coarse polygons (regional patterns, not a site value)', vintage: 'GLHYMPS 2.0 (2018)',
+      note: 'a class only: one polygon can span hundreds of km; Porosity_x is 0 where the values come from the unconsolidated sediments map (GUM_K 2), as published' },
+    units: { log10_permeability_m2: 'log10 m2 (the polygon\'s value, not the site\'s)', permeability_class: 'Bear (1972): pervious from 1e-11 m2, semi-pervious to 1e-15 m2, impervious below' },
     say: (e) => {
-      const k = e.decoded?.log10_permeability_m2;
-      return typeof k === 'number' ? `Near-surface permeability about 10^${k} m2 (GLHYMPS)` : null;
+      const c = e.decoded?.permeability_class;
+      return typeof c === 'string' ? `Permeability class (GLHYMPS, global and coarse): ${c}` : null;
     } },
   { id: 'atal_bhujal_wells', section: 'groundwater', match: 'nearest', radiusKm: 10, coverageKm: 50, decode: DECODERS.monsoon_depths,
     about: { scale: 'monitoring wells in seven states', vintage: '2015 to 2022' },
@@ -185,7 +190,10 @@ export const GROUND_LAYERS: ProfileLayer[] = [
     } },
   // ── subsidence ──
   { id: 'subsidence_megacities', section: 'subsidence', match: 'nearest', radiusKm: 0.5, coverageKm: 10, candidates: 1000,
-    about: { scale: 'satellite (InSAR) measurement points', vintage: 'Ohenhen et al. 2025; Bengaluru, Chennai, Delhi, Kolkata and Mumbai only' },
+    // Plan F4, checked in the published file: 36,241 rows repeat a coordinate (Delhi 27,858, Kolkata 8,383;
+    // never across cities, never with the same value, spread over each city rather than along a frame edge).
+    about: { scale: 'satellite (InSAR) measurement points', vintage: 'Ohenhen et al. 2025; Bengaluru, Chennai, Delhi, Kolkata and Mumbai only',
+      note: 'in Delhi and Kolkata some coordinates repeat with slightly different rates, as published (likely several measurement points at one position); each coordinate counts once, as the median of its readings' },
     fields: ['VLM_cm_per_yr', 'city'], units: { VLM_cm_per_yr: 'cm/yr of vertical land motion; negative means sinking', median_VLM_cm_per_yr: 'cm/yr' },
     median: { field: 'VLM_cm_per_yr', name: 'median_VLM_cm_per_yr', perPoint: ['Longitude', 'Latitude'] },
     say: (e) => {
@@ -205,7 +213,7 @@ export const GROUND_LAYERS: ProfileLayer[] = [
   // ── watershed ──
   { id: 'core_mws_water_balance', section: 'watershed', match: 'contains', about: { scale: 'micro-watershed', vintage: '2017-18 to 2024-25' } },
   { id: 'core_mws_drought', section: 'watershed', match: 'contains', about: { scale: 'micro-watershed', vintage: 'to 2022 or 2024 by tehsil' } },
-  { id: 'ndem_floods_1998_2022', section: 'watershed', match: 'contains', about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
+  { id: 'ndem_floods_1998_2022', section: 'watershed', match: 'contains', allIndia: true, about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
     say: (e) => (e.status === 'found' ? 'Inside an area NDEM mapped as flooded between 1998 and 2022' : null) },
 ];
 
