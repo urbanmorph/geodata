@@ -123,6 +123,8 @@ jobs:
           # ArcGIS Location Platform key for the satellite basemap (shared/esri-imagery.ts).
           # Without it the build offers no satellite option.
           VITE_ARCGIS_KEY: ${{ secrets.VITE_ARCGIS_KEY }}
+          # The point lookups' docs, FAQ and credits (prerender); same flag as wrangler.toml [vars].
+          POINT_PROFILES: on
           # Operator precedence in GH expressions: && binds tighter than ||,
           # so the obvious shape `A || B || C && 'remote' || 'local'` parses as
           # `A || B || (C && 'remote') || 'local'` and short-circuits to the
