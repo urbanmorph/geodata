@@ -24,6 +24,7 @@ import { noteColumns, areaColumn, addedAt } from '../../src/export/derived';
 import { photoIdsIn, checkPhotos, setPhotos, deletePhotosOf, photoLinks, photoUrl } from './photos';
 import { runAi, drainAi, publicNotes } from './ai';
 import { mapUrl } from '../../src/map-path';
+import { mimeFor } from '../../../shared/mime.mjs';
 
 const BHARATLAS_ORIGIN = 'https://bharatlas.com';
 
@@ -924,7 +925,7 @@ async function publishMap(env: Env, req: Request, id: string, { attemptId, log, 
         {
           key: r2Key,
           body: bytes.buffer as ArrayBuffer,
-          httpMetadata: { contentType: 'application/geo+json', contentDisposition: `attachment; filename="${submissionId}.geojson"` },
+          httpMetadata: { contentType: mimeFor('geojson'), contentDisposition: `attachment; filename="${submissionId}.geojson"` },
         },
         {
           key: contributorsKey,

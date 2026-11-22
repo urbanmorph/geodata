@@ -2,13 +2,12 @@
 // Reads the catalog, builds metadata, renders PNG; the PNG is kept in the edge
 // cache (keyed by the deploy version), so resvg runs once per colo and deploy.
 
-import { curatedMetadata } from '../../lib/og-metadata';
+import { curatedCard } from '../../lib/og-metadata';
 import { renderOgPng } from '../../lib/og-render';
 import { ogError, PNG_HEADERS } from '../../lib/og-response';
 import { renderOgSvg } from '../../lib/og-template';
 import { cached, cacheKey, EDGE_TTL } from '../../lib/edge-cache';
 import { findLayer } from '../../lib/api-layer';
-import { layerLevelMeta } from '../../lib/view-dataset';
 
 type Params = { id: string };
 
@@ -25,8 +24,7 @@ export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = as
   const key = cacheKey(version, url, { query: false });
   return cached(ctx, key, EDGE_TTL.page, async () => {
     // The /view page's own level rule, so the card's title matches the page's.
-    const levelMeta = layerLevelMeta(layer, catalog.level_meta, catalog.layers);
-    const meta = curatedMetadata({ layer, levelMeta });
+    const meta = curatedCard(layer, catalog.level_meta, catalog.layers);
     return new Response(await renderOgPng(renderOgSvg(meta), ctx), { headers: PNG_HEADERS });
   });
 };

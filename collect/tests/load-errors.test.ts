@@ -2,7 +2,7 @@
 // the owner turned off (or a map that no longer exists: the server answers the
 // same, so as not to reveal which maps exist), or no connection.
 import { describe, it, expect } from 'vitest';
-import { ApiError, loadErrorText, LINK_OFF } from '../src/api';
+import { ApiError, loadErrorText, LINK_OFF, LINK_OFF_REASON } from '../src/api';
 
 describe('why a map could not open', () => {
   it('a link the owner turned off (or a wrong one) says so, and what to do', () => {
@@ -11,6 +11,11 @@ describe('why a map could not open', () => {
     expect(LINK_OFF).toMatch(/no longer works/);
     expect(LINK_OFF).toMatch(/deleted/);
     expect(LINK_OFF).toMatch(/ask (the person|whoever) who shared it/i);
+  });
+  it('a point refused by a turned-off link gives the same reason, as a clause', () => {
+    expect(LINK_OFF).toBe(`${LINK_OFF_REASON[0].toUpperCase()}${LINK_OFF_REASON.slice(1)}.`);
+    expect(LINK_OFF_REASON).not.toMatch(/[.—]$/);
+    expect(LINK_OFF).not.toContain('—');
   });
   it('offline, keeps the offline explanation', () => {
     const offline = new Error("You're offline, and this map hasn't been opened on this device with a connection yet.");

@@ -111,13 +111,14 @@ describe('OG cards', () => {
 });
 
 describe('/view and /og/view agree on the layer', () => {
-  // The card title is the page's level label: for an alternate source (Bhuvan
-  // blocks next to LGD blocks) that is "Blocks", not the LGD layer's
-  // "Blocks (2024)" nor the bare id.
-  it("an alternate source's card title is its page's level label", async () => {
+  // An alternate source (Bhuvan blocks next to LGD blocks) is titled as its
+  // page is, "Blocks from Bhuvan" (wrapped over two lines on the card), so
+  // its siblings' cards differ: not the LGD layer's "Blocks (2024)" nor the bare id.
+  it("an alternate source's card title is its page's title", async () => {
     await call(ogView, '/og/view/bhuvan_blocks.png', { id: 'bhuvan_blocks' });
     const svg = String(vi.mocked(renderOgPng).mock.calls[0][0]);
-    expect(svg).toContain('>Blocks<');
+    expect(svg).toContain('>Blocks from<');
+    expect(svg).toContain('>Bhuvan<');
     expect(svg).not.toContain('bhuvan blocks');
     expect(svg).not.toContain('(2024)');
   });

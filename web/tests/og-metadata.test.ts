@@ -1,5 +1,35 @@
 import { describe, it, expect } from 'vitest';
-import { curatedMetadata, communityMetadata } from '../functions/lib/og-metadata';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { curatedMetadata, curatedCard, communityMetadata } from '../functions/lib/og-metadata';
+import { buildViewDataset, layerLevelMeta } from '../functions/lib/view-dataset';
+
+// An alternate source of a level (Bhuvan, PMGSY, geoBoundaries blocks next to
+// LGD's) took the bare level label, so every sibling's card read "Blocks" and
+// the cut-off subtitle hid the source. Its card now carries the /view title.
+describe('curatedCard', () => {
+  const catalog = JSON.parse(readFileSync(resolve(__dirname, '../../catalog.json'), 'utf8'));
+  const byId = (id: string) => catalog.layers.find((l: { id: string }) => l.id === id);
+  const card = (id: string) => curatedCard(byId(id), catalog.level_meta, catalog.layers);
+  const viewTitleOf = (id: string) =>
+    buildViewDataset(byId(id), layerLevelMeta(byId(id), catalog.level_meta, catalog.layers), 'https://bharatlas.com').title;
+
+  it("an alternate source's card title is its /view page title", () => {
+    expect(card('bhuvan_blocks').title).toBe('Blocks from Bhuvan');
+    for (const id of ['pmgsy_blocks', 'gb_adm4', 'soi_districts', 'bhuvan_states']) {
+      expect(card(id).title, id).toBe(viewTitleOf(id));
+    }
+  });
+
+  it("the level's primary layer keeps its level label", () => {
+    expect(card('lgd_blocks').title).toBe('Blocks (2024)');
+  });
+
+  it('a layer with its own SEO title (a ward map) keeps the short label on its card', () => {
+    const ward = catalog.layers.find((l: { id: string }) => /^wards_/.test(l.id) && catalog.level_meta[l.id]?.seo_title);
+    expect(card(ward.id).title).toBe(catalog.level_meta[ward.id].label);
+  });
+});
 
 describe('curatedMetadata', () => {
   it('uses levelMeta.label as the title when available', () => {

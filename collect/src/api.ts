@@ -47,8 +47,12 @@ async function readJson<T>(res: Response): Promise<T> {
   return body as T;
 }
 
-export const LINK_OFF =
-  "This collect link no longer works. The map's owner may have turned the link off or deleted the map. Ask the person who shared it for a new link.";
+/** Why a turned-off (or wrong) link was refused, as a clause: a point that
+ *  couldn't be sent shows it as "Couldn't save: <reason>.". */
+export const LINK_OFF_REASON =
+  "this collect link no longer works (the map's owner may have turned it off or deleted the map), so ask the person who shared it for a new link";
+/** The same reason as a sentence of its own, for a map that won't open. */
+export const LINK_OFF = `${LINK_OFF_REASON[0].toUpperCase()}${LINK_OFF_REASON.slice(1)}.`;
 
 /** Why a map couldn't open, in plain words. The server answers 401 for a turned-off
  *  link and for a map that doesn't exist alike, so it never reveals which maps exist. */
