@@ -17,8 +17,8 @@
 
       /* Buttons use the shared .btn classes; one field style for the whole page. */
       .field input:not([type=radio]):not([type=checkbox]), .field textarea, .field select, #paste-back-form input, .subs-sync input {
-        width: 100%; min-height: 44px; padding: 8px 12px; font: inherit; font-size: var(--fs-md);
-        color: var(--fg); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+        width: 100%; min-height: 44px; padding: var(--sp-2) var(--sp-3); font: inherit; font-size: var(--fs-md);
+        color: var(--fg); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm);
       }
       .field input:not([type=radio]):not([type=checkbox]):focus, .field textarea:focus, .field select:focus, #paste-back-form input:focus {
         outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-fill) 40%, transparent);
@@ -28,13 +28,13 @@
       /* === Initial drop state =============================================== */
       /* Intro, drop zone and past submissions share one left-aligned column. */
       #drop {
-        display: flex; flex-direction: column; align-items: center; gap: 6px; max-width: 760px; margin: 0;
-        border: 2px dashed var(--edge); border-radius: var(--radius-sm); padding: 56px 24px;
-        text-align: center; cursor: pointer; transition: background .15s;
+        display: flex; flex-direction: column; align-items: center; gap: var(--sp-1-5); max-width: 760px; margin: 0;
+        border: 2px dashed var(--edge); border-radius: var(--radius-sm); padding: 56px var(--sp-6);
+        text-align: center; cursor: pointer; transition: background var(--dur-fast);
         background: var(--bg-elevated);
       }
       #drop:hover, #drop.dragover { background: var(--land); }
-      .drop__icon { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: 8px; border-radius: 50%; background: var(--accent-fill); color: var(--on-accent-fill); border: 2px solid var(--edge); }
+      .drop__icon { display: grid; place-items: center; width: 56px; height: 56px; margin-bottom: var(--sp-2); border-radius: 50%; background: var(--accent-fill); color: var(--on-accent-fill); border: var(--border-strong); }
       #drop strong { font-size: var(--fs-lg); font-weight: 700; display: block; }
       #drop .hint { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
       #drop input[type=file] { display: none; }
@@ -43,56 +43,56 @@
       /* Single scroll axis = the page itself. Map sticks while the sidebar
          (which can grow taller than the viewport once the form is open)
          scrolls past it. No nested scrollbar. */
-      #workspace { display: none; grid-template-columns: minmax(0, 1fr) min(360px, 38%); gap: 20px; align-items: start; }
+      #workspace { display: none; grid-template-columns: minmax(0, 1fr) min(360px, 38%); gap: var(--sp-5); align-items: start; }
       #workspace.show { display: grid; }
       #map {
         position: sticky; top: 16px;
         height: calc(100vh - 80px); min-height: 420px;
-        border: 1.5px solid var(--edge); border-radius: var(--radius-sm); overflow: hidden;
+        border: var(--border-edge); border-radius: var(--radius-sm); overflow: hidden;
         background: var(--bg-elevated);
       }
       .ws-side {
         background: var(--bg-elevated);
-        border: 1.5px solid var(--edge);
+        border: var(--border-edge);
         border-radius: var(--radius-sm);
-        padding: 16px 18px;
+        padding: var(--sp-4) var(--sp-4-5);
       }
       .ws-side h2 {
-        font-size: var(--fs-base); font-weight: 700; color: var(--fg); margin: 0 0 12px;
+        font-size: var(--fs-base); font-weight: 700; color: var(--fg); margin: 0 0 var(--sp-3);
       }
       .ws-side .reset {
-        display: block; width: 100%; margin: 14px 0 0;
-        background: transparent; color: var(--muted); border: 1px dashed var(--line);
-        border-radius: var(--radius-md); padding: 8px 12px; font: inherit; font-size: var(--fs-xs); cursor: pointer;
+        display: block; width: 100%; margin: var(--sp-3-5) 0 0;
+        background: transparent; color: var(--muted); border: var(--border-dashed);
+        border-radius: var(--radius-md); padding: var(--sp-2) var(--sp-3); font: inherit; font-size: var(--fs-xs); cursor: pointer;
       }
       .ws-side .reset:hover { color: var(--fg); border-color: var(--fg); }
 
       /* === Publish CTA (shown when form is collapsed) ====================== */
-      #publish-cta { display: none; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
+      #publish-cta { display: none; padding-top: var(--sp-4); margin-top: var(--sp-4); border-top: var(--border-line); }
       #publish-cta.show { display: block; }
-      #publish-cta .cta-line { font-size: var(--fs-sm); font-weight: 500; margin: 0 0 8px; }
+      #publish-cta .cta-line { font-size: var(--fs-sm); font-weight: 500; margin: 0 0 var(--sp-2); }
       #publish-cta button.primary { width: 100%; }
-      #publish-cta .cta-hint { font-size: var(--fs-xs); color: var(--muted); margin: 8px 0 0; text-align: center; }
+      #publish-cta .cta-hint { font-size: var(--fs-xs); color: var(--muted); margin: var(--sp-2) 0 0; text-align: center; }
 
-      .view-only { display: block; padding-top: 16px; margin-top: 16px; border-top: 1px solid var(--line); }
+      .view-only { display: block; padding-top: var(--sp-4); margin-top: var(--sp-4); border-top: var(--border-line); }
       .view-only[hidden] { display: none; }
       .view-only p { font-size: var(--fs-xs); color: var(--muted); margin: 0; }
       .view-only a { color: var(--accent); }
 
-      .form-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .form-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--sp-2); }
       .form-head h3 { margin: 0; }
       button.cancel {
         background: transparent; border: 0; cursor: pointer;
-        color: var(--muted); font-size: var(--fs-md); padding: 4px 8px; line-height: 1;
+        color: var(--muted); font-size: var(--fs-md); padding: var(--sp-1) var(--sp-2); line-height: 1;
         border-radius: var(--radius-sm);
       }
       button.cancel:hover { color: var(--err); background: var(--bg); }
 
       /* === Validation report =============================================== */
-      #report { margin: 0 0 16px; }
+      #report { margin: 0 0 var(--sp-4); }
       #report .row {
-        display: flex; gap: 10px; padding: 6px 0; font-size: var(--fs-sm);
-        border-bottom: 1px solid var(--line);
+        display: flex; gap: var(--sp-2-5); padding: var(--sp-1-5) 0; font-size: var(--fs-sm);
+        border-bottom: var(--border-line);
       }
       #report .row:last-child { border-bottom: 0; }
       #report .row.ok::before { content: "✓"; color: var(--ok); width: 16px; font-weight: 700; }
@@ -102,49 +102,49 @@
       #report .row .v { color: var(--muted); font-variant-numeric: tabular-nums; }
 
       /* === Metadata form =================================================== */
-      form { margin: 18px 0 0; display: none; padding-top: 16px; border-top: 1px solid var(--line); }
+      form { margin: var(--sp-4-5) 0 0; display: none; padding-top: var(--sp-4); border-top: var(--border-line); }
       form.show { display: block; }
-      form h3 { font-size: var(--fs-sm); font-weight: 600; margin: 0 0 14px; }
-      .field { margin-bottom: 14px; }
-      .field label { display: block; font-weight: 500; font-size: var(--fs-xs); margin-bottom: 4px; }
-      .field label .req { color: var(--err); margin-left: 2px; }
+      form h3 { font-size: var(--fs-sm); font-weight: 600; margin: 0 0 var(--sp-3-5); }
+      .field { margin-bottom: var(--sp-3-5); }
+      .field label { display: block; font-weight: 500; font-size: var(--fs-xs); margin-bottom: var(--sp-1); }
+      .field label .req { color: var(--err); margin-left: var(--sp-0-5); }
       .field .hint { color: var(--muted); font-size: var(--fs-xs); margin-top: 3px; line-height: 1.4; }
       .field textarea { resize: vertical; min-height: 50px; }
       .legal {
         font-size: var(--fs-xs); color: var(--muted); line-height: 1.5;
-        background: var(--bg); padding: 8px 10px; border-radius: var(--radius-md);
-        border-left: 3px solid var(--accent); margin: 12px 0;
+        background: var(--bg); padding: var(--sp-2) var(--sp-2-5); border-radius: var(--radius-md);
+        border-left: 3px solid var(--accent); margin: var(--sp-3) 0;
       }
-      .radio-group { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
-      .radio-group label { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-weight: 400; cursor: pointer; margin: 0; padding: 2px 0; }
+      .radio-group { display: flex; flex-direction: column; gap: var(--sp-1-5); margin-top: var(--sp-1); }
+      .radio-group label { display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-sm); font-weight: 400; cursor: pointer; margin: 0; padding: var(--sp-0-5) 0; }
       .radio-group input[type=radio] { margin: 0; flex-shrink: 0; }
-      #captcha { margin: 12px 0; min-height: 65px; }
+      #captcha { margin: var(--sp-3) 0; min-height: 65px; }
 
       button.primary { width: 100%; }
       button.primary:disabled { opacity: 0.5; cursor: not-allowed; }
-      #submit-status { margin-top: 10px; color: var(--muted); font-size: var(--fs-xs); min-height: 16px; }
+      #submit-status { margin-top: var(--sp-2-5); color: var(--muted); font-size: var(--fs-xs); min-height: 16px; }
       #submit-status.err { color: var(--err); }
 
       /* === Success state =================================================== */
       #success { display: none; max-width: 640px; margin: 0 auto; }
       #success.show { display: block; }
-      #success h2 { font-size: var(--fs-lg); margin: 0 0 4px; color: var(--ok); }
-      #success .ok-line { color: var(--muted); font-size: var(--fs-base); margin-bottom: 24px; }
+      #success h2 { font-size: var(--fs-lg); margin: 0 0 var(--sp-1); color: var(--ok); }
+      #success .ok-line { color: var(--muted); font-size: var(--fs-base); margin-bottom: var(--sp-6); }
       #success .warn {
         background: color-mix(in srgb, var(--warn) 12%, var(--bg-card));
         border-left: 3px solid var(--warn);
-        padding: 14px 16px; border-radius: var(--radius-md); margin: 16px 0;
+        padding: var(--sp-3-5) var(--sp-4); border-radius: var(--radius-md); margin: var(--sp-4) 0;
       }
       #success .warn strong { color: var(--warn); }
       #success .token {
         font: var(--fs-sm) var(--font-mono);
-        background: var(--bg); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
-        padding: 10px 12px; word-break: break-all; margin: 10px 0;
+        background: var(--bg); border: var(--border-edge); border-radius: var(--radius-sm);
+        padding: var(--sp-2-5) var(--sp-3); word-break: break-all; margin: var(--sp-2-5) 0;
       }
-      #success .actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 24px; }
+      #success .actions { display: flex; gap: var(--sp-2); flex-wrap: wrap; margin: var(--sp-2-5) 0 var(--sp-6); }
       #success .ok-meta {
         color: var(--fg); font-size: var(--fs-sm); font-weight: 500;
-        margin: -16px 0 24px; line-height: 1.5;
+        margin: calc(var(--sp-4) * -1) 0 var(--sp-6); line-height: 1.5;
       }
 
       /* === Map loader overlay (verify gap: validate → render) ============== */
@@ -152,12 +152,12 @@
         position: absolute; inset: 0;
         display: flex; flex-direction: column;
         align-items: center; justify-content: center;
-        gap: 14px;
+        gap: var(--sp-3-5);
         backdrop-filter: blur(1px);
         background: color-mix(in srgb, var(--bg) 70%, transparent);
         pointer-events: none;
-        z-index: 5;
-        transition: opacity 220ms ease;
+        z-index: var(--z-map-ui);
+        transition: opacity var(--dur-base) ease;
       }
       .map-loader.fade { opacity: 0; }
       .map-loader__ring {
@@ -172,9 +172,9 @@
 
       /* === Your submissions (v4.8) ========================================== */
       #my-subs {
-        display: block; max-width: 760px; margin: 18px 0 0;
-        background: var(--bg-elevated); border: 1.5px solid var(--edge);
-        border-radius: var(--radius-sm); padding: 16px 18px;
+        display: block; max-width: 760px; margin: var(--sp-4-5) 0 0;
+        background: var(--bg-elevated); border: var(--border-edge);
+        border-radius: var(--radius-sm); padding: var(--sp-4) var(--sp-4-5);
       }
       #my-subs[hidden] { display: none; }
       /* When the user has dropped a file (workspace.show), the verify flow
@@ -182,15 +182,15 @@
          stack and overlap the map. Returns when workspace.show is removed. */
       body:has(#workspace.show) #my-subs { display: none; }
       #my-subs h2 {
-        font-size: var(--fs-base); font-weight: 700; color: var(--fg); margin: 0 0 8px;
+        font-size: var(--fs-base); font-weight: 700; color: var(--fg); margin: 0 0 var(--sp-2);
       }
       #my-subs-list { display: flex; flex-direction: column; }
       .my-subs-row {
-        display: grid; grid-template-columns: 1fr auto auto; gap: 12px;
+        display: grid; grid-template-columns: 1fr auto auto; gap: var(--sp-3);
         align-items: center;
-        padding: 8px 4px; font-size: var(--fs-sm);
+        padding: var(--sp-2) var(--sp-1); font-size: var(--fs-sm);
         color: inherit; text-decoration: none;
-        border-bottom: 1px solid var(--line);
+        border-bottom: var(--border-line);
       }
       .my-subs-row:last-child { border-bottom: 0; }
       .my-subs-row:hover .my-subs-name { color: var(--accent); }
@@ -201,8 +201,8 @@
       .my-subs-pill {
         font: var(--fs-xs)/1 var(--font-mono);
         letter-spacing: .04em; color: var(--muted-strong, var(--muted));
-        background: var(--bg); border: 1.5px solid var(--edge);
-        padding: 3px 6px; border-radius: var(--radius-sm);
+        background: var(--bg); border: var(--border-edge);
+        padding: 3px var(--sp-1-5); border-radius: var(--radius-sm);
       }
       .my-subs-when {
         font-size: var(--fs-xs); color: var(--muted);
@@ -210,37 +210,37 @@
       }
       #paste-back-toggle {
         min-height: 44px;
-        margin-top: 8px;
+        margin-top: var(--sp-2);
         background: transparent; border: 0; cursor: pointer;
         color: var(--muted); font: inherit; font-size: var(--fs-xs);
-        padding: 6px 4px;
+        padding: var(--sp-1-5) var(--sp-1);
       }
       #paste-back-toggle:hover { color: var(--fg); }
       #paste-back-form {
-        display: flex; gap: 6px; margin-top: 8px;
+        display: flex; gap: var(--sp-1-5); margin-top: var(--sp-2);
       }
       #paste-back-form[hidden] { display: none; }
       #paste-back-form input { flex: 1; width: auto; }
-      .paste-back-status { font-size: var(--fs-xs); color: var(--muted); margin-top: 6px; min-height: 16px; }
+      .paste-back-status { font-size: var(--fs-xs); color: var(--muted); margin-top: var(--sp-1-5); min-height: 16px; }
       /* Sync "Your submissions" across devices (src/submission-sync-ui.ts). */
-      .subs-sync { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: var(--fs-sm); }
-      .subs-sync h3 { font-size: var(--fs-md); margin: 0 0 4px; }
-      .subs-sync .hint { color: var(--muted); font-size: var(--fs-sm); margin: 4px 0 8px; display: block; }
+      .subs-sync { margin-top: var(--sp-3-5); padding-top: var(--sp-3); border-top: var(--border-line); font-size: var(--fs-sm); }
+      .subs-sync h3 { font-size: var(--fs-md); margin: 0 0 var(--sp-1); }
+      .subs-sync .hint { color: var(--muted); font-size: var(--fs-sm); margin: var(--sp-1) 0 var(--sp-2); display: block; }
       .subs-sync h3 .hint { display: inline; margin: 0; }
-      .subs-sync .btn { display: flex; width: 100%; margin-top: 10px; }
+      .subs-sync .btn { display: flex; width: 100%; margin-top: var(--sp-2-5); }
       .subs-sync input { font: var(--fs-sm) var(--font-mono); }
-      .subs-sync-note { color: var(--err); font-size: var(--fs-xs); min-height: 16px; margin: 6px 0 0; }
-      .my-subs-empty { color: var(--muted); font-size: var(--fs-sm); margin: 4px 0; }
+      .subs-sync-note { color: var(--err); font-size: var(--fs-xs); min-height: 16px; margin: var(--sp-1-5) 0 0; }
+      .my-subs-empty { color: var(--muted); font-size: var(--fs-sm); margin: var(--sp-1) 0; }
       .paste-back-status.err { color: var(--err); }
       @media (max-width: 720px) {
         #my-subs { margin-left: 0; margin-right: 0; }
       }
 
       .helper code { font-size: inherit; }
-      .helper { margin-top: 32px; padding-top: 16px; border-top: 1px dashed var(--line); font-size: var(--fs-xs); color: var(--muted); line-height: 1.6; }
+      .helper { margin-top: var(--sp-7); padding-top: var(--sp-4); border-top: var(--border-dashed); font-size: var(--fs-xs); color: var(--muted); line-height: 1.6; }
 
       @media (max-width: 720px) {
-        #drop { padding: 36px 16px; }
+        #drop { padding: 36px var(--sp-4); }
         #workspace { grid-template-columns: 1fr; }
         #map { position: relative; top: auto; height: 50vh; min-height: 280px; }
       }

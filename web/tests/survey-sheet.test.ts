@@ -30,7 +30,7 @@ describe('survey-sheet tokens', () => {
     expect(TOKENS).toMatch(/\.btn \{[^}]*border-radius: var\(--radius-sm\)/);
   });
   it('edge the header with the navy line, not a grey hairline', () => {
-    expect(TOKENS).toMatch(/\.site-header \{[^}]*border-bottom: 1\.5px solid var\(--edge\)/);
+    expect(TOKENS).toMatch(/\.site-header \{[^}]*border-bottom: var\(--border-edge\)/);
   });
 });
 

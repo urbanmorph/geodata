@@ -17,32 +17,32 @@
       li strong { font-weight: 600; color: var(--fg); }
       /* Three tools side by side, bharatlas tinted; who uses it as a grid of four. */
       .prose .compare, .prose .cards { list-style: none; padding: 0; display: grid; }
-      .prose .compare { grid-template-columns: 1fr 1fr 1.7fr; border: 1.5px solid var(--edge); }
-      .prose .compare > li { padding: var(--sp-4) var(--sp-5); border-right: 1px solid var(--line); color: var(--muted); }
+      .prose .compare { grid-template-columns: 1fr 1fr 1.7fr; border: var(--border-edge); }
+      .prose .compare > li { padding: var(--sp-4) var(--sp-5); border-right: var(--border-line); color: var(--muted); }
       .prose .compare > li:last-child { border-right: 0; background: var(--land); }
       .prose .cards { grid-template-columns: 1fr 1fr; gap: var(--sp-4); }
-      .prose .cards > li { padding: var(--sp-4) var(--sp-5); border: 1.5px solid var(--edge); color: var(--muted); }
+      .prose .cards > li { padding: var(--sp-4) var(--sp-5); border: var(--border-edge); color: var(--muted); }
       .prose :is(.compare, .cards) > li::before { display: none; }
-      :is(.compare, .cards) strong { display: block; margin-bottom: 6px; font-weight: 800; }
+      :is(.compare, .cards) strong { display: block; margin-bottom: var(--sp-1-5); font-weight: 800; }
       /* What you can do: a verb label beside each item, two columns. */
       .prose .pairs--verbs { display: grid; grid-template-columns: 1fr 1fr; column-gap: 40px; }
-      .prose .pairs--verbs > li { grid-template-columns: 112px minmax(0, 1fr); border-bottom: 0; border-top: 1px solid var(--line); }
-      .pairs--verbs .k { font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); padding-top: 2px; }
+      .prose .pairs--verbs > li { grid-template-columns: 112px minmax(0, 1fr); border-bottom: 0; border-top: var(--border-line); }
+      .pairs--verbs .k { font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); padding-top: var(--sp-0-5); }
       /* FAQ: question beside answer, every answer open. */
       .faq.wide { display: grid; grid-template-columns: 200px minmax(0, 720px); column-gap: 40px; }
-      .faq dt { grid-column: 1; padding: var(--sp-4) 0 0; border-top: 1px solid var(--line); font-weight: 800; color: var(--fg); }
-      .faq dd { grid-column: 2; margin: 0; padding: var(--sp-4) 0; border-top: 1px solid var(--line); color: var(--muted); }
+      .faq dt { grid-column: 1; padding: var(--sp-4) 0 0; border-top: var(--border-line); font-weight: 800; color: var(--fg); }
+      .faq dd { grid-column: 2; margin: 0; padding: var(--sp-4) 0; border-top: var(--border-line); color: var(--muted); }
       .faq dd > p:first-child { margin-top: 0; }
       /* Caveats and use of data: the bold lead on its own line. */
       .leads > li > strong:first-child { display: block; }
       .built-by { display: flex; align-items: center; gap: var(--sp-4); }
       .built-by img { border-radius: 50%; flex-shrink: 0; }
-      .built-by__text p { margin: 0 0 4px; }
+      .built-by__text p { margin: 0 0 var(--sp-1); }
       .built-by__text p:last-child { margin-bottom: 0; }
       @media (max-width: 760px) {
         .prose :is(.compare, .cards, .pairs--verbs), .faq.wide { grid-template-columns: 1fr; }
         .prose .pairs--verbs > li { grid-template-columns: 1fr; }
-        .prose .compare > li { border-right: 0; border-bottom: 1px solid var(--line); }
+        .prose .compare > li { border-right: 0; border-bottom: var(--border-line); }
         .prose .compare > li:last-child { border-bottom: 0; }
         .faq dt, .faq dd { grid-column: 1; }
         .faq dd { border-top: 0; padding-top: var(--sp-1); }

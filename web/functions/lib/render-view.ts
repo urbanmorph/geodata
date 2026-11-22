@@ -129,14 +129,14 @@ export function renderViewPage(opts: RenderOpts): string {
       /* Edge-rendered with the site's shared tokens, header and page classes
          (scripts/shared-chrome.mjs); only this page's own pieces are below. */
       ${MAP_TOKENS}
-      .tag { margin: 8px 0 0; }
-      .kv { display: grid; grid-template-columns: max-content 1fr; gap: 8px var(--sp-5); margin: 0 0 var(--sp-6); font-size: var(--fs-base); }
+      .tag { margin: var(--sp-2) 0 0; }
+      .kv { display: grid; grid-template-columns: max-content 1fr; gap: var(--sp-2) var(--sp-5); margin: 0 0 var(--sp-6); font-size: var(--fs-base); }
       .kv dt { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
       .kv dd { margin: 0; overflow-wrap: anywhere; }
-      .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin: var(--sp-6) 0; }
+      .actions { display: flex; gap: var(--sp-2-5); flex-wrap: wrap; align-items: center; margin: var(--sp-6) 0; }
       .vote-useful[aria-pressed=true] { background: color-mix(in srgb, var(--accent-fill) 22%, var(--bg-elevated)); }
       .vote-useful .vote-count { font-weight: 650; font-variant-numeric: tabular-nums; }
-      @media (max-width: 640px) { .kv { grid-template-columns: 1fr; gap: 2px; } .kv dd { margin-bottom: 8px; } }
+      @media (max-width: 640px) { .kv { grid-template-columns: 1fr; gap: var(--sp-0-5); } .kv dd { margin-bottom: var(--sp-2); } }
     </style>
   </head>
   <body class="page" data-submission-id="${esc(s.id)}">

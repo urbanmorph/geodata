@@ -21,7 +21,7 @@ describe('page system tokens', () => {
     }
   });
   it('put reading pages on a white sheet with numbered sections', () => {
-    expect(TOKENS).toMatch(/main\.sheet \{[^}]*background: var\(--bg-elevated\)[^}]*border: 1\.5px solid var\(--edge\)/);
+    expect(TOKENS).toMatch(/main\.sheet \{[^}]*background: var\(--bg-elevated\)[^}]*border: var\(--border-edge\)/);
     expect(TOKENS).toMatch(/main\.sheet h2:not\(\.unnumbered\)::before \{[^}]*counter\(sheet-section\) \/ ""/);
   });
   it('number sections as decoration (alt text "") so screen readers read just the heading', () => {
@@ -32,7 +32,7 @@ describe('page system tokens', () => {
     expect(TOKENS).toContain(':where(.page main) h3');
   });
   it('put the phone overrides after the rules they override', () => {
-    expect(TOKENS.lastIndexOf('body.page { padding: 0 16px 60px; }')).toBeGreaterThan(TOKENS.indexOf('body.page { max-width'));
+    expect(TOKENS.lastIndexOf('body.page { padding: 0 var(--sp-4) 60px; }')).toBeGreaterThan(TOKENS.indexOf('body.page { max-width'));
   });
   it('underline links in definitions too (not colour alone)', () => {
     expect(TOKENS).toContain('main :is(p, li, dd) a');

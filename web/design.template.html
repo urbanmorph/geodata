@@ -16,29 +16,29 @@
       <!-- TOKENS -->
       /* /design: the style guide. The page system styles the sheet, tables and
          badges; these are the demos only (scripts/design-page.mjs builds the body). */
-      .sw { display: inline-block; width: 28px; height: 28px; margin: 0 var(--sp-2) var(--sp-1) 0; vertical-align: middle; border: 1px solid var(--line-bright); border-radius: var(--radius-sm); }
+      .sw { display: inline-block; width: 28px; height: 28px; margin: 0 var(--sp-2) var(--sp-1) 0; vertical-align: middle; border: var(--border-bright); border-radius: var(--radius-sm); }
       .sw--lg { display: block; width: 56px; height: 40px; margin: 0 0 var(--sp-1); }
       .ratio, .kind { font: var(--fs-xs) var(--font-mono); color: var(--muted); }
       .swatch-table td:first-child { white-space: nowrap; }
       .specs { list-style: none; margin: 0; padding: 0; }
-      .specs li { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: var(--sp-1) var(--sp-4); align-items: baseline; padding: var(--sp-2) 0; border-top: 1px solid var(--line); }
+      .specs li { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: var(--sp-1) var(--sp-4); align-items: baseline; padding: var(--sp-2) 0; border-top: var(--border-line); }
       .prose .specs li::before, .prose .tiles li::before { display: none; }
       .spec { line-height: var(--lh-tight); overflow-wrap: anywhere; color: var(--fg); }
       .bar { display: block; height: 16px; background: var(--accent-fill); border: 1px solid var(--edge); }
       .tiles { list-style: none; display: flex; flex-wrap: wrap; gap: var(--sp-4); margin: 0; padding: 0; }
       .prose .tiles li { padding: 0; font-size: var(--fs-sm); color: var(--muted); }
-      .corner, .lift { display: block; width: 72px; height: 48px; margin-bottom: var(--sp-2); background: var(--bg-elevated); border: 1.5px solid var(--edge); }
+      .corner, .lift { display: block; width: 72px; height: 48px; margin-bottom: var(--sp-2); background: var(--bg-elevated); border: var(--border-edge); }
       .corner { background: var(--land); }
       .lift { margin-bottom: var(--sp-3); }
-      .demo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-5); background: var(--bg); border: 1px solid var(--line); }
+      .demo { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-3); padding: var(--sp-5); background: var(--bg); border: var(--border-line); }
       .demo--logo .site-brand { font-size: var(--fs-xl); }
-      .demo--logo .tagline { margin-left: 6px; color: var(--muted); font-size: var(--fs-base); font-weight: var(--fw-regular); }
+      .demo--logo .tagline { margin-left: var(--sp-1-5); color: var(--muted); font-size: var(--fs-base); font-weight: var(--fw-regular); }
       .states td, .states th[scope=row] { vertical-align: middle; }
       .states .btn { min-height: 44px; padding: 0 var(--sp-4); white-space: nowrap; }
       /* Frozen states, so each one can be seen side by side. */
       .btn--fill.is-hover { background: var(--accent-fill-hover); }
       .btn--line.is-hover, .tbtn.is-hover { background: var(--land); }
-      .is-focus { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+      .is-focus { outline: var(--border-focus); outline-offset: 2px; }
       .btn--fill.is-active { box-shadow: none; transform: translate(4px, 4px); }
       /* The map toolbar button (index.template.html #map-overlay), as it looks on the map. */
       .tbtn { min-height: 44px; padding: 0 var(--sp-3); font: inherit; font-weight: 650; color: var(--fg); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm); cursor: pointer; }
@@ -47,8 +47,8 @@
       .tbtn:disabled { opacity: .55; cursor: not-allowed; }
       .chip { display: inline-flex; align-items: center; min-height: 44px; padding: 0 var(--sp-4); font: inherit; font-weight: var(--fw-medium); color: var(--fg); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-pill); cursor: pointer; }
       .chip[aria-pressed=true] { color: var(--accent); background: var(--accent-tint); }
-      .demo-search { display: flex; align-items: center; gap: var(--sp-3); max-width: 560px; min-height: 52px; padding: 0 var(--sp-4); color: var(--fg); background: var(--bg-elevated); border: 2px solid var(--edge); border-radius: var(--radius-sm); box-shadow: var(--shadow); }
-      .demo-search:focus-within { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+      .demo-search { display: flex; align-items: center; gap: var(--sp-3); max-width: 560px; min-height: 52px; padding: 0 var(--sp-4); color: var(--fg); background: var(--bg-elevated); border: var(--border-strong); border-radius: var(--radius-sm); box-shadow: var(--shadow); }
+      .demo-search:focus-within { outline: var(--border-focus); outline-offset: 2px; }
       .fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: var(--sp-4); }
       .fields label { display: block; margin-bottom: var(--sp-1); font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--muted-strong); }
       .field { width: 100%; min-height: 44px; padding: 0 var(--sp-3); font: inherit; color: var(--fg); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm); }

@@ -9,10 +9,20 @@
 // DESIGN_VERSION. A renamed token keeps a deprecated alias for one release.
 import { PALETTE, THEME } from './brand.mjs';
 
-export const DESIGN_VERSION = '1.0.0';
+export const DESIGN_VERSION = '1.1.0';
 
 /** Newest first. Each entry: version, ISO date, what changed. */
 export const DESIGN_CHANGELOG = Object.freeze([
+  {
+    version: '1.1.0',
+    date: '2026-11-22',
+    changes: [
+      'Spacing, borders, shadows, layers and motion on both sites now come from the tokens; the build fails on a new hard-coded value of those kinds.',
+      'Spacing gains 2 px half steps (--sp-0-5, --sp-1-5, --sp-2-5, --sp-3-5, --sp-4-5): 2, 6, 10, 14 and 18 px recur in controls and lists.',
+      'New borders: --border-strong (the search field), --border-bright, --border-dashed and --border-focus (the focus ring). New shadow: --shadow-halo (the saffron glow round a focused search).',
+      'Transitions of 140 to 150 ms now use --dur-fast (120 ms), and 180 to 220 ms use --dur-base (200 ms).',
+    ],
+  },
   {
     version: '1.0.0',
     date: '2026-11-21',
@@ -75,8 +85,10 @@ export const FONT_WEIGHT = decl([
 export const LINE_HEIGHT = decl([
   ['--lh-tight', '1.15'], ['--lh-snug', '1.35'], ['--lh-base', '1.55'], ['--lh-loose', '1.65'],
 ]);
+// A 4 px grid, with the 2 px half steps (--sp-N-5) that controls and lists repeat.
 export const SPACE = decl([
-  ['--sp-1', '4px'], ['--sp-2', '8px'], ['--sp-3', '12px'], ['--sp-4', '16px'],
+  ['--sp-0-5', '2px'], ['--sp-1', '4px'], ['--sp-1-5', '6px'], ['--sp-2', '8px'], ['--sp-2-5', '10px'],
+  ['--sp-3', '12px'], ['--sp-3-5', '14px'], ['--sp-4', '16px'], ['--sp-4-5', '18px'],
   ['--sp-5', '20px'], ['--sp-6', '24px'], ['--sp-7', '32px'], ['--sp-8', '48px'],
 ]);
 export const RADIUS = decl([
@@ -85,11 +97,14 @@ export const RADIUS = decl([
 /** Renamed tokens, kept for one release: name → the token it points at. */
 export const DEPRECATED = decl([['--radius', 'var(--radius-sm)']]);
 export const BORDER = decl([
-  ['--border-edge', '1.5px solid var(--edge)'], ['--border-line', '1px solid var(--line)'],
+  ['--border-edge', '1.5px solid var(--edge)'], ['--border-strong', '2px solid var(--edge)'],
+  ['--border-line', '1px solid var(--line)'], ['--border-bright', '1px solid var(--line-bright)'],
+  ['--border-dashed', '1px dashed var(--line)'], ['--border-focus', '2px solid var(--accent-strong)'],
 ]);
 // Hard offset shadows only: no blur. The sheet shadow is a navy top edge.
 export const SHADOW = decl([
   ['--shadow-sm', '3px 3px 0 var(--edge)'], ['--shadow', '4px 4px 0 var(--edge)'], ['--shadow-sheet', '0 -1.5px 0 var(--edge)'],
+  ['--shadow-halo', '0 0 0 4px color-mix(in srgb, var(--accent-fill) 35%, transparent)'],
 ]);
 // Named stacking layers, lowest first.
 export const Z = decl([

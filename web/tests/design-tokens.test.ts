@@ -33,8 +33,10 @@ describe('the token module', () => {
     expect(Object.keys(SCALES.FONT_WEIGHT)).toHaveLength(4);
     expect(BREAKPOINTS).toEqual({ sm: 640, md: 900, lg: 1100 });
   });
-  it('spaces on a 4 px grid and gives buttons 4 px corners', () => {
-    for (const v of Object.values(SCALES.SPACE)) expect(parseInt(v as string) % 4).toBe(0);
+  it('spaces on a 4 px grid, with 2 px half steps named --sp-N-5, and gives buttons 4 px corners', () => {
+    for (const [k, v] of Object.entries(SCALES.SPACE)) expect(parseInt(v as string) % 4, k).toBe(/-\d-5$/.test(k) ? 2 : 0);
+    const px = Object.values(SCALES.SPACE).map((v) => parseInt(v as string));
+    expect(px).toEqual([...px].sort((a, b) => a - b));
     expect(SCALES.RADIUS['--radius-sm']).toBe('4px');
   });
   it('uses hard offset shadows only (no blur)', () => {

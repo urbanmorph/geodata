@@ -163,8 +163,8 @@ describe('quick wins', () => {
     expect(read('scripts/prerender.mjs')).not.toMatch(/<span class="count">\$\{n\}<\/span> layers</);
   });
   it('the search fields show a visible focus outline', () => {
-    expect(tmplHome).toMatch(/\.search-bar:focus-within \{[^}]*outline: 2px solid var\(--accent-strong\)/);
-    expect(tmplLayers).toMatch(/\.layers-search:focus-within \{[^}]*outline: 2px solid var\(--accent-strong\)/);
+    expect(tmplHome).toMatch(/\.search-bar:focus-within \{[^}]*outline: var\(--border-focus\)/);
+    expect(tmplLayers).toMatch(/\.layers-search:focus-within \{[^}]*outline: var\(--border-focus\)/);
   });
   it('collect buttons use the site font', () => {
     expect(readFileSync(resolve(__dirname, '../../collect/src/styles.css'), 'utf8')).toMatch(/\nbutton, \.btn \{\s*font: inherit;/);
