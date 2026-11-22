@@ -15,7 +15,7 @@
 
 import type { SubmissionView } from './submissions';
 import { MAP_TOKENS, renderNav } from '../../scripts/shared-chrome.mjs';
-import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
+import { escapeHtml as esc, fmtBytes, ldJsonScript } from '../../../shared/format.mjs';
 import { licenceUrl } from '../../../shared/licences.mjs';
 import { footerHtml } from '../../../shared/footer.mjs';
 
@@ -124,7 +124,7 @@ export function renderViewPage(opts: RenderOpts): string {
     <meta name="twitter:image" content="${PUBLIC_ORIGIN}/og/c/${esc(s.id)}.png" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="manifest" href="/manifest.webmanifest" />
-    <script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/&/g, '\\u0026')}</script>
+    ${ldJsonScript(ld)}
     <style>
       /* Edge-rendered with the site's shared tokens, header and page classes
          (scripts/shared-chrome.mjs); only this page's own pieces are below. */

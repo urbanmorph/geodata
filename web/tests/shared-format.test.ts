@@ -1,7 +1,19 @@
 // One implementation of escaping and number/date formatting, shared by the
 // prerender, the edge functions, the web app and collect (shared/format.mjs).
 import { describe, it, expect } from 'vitest';
-import { escapeHtml, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
+import { escapeHtml, fmtBytes, fmtCount, fmtDate, fmtInt, ldJsonScript } from '../../shared/format.mjs';
+
+describe('ldJsonScript', () => {
+  it('wraps JSON-LD in its script tag, safe inside HTML, and parses back to the same value', () => {
+    const ld = { name: 'States & UTs <b>', note: '</script><!--' };
+    const tag = ldJsonScript(ld);
+    expect(tag.startsWith('<script type="application/ld+json">')).toBe(true);
+    expect(tag.endsWith('</script>')).toBe(true);
+    const body = tag.slice('<script type="application/ld+json">'.length, -'</script>'.length);
+    expect(body).not.toMatch(/[<>&]/);
+    expect(JSON.parse(body)).toEqual(ld);
+  });
+});
 
 describe('escapeHtml', () => {
   it('escapes the five HTML-significant characters', () => {

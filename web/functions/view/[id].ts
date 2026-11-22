@@ -12,7 +12,7 @@ import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import { fetchAsset, type AssetCtx } from '../lib/catalog-loader';
 import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundResponse, suggestLayers } from '../lib/not-found';
-import { escapeHtml as esc } from '../../../shared/format.mjs';
+import { escapeHtml as esc, ldJsonScript } from '../../../shared/format.mjs';
 import { findLayer } from '../lib/api-layer';
 
 type Params = { id: string };
@@ -81,33 +81,31 @@ async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: CatalogDa
   );
   const contentHtml = buildViewContent(layer, levelMeta, CANONICAL_ORIGIN, wardIndex);
 
-  return new HTMLRewriter()
+  // [selector, attribute, value] for every head tag the page rewrites.
+  const attrs: Array<[string, string, string]> = [
+    ['meta[name="description"]', 'content', description],
+    ['link[rel="canonical"]', 'href', canonical],
+    ['meta[property="og:title"]', 'content', title],
+    ['meta[property="og:description"]', 'content', description],
+    ['meta[property="og:url"]', 'content', canonical],
+    ['meta[property="og:image"]', 'content', ogImage],
+    ['meta[name="twitter:title"]', 'content', title],
+    ['meta[name="twitter:description"]', 'content', description],
+    ['meta[name="twitter:image"]', 'content', ogImage],
+  ];
+  // The home page's JSON-LD block becomes the layer's blocks, in this order.
+  const ldScripts = [jsonLd, wardListJsonLd, howToJsonLd, breadcrumbJsonLd]
+    .filter(Boolean)
+    .map(ldJsonScript)
+    .join('\n    ');
+
+  return attrs
+    .reduce((rw, [sel, attr, value]) => rw.on(sel, { element(el) { el.setAttribute(attr, value); } }), new HTMLRewriter())
     .on('title', {
       element(el) { el.setInnerContent(`${title} · bharatlas`); },
     })
-    .on('meta[name="description"]', { element(el) { el.setAttribute('content', description); } })
-    .on('link[rel="canonical"]', { element(el) { el.setAttribute('href', canonical); } })
-    .on('meta[property="og:title"]', { element(el) { el.setAttribute('content', title); } })
-    .on('meta[property="og:description"]', { element(el) { el.setAttribute('content', description); } })
-    .on('meta[property="og:url"]', { element(el) { el.setAttribute('content', canonical); } })
-    .on('meta[property="og:image"]', { element(el) { el.setAttribute('content', ogImage); } })
-    .on('meta[name="twitter:title"]', { element(el) { el.setAttribute('content', title); } })
-    .on('meta[name="twitter:description"]', { element(el) { el.setAttribute('content', description); } })
-    .on('meta[name="twitter:image"]', { element(el) { el.setAttribute('content', ogImage); } })
     .on('script[type="application/ld+json"]', {
-      element(el) {
-        el.setInnerContent(JSON.stringify(jsonLd).replace(/</g, '\\u003c'), { html: true });
-        const bc = JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c');
-        el.after(`\n    <script type="application/ld+json">${bc}</script>`, { html: true });
-        if (howToJsonLd) {
-          const ht = JSON.stringify(howToJsonLd).replace(/</g, '\\u003c');
-          el.after(`\n    <script type="application/ld+json">${ht}</script>`, { html: true });
-        }
-        if (wardListJsonLd) {
-          const wl = JSON.stringify(wardListJsonLd).replace(/</g, '\\u003c');
-          el.after(`\n    <script type="application/ld+json">${wl}</script>`, { html: true });
-        }
-      },
+      element(el) { el.replace(ldScripts, { html: true }); },
     })
     .on('body', {
       element(el) { el.prepend(contentHtml, { html: true }); },

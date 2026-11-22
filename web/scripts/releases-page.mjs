@@ -8,7 +8,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { fillTemplate } from './fill-template.mjs';
-import { escapeHtml as esc, fmtBytes, fmtDate, fmtInt } from '../../shared/format.mjs';
+import { escapeHtml as esc, fmtBytes, fmtDate, fmtInt, ldJsonScript } from '../../shared/format.mjs';
 import { PUBLISHER_LD } from '../../shared/brand.mjs';
 import { ogImage } from './og-image-url.mjs';
 
@@ -66,7 +66,7 @@ function head({ title, description, path, trail }) {
     `<meta property="og:site_name" content="bharatlas" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:image" content="${esc(image)}" />`,
-    `<script type="application/ld+json">${JSON.stringify(ld).replace(/</g, '\\u003c')}</script>`,
+    ldJsonScript(ld),
   ].join('\n    ');
 }
 

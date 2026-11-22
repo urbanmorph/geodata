@@ -9,6 +9,14 @@ export function escapeHtml(s) {
   return String(s ?? '').replace(/[&<>"']/g, (c) => HTML_ESCAPES[c]);
 }
 
+const LD_ESCAPES = { '<': '\\u003c', '>': '\\u003e', '&': '\\u0026' };
+
+/** A JSON-LD <script> tag for `obj`. < > & become \u escapes, so no string in
+ *  the data can close the tag or open a comment; JSON.parse reads it back unchanged. */
+export function ldJsonScript(obj) {
+  return `<script type="application/ld+json">${JSON.stringify(obj).replace(/[<>&]/g, (c) => LD_ESCAPES[c])}</script>`;
+}
+
 /** "512 B", "221 KB", "5.0 MB", "3.00 GB"; "n/a" when unknown. */
 export function fmtBytes(n) {
   if (n == null) return 'n/a';
