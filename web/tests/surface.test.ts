@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { SURFACE_LAYERS, SURFACE_SECTIONS, SURFACE_PROFILE, surfaceAt, airPointer } from '../functions/lib/surface';
 import type { CatalogData, CatalogLayer } from '../functions/lib/catalog-api';
-import type { ProfileDeps } from '../functions/lib/profile';
+import type { PixelResult, ProfileDeps } from '../functions/lib/profile';
 import type { LocateResponse } from '../functions/lib/locate';
 import type { NearbyResult } from '../functions/lib/nearby';
 
@@ -101,6 +101,18 @@ describe('surfaceAt', () => {
     expect(s.unavailable).toContainEqual({ layer_id: 'worldcover', reason: 'the land cover file is not published yet' });
     expect(s.summary).toMatch(/Elevation 9 m, slope 0.4 degrees/);
     expect(s.summary).toMatch(/24,000 people per km2/);
+  });
+
+  it('says the rasters in the table order, whichever answers first', async () => {
+    // The 9-point comparison on the preview found land cover and elevation swapping places between calls.
+    const later = (ms: number, r: PixelResult) => () => new Promise<PixelResult>((ok) => setTimeout(() => ok(r), ms));
+    const s = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, { ...deps, pixels: {
+      worldcover: later(30, { status: 'ok', data: { land_cover: 'Built-up', land_cover_code: 50 } }),
+      dem: later(10, { status: 'ok', data: { elevation_m: 9, slope_deg: 0.4, slope_pct: 0.7 } }),
+      worldpop: later(0, { status: 'ok', data: { population_per_km2: 24000, people_in_pixel: 206 } }),
+    } });
+    expect(s.summary).toMatch(/Land cover: Built-up\. Elevation 9 m, slope 0.4 degrees\. About 24,000 people per km2/);
+    expect(Object.keys(s.sections.land).slice(0, 3)).toEqual(['worldcover', 'dem', 'worldpop']);
   });
 
   it('names the nearest health facility across the three sources', async () => {

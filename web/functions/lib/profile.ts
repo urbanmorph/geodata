@@ -281,6 +281,15 @@ async function readContains(spec: ProfileLayer, lat: number, lng: number, catalo
   };
 }
 
+/** The columns a nearest entry uses (its fields and its median's), or undefined for all
+ *  (no field list, or a decoder that reads columns it does not show). Decoding only these
+ *  keeps a wide layer cheap (Soil Health Cards: 15 of 50 columns of a 122,880-row group). */
+function columnsOf(spec: ProfileLayer): string[] | undefined {
+  if (!spec.fields || spec.decode) return undefined;
+  const m = spec.median;
+  return [...new Set([...spec.fields, ...(m ? [m.field, ...(m.perPoint ?? [])] : [])])];
+}
+
 async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, deps: ProfileDeps): Promise<LayerAnswer> {
   const radiusKm = spec.radiusKm!;
   const show = spec.show ?? 3;
@@ -295,14 +304,14 @@ async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog
     count = g.total;
     capped = g.capped;
   } else {
-    const n = await deps.nearby(lat, lng, radiusKm, spec.id, catalog, r2, spec.candidates ?? show);
+    const n = await deps.nearby(lat, lng, radiusKm, spec.id, catalog, r2, spec.candidates ?? show, columnsOf(spec));
     items = n.features.map((f) => ({ distance_km: f._distance_km, lat: f._lat, lng: f._lng, properties: f.properties, raw: f.properties }));
     count = n.total;
     capped = n.total > n.features.length && !!spec.median; // a median over fewer than all
   }
   let status: ProfileStatus = count ? 'found' : 'none_within_radius';
   // Only when nothing is near: is the layer anywhere around? (Outside its row groups' bounds this reads only the footer.)
-  if (!count && spec.coverageKm && !(await deps.nearby(lat, lng, spec.coverageKm, spec.id, catalog, r2, 1)).total) status = 'not_covered';
+  if (!count && spec.coverageKm && !(await deps.nearby(lat, lng, spec.coverageKm, spec.id, catalog, r2, 1, [])).total) status = 'not_covered';
   const nearest: NearestItem[] = items.slice(0, show).map(({ raw, ...it }) => ({
     ...it, properties: pick(raw, spec.fields), ...(spec.decode ? { decoded: spec.decode(raw) } : {}),
   }));
@@ -330,7 +339,7 @@ export async function profileAt(
   const unavailable: ProfileResponse['unavailable'] = [];
   const timing: Record<string, number> = {};
   const said: Array<[number, string]> = [];
-  const credits = new Set<string>();
+  const creditOfKey = new Map<string, string>();
   const omitted: string[] = [];
 
   const timed = async <T>(id: string, p: () => Promise<T>): Promise<T> => {
@@ -368,13 +377,13 @@ export async function profileAt(
       sections[spec.section][key] = entry;
       const line = spec.say?.(entry);
       if (line) said.push([order, line]);
-      if (entry.status === 'found') credits.add(`${entry.credit.name} (${layer.licence ?? 'see source'})`);
+      if (entry.status === 'found') creditOfKey.set(key, `${entry.credit.name} (${layer.licence ?? 'see source'})`);
     } catch (e) {
       failed(key, e);
     }
   });
-  // A pixel source speaks just before the first layer of its section.
-  const pixelJobs = profile.pixels.map(async (px) => {
+  // A pixel source speaks just before the first layer of its section, the sources in table order.
+  const pixelJobs = profile.pixels.map(async (px, i) => {
     try {
       const read = deps.pixels[px.id];
       if (!read) { unavailable.push({ layer_id: px.id, reason: 'not published' }); return; }
@@ -383,8 +392,8 @@ export async function profileAt(
       const entry: ProfileEntry = { layer_id: px.id, match: 'pixel', ...px.entry(got) };
       sections[px.section][px.id] = entry;
       const line = px.say?.(entry);
-      if (line) said.push([layers.findIndex((l) => l.section === px.section) - 0.5, line]);
-      if (entry.status === 'found') credits.add(px.credit);
+      if (line) said.push([layers.findIndex((l) => l.section === px.section) - 1 + (i + 1) / (profile.pixels.length + 1), line]);
+      if (entry.status === 'found') creditOfKey.set(px.id, px.credit);
     } catch (e) {
       failed(px.id, e);
     }
@@ -392,13 +401,16 @@ export async function profileAt(
   await Promise.all([...layerJobs, ...pixelJobs]);
 
   // Answers arrive in any order: lay each section out in the table's order (pixel sources first).
-  const pixelIds = new Set(profile.pixels.map((p) => p.id));
-  const order = (id: string) => (pixelIds.has(id) ? -1 : layers.findIndex((l) => keyOf(l) === id));
+  const pixelAt = new Map(profile.pixels.map((p, i) => [p.id, i - profile.pixels.length]));
+  const order = (id: string) => pixelAt.get(id) ?? layers.findIndex((l) => keyOf(l) === id);
   for (const s of profile.sections) {
     sections[s] = Object.fromEntries(Object.entries(sections[s]).sort(([a], [b]) => order(a) - order(b)));
   }
   unavailable.sort((a, b) => order(a.layer_id) - order(b.layer_id));
   said.sort((a, b) => a[0] - b[0]);
+  // Credits follow the sections too, so the list is the same however the reads finish.
+  const credits = new Set(profile.sections.flatMap((s) => Object.keys(sections[s]))
+    .flatMap((k) => creditOfKey.get(k) ?? []));
   const lines = [...said.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])];
 
   return {

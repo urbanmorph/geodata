@@ -217,6 +217,32 @@ describe('groundAt', () => {
     expect(g.sections.seismic.ngdr_earthquakes.distance_to).toBe('point');
   });
 
+  it('decodes only the columns an entry shows (Soil Health Cards: 15 of 50), all of them for a decoder', async () => {
+    // Decoding every column of a 122,880-row group cost ~800 ms of CPU per call.
+    const asked: Record<string, string[] | undefined> = {};
+    await run(28.525, 77.085, catalog, {
+      nearby: async (lat, lng, r, id, cat, r2, limit, columns) => {
+        if (r <= 10 || !(id in asked)) asked[id] = columns;
+        return deps().nearby(lat, lng, r, id, cat, r2, limit, columns);
+      },
+    });
+    const slusi = GROUND_LAYERS.find((l) => l.id === 'slusi_soil_health')!;
+    expect(asked.slusi_soil_health).toEqual(slusi.fields);
+    expect(asked.subsidence_megacities).toEqual(['VLM_cm_per_yr', 'city', 'Longitude', 'Latitude']); // the median's too
+    expect(asked.atal_bhujal_wells).toBeUndefined(); // its decoder reads columns it does not show
+  });
+
+  it('the wider "is it covered" search decodes no properties', async () => {
+    const wide: Array<string[] | undefined> = [];
+    await run(28.525, 77.085, catalog, {
+      nearby: async (lat, lng, r, id, cat, r2, limit, columns) => {
+        if (id === 'slusi_soil_health' && r === 25) wide.push(columns);
+        return deps().nearby(lat, lng, r, id, cat, r2, limit, columns);
+      },
+    });
+    expect(wide).toEqual([[]]);
+  });
+
   it('tells "not covered" from "none within the radius"', async () => {
     const g = await run(28.525, 77.085, catalog);
     // atal_bhujal_wells has a well 30 km off: covered, none within 10 km
@@ -268,6 +294,16 @@ describe('groundAt', () => {
     }), { budgetMs: 20, waitUntil: (p) => held.push(p) });
     expect(held).toHaveLength(1);
     await Promise.all(held);
+  });
+
+  it('lists credits in the table order, however the layers finish', async () => {
+    const late = (ms: number) => <T>(v: Promise<T>) => new Promise<T>((res) => setTimeout(() => res(v), ms));
+    const fast = await run(28.525, 77.085, catalog, ({ soil: () => late(30)(deps().soil()) }));
+    const slow = await run(28.525, 77.085, catalog, ({
+      nearby: (...a: Parameters<GroundDeps['nearby']>) => late(30)(deps().nearby(...a)),
+    }));
+    expect(fast.attribution.length).toBeGreaterThan(2);
+    expect(slow.attribution).toEqual(fast.attribution);
   });
 
   it('collapses line breaks a source put inside a text field', async () => {

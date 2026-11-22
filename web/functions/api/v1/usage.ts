@@ -1,6 +1,7 @@
 // GET /api/v1/usage[?layer=<id>]: how much each layer is used. Downloads (every
 // format and state, from /api/dl) and API calls that name the layer, split into
-// api and mcp (the bharatlas MCP). Crawlers and the MCP smoke test are not counted.
+// api and mcp (the bharatlas MCP); calls to the point lookups, which name no
+// layer, under `endpoints`. Crawlers and the MCP smoke test are not counted.
 import type { Env } from '../_middleware';
 import { json } from '../../lib/http';
 import { resolveLayer } from '../../lib/api-layer';

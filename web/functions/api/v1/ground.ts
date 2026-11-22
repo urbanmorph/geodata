@@ -9,4 +9,4 @@ import { profileHandler } from '../../lib/profile-endpoint';
 
 const soil = (SOILGRIDS.file as { md5?: string } | null)?.md5?.slice(0, 8) ?? 'none';
 
-export const onRequestGet = profileHandler('Ground', (lat, lng, catalog, r2, opts) => groundAt(lat, lng, catalog, r2, undefined, opts), `soilgrids-${soil}`);
+export const onRequestGet = profileHandler('ground', (lat, lng, catalog, r2, opts) => groundAt(lat, lng, catalog, r2, undefined, opts), `soilgrids-${soil}`);

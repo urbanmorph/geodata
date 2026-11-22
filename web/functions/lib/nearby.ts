@@ -27,9 +27,11 @@
 import { parquetQuery, parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
 import { compressors } from 'hyparquet-compressors';
-import { asyncBufferFromR2, cachedMetadata, r2KeyFromLayer } from './parquet-r2';
+import { openParquet, r2KeyFromLayer } from './parquet-r2';
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
+import { chunkRanges, coalesced } from './parquet-coalesce';
+import { ByteLru } from './isolate-cache';
 import { extractCentroid } from './wkb-centroid';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
@@ -146,6 +148,38 @@ export function overlappingRowGroups(metadata: FileMetaData, q: Bbox): RowSpan[]
   return spans;
 }
 
+/** One row group's bbox columns, decoded. */
+export interface GroupBoxes { xmin: Float64Array; ymin: Float64Array; xmax: Float64Array; ymax: Float64Array }
+
+// Decoded bbox columns per row group, per isolate, least recently used out past
+// 32 MB: decoding them (zstd, 20,000 to 122,880 rows a group) was most
+// of a point profile's CPU, and the "is it covered" search and the next point
+// nearby ask for the same groups again. Keys carry the object version (cacheKey).
+const boxCache = new ByteLru<GroupBoxes>(32 * 1024 * 1024);
+
+export function clearBoxCache(): void {
+  boxCache.clear();
+}
+
+/** The bbox columns of each span's row group: from the cache, the rest read together. */
+export async function groupBoxes(file: AsyncBuffer & { cacheKey?: string }, metadata: FileMetaData, spans: RowSpan[]): Promise<GroupBoxes[]> {
+  const keys = spans.map((s) => (file.cacheKey ? `${file.cacheKey}#${s.start}` : null));
+  const out = keys.map((k) => (k ? boxCache.get(k) : undefined));
+  const missing = spans.map((_, i) => i).filter((i) => !out[i]);
+  const bboxFile = coalesced(file, missing.flatMap((i) => chunkRanges(metadata, [...BBOX_COLS], spans[i].start, spans[i].end)));
+  await mapConcurrent(missing, R2_CONCURRENCY, async (i) => {
+    const rows = await parquetReadObjects({
+      file: bboxFile, metadata, compressors, columns: [...BBOX_COLS], rowStart: spans[i].start, rowEnd: spans[i].end,
+    }) as Array<Record<string, unknown>>;
+    const col = (c: string) => Float64Array.from(rows, (r) => Number(r[c]));
+    const b = { xmin: col('xmin'), ymin: col('ymin'), xmax: col('xmax'), ymax: col('ymax') };
+    const k = keys[i];
+    if (k) boxCache.set(k, b, b.xmin.byteLength * 4);
+    out[i] = b;
+  });
+  return out as GroupBoxes[];
+}
+
 /** Nearest `limit` rows within `radiusKm`, by bbox centre. Pass 1 reads only
  *  the bbox columns; pass 2 decodes `cols` for the winners' row spans only. */
 export async function nearestRows(
@@ -155,23 +189,22 @@ export async function nearestRows(
   type Candidate = { idx: number; cLat: number; cLng: number; d: number };
   const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
 
-  // Pass 1, row groups in parallel (bounded): each group keeps only its own
-  // nearest `limit` (the global top K is within their union) and a count.
-  const perGroup = await mapConcurrent(spans, R2_CONCURRENCY, async (span) => {
-    const rows = await parquetReadObjects({
-      file, metadata, compressors, columns: [...BBOX_COLS], rowStart: span.start, rowEnd: span.end,
-    }) as Array<Record<string, unknown>>;
+  // Pass 1, per row group: each group keeps only its own nearest `limit` (the
+  // global top K is within their union) and a count.
+  const boxes = await groupBoxes(file, metadata, spans);
+  const perGroup = spans.map((span, g) => {
+    const b = boxes[g];
     const inRadius: Candidate[] = [];
-    rows.forEach((row, i) => {
-      const cLat = (Number(row.ymin) + Number(row.ymax)) / 2;
-      const cLng = (Number(row.xmin) + Number(row.xmax)) / 2;
+    for (let i = 0; i < b.xmin.length; i++) {
+      const cLat = (b.ymin[i] + b.ymax[i]) / 2;
+      const cLng = (b.xmin[i] + b.xmax[i]) / 2;
       const d = haversineKm(lat, lng, cLat, cLng);
       if (d <= radiusKm) inRadius.push({ idx: span.start + i, cLat, cLng, d });
-    });
+    }
     const count = inRadius.length;
     inRadius.sort((a, b) => a.d - b.d);
     if (inRadius.length > limit) inRadius.length = limit;
-    return { count, top: inRadius, scanned: rows.length };
+    return { count, top: inRadius, scanned: b.xmin.length };
   });
   const total = perGroup.reduce((n, g) => n + g.count, 0);
   const rowsScanned = perGroup.reduce((n, g) => n + g.scanned, 0);
@@ -181,12 +214,14 @@ export async function nearestRows(
   // of at most READ_WINDOW_ROWS rows (winners far apart in one row group must
   // not decode every row between them).
   const readCols = cols.filter((c) => c !== geomCol);
+  if (!readCols.length) return { winners: candidates.map(({ cLat, cLng, d }) => ({ row: {}, cLat, cLng, d })), total, rowsScanned };
   const byIdx = new Map(candidates.map((c) => [c.idx, c]));
   const windows = readWindows([...byIdx.keys()].sort((a, b) => a - b), READ_WINDOW_ROWS);
+  const rowFile = coalesced(file, windows.flatMap((w) => chunkRanges(metadata, readCols, w[0], w[w.length - 1] + 1)));
   const found = await mapConcurrent(windows, R2_CONCURRENCY, async (idxs) => {
     const lo = idxs[0];
     const rows = await parquetReadObjects({
-      file, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
+      file: rowFile, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
     }) as Array<Record<string, unknown>>;
     return idxs.map((i): BboxWinner => {
       const c = byIdx.get(i)!;
@@ -196,10 +231,11 @@ export async function nearestRows(
   return { winners: topKByDistance(found.flat(), limit), total, rowsScanned };
 }
 
+/** `columns`: decode only these for the features (default all); [] decodes none (a count). */
 export async function nearby(
   lat: number, lng: number, radiusKm: number,
   layerId: string, catalog: CatalogData, r2: R2Bucket,
-  limit = 50,
+  limit = 50, columns?: string[],
 ): Promise<NearbyResult> {
   const start = Date.now();
 
@@ -212,8 +248,7 @@ export async function nearby(
   const r2Key = r2KeyFromLayer(layer);
   if (!r2Key) throw new QueryInputError(`Layer ${layerId} has no R2 parquet key`);
 
-  const file = await asyncBufferFromR2(r2, r2Key);
-  const metadata = await cachedMetadata(file);
+  const { file, metadata } = await openParquet(r2, r2Key);
   // Top-level fields only; a flat schema.slice(1) would false-match struct
   // children like `bbox.{xmin,ymin,xmax,ymax}` as top-level cols.
   const allCols = topLevelColumns(metadata).map((c) => c.name);
@@ -227,7 +262,8 @@ export async function nearby(
   let winners: BboxWinner[];
 
   if (hasBboxCols) {
-    const r = await nearestRows(file, metadata, allCols, geomCol, lat, lng, radiusKm, limit);
+    const cols = columns ? allCols.filter((c) => columns.includes(c)) : allCols;
+    const r = await nearestRows(file, metadata, cols, geomCol, lat, lng, radiusKm, limit);
     skip = new Set([geomCol, 'xmin', 'ymin', 'xmax', 'ymax', 'bbox']);
     winners = r.winners;
     total = r.total;

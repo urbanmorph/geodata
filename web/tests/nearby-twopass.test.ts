@@ -1,6 +1,19 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parquetMetadataAsync, parquetReadObjects } from 'hyparquet';
+
+// Every decode nearby asks hyparquet for (passed through), to see which rows and columns it decodes.
+const decodes = vi.hoisted(() => [] as Array<{ columns?: string[]; rowStart?: number; rowEnd?: number }>);
+vi.mock('hyparquet', async (orig) => {
+  const real = await orig<typeof import('hyparquet')>();
+  return {
+    ...real,
+    parquetReadObjects: (o: Parameters<typeof real.parquetReadObjects>[0]) => {
+      decodes.push({ columns: o.columns, rowStart: o.rowStart, rowEnd: o.rowEnd });
+      return real.parquetReadObjects(o);
+    },
+  };
+});
 import { compressors } from 'hyparquet-compressors';
 import { haversineKm, nearestRows, overlappingRowGroups, queryBbox } from '../functions/lib/nearby';
 
@@ -50,21 +63,17 @@ describe('two-pass nearby over parquet', () => {
   });
 
   it('decodes nested columns only in the row groups that hold winners', async () => {
-    const { file, reads } = trackedFile();
+    // (Bytes of other row groups may come along in one joined read: parquet-coalesce.ts.)
+    const { file } = trackedFile();
     const md = await parquetMetadataAsync(file);
-    reads.length = 0;
+    decodes.length = 0;
     // 50 km overlaps row groups 0-2 in pass 1; the 5 nearest are all in group 0.
     await nearestRows(file, md, COLS, 'geometry', LAT, LNG, 50, 5);
-
-    const namesChunk = (g: number) => {
-      const col = md.row_groups[g].columns.find((c) => c.meta_data?.path_in_schema[0] === 'names')!.meta_data!;
-      const start = Number(col.dictionary_page_offset ?? col.data_page_offset);
-      return [start, start + Number(col.total_compressed_size)] as const;
-    };
-    const touched = (g: number) => reads.some(([s, e]) => s < namesChunk(g)[1] && e > namesChunk(g)[0]);
-    expect(touched(0)).toBe(true);
-    expect(touched(1)).toBe(false);
-    expect(touched(2)).toBe(false);
+    const pass1 = decodes.filter((d) => !d.columns?.includes('names'));
+    const pass2 = decodes.filter((d) => d.columns?.includes('names'));
+    expect(pass1.map((d) => d.rowStart)).toEqual([0, 2048, 4096]);
+    expect(pass2.length).toBeGreaterThan(0);
+    for (const d of pass2) expect(d.rowEnd!).toBeLessThanOrEqual(2048);
   });
 });
 

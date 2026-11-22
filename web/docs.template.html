@@ -417,7 +417,7 @@ curl "https://bharatlas.com/api/v1/surface?lat=22.57&amp;lng=88.36"</code></pre>
       <pre><code>curl https://bharatlas.com/api/v1/levels</code></pre>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/usage</span></h3>
-      <p>How much each layer is used: downloads, and API calls that name the layer, split into <code>api</code> and <code>mcp</code> (the bharatlas MCP server). Crawlers are not counted. Add <code>?layer=&lt;id&gt;</code> for one layer.</p>
+      <p>How much each layer is used: downloads, and API calls that name the layer, split into <code>api</code> and <code>mcp</code> (the bharatlas MCP server). Crawlers are not counted. Add <code>?layer=&lt;id&gt;</code> for one layer.<!-- point-profiles --> Calls to the point lookups, which name no layer, are under <code>endpoints</code> (<code>ground</code>, <code>surface</code>) and in the totals.<!-- /point-profiles --></p>
       <pre><code>curl "https://bharatlas.com/api/v1/usage?layer=lgd_districts"</code></pre>
 
       <h2>Counts and Stats</h2>

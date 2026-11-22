@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { parquetMetadataAsync } from 'hyparquet';
-import { closestOnGeometry, bboxDistanceKm, nearestByGeometry } from '../functions/lib/nearby-geometry';
+import { closestOnGeometry, bboxDistanceKm, nearestByGeometry, nearbyByGeometry, clearShapeCache, type NearestShapeOpts } from '../functions/lib/nearby-geometry';
+import type { CatalogData } from '../functions/lib/catalog-api';
+import { fakeR2 } from './helpers/fake-r2';
 
 // Fixture (duckdb spatial, GeoParquet, 4 rows per row group): a 4-degree
 // north-south line 'long' at 77.0E (26-30N, its bbox centre 55 km from the test
@@ -106,5 +108,39 @@ describe('nearestByGeometry', () => {
   it('answers nothing, not an error, far from every feature', async () => {
     const md = await parquetMetadataAsync(file);
     expect(await nearestByGeometry(file, md, 10, 90, 5, { limit: 3 })).toEqual({ features: [], total: 0, capped: false });
+  });
+});
+
+describe('a small layer is read whole, once per isolate (India\'s outline: one 5 MB polygon)', () => {
+  // Every /api/v1/surface call read and parsed India's 3 MB outline again for the
+  // distance to the coast or border. Small files are now kept parsed (flat
+  // coordinates); the answers are the same as the row-group search's.
+  const r2 = () => {
+    const gets: Array<[string, number, number]> = [];
+    const bucket = fakeR2({ 't/lines.parquet': buf }, gets);
+    return { n: { get gets() { return gets.length; } }, bucket };
+  };
+  const catalog = { layers: [{ id: 'lines', parquet: { url: 'https://pub-x.r2.dev/t/lines.parquet', bytes: buf.byteLength } }] } as unknown as CatalogData;
+  const cases: Array<[number, number, number, NearestShapeOpts]> = [
+    [LAT, LNG, 5, { limit: 10 }], [LAT, LNG, 20, { limit: 1 }], [LAT, LNG, 20, { limit: 10, maxCandidates: 2 }],
+    [28.62, 76.92, 5, { limit: 10, edge: true }], [28.62, 76.92, 1, { limit: 10 }],
+    [LAT, LNG, 20, { limit: 10, keep: (p) => p.kind !== 'river' }], [10, 90, 5, { limit: 3 }], [20.001, 77.5, 50, { limit: 5 }],
+  ];
+
+  it('answers exactly as the row-group search does', async () => {
+    const md = await parquetMetadataAsync(file);
+    for (const [lat, lng, km, opts] of cases) {
+      expect(await nearbyByGeometry(lat, lng, km, 'lines', catalog, r2().bucket, opts)).toEqual(await nearestByGeometry(file, md, lat, lng, km, opts));
+    }
+  });
+
+  it('reads the file once', async () => {
+    clearShapeCache();
+    const { n, bucket } = r2();
+    await nearbyByGeometry(LAT, LNG, 5, 'lines', catalog, bucket, { limit: 3 });
+    const first = n.gets;
+    await nearbyByGeometry(28.62, 76.92, 5, 'lines', catalog, bucket, { limit: 3, edge: true });
+    expect(first).toBeGreaterThan(0);
+    expect(n.gets).toBe(first);
   });
 });

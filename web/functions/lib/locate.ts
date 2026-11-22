@@ -1,9 +1,12 @@
-import { PMTiles, ResolvedValueCache } from 'pmtiles';
+import { findTile, PMTiles, ResolvedValueCache, zxyToTileId } from 'pmtiles';
 import { R2Source } from './r2-source';
 import { lngLatToTile } from './tile-math';
 import { findFeaturesAtPoint } from './mvt-locate';
 import type { CatalogData, CatalogLayer } from './catalog-api';
 import { r2KeyFromUrl } from './r2-keys';
+import type { AsyncBuffer } from 'hyparquet';
+import { coalesced, type ByteRange } from './parquet-coalesce';
+import { ByteLru } from './isolate-cache';
 
 export { DEFAULT_LOCATE_LAYERS } from './locate-layers';
 
@@ -81,26 +84,33 @@ export async function locate(
 // ResolvedValueCache, not pmtiles' default SharedPromiseCache: that one keeps
 // the pending header/directory promise, which never settles once the request
 // that started the read has ended (isolate-cache.ts).
-const readers = new Map<string, PMTiles>();
+// Its reads go through the bucket of the request asking now (a request may wrap
+// its bucket, e.g. to count its reads: profile-endpoint.ts).
+const readers = new Map<string, { pm: PMTiles; source: R2Source }>();
 export function pmtilesFor(r2: R2Bucket, key: string): PMTiles {
-  let pm = readers.get(key);
-  if (!pm) {
-    pm = new PMTiles(new R2Source(r2, key), new ResolvedValueCache());
-    readers.set(key, pm);
+  let r = readers.get(key);
+  if (!r) {
+    const source = new R2Source(r2, key);
+    r = { pm: new PMTiles(source, new ResolvedValueCache()), source };
+    readers.set(key, r);
   }
-  return pm;
+  r.source.bucket = r2;
+  return r.pm;
 }
 
 // Recently read tiles, per isolate: a popular point (a city centre, a ward
 // lookup) asks the same ~15 tiles again and again. Keys are versioned R2 keys,
 // so a tile never changes under its key. Bounded by bytes, least recently used out.
 const TILE_CACHE_BYTES = 16 * 1024 * 1024;
-const tiles = new Map<string, ArrayBuffer | null>();
-let tileBytes = 0;
+const tiles = new ByteLru<ArrayBuffer | null>(TILE_CACHE_BYTES);
 
 export function clearTileCache(): void {
   tiles.clear();
-  tileBytes = 0;
+}
+
+function keepTile(id: string, data: ArrayBuffer | null): void {
+  const size = data?.byteLength ?? 0;
+  if (size <= TILE_CACHE_BYTES / 4) tiles.set(id, data, size);
 }
 
 /** Tile z/x/y of `pm` (cached; `null` for a tile the archive doesn't have). */
@@ -108,24 +118,68 @@ export async function tileAt(
   pm: Pick<PMTiles, 'getZxy'>, key: string, z: number, x: number, y: number,
 ): Promise<ArrayBuffer | null> {
   const id = `${key}/${z}/${x}/${y}`;
-  if (tiles.has(id)) {
-    const hit = tiles.get(id)!;
-    tiles.delete(id);
-    tiles.set(id, hit); // most recently used last
-    return hit;
-  }
+  const hit = tiles.get(id);
+  if (hit !== undefined) return hit;
   const data = (await pm.getZxy(z, x, y))?.data ?? null;
-  const size = data?.byteLength ?? 0;
-  if (size <= TILE_CACHE_BYTES / 4) {
-    tiles.set(id, data);
-    tileBytes += size;
-    for (const [k, v] of tiles) {
-      if (tileBytes <= TILE_CACHE_BYTES) break;
-      tiles.delete(k);
-      tileBytes -= v?.byteLength ?? 0;
-    }
-  }
+  keepTile(id, data);
   return data;
+}
+
+type Header = Awaited<ReturnType<PMTiles['getHeader']>>;
+type Directory = Awaited<ReturnType<PMTiles['cache']['getDirectory']>>;
+
+/** Where tile z/x/y's bytes are in the archive (null: no such tile), walking its directories
+ *  (the reader's cache; `dirs` shares a directory being read between the tiles of one call). */
+async function tileRange(
+  pm: PMTiles, header: Header, dirs: Map<string, Promise<Directory>>, z: number, x: number, y: number,
+): Promise<ByteRange | null> {
+  if (z < header.minZoom || z > header.maxZoom) return null;
+  const tileId = zxyToTileId(z, x, y);
+  const directory = (offset: number, length: number) => {
+    const k = `${offset}:${length}`;
+    if (!dirs.has(k)) dirs.set(k, pm.cache.getDirectory(pm.source, offset, length, header));
+    return dirs.get(k)!;
+  };
+  let offset = header.rootDirectoryOffset, length = header.rootDirectoryLength;
+  for (let depth = 0; depth <= 3; depth++) {
+    const entry = findTile(await directory(offset, length), tileId);
+    if (!entry) return null;
+    if (entry.runLength > 0) {
+      const start = header.tileDataOffset + entry.offset;
+      return { start, end: start + entry.length };
+    }
+    offset = header.leafDirectoryOffset + entry.offset;
+    length = entry.length;
+  }
+  throw new Error('Maximum directory depth exceeded');
+}
+
+/** Tiles at zoom z (as tileAt, cached), the ones not cached read together: the
+ *  neighbouring tiles of a clustered archive sit next to each other in the file,
+ *  so a block of them is one or a few R2 reads instead of one each. */
+export async function tilesAt(pm: PMTiles, key: string, z: number, coords: Array<{ x: number; y: number }>): Promise<Array<ArrayBuffer | null>> {
+  const header = await pm.getHeader();
+  const ids = coords.map(({ x, y }) => `${key}/${z}/${x}/${y}`);
+  const out = ids.map((id) => tiles.get(id));
+  const missing = coords.map((c, i) => i).filter((i) => out[i] === undefined);
+  if (header.specVersion < 3) {
+    await Promise.all(missing.map(async (i) => { out[i] = await tileAt(pm, key, z, coords[i].x, coords[i].y); }));
+    return out as Array<ArrayBuffer | null>;
+  }
+  const dirs = new Map<string, Promise<Directory>>();
+  const ranges = await Promise.all(missing.map((i) => tileRange(pm, header, dirs, z, coords[i].x, coords[i].y)));
+  const archive: AsyncBuffer = {
+    byteLength: Infinity,
+    slice: (start, end = Infinity) => pm.source.getBytes(start, end - start, undefined, header.etag).then((b) => b.data),
+  };
+  const file = coalesced(archive, ranges.filter((r): r is ByteRange => !!r));
+  await Promise.all(missing.map(async (i, k) => {
+    const r = ranges[k];
+    const data = r ? await pm.decompress(await file.slice(r.start, r.end), header.tileCompression) : null;
+    keepTile(ids[i], data);
+    out[i] = data;
+  }));
+  return out as Array<ArrayBuffer | null>;
 }
 
 async function queryLayer(

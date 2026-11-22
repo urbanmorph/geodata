@@ -1,7 +1,10 @@
 // API and MCP use per layer, beside downloads: proof that a layer is used.
 // Only calls that name a layer count (detail, query, schema, counts, export,
-// nearby; not locate, which the viewer's button calls on every tap). Crawlers and
-// our own smoke test don't. The bharatlas MCP sends
+// nearby; not locate, which the viewer's button calls on every tap), plus the
+// point lookups (/ground, /surface), which name none: they count under
+// endpoint:<name> and are listed as `endpoints`. Crawlers and
+// our own smoke test don't, and only the live site counts: preview deploys and
+// local dev share the production database but are not use. The bharatlas MCP sends
 // "bharatlas-mcp/<version>" (mcp/index.js), which is how its calls are told apart.
 import { fmtCount } from '../../../shared/format.mjs';
 
@@ -11,7 +14,16 @@ type RunnableD1 = Pick<D1Database, 'prepare' | 'batch'>;
 const NOT_COUNTED = /bharatlas-mcp-test|bot\b|bot\/|crawler|spider|slurp|facebookexternalhit/i;
 
 /** Crawlers, bots and our own smoke test: their calls and downloads are not counted. */
-export const isNotCounted = (userAgent: string | null): boolean => NOT_COUNTED.test(userAgent ?? '');
+const isNotCounted = (userAgent: string | null): boolean => NOT_COUNTED.test(userAgent ?? '');
+
+/** The live site: bharatlas.com and the production Pages address. Previews
+ *  (<branch>.geodata-3ij.pages.dev) and local dev write nothing. */
+const COUNTED_HOSTS = new Set(['bharatlas.com', 'geodata-3ij.pages.dev']);
+export const countedHost = (url: URL): boolean => COUNTED_HOSTS.has(url.hostname);
+
+/** A call or download that counts: on the live site, and not a crawler or our smoke test. */
+export const isCountedRequest = (request: Request): boolean =>
+  countedHost(new URL(request.url)) && !isNotCounted(request.headers.get('user-agent'));
 
 /** Which channel a request counts under, or null when it shouldn't count. */
 export function usageChannel(userAgent: string | null): Channel | null {
@@ -47,28 +59,39 @@ export function countApiUse(
   ctx: { request: Request; env: { DB?: RunnableD1 }; waitUntil(p: Promise<unknown>): void },
   layerId: string,
 ): void {
+  if (!countedHost(new URL(ctx.request.url))) return;
   const channel = usageChannel(ctx.request.headers.get('user-agent'));
   if (!channel || !ctx.env.DB) return;
   ctx.waitUntil(incrementApiUse(ctx.env.DB, layerId, channel).catch(() => {}));
 }
 
 export type Usage = { downloads: number; api: number; mcp: number };
+export type EndpointUsage = Omit<Usage, 'downloads'>;
 
-/** Per-layer downloads (all formats and states) and API/MCP calls, plus totals. */
+const ENDPOINT = 'endpoint:';
+/** The api_usage id a call to an endpoint that names no layer counts under. */
+export const endpointUsageId = (name: string): string => `${ENDPOINT}${name}`;
+
+/** Per-layer downloads (all formats and states) and API/MCP calls, the endpoints'
+ *  calls, plus totals (API and MCP totals include the endpoints'). */
 export function shapeUsage(
   downloads: { layer_id: string; count: number }[],
   api: { layer_id: string; channel: string; count: number }[],
-): { layers: Record<string, Usage>; total: Usage } {
+): { layers: Record<string, Usage>; endpoints: Record<string, EndpointUsage>; total: Usage } {
   const layers: Record<string, Usage> = {};
+  const endpoints: Record<string, EndpointUsage> = {};
   const total: Usage = { downloads: 0, api: 0, mcp: 0 };
   const at = (id: string) => (layers[id] ??= { downloads: 0, api: 0, mcp: 0 });
   for (const r of downloads) { at(r.layer_id).downloads += r.count; total.downloads += r.count; }
   for (const r of api) {
     const k = r.channel === 'mcp' ? 'mcp' : 'api';
-    at(r.layer_id)[k] += r.count;
+    const row = r.layer_id.startsWith(ENDPOINT)
+      ? (endpoints[r.layer_id.slice(ENDPOINT.length)] ??= { api: 0, mcp: 0 })
+      : at(r.layer_id);
+    row[k] += r.count;
     total[k] += r.count;
   }
-  return { layers, total };
+  return { layers, endpoints, total };
 }
 
 /** "1.2k downloads · 4.3k API queries (900 via MCP)". API queries include the MCP's. */
