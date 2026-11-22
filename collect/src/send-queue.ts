@@ -18,9 +18,9 @@ const LINK_GONE = 'this collect link no longer works; the map owner may have tur
 /** One photo to the map (raw JPEG; where and when it was taken in a header). */
 export async function uploadPhoto(collectionId: string, token: string, photo: Pick<QueuedPhoto, 'client_id' | 'bytes' | 'meta'>): Promise<UploadResult> {
   try {
-    const res = await fetch(`/api/collect/v1/collections/${collectionId}/photos`, {
+    const res = await api(`/collections/${collectionId}/photos`, token, {
       method: 'POST',
-      headers: { authorization: `Bearer ${token}`, 'content-type': 'image/jpeg', 'x-client-id': photo.client_id, 'x-photo-meta': JSON.stringify(photo.meta) },
+      headers: { 'content-type': 'image/jpeg', 'x-client-id': photo.client_id, 'x-photo-meta': JSON.stringify(photo.meta) },
       body: photo.bytes,
     });
     const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
