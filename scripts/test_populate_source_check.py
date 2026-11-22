@@ -168,3 +168,8 @@ def test_counts_group_manual_layers_by_reason():
     methods, reasons = ps.counts(cat)
     assert methods == {'manual': 2, 'http': 1}
     assert reasons == {'r1': ['a', 'b']}
+
+
+def test_a_bake_takes_its_layer_s_override_as_a_copy():
+    got = ps.override('gem_active_faults')
+    assert got == ps.OVERRIDES['gem_active_faults'] and got is not ps.OVERRIDES['gem_active_faults']

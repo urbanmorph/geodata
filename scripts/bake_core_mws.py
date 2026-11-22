@@ -438,19 +438,9 @@ def level_meta(spec: Spec) -> dict:
     return {'label': spec.label, 'unit': 'micro-watersheds', 'description': spec.description}
 
 
-def refresh_block(entry: dict, prev: dict, built_at: str) -> dict:
-    from populate_refresh import infer, next_due
-    block, _ = infer(entry)
-    return {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
-            'next_due': next_due(block['rebuild'], built_at)}
-
-
-def source_check(spec: Spec) -> dict:
-    from populate_source_check import OVERRIDES
-    return dict(OVERRIDES[spec.id])
-
-
 def catalog_entry(spec: Spec, summ: dict, prev: dict, r2_public: str) -> dict:
+    from populate_refresh import refresh_block
+    from populate_source_check import override
     names, sizes, got = summ['names'], summ['sizes'], summ['pull']
     entry = {'id': spec.id, 'level': spec.id, 'source': SOURCE, 'rows': summ['rows']}
     for fmt in EXT:
@@ -459,7 +449,7 @@ def catalog_entry(spec: Spec, summ: dict, prev: dict, r2_public: str) -> dict:
     entry.update({'licence': LICENCE, 'attribution': {'primary': dict(CORE), 'publisher': None},
                   'category': spec.category, 'provenance': 'curated', 'notes': notes(spec),
                   'tags': list(spec.tags), 'fetched_at': got['pulled_at'],
-                  'source_check': {**source_check(spec), 'fingerprint': f'sha256={got["sha256"]}',
+                  'source_check': {**override(spec.id), 'fingerprint': f'sha256={got["sha256"]}',
                                    'checked_at': got['pulled_at'], 'changed_at': None}})
     entry['refresh'] = refresh_block(entry, prev, got['pulled_at'])
     return entry

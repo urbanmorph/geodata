@@ -217,26 +217,16 @@ def level_meta() -> dict:
     return {'label': 'Active faults (GEM)', 'unit': 'faults', 'description': description()}
 
 
-def refresh_block(entry: dict, prev: dict, built_at: str) -> dict:
-    from populate_refresh import infer, next_due
-    block, _ = infer(entry)
-    return {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
-            'next_due': next_due(block['rebuild'], built_at)}
-
-
-def source_check() -> dict:
-    from populate_source_check import OVERRIDES
-    return dict(OVERRIDES[LAYER_ID])
-
-
 def catalog_entry(summ: dict, prev: dict, r2_public: str) -> dict:
+    from populate_refresh import refresh_block
+    from populate_source_check import override
     names, sizes, got = summ['names'], summ['sizes'], summ['pull']
     entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows'],
              **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': LICENCE, 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
                   'category': CATEGORY, 'provenance': 'curated', 'notes': notes(), 'tags': TAGS,
                   'fetched_at': got['pulled_at'],
-                  'source_check': {**source_check(), 'fingerprint': f'commit={got["commit"]}',
+                  'source_check': {**override(LAYER_ID), 'fingerprint': f'commit={got["commit"]}',
                                    'checked_at': got['pulled_at'], 'changed_at': got['committed_at']}})
     entry['refresh'] = refresh_block(entry, prev, got['pulled_at'])
     return entry

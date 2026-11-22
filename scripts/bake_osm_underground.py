@@ -356,8 +356,8 @@ def upload(work: Path) -> dict:
 # ── register ────────────────────────────────────────────────────────────────
 
 def catalog_entry(lid: str, summ: dict, prev: dict, r2_public: str) -> dict:
-    from populate_refresh import infer, next_due
-    from populate_source_check import OVERRIDES, merge
+    from populate_refresh import refresh_block
+    from populate_source_check import merge, override
     meta, built, src = LAYERS[lid], summ['layers'][lid], summ['sources']
     entry = {'id': lid, 'level': lid, 'source': 'OpenStreetMap', 'rows': built['rows'],
              **pipeline.format_blocks(EXT, built['names'], built['sizes'], f'{r2_public}/{R2_PREFIX}')}
@@ -365,10 +365,8 @@ def catalog_entry(lid: str, summ: dict, prev: dict, r2_public: str) -> dict:
                   'attribution': {'primary': dict(OSM_ATTRIBUTION), 'publisher': dict(PUBLISHER)},
                   'category': meta['category'], 'provenance': 'curated', 'fetched_at': src['as_of'],
                   'notes': notes(lid), 'tags': list(meta['tags']),
-                  'source_check': merge(prev.get('source_check'), OVERRIDES[lid])})
-    block, _ = infer(entry)
-    entry['refresh'] = {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
-                        'next_due': next_due(block['rebuild'], src['as_of'])}
+                  'source_check': merge(prev.get('source_check'), override(lid))})
+    entry['refresh'] = refresh_block(entry, prev, src['as_of'])
     return entry
 
 

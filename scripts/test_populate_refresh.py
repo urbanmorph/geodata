@@ -229,3 +229,11 @@ def test_main_dry_run_writes_nothing(tmp_path):
     assert json.loads(first)['layers'][0]['refresh']['class'] == 'slow'
     assert pr.main(['--catalog', str(p), '--releases', str(tmp_path / 'none.json')]) == 0
     assert p.read_text() == first
+
+
+def test_a_bake_s_refresh_block_keeps_the_audit_date_and_dates_the_next_rebuild_from_this_build():
+    lyr = layer(lid='atal_bhujal_wells', category='water')
+    block, _ = pr.infer(lyr)
+    got = pr.refresh_block(lyr, {'refresh': {'audited_at': '2026-03-03'}}, '2026-11-22T00:00:00+00:00')
+    assert got == {**block, 'audited_at': '2026-03-03', 'next_due': pr.next_due(block['rebuild'], '2026-11-22')}
+    assert pr.refresh_block(lyr, {}, '2026-11-22')['audited_at'] is None   # a new layer
