@@ -187,8 +187,8 @@ export const READ_TOOLS = [
     name: "nearby",
     description:
       "Find features from a layer that are near a given point, nearest first, within radius_km. " +
-      "Reads the layer's parquet bounding boxes and ranks features by distance to their centres; " +
-      "works for points, polygons and lines. Returns the true count within the radius plus the nearest `limit`. " +
+      "Works for points, polygons and lines: points are measured to the point, lines and polygons to the nearest part of " +
+      "their shape (0 inside a polygon; `_distance_to` says which). Returns the true count within the radius plus the nearest `limit`. " +
       "Example: 'reservoirs near Bengaluru' -> layer_id: 'wris_reservoirs', lat: 12.97, lng: 77.59, radius_km: 50.",
     inputSchema: {
       type: "object",

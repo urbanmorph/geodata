@@ -82,7 +82,7 @@ const BASE = {
         operationId: 'nearby',
         tags: ['Spatial'],
         summary: 'Features from one layer within a radius of a point, nearest first',
-        description: 'Works for points, lines and polygons; distance is measured to each feature’s bounding-box centre.',
+        description: 'Works for points, lines and polygons. Points are measured to the point; lines and polygons to the nearest part of their shape (0 inside a polygon), and `_lat`, `_lng` are that nearest point. `_distance_to` says which (point or shape). `_approximate: true` means the search read coarser map tiles or fewer shapes than it wanted (a large radius on a dense layer): distances to within tens of metres, and the count may be short. Lines and polygons used to be measured to their bounding-box centre; answers for those layers changed when distance to the shape shipped.',
         parameters: [
           LAT, LNG,
           q('layer', 'Layer id to search.', { type: 'string' }, true),
@@ -427,6 +427,8 @@ const BASE = {
           radius_km: { type: 'number' },
           total: { type: 'integer' },
           features: { type: 'array', items: { type: 'object', properties: { properties: { type: 'object' }, _lat: { type: 'number' }, _lng: { type: 'number' }, _distance_km: { type: 'number' } } } },
+          _distance_to: { type: 'string', enum: ['point', 'shape'], description: 'point: distance to each point; shape: to the nearest part of each line or polygon.' },
+          _approximate: { type: 'boolean', description: 'Present (true) when coarser tiles or fewer shapes were read: distances to within tens of metres, the count may be short.' },
         },
       },
       QueryRows: {

@@ -1,7 +1,7 @@
 import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
 import { countApiUse } from '../../lib/usage';
-import { nearby } from '../../lib/nearby';
+import { nearbyTrueDistance } from '../../lib/nearby-true-distance';
 import { QueryInputError } from '../../lib/parquet-query';
 import { apiError, safeStringify, serverError } from '../../lib/http';
 import { parseIndiaPoint, resolveLayer } from '../../lib/api-layer';
@@ -22,9 +22,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const { layer, catalog, version } = r;
   countApiUse(ctx, layer.id);
 
-  return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
+  // ".shape": answers measured to the shape (lib/nearby-true-distance.ts) never share a key with the bbox-centre ones.
+  return cached(ctx, cacheKey(`${version}.shape`, url), EDGE_TTL.r2, async () => {
     try {
-      const result = await nearby(lat, lng, radiusKm, layer.id, catalog, ctx.env.R2, limit);
+      const result = await nearbyTrueDistance(lat, lng, radiusKm, layer.id, catalog, ctx.env.R2, limit);
       return new Response(safeStringify(result), {
         headers: {
           'content-type': 'application/json',

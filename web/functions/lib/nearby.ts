@@ -88,7 +88,7 @@ function pickGeomCol(cols: string[]): string | null {
   return cols.find(isGeomColumn) ?? null;
 }
 
-function cleanProps(row: Record<string, unknown>, skip: Set<string>): Record<string, unknown> {
+export function cleanProps(row: Record<string, unknown>, skip: Set<string>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const k of Object.keys(row)) {
     if (skip.has(k) || JUNK_PROPS.has(k.toLowerCase())) continue;
@@ -215,20 +215,27 @@ export async function nearestRows(
   // not decode every row between them).
   const readCols = cols.filter((c) => c !== geomCol);
   if (!readCols.length) return { winners: candidates.map(({ cLat, cLng, d }) => ({ row: {}, cLat, cLng, d })), total, rowsScanned };
-  const byIdx = new Map(candidates.map((c) => [c.idx, c]));
-  const windows = readWindows([...byIdx.keys()].sort((a, b) => a - b), READ_WINDOW_ROWS);
-  const rowFile = coalesced(file, windows.flatMap((w) => chunkRanges(metadata, readCols, w[0], w[w.length - 1] + 1)));
-  const found = await mapConcurrent(windows, R2_CONCURRENCY, async (idxs) => {
+  const rows = await readRowsAt(file, metadata, readCols, candidates.map((c) => c.idx));
+  const found = candidates.map((c): BboxWinner => ({ row: rows.get(c.idx)!, cLat: c.cLat, cLng: c.cLng, d: c.d }));
+  return { winners: topKByDistance(found, limit), total, rowsScanned };
+}
+
+/** `cols` of the rows at these indexes, by index: in parallel, in windows of at most
+ *  READ_WINDOW_ROWS rows (rows far apart in one row group must not decode every row between them). */
+export async function readRowsAt(
+  file: AsyncBuffer, metadata: FileMetaData, cols: string[], indexes: number[],
+): Promise<Map<number, Record<string, unknown>>> {
+  const windows = readWindows([...new Set(indexes)].sort((a, b) => a - b), READ_WINDOW_ROWS);
+  const rowFile = coalesced(file, windows.flatMap((w) => chunkRanges(metadata, cols, w[0], w[w.length - 1] + 1)));
+  const out = new Map<number, Record<string, unknown>>();
+  await mapConcurrent(windows, R2_CONCURRENCY, async (idxs) => {
     const lo = idxs[0];
     const rows = await parquetReadObjects({
-      file: rowFile, metadata, compressors, columns: readCols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
+      file: rowFile, metadata, compressors, columns: cols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
     }) as Array<Record<string, unknown>>;
-    return idxs.map((i): BboxWinner => {
-      const c = byIdx.get(i)!;
-      return { row: rows[i - lo], cLat: c.cLat, cLng: c.cLng, d: c.d };
-    });
+    for (const i of idxs) out.set(i, rows[i - lo]);
   });
-  return { winners: topKByDistance(found.flat(), limit), total, rowsScanned };
+  return out;
 }
 
 /** `columns`: decode only these for the features (default all); [] decodes none (a count). */
