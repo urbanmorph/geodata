@@ -61,7 +61,7 @@ import rebake_tiles as rt  # noqa: E402
 from bake_formats import shapefile_key, short_field_names  # noqa: E402
 from pipeline import (  # noqa: E402
     CHUNK, OGR_ENV, R2_PUBLIC, Deadline, OutOfTime, _remote_has, atomic_output, cached, download, file_md5,
-    patient_r2_client, r2_upload_retrying, rebake_flatten_bbox, slug, upload_lock, upsert_by_id, write_json,
+    make_con, patient_r2_client, r2_upload_retrying, rebake_flatten_bbox, slug, upload_lock, upsert_by_id, write_json,
 )
 from tile_keys import versioned_key  # noqa: E402
 
@@ -167,12 +167,8 @@ def shapefile_names(con, parquet: Path) -> dict[str, str]:
 
 
 def _con(memory: str = '4GB', threads: int = 2):
-    """blw.make_con (lon,lat, spill to disk), sized: per-state workers run side by side."""
-    con = blw.make_con(WORK)
-    con.execute(f"SET memory_limit = '{memory}'")
-    con.execute(f'SET threads = {threads}')
-    con.execute('SET enable_progress_bar = false')  # logs are progress lines, not a bar
-    return con
+    """A connection like blw.make_con (lon,lat, spill under WORK, streaming COPYs), sized: per-state workers run side by side."""
+    return make_con(temp_dir=WORK / 'duckdb_tmp', memory_limit=memory, threads=threads, ordered=False)
 
 
 def write_state_files(parquet: Path, column: str, value, out_dir: Path, basename: str,
