@@ -1,4 +1,5 @@
 import { apiError } from './http';
+import { isSpaFallback } from './catalog-loader';
 
 /** The JSON 404 for a path that is not an endpoint (or not one yet). */
 export const notFoundJson = (pathname: string): Response => apiError(404, `Not found: ${pathname}`);
@@ -9,6 +10,5 @@ export const notFoundJson = (pathname: string): Response => apiError(404, `Not f
  * such endpoint": answer with a JSON 404 that API clients and agents can read.
  */
 export function notFoundForUnmatched(resp: Response, pathname: string): Response {
-  if (!(resp.headers.get('content-type') ?? '').startsWith('text/html')) return resp;
-  return notFoundJson(pathname);
+  return isSpaFallback(resp) ? notFoundJson(pathname) : resp;
 }
