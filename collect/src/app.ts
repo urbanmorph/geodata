@@ -167,6 +167,16 @@ window.addEventListener(OUTBOX_CHANGED, (e) => {
 // A grab handle — the first child of every collapsible bottom sheet.
 const GRAB = '<button type="button" class="grab" aria-expanded="true" aria-label="Collapse or expand this panel"></button>';
 
+/** A bottom sheet: the grab handle, its body (a form when `form` names one) and
+ *  a footer, either the usual "← Back | primary" row or `foot`'s own markup. */
+function sheetHtml(body: string, o: { form?: string; back?: string | [id: string, label: string]; primary?: [id: string, label: string]; foot?: string } = {}): string {
+  const [backId, backLabel] = typeof o.back === 'string' ? [o.back, '← Back'] : o.back ?? [];
+  const foot = o.foot !== undefined ? `<div class="foot">${o.foot}</div>`
+    : backId && o.primary ? `<div class="foot row"><button type="button" id="${backId}">${backLabel}</button><button class="primary" id="${o.primary[0]}" style="flex:1">${o.primary[1]}</button></div>`
+      : '';
+  return `<div class="sheet">${GRAB}${o.form ? `<form class="body" id="${o.form}">${body}</form>` : `<div class="body">${body}</div>`}${foot}</div>`;
+}
+
 // ── sheet metrics ────────────────────────────────────────────────────────
 // Keep --sheet-h current so the crosshair + floating map buttons sit above the
 // panel, and let the grab handle collapse the sheet to a peek (map takes over).
@@ -357,12 +367,11 @@ async function boot(): Promise<void> {
 function viewPanel(): void {
   const panel = document.getElementById('panel')!;
   const n = meta.counts.published;
-  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
+  panel.innerHTML = sheetHtml(`
     <strong>${escapeHtml(meta.name)}</strong>
     ${meta.purpose ? `<p class="hint">${escapeHtml(meta.purpose)}</p>` : ''}
     <p class="hint">${n ? `${plural(n, 'point')} on the map.` : 'No points published yet.'}</p>
-    ${safetyFooter()}
-  </div></div>`;
+    ${safetyFooter()}`);
 }
 
 let recordShapes: GeoJSON.Feature[] = [];
@@ -943,22 +952,15 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   const panel = document.getElementById('panel')!;
   const aiNote = modeOf(meta.schema) === 'form_ai' && fields.some((f) => f.type === 'photo')
     ? `<p class="hint">After it's sent, a model describes the photo and suggests answers for the map's owner to check. It won't change your answers.</p>` : '';
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <form class="body" id="capform">
+  panel.innerHTML = sheetHtml(`
       <strong ${SHEET_TITLE}>${cap(noun)} details</strong>
       <p class="hint">Placed on the map. Add the details, then save. Public places and assets only, not people.</p>
       ${fieldsHtml(fields)}
       <div id="photo-place" aria-live="polite"></div>
       ${aiNote}
       <label for="contributor">Your name <span class="hint">(optional, published with the data, remembered on this device)</span></label>
-      <input id="contributor" autocomplete="name" maxlength="120" />
-    </form>
-    <div class="foot row">
-      <button type="button" id="cancel">← Back</button>
-      <button class="primary" id="save" style="flex:1">Save ${noun}</button>
-    </div>
-  </div>`;
+      <input id="contributor" autocomplete="name" maxlength="120" />`,
+  { form: 'capform', back: 'cancel', primary: ['save', `Save ${noun}`] });
   (document.getElementById('contributor') as HTMLInputElement).value = loadContributorName();
   focusSheet(panel);
   panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => setPressed(c, !c.classList.contains('on')); });
@@ -1064,9 +1066,7 @@ async function editSettings(): Promise<void> {
   const s = meta.schema;
   const locked = meta.counts.total > 0;
   const sel = (v: string, cur: string): string => (v === cur ? ' selected' : '');
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <form class="body" id="editform">
+  panel.innerHTML = sheetHtml(`
       <strong ${SHEET_TITLE}>Edit map settings</strong>
       <label for="e-name">Name</label><input id="e-name" maxlength="120" value="${escapeHtml(meta.name)}" required />
       <label for="e-purpose">What's it for?</label><textarea id="e-purpose" maxlength="2000">${escapeHtml(meta.purpose)}</textarea>
@@ -1082,13 +1082,8 @@ async function editSettings(): Promise<void> {
       <input id="e-ref-search" placeholder="Browse layers, or type to filter…" autocomplete="off" />
       <div id="e-ref-results" class="ref-results"></div>
       <label${locked ? '' : ' for="e-license"'}>Licence</label>
-      ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}
-    </form>
-    <div class="foot row">
-      <button type="button" id="e-cancel">← Back</button>
-      <button class="primary" id="e-save" style="flex:1">Save settings</button>
-    </div>
-  </div>`;
+      ${locked ? `<p class="hint">${escapeHtml(meta.license)}, locked now the map has points.</p>` : `<select id="e-license">${OPEN_LICENCES.map(([id, l]) => `<option value="${id}"${sel(id, meta.license)}>${l}</option>`).join('')}</select>`}`,
+  { form: 'editform', back: 'e-cancel', primary: ['e-save', 'Save settings'] });
 
   focusSheet(panel);
 
@@ -1148,7 +1143,7 @@ async function editSettings(): Promise<void> {
 async function editFormSheet(): Promise<void> {
   const { mountSchemaBuilder } = await import('./schema-builder'); // admin-only code, loaded on demand
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body"><p class="hint">Loading the points to check the form against…</p></div></div>`;
+  panel.innerHTML = sheetHtml('<p class="hint">Loading the points to check the form against…</p>');
   let points: Record<string, unknown>[];
   try {
     points = (await allRecords<{ properties: Record<string, unknown> }>()).map((f) => f.properties);
@@ -1160,19 +1155,12 @@ async function editFormSheet(): Promise<void> {
     if (!v) byKey.set(k, (v = points.map((p) => p[k])));
     return v;
   };
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <div class="body">
+  panel.innerHTML = sheetHtml(`
       <strong ${SHEET_TITLE}>Edit form</strong>
       <p class="hint">${n ? `Checked against the map's ${plural(n, 'point')}. You can add options and fields; options the points use stay, and a field can be hidden (its data is kept) but not removed.` : 'The map has no points yet, so the form can change freely.'}</p>
       <div id="ef-builder"></div>
-      <div id="ef-result" aria-live="polite"></div>
-    </div>
-    <div class="foot row">
-      <button type="button" id="ef-cancel">← Back</button>
-      <button class="primary" id="ef-save" style="flex:1">Save form</button>
-    </div>
-  </div>`;
+      <div id="ef-result" aria-live="polite"></div>`,
+  { back: 'ef-cancel', primary: ['ef-save', 'Save form'] });
   const builder = mountSchemaBuilder(document.getElementById('ef-builder')!, meta.schema.fields as BuilderField[], {
     data: { noun: 'point', values: (f) => valuesOf(f.key) },
     existing: n > 0,
@@ -1221,9 +1209,7 @@ async function manageSheet(focus: false | string | { row: string } = ''): Promis
   // per-open refetch (this ran on every tab-in and every back-out of a review).
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <div class="body">
+  panel.innerHTML = sheetHtml(`
       <div class="row" style="justify-content:space-between;align-items:center">
         <strong ${SHEET_TITLE}>Manage map</strong>
         <span class="row" style="gap:6px">
@@ -1236,13 +1222,8 @@ async function manageSheet(focus: false | string | { row: string } = ''): Promis
         <button type="button" data-t="share">Share</button>
         <button type="button" data-t="data">Data</button>
       </div>
-      <div id="tabbody"></div>
-    </div>
-    <div class="foot row">
-      <button id="back">+ Add points</button>
-      <button class="primary" id="publish" style="flex:1">Submit to bharatlas</button>
-    </div>
-  </div>`;
+      <div id="tabbody"></div>`,
+  { back: ['back', '+ Add points'], primary: ['publish', 'Submit to bharatlas'] });
   (document.getElementById('back') as HTMLButtonElement).onclick = captureSheet;
   (document.getElementById('publish') as HTMLButtonElement).onclick = confirmPublish;
   (document.getElementById('edit-settings') as HTMLButtonElement).onclick = () => void editSettings();
@@ -1819,9 +1800,7 @@ function openReview(idx: number): void {
   const meta = [recordWho(p._source, p._contributor), recordVia(p._link_label), recordWhen(p._captured_at, p._created_at), recordPlace(p._admin_ctx)]
     .filter(Boolean).map(escapeHtml).join(' · ');
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">
-    ${GRAB}
-    <div class="body">
+  panel.innerHTML = sheetHtml(`
       <div class="row" style="justify-content:space-between;align-items:flex-start;gap:8px">
         <strong ${SHEET_TITLE} style="flex:1">${escapeHtml(cardTitle(p))}</strong>
         <span class="badge badge--${st}">${st}</span>
@@ -1829,9 +1808,7 @@ function openReview(idx: number): void {
       ${meta ? `<p class="hint">${meta}</p>` : ''}
       ${p._photos?.length ? '<div class="review-photos" id="rv-photos"></div>' : ''}
       <div class="attrs">${attrs || '<p class="hint">No fields on this map.</p>'}</div>
-      ${aiNotesHtml(p._ai ?? null, mapFields(), p, modeOf(mapSchema()), st)}
-    </div>
-    <div class="foot">
+      ${aiNotesHtml(p._ai ?? null, mapFields(), p, modeOf(mapSchema()), st)}`, { foot: `
       ${st === 'pending'
         ? `<div class="row" style="margin-bottom:8px"><button class="danger" id="rv-reject" style="flex:1">✗ Reject</button><button class="primary" id="rv-approve" style="flex:1">✓ Approve</button></div>`
         : st === 'rejected'
@@ -1841,9 +1818,7 @@ function openReview(idx: number): void {
         <button id="rv-back" style="flex:1">← List</button>
         <button id="rv-edit" style="flex:1">✎ Edit</button>
         <button class="danger" id="rv-delete" style="flex:1">🗑 Delete</button>
-      </div>
-    </div>
-  </div>`;
+      </div>` });
 
   focusSheet(panel);
   // Back to the list, focus on this point's row (the title, if it has gone).
@@ -1923,14 +1898,11 @@ const mapFields = (): Field[] => meta.schema.fields;
 function confirmPublish(): void {
   const c = meta.counts;
   const panel = document.getElementById('panel')!;
-  panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
+  panel.innerHTML = sheetHtml(`
     <strong>Submit to bharatlas?</strong>
     <p class="hint">Your ${c.published} approved point${c.published === 1 ? '' : 's'} are already saved and shown on this map. Submitting sends them to <strong>bharatlas</strong> as an open layer. <strong>A bharatlas maintainer reviews and approves every submission before it goes live</strong> at bharatlas.com, so it won't be public until then. Do this once the map is ready to share widely.</p>
-    ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}
-  </div><div class="foot row">
-    <button id="pub-cancel">← Back</button>
-    <button class="primary" id="pub-go" style="flex:1">${c.published ? `Submit ${c.published} for review` : 'Submit'}</button>
-  </div></div>`;
+    ${c.pending ? `<p class="hint">${c.pending} pending point${c.pending === 1 ? '' : 's'} won't be included until you approve them in Review.</p>` : ''}`,
+  { back: 'pub-cancel', primary: ['pub-go', c.published ? `Submit ${c.published} for review` : 'Submit'] });
   (document.getElementById('pub-cancel') as HTMLButtonElement).onclick = () => void manageSheet();
   (document.getElementById('pub-go') as HTMLButtonElement).onclick = (e) => void runPublish(e.currentTarget as HTMLButtonElement);
 }
@@ -1943,10 +1915,10 @@ async function runPublish(btn: HTMLButtonElement): Promise<void> {
     );
     toast(`Submitted v${res.version} · ${res.feature_count} features`);
     const panel = document.getElementById('panel')!;
-    panel.innerHTML = `<div class="sheet">${GRAB}<div class="body">
+    panel.innerHTML = sheetHtml(`
       <strong>Submitted for review ✓</strong>
-      <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live on bharatlas.')}</p>
-      </div><div class="foot"><button id="back">← Back to manage</button></div></div>`;
+      <p class="hint">Version ${res.version} · ${res.feature_count} features. ${escapeHtml(res.message || 'A curator reviews it before it goes live on bharatlas.')}</p>`,
+    { foot: '<button id="back">← Back to manage</button>' });
     (document.getElementById('back') as HTMLButtonElement).onclick = () => void manageSheet();
   } catch (e) {
     toast((e as Error).message, 'error');
@@ -1979,21 +1951,15 @@ async function recordEditor(): Promise<void> {
       <div class="map-loading" id="maploading"><span class="spinner"></span> Loading map…</div>
       ${isPoint ? '<button class="locate" id="locate" aria-label="Use my location">◎</button>' : ''}
     </div>
-    <div id="panel"><div class="sheet">
-      ${GRAB}
-      <form class="body" id="recform">
+    <div id="panel">${sheetHtml(`
         <strong>Edit your ${noun}</strong>
         <p class="hint">${isPoint ? 'Move the map to reposition; update the details.' : 'Update the details below.'} Status: ${escapeHtml(rec.status)}.</p>
-        ${fieldsHtml(fields)}
-      </form>
-      <div class="foot">
+        ${fieldsHtml(fields)}`, { form: 'recform', foot: `
         <button class="primary" id="save">Save changes</button>
         <div class="row" style="margin-top:8px">
           <button type="button" id="deid" style="flex:1"${rec.contributor ? '' : ' disabled'}>Remove my name</button>
           <button type="button" id="del" style="flex:1">Delete ${noun}</button>
-        </div>
-      </div>
-    </div></div>`;
+        </div>` })}</div>`;
   installSheetMetrics();
 
   map = new maplibregl.Map({ container: 'map', style: buildBaseStyle(getStoredBasemap() ?? normalizeBasemap(rec.schema.basemap)), center, zoom: isPoint ? 16 : 14, attributionControl: false });
