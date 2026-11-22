@@ -6,7 +6,9 @@
 // failed read). Clients are told not to store it (a point is personal).
 // R2 reads go through the colo's cache (colo-cache.ts), so a fresh isolate does not
 // read every layer's metadata again; x-profile-reads, x-profile-colo-hits and
-// server-timing (catalog, lookup, profile) say where an answer's time went.
+// server-timing (catalog, lookup, profile, between the middlewares' limit and api:
+// lib/server-timing.ts, which also says what the Workers clock leaves out) say where an
+// answer's time went.
 import type { Env } from '../api/_middleware';
 import { loadCatalogVersioned } from './catalog-loader';
 import { partialByChance, snapPoint, SNAP_DECIMALS, type ProfileOpts, type ProfileResponse } from './profile';
@@ -17,6 +19,7 @@ import { cached, cacheKey, defaultCache, EDGE_TTL, NO_STORE } from './edge-cache
 import { coloBucket, coloCache } from './colo-cache';
 import { notPublished, pointProfilesOn } from './point-profiles';
 import { countApiUse, endpointUsageId } from './usage';
+import { timing } from './server-timing';
 
 export type ProfileRun = (lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, opts: ProfileOpts) => Promise<ProfileResponse>;
 
@@ -77,7 +80,7 @@ export function profileHandler(name: string, run: ProfileRun, version: string): 
       // Where the time went, for this request (never the stored copy's): the catalog, the
       // edge cache lookup, and the profile itself when it ran.
       const tEnd = Date.now();
-      const phases = [`catalog;dur=${tCatalog - t0}`, `lookup;dur=${(tRun ?? tEnd) - tCatalog}`, ...(tRun ? [`profile;dur=${tEnd - tRun}`] : [])];
+      const phases = [timing('catalog', tCatalog - t0), timing('lookup', (tRun ?? tEnd) - tCatalog), ...(tRun ? [timing('profile', tEnd - tRun)] : [])];
       const out = new Response(res.body, res);
       out.headers.set('server-timing', phases.join(', '));
       return out;

@@ -1,12 +1,15 @@
 import type { Env } from '../_middleware';
 import { apiLimitFor, isPointLookup } from '../../lib/api-ratelimit';
 import { json } from '../../lib/http';
+import { addTiming, timing } from '../../lib/server-timing';
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
   // The limit never waits on D1: the isolate decides, D1 follows in waitUntil
-  // (lib/api-ratelimit.ts).
+  // (lib/api-ratelimit.ts). Its time is the answer's first server-timing phase.
+  const t0 = Date.now();
   const rl = await apiLimitFor(ctx.request, ctx.env, isPointLookup(url.pathname), (p) => ctx.waitUntil(p));
+  const limit = timing('limit', Date.now() - t0);
   if (!rl.ok) {
     return json(429, { error: 'Rate limit exceeded', retryAfter: rl.retryAfter, status: 429 }, {
       'retry-after': String(rl.retryAfter),
@@ -20,5 +23,6 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   if (!headers.has('content-type')) {
     headers.set('content-type', 'application/json');
   }
+  addTiming(headers, { before: [limit] });
   return new Response(resp.body, { status: resp.status, headers });
 };

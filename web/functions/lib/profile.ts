@@ -12,6 +12,7 @@ import { locate as locateEngine, type LocateResponse } from './locate';
 import { nearby as nearbyEngine } from './nearby';
 import { nearbyByGeometry } from './nearby-geometry';
 import { nearbyFromTiles } from './nearby-tiles';
+import { R2_CONCURRENCY, turns } from './concurrency';
 import { licenceUrl } from '../../../shared/licences.mjs';
 
 export type Props = Record<string, unknown>;
@@ -237,9 +238,14 @@ export interface ProfileSpec {
 export const UNDATED = 'not dated by the source (see fetched_at, when bharatlas fetched it)';
 
 export const BASE_DEPS:Omit<ProfileDeps, 'pixels'> = { locate: locateEngine, nearby: nearbyEngine, nearbyByGeometry, nearbyFromTiles };
-/** Each layer's time (ms): past it the answer names the layer in `unavailable`, is not
- *  cached, and the layer's reads still run on (waitUntil) to fill the colo's cache. */
+/** Each layer's own time (ms): its clock stops while all it does is wait for a turn to
+ *  read. Past it the answer names the layer in `unavailable` and is not cached; the reads
+ *  the layer has in flight still finish (waitUntil) and fill the colo's cache. */
 export const LAYER_BUDGET_MS = 2500;
+/** The whole answer's time (ms): a layer still reading or waiting for a turn then is
+ *  named in `unavailable` the same way. Longer than a layer's budget, so a congested call
+ *  (slow reads queueing for the connections) still gives the layers at the back their turn. */
+export const ANSWER_DEADLINE_MS = 4000;
 const ZOOM = 14;
 
 export function creditOf(layer: CatalogLayer): Credit {
@@ -260,6 +266,8 @@ export function snapPoint(lat: number, lng: number): { lat: number; lng: number 
 }
 
 class OutOfTime extends Error {}
+/** The answer's deadline passed. */
+class PastDeadline extends OutOfTime {}
 
 const TOOK_LONGER = 'took longer than';
 const COULD_NOT_READ = 'could not be read';
@@ -270,10 +278,71 @@ export function partialByChance(r: Pick<ProfileResponse, 'unavailable'>): boolea
   return r.unavailable.some((u) => u.reason === COULD_NOT_READ || u.reason.startsWith(TOOK_LONGER));
 }
 
-function within<T>(p: Promise<T>, ms: number): Promise<T> {
-  let timer: ReturnType<typeof setTimeout>;
-  return Promise.race([p, new Promise<T>((_, reject) => { timer = setTimeout(() => reject(new OutOfTime()), ms); })])
-    .finally(() => clearTimeout(timer));
+/** A layer's budget that runs except while the layer only waits for a turn to read
+ *  (reads waiting, none in flight); `out` rejects when it is spent. */
+class LayerClock {
+  readonly out: Promise<never>;
+  private fire!: () => void;
+  private left: number;
+  private since = 0;
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private waiting = 0;
+  private reading = 0;
+
+  constructor(ms: number) {
+    this.left = ms;
+    this.out = new Promise<never>((_, reject) => { this.fire = () => reject(new OutOfTime()); });
+    this.out.catch(() => {});
+    this.update();
+  }
+  queued() { this.waiting++; this.update(); }
+  granted() { this.waiting--; this.reading++; this.update(); }
+  read() { this.reading--; this.update(); }
+  stop() { clearTimeout(this.timer); this.timer = null; }
+
+  private update() {
+    const paused = this.waiting > 0 && this.reading === 0;
+    if (paused && this.timer !== null) {
+      this.stop();
+      this.left -= Date.now() - this.since;
+    } else if (!paused && this.timer === null) {
+      this.since = Date.now();
+      this.timer = setTimeout(this.fire, Math.max(0, this.left));
+    }
+  }
+}
+
+/** `r2` for one layer: each read waits for a turn (the answer's reads go `R2_CONCURRENCY` at
+ *  a time, the layers earlier in the table first) and tells the layer's clock. `release()`,
+ *  for a layer given up on, hands back its turns: its reads in flight finish (and fill the
+ *  colo's cache), the rest are refused. */
+function turnTakingBucket(r2: R2Bucket, queue: ReturnType<typeof turns>, rank: number, clock: LayerClock): { bucket: R2Bucket; release(): void } {
+  const held = new Set<() => void>();
+  let released = false;
+  const take = (fn: (...a: unknown[]) => Promise<unknown>) => async (...args: unknown[]) => {
+    if (released) throw new OutOfTime();
+    clock.queued();
+    const give = await queue.acquire(rank);
+    if (released) { give(); throw new OutOfTime(); }
+    clock.granted();
+    held.add(give);
+    try {
+      return await fn(...args);
+    } finally {
+      held.delete(give);
+      give();
+      clock.read();
+    }
+  };
+  const bucket = new Proxy(r2, {
+    get(target, prop) {
+      const v = Reflect.get(target, prop);
+      if (typeof v !== 'function') return v;
+      const bound = v.bind(target);
+      return prop === 'get' || prop === 'head' ? take(bound) : bound;
+    },
+  });
+  return { bucket, release() { released = true; for (const give of held) give(); held.clear(); } };
 }
 
 type LayerAnswer = Omit<ProfileEntry, 'credit' | 'layer_id'>;
@@ -332,15 +401,24 @@ async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog
   };
 }
 
-export type ProfileOpts = { budgetMs?: number; waitUntil?: (p: Promise<unknown>) => void; openOnly?: boolean };
+export type ProfileOpts = {
+  budgetMs?: number; deadlineMs?: number;
+  waitUntil?: (p: Promise<unknown>) => void; openOnly?: boolean;
+};
 
-/** A profile at lat/lng: every layer and pixel source read in parallel, each under its own budget. */
+/** A profile at lat/lng: every layer and pixel source read in parallel, their reads taking
+ *  turns (table order first), each layer under its own budget, all under the answer's deadline. */
 export async function profileAt(
   profile: ProfileSpec, lat: number, lng: number, catalog: CatalogData, r2: R2Bucket,
   deps: ProfileDeps, opts: ProfileOpts = {},
 ): Promise<ProfileResponse> {
   const start = Date.now();
   const budget = opts.budgetMs ?? LAYER_BUDGET_MS;
+  const deadline = opts.deadlineMs ?? ANSWER_DEADLINE_MS;
+  const queue = turns(R2_CONCURRENCY);
+  let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
+  const pastDeadline = new Promise<never>((_, reject) => { deadlineTimer = setTimeout(() => reject(new PastDeadline()), deadline); });
+  pastDeadline.catch(() => {}); // raced by every layer; none may be left when it fires
   const byId = new Map(catalog.layers.map((l) => [l.id, l]));
   const layers = [...profile.layers, ...(profile.expand?.(lat, lng, catalog) ?? [])];
   const keyOf = (l: ProfileLayer) => l.key ?? l.id;
@@ -351,21 +429,32 @@ export async function profileAt(
   const creditOfKey = new Map<string, string>();
   const omitted: string[] = [];
 
-  const timed = async <T>(id: string, p: () => Promise<T>): Promise<T> => {
+  /** `read` through its own turn-taking bucket, under its budget and the answer's deadline. */
+  const timed = async <T>(id: string, rank: number, read: (r2: R2Bucket) => Promise<T>): Promise<T> => {
     const t0 = Date.now();
-    const work = p();
+    const clock = new LayerClock(budget);
+    const mine = turnTakingBucket(r2, queue, rank, clock);
+    const work = read(mine.bucket);
     try {
-      return await within(work, budget);
+      return await Promise.race([work, clock.out, pastDeadline]);
     } catch (e) {
-      // A layer past its budget keeps running: hold the request open until it settles, so
-      // promises it leaves in the isolate's caches settle in the request that made them.
-      if (e instanceof OutOfTime) opts.waitUntil?.(work.catch(() => {}));
+      // A layer given up on keeps running, its turns handed back: hold the request open until
+      // it settles, so promises it leaves in the isolate's caches settle in the request that made them.
+      if (e instanceof OutOfTime) {
+        mine.release();
+        opts.waitUntil?.(work.catch(() => {}));
+      }
       throw e;
-    } finally { timing[id] = Date.now() - t0; }
+    } finally {
+      clock.stop();
+      timing[id] = Date.now() - t0;
+    }
   };
   const failed = (id: string, e: unknown) => {
     if (!(e instanceof OutOfTime)) console.error(`profile: ${id} failed:`, (e as Error)?.message ?? e);
-    unavailable.push({ layer_id: id, reason: e instanceof OutOfTime ? `${TOOK_LONGER} ${budget} ms` : COULD_NOT_READ });
+    const reason = e instanceof PastDeadline ? `${TOOK_LONGER} the answer's ${deadline} ms`
+      : e instanceof OutOfTime ? `${TOOK_LONGER} ${budget} ms` : COULD_NOT_READ;
+    unavailable.push({ layer_id: id, reason });
   };
 
   const layerJobs = layers.map(async (spec, order) => {
@@ -375,7 +464,7 @@ export async function profileAt(
     if (opts.openOnly && ncFields(layer).non_commercial) { omitted.push(key); return; }
     try {
       const read = spec.match === 'contains' ? readContains : readNearest;
-      const got = await timed(key, () => read(spec, lat, lng, catalog, r2, deps));
+      const got = await timed(key, order, (bucket) => read(spec, lat, lng, catalog, bucket, deps));
       const entry: ProfileEntry = {
         layer_id: spec.id, credit: creditOf(layer), ...ncFields(layer),
         about: { vintage: UNDATED, ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },
@@ -396,7 +485,7 @@ export async function profileAt(
     try {
       const read = deps.pixels[px.id];
       if (!read) { unavailable.push({ layer_id: px.id, reason: 'not published' }); return; }
-      const got = await timed(px.id, () => read(r2, lat, lng));
+      const got = await timed(px.id, i - profile.pixels.length, (bucket) => read(bucket, lat, lng));
       if (got.status === 'unavailable') { unavailable.push({ layer_id: px.id, reason: got.reason }); return; }
       const entry: ProfileEntry = { layer_id: px.id, match: 'pixel', ...px.entry(got) };
       sections[px.section][px.id] = entry;
@@ -408,6 +497,7 @@ export async function profileAt(
     }
   });
   await Promise.all([...layerJobs, ...pixelJobs]);
+  clearTimeout(deadlineTimer);
 
   // Answers arrive in any order: lay each section out in the table's order (pixel sources first).
   const pixelAt = new Map(profile.pixels.map((p, i) => [p.id, i - profile.pixels.length]));

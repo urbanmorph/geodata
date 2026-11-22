@@ -469,7 +469,7 @@ const POINT_PROFILE_PATHS_SPEC = {
         '`contains` entries list the features holding the point; `nearest` entries give `count` within `radius_km` and the nearest few with `distance_km` (points by distance to the point, lines by true distance to the line: `distance_to`). ' +
         'Every entry has a `status`: `found`, `none_within_radius` (the layer covers the area, nothing is that close; `radius_km: 0` on an all-India map such as the NDEM flood extents means the point is in none of its areas) or `not_covered` (the layer does not reach this point, e.g. subsidence outside its cities). ' +
         'Each entry also says its `about`: scale or resolution, vintage and the date bharatlas fetched it; `disclaimer` says once that this is screening information, not for site or engineering decisions. ' +
-        'A layer that cannot be read within 2.5 seconds is listed in `unavailable` (reason `took longer than 2500 ms`, or `could not be read`) and the rest still answer; such an answer is not kept in the edge cache, so asking again usually completes it. `summary` says it in one line. ' +
+        'Layers are read six at a time. A layer that cannot be read within 2.5 seconds of its turn, or before the answer\'s 4-second limit, is listed in `unavailable` (reason `took longer than 2500 ms`, `took longer than the answer\'s 4000 ms`, or `could not be read`) and the rest still answer; such an answer is not kept in the edge cache, so asking again usually completes it. `summary` says it in one line. ' +
         'The answer is for the point snapped to 3 decimal places (about 100 m; `point` says which), kept in the edge cache for an hour when every layer answered, never by clients. Uses the locate rate limit (60 a minute).',
       parameters: [
         LAT, LNG,
@@ -547,7 +547,7 @@ const POINT_PROFILE_SCHEMAS = {
           },
         },
       },
-      unavailable: { type: 'array', items: { type: 'object', properties: { layer_id: { type: 'string' }, reason: { type: 'string' } } }, description: 'Layers that could not be read within 2.5 seconds (or at all): their absence says nothing about the point.' },
+      unavailable: { type: 'array', items: { type: 'object', properties: { layer_id: { type: 'string' }, reason: { type: 'string' } } }, description: 'Layers that could not be read in time (2.5 seconds from their turn, 4 seconds for the whole answer) or at all: their absence says nothing about the point.' },
       attribution: { type: 'array', items: { type: 'string' }, description: 'The sources that answered, with their licences: credit them when you use the result.' },
       timing_ms: { type: 'integer' },
       layer_timing_ms: { type: 'object', additionalProperties: { type: 'integer' } },
