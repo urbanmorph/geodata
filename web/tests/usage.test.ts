@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { usageChannel, incrementApiUse, shapeUsage, usageLine, endpointUsageId } from '../functions/lib/usage';
+import { usageChannel, incrementApiUse, shapeUsage, usageLine, endpointUsageId, countedHost, countApiUse } from '../functions/lib/usage';
 import { availableDownloads } from '../src/format-hints';
 
 const read = (f: string) => readFileSync(resolve(__dirname, '..', f), 'utf8');
@@ -21,6 +21,37 @@ describe('usageChannel', () => {
     expect(usageChannel('Mozilla/5.0 (compatible; Googlebot/2.1)')).toBeNull();
     expect(usageChannel('GPTBot/1.1')).toBeNull();
     expect(usageChannel('bharatlas-mcp-test')).toBeNull();
+  });
+});
+
+describe('only the live site counts (owner, 2026-11-22)', () => {
+  it('bharatlas.com and the production pages.dev address count', () => {
+    expect(countedHost(new URL('https://bharatlas.com/api/v1/layers/x'))).toBe(true);
+    expect(countedHost(new URL('https://geodata-3ij.pages.dev/api/v1/layers/x'))).toBe(true);
+  });
+  it('preview deploys and local dev do not', () => {
+    expect(countedHost(new URL('https://perf-point-profiles.geodata-3ij.pages.dev/api/v1/ground'))).toBe(false);
+    expect(countedHost(new URL('https://a1b2c3d4.geodata-3ij.pages.dev/x'))).toBe(false);
+    expect(countedHost(new URL('http://localhost:8788/x'))).toBe(false);
+    expect(countedHost(new URL('http://127.0.0.1:8788/x'))).toBe(false);
+  });
+  const ctxAt = (url: string) => {
+    const waited: Promise<unknown>[] = [];
+    const db = { prepare: () => ({ bind: () => ({}) }), batch: async () => [] } as never;
+    return { waited, ctx: { request: new Request(url, { headers: { 'user-agent': 'curl/8' } }), env: { DB: db }, waitUntil: (p: Promise<unknown>) => waited.push(p) } };
+  };
+  it('countApiUse writes nothing on a preview', () => {
+    const { ctx, waited } = ctxAt('https://feat-x.geodata-3ij.pages.dev/api/v1/nearby');
+    countApiUse(ctx, 'lgd_states');
+    expect(waited).toHaveLength(0);
+  });
+  it('countApiUse counts on the live site', () => {
+    const { ctx, waited } = ctxAt('https://bharatlas.com/api/v1/nearby');
+    countApiUse(ctx, 'lgd_states');
+    expect(waited).toHaveLength(1);
+  });
+  it('/api/dl skips the counter off the live site', () => {
+    expect(read('functions/api/dl/[[path]].ts')).toMatch(/isCountedRequest\(ctx\.request\)/);
   });
 });
 
