@@ -13,7 +13,7 @@
 import type { Env } from '../../../_middleware';
 import { locate } from '../../../../lib/locate';
 import { nearby } from '../../../../lib/nearby';
-import { QueryInputError } from '../../../../lib/parquet-query';
+import { queryFailure } from '../../../../lib/parquet-query';
 import { pickContains, bearingLabel } from '../../../../lib/locate-layer';
 import { apiError, json, serverError } from '../../../../lib/http';
 import { clampNum } from '../../../../lib/query-params';
@@ -76,8 +76,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
         bearing: bearingLabel(lat, lng, f._lat, f._lng),
       });
     } catch (e) {
-      if (e instanceof QueryInputError) return apiError(400, e.message);
-      return serverError('Locate', e);
+      return queryFailure('Locate')(e);
     }
   }
 

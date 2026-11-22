@@ -43,6 +43,7 @@ from pathlib import Path
 import duckdb
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import write_if_changed  # noqa: E402
 from catalog_record import CACHE as RECORD_CACHE, ChecksumCache, checksum, github_release, head, log, source_version  # noqa: E402,E501
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -141,13 +142,6 @@ def derive(rows: list[dict], status) -> list[dict]:
     return out
 
 
-def _write_if_changed(path: Path, data: bytes) -> bool:
-    if path.exists() and path.read_bytes() == data:
-        return False
-    path.write_bytes(data)
-    return True
-
-
 def write_level(out: Path, level: str, rows: list[dict]) -> bool:
     """cw_<level>.csv and cw_<level>.parquet; True when either changed."""
     out.mkdir(parents=True, exist_ok=True)
@@ -157,8 +151,8 @@ def write_level(out: Path, level: str, rows: list[dict]) -> bool:
     w.writeheader()
     for r in rows:
         w.writerow({k: ('' if r.get(k) is None else r.get(k)) for k in cols})
-    a = _write_if_changed(out / f'cw_{level}.csv', buf.getvalue().encode('utf-8'))
-    b = _write_if_changed(out / f'cw_{level}.parquet', _parquet_from_csv(out / f'cw_{level}.csv', cols))
+    a = write_if_changed(out / f'cw_{level}.csv', buf.getvalue().encode('utf-8'))
+    b = write_if_changed(out / f'cw_{level}.parquet', _parquet_from_csv(out / f'cw_{level}.csv', cols))
     return a or b
 
 
@@ -258,7 +252,7 @@ def main(argv=None) -> int:
         entry, _ = checksum(url, cache)
         served[spec['layer']] = {'url': url, 'sha256': entry['sha256'], 'bytes': entry['bytes']}
     meta = json.dumps(release_meta(layers, counts, served), indent=1, ensure_ascii=False) + '\n'
-    changed |= _write_if_changed(OUT / 'release-meta.json', meta.encode('utf-8'))
+    changed |= write_if_changed(OUT / 'release-meta.json', meta.encode('utf-8'))
     log(f'{"written" if changed else "unchanged"}: {OUT}')
     return 0
 

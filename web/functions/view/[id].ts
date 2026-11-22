@@ -6,32 +6,23 @@
 // bundle is the same; main.ts detects /view/<id> and opens that layer.
 // The finished page is kept in the edge cache, keyed by the deploy version.
 
-import { buildViewDataset, buildViewContent, layerLevelMeta, type CatalogLayer, type LevelMeta, type WardIndex } from '../lib/view-dataset';
+import { buildViewDataset, buildViewContent, layerLevelMeta, type CatalogLayer, type WardIndex } from '../lib/view-dataset';
+import type { CatalogData } from '../lib/catalog-api';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
-import { loadCatalogVersioned, fetchAsset, type AssetCtx } from '../lib/catalog-loader';
-import { cached, cacheKey, EDGE_TTL } from '../lib/edge-cache';
+import { fetchAsset, type AssetCtx } from '../lib/catalog-loader';
+import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from '../lib/edge-cache';
 import { notFoundResponse, suggestLayers } from '../lib/not-found';
-import { escapeHtml as esc } from '../../../shared/format.mjs';
-import { retiredRedirect } from '../lib/retired-layers';
-import { LAYER_ID } from '../lib/api-layer';
+import { escapeHtml as esc, ldJsonScript } from '../../../shared/format.mjs';
+import { SITE_ORIGIN } from '../../../shared/brand.mjs';
+import { findLayer } from '../lib/api-layer';
 
 type Params = { id: string };
-
-type Catalog = {
-  layers?: CatalogLayer[];
-  level_meta?: Record<string, LevelMeta>;
-};
-
-// SEO URLs (canonical / OG / JSON-LD) must always be the primary apex, so www.*
-// and pages.dev variants consolidate there instead of self-referencing as
-// canonical and splitting the ranking signal. Mirrors render-view.ts's PUBLIC_ORIGIN.
-const CANONICAL_ORIGIN = 'https://bharatlas.com';
 
 const LAYER_NOT_FOUND = { title: 'Layer not found', message: "There's no layer with this id. It may have been renamed, or the link has a typo." };
 
 /** The 404 for an unknown layer id, with "Did you mean" links to the closest real ones. */
-function layerNotFound(ctx: AssetCtx, id: string, catalog: Catalog): Promise<Response> {
-  const layers = catalog.layers ?? [];
+function layerNotFound(ctx: AssetCtx, id: string, catalog: CatalogData): Promise<Response> {
+  const layers: CatalogLayer[] = catalog.layers;
   const items = suggestLayers(id, layers).map((sid) => {
     const layer = layers.find((l) => l.id === sid)!;
     const meta = layerLevelMeta(layer, catalog.level_meta, layers);
@@ -49,23 +40,21 @@ function layerNotFound(ctx: AssetCtx, id: string, catalog: Catalog): Promise<Res
 
 export const onRequestGet: PagesFunction<{ ASSETS: Fetcher }, keyof Params> = async (ctx) => {
   const id = (ctx.params.id as string) || '';
-  if (!LAYER_ID.test(id)) return notFoundResponse(ctx, LAYER_NOT_FOUND);
-  const moved = retiredRedirect(new URL(ctx.request.url), id);
-  if (moved) return moved;
-
+  const url = new URL(ctx.request.url);
   // The catalog is cached per isolate; a rejected load is a 503, not a crash.
-  const loaded = await loadCatalogVersioned(ctx).catch(() => null);
-  if (!loaded) return new Response('upstream unavailable', { status: 503 });
-  const catalog = loaded.catalog as unknown as Catalog;
-  const layer = catalog.layers?.find((l) => l.id === id);
-  if (!layer) return layerNotFound(ctx, id, catalog);
+  const found = await findLayer(ctx, id, url).catch(() => null);
+  if (!found) return new Response('upstream unavailable', { status: 503 });
+  if (found.kind === 'invalid') return notFoundResponse(ctx, LAYER_NOT_FOUND);
+  if (found.kind === 'moved') return found.response;
+  if (found.kind === 'missing') return layerNotFound(ctx, id, found.catalog);
 
   // The page depends only on the layer and the deploy: keyed by path, not query.
-  const key = cacheKey(loaded.version, new URL(ctx.request.url), { query: false });
+  const { layer, catalog, version } = found;
+  const key = cacheKey(version, url, { query: false });
   return cached(ctx, key, EDGE_TTL.page, () => renderPage(ctx, layer, catalog));
 };
 
-async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: Catalog): Promise<Response> {
+async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: CatalogData): Promise<Response> {
   // The home page from this deployment's own files (env.ASSETS: no trip through
   // the zone). Ward pages also read their answer-table sidecar in parallel; it's
   // absent for number-only cities, leaving the page table-less.
@@ -79,42 +68,40 @@ async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: Catalog):
     wardIndex = await wardResp.json<WardIndex>().catch(() => null);
   }
 
-  const levelMeta = layerLevelMeta(layer, catalog.level_meta, catalog.layers ?? []);
+  const levelMeta = layerLevelMeta(layer, catalog.level_meta, catalog.layers);
   const { title, description, canonical, ogImage, jsonLd, breadcrumbJsonLd, howToJsonLd, wardListJsonLd } = buildViewDataset(
     layer,
     levelMeta,
-    CANONICAL_ORIGIN,
+    SITE_ORIGIN,
     wardIndex,
   );
-  const contentHtml = buildViewContent(layer, levelMeta, CANONICAL_ORIGIN, wardIndex);
+  const contentHtml = buildViewContent(layer, levelMeta, SITE_ORIGIN, wardIndex);
 
-  return new HTMLRewriter()
+  // [selector, attribute, value] for every head tag the page rewrites.
+  const attrs: Array<[string, string, string]> = [
+    ['meta[name="description"]', 'content', description],
+    ['link[rel="canonical"]', 'href', canonical],
+    ['meta[property="og:title"]', 'content', title],
+    ['meta[property="og:description"]', 'content', description],
+    ['meta[property="og:url"]', 'content', canonical],
+    ['meta[property="og:image"]', 'content', ogImage],
+    ['meta[name="twitter:title"]', 'content', title],
+    ['meta[name="twitter:description"]', 'content', description],
+    ['meta[name="twitter:image"]', 'content', ogImage],
+  ];
+  // The home page's JSON-LD block becomes the layer's blocks, in this order.
+  const ldScripts = [jsonLd, wardListJsonLd, howToJsonLd, breadcrumbJsonLd]
+    .filter(Boolean)
+    .map(ldJsonScript)
+    .join('\n    ');
+
+  return attrs
+    .reduce((rw, [sel, attr, value]) => rw.on(sel, { element(el) { el.setAttribute(attr, value); } }), new HTMLRewriter())
     .on('title', {
       element(el) { el.setInnerContent(`${title} · bharatlas`); },
     })
-    .on('meta[name="description"]', { element(el) { el.setAttribute('content', description); } })
-    .on('link[rel="canonical"]', { element(el) { el.setAttribute('href', canonical); } })
-    .on('meta[property="og:title"]', { element(el) { el.setAttribute('content', title); } })
-    .on('meta[property="og:description"]', { element(el) { el.setAttribute('content', description); } })
-    .on('meta[property="og:url"]', { element(el) { el.setAttribute('content', canonical); } })
-    .on('meta[property="og:image"]', { element(el) { el.setAttribute('content', ogImage); } })
-    .on('meta[name="twitter:title"]', { element(el) { el.setAttribute('content', title); } })
-    .on('meta[name="twitter:description"]', { element(el) { el.setAttribute('content', description); } })
-    .on('meta[name="twitter:image"]', { element(el) { el.setAttribute('content', ogImage); } })
     .on('script[type="application/ld+json"]', {
-      element(el) {
-        el.setInnerContent(JSON.stringify(jsonLd).replace(/</g, '\\u003c'), { html: true });
-        const bc = JSON.stringify(breadcrumbJsonLd).replace(/</g, '\\u003c');
-        el.after(`\n    <script type="application/ld+json">${bc}</script>`, { html: true });
-        if (howToJsonLd) {
-          const ht = JSON.stringify(howToJsonLd).replace(/</g, '\\u003c');
-          el.after(`\n    <script type="application/ld+json">${ht}</script>`, { html: true });
-        }
-        if (wardListJsonLd) {
-          const wl = JSON.stringify(wardListJsonLd).replace(/</g, '\\u003c');
-          el.after(`\n    <script type="application/ld+json">${wl}</script>`, { html: true });
-        }
-      },
+      element(el) { el.replace(ldScripts, { html: true }); },
     })
     .on('body', {
       element(el) { el.prepend(contentHtml, { html: true }); },
@@ -135,7 +122,7 @@ async function renderPage(ctx: AssetCtx, layer: CatalogLayer, catalog: Catalog):
       status: 200,
       headers: {
         'content-type': 'text/html; charset=utf-8',
-        'cache-control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+        'cache-control': CACHE_CONTROL.page,
         ...SECURITY_HEADERS_HTML,
       },
     }));

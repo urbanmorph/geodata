@@ -2,13 +2,13 @@ import type { Env } from '../../../_middleware';
 import { SERVER_SHAPE_EXPORT } from '../../../../../../shared/large-load.mjs';
 import { countApiUse } from '../../../../lib/usage';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
-import { QueryInputError } from '../../../../lib/parquet-query';
+import { queryFailure } from '../../../../lib/parquet-query';
 import {
   exportRows, planExport, parseFilterParam, EXPORT_FORMATS, EXPORT_MAX_BYTES, EXPORT_MAX_ROWS, EXPORT_MAX_SHAPE_BYTES,
   type ExportFormat,
 } from '../../../../lib/parquet-export';
 import { parseQueryParams } from '../../../../lib/query-params';
-import { apiError, json, serverError } from '../../../../lib/http';
+import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
@@ -76,7 +76,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   if (!r2Key) return apiError(404, 'No parquet file for this layer');
   countApiUse(ctx, layer.id);
 
-  const fail = (e: unknown) => (e instanceof QueryInputError ? apiError(400, e.message) : serverError('Export', e));
+  const fail = queryFailure('Export');
   try {
     const filters = parseFilterParam(url.searchParams.get('filter'));
     const { where } = parseQueryParams(url.searchParams);

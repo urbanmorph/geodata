@@ -8,7 +8,7 @@
 // with every note, so moving to a newer model is a one-line change.
 import type { Env } from '../types';
 import { bad, json } from './http';
-import { bearer, permissionFor, atLeast } from './auth';
+import { adminMap } from './auth';
 import * as db from './db';
 import { photoIdsIn, firstPhotoBytes } from './photos';
 import { modeOf, usesAi, aiFillable } from '../../src/schema/modes';
@@ -162,7 +162,7 @@ export async function runAi(env: Env, recordId: string): Promise<void> {
   if (!r) return;
   const c = await db.getCollection(env.DB, r.collection_id);
   if (!c) return;
-  const schema = JSON.parse(c.schema_doc) as { fields: Field[]; mode?: string };
+  const schema = db.schemaOf(c);
   if (!usesAi(modeOf(schema))) return;
   const props = JSON.parse(r.properties) as Record<string, unknown>;
   const ids = photoIdsIn(schema.fields, props);
@@ -227,9 +227,8 @@ export function publicNotes(raw: string | null): { description: string; tags: st
 export async function reviewAi(env: Env, req: Request, recordId: string): Promise<Response> {
   const r = await db.getRecord(env.DB, recordId);
   if (!r) return bad(404, 'not found');
-  if (!atLeast(await permissionFor(env.DB, r.collection_id, bearer(req)), 'admin')) return bad(401, 'unauthorised');
-  const c = await db.getCollection(env.DB, r.collection_id);
-  if (!c) return bad(404, 'not found');
+  const c = await adminMap(env, req, r.collection_id);
+  if (c instanceof Response) return c;
   let body: Record<string, unknown>;
   try { body = (await req.json()) as Record<string, unknown>; } catch { return bad(400, 'invalid JSON body'); }
   const notes = (r.ai ? JSON.parse(r.ai) : null) as AiNotes | null;
@@ -242,7 +241,7 @@ export async function reviewAi(env: Env, req: Request, recordId: string): Promis
   }
   if (body.action !== 'accept') return bad(400, 'action must be accept or discard');
 
-  const schema = JSON.parse(c.schema_doc) as { fields: Field[]; mode?: string };
+  const schema = db.schemaOf(c);
   const props = JSON.parse(r.properties) as Record<string, unknown>;
   const answers = body.answers !== undefined ? cleanAnswers(schema.fields, body.answers) : notes.answers ?? {};
   const blank = (v: unknown) => v === undefined || v === null || v === '' || (Array.isArray(v) && !v.length);

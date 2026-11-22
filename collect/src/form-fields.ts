@@ -4,6 +4,7 @@
 // hint is tied to its control. The form reads answers back by data-k.
 import { escapeHtml } from './util';
 import type { Field } from './schema/validate-record';
+import { fitsLocalPicker } from './schema/dates';
 
 const idOf = (f: Field): string => `fld-${f.key}`;
 
@@ -42,4 +43,46 @@ export const fieldsHtml = (fields: Field[]): string => fields.map(fieldHtml).joi
 export function setPressed(el: Element, on: boolean): void {
   el.classList.toggle('on', on);
   el.setAttribute('aria-pressed', String(on));
+}
+
+/** Each multiselect chip on a form toggles when tapped. */
+export function wireChips(root: ParentNode): void {
+  root.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => setPressed(c, !c.classList.contains('on')); });
+}
+
+/** Put saved answers back on a form (the record editor): chips pressed, values filled. */
+export function fillAnswers(root: ParentNode, fields: Field[], values: Record<string, unknown>): void {
+  for (const f of fields) {
+    if (f.type === 'photo') continue;
+    const el = root.querySelector(`[data-k="${f.key}"]`);
+    const val = values[f.key];
+    if (!el) continue;
+    if (f.type === 'multiselect') {
+      const arr = Array.isArray(val) ? val : [];
+      el.querySelectorAll<HTMLElement>('.chip').forEach((c) => setPressed(c, arr.includes(c.dataset.v)));
+    } else if (val != null) {
+      // A saved date-time the picker can't show (date only, or with an offset)
+      // is edited as text, so saving never blanks it or drops the offset.
+      if (f.type === 'datetime' && !fitsLocalPicker(String(val))) (el as HTMLInputElement).type = 'text';
+      (el as HTMLInputElement).value = String(val);
+    }
+  }
+}
+
+/** The non-photo answers on a form, as typed. */
+export function readAnswers(root: ParentNode, fields: Field[]): Record<string, unknown> {
+  const raw: Record<string, unknown> = {};
+  for (const f of fields) {
+    if (f.type === 'photo') continue;
+    const el = root.querySelector(`[data-k="${f.key}"]`);
+    if (!el) continue;
+    if (f.type === 'multiselect') {
+      const on = [...el.querySelectorAll('.chip.on')].map((c) => (c as HTMLElement).dataset.v);
+      if (on.length) raw[f.key] = on;
+    } else {
+      const v = (el as HTMLInputElement).value;
+      if (v) raw[f.key] = v;
+    }
+  }
+  return raw;
 }

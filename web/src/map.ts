@@ -701,14 +701,10 @@ function applyActiveFilters(
   if (pendingFit) m.off('idle', pendingFit);
   pendingFit = null;
   const padding = panelAwarePadding();
-  if (!filters.length) {
-    setDataFilters(null);
-    flyTo(layerBounds, { padding, duration: 600 });
-    return;
-  }
-  // A column the tiles don't carry can't be drawn: show the whole layer rather
-  // than a blank map (the DuckDB count and export still apply the filter).
-  if (!filterColumnsInTiles(filters, tilePropertyKeys())) {
+  // No filter, or a column the tiles don't carry (it can't be drawn): show the
+  // whole layer rather than a blank map (the DuckDB count and export still
+  // apply the filter).
+  if (!filters.length || !filterColumnsInTiles(filters, tilePropertyKeys())) {
     setDataFilters(null);
     flyTo(layerBounds, { padding, duration: 600 });
     return;

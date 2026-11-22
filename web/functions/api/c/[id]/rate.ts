@@ -8,20 +8,18 @@
 // team) — see task #61 for the migration rationale.
 
 import type { Env } from '../../_middleware';
-import { getSubmissionForView } from '../../../lib/submissions';
+import { acceptedSubmission, getSubmissionForView } from '../../../lib/submissions';
 import { SUBMISSION_ID } from '../../../lib/submissions-sql';
 import { recordVote, countVotes, getMyVote, type Vote } from '../../../lib/ratings';
-import { ipHashStable, ipSalt } from '../../../lib/submit-helpers';
+import { ipHashStable, submitterSalt } from '../../../lib/submit-helpers';
 import { json as j } from '../../../lib/http';
 
 type Params = { id: string };
 
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const id = ctx.params.id as string;
-  if (!SUBMISSION_ID.test(id)) return j(404, { error: 'not found' });
-  const sub = await getSubmissionForView(ctx.env.DB, id);
-  if (!sub) return j(404, { error: 'not found' });
-  const ipHash = await ipHashStable(ctx.request, ipSalt(ctx.env.IP_SALT, 'geodata-v1'));
+  if (!(await acceptedSubmission(ctx.env.DB, id))) return j(404, { error: 'not found' });
+  const ipHash = await ipHashStable(ctx.request, submitterSalt(ctx.env));
   const [tally, myVote] = await Promise.all([
     countVotes(ctx.env.DB, id),
     getMyVote(ctx.env.DB, id, ipHash),
@@ -47,7 +45,7 @@ export const onRequestPost: PagesFunction<Env, keyof Params> = async (ctx) => {
   const sub = await getSubmissionForView(ctx.env.DB, id);
   if (!sub) return j(404, { error: 'not found' });
 
-  const ipHash = await ipHashStable(ctx.request, ipSalt(ctx.env.IP_SALT, 'geodata-v1'));
+  const ipHash = await ipHashStable(ctx.request, submitterSalt(ctx.env));
   const result = await recordVote(ctx.env.DB, id, ipHash, vote as Vote);
   return j(200, result);
 };

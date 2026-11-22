@@ -28,6 +28,6 @@ describe('the mugilu link in the locate card', () => {
     expect(skyLinkHtml('https://x', '<i>')).not.toContain('<i>');
   });
   it('sits apart from the buttons above it', () => {
-    expect(readFileSync(resolve(__dirname, '../index.template.html'), 'utf8')).toMatch(/\.ls-sky \{[^}]*margin-top: 14px/);
+    expect(readFileSync(resolve(__dirname, '../index.template.html'), 'utf8')).toMatch(/\.ls-sky \{[^}]*margin-top: var\(--sp-3-5\)/);
   });
 });

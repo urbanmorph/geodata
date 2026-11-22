@@ -10,7 +10,22 @@ import {
   faviconSvg,
   collectFaviconSvg,
   WORDMARK_CSS,
+  SITE_ORIGIN,
+  PUBLISHER_LD,
 } from '../../shared/brand.mjs';
+import { SITE_ORIGIN as SITEMAP_ORIGIN } from '../../shared/sitemap.mjs';
+
+describe('SITE_ORIGIN', () => {
+  it('is the one apex origin: the sitemap and the publisher JSON-LD use it', () => {
+    expect(SITE_ORIGIN).toBe('https://bharatlas.com');
+    expect(SITEMAP_ORIGIN).toBe(SITE_ORIGIN);
+    expect(PUBLISHER_LD.url).toBe(SITE_ORIGIN);
+    // No other file spells the origin out: they import it.
+    for (const f of ['shared/footer.mjs', 'shared/sitemap.mjs', 'web/functions/view/[id].ts', 'web/functions/lib/render-view.ts']) {
+      expect(readFileSync(resolve(__dirname, '..', '..', f), 'utf8'), f).not.toContain("'https://bharatlas.com'");
+    }
+  });
+});
 
 // WCAG 2.x relative luminance + contrast ratio.
 function luminance(hex: string): number {

@@ -272,7 +272,7 @@ def test_upload_is_resumable_with_a_patient_client(monkeypatch, tmp_path):
     monkeypatch.setattr(ir, 'r2_client', lambda **kw: seen.setdefault('kw', kw) and 'S3')
     monkeypatch.setattr(ir, 'r2_upload_resumable',
                         lambda s3, local, key, state_dir: seen.setdefault('keys', []).append(key))
-    for f in w.local_paths(tmp_path).values():
+    for f in ir.layer_paths(tmp_path, w.BASENAME, w.EXT).values():
         f.write_bytes(b'x')
     w.upload(tmp_path)
     assert seen['kw']['read_timeout'] >= 300

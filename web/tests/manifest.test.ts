@@ -5,6 +5,8 @@ import { manifestProblems, manifestContentType, readManifest, screenshotProblems
 import { COLORS } from '../../shared/tokens.mjs';
 // @ts-expect-error — .mjs import resolves at test time, no type defs
 import { renderNav } from '../scripts/shared-chrome.mjs';
+// @ts-expect-error: plain .mjs
+import { HEAD_ICONS } from '../scripts/seo-head.mjs';
 
 const root = resolve(__dirname, '..');
 const pub = resolve(root, 'public');
@@ -29,7 +31,9 @@ describe('bharatlas.com web app manifest', () => {
   it('is linked from every prerendered page template', () => {
     const templates = readdirSync(root).filter((f) => f.endsWith('.template.html'));
     expect(templates.length).toBeGreaterThan(5);
-    for (const t of templates) expect(readFileSync(resolve(root, t), 'utf8'), t).toContain(MANIFEST_LINK);
+    // Each template has the <!-- HEAD_ICONS --> placeholder (seo-head.test.ts), which carries the link.
+    expect(HEAD_ICONS).toContain(MANIFEST_LINK);
+    for (const t of templates) expect(readFileSync(resolve(root, t), 'utf8'), t).toContain('<!-- HEAD_ICONS -->');
   });
 });
 

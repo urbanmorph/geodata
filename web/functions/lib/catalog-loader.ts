@@ -17,7 +17,11 @@ export function fetchAsset(ctx: AssetCtx, path: string): Promise<Response> {
   return ctx.env.ASSETS ? ctx.env.ASSETS.fetch(url) : fetch(url);
 }
 
-export type LoadedCatalog = { catalog: CatalogData; version: string };
+/** Pages answers a missing file (and an unmatched path) with the site's
+ *  index.html, 200: an HTML answer where a file or JSON was due means "not there". */
+export const isSpaFallback = (res: Response): boolean => (res.headers.get('content-type') ?? '').startsWith('text/html');
+
+export type LoadedCatalog ={ catalog: CatalogData; version: string };
 
 // One load per isolate: catalog.json changes only with a deploy, which starts
 // new isolates. Only a loaded catalog is shared across requests (a load in

@@ -9,8 +9,8 @@
 import type { Env } from '../_middleware';
 import { downloadCounts } from '../../lib/counters';
 import { json } from '../../lib/http';
-import { cachedLive } from '../../lib/edge-cache';
+import { CACHE_CONTROL, cachedLive } from '../../lib/edge-cache';
 
 export const onRequestGet: PagesFunction<Env> = (ctx) =>
   cachedLive(ctx, async () =>
-    json(200, await downloadCounts(ctx.env.DB), { 'cache-control': 'public, max-age=30, stale-while-revalidate=120' }));
+    json(200, await downloadCounts(ctx.env.DB), { 'cache-control': CACHE_CONTROL.live }));

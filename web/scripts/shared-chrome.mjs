@@ -37,20 +37,21 @@ export const TOKENS = `
     background: var(--bg);
     background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
     background-size: 48px 48px;
+    overflow-x: clip;
   }
-  body { font: var(--fs-base)/var(--lh-base) var(--font-sans); }
+  body { font: var(--fs-base)/var(--lh-base) var(--font-sans); padding-top: 0 !important; }
   a { color: var(--accent); text-decoration: none; }
   a:hover { text-decoration: underline; }
   a:focus-visible, button:focus-visible, [role=button]:focus-visible,
   input:focus-visible, textarea:focus-visible, select:focus-visible {
-    outline: 2px solid var(--accent-strong) !important;
+    outline: var(--border-focus) !important;
     outline-offset: 2px !important;
     border-radius: var(--radius-sm);
   }
   .skip-link {
     position: absolute; left: -9999px; top: var(--sp-2);
     background: var(--bg); color: var(--accent);
-    padding: var(--sp-2) var(--sp-3); border: 1px solid var(--line);
+    padding: var(--sp-2) var(--sp-3); border: var(--border-line);
     border-radius: var(--radius-md); z-index: var(--z-skip);
   }
   .skip-link:focus { left: var(--sp-2); }
@@ -58,24 +59,22 @@ export const TOKENS = `
   /* Page column: one width for every page, so the logo, nav and footer stay put
      between pages (reading text keeps a 720px measure inside it). The header is
      a full-width bar whose content lines up with that column. */
-  html { overflow-x: clip; }
-  body { padding-top: 0 !important; }
   .site-header {
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--sp-4); flex-wrap: wrap;
     margin-inline: calc(50% - 50vw); margin-bottom: var(--sp-6);
-    padding: 12px max(16px, calc(50vw - var(--page-max) / 2 + 24px));
-    background: var(--bg-elevated); border-bottom: 1.5px solid var(--edge);
+    padding: var(--sp-3) max(var(--sp-4), calc(50vw - var(--page-max) / 2 + var(--sp-6)));
+    background: var(--bg-elevated); border-bottom: var(--border-edge);
   }
   ${WORDMARK_CSS}
   .site-brand { font-size: var(--fs-xl); }
-  .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: 6px; font-size: var(--fs-base); }
-  .site-nav { display: flex; gap: var(--sp-5); flex-wrap: wrap; align-items: center; }
+  .site-brand .tagline { color: var(--muted); font-weight: 400; margin-left: var(--sp-1-5); font-size: var(--fs-base); }
+  .site-nav { display: flex; gap: var(--sp-5); flex-wrap: wrap; align-items: center; margin-left: auto; }
   /* Tablets: the tagline gives way so Home … Add a map stay on one line. */
   @media (max-width: 900px) { .site-brand .tagline { display: none; } .site-nav { gap: var(--sp-3); } }
   .site-nav a {
     color: var(--muted); text-decoration: none; font-size: var(--fs-base); font-weight: 500;
-    padding: 6px 2px;
+    padding: var(--sp-1-5) var(--sp-0-5);
     min-height: 44px;
     display: inline-flex;
     align-items: center;
@@ -83,8 +82,8 @@ export const TOKENS = `
   .site-nav a:hover { color: var(--fg); }
   .site-nav a[aria-current] { color: var(--fg); font-weight: 650; }
   .site-nav a.nav-cta {
-    min-height: 44px; padding: 0 16px; color: var(--fg); font-weight: 650;
-    border: 1.5px solid var(--edge); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
+    min-height: 44px; padding: 0 var(--sp-4); color: var(--fg); font-weight: 650;
+    border: var(--border-edge); border-radius: var(--radius-sm); box-shadow: var(--shadow-sm);
   }
   .site-nav a.nav-cta:hover, .site-nav a.nav-cta[aria-current] { background: var(--accent-fill); color: var(--on-accent-fill); text-decoration: none; }
   .site-nav a[aria-current]:not(.nav-cta) { box-shadow: inset 0 -3px 0 var(--accent-fill); }
@@ -93,21 +92,19 @@ export const TOKENS = `
   .nav-burger {
     display: none; align-items: center; justify-content: center;
     min-width: 44px; min-height: 44px; font-size: var(--fs-xl); line-height: 1;
-    color: var(--fg); cursor: pointer; border: 1px solid var(--line); border-radius: var(--radius-md);
+    color: var(--fg); cursor: pointer; border: var(--border-line); border-radius: var(--radius-md);
   }
-  .nav-toggle:focus-visible ~ .nav-burger { outline: 2px solid var(--accent-strong); outline-offset: 2px; }
+  .nav-toggle:focus-visible ~ .nav-burger { outline: var(--border-focus); outline-offset: 2px; }
   @media (max-width: 640px) {
-    .site-header { gap: var(--sp-2); margin-bottom: var(--sp-4); position: relative; align-items: center; }
-    .site-brand .tagline { display: none; }
+    .site-header { gap: var(--sp-2); margin-bottom: var(--sp-4); position: relative; }
     .nav-burger { display: inline-flex; }
     .site-nav { display: none; flex-direction: column; align-items: stretch; gap: 0; width: 100%; margin-top: var(--sp-2); }
     .nav-toggle:checked ~ .site-nav { display: flex; }
-    .site-nav a { width: 100%; padding: 12px 4px; min-height: 48px; border-top: 1px solid var(--line); }
-    .site-nav a.nav-cta { border-radius: 0; border-width: 1px 0 0; padding: 12px 4px; }
+    .site-nav a { width: 100%; padding: var(--sp-3) var(--sp-1); min-height: 48px; border-top: var(--border-line); }
+    .site-nav a.nav-cta { border-radius: 0; border-width: 1px 0 0; padding: var(--sp-3) var(--sp-1); }
   }
   /* "Install app": shown by src/install.ts only where install is possible.
      Desktop: after the nav links. Mobile: between the wordmark and the burger. */
-  .site-nav { margin-left: auto; }
   .install-app {
     display: inline-flex; align-items: center; min-height: 32px; padding: 0 var(--sp-3);
     font: inherit; font-size: var(--fs-sm); font-weight: var(--fw-medium); color: var(--fg);
@@ -123,17 +120,12 @@ export const TOKENS = `
   dialog.install-guide {
     max-width: min(360px, calc(100vw - 32px)); padding: var(--sp-5);
     color: var(--fg); background: var(--bg-elevated);
-    border: 1px solid var(--line); border-radius: var(--radius-xl);
+    border: var(--border-line); border-radius: var(--radius-xl);
   }
   dialog.install-guide::backdrop { background: rgba(0, 0, 0, .45); }
-  /* Reset per-page h2 / li styles (uppercase headings, "›" bullets): the dialog lives on <body>. */
-  .install-guide h2 {
-    margin: 0 0 var(--sp-3); padding: 0; border: 0; font-size: var(--fs-md); font-weight: 600;
-    text-transform: none; letter-spacing: normal; color: var(--fg);
-  }
+  /* The dialog lives on <body>, outside .prose and main, so no page heading or list rule reaches it. */
+  .install-guide h2 { margin: 0 0 var(--sp-3); font-size: var(--fs-md); font-weight: 600; color: var(--fg); }
   .install-guide ol { margin: 0 0 var(--sp-4); padding-left: var(--sp-5); list-style: decimal; color: var(--muted-strong); }
-  .install-guide li { padding: 0; }
-  .install-guide li::before { content: none; }
   .install-guide li + li { margin-top: var(--sp-2); }
   .install-guide form { display: flex; justify-content: flex-end; }
   .install-guide button {
@@ -142,16 +134,16 @@ export const TOKENS = `
   }
   .install-guide button:hover { background: var(--accent-fill-hover); }
   /* Content pages: one type scale for every page (the home page's too). */
-  .page-title { margin: 24px 0 14px; max-width: 760px; font-size: var(--fs-4xl); line-height: 1.04; font-weight: 850; letter-spacing: -.03em; text-wrap: balance; }
+  .page-title { margin: var(--sp-6) 0 var(--sp-3-5); max-width: 760px; font-size: var(--fs-4xl); line-height: 1.04; font-weight: 850; letter-spacing: -.03em; text-wrap: balance; }
   /* A map-sheet label: monospace, green, above a title or beside a count. */
-  .sheet-note { margin: 0 0 12px; font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); }
+  .sheet-note { margin: 0 0 var(--sp-3); font: 600 var(--fs-sm) var(--font-mono); color: var(--brand-green); }
   .page-lead { margin: 0 0 28px; max-width: 660px; font-size: var(--fs-lg); line-height: 1.55; color: var(--muted); }
-  .section-title, .prose h2, :where(.page main) h2 { margin: 44px 0 14px; font-size: var(--fs-2xl); line-height: 1.2; font-weight: 850; letter-spacing: -.02em; color: var(--fg); text-transform: none; }
+  .section-title, .prose h2, :where(.page main) h2 { margin: 44px 0 var(--sp-3-5); font-size: var(--fs-2xl); line-height: 1.2; font-weight: 850; letter-spacing: -.02em; color: var(--fg); }
   .prose :is(p, ul, ol, dl) { max-width: 720px; } /* the sheet spans the column; its text keeps a reading measure */
-  .prose ul { list-style: none; margin: 0 0 16px; padding: 0; }
-  .prose li { position: relative; padding: 4px 0 4px 20px; }
+  .prose ul { list-style: none; margin: 0 0 var(--sp-4); padding: 0; }
+  .prose li { position: relative; padding: var(--sp-1) 0 var(--sp-1) var(--sp-5); }
   .prose li::before { content: ""; position: absolute; left: 4px; top: .9em; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-fill); }
-  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1.5px solid var(--edge); border-radius: var(--radius-sm); font: inherit; font-size: var(--fs-md); font-weight: 750; text-decoration: none !important; cursor: pointer; }
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--sp-2); min-height: 48px; padding: 0 var(--sp-5); border: var(--border-edge); border-radius: var(--radius-sm); font: inherit; font-size: var(--fs-md); font-weight: 750; text-decoration: none !important; cursor: pointer; }
   .btn--fill { background: var(--accent-fill); color: var(--on-accent-fill) !important; box-shadow: var(--shadow); }
   .btn--fill:hover { background: var(--accent-fill-hover); }
   .btn--fill:active { box-shadow: none; transform: translate(4px, 4px); }
@@ -173,28 +165,28 @@ export const TOKENS = `
   }
   /* Content pages: <body class="page">. One column and the survey-sheet details,
      so pages keep only what is theirs (tests/page-system.test.ts). */
-  body.page { max-width: var(--page-max); margin: 0 auto; padding: 0 24px 80px; line-height: 1.6; }
+  body.page { max-width: var(--page-max); margin: 0 auto; padding: 0 var(--sp-6) 80px; line-height: 1.6; }
   .page main :is(p, ul, ol) { max-width: 720px; }
   /* :where() keeps these defaults below any page's own heading rules. */
   :where(.page main) h3 { margin: var(--sp-4) 0 var(--sp-1); font-size: var(--fs-md); font-weight: 750; }
   .page code { font: var(--fs-sm) var(--font-mono); background: var(--bg-card); padding: 1px 5px; border-radius: var(--radius-sm); color: var(--fg); }
   .page pre {
-    margin: var(--sp-3) 0; padding: 16px 18px; overflow-x: auto; font: var(--fs-sm)/1.65 var(--font-mono);
-    color: ${PALETTE.white}; background: ${PALETTE.navy}; border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+    margin: var(--sp-3) 0; padding: var(--sp-4) var(--sp-4-5); overflow-x: auto; font: var(--fs-sm)/1.65 var(--font-mono);
+    color: ${PALETTE.white}; background: ${PALETTE.navy}; border: var(--border-edge); border-radius: var(--radius-sm);
     box-shadow: 6px 6px 0 var(--brand-green);
   }
   .page pre code { font: inherit; color: inherit; background: none; padding: 0; }
-  .page table { width: 100%; border-collapse: collapse; margin: var(--sp-2) 0; font-size: var(--fs-base); background: var(--bg-elevated); border: 1.5px solid var(--edge); }
-  .page th, .page td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--line); }
-  .page th { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); border-bottom: 1.5px solid var(--edge); }
+  .page table { width: 100%; border-collapse: collapse; margin: var(--sp-2) 0; font-size: var(--fs-base); background: var(--bg-elevated); border: var(--border-edge); }
+  .page th, .page td { text-align: left; vertical-align: top; padding: var(--sp-2-5) var(--sp-3-5); border-bottom: var(--border-line); }
+  .page th { font: 600 var(--fs-xs) var(--font-mono); color: var(--muted); border-bottom: var(--border-edge); }
   .page td { color: var(--muted); overflow-wrap: anywhere; } /* long paths wrap, so tables fit a phone */
   .page td code { font-size: var(--fs-xs); }
   .table-wrap { overflow-x: auto; }
-  .note { padding: var(--sp-3) var(--sp-4); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); }
+  .note { padding: var(--sp-3) var(--sp-4); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm); }
   .note p { margin: 0; }
   .badge {
-    display: inline-block; vertical-align: middle; padding: 2px 8px; font: 600 var(--fs-xs) var(--font-mono); letter-spacing: 0;
-    color: var(--fg); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm);
+    display: inline-block; vertical-align: middle; padding: var(--sp-0-5) var(--sp-2); font: 600 var(--fs-xs) var(--font-mono); letter-spacing: 0;
+    color: var(--fg); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm);
   }
   .badge--stable { background: color-mix(in srgb, var(--brand-green) 18%, var(--bg-elevated)); }
   .badge--soon { color: var(--muted); }
@@ -209,13 +201,13 @@ export const TOKENS = `
     .install-app::before { content: ""; position: absolute; inset: -7px 0; }
   }
   @media (max-width: 640px) {
-    body.page { padding: 0 16px 60px; } /* = the header's 16px, so content lines up with the logo */
+    body.page { padding: 0 var(--sp-4) 60px; } /* = the header's 16px, so content lines up with the logo */
     .page pre { font-size: var(--fs-xs); }
-    .page th, .page td { padding: 8px 10px; }
+    .page th, .page td { padding: var(--sp-2) var(--sp-2-5); }
   }
   /* Shared by the home page and /layers: the search box text, its status line,
      and the theme symbols (THEME_GLYPH) in the legend and the theme index. */
-  .catalog-search { flex: 1; min-width: 0; padding: 6px 0; font: var(--fs-md) var(--font-sans); color: var(--fg); background: transparent; border: none; outline: none; }
+  .catalog-search { flex: 1; min-width: 0; padding: var(--sp-1-5) 0; font: var(--fs-md) var(--font-sans); color: var(--fg); background: transparent; border: none; outline: none; }
   .catalog-search::placeholder { color: var(--muted); }
   .catalog-search:focus-visible { outline: none !important; }
   .search-meta { color: var(--muted); font: var(--fs-sm) var(--font-mono); }
@@ -223,20 +215,20 @@ export const TOKENS = `
   .legend-glyph .ink { fill: var(--fg); }
   /* Reading pages: the text on a white sheet, sections numbered in the margin's voice. */
   main.sheet {
-    margin: var(--sp-2) 0 0; padding: clamp(20px, 4vw, 56px); counter-reset: sheet-section;
-    background: var(--bg-elevated); border: 1.5px solid var(--edge);
+    margin: var(--sp-2) 0 0; padding: clamp(var(--sp-5), 4vw, 56px); counter-reset: sheet-section;
+    background: var(--bg-elevated); border: var(--border-edge);
   }
   main.sheet > .page-title:first-child { margin-top: 0; }
   /* The number is decoration: "/ ''" keeps it out of the heading's accessible name. */
   main.sheet h2:not(.unnumbered)::before {
     counter-increment: sheet-section; content: "§" counter(sheet-section) / "";
-    display: block; margin-bottom: 4px; font: 600 var(--fs-sm) var(--font-mono); letter-spacing: 0; color: var(--brand-green);
+    display: block; margin-bottom: var(--sp-1); font: 600 var(--fs-sm) var(--font-mono); letter-spacing: 0; color: var(--brand-green);
   }
   /* Reading pages as a ledger: each <section>'s heading in a 200px left column,
      its text beside it at the reading measure; .wide spans both. Phones stack. */
   main.sheet > section {
     display: grid; grid-template-columns: 200px minmax(0, 720px); gap: var(--sp-3) 40px; align-items: start;
-    padding: var(--sp-6) 0; border-top: 1px solid var(--line);
+    padding: var(--sp-6) 0; border-top: var(--border-line);
   }
   main.sheet > section > * { margin-top: 0; margin-bottom: 0; }
   main.sheet > section > h2 { grid-column: 1; font-size: var(--fs-xl); }
@@ -244,7 +236,7 @@ export const TOKENS = `
   main.sheet > section > .wide { grid-column: 1 / -1; max-width: none; }
   /* A list whose items start with a label (span.k) set beside their text. */
   .prose .pairs { list-style: none; margin: 0; padding: 0; }
-  .prose .pairs > li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 4px var(--sp-4); padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .prose .pairs > li { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: var(--sp-1) var(--sp-4); padding: var(--sp-2-5) 0; border-bottom: var(--border-line); }
   .prose .pairs > li:last-child { border-bottom: 0; }
   .prose .pairs > li::before { display: none; }
   .pairs .k { font-weight: 800; color: var(--fg); }
@@ -255,7 +247,7 @@ export const TOKENS = `
   }
   .site-footer {
     margin-top: var(--sp-8); padding-top: var(--sp-5);
-    border-top: 1.5px solid var(--edge);
+    border-top: var(--border-edge);
     color: var(--muted); font-size: var(--fs-sm); line-height: 1.6;
   }
   .site-footer p { margin: 0 0 var(--sp-2); }

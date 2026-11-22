@@ -173,7 +173,7 @@ def test_a_window_from_the_paging_design_is_asked_again_from_its_cached_first_pa
     monkeypatch.setattr(w, 'PAGE', 3)
     rows = [reading(when=f'2023-0{m}-01T06:00:00') for m in range(1, 6)]
     wdir = w.window_dir(tmp_path, COMBO, '2023-01-01', '2023-12-31')
-    w._write_gz(wdir / 'page_00000.json.gz', {'statusCode': 200, 'data': rows[:3]})
+    w.pipeline.write_json_gz(wdir / 'page_00000.json.gz', {'statusCode': 200, 'data': rows[:3]})
     pipeline.write_json(wdir / 'window.json', {'status': 'full', 'pages': 2, 'rows': 5})      # no "v": old design
     api = FakeApi(rows, 3)
     assert pull(api, tmp_path, '2023-01-01', '2023-12-31')['status'] == 'split'
@@ -271,7 +271,7 @@ def cache_window(raw, combo, start, end, rows=None, status='full'):
     wdir = w.window_dir(raw, combo, start, end)
     wdir.mkdir(parents=True, exist_ok=True)
     if status == 'full':
-        w._write_gz(wdir / 'page_00000.json.gz', {'statusCode': 200, 'data': rows} if rows else NO_DATA)
+        w.pipeline.write_json_gz(wdir / 'page_00000.json.gz', {'statusCode': 200, 'data': rows} if rows else NO_DATA)
     pipeline.write_json(wdir / 'window.json', {'v': w.WINDOW_VERSION, 'status': status, 'pages': 1})
 
 

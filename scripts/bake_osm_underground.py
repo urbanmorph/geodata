@@ -306,8 +306,6 @@ def bake(work: Path, sources: dict, deadline: pipeline.Deadline) -> dict:
     """Every layer's files into out/ and out/summary.json. Nothing happens
     when the last bake used the same extract and every file is still there."""
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
 
     out, summary_path = out_dir(work), out_dir(work) / 'summary.json'
     code = {p.name: pipeline.file_md5(p) for p in (Path(__file__), HERE / 'pipeline.py', HERE / 'bake_formats.py')}
@@ -332,16 +330,9 @@ def bake(work: Path, sources: dict, deadline: pipeline.Deadline) -> dict:
         rows, props = pipeline.rebake_flatten_bbox(raw, path['parquet'], con)
         raw.unlink()
         nulls = con.execute(f"SELECT count(*) FROM '{path['parquet']}' WHERE geometry IS NULL").fetchone()[0]
-        path['geojson'].unlink(missing_ok=True)
-        write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))
-        write_kml_from_geojson(path['geojson'], lid, path['kml'])
-        bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'],
-                                                bake_formats.short_field_names(props))
-        bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], lid, tile_fields(lid, props),
-                                   keep_all=meta['keep_all'], max_zoom=meta['max_zoom'])
-        summary['layers'][lid] = {'rows': rows, 'no_geometry': nulls, 'columns': props,
-                                  'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-                                  'names': pipeline.versioned_names(path)}
+        files = bake_formats.write_all_formats(con, path, lid, props, tile_fields(lid, props),
+                                               keep_all=meta['keep_all'], max_zoom=meta['max_zoom'])
+        summary['layers'][lid] = {'rows': rows, 'no_geometry': nulls, 'columns': props, **files}
         log(f'  {lid}: {rows:,} rows ({nulls} without geometry), {len(props)} columns')
     pipeline.write_json(summary_path, summary)
     return summary
@@ -365,20 +356,17 @@ def upload(work: Path) -> dict:
 # ── register ────────────────────────────────────────────────────────────────
 
 def catalog_entry(lid: str, summ: dict, prev: dict, r2_public: str) -> dict:
-    from populate_refresh import infer, next_due
-    from populate_source_check import OVERRIDES, merge
+    from populate_refresh import refresh_block
+    from populate_source_check import merge, override
     meta, built, src = LAYERS[lid], summ['layers'][lid], summ['sources']
-    entry = {'id': lid, 'level': lid, 'source': 'OpenStreetMap', 'rows': built['rows']}
-    for fmt in EXT:
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{built["names"][fmt]}', 'bytes': built['sizes'][fmt]}
+    entry = {'id': lid, 'level': lid, 'source': 'OpenStreetMap', 'rows': built['rows'],
+             **pipeline.format_blocks(EXT, built['names'], built['sizes'], f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': OSM_LICENCE,
                   'attribution': {'primary': dict(OSM_ATTRIBUTION), 'publisher': dict(PUBLISHER)},
                   'category': meta['category'], 'provenance': 'curated', 'fetched_at': src['as_of'],
                   'notes': notes(lid), 'tags': list(meta['tags']),
-                  'source_check': merge(prev.get('source_check'), OVERRIDES[lid])})
-    block, _ = infer(entry)
-    entry['refresh'] = {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
-                        'next_due': next_due(block['rebuild'], src['as_of'])}
+                  'source_check': merge(prev.get('source_check'), override(lid))})
+    entry['refresh'] = refresh_block(entry, prev, src['as_of'])
     return entry
 
 
@@ -387,8 +375,7 @@ def manifest_entry(lid: str, summ: dict) -> dict:
     return {'id': lid, 'name': meta['label'], 'level': lid, 'category': meta['category'], 'source': 'OpenStreetMap',
             'description': meta['description'], 'unit': meta['unit'], 'features': built['rows'],
             'license': OSM_LICENCE, 'r2_prefix': R2_PREFIX,
-            'parquet_file': built['names']['parquet'], 'parquet_bytes': built['sizes']['parquet'],
-            'pmtiles_file': built['names']['pmtiles'], 'pmtiles_bytes': built['sizes']['pmtiles'],
+            **pipeline.manifest_files(built['names'], built['sizes']),
             'source_url': OSM_ATTRIBUTION['url'], 'source_org': OSM_ATTRIBUTION['name'],
             'source_version': f'Geofabrik India extract of {summ["sources"]["as_of"]}',
             'notes': notes(lid), 'tags': list(meta['tags'])}
@@ -401,12 +388,9 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summa
     catalog = json.loads(catalog_path.read_text())
     manifest = json.loads(manifest_path.read_text())
     for lid, meta in LAYERS.items():
-        prev = next((x for x in catalog.get('layers', []) if x.get('id') == lid), {})
-        entry = pipeline.licence_labelled(catalog_entry(lid, summ, prev, r2_public or pipeline.R2_PUBLIC))
+        entry = catalog_entry(lid, summ, pipeline.prev_layer(catalog, lid), r2_public or pipeline.R2_PUBLIC)
         level_meta = {'label': meta['label'], 'unit': meta['unit'], 'description': meta['description']}
-        pipeline.upsert_layer(catalog, entry, level_meta, attribution=('OpenStreetMap', OSM_ATTRIBUTION))
-        # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-        catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], entry)
+        pipeline.upsert_as_built(catalog, entry, level_meta, attribution=('OpenStreetMap', OSM_ATTRIBUTION))
         manifest = pipeline.upsert_by_id(manifest, manifest_entry(lid, summ))
     pipeline.write_json(catalog_path, catalog)
     pipeline.write_json(manifest_path, manifest)

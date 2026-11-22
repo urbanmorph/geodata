@@ -11,22 +11,17 @@
 // as `fc_json` for non-trivial formats. For GeoJSON/JSON the file IS the FC
 // so the server parses it natively and `fc_json` is ignored.
 
-import type { Env as MiddlewareEnv } from './_middleware';
-import { validateSubmission, gateSubmission, MAX_SUBMIT_BYTES } from '../lib/validate-server';
+import type { Env } from './_middleware';
+import { validateSubmission, gateSubmission, MAX_SUBMIT_BYTES, SUBMIT_EXTENSIONS, extOf } from '../lib/validate-server';
 import { verifyTurnstile } from '../lib/turnstile';
 import { checkRateLimit } from '../lib/ratelimit';
 import { json as j } from '../lib/http';
 import { findDuplicateByHash } from '../lib/submissions';
 import { persistSubmission } from '../lib/persist-submission';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
-import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, ipSalt, parseDataYear } from '../lib/submit-helpers';
+import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, submitterSalt, parseDataYear } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
 import { attemptRowFromResult, attemptRowReject, logAttempt, parseErrorSummary, type AttemptRow } from '../lib/submit-log';
-
-type Env = MiddlewareEnv & {
-  TURNSTILE_SECRET: string;
-  IP_SALT?: string;
-};
 
 const codeForReason = (reason: string): number => {
   if (/rate/i.test(reason)) return 429;
@@ -71,7 +66,7 @@ async function handleSubmit(
   log: (row: AttemptRow) => void,
   reply: (status: number, body: Record<string, unknown>) => Response,
 ): Promise<Response> {
-  const ipHash = await ipHashFor(ctx.request, ipSalt(ctx.env.IP_SALT, 'geodata-v1'));
+  const ipHash = await ipHashFor(ctx.request, submitterSalt(ctx.env));
   // Refuse an oversized body by its declared length before reading any of it
   // (the multipart envelope adds a little; 1 MB of slack covers the form fields).
   const declared = Number(ctx.request.headers.get('content-length') || 0);
@@ -110,15 +105,14 @@ async function handleSubmit(
   }
 
   const filename = sanitizeFilename(file.name);
-  const ext = filename.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] ?? '';
-  const ALLOWED = new Set(['geojson', 'json', 'kml', 'kmz', 'gpx', 'tcx', 'parquet']);
+  const ext = extOf(filename) ?? '';
 
   const logMeta = { ext, bytes: file.size, ipHash };
 
-  if (!ALLOWED.has(ext)) {
+  if (!SUBMIT_EXTENSIONS.has(ext)) {
     log(attemptRowReject('format', `unsupported extension .${ext}`, logMeta));
     return reply(415, {
-      error: `unsupported file extension .${ext}; accepts: ${[...ALLOWED].join(', ')}`,
+      error: `unsupported file extension .${ext}; accepts: ${[...SUBMIT_EXTENSIONS].join(', ')}`,
     });
   }
 
@@ -140,21 +134,20 @@ async function handleSubmit(
   let rawJson: unknown;
   let fc: ReturnType<typeof normaliseFC>;
   try {
+    let text: string;
     if (ext === 'geojson' || ext === 'json') {
-      rawJson = JSON.parse(new TextDecoder().decode(bytes));
-      fc = normaliseFC(rawJson);
+      text = new TextDecoder().decode(bytes);
     } else {
       // Browser parsed it; trust the FC the client sent.
       const fcField = form.get('fc_json') as unknown;
-      const fcText =
-        fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
-      if (!fcText) {
+      text = fcField instanceof File ? await fcField.text() : typeof fcField === 'string' ? fcField : '';
+      if (!text) {
         log(attemptRowReject('parse', 'missing fc_json for non-GeoJSON upload', logMeta));
         return reply(400, { error: 'missing fc_json for non-GeoJSON upload' });
       }
-      rawJson = JSON.parse(fcText);
-      fc = normaliseFC(rawJson);
     }
+    rawJson = JSON.parse(text);
+    fc = normaliseFC(rawJson);
   } catch (e) {
     log({ ...attemptRowReject('parse', 'failed to parse FeatureCollection', logMeta), detail: parseErrorSummary(e) });
     return reply(400, { error: 'failed to parse FeatureCollection', detail: (e as Error).message });

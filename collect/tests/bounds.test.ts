@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { checkIndiaBounds, INDIA_BBOX } from '../src/geo/bounds';
+import { checkIndiaBounds, INDIA_BBOX, geomBucket, geometryAllowed } from '../src/geo/bounds';
 
 // Step 1 of the record write path (spec → "POST /collections/:id/records"):
 // every coordinate must lie in the India bbox; reject the whole record on any
@@ -47,5 +47,28 @@ describe('checkIndiaBounds', () => {
 
   it('exposes the India bbox as [minLng, minLat, maxLng, maxLat]', () => {
     expect(INDIA_BBOX).toEqual([68, 6, 98, 38]);
+  });
+});
+
+describe('geomBucket', () => {
+  it('puts each GeoJSON type in its point, line or polygon bucket', () => {
+    expect(['Point', 'MultiPoint', 'LineString', 'MultiLineString', 'Polygon', 'MultiPolygon'].map(geomBucket))
+      .toEqual(['point', 'point', 'line', 'line', 'polygon', 'polygon']);
+  });
+  it('has no bucket for anything else', () => {
+    expect(geomBucket('GeometryCollection')).toBeNull();
+    expect(geomBucket(undefined)).toBeNull();
+    expect(geomBucket('')).toBeNull();
+  });
+});
+
+describe('geometryAllowed', () => {
+  it('is true when the geometry\'s bucket is one the map accepts', () => {
+    expect(geometryAllowed({ type: 'MultiPolygon' }, ['point', 'polygon'])).toBe(true);
+    expect(geometryAllowed({ type: 'LineString' }, ['point'])).toBe(false);
+  });
+  it('is false for a missing or unknown type', () => {
+    expect(geometryAllowed(null, ['point'])).toBe(false);
+    expect(geometryAllowed({ type: 'GeometryCollection' }, ['point', 'line', 'polygon'])).toBe(false);
   });
 });

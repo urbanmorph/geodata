@@ -138,4 +138,12 @@ describe('ipSalt', () => {
     expect(String(err.mock.calls[0][0])).toMatch(/IP_SALT is not set/);
     err.mockRestore();
   });
+
+  it('submit and rate hash IPs with one salt: the secret, else geodata-v1', async () => {
+    const { submitterSalt } = await import('../functions/lib/submit-helpers');
+    expect(submitterSalt({ IP_SALT: 'secret' })).toBe('secret');
+    const err = vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(submitterSalt({})).toBe('geodata-v1');
+    err.mockRestore();
+  });
 });

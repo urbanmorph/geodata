@@ -63,6 +63,49 @@ beforeEach(() => {
 });
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
+describe('/api/submit: file types', () => {
+  it.each([
+    ['roads.shp', '.shp'],
+    ['no_extension', '.'],
+  ])('%s is a 415 naming what is accepted', async (name, shown) => {
+    const { status, body } = await call(form({}, new File(['x'], name)), { DB: sqliteD1(), R2: fakeR2() });
+    expect(status).toBe(415);
+    expect(body.error).toBe(`unsupported file extension ${shown}; accepts: geojson, json, kml, kmz, gpx, tcx, parquet`);
+  });
+});
+
+describe('/api/submit: reading the FeatureCollection', () => {
+  const kml = () => new File(['<kml/>'], 'stands.kml');
+
+  it("a non-GeoJSON upload is read from the browser's fc_json", async () => {
+    const fd = form({}, kml());
+    fd.set('fc_json', GEOJSON);
+    const { status } = await call(fd, { DB: sqliteD1(), R2: fakeR2() });
+    expect(status).toBe(200);
+  });
+
+  it('a non-GeoJSON upload without fc_json is a 400, logged as a parse failure', async () => {
+    const db = sqliteD1();
+    const { status, body } = await call(form({}, kml()), { DB: db, R2: fakeR2() });
+    expect(status).toBe(400);
+    expect(body.error).toBe('missing fc_json for non-GeoJSON upload');
+    expect((await attempts(db))[0]).toMatchObject({ outcome: 'rejected', gate: 'parse', reason: 'missing fc_json for non-GeoJSON upload' });
+  });
+
+  it.each([
+    ['GeoJSON that is not JSON', () => form({}, new File(['{not json'], 'x.geojson'))],
+    ['an fc_json that is not JSON', () => { const fd = form({}, kml()); fd.set('fc_json', '{nope'); return fd; }],
+  ])('%s is a 400 parse failure with the detail logged', async (_n, make) => {
+    const db = sqliteD1();
+    const { status, body } = await call(make(), { DB: db, R2: fakeR2() });
+    expect(status).toBe(400);
+    expect(body.error).toBe('failed to parse FeatureCollection');
+    const [a] = await attempts(db);
+    expect(a).toMatchObject({ outcome: 'rejected', gate: 'parse', reason: 'failed to parse FeatureCollection' });
+    expect(a.detail).toBeTruthy();
+  });
+});
+
 describe('/api/submit', () => {
   it('saves file, submission and admin token, and logs the attempt with its reference', async () => {
     const db = sqliteD1();

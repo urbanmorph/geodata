@@ -6,12 +6,16 @@
 // (favicon.svg) in sync.
 import { escapeHtml as esc } from './format.mjs';
 
+// The site's one public origin, for canonical URLs, sitemaps, JSON-LD and
+// absolute links: the apex, so www.* and pages.dev consolidate there.
+export const SITE_ORIGIN = 'https://bharatlas.com';
+
 // The one publisher every JSON-LD block names (home WebSite, /docs WebAPI,
 // /about AboutPage, each /view Dataset): bharatlas, built by Urban Morph.
 export const PUBLISHER_LD = Object.freeze({
   '@type': 'Organization',
   name: 'bharatlas',
-  url: 'https://bharatlas.com',
+  url: SITE_ORIGIN,
   parentOrganization: Object.freeze({ '@type': 'Organization', name: 'Urban Morph', url: 'https://urbanmorph.com' }),
 });
 
@@ -90,6 +94,6 @@ export function wordmarkHtml({ href = '/', tagline = '', className = 'site-brand
 }
 
 /** Layout CSS for the wordmark; colours come from the theme tokens. */
-export const WORDMARK_CSS = `.site-brand { display: inline-flex; align-items: center; gap: 8px; color: var(--brand-ink); text-decoration: none; font-weight: 800; letter-spacing: -.025em; }
+export const WORDMARK_CSS = `.site-brand { display: inline-flex; align-items: center; gap: var(--sp-2); color: var(--brand-ink); text-decoration: none; font-weight: 800; letter-spacing: -.025em; }
   .site-brand:hover { text-decoration: none; }
   .site-brand .brand-mark { flex: none; }`;

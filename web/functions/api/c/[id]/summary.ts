@@ -3,20 +3,14 @@
 // after an edit, and (2) verify a paste-back URL before adding it locally.
 
 import type { Env } from '../../_middleware';
-import { getSubmissionForView } from '../../../lib/submissions';
-import { SUBMISSION_ID } from '../../../lib/submissions-sql';
+import { acceptedSubmission } from '../../../lib/submissions';
 import { json } from '../../../lib/http';
 
 type Params = { id: string };
 
-const notFound = () => json(404, { error: 'not found' });
-
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
-  const id = ctx.params.id as string;
-  if (!SUBMISSION_ID.test(id)) return notFound();
-
-  const row = await getSubmissionForView(ctx.env.DB, id);
-  if (!row) return notFound();
+  const row = await acceptedSubmission(ctx.env.DB, ctx.params.id as string);
+  if (!row) return json(404, { error: 'not found' });
 
   return json(
     200,

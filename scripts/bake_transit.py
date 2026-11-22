@@ -48,7 +48,6 @@ import argparse
 import csv
 import io
 import json
-import math
 import os
 import re
 import sys
@@ -66,7 +65,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import pipeline  # noqa: E402
 from pipeline import OutOfTime, cached, upload_lock, work_dir  # noqa: E402
-from pipeline import atomic_output, log  # noqa: E402
+from pipeline import atomic_output, haversine_m, log  # noqa: E402
 from tile_keys import versioned_key  # noqa: E402
 
 ROOT = HERE.parent
@@ -121,13 +120,6 @@ def iso_date(value: str | None) -> str | None:
     if value and re.fullmatch(r'20\d{6}', value):
         return f'{value[:4]}-{value[4:6]}-{value[6:]}'
     return value or None
-
-
-def haversine_m(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
-    p1, p2 = math.radians(lat1), math.radians(lat2)
-    a = (math.sin((p2 - p1) / 2) ** 2
-         + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2)
-    return 2 * 6_371_008.8 * math.asin(math.sqrt(a))
 
 
 class Deadline(pipeline.Deadline):
@@ -185,8 +177,7 @@ def latest_extract_url() -> str:
 
 
 def get_text(url: str) -> str:
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: urllib.request.urlopen(req, timeout=60).read().decode())
+    return pipeline.get_bytes(url, parse=bytes.decode)
 
 
 def sources_path() -> Path:
@@ -737,11 +728,11 @@ def write_parquet(con, lid: str, rows: list[dict], geometry_sql: str, out: Path,
 def write_downloads(con, lid: str, parquet: Path, stage: Path) -> dict[str, Path]:
     """GeoJSON, KML and a zipped Shapefile (with its columns.txt key) from the parquet."""
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
+    from bake_extracts import write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     base = LAYERS[lid]['basename']
     paths = {fmt: stage / f'{base}.{ext}' for fmt, ext in EXT.items() if fmt != 'parquet'}
-    write_geojson_whole(con, parquet, paths['geojson'], gdal_geojson_available(con))
+    write_geojson_whole(con, parquet, paths['geojson'])
     write_kml_from_geojson(paths['geojson'], lid, paths['kml'])
     props = [r[0] for r in con.execute(f"DESCRIBE SELECT * FROM '{parquet}'").fetchall() if 'GEOMETRY' not in r[1]]
     bake_formats.shapefile_zip_from_geojson(paths['geojson'], paths['shapefile'],

@@ -8,6 +8,7 @@ heavy imports): boto3 and duckdb load inside the functions that need them.
 from __future__ import annotations
 
 import contextlib
+import gzip
 import hashlib
 import http.client
 import json
@@ -81,6 +82,22 @@ def with_retries(fn: Callable[[], Any], tries: int = 6, wait: Callable[[int], No
 
 # A plain, generic client name: r2.dev and some portals refuse urllib's default.
 USER_AGENT = 'Mozilla/5.0 (compatible; bharatlas-pipeline/1.0; +https://bharatlas.com)'
+
+
+def get_bytes(url: str, headers: dict | None = None, timeout: float = 60, context=None,
+              parse: Callable[[bytes], Any] | None = None, **retry) -> Any:
+    """GET as the house client (USER_AGENT unless `headers` set another),
+    through with_retries (`retry`: its tries, wait, give_up). `parse` runs
+    inside the retry, so an answer cut off mid-JSON is fetched again."""
+    import urllib.request
+    req = urllib.request.Request(url, headers={'User-Agent': USER_AGENT, **(headers or {})})
+    parse = parse or (lambda body: body)
+    return with_retries(lambda: parse(urllib.request.urlopen(req, timeout=timeout, context=context).read()), **retry)
+
+
+def get_json(url: str, headers: dict | None = None, timeout: float = 60, **kw) -> Any:
+    """get_bytes, parsed as JSON."""
+    return get_bytes(url, headers, timeout, parse=json.loads, **kw)
 
 
 def is_client_error(e: Exception) -> bool:
@@ -282,16 +299,21 @@ def is_fresh(out: Path, *sources: Path) -> bool:
     return st.st_size > 0 and all(st.st_mtime >= s.stat().st_mtime for s in sources)
 
 
-def write_stable_zip(files: Iterable[Path], out: Path) -> None:
+def write_stable_zip(files: Iterable[Path], out: Path, zip64: bool = False) -> None:
     """Zip `files` (flat, in the given order) with a fixed timestamp, so the
-    same input gives the same bytes and md5 (no needless re-upload)."""
+    same input gives the same bytes and md5 (no needless re-upload). Streams
+    each file (they run to GBs). zip64=True gives every entry Zip64 headers
+    (bake_land_water_states' zips have them), not only the ones over 2 GB."""
+    import shutil
     import zipfile
     with atomic_output(out) as part, zipfile.ZipFile(part, 'w', zipfile.ZIP_DEFLATED) as zf:
         for f in files:
             info = zipfile.ZipInfo(f.name, date_time=(1980, 1, 1, 0, 0, 0))
             info.compress_type = zipfile.ZIP_DEFLATED
             info.external_attr = 0o644 << 16
-            zf.writestr(info, f.read_bytes())
+            info.file_size = f.stat().st_size   # as writestr sets it: Zip64 only when the file needs it
+            with f.open('rb') as src, zf.open(info, 'w', force_zip64=zip64) as dst:
+                shutil.copyfileobj(src, dst, CHUNK)
 
 
 def write_json(path: Path, data: Any) -> None:
@@ -300,9 +322,46 @@ def write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=True) + '\n')
 
 
+def write_if_changed(path: Path, data: str | bytes) -> bool:
+    """Write `data` (text as UTF-8, newlines as given) unless the file already
+    holds exactly it, making the folder; True when it wrote."""
+    data = data.encode('utf-8') if isinstance(data, str) else data
+    if path.exists() and path.read_bytes() == data:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return True
+
+
+def write_atomic(path: Path, data: bytes) -> None:
+    """`data` to `path` whole or not at all (atomic_output), making its folder:
+    a killed run never leaves a cut-off cache file under the real name."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with atomic_output(path) as part:
+        part.write_bytes(data)
+
+
+def write_json_gz(path: Path, data: Any) -> None:
+    """A cached answer as gzipped compact JSON (mtime 0: the same data, the same bytes), atomically."""
+    write_atomic(path, gzip.compress(json.dumps(data).encode(), mtime=0))
+
+
+def read_json_gz(path: Path) -> Any:
+    return json.loads(gzip.decompress(path.read_bytes()))
+
+
 def parquet_rows(path: Path) -> int:
     import duckdb
     return duckdb.connect().execute('SELECT count(*) FROM read_parquet(?)', [str(path)]).fetchone()[0]
+
+
+def haversine_m(lon1: float, lat1: float, lon2: float, lat2: float) -> float:
+    """Great-circle distance in metres (mean Earth radius)."""
+    import math
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    a = (math.sin((p2 - p1) / 2) ** 2
+         + math.cos(p1) * math.cos(p2) * math.sin(math.radians(lon2 - lon1) / 2) ** 2)
+    return 2 * 6_371_008.8 * math.asin(math.sqrt(a))
 
 
 def slug(value: str) -> str:
@@ -638,6 +697,20 @@ class OutOfTime(Exception):
     pass
 
 
+def step_cli(doc: str, steps: dict[str, Callable[[Any], Any]], *options: tuple[str, dict],
+             argv: list[str] | None = None) -> Any:
+    """A bake's command line, `<script> <step> [options]`: each option is
+    (flag, add_argument keywords). Runs steps[step] with the parsed arguments
+    and returns what it returns."""
+    import argparse
+    ap = argparse.ArgumentParser(description=doc, formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument('step', choices=list(steps))
+    for flag, kw in options:
+        ap.add_argument(flag, **kw)
+    a = ap.parse_args(argv)
+    return steps[a.step](a)
+
+
 def take_max_minutes(argv: list[str], default: float) -> tuple[list[str], float]:
     """Split `--max-minutes N` off a plain argv list: (the other args, N or `default`)."""
     if '--max-minutes' not in argv:
@@ -841,7 +914,8 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
     from tile_keys import keep_all_rebaked
     LICENCE_GATE(entry['id'])
     entry = licence_labelled(entry)
-    prev = next((x for x in catalog.setdefault('layers', []) if x.get('id') == entry['id']), {})
+    prev = prev_layer(catalog, entry['id'])
+    catalog.setdefault('layers', [])
     entry = {**entry, 'fetched_at': prev.get('fetched_at') or entry.get('fetched_at') or now_iso()}
     keep_all_rebaked(entry, prev)  # rebaked tiles (filter columns) stay while the data is unchanged
     catalog['layers'] = upsert_by_id(catalog['layers'], entry)
@@ -869,9 +943,31 @@ def versioned_names(paths: dict[str, Path]) -> dict[str, str]:
     return {fmt: versioned_key(p.name, file_md5(p)) for fmt, p in paths.items()}
 
 
+def sizes_and_names(paths: dict[str, Path]) -> dict[str, dict]:
+    """{'sizes', 'names'}: what a bake summary records of each file it wrote."""
+    return {'sizes': {fmt: p.stat().st_size for fmt, p in paths.items()}, 'names': versioned_names(paths)}
+
+
 def plain_names(basename: str, exts: dict[str, str]) -> dict[str, str]:
     """{format: <basename>.<ext>}: the local file names a bake writes."""
     return {fmt: f'{basename}.{ext}' for fmt, ext in exts.items()}
+
+
+def layer_paths(out_dir: Path, basename: str, exts: dict[str, str]) -> dict[str, Path]:
+    """{format: <out_dir>/<basename>.<ext>}: the local files a bake writes."""
+    return {fmt: out_dir / name for fmt, name in plain_names(basename, exts).items()}
+
+
+def format_blocks(formats: Iterable[str], names: dict[str, str], sizes: dict[str, int], base_url: str) -> dict:
+    """{format: {url, bytes}} in the order of `formats`: a catalog entry's download
+    blocks, each at <base_url>/<its content-versioned name>."""
+    return {fmt: {'url': f'{base_url}/{names[fmt]}', 'bytes': sizes[fmt]} for fmt in formats}
+
+
+def manifest_files(names: dict[str, str], sizes: dict[str, int]) -> dict:
+    """The manifest row's parquet and pmtiles file names and sizes."""
+    return {'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
+            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles']}
 
 
 def upload_versioned(s3, paths: dict[str, Path], prefix: str, put: Callable | None = None) -> dict[str, str]:
@@ -884,6 +980,13 @@ def upload_versioned(s3, paths: dict[str, Path], prefix: str, put: Callable | No
     return names
 
 
+def upload_layer(out_dir: Path, basename: str, exts: dict[str, str], prefix: str, s3=None,
+                 put: Callable | None = None) -> dict[str, str]:
+    """Every format a bake wrote (layer_paths) to its content-versioned key under
+    `prefix`: unchanged files keep theirs (md5-skipped)."""
+    return upload_versioned(s3 or r2_client(), layer_paths(out_dir, basename, exts), prefix, put)
+
+
 def summary_names(summary: dict) -> dict[str, str]:
     """The content-versioned names the bake step recorded and the upload step
     used. A summary without them came from an older bake whose files went to
@@ -893,11 +996,30 @@ def summary_names(summary: dict) -> dict[str, str]:
     return summary['names']
 
 
-def register_layer(catalog_path: Path, manifest_path: Path, entry: dict, manifest_row: dict,
-                   level_meta: dict, **kw) -> None:
-    """upsert_layer into catalog.json and upsert_by_id into the manifest, on disk."""
+def prev_layer(catalog: dict, layer_id: str) -> dict:
+    """The catalog's entry for layer_id, or {} for a new layer."""
+    return next((x for x in catalog.get('layers', []) if x.get('id') == layer_id), {})
+
+
+def upsert_as_built(catalog: dict, entry: dict, level_meta: dict, **kw) -> dict:
+    """upsert_layer for a bake that makes every file of the layer: its entry
+    stands as built. upsert_layer alone would keep the first fetched_at and,
+    while the parquet is unchanged, the previous tiles as if someone had
+    rebaked them."""
+    upsert_layer(catalog, entry, level_meta, **kw)
+    catalog['layers'] = upsert_by_id(catalog['layers'], licence_labelled(entry))
+    return catalog
+
+
+def register_layer(catalog_path: Path, manifest_path: Path, entry: dict | Callable[[dict], dict],
+                   manifest_row: dict, level_meta: dict, as_built: bool = False, **kw) -> None:
+    """upsert_layer (upsert_as_built when as_built) into catalog.json and
+    upsert_by_id into the manifest, on disk. `entry` may be a function of the
+    layer's previous entry ({} when new), for an entry that carries some of it."""
     catalog = json.loads(catalog_path.read_text())
-    write_json(catalog_path, upsert_layer(catalog, entry, level_meta, **kw))
+    if callable(entry):
+        entry = entry(prev_layer(catalog, manifest_row['id']))
+    write_json(catalog_path, (upsert_as_built if as_built else upsert_layer)(catalog, entry, level_meta, **kw))
     write_json(manifest_path, upsert_by_id(json.loads(manifest_path.read_text()), manifest_row))
 
 

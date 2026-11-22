@@ -13,13 +13,7 @@ export type DownloadEntry = {
   bytes: number | null;
 };
 
-type LayerLike = {
-  parquet?: { url: string; bytes: number | null } | null;
-  pmtiles?: { url: string; bytes: number | null } | null;
-  geojson?: { url: string; bytes: number | null } | null;
-  kml?: { url: string; bytes: number | null } | null;
-  shapefile?: { url: string; bytes: number | null } | null;
-};
+type LayerLike = Partial<Record<DownloadFormat, { url: string; bytes: number | null } | null>>;
 
 const HINTS: Record<DownloadFormat, { label: string; hint: string }> = {
   parquet:   { label: 'Parquet',   hint: 'analytics · DuckDB, pandas, R' },
@@ -29,24 +23,12 @@ const HINTS: Record<DownloadFormat, { label: string; hint: string }> = {
   shapefile: { label: 'Shapefile', hint: 'QGIS, ArcGIS · .shp + .dbf + .shx zipped' },
 };
 
+// HINTS' key order is the menu order.
 export function availableDownloads(layer: LayerLike): DownloadEntry[] {
-  const out: DownloadEntry[] = [];
-  if (layer.parquet?.url) {
-    out.push({ fmt: 'parquet', ...HINTS.parquet, url: dlProxyUrl(layer.parquet.url, 'parquet'), bytes: layer.parquet.bytes });
-  }
-  if (layer.pmtiles?.url) {
-    out.push({ fmt: 'pmtiles', ...HINTS.pmtiles, url: dlProxyUrl(layer.pmtiles.url, 'pmtiles'), bytes: layer.pmtiles.bytes });
-  }
-  if (layer.geojson?.url) {
-    out.push({ fmt: 'geojson', ...HINTS.geojson, url: dlProxyUrl(layer.geojson.url, 'geojson'), bytes: layer.geojson.bytes });
-  }
-  if (layer.kml?.url) {
-    out.push({ fmt: 'kml', ...HINTS.kml, url: dlProxyUrl(layer.kml.url, 'kml'), bytes: layer.kml.bytes });
-  }
-  if (layer.shapefile?.url) {
-    out.push({ fmt: 'shapefile', ...HINTS.shapefile, url: dlProxyUrl(layer.shapefile.url, 'shapefile'), bytes: layer.shapefile.bytes });
-  }
-  return out;
+  return (Object.keys(HINTS) as DownloadFormat[]).flatMap((fmt) => {
+    const file = layer[fmt];
+    return file?.url ? [{ fmt, ...HINTS[fmt], url: dlProxyUrl(file.url, fmt), bytes: file.bytes }] : [];
+  });
 }
 
 export { fmtBytes, fmtCount } from '../../shared/format.mjs';

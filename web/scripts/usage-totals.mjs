@@ -4,10 +4,10 @@
 // count means something it stays off the page rather than reading as "unused".
 // Read from /api/v1/usage at build time; nothing new is stored.
 import { escapeHtml as esc, fmtCount } from '../../shared/format.mjs';
+import { SITE_ORIGIN as ORIGIN } from '../../shared/sitemap.mjs';
 
 export const API_SHOW_MIN = 1000;
 const API_SINCE = '17 Nov 2026';
-const ORIGIN = 'https://bharatlas.com';
 
 /** { api, mcp } totals from the live API, or null (offline, error, timeout). */
 export async function fetchUsageTotals(fetchImpl = fetch) {

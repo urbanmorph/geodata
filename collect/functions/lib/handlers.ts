@@ -7,22 +7,23 @@
 
 import type { Env } from '../types';
 import { bad, json } from './http';
-import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken } from './tokens';
-import { bearer, permissionFor, linkFor, atLeast } from './auth';
+import { generateToken, tokenPrefix, hashToken, generateRecordToken, verifyToken, firstVerified } from './tokens';
+import { bearer, permissionFor, linkFor, atLeast, isAdmin, adminMap, type Refuse } from './auth';
 import { checkCreateRate, checkRecordRate, recordRateKey, checkKeyDayRate, checkKeyringRate } from './ratelimit';
-import { deferLog, type CollectAttempt } from './collect-log';
+import { deferLog, type CollectAttempt, type CollectEvent } from './collect-log';
 import { nanoid, sha256Hex, collectIpHash, verifyTurnstile, persistSubmission } from './reuse';
 import * as db from './db';
 import { recordStatusFor } from './moderation';
 import { validateNewCollection, validateCollectionEdit, validateFormEdit, schemaFits } from '../../src/schema/validate-collection';
 import { validateRecordProperties, CLIENT_ID, type Field } from '../../src/schema/validate-record';
-import { checkIndiaBounds } from '../../src/geo/bounds';
+import { checkIndiaBounds, geometryAllowed } from '../../src/geo/bounds';
 import { distillAdminCtx, mergeAdminCtx, representativeCoord } from '../../src/geo/admin-ctx';
 import { composeAttribution } from '../../src/publish/attribution';
 import { modeOf, usesAi } from '../../src/schema/modes';
 import { noteColumns, areaColumn, addedAt } from '../../src/export/derived';
 import { photoIdsIn, checkPhotos, setPhotos, deletePhotosOf, photoLinks, photoUrl } from './photos';
 import { runAi, drainAi, publicNotes } from './ai';
+import { mapUrl } from '../../src/map-path';
 
 const BHARATLAS_ORIGIN = 'https://bharatlas.com';
 
@@ -56,18 +57,47 @@ async function enrichRecord(env: Env, recordId: string, geometry: unknown): Prom
 
 type Defer = (p: Promise<unknown>) => void;
 
+type AttemptLog = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => void;
+type Attempt = { attemptId: string; log: AttemptLog; refuse: Refuse };
+
+/** One logged admin write (import, publish): a reference (att_...) returned with
+ *  every answer, a log that stamps each row with it and the time since
+ *  `started`, a refuse that logs its gate, and an unexpected exception logged
+ *  with its stack and answered as a 500 saying `failMsg`, not left to the router. */
+async function withAttempt(
+  defer: Defer | undefined, env: Env, event: CollectEvent, id: string,
+  { started, ip_hash }: { started: number; ip_hash?: string },
+  failMsg: string, run: (a: Attempt) => Promise<Response>,
+): Promise<Response> {
+  const attemptId = `att_${nanoid(10)}`;
+  const log: AttemptLog = (row) => deferLog(defer, env.DB, {
+    ...row, event, collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started, ...(ip_hash === undefined ? {} : { ip_hash }),
+  });
+  const refuse: Refuse = (status, gate, error) => {
+    log({ outcome: 'rejected', gate, reason: error });
+    return json(status, { error, attempt_id: attemptId });
+  };
+  try {
+    return await run({ attemptId, log, refuse });
+  } catch (e) {
+    const err = e as Error;
+    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
+    return json(500, { error: failMsg, attempt_id: attemptId });
+  }
+}
+
 // Turnstile: verify when a secret is configured (prod); skip in local dev.
 async function turnstileOk(env: Env, token: unknown): Promise<boolean> {
   if (!env.TURNSTILE_SECRET) return true;
   return typeof token === 'string' && (await verifyTurnstile(token, env.TURNSTILE_SECRET));
 }
 
-function geomBucket(type: string): 'point' | 'line' | 'polygon' | null {
-  if (type === 'Point' || type === 'MultiPoint') return 'point';
-  if (type === 'LineString' || type === 'MultiLineString') return 'line';
-  if (type === 'Polygon' || type === 'MultiPolygon') return 'polygon';
-  return null;
-}
+/** A refusal that logs its gate (and reason, when given) before answering. */
+const rejecter = (defer: Defer | undefined, env: Env, base: Pick<CollectAttempt, 'event' | 'ip_hash' | 'collection_id'>) =>
+  (status: number, gate: string, error: string, reason?: string): Response => {
+    deferLog(defer, env.DB, { ...base, outcome: 'rejected', gate, reason });
+    return bad(status, error);
+  };
 
 async function readJson(req: Request): Promise<Record<string, unknown> | null> {
   try {
@@ -83,15 +113,13 @@ async function readJson(req: Request): Promise<Record<string, unknown> | null> {
 // Programmatic-abuse gate: verify an X-API-Key (prefix lookup + constant-time
 // hash compare, not revoked). Returns the key's id + daily limit + stored hash.
 async function verifyApiKey(env: Env, key: string): Promise<{ id: string; daily_limit: number; hash: string } | null> {
-  const rows = await db.apiKeysByPrefix(env.DB, tokenPrefix(key));
-  for (const r of rows) {
-    if (await verifyToken(key, r.key_hash)) return { id: r.id, daily_limit: r.daily_limit, hash: r.key_hash };
-  }
-  return null;
+  const r = await firstVerified(key, await db.apiKeysByPrefix(env.DB, tokenPrefix(key)), (x) => x.key_hash);
+  return r ? { id: r.id, daily_limit: r.daily_limit, hash: r.key_hash } : null;
 }
 
 export async function createCollection(env: Env, req: Request, defer?: Defer): Promise<Response> {
   const ipHash = await collectIpHash(req, env);
+  const reject = rejecter(defer, env, { event: 'create', ip_hash: ipHash });
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
@@ -99,30 +127,15 @@ export async function createCollection(env: Env, req: Request, defer?: Defer): P
   const apiKey = req.headers.get('x-api-key');
   if (apiKey) {
     const k = await verifyApiKey(env, apiKey);
-    if (!k) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'apiKey', ip_hash: ipHash });
-      return bad(401, 'invalid API key');
-    }
-    if (!(await checkKeyDayRate(env.DB, k.hash, k.daily_limit))) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
-      return bad(429, `API key daily limit (${k.daily_limit}) reached`);
-    }
+    if (!k) return reject(401, 'apiKey', 'invalid API key');
+    if (!(await checkKeyDayRate(env.DB, k.hash, k.daily_limit))) return reject(429, 'rateLimit', `API key daily limit (${k.daily_limit}) reached`);
   } else {
-    if (!(await turnstileOk(env, body.turnstile_token))) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
-      return bad(403, 'captcha failed');
-    }
-    if (!(await checkCreateRate(env.DB, ipHash))) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
-      return bad(429, 'rate limit: 5 collections per day');
-    }
+    if (!(await turnstileOk(env, body.turnstile_token))) return reject(403, 'captcha', 'captcha failed');
+    if (!(await checkCreateRate(env.DB, ipHash))) return reject(429, 'rateLimit', 'rate limit: 5 collections per day');
   }
 
   const v = validateNewCollection(body);
-  if (!v.ok) {
-    deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'schema', reason: v.error, ip_hash: ipHash });
-    return bad(400, v.error);
-  }
+  if (!v.ok) return reject(400, 'schema', v.error, v.error);
 
   const moderation = body.moderation === 0 || body.moderation === false ? 0 : 1;
   const id = nanoid(10);
@@ -137,9 +150,9 @@ export async function createCollection(env: Env, req: Request, defer?: Defer): P
   return json(200, {
     id,
     links: {
-      edit: `${origin}/c/${id}#${tokens.edit}`,
-      admin: `${origin}/c/${id}/admin#${tokens.admin}`,
-      view: `${origin}/c/${id}/view#${tokens.view}`,
+      edit: mapUrl(origin, id, 'edit', tokens.edit),
+      admin: mapUrl(origin, id, 'admin', tokens.admin),
+      view: mapUrl(origin, id, 'view', tokens.view),
     },
     tokens, // shown once
   });
@@ -162,7 +175,7 @@ export async function getCollectionMeta(env: Env, req: Request, id: string): Pro
     data_year: c.data_year,
     status: c.status,
     moderation: c.moderation,
-    schema: JSON.parse(c.schema_doc),
+    schema: db.schemaOf(c),
     counts,
   });
 }
@@ -203,20 +216,18 @@ export async function getStats(env: Env, req?: Request, defer?: Defer): Promise<
 // reference_layer (+ licence only while the map has no records). Fields untouched.
 
 export async function editCollection(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  const c = await adminMap(env, req, id);
+  if (c instanceof Response) return c;
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
   const counts = await db.statusCounts(env.DB, id);
-  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license, schema: JSON.parse(c.schema_doc) });
+  const cur = db.schemaOf(c);
+  const v = validateCollectionEdit(body, { hasRecords: counts.total > 0, currentLicense: c.license, schema: cur });
   if (!v.ok) return bad(400, v.error);
 
   let schemaDoc: string | undefined;
   if (Object.keys(v.value.schema).length) {
-    const cur = JSON.parse(c.schema_doc) as Record<string, unknown>;
     for (const [k, val] of Object.entries(v.value.schema)) { if (val === null) delete cur[k]; else cur[k] = val; }
     schemaDoc = JSON.stringify(cur);
   }
@@ -237,14 +248,12 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
     log({ outcome: 'rejected', gate, reason: error, detail: (extra.problems as Array<{ reason: string; count: number }> | undefined)?.map((p) => `${p.reason} (${p.count})`).join('; ') });
     return json(status, { error, ...extra, attempt_id: attemptId });
   };
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return refuse(404, 'not_found', 'not found');
+  const c = await adminMap(env, req, id, refuse);
+  if (c instanceof Response) return c;
   const body = await readJson(req);
   if (!body) return refuse(400, 'body', 'invalid JSON body');
 
-  const doc = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string } & Record<string, unknown>;
+  const doc = db.schemaOf(c);
   const points = (await db.recordAnswers(env.DB, id)).map((r) => r.properties);
   const v = validateFormEdit(doc.fields, body.fields, points, doc.geometry, doc.mode);
   if (!v.ok) return refuse(400, v.problems ? 'points' : 'form', v.error, v.problems ? { problems: v.problems } : {});
@@ -263,10 +272,8 @@ export async function editForm(env: Env, req: Request, id: string, defer?: Defer
 // as is, so opening the Share tab doesn't add a new link every visit.
 
 export async function mintToken(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  const c = await adminMap(env, req, id);
+  if (c instanceof Response) return c;
 
   const body = await readJson(req);
   const want = body?.permission;
@@ -281,7 +288,7 @@ export async function mintToken(env: Env, req: Request, id: string): Promise<Res
   }
 
   const origin = new URL(req.url).origin;
-  const linkUrl = (token: string): string => (want === 'edit' ? `${origin}/c/${id}#${token}` : `${origin}/c/${id}/view#${token}`);
+  const linkUrl = (token: string): string => mapUrl(origin, id, want, token);
   if (!label && typeof body?.reuse === 'string') {
     const held = await linkFor(env.DB, id, body.reuse);
     const row = held?.permission === want ? await db.getLink(env.DB, id, held.id) : null;
@@ -306,11 +313,10 @@ const LINK_LABEL_MAX = 60;
 // new admin link is minted and every older one for this map stops working.
 
 export async function replaceAdminLink(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, id))) return bad(401, 'unauthorised');
   const token = generateToken('admin');
   await db.swapAdminToken(env.DB, id, tokenPrefix(token), await hashToken(token));
-  return json(200, { permission: 'admin', token, link: `${new URL(req.url).origin}/c/${id}/admin#${token}` });
+  return json(200, { permission: 'admin', token, link: mapUrl(new URL(req.url).origin, id, 'admin', token) });
 }
 
 // A refused call made with a link that was turned off (or an admin link that
@@ -318,12 +324,9 @@ export async function replaceAdminLink(env: Env, req: Request, id: string): Prom
 export async function explainRefusal(env: Env, req: Request, res: Response): Promise<Response> {
   const token = bearer(req);
   if (res.status !== 401 || !token) return res;
-  for (const r of await db.retiredTokens(env.DB, tokenPrefix(token))) {
-    if (await verifyToken(token, r.token_hash)) {
-      return bad(401, r.permission === 'admin' ? 'this admin link was replaced or turned off' : 'this link was turned off by the map owner');
-    }
-  }
-  return res;
+  const r = await firstVerified(token, await db.retiredTokens(env.DB, tokenPrefix(token)), (x) => x.token_hash);
+  if (!r) return res;
+  return bad(401, r.permission === 'admin' ? 'this admin link was replaced or turned off' : 'this link was turned off by the map owner');
 }
 
 // ---- GET /collections/:id/tokens --------------------------------------------
@@ -331,8 +334,7 @@ export async function explainRefusal(env: Env, req: Request, res: Response): Pro
 // token itself is hash-only and never returned here.
 
 export async function listTokens(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, id))) return bad(401, 'unauthorised');
   const rows = await db.listLinks(env.DB, id);
   return json(200, {
     links: rows.map((r) => ({
@@ -346,8 +348,7 @@ export async function listTokens(env: Env, req: Request, id: string): Promise<Re
 // revoked here (the caller would lock themselves out).
 
 export async function revokeToken(env: Env, req: Request, id: string, tokenId: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, id))) return bad(401, 'unauthorised');
   const link = await db.getLink(env.DB, id, tokenId);
   if (!link) return bad(404, 'not found');
   if (link.permission === 'admin') return bad(400, 'admin links cannot be revoked');
@@ -384,7 +385,7 @@ export async function listRecords(env: Env, req: Request, id: string, defer?: De
   const isAdmin = atLeast(perm, 'admin');
   const labels = isAdmin ? await db.linkLabels(env.DB, id) : null;
   const c = await db.getCollection(env.DB, id);
-  const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[]; mode?: string };
+  const schema: { fields: Field[]; mode?: string } = c ? db.schemaOf(c) : { fields: [] };
   // Hidden fields stay in the data for the owner, not for shared links.
   const hidden = isAdmin ? new Set<string>() : new Set(schema.fields.filter((f) => f.deleted).map((f) => f.key));
   const visible = (p: Record<string, unknown>) => (hidden.size ? Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k))) : p);
@@ -441,6 +442,7 @@ const CONTRIBUTOR_TOO_LONG = `contributor name must be at most ${CONTRIBUTOR_MAX
 
 export async function addRecord(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const ipHash = await collectIpHash(req, env);
+  const reject = rejecter(defer, env, { event: 'contribute', collection_id: id, ip_hash: ipHash });
   const via = await linkFor(env.DB, id, bearer(req));
   const perm = via?.permission ?? null;
   if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised: needs the edit or admin link');
@@ -458,44 +460,26 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   const contributor = contributorOf(body.contributor);
   if (contributor === undefined) return bad(400, CONTRIBUTOR_TOO_LONG);
 
-  if (!(await turnstileOk(env, body.turnstile_token))) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'captcha', collection_id: id, ip_hash: ipHash });
-    return bad(403, 'captcha failed');
-  }
+  if (!(await turnstileOk(env, body.turnstile_token))) return reject(403, 'captcha', 'captcha failed');
   // A repeat of a queued point that already saved: before the rate limit, so a
   // retry never spends the contributor's hourly budget.
   const seen = clientKey && (await db.recordByClientKey(env.DB, id, clientKey));
   if (seen) return resendRecord(env, c, seen);
-  if (!(await checkRecordRate(env.DB, recordRateKey(via!.id, ipHash)))) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'rateLimit', collection_id: id, ip_hash: ipHash });
-    return bad(429, 'rate limit: 200 records per hour');
-  }
+  if (!(await checkRecordRate(env.DB, recordRateKey(via!.id, ipHash)))) return reject(429, 'rateLimit', 'rate limit: 200 records per hour');
 
   const geometry = body.geometry;
   const bounds = checkIndiaBounds(geometry);
-  if (!bounds.ok) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'bounds', reason: bounds.error, collection_id: id, ip_hash: ipHash });
-    return bad(400, bounds.error);
-  }
+  if (!bounds.ok) return reject(400, 'bounds', bounds.error, bounds.error);
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
-  const bucket = geomBucket((geometry as { type: string }).type);
-  if (!bucket || !schema.geometry.includes(bucket)) {
-    return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
-  }
+  const schema = db.schemaOf(c);
+  if (!geometryAllowed(geometry, schema.geometry)) return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
 
   const mode = modeOf(schema);
   const validated = validateRecordProperties(schema.fields, body.properties, { photosOnly: mode === 'photos_ai' });
-  if (!validated.ok) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'schema', reason: validated.error, collection_id: id, ip_hash: ipHash });
-    return bad(400, validated.error);
-  }
+  if (!validated.ok) return reject(400, 'schema', validated.error, validated.error);
   const photoIds = photoIdsIn(schema.fields, validated.properties);
   const photoProblem = await checkPhotos(env, id, photoIds, null);
-  if (photoProblem) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'photos', reason: photoProblem, collection_id: id, ip_hash: ipHash });
-    return bad(400, photoProblem);
-  }
+  if (photoProblem) return reject(400, 'photos', photoProblem, photoProblem);
 
   // The owner's own captures publish immediately; only contributor input is
   // moderated. A point the model fills in always waits for a person's check.
@@ -575,7 +559,7 @@ const derivedColumns = (r: { ai: string | null; geometry: string }): Record<stri
 // they are claimed again (a no-op when they already are), or they'd be cleared
 // as abandoned two weeks later.
 async function resendRecord(env: Env, c: db.CollectionRow, rec: { id: string; status: string; properties: string }): Promise<Response> {
-  await setPhotos(env, rec.id, photoIdsIn((JSON.parse(c.schema_doc) as { fields: Field[] }).fields, JSON.parse(rec.properties)));
+  await setPhotos(env, rec.id, photoIdsIn(db.schemaOf(c).fields, JSON.parse(rec.properties)));
   const token = generateRecordToken();
   await db.setRecordTokenHash(env.DB, rec.id, await hashToken(token));
   return json(200, { id: rec.id, status: rec.status, edit_token: token });
@@ -586,8 +570,7 @@ async function resendRecord(env: Env, c: db.CollectionRow, rec: { id: string; st
 export async function moderateRecord(env: Env, req: Request, recordId: string): Promise<Response> {
   const rec = await db.getRecord(env.DB, recordId);
   if (!rec) return bad(404, 'not found');
-  const perm = await permissionFor(env.DB, rec.collection_id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
+  if (!(await isAdmin(env, req, rec.collection_id))) return bad(401, 'unauthorised');
 
   const body = await readJson(req);
   const status = body?.status;
@@ -601,8 +584,7 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
     // filled (from the model's notes, or by hand) before the point is approved,
     // whatever the map's mode is now (it may have changed since).
     const c = await db.getCollection(env.DB, rec.collection_id);
-    const schema = (c ? JSON.parse(c.schema_doc) : { fields: [] }) as { fields: Field[] };
-    const v = validateRecordProperties(schema.fields, JSON.parse(rec.properties));
+    const v = validateRecordProperties(c ? db.schemaOf(c).fields : [], JSON.parse(rec.properties));
     if (!v.ok) return bad(400, `${v.error} before approving`);
   }
   await db.setRecordStatus(env.DB, recordId, status, reason);
@@ -613,14 +595,12 @@ export async function moderateRecord(env: Env, req: Request, recordId: string): 
 // Bulk moderation: move every record in one status to another in a single call
 // (the "Approve all N" action). Defaults to pending → published. Admin only.
 export async function moderateAll(env: Env, req: Request, id: string): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return bad(401, 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return bad(404, 'not found');
+  const c = await adminMap(env, req, id);
+  if (c instanceof Response) return c;
   const body = await readJson(req);
   const from = body?.from === 'rejected' ? 'rejected' : 'pending';
   const to = body?.to === 'rejected' ? 'rejected' : 'published';
-  const schema = JSON.parse(c.schema_doc) as { fields: Field[] };
+  const schema = db.schemaOf(c);
   if (to === 'published') {
     // Approve only points whose answers are all filled in ("just photos" points
     // wait for theirs; the map may have been switched out of that mode since).
@@ -662,14 +642,15 @@ export async function getRecordForEdit(env: Env, req: Request, recordId: string)
   if (!c) return bad(404, 'not found');
   const r = auth.record;
   const props = JSON.parse(r.properties) as Record<string, unknown>;
+  const schema = db.schemaOf(c);
   return json(200, {
     id: r.id,
     status: r.status,
     contributor: r.contributor,
     geometry: JSON.parse(r.geometry),
     properties: props,
-    photos: photoLinks((JSON.parse(c.schema_doc) as { fields: Field[] }).fields, props, new URL(req.url).origin),
-    schema: JSON.parse(c.schema_doc),
+    photos: photoLinks(schema.fields, props, new URL(req.url).origin),
+    schema,
     collection_name: c.name,
   });
 }
@@ -682,7 +663,7 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
+  const schema = db.schemaOf(c);
   const patch: { geometry?: string; properties?: string; status?: string } = {};
   let movedGeometry: unknown;
   let photoIds: string[] | undefined;
@@ -690,10 +671,7 @@ export async function editRecord(env: Env, req: Request, recordId: string, defer
   if (body.geometry !== undefined) {
     const bounds = checkIndiaBounds(body.geometry);
     if (!bounds.ok) return bad(400, bounds.error);
-    const bucket = geomBucket((body.geometry as { type: string }).type);
-    if (!bucket || !schema.geometry.includes(bucket)) {
-      return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
-    }
+    if (!geometryAllowed(body.geometry, schema.geometry)) return bad(400, `this collection accepts ${schema.geometry.join(', ')} geometry`);
     patch.geometry = JSON.stringify(body.geometry);
     movedGeometry = body.geometry;
   }
@@ -752,23 +730,11 @@ export async function deidentifyRecordHandler(env: Env, req: Request, recordId: 
 // without client_id are added every time, as before.
 
 export async function importRecords(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
-  const attemptId = `att_${nanoid(10)}`;
   const started = Date.now();
   const ipHash = await collectIpHash(req, env);
-  const log = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => deferLog(defer, env.DB, {
-    ...row, event: 'import', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started, ip_hash: ipHash,
-  });
-  const refuse = (status: number, gate: string, error: string) => {
-    log({ outcome: 'rejected', gate, reason: error });
-    return json(status, { error, attempt_id: attemptId });
-  };
-  try {
-    return await importInto(env, req, id, ipHash, attemptId, log, refuse);
-  } catch (e) {
-    const err = e as Error;
-    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
-    return json(500, { error: 'Something went wrong on our side and nothing was imported. Please try again.', attempt_id: attemptId });
-  }
+  return withAttempt(defer, env, 'import', id, { started, ip_hash: ipHash },
+    'Something went wrong on our side and nothing was imported. Please try again.',
+    (a) => importInto(env, req, id, ipHash, a));
 }
 
 const IMPORT_BATCH = 100; // rows per D1 batch (one transaction each)
@@ -776,15 +742,9 @@ const IMPORT_CLIENT_ID_MAX = 128;
 const CONTROL_CHARS = /[\u0000-\u001f\u007f]/;
 const reasonList = (rs: Array<{ reason: string; count: number }>): string => rs.map((r) => `${r.reason} (${r.count})`).join('; ');
 
-async function importInto(
-  env: Env, req: Request, id: string, ipHash: string, attemptId: string,
-  log: (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms' | 'ip_hash'>) => void,
-  refuse: (status: number, gate: string, error: string) => Response,
-): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return refuse(404, 'not_found', 'not found');
+async function importInto(env: Env, req: Request, id: string, ipHash: string, { attemptId, log, refuse }: Attempt): Promise<Response> {
+  const c = await adminMap(env, req, id, refuse);
+  if (c instanceof Response) return c;
   if (c.status === 'closed') return refuse(403, 'closed', 'this collection is closed');
 
   const body = await readJson(req);
@@ -800,7 +760,7 @@ async function importInto(
   if (!source) return refuse(400, 'source', 'name the data source (where this data comes from)');
   if (source.length > 200) return refuse(400, 'source', 'source must be under 200 characters');
 
-  const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[] };
+  const schema = db.schemaOf(c);
   const contributor = contributorOf(body.contributor);
   if (contributor === undefined) return refuse(400, 'body', CONTRIBUTOR_TOO_LONG);
   // Import is admin-only, so this is always the owner's own data → published
@@ -823,8 +783,7 @@ async function importInto(
     }
     const bounds = checkIndiaBounds(r?.geometry);
     if (!bounds.ok) { errors.push({ index: i, error: bounds.error }); continue; }
-    const bucket = geomBucket((r.geometry as { type: string }).type);
-    if (!bucket || !schema.geometry.includes(bucket)) { errors.push({ index: i, error: `geometry not allowed here` }); continue; }
+    if (!geometryAllowed(r.geometry, schema.geometry)) { errors.push({ index: i, error: `geometry not allowed here` }); continue; }
     const v = validateRecordProperties(schema.fields, r?.properties);
     if (!v.ok) { errors.push({ index: i, error: v.error }); continue; }
     rows.push({
@@ -897,39 +856,17 @@ async function importInto(
 /** The most approved points one publish takes (it builds the whole file in memory). */
 export const PUBLISH_MAX_POINTS = 100_000;
 
-type PublishLog = (row: Omit<CollectAttempt, 'event' | 'collection_id' | 'attempt_id' | 'duration_ms'>) => void;
-
 /** Publish a map to the catalog. Every exit is logged with a reference
- *  (attempt_id) that is also returned, and an unexpected exception becomes a
- *  logged 500 instead of escaping to the router. */
+ *  (attempt_id) that is also returned (see withAttempt). */
 export async function publish(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
-  const attemptId = `att_${nanoid(10)}`;
-  const started = Date.now();
-  const log: PublishLog = (row) => deferLog(defer, env.DB, {
-    ...row, event: 'publish', collection_id: id, attempt_id: attemptId, duration_ms: Date.now() - started,
-  });
-  const refuse = (status: number, gate: string, error: string) => {
-    log({ outcome: 'rejected', gate, reason: error });
-    return json(status, { error, attempt_id: attemptId });
-  };
-  try {
-    return await publishMap(env, req, id, attemptId, log, refuse);
-  } catch (e) {
-    const err = e as Error;
-    log({ outcome: 'rejected', gate: 'internal', reason: 'unexpected server error', step: 'internal', detail: err.stack || err.message });
-    return json(500, { error: 'Something went wrong on our side and the map was not published. Please try again.', attempt_id: attemptId });
-  }
+  return withAttempt(defer, env, 'publish', id, { started: Date.now() },
+    'Something went wrong on our side and the map was not published. Please try again.',
+    (a) => publishMap(env, req, id, a));
 }
 
-async function publishMap(
-  env: Env, req: Request, id: string, attemptId: string, log: PublishLog,
-  refuse: (status: number, gate: string, error: string) => Response,
-): Promise<Response> {
-  const perm = await permissionFor(env.DB, id, bearer(req));
-  if (!atLeast(perm, 'admin')) return refuse(401, 'auth', 'unauthorised');
-
-  const c = await db.getCollection(env.DB, id);
-  if (!c) return refuse(404, 'not_found', 'not found');
+async function publishMap(env: Env, req: Request, id: string, { attemptId, log, refuse }: Attempt): Promise<Response> {
+  const c = await adminMap(env, req, id, refuse);
+  if (c instanceof Response) return c;
 
   // Every approved point goes into one file built in memory, so a map over the
   // limit is refused rather than published with points cut off.
@@ -939,7 +876,7 @@ async function publishMap(
     return refuse(413, 'too_large', `too many approved points to publish at once (${published}; the limit is ${PUBLISH_MAX_POINTS}). Ask us to publish it for you.`);
   }
   const rows = await db.listRecords(env.DB, id, { status: 'published', limit: PUBLISH_MAX_POINTS });
-  const fields = (JSON.parse(c.schema_doc) as { fields: Field[] }).fields;
+  const fields = db.schemaOf(c).fields;
   const hidden = new Set(fields.filter((f) => f.deleted).map((f) => f.key));
   const withoutHidden = (p: Record<string, unknown>) => Object.fromEntries(Object.entries(p).filter(([k]) => !hidden.has(k)));
   const origin = new URL(req.url).origin;
@@ -961,11 +898,7 @@ async function publishMap(
   // R6: refuse a republish with byte-identical content ("nothing new since v{N}").
   const version = await db.nextVersion(env.DB, id);
   if (version > 1) {
-    const prev = (await env.DB
-      .prepare(`SELECT content_hash FROM publications WHERE collection_id = ? AND version = ?`)
-      .bind(id, version - 1)
-      .first()) as { content_hash: string } | null;
-    if (prev?.content_hash === contentHash) return refuse(409, 'unchanged', `nothing new since v${version - 1}`);
+    if ((await db.publicationHash(env.DB, id, version - 1)) === contentHash) return refuse(409, 'unchanged', `nothing new since v${version - 1}`);
   }
 
   // Imported records are credited via their source, not the contributor tally;
@@ -999,7 +932,7 @@ async function publishMap(
             attribution: attribution.line,
             contributors: attribution.contributors,
             sources: attribution.sources,
-            collection_url: `${new URL(req.url).origin}/c/${id}`,
+            collection_url: mapUrl(new URL(req.url).origin, id),
             version,
           }),
           httpMetadata: { contentType: 'application/json' },
@@ -1011,10 +944,10 @@ async function publishMap(
         status: 'pending',
         name: c.name,
         description: c.description,
-        category: (JSON.parse(c.schema_doc) as { category?: string }).category || 'other',
+        category: db.schemaOf(c).category || 'other',
         license: c.license,
         attribution: attribution.line,
-        source_url: `https://collect.bharatlas.com/c/${id}`,
+        source_url: mapUrl('https://collect.bharatlas.com', id),
         data_year: c.data_year,
         is_original: 1,
         format: 'geojson',

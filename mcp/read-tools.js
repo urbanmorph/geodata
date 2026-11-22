@@ -293,6 +293,11 @@ export const READ_TOOLS = [
 
 const READ_NAMES = new Set(READ_TOOLS.map((t) => t.name));
 
+/** Is `name` one of the read tools (offered or not)? */
+export function isReadTool(name) {
+  return READ_NAMES.has(name);
+}
+
 /** The point lookups: built, but offered only while they are published (the API's POINT_PROFILES flag). */
 export const POINT_PROFILE_TOOLS = new Set(["ground_at", "surface_at"]);
 
@@ -307,9 +312,6 @@ const POINT_PROFILE_PATTERN = `- **A point's profile**: ground_at says what is b
 export function instructionsCore(pointProfiles) {
   return pointProfiles ? CORE.replace("\n- **Community layers**", `\n${POINT_PROFILE_PATTERN}\n- **Community layers**`) : CORE;
 }
-
-/** The instructions as published while the point lookups are off. */
-export const INSTRUCTIONS_CORE = instructionsCore(false);
 
 // Mirrors QUERY_OPTIONS in web/functions/lib/query-params.ts (a web test holds
 // the two equal): these names are query options, so a where column with one of
@@ -368,7 +370,7 @@ function whereArg(value) {
 /** The API GET a read tool makes: { path, params } under /api/v1, or null when
  *  `name` is not a read tool. Throws on a layer_id the API could never accept. */
 export function readToolRequest(name, args = {}) {
-  if (!READ_NAMES.has(name)) return null;
+  if (!isReadTool(name)) return null;
   switch (name) {
     case "list_layers": {
       const { category, level, source, q, limit = 20, offset } = args;

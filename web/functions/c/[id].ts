@@ -10,7 +10,7 @@ import { renderViewPage } from '../lib/render-view';
 import { SECURITY_HEADERS_HTML } from '../lib/security-headers';
 import type { Env as MiddlewareEnv } from '../api/_middleware';
 import { notFoundResponse } from '../lib/not-found';
-import { cachedLive } from '../lib/edge-cache';
+import { CACHE_CONTROL, cachedLive } from '../lib/edge-cache';
 
 type Env = MiddlewareEnv;
 type Params = { id: string };
@@ -50,7 +50,7 @@ async function render(ctx: Parameters<PagesFunction<Env, keyof Params>>[0], id: 
   return new Response(html, {
     headers: {
       'content-type': 'text/html; charset=utf-8',
-      'cache-control': 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+      'cache-control': CACHE_CONTROL.page,
       ...SECURITY_HEADERS_HTML,
     },
   });

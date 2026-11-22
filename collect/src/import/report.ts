@@ -6,7 +6,7 @@
 import { summarizeErrors, type Reason } from './check';
 import type { BuildResult, ImportError } from './build';
 import type { ParsedFeature } from './parse';
-import { escapeHtml } from '../util';
+import { escapeHtml, plural } from '../util';
 import { ApiError } from '../api';
 
 type RowError = { index: number; error: string };
@@ -93,7 +93,7 @@ export function importReport(features: ParsedFeature[], built: BuildResult, repl
   return { total: features.length, added, notAdded, reasons: summarizeErrors(notAdded), attemptId, failed, unconfirmed };
 }
 
-const rows = (n: number) => `${n} row${n === 1 ? '' : 's'}`;
+const rows = (n: number) => plural(n, 'row');
 
 export function importReportHtml(r: ImportReport): string {
   const ref = r.attemptId ? ` Reference: <code>${escapeHtml(r.attemptId)}</code>.` : '';

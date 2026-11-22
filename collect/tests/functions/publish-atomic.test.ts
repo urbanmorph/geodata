@@ -4,35 +4,24 @@
 // wrote six things one after another with no rollback and no failure log.
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { req, j, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 let env: Env & { DB: ReturnType<typeof sqliteD1> };
 let objects: Map<string, number>;
 let failPut = false;
 let pending: Promise<unknown>[];
 const defer = (p: Promise<unknown>) => { pending.push(p); };
 
-function req(method: string, path: string, token = '', body?: unknown): Request {
-  const headers: Record<string, string> = { 'content-type': 'application/json' };
-  if (token) headers.authorization = `Bearer ${token}`;
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 const n = async (table: string) => ((await env.DB.prepare(`SELECT COUNT(*) AS n FROM ${table}`).first()) as { n: number }).n;
 
 async function mapWithAPoint(): Promise<{ id: string; admin: string }> {
-  const c = await j(await h.createCollection(env, req('POST', '/collections', '', {
-    name: 'Ward trees', purpose: 'Street trees', license: 'CC-BY-4.0',
-    schema_doc: { version: 1, geometry: ['point'], fields: [{ key: 'name', label: 'Name', type: 'text', required: true }] },
-    moderation: 0,
-  })));
-  expect(c.status).toBe(200);
-  const add = await h.addRecord(env, req('POST', `/collections/${c.body.id}/records`, c.body.tokens.edit,
-    { geometry: { type: 'Point', coordinates: [77.59, 12.97] }, properties: { name: 'Neem' } }), c.body.id);
+  const m = await makeMap(env, { moderation: 0 });
+  const add = await h.addRecord(env, req('POST', `/collections/${m.id}/records`, m.edit,
+    { geometry: { type: 'Point', coordinates: [77.59, 12.97] }, properties: { name: 'Neem' } }), m.id);
   expect(add.status).toBe(200);
-  return { id: c.body.id, admin: c.body.tokens.admin };
+  return m;
 }
 async function publish(m: { id: string; admin: string }) {
   const r = await j(await h.publish(env, req('POST', `/collections/${m.id}/publish`, m.admin, {}), m.id, defer));
@@ -81,6 +70,18 @@ describe('publish', () => {
     const r = await publish(await mapWithAPoint());
     expect(r.body.message).toMatch(/bharatlas/);
     expect(r.body.message).not.toMatch(/—|catalog/i);
+  });
+
+  it('refuses a republish with nothing new, naming the version; a changed map publishes v2', async () => {
+    const m = await mapWithAPoint();
+    expect((await publish(m)).status).toBe(200);
+    const again = await publish(m);
+    expect(again.status).toBe(409);
+    expect(again.body.error).toBe('nothing new since v1');
+    expect((await publishAttempts()).map((a) => a.gate)).toContain('unchanged');
+    env.DB.raw.exec(`UPDATE records SET properties = '{"name":"Peepal"}'`);
+    expect((await publish(m)).status).toBe(200);
+    expect(await n('publications')).toBe(2);
   });
 
   it('keeps nothing when a file cannot be stored, and logs why', async () => {

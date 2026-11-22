@@ -55,6 +55,9 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import write_if_changed  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 META_ROOT = ROOT / 'web' / 'public' / 'releases'
 FILES_ROOT = ROOT / 'data' / 'baked' / 'releases'
@@ -97,14 +100,6 @@ def _sha_file(path: Path) -> str:
         for chunk in iter(lambda: f.read(1 << 20), b''):
             h.update(chunk)
     return h.hexdigest()
-
-
-def _write_if_changed(path: Path, text: str) -> bool:
-    if path.exists() and path.read_text(encoding='utf-8') == text:
-        return False
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding='utf-8', newline='')
-    return True
 
 
 def _codes(meta_root: Path, dataset: str | None = None) -> list[str]:
@@ -220,9 +215,9 @@ def make_release(src: Path, day: str, meta_root: Path = META_ROOT, files_root: P
     files_dir.mkdir(parents=True, exist_ok=True)
     for n in names:
         shutil.copyfile(src / n, files_dir / n)
-    _write_if_changed(meta_dir / 'SHA256SUMS', sums)
-    _write_if_changed(meta_dir / 'CHANGES.md', _changes(code, meta, files, previous, prev_manifest, digest, day))
-    _write_if_changed(meta_dir / 'manifest.json', json.dumps(manifest, indent=1, ensure_ascii=False) + '\n')
+    write_if_changed(meta_dir / 'SHA256SUMS', sums)
+    write_if_changed(meta_dir / 'CHANGES.md', _changes(code, meta, files, previous, prev_manifest, digest, day))
+    write_if_changed(meta_dir / 'manifest.json', json.dumps(manifest, indent=1, ensure_ascii=False) + '\n')
     return code, True
 
 
@@ -407,7 +402,7 @@ def write_index(meta_root: Path = META_ROOT) -> bool:
     doc = {'note': 'bharatlas releases: each code is immutable and pinned by its SHA-256. '
                    'Data from others keeps its source\'s licence; credit the source first.',
            'latest': dict(sorted(latest.items())), 'releases': listing}
-    return _write_if_changed(meta_root / 'index.json', json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
+    return write_if_changed(meta_root / 'index.json', json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
 
 
 def upload_keys(code: str, files_root: Path = FILES_ROOT) -> list[tuple[Path, str]]:

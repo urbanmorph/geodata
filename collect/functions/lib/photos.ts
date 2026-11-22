@@ -12,6 +12,7 @@ import { bearer, linkFor, atLeast } from './auth';
 import { hashToken, verifyToken } from './tokens';
 import { nanoid, collectIpHash } from './reuse';
 import { checkPhotoRate } from './ratelimit';
+import { schemaOf } from './db';
 import { isInIndia } from '../../src/geo/bounds';
 import { readExif, writeExif } from '../../src/photos/exif';
 import { PHOTO_ID, CLIENT_ID, type Field } from '../../src/schema/validate-record';
@@ -130,7 +131,7 @@ export async function getPhoto(env: Env, req: Request, id: string): Promise<Resp
   ).bind(id).first()) as { r2_key: string; collection_id: string; record_id: string | null; status: string | null; edit_token_hash: string | null; schema_doc: string } | null;
   if (!p) return bad(404, 'not found');
 
-  const hidden = new Set((JSON.parse(p.schema_doc) as { fields: Field[] }).fields.filter((f) => f.deleted).map((f) => f.key));
+  const hidden = new Set(schemaOf(p).fields.filter((f) => f.deleted).map((f) => f.key));
   const isPublic = p.status === 'published' && !(hidden.size && (await photoInHiddenField(env, p.record_id!, id, hidden)));
   if (!isPublic) {
     const token = bearer(req);

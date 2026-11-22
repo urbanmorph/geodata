@@ -3,7 +3,9 @@
 // in the compact layer list and tells the model what they mean.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { shapeReadResult, INSTRUCTIONS_CORE, readToolRequest } from "./read-tools.js";
+import { shapeReadResult, instructionsCore, readToolRequest } from "./read-tools.js";
+
+const INSTRUCTIONS_CORE = instructionsCore(false);   // as published while the point lookups are off
 
 test("list_layers keeps the non-commercial flag and notice", () => {
   const out = shapeReadResult("list_layers", {

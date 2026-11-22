@@ -179,6 +179,16 @@ describe('/mcp tools/call', () => {
     expect(keys.some((k) => k.includes('locate:'))).toBe(true);
   });
 
+  it.each([['surface_at', true], ['locate', true], ['query_layer', false]])('%s on the locate key: %s', async (tool, onLocate) => {
+    const keys: string[] = [];
+    const db = { prepare: () => ({ bind: (k: string) => { keys.push(k); return { first: async () => ({ hour_window_start: new Date().toISOString(), hour_count: 1 }) }; } }) };
+    // A fresh IP per case: the isolate's own window would otherwise answer without D1.
+    const limit = apiRateLimit({ DB: db, IP_SALT: `s-${tool}` } as never, (p) => { void p; });
+    await limit(post({}), tool);
+    await new Promise((r) => setTimeout(r, 0));
+    expect(keys.some((k) => k.includes('locate:'))).toBe(onLocate);
+  });
+
   it('an API error comes back as a tool error with the API message', async () => {
     const { routes } = stubRoutes({ error: 'Layer not found', status: 404 }, 404);
     const { json } = await rpc(call('get_layer_detail', { layer_id: 'nope' }), { routes });

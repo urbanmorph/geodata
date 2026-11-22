@@ -29,7 +29,6 @@ Usage:
 """
 from __future__ import annotations
 
-import argparse
 import json
 import sys
 from collections.abc import Callable
@@ -106,12 +105,6 @@ def pull(raw: Path, get_json: Callable[[str], dict], download: Callable[[str, Pa
     return got
 
 
-def figshare_json(url: str) -> dict:
-    import urllib.request
-    req = urllib.request.Request(url, headers={'User-Agent': pipeline.USER_AGENT})
-    return pipeline.with_retries(lambda: json.loads(urllib.request.urlopen(req, timeout=60).read()))
-
-
 def download_md5(url: str, dest: Path, md5: str) -> None:
     pipeline.download(url, dest, md5=md5)
 
@@ -139,8 +132,6 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
 
     got = json.loads((RAW / 'pull.json').read_text())
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -152,19 +143,9 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         log(f'rows per city: {cities}')
         rows, prop_cols = pipeline.rebake_flatten_bbox(table, path['parquet'])
     con = make_con()
-    log('geojson')
-    path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))
-    log('kml')
-    write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
-    log('shapefile')
-    bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
-    log('pmtiles')
-    bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS, max_zoom=TILE_MAXZOOM)
+    files = bake_formats.write_all_formats(con, path, LAYER_ID, prop_cols, TILE_FIELDS, max_zoom=TILE_MAXZOOM)
     summary = {'rows': rows, 'cities': cities,
-               'pull': {k: got[k] for k in ('article', 'version', 'doi', 'licence', 'modified_date', 'pulled_at')},
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               'pull': {k: got[k] for k in ('article', 'version', 'doi', 'licence', 'modified_date', 'pulled_at')}, **files}
     pipeline.write_json(SUMMARY, summary)
     log(json.dumps(summary, indent=2))
     return summary
@@ -172,8 +153,7 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
 
 def upload(out_dir: Path = OUT_DIR) -> dict[str, str]:
     """Every format to its content-versioned key: unchanged files keep theirs (md5-skipped)."""
-    paths = {fmt: out_dir / name for fmt, name in pipeline.plain_names(BASENAME, EXT).items()}
-    return pipeline.upload_versioned(pipeline.r2_client(), paths, R2_PREFIX)
+    return pipeline.upload_layer(out_dir, BASENAME, EXT, R2_PREFIX)
 
 
 # ── register ─────────────────────────────────────────────────────────────────
@@ -198,31 +178,19 @@ def level_meta() -> dict:
     return {'label': 'Land subsidence, five megacities (InSAR)', 'unit': 'points', 'description': description()}
 
 
-def refresh_block(entry: dict, prev: dict, built_at: str) -> dict:
-    from populate_refresh import infer, next_due
-    block, _ = infer(entry)
-    return {**block, 'audited_at': (prev.get('refresh') or {}).get('audited_at'),
-            'next_due': next_due(block['rebuild'], built_at)}
-
-
 def catalog_entry(summ: dict, prev: dict, r2_public: str) -> dict:
+    from populate_refresh import refresh_block
+    from populate_source_check import override
     names, sizes, got = summ['names'], summ['sizes'], summ['pull']
-    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows']}
-    for fmt in EXT:
-        entry[fmt] = {'url': f'{r2_public}/{R2_PREFIX}/{names[fmt]}', 'bytes': sizes[fmt]}
+    entry = {'id': LAYER_ID, 'level': LEVEL, 'source': SOURCE, 'rows': summ['rows'],
+             **pipeline.format_blocks(EXT, names, sizes, f'{r2_public}/{R2_PREFIX}')}
     entry.update({'licence': LICENCE, 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
                   'category': CATEGORY, 'provenance': 'curated', 'notes': notes(), 'tags': TAGS,
                   'fetched_at': got['pulled_at'],
-                  'source_check': {**source_check(), 'fingerprint': f'version={got["version"]}',
+                  'source_check': {**override(LAYER_ID), 'fingerprint': f'version={got["version"]}',
                                    'checked_at': got['pulled_at'], 'changed_at': got['modified_date']}})
     entry['refresh'] = refresh_block(entry, prev, got['pulled_at'])
     return entry
-
-
-def source_check() -> dict:
-    """{method, url, reason} as populate_source_check.py records it, so a re-run there keeps the fingerprint."""
-    from populate_source_check import OVERRIDES
-    return dict(OVERRIDES[LAYER_ID])
 
 
 def manifest_entry(summ: dict) -> dict:
@@ -230,8 +198,7 @@ def manifest_entry(summ: dict) -> dict:
     return {'id': LAYER_ID, 'name': level_meta()['label'], 'level': LEVEL, 'category': CATEGORY,
             'source': SOURCE, 'description': description(), 'unit': 'points', 'features': summ['rows'],
             'license': LICENCE, 'r2_prefix': R2_PREFIX,
-            'parquet_file': names['parquet'], 'parquet_bytes': sizes['parquet'],
-            'pmtiles_file': names['pmtiles'], 'pmtiles_bytes': sizes['pmtiles'],
+            **pipeline.manifest_files(names, sizes),
             'source_url': DOI_URL, 'source_org': 'Virginia Tech (University Libraries)',
             'source_version': f'figshare {ARTICLE} v{summ["pull"]["version"]}', 'notes': notes(), 'tags': TAGS}
 
@@ -241,28 +208,16 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST,
     """Patch catalog.json + the manifest in place (never rebuild). Idempotent."""
     summ = json.loads(summary_path.read_text())
     pipeline.summary_names(summ)
-    catalog = json.loads(catalog_path.read_text())
-    prev = next((x for x in catalog.get('layers', []) if x.get('id') == LAYER_ID), {})
-    entry = catalog_entry(summ, prev, r2_public or pipeline.R2_PUBLIC)
-    pipeline.upsert_layer(catalog, entry, level_meta(), level=LEVEL, attribution=(SOURCE, ATTRIBUTION))
-    # This bake makes every file of the layer, so its entry stands as built (see bake_airports.register).
-    catalog['layers'] = pipeline.upsert_by_id(catalog['layers'], pipeline.licence_labelled(entry))
-    pipeline.write_json(catalog_path, catalog)
-    pipeline.write_json(manifest_path, pipeline.upsert_by_id(json.loads(manifest_path.read_text()), manifest_entry(summ)))
+    pipeline.register_layer(catalog_path, manifest_path,
+                            lambda prev: catalog_entry(summ, prev, r2_public or pipeline.R2_PUBLIC),
+                            manifest_entry(summ), level_meta(), as_built=True, level=LEVEL,
+                            attribution=(SOURCE, ATTRIBUTION))
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument('step', choices=['pull', 'bake', 'upload', 'register'])
-    a = ap.parse_args()
-    if a.step == 'pull':
-        log(json.dumps(pull(RAW, figshare_json, download_md5), indent=2))
-    elif a.step == 'bake':
-        bake()
-    elif a.step == 'upload':
-        upload()
-    else:
-        register()
+    pipeline.step_cli(__doc__, {
+        'pull': lambda a: log(json.dumps(pull(RAW, pipeline.get_json, download_md5), indent=2)),
+        'bake': lambda a: bake(), 'upload': lambda a: upload(), 'register': lambda a: register()})
 
 
 if __name__ == '__main__':

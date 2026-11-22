@@ -64,7 +64,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import licence_watch  # noqa: E402
 from catalog_record import github_asset  # noqa: E402
-from pipeline import is_client_error, log, with_retries, write_json  # noqa: E402
+from pipeline import is_client_error, log, with_retries, write_atomic, write_json  # noqa: E402
 from populate_refresh import RELEASES, last_build, last_refresh, load_releases, next_due, weak_check  # noqa: E402
 
 ROOT = HERE.parent
@@ -299,10 +299,7 @@ def save_status(path: Path, status: dict) -> None:
     text = json.dumps(status, indent=1, sort_keys=True) + '\n'
     if path.exists() and path.read_text() == text:
         return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    part = path.with_name(path.name + '.part')
-    part.write_text(text)
-    os.replace(part, path)
+    write_atomic(path, text.encode())
 
 
 def _same_check(prev: dict, check: dict) -> bool:

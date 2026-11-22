@@ -2,8 +2,8 @@ import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
 import { countApiUse } from '../../lib/usage';
 import { nearbyTrueDistance } from '../../lib/nearby-true-distance';
-import { QueryInputError } from '../../lib/parquet-query';
-import { apiError, safeStringify, serverError } from '../../lib/http';
+import { queryFailure } from '../../lib/parquet-query';
+import { apiError, json } from '../../lib/http';
 import { parseIndiaPoint, resolveLayer } from '../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../lib/edge-cache';
 
@@ -26,15 +26,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   return cached(ctx, cacheKey(`${version}.shape`, url), EDGE_TTL.r2, async () => {
     try {
       const result = await nearbyTrueDistance(lat, lng, radiusKm, layer.id, catalog, ctx.env.R2, limit);
-      return new Response(safeStringify(result), {
-        headers: {
-          'content-type': 'application/json',
-          'cache-control': 'public, max-age=3600, stale-while-revalidate=86400',
-        },
-      });
+      return json(200, result, { 'cache-control': 'public, max-age=3600, stale-while-revalidate=86400' });
     } catch (e) {
-      if (e instanceof QueryInputError) return apiError(400, e.message);
-      return serverError('Nearby', e);
+      return queryFailure('Nearby')(e);
     }
   });
 };

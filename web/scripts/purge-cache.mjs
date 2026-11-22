@@ -16,6 +16,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SITE_ORIGIN } from '../../shared/brand.mjs';
 
 const PAGES = ['/', '/index.html', '/layers', '/about', '/docs', '/preview', '/mcp', '/privacy', '/terms', '/design'];
 const FILES = ['/catalog.json', '/sitemap.xml', '/llms.txt', '/layer-index.json', '/og-default.png', '/og-about.png', '/og-preview.png'];
@@ -54,7 +55,7 @@ async function main() {
   }
   const here = dirname(fileURLToPath(import.meta.url));
   const catalog = JSON.parse(readFileSync(resolve(here, '../../catalog.json'), 'utf8'));
-  const batches = chunks(purgeUrls(catalog, 'https://bharatlas.com'), 30);
+  const batches = chunks(purgeUrls(catalog, SITE_ORIGIN), 30);
   let purged = 0;
   for (const [i, batch] of batches.entries()) {
     try {

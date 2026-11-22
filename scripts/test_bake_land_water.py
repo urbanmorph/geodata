@@ -14,6 +14,7 @@ import pytest
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import bake_land_water as blw  # noqa: E402
+import tile_probe  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
 import licence_watch  # noqa: E402
 from tile_keys import versioned_key  # noqa: E402
@@ -121,7 +122,7 @@ def test_layers_cut_to_one_copy_say_so():
 
 def test_tile_bounds_of_a_known_tile():
     # z0 is the whole web-mercator world; z1 x1 y0 is the north-east quarter.
-    w, s, e, n = blw.tile_bounds(1, 1, 0)
+    w, s, e, n = tile_probe.tile_bounds(1, 1, 0)
     assert (w, e) == (0.0, 180.0) and s == pytest.approx(0.0, abs=1e-9) and n > 85
 
 
@@ -402,10 +403,10 @@ def test_overview_and_detail_join_into_one_tileset(tmp_path):
     out = tmp_path / 'S.pmtiles'
     con = blw.make_con(tmp_path)
     blw.bake_tiles(src, out, 'lyr', ['cls', 'other'], True, con, overview='cls', deadline=blw.Deadline(5))
-    low = blw.decode_tile(out, 3, *blw.tile_for(77.15, 28.05, 3), tmp_path / 'low.geojson')
+    low = tile_probe.decode_tile(out, 3, *tile_probe.tile_for(77.15, 28.05, 3), tmp_path / 'low.geojson')
     z = blw.OVERVIEW_MAXZOOM + 1
     high = tmp_path / 'high.geojson'
-    blw.decode_tile(out, z, *blw.tile_for(77.15, 28.05, z), high)
+    tile_probe.decode_tile(out, z, *tile_probe.tile_for(77.15, 28.05, z), high)
     assert low == 2  # dissolved A + B
     low_props = [f['properties'] for f in json.loads((tmp_path / 'low.geojson').read_text())['features']]
     assert all(p == {'cls': p['cls'], '_ov': 1} for p in low_props)

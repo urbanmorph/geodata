@@ -5,32 +5,26 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <!-- SEO_HEAD -->
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" sizes="any" href="/favicon.ico" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.webmanifest" />
-    <meta name="theme-color" content="#F3F6F1" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0a0a0a" media="(prefers-color-scheme: dark)" />
+    <!-- HEAD_ICONS -->
     <style>
       <!-- TOKENS -->
       p, li { font-size: var(--fs-base); color: var(--muted); overflow-wrap: anywhere; }
-      .method { margin-right: 6px; }
+      .method { margin-right: var(--sp-1-5); }
       .endpoint { font: var(--fs-base) var(--font-mono); }
       .lead { font-size: var(--fs-lg); color: var(--muted-strong); margin: 0 0 var(--sp-3); }
       .hero-meta { margin: 0 0 var(--sp-4); }
       .cta-row { display: flex; flex-wrap: wrap; gap: var(--sp-3); margin: var(--sp-4) 0 var(--sp-6); }
       /* "On this page": a sheet index, ruled above and below. */
-      .toc { display: flex; flex-wrap: wrap; gap: 0 var(--sp-4); margin: var(--sp-6) 0 0; padding: var(--sp-2) 0; border-top: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); font-size: var(--fs-sm); }
+      .toc { display: flex; flex-wrap: wrap; gap: 0 var(--sp-4); margin: var(--sp-6) 0 0; padding: var(--sp-2) 0; border-top: var(--border-edge); border-bottom: var(--border-edge); font-size: var(--fs-sm); }
       .toc a { display: inline-flex; align-items: center; min-height: 44px; color: var(--accent); font-weight: 600; text-decoration: underline; text-decoration-color: transparent; text-underline-offset: 3px; }
       .toc a:hover, .toc a:focus-visible { text-decoration-color: currentColor; }
-      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin: var(--sp-3) 0; border-top: 1.5px solid var(--edge); border-left: 1.5px solid var(--edge); }
-      .card { padding: var(--sp-4); background: var(--bg-elevated); border-right: 1.5px solid var(--edge); border-bottom: 1.5px solid var(--edge); }
+      .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); margin: var(--sp-3) 0; border-top: var(--border-edge); border-left: var(--border-edge); }
+      .card { padding: var(--sp-4); background: var(--bg-elevated); border-right: var(--border-edge); border-bottom: var(--border-edge); }
       .card h3 { margin: 0 0 var(--sp-1); font-size: var(--fs-md); }
       .card p { margin: 0 0 var(--sp-2); font-size: var(--fs-base); }
       .card p:last-child { margin-bottom: 0; }
       .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0; padding: 0; list-style: none; }
-      .stats li { padding: var(--sp-3); font-size: var(--fs-sm); background: var(--bg-elevated); border: 1.5px solid var(--edge); border-radius: var(--radius-sm); }
+      .stats li { padding: var(--sp-3); font-size: var(--fs-sm); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm); }
       .stats b { display: block; font-size: var(--fs-xl); color: var(--fg); }
       @media (max-width: 640px) { .endpoint { font-size: var(--fs-xs); } td code { word-break: break-all; } }
     </style>

@@ -15,7 +15,15 @@ import { onRequestGet as ogView } from '../functions/og/view/[id].png';
 import { onRequestGet as ogCommunity } from '../functions/og/c/[id].png';
 import { buildWardTable, buildZoneList, type WardIndex } from '../functions/lib/view-dataset';
 
-const CATALOG = { layers: [{ id: 'wards_x', level: 'wards_x', source: 'X Corp', rows: 2 }, { id: 'dist', level: 'district', source: 'LGD', rows: 6 }] };
+const CATALOG = {
+  layers: [
+    { id: 'wards_x', level: 'wards_x', source: 'X Corp', rows: 2 },
+    { id: 'dist', level: 'district', source: 'LGD', rows: 6 },
+    { id: 'lgd_blocks', level: 'block', source: 'LGD', rows: 7000 },
+    { id: 'bhuvan_blocks', level: 'block', source: 'Bhuvan', rows: 6900 },
+    { id: 'ir_stations', level: 'ir_stations', source: 'CRIS', rows: 9 },
+  ],
+};
 const WARDS: WardIndex = { place: 'X', nameLabel: 'Name', rows: [{ no: '1', name: 'A', zone: 'N' }, { no: '2', name: 'B', zone: 'S' }] } as WardIndex;
 
 let store: Map<string, Response>;
@@ -100,6 +108,44 @@ describe('OG cards', () => {
     expect(renderOgPng).toHaveBeenCalledTimes(1);
     expect([...store.keys()][0]).toContain('2026-11-01');
   });
+});
+
+describe('/view and /og/view agree on the layer', () => {
+  // The card title is the page's level label: for an alternate source (Bhuvan
+  // blocks next to LGD blocks) that is "Blocks", not the LGD layer's
+  // "Blocks (2024)" nor the bare id.
+  it("an alternate source's card title is its page's level label", async () => {
+    await call(ogView, '/og/view/bhuvan_blocks.png', { id: 'bhuvan_blocks' });
+    const svg = String(vi.mocked(renderOgPng).mock.calls[0][0]);
+    expect(svg).toContain('>Blocks<');
+    expect(svg).not.toContain('bhuvan blocks');
+    expect(svg).not.toContain('(2024)');
+  });
+
+  it('the primary layer keeps its level label with the year', async () => {
+    await call(ogView, '/og/view/lgd_blocks.png', { id: 'lgd_blocks' });
+    expect(String(vi.mocked(renderOgPng).mock.calls[0][0])).toContain('Blocks (2024)');
+  });
+
+  for (const [name, handler, path] of [
+    ['/view', viewRoute, '/view/'],
+    ['/og/view', ogView, '/og/view/'],
+  ] as const) {
+    const ext = name === '/og/view' ? '.png' : '';
+    it(`${name}: a retired id is a 301 to its successor`, async () => {
+      const r = await call(handler, `${path}ir_stations_merged${ext}`, { id: 'ir_stations_merged' });
+      expect(r.status).toBe(301);
+      expect(r.headers.get('location')).toBe(`https://bharatlas.com${path}ir_stations${ext}`);
+    });
+    it(`${name}: an unknown id is a 404`, async () => {
+      const r = await call(handler, `${path}nope${ext}`, { id: 'nope' });
+      expect(r.status).toBe(404);
+    });
+    it(`${name}: a malformed id is a 404`, async () => {
+      const r = await call(handler, `${path}a.b${ext}`, { id: 'a.b' });
+      expect(r.status).toBe(404);
+    });
+  }
 });
 
 describe('ward tables', () => {

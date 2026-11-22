@@ -3,16 +3,16 @@ import { escapeHtml as esc, fmtBytes } from '../../../shared/format.mjs';
 import { licenceUrl, licenceBadgeHtml, layerIsNonCommercial } from '../../../shared/licences.mjs';
 import { LEVEL_META, pickPrimary, type LevelMeta } from '../../../shared/level-meta.mjs';
 import { PUBLISHER_LD } from '../../../shared/brand.mjs';
+import type { CatalogLayer as ApiCatalogLayer } from './catalog-api';
 // Pure builder for the /view/<id> page's per-layer meta + Dataset JSON-LD.
 // Extracted from functions/view/[id].ts so the description-length rule
 // (Google Dataset Search requires ≥50 chars) is unit-testable.
 
-export type CatalogLayer = {
-  id: string;
+/** A catalog layer as the /view page reads it: the served catalog's row
+ *  (catalog-api), widened for the community rows render-view also passes. */
+export type CatalogLayer = Omit<ApiCatalogLayer, 'level' | 'category' | 'provenance' | 'attribution'> & {
   /** null for community layers, which sit outside the admin-level ladder. */
   level: string | null;
-  source: string;
-  rows: number | null;
   /** Display name for layers without a LEVEL_META entry (e.g. community). */
   name?: string;
   description?: string;
@@ -22,20 +22,8 @@ export type CatalogLayer = {
   vintage?: string | number | null;
   provenance?: string;
   category?: string;
-  licence?: string;
-  non_commercial?: boolean;
-  notes?: string;
-  parquet?: { url: string; bytes: number } | null;
-  pmtiles?: { url: string; bytes: number } | null;
-  geojson?: { url: string; bytes: number } | null;
-  kml?: { url: string; bytes: number } | null;
-  shapefile?: { url: string; bytes: number } | null;
   /** Who to credit: the original source, and the republisher bharatlas took it from. */
   attribution?: { primary?: NamedLink | null; publisher?: NamedLink | null } | string | null;
-  /** When bharatlas last fetched the layer from its source (ISO date or datetime). */
-  fetched_at?: string | null;
-  /** Dated releases of this layer, newest first (served catalog only). */
-  versions?: Array<{ code: string; released?: string; sha256?: string; w3id?: string; url?: string }>;
 };
 
 type NamedLink = { name?: string | null; url?: string | null };
@@ -68,7 +56,10 @@ export function resolveLevelMeta(
   layer: CatalogLayer,
   catalogLevelMeta: Record<string, LevelMeta> | undefined,
 ): LevelMeta | undefined {
-  return catalogLevelMeta?.[layer.id] ?? (layer.level ? LEVEL_META[layer.level] : undefined);
+  // The layer's own entry, then its level's: the catalog's (some layers' meta
+  // is keyed by level, e.g. subsidence_point), else the built-in table.
+  if (catalogLevelMeta?.[layer.id]) return catalogLevelMeta[layer.id];
+  return layer.level ? catalogLevelMeta?.[layer.level] ?? LEVEL_META[layer.level] : undefined;
 }
 
 /** The layer fields the alternate-source rule reads. */
@@ -163,7 +154,7 @@ function creditLine(layer: CatalogLayer): string {
 function buildDistribution(layer: CatalogLayer): Array<Record<string, unknown>> {
   const out: Array<Record<string, unknown>> = [];
   for (const [key, encodingFormat] of DISTRIBUTION_FORMATS) {
-    const ref = layer[key] as { url: string; bytes: number } | null | undefined;
+    const ref = layer[key];
     if (ref?.url) {
       out.push({
         '@type': 'DataDownload',

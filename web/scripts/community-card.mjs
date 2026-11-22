@@ -21,22 +21,14 @@ export function channelOf(s) {
 }
 export const CHANNEL_LABEL = { collect: 'via collect', form: 'via the contribution form' };
 
-// The counted download link lives in shared/downloads.mjs (the map page uses it too).
-import { dlProxyUrl } from '../../shared/downloads.mjs';
 import { viewMapLink, wholeFileBytes } from '../../shared/large-load.mjs';
-export { dlProxyUrl };
-
-// Curated download order: data-first (parquet), then tiles, then the
-// human-portable formats. Mirrors the curated card's strip.
-const BAKED_FORMATS = ['parquet', 'pmtiles', 'geojson', 'kml'];
+import { escapeHtml as esc, fmtBytes } from '../../shared/format.mjs';
+import { availableDownloads } from '../src/format-hints.ts';
 
 export function communityCardActions(s, baked) {
   if (baked) {
-    const downloads = [];
-    for (const fmt of BAKED_FORMATS) {
-      const obj = baked[fmt];
-      if (obj?.url) downloads.push({ fmt, url: dlProxyUrl(obj.url, fmt), size: obj.bytes ?? null });
-    }
+    // The curated strip's formats, in its order, through the same counted links.
+    const downloads = availableDownloads(baked).map(({ fmt, url, bytes }) => ({ fmt, url, size: bytes ?? null }));
     return { baked: true, viewUrl: `/view/${baked.id}`, downloads, loadBytes: wholeFileBytes(baked) };
   }
 
@@ -55,8 +47,7 @@ export function communityCardActions(s, baked) {
 // and a vitest so the visual parity is one source of truth: the "View map"
 // control is the SAME .btn-primary pill (shared .btn .btn--line) as curated rows in BOTH states, baked
 // gets the curated dl-inline multi-format strip, unbaked the single raw button.
-// `esc`/`fmtBytes` are injected to avoid duplicating prerender's helpers.
-export function renderCommunityActions(s, baked, { esc, fmtBytes }) {
+export function renderCommunityActions(s, baked) {
   const a = communityCardActions(s, baked);
   let dl;
   if (baked) {

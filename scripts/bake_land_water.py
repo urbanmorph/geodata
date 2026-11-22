@@ -50,7 +50,9 @@ from pathlib import Path
 import duckdb
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import audit_tiles  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
+import tile_probe  # noqa: E402
 from pipeline import make_con as pipeline_make_con  # noqa: E402
 from pipeline import (  # noqa: E402
     CHUNK,
@@ -63,6 +65,7 @@ from pipeline import (  # noqa: E402
     download,
     patient_r2_client,
     r2_upload_retrying,
+    read_head,
     rebake_flatten_bbox,
     run,
     upload_lock,
@@ -239,36 +242,6 @@ def assert_lon_lat(path: Path) -> None:
     assert 68 <= x <= 98 and 6 <= y <= 38, f'{path.name}: first coordinate {x},{y} is not lon,lat in India'
 
 
-def tile_bounds(z: int, x: int, y: int) -> tuple[float, float, float, float]:
-    """(west, south, east, north) in degrees of a web-mercator tile."""
-    n = 2 ** z
-
-    def lat(yy: int) -> float:
-        return math.degrees(math.atan(math.sinh(math.pi * (1 - 2 * yy / n))))
-    return x / n * 360 - 180, lat(y + 1), (x + 1) / n * 360 - 180, lat(y)
-
-
-def tile_for(lon: float, lat: float, z: int) -> tuple[int, int]:
-    n = 2 ** z
-    x = int((lon + 180) / 360 * n)
-    y = int((1 - math.asinh(math.tan(math.radians(lat))) / math.pi) / 2 * n)
-    return x, y
-
-
-def decode_tile(pmtiles: Path, z: int, x: int, y: int, out: Path) -> int:
-    """Write one decoded tile's features (lon,lat) to a GeoJSON file; return their count."""
-    text = run(['tippecanoe-decode', '-c', str(pmtiles), str(z), str(x), str(y)], timeout=600, text=True).stdout
-    feats = [line.rstrip(',') for line in text.splitlines() if line.startswith('{ "type": "Feature"')]
-    out.write_text('{"type": "FeatureCollection", "features": [' + ','.join(feats) + ']}')
-    return len(feats)
-
-
-def pmtiles_maxzoom(pmtiles: Path) -> int:
-    with pmtiles.open('rb') as f:
-        header = f.read(127)
-    return header[101]
-
-
 # Check points: Delhi ridge, Deccan (Pune), Chota Nagpur (Ranchi), Kerala coast.
 PROBES = [(77.2, 28.6), (73.85, 18.5), (85.3, 23.35), (76.3, 9.95)]
 
@@ -286,32 +259,11 @@ def covered(col: str, env: str, polygons: bool, z: int) -> str:
 
 def tile_report(pmtiles: Path, parquet: Path, con: duckdb.DuckDBPyConnection, polygons: bool,
                 zooms: list[int]) -> list[dict]:
-    """Per probe tile at each of `zooms`: decoded features vs parquet
-    features meeting the tile, and the area (polygons) or length (lines)
-    each covers inside the tile. tippecanoe can silently drop polygons and
-    leave holes; decoded tiles, not HTTP statuses, show it."""
-    rows = []
-    tmp = pmtiles.with_name(f'{pmtiles.stem}.decoded.geojson')
-    for lon, lat in PROBES:
-        for z in zooms:
-            x, y = tile_for(lon, lat, z)
-            w, s, e, n = tile_bounds(z, x, y)
-            env = f'ST_MakeEnvelope({w}, {s}, {e}, {n})'
-            # bbox first (cheap), then the geometry: a big irregular polygon's
-            # bbox meets many tiles the polygon does not.
-            expect, want = con.execute(
-                f"SELECT count(*), {covered('geometry', env, polygons, z)} "
-                f"FROM read_parquet('{parquet}') WHERE xmax >= ? AND xmin <= ? AND ymax >= ? AND ymin <= ? "
-                f"AND ST_Intersects(geometry, {env})",
-                [w, e, s, n]).fetchone()
-            decoded = decode_tile(pmtiles, z, x, y, tmp)
-            got = con.execute(
-                f"SELECT {covered('geom', env, polygons, z)} FROM ST_Read('{tmp}')"
-            ).fetchone()[0] if decoded else 0
-            rows.append({'z': z, 'x': x, 'y': y, 'decoded': decoded, 'parquet': expect,
-                         'cover': round(got / want, 3) if want else None})
-    tmp.unlink(missing_ok=True)
-    return rows
+    """tile_probe.tile_report on PROBES at each of `zooms`: decoded features
+    vs parquet features meeting the tile, and the area (polygons) or length
+    (lines) each covers inside the tile."""
+    return tile_probe.tile_report(pmtiles, parquet, con, PROBES, zooms,
+                                  lambda col, env, z: covered(col, env, polygons, z))
 
 
 def probe_zooms(zmax: int, overview: bool) -> list[int]:
@@ -534,7 +486,7 @@ def build(d: ir.Dataset, deadline: Deadline) -> dict:
     overview = OVERVIEW.get(d.id)
     pm = work / pm_name
     bake_tiles(flat, pm, d.id, fields, polygons, con, overview, deadline)
-    zmax = pmtiles_maxzoom(pm)
+    zmax = audit_tiles.parse_header(read_head(pm, 127)).max_zoom
     report = work / 'tiles.json'
     if not report.exists():
         report.write_text(json.dumps(

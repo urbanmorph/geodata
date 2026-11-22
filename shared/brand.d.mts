@@ -1,4 +1,5 @@
 type Org = Readonly<{ '@type': 'Organization'; name: string; url: string }>;
+export declare const SITE_ORIGIN: string;
 export declare const PUBLISHER_LD: Readonly<Org & { parentOrganization: Org }>;
 export declare const PALETTE: Readonly<{
   saffron: string;

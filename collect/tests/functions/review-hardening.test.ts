@@ -5,37 +5,22 @@
 // publish refusing (not truncating) a map too large to publish at once.
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { sqliteD1 } from './helpers/sqlite-d1';
+import { O, req, j, createMap, makeMap } from './helpers/api';
 import * as h from '../../functions/lib/handlers';
 import * as ph from '../../functions/lib/photos';
 import { readExif } from '../../src/photos/exif';
 import { validateSchemaDoc } from '../../src/schema/validate-collection';
 import type { Env } from '../../functions/types';
 
-const O = 'https://collect.test';
 type TestEnv = Env & { DB: ReturnType<typeof sqliteD1> };
 let env: TestEnv;
 let objects: Map<string, Uint8Array>;
 
-function req(method: string, path: string, token = '', body?: unknown, headers: Record<string, string> = {}): Request {
-  const hd: Record<string, string> = { ...headers };
-  if (token) hd.authorization = `Bearer ${token}`;
-  let b: BodyInit | undefined;
-  if (body instanceof Uint8Array) { b = body; hd['content-type'] ??= 'image/jpeg'; }
-  else if (body !== undefined) { b = JSON.stringify(body); hd['content-type'] = 'application/json'; }
-  return new Request(`${O}/api/collect/v1${path}`, { method, headers: hd, body: b });
-}
-const j = async (r: Response) => ({ status: r.status, body: (await r.json()) as Record<string, any> });
 
-const create = (extra: Record<string, unknown> = {}, schema: Record<string, unknown> = {}) => h.createCollection(env, req('POST', '/collections', '', {
-  name: 'Ward trees', purpose: 'Street trees', license: 'CC-BY-4.0', moderation: 0,
-  schema_doc: { version: 1, geometry: ['point'], fields: [{ key: 'name', label: 'Name', type: 'text' }], ...schema },
-  ...extra,
-}));
-async function newMap(schema: Record<string, unknown> = {}) {
-  const r = await j(await create({}, schema));
-  expect(r.status).toBe(200);
-  return { id: r.body.id as string, edit: r.body.tokens.edit as string, admin: r.body.tokens.admin as string };
-}
+const NAME = [{ key: 'name', label: 'Name', type: 'text' }];
+const create = (extra: Record<string, unknown> = {}, schema: Record<string, unknown> = {}) =>
+  createMap(env, { moderation: 0, fields: NAME, schema, extra });
+const newMap = (schema: Record<string, unknown> = {}) => makeMap(env, { moderation: 0, fields: NAME, schema });
 const point = { type: 'Point', coordinates: [77.59, 12.97] };
 const add = async (m: { id: string; edit: string }, body: Record<string, unknown>) =>
   j(await h.addRecord(env, req('POST', `/collections/${m.id}/records`, m.edit, { geometry: point, properties: { name: 'Neem' }, ...body }), m.id));

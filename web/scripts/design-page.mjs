@@ -65,7 +65,7 @@ ${table(['Token', 'Value'], Object.entries(FONT).map(([k, v]) => [code(k), `<spa
 
 function space() {
   const bars = Object.entries(SPACE).map(([k, v]) => `<li><span class="spec-k">${code(k)} ${v}</span><span class="bar" style="width:var(${k})"></span></li>`);
-  return `<p>A 4 px grid. Gaps, padding and margins take a step from this scale.</p><ul class="specs">${bars.join('')}</ul>`;
+  return `<p>A 4 px grid, with 2 px half steps (${code('--sp-N-5')}) for controls and lists. Gaps, padding and margins take a step from this scale (tested).</p><ul class="specs">${bars.join('')}</ul>`;
 }
 
 function shape() {
@@ -83,7 +83,7 @@ const Z_USE = {
   '--z-sheet': 'Bottom sheets and panels', '--z-popover': 'Popovers and toasts', '--z-dialog': 'Dialogs and viewers', '--z-skip': 'The skip link',
 };
 function system() {
-  return `<h3>Layers</h3><p>Named stacking layers, lowest first. Use the name, not a number.</p>
+  return `<h3>Layers</h3><p>Named stacking layers, lowest first. Use the name, not a number; a layer just above or below one is ${code('calc(var(--z-map-ui) + 1)')} (tested).</p>
 ${table(['Token', 'Value', 'Use'], Object.entries(Z).map(([k, v]) => [code(k), v, Z_USE[k] ?? '']))}
 <h3>Motion</h3><p>Short and functional: a sheet slides, a button presses. With reduced motion on, nothing slides, pings or spins, and the map on bharatlas.com jumps instead of flying (tested).</p>
 ${table(['Token', 'Value'], Object.entries(MOTION).map(([k, v]) => [code(k), code(v)]))}
@@ -181,7 +181,7 @@ const TESTS = [
   ['design-tokens', 'Both sites emit the token module, with no token of their own; theme-color is the paper'],
   ['contrast', 'Every text role on every surface, text on saffron, edges and focus, both themes'],
   ['type-scale', 'Every font size is a scale step'],
-  ['design-lints', 'Corners from the scale, fonts from the two families, button classes, forced colours, en-IN numbers, transitions that name what they animate'],
+  ['design-lints', 'Corners, spacing, borders, shadows, layers and motion from the tokens; fonts from the two families; button classes, forced colours, en-IN numbers, transitions that name what they animate'],
   ['survey-sheet, page-system', 'The navy edge, offset shadow and grid paper; one page system'],
   ['no-emdash, terminology, design-audit', 'No em-dashes, the site’s words, sentence case, 44 px targets'],
   ['reduced-motion', 'Nothing moves when reduced motion is on'],
@@ -199,7 +199,7 @@ function planned() {
   return list([
     'One shared component each for search, chips, sheets, popups, spinners, status messages, empty states and form states.',
     'The map popup in dark mode.',
-    'Spacing, weights, shadows, layers, breakpoints and motion moved onto the tokens everywhere, with shrinking lists in the tests.',
+    'Weights and breakpoints moved onto the tokens, the inline styles that scripts set too, and a step scale for page rhythm (28 to 80 px).',
     'Icons in place of emoji in collect, and licence badges in collect’s layer picker.',
     'One date format on layer rows.',
     'collect’s map camera honours reduced motion, as bharatlas.com’s does.',
