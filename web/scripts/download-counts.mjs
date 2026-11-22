@@ -3,7 +3,9 @@
 // D1, Nov 2026), and crawlers / link previews only see the baked HTML. So the
 // build asks the live counter first and falls back to the snapshot.
 
-const LIVE_URL = 'https://bharatlas.com/api/dl/counts';
+import { SITE_ORIGIN } from '../../shared/brand.mjs';
+
+const LIVE_URL = `${SITE_ORIGIN}/api/dl/counts`;
 
 /** Live counts `{layer: {fmt: n}, _total}` or null if unreachable / bad. */
 export async function fetchLiveCounts(url = LIVE_URL, fetcher = fetch, timeoutMs = 8000) {
@@ -33,10 +35,6 @@ export function bakedCounts(catalog, live) {
 export function countFor(counts, layerId, fmt) {
   const n = counts.layers[layerId]?.[fmt];
   return typeof n === 'number' && n > 0 ? n : 0;
-}
-
-export function totalDownloads(counts) {
-  return counts.total;
 }
 
 /** Layer ids with the most downloads (all formats), highest first. */

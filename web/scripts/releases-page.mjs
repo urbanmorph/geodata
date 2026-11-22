@@ -8,12 +8,12 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { fillTemplate } from './fill-template.mjs';
-import { escapeHtml as esc, fmtBytes, fmtDate, fmtInt, ldJsonScript } from '../../shared/format.mjs';
+import { escapeHtml as esc, fmtBytes, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { PUBLISHER_LD } from '../../shared/brand.mjs';
-import { ogImage } from './og-image-url.mjs';
+import { seoHead, crumbs, HEAD_ICONS } from './seo-head.mjs';
+import { SITE_ORIGIN } from '../../shared/brand.mjs';
 
 const TEMPLATE = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'releases.template.html');
-const ORIGIN = 'https://bharatlas.com';
 
 const bare = (url) => String(url).replace(/^https?:\/\//, '');
 const version = (code) => code.slice(code.lastIndexOf('-') + 1);
@@ -36,43 +36,18 @@ export function displayTitle(title) {
   return String(title).replace(/\s*<->\s*/g, ' to ');
 }
 
-/** BreadcrumbList from [name, path] pairs, Home first. */
-function crumbs(...trail) {
-  return {
-    '@type': 'BreadcrumbList',
-    itemListElement: [['Home', '/'], ...trail].map(([name, path], i) => ({ '@type': 'ListItem', position: i + 1, name, item: ORIGIN + path })),
-  };
-}
-
 function head({ title, description, path, trail }) {
-  const url = ORIGIN + path;
-  const full = `${title} · bharatlas`;
-  const image = ogImage('og-default');
-  const ld = {
+  const url = SITE_ORIGIN + path;
+  const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [crumbs(...trail), { '@type': 'CollectionPage', name: title, description, url, publisher: PUBLISHER_LD }],
   };
-  return [
-    `<title>${esc(full)}</title>`,
-    `<meta name="description" content="${esc(description)}" />`,
-    `<link rel="canonical" href="${esc(url)}" />`,
-    `<meta property="og:type" content="website" />`,
-    `<meta property="og:title" content="${esc(full)}" />`,
-    `<meta property="og:description" content="${esc(description)}" />`,
-    `<meta property="og:url" content="${esc(url)}" />`,
-    `<meta property="og:image" content="${esc(image)}" />`,
-    `<meta property="og:image:width" content="1200" />`,
-    `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:site_name" content="bharatlas" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:image" content="${esc(image)}" />`,
-    ldJsonScript(ld),
-  ].join('\n    ');
+  return seoHead({ title, description, url, structuredData, brief: true });
 }
 
 function page(seo, main) {
   return fillTemplate(readFileSync(TEMPLATE, 'utf8'), {
-    SEO_HEAD: head(seo), TOKENS, NAV: renderNav('', { installScript: false }), FOOTER, MAIN: main,
+    SEO_HEAD: head(seo), HEAD_ICONS, TOKENS, NAV: renderNav('', { installScript: false }), FOOTER, MAIN: main,
   });
 }
 

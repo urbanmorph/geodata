@@ -98,9 +98,14 @@ darkScheme.addEventListener('change', () => {
   for (const [id, prop, value] of minimalPaint(mapScheme())) if (map.getLayer(id)) map.setPaintProperty(id, prop, value);
 });
 
-function renderOnMap(fc: FC, bbox: Report['bbox']) {
+/** Take the dropped file's layers and source off the map. */
+function clearPreviewLayers() {
   for (const id of ['c-fill', 'c-line', 'c-pt']) if (map.getLayer(id)) map.removeLayer(id);
   if (map.getSource('v')) map.removeSource('v');
+}
+
+function renderOnMap(fc: FC, bbox: Report['bbox']) {
+  clearPreviewLayers();
   map.addSource('v', { type: 'geojson', data: fc as never });
   map.addLayer({
     id: 'c-fill',
@@ -330,8 +335,7 @@ function resetState(): void {
   workspace.classList.remove('show');
   drop.style.display = '';
   fileInput.value = '';
-  for (const id of ['c-fill', 'c-line', 'c-pt']) if (map.getLayer(id)) map.removeLayer(id);
-  if (map.getSource('v')) map.removeSource('v');
+  clearPreviewLayers();
   resetCaptcha();
   map.fitBounds(INDIA_BBOX, { padding: 24, duration: 0 });
 }

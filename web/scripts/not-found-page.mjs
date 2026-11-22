@@ -9,9 +9,10 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { fillTemplate } from './fill-template.mjs';
+import { HEAD_ICONS } from './seo-head.mjs';
 
 const TEMPLATE = resolve(dirname(fileURLToPath(import.meta.url)), '..', '404.template.html');
 
 export function renderNotFoundPage() {
-  return fillTemplate(readFileSync(TEMPLATE, 'utf8'), { TOKENS, NAV: renderNav('', { installScript: false }), FOOTER });
+  return fillTemplate(readFileSync(TEMPLATE, 'utf8'), { HEAD_ICONS, TOKENS, NAV: renderNav('', { installScript: false }), FOOTER });
 }

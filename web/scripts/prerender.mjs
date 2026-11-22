@@ -1,7 +1,7 @@
 // Build-time prerender: produce one large card per admin level.
 // Zero JS needed to read or navigate the catalog.
 import { readFile, writeFile } from 'node:fs/promises';
-import { fetchLiveCounts, bakedCounts, countFor as layerCount, totalDownloads, mostDownloaded } from './download-counts.mjs';
+import { fetchLiveCounts, bakedCounts, countFor as layerCount, mostDownloaded } from './download-counts.mjs';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -11,7 +11,7 @@ import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../sh
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
-import { STATIC_PAGES, releasePages, urlset } from '../../shared/sitemap.mjs';
+import { STATIC_PAGES, releasePages, urlset, SITE_ORIGIN as ORIGIN } from '../../shared/sitemap.mjs';
 import { LEVEL_META as BUILTIN_LEVEL_META, pickPrimary } from '../../shared/level-meta.mjs';
 import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
 import { REALMS, realmOf } from './realms.mjs';
@@ -25,6 +25,7 @@ import { minifyInlineStyles as minifyCss } from './minify-inline-css.mjs';
 import { designPageBody } from './design-page.mjs';
 import { gatePointProfiles, POINT_PROFILE_ATTRIBUTION, POINT_PROFILE_FAQ, POINT_PROFILE_CREDITS } from './point-profiles.mjs';
 import { ogImage } from './og-image-url.mjs';
+import { seoHead, crumbs, HEAD_ICONS } from './seo-head.mjs';
 import { fetchUsageTotals, usageBlockHtml, homeUsageSuffix } from './usage-totals.mjs';
 import { docsStats, layerTotal } from './docs-stats.mjs';
 import { renderCommunityActions, channelOf, CHANNEL_LABEL } from './community-card.mjs';
@@ -61,51 +62,13 @@ const layerIndex = [];
 // Live download counts (falls back to the catalog snapshot if unreachable).
 const liveCounts = await fetchLiveCounts();
 const dlCounts = bakedCounts(catalog, liveCounts);
-console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${totalDownloads(dlCounts)})`);
+console.log(`download counts: ${liveCounts ? 'live' : 'catalog snapshot'} (total ${dlCounts.total})`);
 // Each layer's dated releases (scripts/release.py) go into the served catalog as `versions`.
 const releaseIndex = JSON.parse(await readFile(resolve(WEB, 'public', 'releases', 'index.json'), 'utf8'));
 await writeFile(resolve(WEB, 'public', 'catalog.json'), publicCatalogJson(catalog, releaseIndex));
 
-
-// Keep in sync with web/src/util.ts:escapeHtml
-
-// SEO head block (title, description, canonical, OG/Twitter, JSON-LD) for the
-// prerendered pages. /view pages rewrite theirs at the edge (functions/view).
-const ORIGIN = 'https://bharatlas.com';
 // How many layers /api/v1/locate checks by default (the FAQ copy on /docs and /mcp).
 const LOCATE_N = DEFAULT_LOCATE_LAYERS.length;
-
-// TOKENS, renderNav, FOOTER imported from ./shared-chrome.mjs above
-// (extracted so vitest can test the pure helpers).
-
-
-function seoHead(o) {
-  const title = `${o.title} · bharatlas`;
-  const image = o.image || ogImage('og-default');
-  const type = o.type || 'website';
-  const ld = o.structuredData
-    ? `<script type="application/ld+json">${JSON.stringify(o.structuredData).replace(/</g, '\\u003c')}</script>`
-    : '';
-  return [
-    `<title>${esc(title)}</title>`,
-    `<meta name="description" content="${esc(o.description)}" />`,
-    `<link rel="canonical" href="${esc(o.url)}" />`,
-    `<meta property="og:type" content="${type}" />`,
-    `<meta property="og:title" content="${esc(title)}" />`,
-    `<meta property="og:description" content="${esc(o.description)}" />`,
-    `<meta property="og:url" content="${esc(o.url)}" />`,
-    `<meta property="og:image" content="${esc(image)}" />`,
-    `<meta property="og:image:width" content="1200" />`,
-    `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:site_name" content="bharatlas" />`,
-    `<meta property="og:locale" content="en_IN" />`,
-    `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${esc(title)}" />`,
-    `<meta name="twitter:description" content="${esc(o.description)}" />`,
-    `<meta name="twitter:image" content="${esc(image)}" />`,
-    ld,
-  ].filter(Boolean).join('\n    ');
-}
 
 // Per-level labels and descriptions live in shared/level-meta.mjs (the /view
 // page reads the same entries); a copy here so ingested levels can join it.
@@ -189,6 +152,8 @@ function downloadLinks(layer) {
   }));
 }
 const downloadAnchor = (d) => `<a href="${esc(d.url)}" download data-fmt="${esc(d.fmt)}">${esc(d.text)}</a>`;
+/** "1,234 villages": a layer's row count in its level's unit, or '' when unknown. Not escaped. */
+const rowsText = (layer, meta) => (layer.rows != null ? `${fmtInt(layer.rows)} ${meta.unit || 'features'}` : '');
 
 function renderRow(level, layersForLevel, opts = {}) {
   const meta = LEVEL_META[level];
@@ -231,7 +196,7 @@ function renderRow(level, layersForLevel, opts = {}) {
                 .join('<span class="dot">·</span>');
               return `<div class="alt__row${isPrimary ? ' alt__row--primary' : ''}">
                 <span class="src">${esc(o.source)}${isPrimary ? ' <span class="tag">primary</span>' : ''}</span>
-                <span class="meta">${[o.rows != null ? `${fmtInt(o.rows)} ${esc(meta.unit || 'features')}` : '', esc(o.notes || '')].filter(Boolean).join(' · ')}</span>
+                <span class="meta">${[esc(rowsText(o, meta)), esc(o.notes || '')].filter(Boolean).join(' · ')}</span>
                 <span class="links">${links || '<span class="muted">no downloads</span>'}</span>
               </div>`;
             })
@@ -289,7 +254,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     tags: primary.tags,
   });
 
-  const sub = [primary.rows != null ? `${fmtInt(primary.rows)} ${meta.unit || 'features'}` : '', primary.source].filter(Boolean).join(' · ');
+  const sub = [rowsText(primary, meta), primary.source].filter(Boolean).join(' · ');
   layerIndex.push({ i: primary.id, p: primaryHaystack, b: bodyHaystack, t: meta.label, s: sub, h: viewable ? `/view/${primary.id}` : `/layers#${level}`, n: layersForLevel.length });
   const dataAttrs = [
     `data-id="${esc(primary.id)}"`,
@@ -304,6 +269,7 @@ function renderRow(level, layersForLevel, opts = {}) {
   const countDisplay = primary.rows != null
     ? `<span class="row__num">${fmtInt(primary.rows)}</span><span class="row__unit">${esc(meta.unit || '')}</span>`
     : '<span class="row__num">n/a</span>';
+  const updated = primary.fetched_at?.slice(0, 10);
   // row__actions lives OUTSIDE <summary> so the interactive <a> links inside
   // don't violate HTML semantics (interactive descendants of an interactive
   // element). row__head is the visible grid: details on the left, actions on
@@ -321,7 +287,7 @@ function renderRow(level, layersForLevel, opts = {}) {
             <p class="row__desc">${esc(meta.description)}</p>
             ${sourceLine}
             ${primary.licence ? `<p class="row__lic-line">Licence: ${licenceBadgeHtml(primary.licence, nc)}</p>` : ''}
-            ${primary.fetched_at ? `<p class="row__updated">Updated: <time datetime="${esc(primary.fetched_at.slice(0, 10))}">${esc(primary.fetched_at.slice(0, 10))}</time></p>` : ''}
+            ${updated ? `<p class="row__updated">Updated: <time datetime="${esc(updated)}">${esc(updated)}</time></p>` : ''}
             ${dlInline ? `<p class="row__downloads">Download: ${dlInline}</p>` : ''}
             ${viewerHint}
             ${altSection}
@@ -525,7 +491,7 @@ function renderCommunityCard(s, opts = {}) {
     </div>
     ${s.description ? `<p class="comm-card__desc">${esc(s.description)}</p>` : ''}
     <div class="comm-card__meta">${esc(s.format)} · ${s.feature_count != null ? fmtInt(s.feature_count) + ' features · ' : ''}${credit} · <span class="comm-card__via">${esc(CHANNEL_LABEL[channelOf(s)])}</span></div>
-    ${renderCommunityActions(s, baked, { esc, fmtBytes })}
+    ${renderCommunityActions(s, baked)}
   </article>`;
 }
 
@@ -596,8 +562,7 @@ const popularHtml = popularIds.length
       .map((id) => {
         const l = curatedById.get(id);
         const meta = LEVEL_META[l.level];
-        const count = l.rows != null ? `${fmtInt(l.rows)} ${meta.unit || 'features'}` : '';
-        return `<a class="popular-item" href="/view/${esc(id)}"><span class="popular-item__name">${esc(meta.label)}</span><span class="popular-item__count">${esc(count)}</span></a>`;
+        return `<a class="popular-item" href="/view/${esc(id)}"><span class="popular-item__name">${esc(meta.label)}</span><span class="popular-item__count">${esc(rowsText(l, meta))}</span></a>`;
       })
       .join('')}<a class="popular-item popular-item--all" href="/layers"><span class="popular-item__name">All ${totalLayers} layers</span><span aria-hidden="true">→</span></a></div></section>`
   : '';
@@ -767,13 +732,14 @@ const homeRealmsHtml = realmBlocks
   .join('\n');
 
 const tmpl = await readFile(resolve(WEB, 'index.template.html'), 'utf8');
-const homeDownloads = totalDownloads(dlCounts);
+const homeDownloads = dlCounts.total;
 // API/MCP totals for the home line and the /layers block (shown once past API_SHOW_MIN).
 const apiUse = (await fetchUsageTotals()) ?? { api: 0, mcp: 0 };
 const siteUse = { downloads: homeDownloads, ...apiUse };
 const out = fillTemplate(tmpl, {
   REALM_GROUPS: homeRealmsHtml,
   SEO_HEAD: homeSeo,
+  HEAD_ICONS,
   TOKENS: MAP_TOKENS,
   NAV: renderNav('home'),
   FOOTER,
@@ -794,14 +760,7 @@ const layersSeo = seoHead({
   title: 'All layers',
   description: `All ${totalLayers} of India's open map layers by theme: boundaries, city wards, water, environment and more. View any of them on a map or download it.`,
   url: ORIGIN + '/layers',
-  structuredData: {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-      { '@type': 'ListItem', position: 2, name: 'All layers', item: ORIGIN + '/layers' },
-    ],
-  },
+  structuredData: { '@context': 'https://schema.org', ...crumbs(['All layers', '/layers']) },
 });
 const layersTmpl = await readFile(resolve(WEB, 'layers.template.html'), 'utf8');
 // Source indentation is about 1 KB gzipped on /layers (its 50 KB budget). A
@@ -812,6 +771,7 @@ await writeFile(
   resolve(WEB, 'layers.html'),
   dropIndent(await minifyInlineStyles(fillTemplate(layersTmpl, {
     SEO_HEAD: layersSeo,
+    HEAD_ICONS,
     TOKENS,
     NAV: renderNav('layers'),
     FOOTER,
@@ -833,6 +793,7 @@ async function renderPage(name, seoOpts, extra = {}, navKey = name) {
   const tmpl = gatePointProfiles(await readFile(path, 'utf8'), POINT_PROFILES);
   const out = fillTemplate(tmpl, {
     SEO_HEAD: seoHead(seoOpts),
+    HEAD_ICONS,
     TOKENS,
     NAV: renderNav(navKey),
     FOOTER,
@@ -918,13 +879,7 @@ await renderPage('about', {
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'About', item: ORIGIN + '/about' },
-        ],
-      },
+      crumbs(['About', '/about']),
       {
         '@type': 'AboutPage',
         name: 'About bharatlas',
@@ -962,13 +917,7 @@ await renderPage(
     structuredData: {
       '@context': 'https://schema.org',
       '@graph': [
-        {
-          '@type': 'BreadcrumbList',
-          itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-            { '@type': 'ListItem', position: 2, name: 'Preview', item: ORIGIN + '/preview' },
-          ],
-        },
+        crumbs(['Preview', '/preview']),
         {
           '@type': 'WebApplication',
           name: 'bharatlas · preview',
@@ -990,17 +939,10 @@ await renderPage('privacy', {
   description:
     "Bharatlas runs without accounts, ad-tech or tracking cookies (only cookieless, aggregate traffic counts). This page explains what we store (very little) and what we don't.",
   url: ORIGIN + '/privacy',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'Privacy', item: ORIGIN + '/privacy' },
-        ],
-      },
+      crumbs(['Privacy', '/privacy']),
       {
         '@type': 'WebPage',
         name: 'Privacy',
@@ -1017,17 +959,10 @@ await renderPage('terms', {
   description:
     "Terms for using bharatlas: open-licence content only, no warranty of accuracy, contributor attests right to share. Short and plain-English.",
   url: ORIGIN + '/terms',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'Terms', item: ORIGIN + '/terms' },
-        ],
-      },
+      crumbs(['Terms', '/terms']),
       {
         '@type': 'WebPage',
         name: 'Terms',
@@ -1044,15 +979,7 @@ await renderPage('design', {
   title: 'Design',
   description: 'How bharatlas looks and reads: colours, type, spacing, buttons, accessibility and word rules, shown with the real values the site uses.',
   url: ORIGIN + '/design',
-  image: ogImage('og-default'),
-  structuredData: {
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-      { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-      { '@type': 'ListItem', position: 2, name: 'Design', item: ORIGIN + '/design' },
-    ],
-  },
+  structuredData: { '@context': 'https://schema.org', ...crumbs(['Design', '/design']) },
 }, { DESIGN_BODY: designPageBody() });
 
 // /docs FAQ — mirrors the visible "Common questions" section emitted into
@@ -1107,7 +1034,7 @@ const DOCS_FAQ = [
   },
 ];
 
-const docs = docsStats(catalog, totalDownloads(dlCounts), community);
+const docs = docsStats(catalog, dlCounts.total, community);
 // Plain-text answers: escaped on the page so "&select=" reads as typed (not "§lect").
 const docsFaqHtml = `      <h2>Common questions</h2>\n${DOCS_FAQ.map(({ q, a }) => `      <h3>${esc(q)}</h3>\n      <p>${esc(a)}</p>`).join('\n')}\n`;
 
@@ -1116,17 +1043,10 @@ await renderPage('docs', {
   description:
     "Public JSON API for India's open geo layers. List, query and filter layers, locate a point across every admin and zone layer, find features nearby, download in open formats. No auth, no API key.",
   url: ORIGIN + '/docs',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'API v1', item: ORIGIN + '/docs' },
-        ],
-      },
+      crumbs(['API v1', '/docs']),
       {
         '@type': 'WebAPI',
         name: 'bharatlas API v1',
@@ -1208,17 +1128,10 @@ await renderPage('mcp', {
   description:
     `Ask questions about India's geo data in natural language. Connect Claude, GPT, or any LLM to ${totalLayers} geo layers via the bharatlas MCP server.`,
   url: ORIGIN + '/mcp',
-  image: ogImage('og-default'),
   structuredData: {
     '@context': 'https://schema.org',
     '@graph': [
-      {
-        '@type': 'BreadcrumbList',
-        itemListElement: [
-          { '@type': 'ListItem', position: 1, name: 'Home', item: ORIGIN + '/' },
-          { '@type': 'ListItem', position: 2, name: 'MCP Server', item: ORIGIN + '/mcp' },
-        ],
-      },
+      crumbs(['MCP Server', '/mcp']),
       {
         '@type': 'SoftwareApplication',
         name: 'bharatlas-mcp',
