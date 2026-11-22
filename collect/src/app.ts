@@ -23,13 +23,12 @@ import { focusSheet, SHEET_TITLE } from './sheet-focus';
 import { escapeHtml, downloadText, plural } from './util';
 import { toast } from './toast';
 import { linkProblemHtml, isLinkProblem } from './link-problem';
-import { fieldsHtml, setPressed } from './form-fields';
+import { fieldsHtml, setPressed, wireChips, fillAnswers, readAnswers } from './form-fields';
 import type { ExportFeature } from './export/formats';
 import type { Parsed } from './import/parse';
 import type { Mapping } from './import/build';
 import { rememberMap, rememberRecord, forgetRecord, recordLabel, myMaps, backLink, replaceAdminLink } from './maps-store';
 import { loadContributorName, saveContributorName } from './contributor-name';
-import { fitsLocalPicker } from './schema/dates';
 import { wireSheetSwipe } from './sheet-swipe';
 import { pickNearest } from './pick-nearest';
 import { linksMailtoHref, shareTabLinks, heldToken, type MapLinks, type LinkInfo } from './share';
@@ -963,7 +962,7 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
   { form: 'capform', back: 'cancel', primary: ['save', `Save ${noun}`] });
   (document.getElementById('contributor') as HTMLInputElement).value = loadContributorName();
   focusSheet(panel);
-  panel.querySelectorAll<HTMLElement>('[data-multi] .chip').forEach((c) => { c.onclick = () => setPressed(c, !c.classList.contains('on')); });
+  wireChips(panel);
 
   // A point can move to where its photo was taken (and take the photo's time).
   let place = geometry;
@@ -1039,24 +1038,6 @@ function detailsSheet(geometry: GeoJSON.Geometry, modes: GeomMode[]): void {
 function mountPhotoFields(root: HTMLElement, fields: Field[], dataSaver: boolean, per: (f: Field) => Partial<PhotoFieldOptions> = () => ({})): PhotoField[] {
   return fields.filter((f) => f.type === 'photo').map((f) =>
     mountPhotoField(root.querySelector<HTMLElement>(`[data-k="${f.key}"]`)!, f, { dataSaver, onError: (m) => toast(m, 'error'), ...per(f) }));
-}
-
-// The non-photo answers on a form, as typed.
-function readAnswers(root: HTMLElement, fields: Field[]): Record<string, unknown> {
-  const raw: Record<string, unknown> = {};
-  for (const f of fields) {
-    if (f.type === 'photo') continue;
-    const el = root.querySelector(`[data-k="${f.key}"]`);
-    if (!el) continue;
-    if (f.type === 'multiselect') {
-      const on = [...el.querySelectorAll('.chip.on')].map((c) => (c as HTMLElement).dataset.v);
-      if (on.length) raw[f.key] = on;
-    } else {
-      const v = (el as HTMLInputElement).value;
-      if (v) raw[f.key] = v;
-    }
-  }
-  return raw;
 }
 
 // Admin "Edit map settings" — fix the name/description/purpose/category/data
@@ -1988,24 +1969,8 @@ async function recordEditor(): Promise<void> {
   const photoInputs = mountPhotoFields(panel, fields, !!rec.schema.data_saver, (f) => ({
     token: ctx.token, canAdd: isAdmin, initial: (rec.photos ?? []).filter((x) => x.field === f.key),
   }));
-  for (const f of fields) {
-    if (f.type === 'photo') continue;
-    const el = panel.querySelector(`[data-k="${f.key}"]`);
-    if (!el) continue;
-    const val = rec.properties[f.key];
-    if (f.type === 'multiselect') {
-      const arr = Array.isArray(val) ? val : [];
-      el.querySelectorAll<HTMLElement>('.chip').forEach((c) => {
-        c.onclick = () => setPressed(c, !c.classList.contains('on'));
-        setPressed(c, arr.includes(c.dataset.v));
-      });
-    } else if (val != null) {
-      // A saved date-time the picker can't show (date only, or with an offset)
-      // is edited as text, so saving never blanks it or drops the offset.
-      if (f.type === 'datetime' && !fitsLocalPicker(String(val))) (el as HTMLInputElement).type = 'text';
-      (el as HTMLInputElement).value = String(val);
-    }
-  }
+  wireChips(panel);
+  fillAnswers(panel, fields, rec.properties);
 
   const locateBtn = document.getElementById('locate') as HTMLButtonElement | null;
   if (locateBtn) locateBtn.onclick = () => {
