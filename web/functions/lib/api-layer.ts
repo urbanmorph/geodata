@@ -49,7 +49,7 @@ export async function resolveLayer(
     case 'invalid': return apiError(400, 'Invalid layer ID');
     case 'moved': return found.response;
     case 'missing': return apiError(opts.missingStatus ?? 404, `Layer ${id} not found`);
-    default: return { layer: found.layer, catalog: found.catalog, version: found.version, url };
+    default: return found;
   }
 }
 
