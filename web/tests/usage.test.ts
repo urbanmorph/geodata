@@ -22,6 +22,10 @@ describe('usageChannel', () => {
     expect(usageChannel('GPTBot/1.1')).toBeNull();
     expect(usageChannel('bharatlas-mcp-test')).toBeNull();
   });
+  it('headless browsers that scrape with a browser-like name are not counted (yellide, 21 Nov)', () => {
+    expect(usageChannel('Lightpanda/1.0')).toBeNull();
+    expect(usageChannel('Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/131.0.0.0 Safari/537.36')).toBeNull();
+  });
 });
 
 describe('only the live site counts (owner, 2026-11-22)', () => {
