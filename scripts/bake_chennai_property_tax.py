@@ -144,8 +144,7 @@ def bake(out_dir: Path, src: Path = SRC) -> dict:
         raise SystemExit(f'columns changed: {prop_cols}')
     bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], SHP_NAMES)
     bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
-    summary = {'rows': rows, **stats, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+    summary = {'rows': rows, **stats, **pipeline.sizes_and_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     return summary
 

@@ -292,8 +292,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
                                             bake_formats.short_field_names(prop_cols))
     bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
 
-    summary = {'rows': rows, **stats, 'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+    summary = {'rows': rows, **stats, **pipeline.sizes_and_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     return summary
 

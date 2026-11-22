@@ -139,8 +139,6 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
 
     got = json.loads((RAW / 'pull.json').read_text())
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -152,19 +150,9 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         log(f'rows per city: {cities}')
         rows, prop_cols = pipeline.rebake_flatten_bbox(table, path['parquet'])
     con = make_con()
-    log('geojson')
-    path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))
-    log('kml')
-    write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
-    log('shapefile')
-    bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
-    log('pmtiles')
-    bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS, max_zoom=TILE_MAXZOOM)
+    files = bake_formats.write_all_formats(con, path, LAYER_ID, prop_cols, TILE_FIELDS, max_zoom=TILE_MAXZOOM)
     summary = {'rows': rows, 'cities': cities,
-               'pull': {k: got[k] for k in ('article', 'version', 'doi', 'licence', 'modified_date', 'pulled_at')},
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               'pull': {k: got[k] for k in ('article', 'version', 'doi', 'licence', 'modified_date', 'pulled_at')}, **files}
     pipeline.write_json(SUMMARY, summary)
     log(json.dumps(summary, indent=2))
     return summary

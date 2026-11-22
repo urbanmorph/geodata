@@ -445,7 +445,6 @@ def coverage(res: list[dict], metas: dict[str, dict]) -> tuple[list[str], dict[s
 
 def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     import bake_formats
-    from bake_extracts import gdal_geojson_available
     from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
@@ -503,7 +502,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
     log(f'points: {points}')
 
     path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))
+    write_geojson_whole(con, parquet, path['geojson'])
     log('geojson written')
     assert write_kml(con, parquet, path['kml']) == rows
     log('kml written')
@@ -529,8 +528,7 @@ def bake(out_dir: Path = OUT_DIR, force: bool = False) -> dict:
                'numeric_columns': sorted(types), 'shapefiles': shp_files, 'fingerprint': fingerprint,
                'fetched_at': datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
                'resources': {r['state']: r['uuid'] for r in res},
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               **pipeline.sizes_and_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     log(json.dumps({k: v for k, v in summary.items() if k not in ('resources', 'numeric_columns')}, indent=2))
     return summary

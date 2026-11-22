@@ -737,11 +737,11 @@ def write_parquet(con, lid: str, rows: list[dict], geometry_sql: str, out: Path,
 def write_downloads(con, lid: str, parquet: Path, stage: Path) -> dict[str, Path]:
     """GeoJSON, KML and a zipped Shapefile (with its columns.txt key) from the parquet."""
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
+    from bake_extracts import write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     base = LAYERS[lid]['basename']
     paths = {fmt: stage / f'{base}.{ext}' for fmt, ext in EXT.items() if fmt != 'parquet'}
-    write_geojson_whole(con, parquet, paths['geojson'], gdal_geojson_available(con))
+    write_geojson_whole(con, parquet, paths['geojson'])
     write_kml_from_geojson(paths['geojson'], lid, paths['kml'])
     props = [r[0] for r in con.execute(f"DESCRIBE SELECT * FROM '{parquet}'").fetchall() if 'GEOMETRY' not in r[1]]
     bake_formats.shapefile_zip_from_geojson(paths['geojson'], paths['shapefile'],

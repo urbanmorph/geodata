@@ -379,7 +379,7 @@ def bake(spec: Spec, raw: Path = RAW) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
+    from bake_extracts import write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
 
     got = json.loads((raw / f'{spec.id}.pull.json').read_text())
@@ -400,7 +400,7 @@ def bake(spec: Spec, raw: Path = RAW) -> dict:
                   .fetchall())
     log(f'{n} micro-watershed rows: {states}')
     path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))   # the tiles' input
+    write_geojson_whole(con, path['parquet'], path['geojson'])   # the tiles' input
     formats = published_formats(path['parquet'].stat().st_size, shapefile_fits(con, path['parquet'], prop_cols))
     if 'kml' in formats:
         write_kml_from_geojson(path['geojson'], spec.id, path['kml'])
@@ -412,8 +412,7 @@ def bake(spec: Spec, raw: Path = RAW) -> dict:
     log(f'  publishing {formats}')
     path = {fmt: path[fmt] for fmt in formats}
     summary = {'rows': n, 'states': states, 'pull': got,
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               **pipeline.sizes_and_names(path)}
     pipeline.write_json(spec.summary_path, summary)
     log(json.dumps({k: v for k, v in summary.items() if k != 'states'}, indent=2))
     return summary

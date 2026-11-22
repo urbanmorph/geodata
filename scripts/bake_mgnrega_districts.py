@@ -327,8 +327,6 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
     full, trend = load_pages(RAW / f'full_{YEAR}'), load_pages(RAW / 'trend_all_years')
@@ -355,14 +353,8 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         _, prop_cols = rebake_flatten_bbox(joined, parquet)
     con = make_con()
     path = {fmt: out_dir / f'{BASENAME}.{ext}' for fmt, ext in EXT.items()}
-    path['geojson'].unlink(missing_ok=True)
-    write_geojson_whole(con, parquet, path['geojson'], gdal_geojson_available(con))
-    write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
-    bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
-    bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
-    summary = {'rows': n, 'districts_with_values': filled, 'unmatched': [f'{s} / {d}' for s, d in unmatched],
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+    files = bake_formats.write_all_formats(con, path, LAYER_ID, prop_cols, TILE_FIELDS)
+    summary = {'rows': n, 'districts_with_values': filled, 'unmatched': [f'{s} / {d}' for s, d in unmatched], **files}
     SUMMARY.write_text(json.dumps(summary, indent=2))
     log(json.dumps(summary, indent=2))
     return summary

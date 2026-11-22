@@ -180,10 +180,10 @@ def test_whole_layer_rebakes_an_output_older_than_its_source(tmp_path, monkeypat
     paths['geojson'].parent.mkdir(parents=True)
     paths['geojson'].write_text('stale')
     os.utime(paths['geojson'], (1000, 1000))
-    written, skipped, errors = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', True, False)
+    written, skipped, errors = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', False)
     assert errors == [] and written == 2  # geojson + kml rebuilt
     assert 'Ward 1' in paths['geojson'].read_text()
-    written, skipped, _ = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', True, False)
+    written, skipped, _ = bwl.bake_one(pipeline.make_con(), 'w', pq, 'p', 'w', False)
     assert written == 0 and skipped == 3  # second run: nothing to do
 
 
@@ -191,13 +191,13 @@ def test_whole_layer_failure_leaves_no_partial_output(tmp_path, monkeypatch):
     import bake_whole_layer as bwl
     monkeypatch.setattr(bwl, 'OUT', tmp_path / 'baked')
 
-    def half_then_die(con, parquet, out, gdal_ok):
+    def half_then_die(con, parquet, out):
         out.parent.mkdir(parents=True, exist_ok=True)
         out.write_text('{"type":"FeatureCollection","features":[')
         raise RuntimeError('killed')
     monkeypatch.setattr(bwl, 'write_geojson_whole', half_then_die)
     pq = _tiny_parquet(tmp_path / 'w.parquet')
-    _, _, errors = bwl.bake_one(None, 'w', pq, 'p', 'w', True, False)
+    _, _, errors = bwl.bake_one(None, 'w', pq, 'p', 'w', False)
     assert errors and not bwl.out_paths('p', 'w')['geojson'].exists()
 
 
@@ -228,6 +228,20 @@ def test_whole_layer_geojson_keeps_every_feature_whole_where_7_decimals_would_br
     first = out.read_bytes()
     write_geojson_whole(pipeline.make_con(), pq, out)
     assert out.read_bytes() == first                                      # a re-run writes the same bytes
+
+
+def test_whole_layer_geojson_needs_the_gdal_driver(tmp_path, monkeypatch):
+    import bake_whole_layer as bwl
+    monkeypatch.setattr(bwl, 'gdal_geojson_available', lambda con: False)
+    with pytest.raises(RuntimeError, match='GDAL GeoJSON driver'):
+        bwl.write_geojson_whole(pipeline.make_con(), _tiny_parquet(tmp_path / 'w.parquet'), tmp_path / 'w.geojson')
+
+
+def test_sizes_and_names_record_each_file_by_size_and_content(tmp_path):
+    a = tmp_path / 'X.parquet'
+    a.write_bytes(b'one')
+    assert pipeline.sizes_and_names({'parquet': a}) == {'sizes': {'parquet': 3},
+                                                        'names': pipeline.versioned_names({'parquet': a})}
 
 
 def test_whole_layer_geojson_fails_rather_than_ship_changed_geometry(tmp_path, monkeypatch):

@@ -306,8 +306,6 @@ def bake(work: Path, sources: dict, deadline: pipeline.Deadline) -> dict:
     """Every layer's files into out/ and out/summary.json. Nothing happens
     when the last bake used the same extract and every file is still there."""
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
 
     out, summary_path = out_dir(work), out_dir(work) / 'summary.json'
     code = {p.name: pipeline.file_md5(p) for p in (Path(__file__), HERE / 'pipeline.py', HERE / 'bake_formats.py')}
@@ -332,16 +330,9 @@ def bake(work: Path, sources: dict, deadline: pipeline.Deadline) -> dict:
         rows, props = pipeline.rebake_flatten_bbox(raw, path['parquet'], con)
         raw.unlink()
         nulls = con.execute(f"SELECT count(*) FROM '{path['parquet']}' WHERE geometry IS NULL").fetchone()[0]
-        path['geojson'].unlink(missing_ok=True)
-        write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))
-        write_kml_from_geojson(path['geojson'], lid, path['kml'])
-        bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'],
-                                                bake_formats.short_field_names(props))
-        bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], lid, tile_fields(lid, props),
-                                   keep_all=meta['keep_all'], max_zoom=meta['max_zoom'])
-        summary['layers'][lid] = {'rows': rows, 'no_geometry': nulls, 'columns': props,
-                                  'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-                                  'names': pipeline.versioned_names(path)}
+        files = bake_formats.write_all_formats(con, path, lid, props, tile_fields(lid, props),
+                                               keep_all=meta['keep_all'], max_zoom=meta['max_zoom'])
+        summary['layers'][lid] = {'rows': rows, 'no_geometry': nulls, 'columns': props, **files}
         log(f'  {lid}: {rows:,} rows ({nulls} without geometry), {len(props)} columns')
     pipeline.write_json(summary_path, summary)
     return summary

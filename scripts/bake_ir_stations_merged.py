@@ -508,7 +508,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
     script does nothing (tippecanoe and zip output differ byte-for-byte run to
     run, so re-baking would re-upload unchanged layers)."""
     import tempfile
-    from bake_extracts import gdal_geojson_available, make_con, write_kml_from_geojson
+    from bake_extracts import make_con, write_kml_from_geojson
     from bake_whole_layer import write_geojson_whole
     from pipeline import rebake_flatten_bbox
 
@@ -526,7 +526,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
         merged = Path(tmp) / 'merged.parquet'
         stats = write_merged_parquet(con, raw, merged)
         rows, prop_cols = rebake_flatten_bbox(merged, stage['parquet'], con)
-        write_geojson_whole(con, stage['parquet'], stage['geojson'], gdal_geojson_available(con))
+        write_geojson_whole(con, stage['parquet'], stage['geojson'])
         write_kml_from_geojson(stage['geojson'], LAYER_ID, stage['kml'])
         bake_formats.shapefile_zip_from_geojson(stage['geojson'], stage['shapefile'],
                                                 bake_formats.short_field_names(prop_cols))
@@ -535,8 +535,7 @@ def bake(out_dir: Path, raw: Path = RAW) -> dict:
             os.replace(p, path[fmt])
 
     summary = {'rows': rows, 'inputs': inputs, **stats, 'sources': json.loads((raw / 'sources.json').read_text()),
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+               **pipeline.sizes_and_names(path)}
     SUMMARY.write_text(json.dumps(summary, indent=2) + '\n')
     return summary
 

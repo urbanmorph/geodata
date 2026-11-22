@@ -870,6 +870,11 @@ def versioned_names(paths: dict[str, Path]) -> dict[str, str]:
     return {fmt: versioned_key(p.name, file_md5(p)) for fmt, p in paths.items()}
 
 
+def sizes_and_names(paths: dict[str, Path]) -> dict[str, dict]:
+    """{'sizes', 'names'}: what a bake summary records of each file it wrote."""
+    return {'sizes': {fmt: p.stat().st_size for fmt, p in paths.items()}, 'names': versioned_names(paths)}
+
+
 def plain_names(basename: str, exts: dict[str, str]) -> dict[str, str]:
     """{format: <basename>.<ext>}: the local file names a bake writes."""
     return {fmt: f'{basename}.{ext}' for fmt, ext in exts.items()}

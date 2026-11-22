@@ -172,8 +172,6 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
     import tempfile
 
     import bake_formats
-    from bake_extracts import gdal_geojson_available, write_kml_from_geojson
-    from bake_whole_layer import write_geojson_whole
 
     got = json.loads((RAW / 'pull.json').read_text())
     shp = extract_once(Path(got['path']), RAW / 'extracted', got['md5'])
@@ -186,19 +184,10 @@ def bake(out_dir: Path = OUT_DIR) -> dict:
         rows, prop_cols = pipeline.rebake_flatten_bbox(table, path['parquet'])
     log(f'{rows} polygons')
     con = make_con()
-    log('geojson')
     # Reprojected from metres, some polygons have vertices under 1 cm apart: 7 decimals would collapse 44 of
     # them into lines, so write_geojson_whole keeps full precision for the GeoJSON (and the KML, shapefile, tiles).
-    write_geojson_whole(con, path['parquet'], path['geojson'], gdal_geojson_available(con))
-    log('kml')
-    write_kml_from_geojson(path['geojson'], LAYER_ID, path['kml'])
-    log('shapefile')
-    bake_formats.shapefile_zip_from_geojson(path['geojson'], path['shapefile'], bake_formats.short_field_names(prop_cols))
-    log('pmtiles')
-    bake_formats.write_pmtiles(path['geojson'], path['pmtiles'], LAYER_ID, TILE_FIELDS)
-    summary = {'rows': rows, 'pull': got,
-               'sizes': {fmt: p.stat().st_size for fmt, p in path.items()},
-               'names': pipeline.versioned_names(path)}
+    files = bake_formats.write_all_formats(con, path, LAYER_ID, prop_cols, TILE_FIELDS)
+    summary = {'rows': rows, 'pull': got, **files}
     pipeline.write_json(SUMMARY, summary)
     log(json.dumps(summary, indent=2))
     return summary
