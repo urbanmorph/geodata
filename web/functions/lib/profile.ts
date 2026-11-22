@@ -42,6 +42,9 @@ export interface ProfileLayer {
   /** A layer that covers only part of India: when nothing is within radiusKm, a
    *  feature within coverageKm means "none within the radius", none means "not covered". */
   coverageKm?: number;
+  /** contains: the layer maps all of India (an inventory such as NDEM's flood extents), so no
+   *  polygon at the point means none here (none_within_radius, radius 0), not a gap (not_covered). */
+  allIndia?: true;
   /** Keep only these properties (the full rows are a /nearby or /locate call away). */
   fields?: string[];
   /** Plain units of the fields shown, for the response's `units`. */
@@ -275,8 +278,9 @@ async function readContains(spec: ProfileLayer, lat: number, lng: number, catalo
   if (r.failed_layers?.includes(spec.id)) throw new Error('tiles could not be read');
   const features = dedupeFeatures(Object.values(r.results).flat()
     .filter((h) => h.layer_id === spec.id).map((h) => pick(h.feature.properties, spec.fields)));
+  const none = spec.allIndia ? { status: 'none_within_radius' as const, radius_km: 0 } : { status: 'not_covered' as const };
   return {
-    match: 'contains', status: features.length ? 'found' : 'not_covered', features,
+    match: 'contains', ...(features.length ? { status: 'found' as const } : none), features,
     ...(spec.decode && features[0] ? { decoded: spec.decode(features[0]) } : {}),
   };
 }

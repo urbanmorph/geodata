@@ -38,6 +38,16 @@ describe('the surface layer table', () => {
     expect(SURFACE_LAYERS.find((l) => l.id === 'india_boundary')!.edge).toBe(true);
   });
 
+  it('gives the partial-coverage layers a footprint and the all-India inventories a "none here" (plan A2)', () => {
+    const row = (id: string) => SURFACE_LAYERS.find((l) => l.id === id)!;
+    for (const id of ['bus_stops', 'urban_rail_stations', 'amrit_sarovar_ponds']) expect(row(id).coverageKm, id).toBeGreaterThan(row(id).radiusKm!);
+    for (const id of ['ndem_floods_1998_2022', 'fsi_recorded_forest_area']) expect(row(id).allIndia, id).toBe(true);
+    // CRZ maps and landslide zonation cover only some states: no polygon there is not "none"
+    for (const id of ['crz2019_zones', 'ndem_landslide_hazard']) expect(row(id).allIndia, id).toBeUndefined();
+    // ward layers come from the point's city (a ward layer that does not cover the point is not_covered)
+    expect(SURFACE_PROFILE.expand!(12.9716, 77.5946, CATALOG).every((l) => l.match === 'contains' && !l.allIndia)).toBe(true);
+  });
+
   it('leaves "non-wetland area" outlines out of the nearest wetland', () => {
     const keep = SURFACE_LAYERS.find((l) => l.id === 'bp_wetlands')!.keep!;
     expect(keep({ descr: 'Others (non-wetland area)' })).toBe(false);

@@ -254,6 +254,16 @@ describe('groundAt', () => {
     // a contains layer with no polygon here does not reach the point
     expect(g.sections.watershed.core_mws_water_balance).toMatchObject({ status: 'not_covered', features: [] });
     expect(g.sections.seismic.seismic_zones.status).toBe('found');
+    // an all-India inventory (NDEM's 1998-2022 flood map) with no polygon here: none here, not a gap
+    expect(g.sections.watershed.ndem_floods_1998_2022).toMatchObject({ status: 'none_within_radius', radius_km: 0, features: [] });
+  });
+
+  it('gives every partial-coverage layer of plan A2 a footprint (A2: not_covered vs none_within_radius)', () => {
+    const row = (id: string) => GROUND_LAYERS.find((l) => l.id === id)!;
+    for (const id of ['subsidence_megacities', 'atal_bhujal_wells', 'slusi_soil_health']) expect(row(id).coverageKm, id).toBeGreaterThan(row(id).radiusKm!);
+    // contains layers that reach only part of India answer not_covered off their polygons; all-India ones say none
+    for (const id of ['core_mws_water_balance', 'core_mws_drought']) expect(row(id).allIndia, id).toBeUndefined();
+    expect(row('ndem_floods_1998_2022').allIndia).toBe(true);
   });
 
   it('adds SoilGrids with the ISRIC credit', async () => {

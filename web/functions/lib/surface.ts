@@ -73,7 +73,7 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
   { id: 'bp_ramsar', section: 'water', match: 'nearest', shape: true, radiusKm: 50, fields: ['name', 'district', 'state'], say: insideOr('Ramsar wetland', 'name') },
   { id: 'amrit_sarovar_ponds', section: 'water', match: 'nearest', radiusKm: 5, coverageKm: 30, fields: ['Name_of_Sarovar', 'Village', 'Sarovar_Status'] },
   { id: 'india_flood_inventory', section: 'water', match: 'nearest', radiusKm: 25, about: { scale: 'recorded flood events (point locations)' } },
-  { id: 'ndem_floods_1998_2022', section: 'water', match: 'contains', about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
+  { id: 'ndem_floods_1998_2022', section: 'water', match: 'contains', allIndia: true, about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
     say: (e) => (e.status === 'found' ? 'Inside an area NDEM mapped as flooded between 1998 and 2022' : null) },
   // ── hazards ──
   { id: 'seismic_zones', section: 'hazards', match: 'contains', about: { scale: 'national zoning map', vintage: 'BIS IS 1893:2016' },
@@ -88,7 +88,7 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
   { id: 'crz2019_zones', section: 'hazards', match: 'contains', about: { scale: 'Coastal Zone Management Plans (CRZ 2019)' },
     say: (e) => (e.status === 'found' ? 'Inside a Coastal Regulation Zone' : null) },
   // ── protected ──
-  { id: 'fsi_recorded_forest_area', section: 'protected', match: 'contains', about: { scale: 'recorded forest area (FSI)' },
+  { id: 'fsi_recorded_forest_area', section: 'protected', match: 'contains', allIndia: true, about: { scale: 'recorded forest area (FSI)' },
     say: (e) => (e.status === 'found' ? 'Inside a recorded forest area' : null) },
   { id: 'gs_wildlife', key: 'gs_wildlife_nearest', section: 'protected', match: 'nearest', shape: true, radiusKm: 50,
     fields: ['name', 'category', 'state', 'area_sqkm'], units: { area_sqkm: 'sq km' }, say: insideOr('protected area', 'name') },

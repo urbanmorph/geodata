@@ -203,7 +203,7 @@ export const GROUND_LAYERS: ProfileLayer[] = [
   // ── watershed ──
   { id: 'core_mws_water_balance', section: 'watershed', match: 'contains', about: { scale: 'micro-watershed', vintage: '2017-18 to 2024-25' } },
   { id: 'core_mws_drought', section: 'watershed', match: 'contains', about: { scale: 'micro-watershed', vintage: 'to 2022 or 2024 by tehsil' } },
-  { id: 'ndem_floods_1998_2022', section: 'watershed', match: 'contains', about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
+  { id: 'ndem_floods_1998_2022', section: 'watershed', match: 'contains', allIndia: true, about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
     say: (e) => (e.status === 'found' ? 'Inside an area NDEM mapped as flooded between 1998 and 2022' : null) },
 ];
 
