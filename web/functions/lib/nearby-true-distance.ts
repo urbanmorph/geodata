@@ -36,7 +36,7 @@ const MAX_JOIN_ROWS = 2000;
 
 export interface TrueDistanceResult extends Omit<NearbyResult, '_source'> {
   _source: NearbyResult['_source'] | 'parquet-shape' | 'tiles-shape';
-  _distance_to: 'point' | 'shape';
+  _distance_to: 'point' | 'shape' | 'centroid';
   _approximate?: true;
 }
 
@@ -61,7 +61,11 @@ function candidatesOf(spans: RowSpan[], boxes: GroupBoxes[], lat: number, lng: n
   return out;
 }
 
-const hasExtent = (c: Candidate) => c.box.xmax > c.box.xmin || c.box.ymax > c.box.ymin;
+/** Whether any row of these row groups has an extent (a line or polygon); a point layer has none. */
+function anyExtent(boxes: GroupBoxes[]): boolean {
+  for (const b of boxes) for (let i = 0; i < b.xmin.length; i++) if (b.xmax[i] > b.xmin[i] || b.ymax[i] > b.ymin[i]) return true;
+  return false;
+}
 
 /** Compressed geometry bytes of the row groups that hold these rows. */
 function geometryBytes(metadata: FileMetaData, geomCol: string, rows: Candidate[]): number {
@@ -112,17 +116,20 @@ export async function nearbyTrueDistance(
   const start = Date.now();
   const layer = catalog.layers.find((l) => l.id === layerId);
   const key = layer && r2KeyFromLayer(layer);
-  const asPoints = async (): Promise<TrueDistanceResult> => ({ ...(await nearby(lat, lng, radiusKm, layerId, catalog, r2, limit)), _distance_to: 'point' });
-  if (!key) return asPoints(); // nearby() says why
+  const byNearby = async (to: 'point' | 'centroid'): Promise<TrueDistanceResult> =>
+    ({ ...(await nearby(lat, lng, radiusKm, layerId, catalog, r2, limit)), _distance_to: to });
+  if (!key) return byNearby('point'); // nearby() says why
 
   const { file, metadata } = await openParquet(r2, key);
   const allCols = topLevelColumns(metadata).map((c) => c.name);
   const geomCol = allCols.find(isGeomColumn);
-  if (!geomCol || !BBOX_COLS.every((c) => allCols.includes(c))) return asPoints();
+  // No bbox columns: nearby() scans the whole (small) file and measures to each feature's centre.
+  if (!geomCol || !BBOX_COLS.every((c) => allCols.includes(c))) return byNearby('centroid');
 
   const spans = overlappingRowGroups(metadata, queryBbox(lat, lng, radiusKm));
-  const cands = candidatesOf(spans, await groupBoxes(file, metadata, spans), lat, lng, radiusKm);
-  if (!cands.some(hasExtent)) return asPoints();
+  const boxes = await groupBoxes(file, metadata, spans); // cached: nearby() reuses them for a point layer
+  if (!anyExtent(boxes)) return byNearby('point');
+  const cands = candidatesOf(spans, boxes, lat, lng, radiusKm);
 
   const done = (source: TrueDistanceResult['_source'], features: NearbyHit[], total: number, approximate: boolean, scanned: number): TrueDistanceResult => ({
     center: { lat, lng }, radius_km: radiusKm, total, features, timing_ms: Date.now() - start,

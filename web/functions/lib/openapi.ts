@@ -427,7 +427,7 @@ const BASE = {
           radius_km: { type: 'number' },
           total: { type: 'integer' },
           features: { type: 'array', items: { type: 'object', properties: { properties: { type: 'object' }, _lat: { type: 'number' }, _lng: { type: 'number' }, _distance_km: { type: 'number' } } } },
-          _distance_to: { type: 'string', enum: ['point', 'shape'], description: 'point: distance to each point; shape: to the nearest part of each line or polygon.' },
+          _distance_to: { type: 'string', enum: ['point', 'shape', 'centroid'], description: 'point: distance to each point; shape: to the nearest part of each line or polygon; centroid: to the centre of each feature (a layer without bounding-box columns).' },
           _approximate: { type: 'boolean', description: 'Present (true) when coarser tiles or fewer shapes were read: distances to within tens of metres, the count may be short.' },
         },
       },
