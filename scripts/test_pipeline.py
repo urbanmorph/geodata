@@ -123,6 +123,15 @@ def test_json_gz_pages_read_back_and_keep_their_bytes(tmp_path):
     assert [p.name for p in page.parent.iterdir()] == [page.name]   # no .part left
 
 
+def test_write_if_changed_writes_text_or_bytes_only_when_they_differ(tmp_path):
+    p = tmp_path / 'meta' / 'index.json'
+    assert pipeline.write_if_changed(p, 'ā\r\n') is True
+    assert p.read_bytes() == 'ā\r\n'.encode()          # utf-8, newlines as given
+    stamp = p.stat().st_mtime_ns
+    assert pipeline.write_if_changed(p, 'ā\r\n'.encode()) is False and p.stat().st_mtime_ns == stamp
+    assert pipeline.write_if_changed(p, b'new') is True and p.read_bytes() == b'new'
+
+
 def test_ingest_ramseraph_downloads_through_the_shared_helper():
     import ingest_ramseraph as ir
     assert ir.http_download is pipeline.download

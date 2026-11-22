@@ -317,6 +317,17 @@ def write_json(path: Path, data: Any) -> None:
     path.write_text(json.dumps(data, indent=2, ensure_ascii=True) + '\n')
 
 
+def write_if_changed(path: Path, data: str | bytes) -> bool:
+    """Write `data` (text as UTF-8, newlines as given) unless the file already
+    holds exactly it, making the folder; True when it wrote."""
+    data = data.encode('utf-8') if isinstance(data, str) else data
+    if path.exists() and path.read_bytes() == data:
+        return False
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return True
+
+
 def write_atomic(path: Path, data: bytes) -> None:
     """`data` to `path` whole or not at all (atomic_output), making its folder:
     a killed run never leaves a cut-off cache file under the real name."""

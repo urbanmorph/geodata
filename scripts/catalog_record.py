@@ -36,6 +36,9 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from pipeline import write_if_changed  # noqa: E402
+
 ROOT = Path(__file__).resolve().parent.parent
 CACHE = ROOT / 'data' / 'cache'
 OUT = ROOT / 'data' / 'release-staging' / 'catalog'
@@ -228,13 +231,6 @@ def github_release(repo: str, tag: str) -> dict | None:
     return keep or None
 
 
-def _write_if_changed(path: Path, text: str) -> bool:
-    if path.exists() and path.read_text(encoding='utf-8') == text:
-        return False
-    path.write_text(text, encoding='utf-8', newline='')
-    return True
-
-
 def write_record(out: Path, rows: list[dict], as_of: str) -> bool:
     """Write catalog-record.json and .csv, sorted by layer id; True when either file changed."""
     out.mkdir(parents=True, exist_ok=True)
@@ -249,8 +245,8 @@ def write_record(out: Path, rows: list[dict], as_of: str) -> bool:
     w.writeheader()
     for r in rows:
         w.writerow({k: ('' if v is None else v) for k, v in r.items()})
-    a = _write_if_changed(out / 'catalog-record.json', json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
-    b = _write_if_changed(out / 'catalog-record.csv', buf.getvalue())
+    a = write_if_changed(out / 'catalog-record.json', json.dumps(doc, indent=1, ensure_ascii=False) + '\n')
+    b = write_if_changed(out / 'catalog-record.csv', buf.getvalue())
     return a or b
 
 
@@ -337,8 +333,8 @@ def main(argv=None) -> int:
             for layer in layers if layer['id'] in served]
     out = Path(args.out)
     changed = write_record(out, rows, args.as_of)
-    _write_if_changed(out / 'release-meta.json',
-                      json.dumps(release_meta(args.as_of, catalog.get('generated'), len(rows)), indent=1) + '\n')
+    write_if_changed(out / 'release-meta.json',
+                     json.dumps(release_meta(args.as_of, catalog.get('generated'), len(rows)), indent=1) + '\n')
     same = sum(1 for r in rows if r['served_bytes_match_source_digest'])
     log(f'{len(rows)} layers recorded ({same} byte-identical to their source\'s published digest); '
         f'{"written" if changed else "unchanged"}: {out}')
