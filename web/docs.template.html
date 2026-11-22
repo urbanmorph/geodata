@@ -360,7 +360,7 @@ curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_w
       <h3 id="ground"><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/ground</span></h3>
       <p>What is below a point, in one call instead of a dozen locate and nearby calls. The answer has a one-line <code>summary</code> and <code>sections</code>:</p>
       <ul>
-        <li><b>seismic</b>: seismic zone, active faults within 50 km, GSI lineaments within 25 km and NRSC lineaments within 10 km (non-commercial), each by true distance to the line, recorded earthquakes within 50 km</li>
+        <li><b>seismic</b>: seismic zone (the BIS 2016 zonation), active faults within 50 km, GSI lineaments within 25 km and NRSC lineaments within 10 km (non-commercial), each by true distance to the line, recorded earthquakes within 50 km (the record ends in 2019)</li>
         <li><b>geology</b>: rock type (GSI 1:50,000 lithology, and the 1:2 million map as a coarse fallback), landform (NRSC geomorphology, non-commercial), GSI exploration boreholes within 25 km</li>
         <li><b>resources</b>: coal and hydrocarbon blocks (0 km when inside), critical minerals, mineral deposits, hot springs and oil or gas wells nearby</li>
         <li><b>groundwater</b>: aquifer and stage of groundwater extraction (CGWB), groundwater prospects (NRSC, non-commercial), wells counted by the 2017-18 Minor Irrigation Census, the nearest groundwater quality samples (non-commercial), a permeability class (pervious, semi-pervious or impervious) from GLHYMPS 2.0, a global and coarse map, Atal Bhujal wells within 10 km with their latest pre- and post-monsoon water levels, and India-WRIS monitoring stations within 10 km (last depth, pre- and post-monsoon depth and year, 2015-2024 trend; <code>links.readings</code> is the full readings download)</li>
@@ -387,7 +387,7 @@ curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085"</code></pre
         <li><b>land</b>: land cover (ESA WorldCover 2021, resampled to 30 m), elevation and slope (Copernicus DEM GLO-90, about 90 m), people per km<sup>2</sup> (WorldPop 2020, about 100 m), CoRE Stack block land use (2023-24), land degradation (NRSC, non-commercial)</li>
         <li><b>climate</b>: agro-climatic, agro-ecological, eco and biogeographic zones</li>
         <li><b>water</b>: basin and sub-basin; the nearest river, water body, reservoir, dam, wetland and Ramsar site, each by true distance to its line or outline; Amrit Sarovar ponds; recorded floods and NDEM flood extents (non-commercial)</li>
-        <li><b>hazards</b>: seismic zone, landslide hazard (non-commercial) and recorded landslides within 5 km, cyclone tracks within 100 km (non-commercial), coastal regulation zone</li>
+        <li><b>hazards</b>: seismic zone (BIS 2016), landslide hazard (non-commercial) and recorded landslides within 5 km, cyclone tracks within 100 km (non-commercial), coastal regulation zone</li>
         <li><b>protected</b>: recorded forest, and the nearest protected area and wildlife corridor (0 km when inside)</li>
         <li><b>access</b>: nearest national highway, railway station, metro or suburban station, airport and bus stop (bus stops exist only for some cities: elsewhere <code>not_covered</code>)</li>
         <li><b>services</b>: nearest hospital or health facility from three sources (each named), nearest school, and the count of mapped places within 1 km</li>
