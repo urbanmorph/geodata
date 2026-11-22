@@ -9,9 +9,9 @@
 
 import type { Env } from '../_middleware';
 import { getSubmissionForView } from '../../lib/submissions';
-import { json } from '../../lib/http';
+import { apiError } from '../../lib/http';
 
-const notFound = () => json(404, { error: 'not found', status: 404 });
+const notFound = () => apiError(404, 'not found');
 
 type Params = { path: string[] };
 
@@ -38,8 +38,8 @@ export function reconstructKey(segs: string[]): string | null {
 export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   const segs = (ctx.params.path as string[]) || [];
   const key = reconstructKey(segs);
-  if (key === null) return json(400, { error: 'bad key', status: 400 });
-  if (!key) return json(400, { error: 'missing key', status: 400 });
+  if (key === null) return apiError(400, 'bad key');
+  if (!key) return apiError(400, 'missing key');
   if (!ALLOWED_PREFIX.test(key)) return notFound();
   // Only accepted submissions: pending, rejected and withdrawn uploads stay
   // private even to someone holding the link (review 2026-11-18).

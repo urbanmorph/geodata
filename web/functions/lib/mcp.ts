@@ -12,7 +12,7 @@ import {
   instructionsCore, readToolsFor, readToolRequest, shapeReadResult, toSearchParams,
 } from '../../../mcp/read-tools.js';
 import { apiLimitFor } from './api-ratelimit';
-import { safeStringify } from './http';
+import { json, safeStringify } from './http';
 import { onRequestGet as layersIndex } from '../api/v1/layers/index';
 import { onRequestGet as layerDetail } from '../api/v1/layers/[id]';
 import { onRequestGet as layerSchema } from '../api/v1/layers/[id]/schema';
@@ -188,7 +188,7 @@ async function callTool(req: Request, env: Env, deps: McpDeps, name: string, arg
 /** Run the /api/v1 handler for `path` in-process (no fetch back to bharatlas.com). */
 async function runRoute(req: Request, env: Env, deps: McpDeps, path: string, search: URLSearchParams): Promise<Response> {
   const route = deps.routes.find(([re]) => re.test(path));
-  if (!route) return new Response(JSON.stringify({ error: `No API route for ${path}` }), { status: 404 });
+  if (!route) return json(404, { error: `No API route for ${path}` });
   const layerId = route[0].exec(path)?.[1];
   const url = new URL(`/api/v1${path}`, req.url);
   url.search = search.toString();

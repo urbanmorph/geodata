@@ -10,7 +10,8 @@ export function json(status: number, body: unknown, headers: Record<string, stri
 }
 
 /** The API's error shape: { error, status }. */
-export const apiError = (status: number, error: string): Response => json(status, { error, status });
+export const apiError = (status: number, error: string, headers: Record<string, string> = {}): Response =>
+  json(status, { error, status }, headers);
 
 /** A 500 for a failure the caller can't fix: the detail (R2 keys, parser
  *  internals) goes to the Worker log, never into the response. */

@@ -1,5 +1,6 @@
 import type { Env } from '../_middleware';
 import { apiLimitFor, isPointLookup } from '../../lib/api-ratelimit';
+import { json } from '../../lib/http';
 
 export const onRequest: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -7,13 +8,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   // (lib/api-ratelimit.ts).
   const rl = await apiLimitFor(ctx.request, ctx.env, isPointLookup(url.pathname), (p) => ctx.waitUntil(p));
   if (!rl.ok) {
-    return new Response(JSON.stringify({ error: 'Rate limit exceeded', retryAfter: rl.retryAfter, status: 429 }), {
-      status: 429,
-      headers: {
-        'content-type': 'application/json',
-        'retry-after': String(rl.retryAfter),
-        'x-api-version': 'v1',
-      },
+    return json(429, { error: 'Rate limit exceeded', retryAfter: rl.retryAfter, status: 429 }, {
+      'retry-after': String(rl.retryAfter),
+      'x-api-version': 'v1',
     });
   }
 

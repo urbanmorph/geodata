@@ -1,3 +1,8 @@
+import { apiError } from './http';
+
+/** The JSON 404 for a path that is not an endpoint (or not one yet). */
+export const notFoundJson = (pathname: string): Response => apiError(404, `Not found: ${pathname}`);
+
 /**
  * An /api path no function handles falls through to the site's HTML page with
  * a 200. No /api function returns HTML, so an HTML response there means "no
@@ -5,8 +10,5 @@
  */
 export function notFoundForUnmatched(resp: Response, pathname: string): Response {
   if (!(resp.headers.get('content-type') ?? '').startsWith('text/html')) return resp;
-  return new Response(JSON.stringify({ error: `Not found: ${pathname}`, status: 404 }), {
-    status: 404,
-    headers: { 'content-type': 'application/json' },
-  });
+  return notFoundJson(pathname);
 }
