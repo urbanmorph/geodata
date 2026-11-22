@@ -217,7 +217,7 @@ export async function nearestRows(
   // of at most READ_WINDOW_ROWS rows (winners far apart in one row group must
   // not decode every row between them).
   const readCols = cols.filter((c) => c !== geomCol);
-  if (!readCols.length) return { winners: candidates.map((c) => ({ row: {}, cLat: c.cLat, cLng: c.cLng, d: c.d })), total, rowsScanned };
+  if (!readCols.length) return { winners: candidates.map(({ cLat, cLng, d }) => ({ row: {}, cLat, cLng, d })), total, rowsScanned };
   const byIdx = new Map(candidates.map((c) => [c.idx, c]));
   const windows = readWindows([...byIdx.keys()].sort((a, b) => a - b), READ_WINDOW_ROWS);
   const rowFile = coalesced(file, windows.flatMap((w) => chunkRanges(metadata, readCols, w[0], w[w.length - 1] + 1)));
@@ -265,7 +265,7 @@ export async function nearby(
   let winners: BboxWinner[];
 
   if (hasBboxCols) {
-    const cols = columns ? allCols.filter((c) => c === geomCol || columns.includes(c)) : allCols;
+    const cols = columns ? allCols.filter((c) => columns.includes(c)) : allCols;
     const r = await nearestRows(file, metadata, cols, geomCol, lat, lng, radiusKm, limit);
     skip = new Set([geomCol, 'xmin', 'ymin', 'xmax', 'ymax', 'bbox']);
     winners = r.winners;

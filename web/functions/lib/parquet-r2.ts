@@ -87,11 +87,14 @@ export const FOOTER_READ_BYTES = 1 << 19;
  *  the file's tail gives its size, etag and footer (a head, then a footer read,
  *  cost two round trips one after the other: a point profile opens ~30 files). */
 export async function openParquet(r2: R2Bucket, key: string): Promise<{ file: AsyncBuffer; metadata: FileMetaData }> {
+  const file = await openWithTail(r2, key);
+  return { file, metadata: await cachedMetadata(file) };
+}
+
+/** The file, its last FOOTER_READ_BYTES already read when its head was not remembered. */
+async function openWithTail(r2: R2Bucket, key: string): Promise<AsyncBuffer> {
   const head = freshHead(key);
-  if (head) {
-    const file = bufferFor(r2, key, head);
-    return { file, metadata: await cachedMetadata(file) };
-  }
+  if (head) return bufferFor(r2, key, head);
   const read = async () => {
     const obj = await r2.get(key, { range: { suffix: FOOTER_READ_BYTES } });
     return obj && { obj, data: await obj.arrayBuffer() };
@@ -101,12 +104,11 @@ export async function openParquet(r2: R2Bucket, key: string): Promise<{ file: As
   rememberHead(key, got.obj);
   const base = bufferFor(r2, key, got.obj);
   const tailStart = got.obj.size - got.data.byteLength;
-  const file: AsyncBuffer = {
+  return {
     ...base,
     slice: (start, end = base.byteLength) =>
       (start >= tailStart ? Promise.resolve(got.data.slice(start - tailStart, end - tailStart)) : base.slice(start, end)),
   };
-  return { file, metadata: await cachedMetadata(file) };
 }
 
 function bufferFor(r2: R2Bucket, key: string, head: Head): AsyncBuffer {
