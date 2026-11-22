@@ -98,6 +98,13 @@ function geomBucket(type: string): 'point' | 'line' | 'polygon' | null {
   return null;
 }
 
+/** A refusal that logs its gate (and reason, when given) before answering. */
+const rejecter = (defer: Defer | undefined, env: Env, base: Pick<CollectAttempt, 'event' | 'ip_hash' | 'collection_id'>) =>
+  (status: number, gate: string, error: string, reason?: string): Response => {
+    deferLog(defer, env.DB, { ...base, outcome: 'rejected', gate, reason });
+    return bad(status, error);
+  };
+
 async function readJson(req: Request): Promise<Record<string, unknown> | null> {
   try {
     const b = await req.json();
@@ -121,6 +128,7 @@ async function verifyApiKey(env: Env, key: string): Promise<{ id: string; daily_
 
 export async function createCollection(env: Env, req: Request, defer?: Defer): Promise<Response> {
   const ipHash = await collectIpHash(req, env);
+  const reject = rejecter(defer, env, { event: 'create', ip_hash: ipHash });
   const body = await readJson(req);
   if (!body) return bad(400, 'invalid JSON body');
 
@@ -128,30 +136,15 @@ export async function createCollection(env: Env, req: Request, defer?: Defer): P
   const apiKey = req.headers.get('x-api-key');
   if (apiKey) {
     const k = await verifyApiKey(env, apiKey);
-    if (!k) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'apiKey', ip_hash: ipHash });
-      return bad(401, 'invalid API key');
-    }
-    if (!(await checkKeyDayRate(env.DB, k.hash, k.daily_limit))) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
-      return bad(429, `API key daily limit (${k.daily_limit}) reached`);
-    }
+    if (!k) return reject(401, 'apiKey', 'invalid API key');
+    if (!(await checkKeyDayRate(env.DB, k.hash, k.daily_limit))) return reject(429, 'rateLimit', `API key daily limit (${k.daily_limit}) reached`);
   } else {
-    if (!(await turnstileOk(env, body.turnstile_token))) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'captcha', ip_hash: ipHash });
-      return bad(403, 'captcha failed');
-    }
-    if (!(await checkCreateRate(env.DB, ipHash))) {
-      deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'rateLimit', ip_hash: ipHash });
-      return bad(429, 'rate limit: 5 collections per day');
-    }
+    if (!(await turnstileOk(env, body.turnstile_token))) return reject(403, 'captcha', 'captcha failed');
+    if (!(await checkCreateRate(env.DB, ipHash))) return reject(429, 'rateLimit', 'rate limit: 5 collections per day');
   }
 
   const v = validateNewCollection(body);
-  if (!v.ok) {
-    deferLog(defer, env.DB, { event: 'create', outcome: 'rejected', gate: 'schema', reason: v.error, ip_hash: ipHash });
-    return bad(400, v.error);
-  }
+  if (!v.ok) return reject(400, 'schema', v.error, v.error);
 
   const moderation = body.moderation === 0 || body.moderation === false ? 0 : 1;
   const id = nanoid(10);
@@ -461,6 +454,7 @@ const CONTRIBUTOR_TOO_LONG = `contributor name must be at most ${CONTRIBUTOR_MAX
 
 export async function addRecord(env: Env, req: Request, id: string, defer?: Defer): Promise<Response> {
   const ipHash = await collectIpHash(req, env);
+  const reject = rejecter(defer, env, { event: 'contribute', collection_id: id, ip_hash: ipHash });
   const via = await linkFor(env.DB, id, bearer(req));
   const perm = via?.permission ?? null;
   if (!atLeast(perm, 'edit')) return bad(401, 'unauthorised: needs the edit or admin link');
@@ -478,25 +472,16 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
   const contributor = contributorOf(body.contributor);
   if (contributor === undefined) return bad(400, CONTRIBUTOR_TOO_LONG);
 
-  if (!(await turnstileOk(env, body.turnstile_token))) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'captcha', collection_id: id, ip_hash: ipHash });
-    return bad(403, 'captcha failed');
-  }
+  if (!(await turnstileOk(env, body.turnstile_token))) return reject(403, 'captcha', 'captcha failed');
   // A repeat of a queued point that already saved: before the rate limit, so a
   // retry never spends the contributor's hourly budget.
   const seen = clientKey && (await db.recordByClientKey(env.DB, id, clientKey));
   if (seen) return resendRecord(env, c, seen);
-  if (!(await checkRecordRate(env.DB, recordRateKey(via!.id, ipHash)))) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'rateLimit', collection_id: id, ip_hash: ipHash });
-    return bad(429, 'rate limit: 200 records per hour');
-  }
+  if (!(await checkRecordRate(env.DB, recordRateKey(via!.id, ipHash)))) return reject(429, 'rateLimit', 'rate limit: 200 records per hour');
 
   const geometry = body.geometry;
   const bounds = checkIndiaBounds(geometry);
-  if (!bounds.ok) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'bounds', reason: bounds.error, collection_id: id, ip_hash: ipHash });
-    return bad(400, bounds.error);
-  }
+  if (!bounds.ok) return reject(400, 'bounds', bounds.error, bounds.error);
 
   const schema = JSON.parse(c.schema_doc) as { geometry: string[]; fields: Field[]; mode?: string };
   const bucket = geomBucket((geometry as { type: string }).type);
@@ -506,16 +491,10 @@ export async function addRecord(env: Env, req: Request, id: string, defer?: Defe
 
   const mode = modeOf(schema);
   const validated = validateRecordProperties(schema.fields, body.properties, { photosOnly: mode === 'photos_ai' });
-  if (!validated.ok) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'schema', reason: validated.error, collection_id: id, ip_hash: ipHash });
-    return bad(400, validated.error);
-  }
+  if (!validated.ok) return reject(400, 'schema', validated.error, validated.error);
   const photoIds = photoIdsIn(schema.fields, validated.properties);
   const photoProblem = await checkPhotos(env, id, photoIds, null);
-  if (photoProblem) {
-    deferLog(defer, env.DB, { event: 'contribute', outcome: 'rejected', gate: 'photos', reason: photoProblem, collection_id: id, ip_hash: ipHash });
-    return bad(400, photoProblem);
-  }
+  if (photoProblem) return reject(400, 'photos', photoProblem, photoProblem);
 
   // The owner's own captures publish immediately; only contributor input is
   // moderated. A point the model fills in always waits for a person's check.
