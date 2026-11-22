@@ -163,11 +163,8 @@ export function clearBoxCache(): void {
 
 /** The bbox columns of each span's row group: from the cache, the rest read together. */
 export async function groupBoxes(file: AsyncBuffer & { cacheKey?: string }, metadata: FileMetaData, spans: RowSpan[]): Promise<GroupBoxes[]> {
-  const keyOf = (s: RowSpan) => (file.cacheKey ? `${file.cacheKey}#${s.start}` : null);
-  const out = spans.map((s) => {
-    const k = keyOf(s);
-    return k ? boxCache.get(k) : undefined;
-  });
+  const keys = spans.map((s) => (file.cacheKey ? `${file.cacheKey}#${s.start}` : null));
+  const out = keys.map((k) => (k ? boxCache.get(k) : undefined));
   const missing = spans.map((_, i) => i).filter((i) => !out[i]);
   const bboxFile = coalesced(file, missing.flatMap((i) => chunkRanges(metadata, [...BBOX_COLS], spans[i].start, spans[i].end)));
   await mapConcurrent(missing, R2_CONCURRENCY, async (i) => {
@@ -176,7 +173,7 @@ export async function groupBoxes(file: AsyncBuffer & { cacheKey?: string }, meta
     }) as Array<Record<string, unknown>>;
     const col = (c: string) => Float64Array.from(rows, (r) => Number(r[c]));
     const b = { xmin: col('xmin'), ymin: col('ymin'), xmax: col('xmax'), ymax: col('ymax') };
-    const k = keyOf(spans[i]);
+    const k = keys[i];
     if (k) boxCache.set(k, b, b.xmin.byteLength * 4);
     out[i] = b;
   });

@@ -151,9 +151,10 @@ const round = (n: number, p: number) => Math.round(n * 10 ** p) / 10 ** p;
 
 const boxOf = (b: Record<string, unknown>): Box => ({ xmin: Number(b.xmin), ymin: Number(b.ymin), xmax: Number(b.xmax), ymax: Number(b.ymax) });
 
-/** Rows whose box comes within the radius, nearest box first, at most `max`, back in row order;
- *  and whether some were left out. */
-function pickCandidates(near: Array<{ idx: number; d: number }>, max: number): { idxs: number[]; capped: boolean } {
+/** Rows whose box comes within the radius, nearest box first, at most `maxCandidates`, back
+ *  in row order; and whether some were left out. */
+function pickCandidates(near: Array<{ idx: number; d: number }>, opts: NearestShapeOpts): { idxs: number[]; capped: boolean } {
+  const max = opts.maxCandidates ?? MAX_SHAPE_CANDIDATES;
   const all = near.sort((a, b) => a.d - b.d);
   return { idxs: all.slice(0, max).map((c) => c.idx).sort((a, b) => a - b), capped: all.length > max };
 }
@@ -176,8 +177,8 @@ function hitOf(lat: number, lng: number, radiusKm: number, shape: ShapeParts | n
   return { properties, lat: round(near.lat, 5), lng: round(near.lng, 5), distance_km: round(near.km, 2) };
 }
 
-function answer(hits: GeomHit[], limit: number, capped: boolean): ShapeAnswer {
-  hits.sort((a, b) => a.distance_km - b.distance_km);
+function answer(found: Array<GeomHit | null>, limit: number, capped: boolean): ShapeAnswer {
+  const hits = found.filter((h): h is GeomHit => !!h).sort((a, b) => a.distance_km - b.distance_km);
   return { features: hits.slice(0, limit), total: hits.length, capped };
 }
 
@@ -207,7 +208,7 @@ export async function nearestByGeometry(
       if (d <= radiusKm) near.push({ idx: span.start + i, d });
     }
   });
-  const { idxs: candidates, capped } = pickCandidates(near, opts.maxCandidates ?? MAX_SHAPE_CANDIDATES);
+  const { idxs: candidates, capped } = pickCandidates(near, opts);
 
   const skip = skipOf(geomCol);
   const windows = readWindows(candidates, READ_WINDOW_ROWS);
@@ -220,7 +221,7 @@ export async function nearestByGeometry(
     }) as Array<Record<string, unknown>>;
     return idxs.map((i) => hitOf(lat, lng, radiusKm, shapeParts(rows[i - lo][geomCol]), propertiesOf(rows[i - lo], skip), opts));
   });
-  return answer(found.flat().filter((h): h is GeomHit => !!h), opts.limit, capped);
+  return answer(found.flat(), opts.limit, capped);
 }
 
 // ── small layers, kept whole ─────────────────────────────────────────────────
@@ -248,9 +249,9 @@ function nearestInShapeRows(rows: ShapeRow[], lat: number, lng: number, radiusKm
     const d = bboxDistanceKm(lat, lng, r.box);
     if (d <= radiusKm) near.push({ idx, d });
   });
-  const { idxs, capped } = pickCandidates(near, opts.maxCandidates ?? MAX_SHAPE_CANDIDATES);
+  const { idxs, capped } = pickCandidates(near, opts);
   const hits = idxs.map((i) => hitOf(lat, lng, radiusKm, rows[i].shape, { ...rows[i].properties }, opts));
-  return answer(hits.filter((h): h is GeomHit => !!h), opts.limit, capped);
+  return answer(hits, opts.limit, capped);
 }
 
 /** nearestByGeometry over a catalog layer's parquet on R2 (a small one kept whole per isolate). */
