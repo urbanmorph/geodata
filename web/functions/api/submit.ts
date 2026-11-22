@@ -11,7 +11,7 @@
 // as `fc_json` for non-trivial formats. For GeoJSON/JSON the file IS the FC
 // so the server parses it natively and `fc_json` is ignored.
 
-import type { Env as MiddlewareEnv } from './_middleware';
+import type { Env } from './_middleware';
 import { validateSubmission, gateSubmission, MAX_SUBMIT_BYTES } from '../lib/validate-server';
 import { verifyTurnstile } from '../lib/turnstile';
 import { checkRateLimit } from '../lib/ratelimit';
@@ -19,14 +19,9 @@ import { json as j } from '../lib/http';
 import { findDuplicateByHash } from '../lib/submissions';
 import { persistSubmission } from '../lib/persist-submission';
 import { generateToken, hashToken, tokenPrefix } from '../lib/tokens';
-import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, ipSalt, parseDataYear } from '../lib/submit-helpers';
+import { nanoid, sha256Hex, sanitizeFilename, ipHashFor, submitterSalt, parseDataYear } from '../lib/submit-helpers';
 import { normaliseFC } from '../../src/validate';
 import { attemptRowFromResult, attemptRowReject, logAttempt, parseErrorSummary, type AttemptRow } from '../lib/submit-log';
-
-type Env = MiddlewareEnv & {
-  TURNSTILE_SECRET: string;
-  IP_SALT?: string;
-};
 
 const codeForReason = (reason: string): number => {
   if (/rate/i.test(reason)) return 429;
@@ -71,7 +66,7 @@ async function handleSubmit(
   log: (row: AttemptRow) => void,
   reply: (status: number, body: Record<string, unknown>) => Response,
 ): Promise<Response> {
-  const ipHash = await ipHashFor(ctx.request, ipSalt(ctx.env.IP_SALT, 'geodata-v1'));
+  const ipHash = await ipHashFor(ctx.request, submitterSalt(ctx.env));
   // Refuse an oversized body by its declared length before reading any of it
   // (the multipart envelope adds a little; 1 MB of slack covers the form fields).
   const declared = Number(ctx.request.headers.get('content-length') || 0);

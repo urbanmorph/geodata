@@ -8,7 +8,7 @@
 // production.
 
 import type { Env } from '../_middleware';
-import { getSubmissionForView } from '../../lib/submissions';
+import { acceptedSubmission } from '../../lib/submissions';
 import { apiError } from '../../lib/http';
 import { CACHE_CONTROL } from '../../lib/edge-cache';
 
@@ -45,7 +45,7 @@ export const onRequestGet: PagesFunction<Env, keyof Params> = async (ctx) => {
   // Only accepted submissions: pending, rejected and withdrawn uploads stay
   // private even to someone holding the link (review 2026-11-18).
   const subId = key.split('/')[1] ?? '';
-  if (!(await getSubmissionForView(ctx.env.DB, subId))) return notFound();
+  if (!(await acceptedSubmission(ctx.env.DB, subId))) return notFound();
 
   const obj = await ctx.env.R2.get(key);
   if (!obj) return notFound();
