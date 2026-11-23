@@ -10,6 +10,7 @@ import { fetchAsset, type AssetCtx } from '../../../../lib/catalog-loader';
 import type { CatalogLayer } from '../../../../lib/catalog-api';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 import { countApiUse } from '../../../../lib/usage';
+import { timedCall } from '../../../../lib/api-calls';
 import { apiError, json, serverError } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
@@ -19,7 +20,7 @@ const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
 type CountsCtx = AssetCtx & { env: { R2: R2Bucket } };
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
   const { layer, version, url } = r;
@@ -27,7 +28,7 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
 
   const res = await cached(ctx, cacheKey(version, url), EDGE_TTL.r2, () => answer(ctx, layer, url.searchParams));
   return retiring(res, layer.id, url.searchParams.get('group_by'));
-};
+});
 
 const DEPRECATED_AT = '@1795305600';               // 2026-11-22
 const SUNSET = 'Tue, 22 Dec 2026 00:00:00 GMT';

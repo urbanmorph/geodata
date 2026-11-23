@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { countApiUse } from '../../../../lib/usage';
+import { timedCall } from '../../../../lib/api-calls';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, queryFailure } from '../../../../lib/parquet-query';
@@ -9,7 +10,7 @@ import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
   const { layer, version, url } = r;
@@ -41,4 +42,4 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   // on a large layer is a whole-file scan (an Overture hospital query took 15 s
   // every time). The key leaves out parameters that can't change the answer.
   return cached(ctx, cacheKey(version, queryCacheUrl(url)), EDGE_TTL.r2, run);
-};
+});

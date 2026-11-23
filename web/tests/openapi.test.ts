@@ -43,6 +43,13 @@ describe('the OpenAPI description', () => {
     expect(d).not.toMatch(/tell you before a change/);
   });
 
+  it("says what a call's speed record keeps, the same in the docs, OpenAPI and llms.txt (api-calls.ts)", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const line = "For each call we also keep how long it took, which Cloudflare data centre answered and, for the bharatlas MCP, its version number: never your IP or the point you asked about.";
+    expect(OPENAPI.info.description).toContain(line);
+    for (const f of ['../public/llms.txt', '../docs.template.html']) expect(readFileSync(resolve(here, f), 'utf8'), f).toContain(line);
+  });
+
   it('llms.txt says MCP calls are counted per layer, not by caller', () => {
     const llms = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), '../public/llms.txt'), 'utf8');
     expect(llms).toContain('We count MCP calls per layer, and keep nothing about the caller.');

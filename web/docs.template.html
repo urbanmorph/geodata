@@ -172,7 +172,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
       <h3>Is it up?</h3>
       <p>The website, the API and collect are checked every 5 minutes from outside. <a href="https://status.bharatlas.com/">status.bharatlas.com</a> shows each one now, its uptime over 90 days and past outages, also as <a href="https://status.bharatlas.com/status.json">JSON</a>.</p>
       <h3>Name your app</h3>
-      <p>Please send a <code>User-Agent</code> that names your app (for example <code>my-app/1.0</code>). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are.</p>
+      <p>Please send a <code>User-Agent</code> that names your app (for example <code>my-app/1.0</code>). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are. For each call we also keep how long it took, which Cloudflare data centre answered and, for the bharatlas MCP, its version number: never your IP or the point you asked about.</p>
       <h3>What stays the same</h3>
       <p><code>/api/v1</code> only grows: new fields may appear, but existing fields are never renamed or removed. A breaking change ships as <code>/v2</code>, announced here, and <code>/v1</code> keeps working for at least 6 months after that. Every response carries an <code>x-api-version: v1</code> header.</p>
 

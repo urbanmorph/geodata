@@ -7,6 +7,7 @@
 // local dev share the production database but are not use. The bharatlas MCP sends
 // "bharatlas-mcp/<version>" (mcp/index.js), which is how its calls are told apart.
 import { fmtCount } from '../../../shared/format.mjs';
+import { noteCall } from './api-calls';
 
 export type Channel = 'api' | 'mcp';
 type RunnableD1 = Pick<D1Database, 'prepare' | 'batch'>;
@@ -63,7 +64,9 @@ export function countApiUse(
 ): void {
   if (!countedHost(new URL(ctx.request.url))) return;
   const channel = usageChannel(ctx.request.headers.get('user-agent'));
-  if (!channel || !ctx.env.DB) return;
+  if (!channel) return;
+  noteCall(ctx.request, { subject: layerId, channel }); // its speed too (api-calls.ts), when the handler is timed
+  if (!ctx.env.DB) return;
   ctx.waitUntil(incrementApiUse(ctx.env.DB, layerId, channel).catch(() => {}));
 }
 

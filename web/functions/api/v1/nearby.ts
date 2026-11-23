@@ -1,13 +1,14 @@
 import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
 import { countApiUse } from '../../lib/usage';
+import { timedCall } from '../../lib/api-calls';
 import { nearbyTrueDistance } from '../../lib/nearby-true-distance';
 import { queryFailure } from '../../lib/parquet-query';
 import { apiError, json } from '../../lib/http';
 import { parseIndiaPoint, resolveLayer } from '../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../lib/edge-cache';
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const url = new URL(ctx.request.url);
   if (!url.searchParams.get('layer')) return apiError(400, 'lat, lng, and layer query params are required');
   const pt = parseIndiaPoint(url.searchParams);
@@ -31,4 +32,4 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return queryFailure('Nearby')(e);
     }
   });
-};
+});
