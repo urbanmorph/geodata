@@ -137,3 +137,21 @@ describe('a11y names', () => {
     expect(readFileSync(resolve(__dirname, '../index.template.html'), 'utf8')).toMatch(/<pre class="ask-ai__code" tabindex="0"/);
   });
 });
+
+describe('sticky header', () => {
+  it('the site header stays at the top while the page scrolls, above page content', () => {
+    expect(TOKENS).toMatch(/\.site-header \{[^}]*position: sticky; top: 0;[^}]*z-index: var\(--z-sticky\)/);
+  });
+
+  it('anchor jumps land below the header (scroll-padding on the root)', () => {
+    expect(TOKENS).toContain('--header-h:');
+    expect(TOKENS).toMatch(/html \{[^}]*scroll-padding-top: var\(--header-h\)/);
+  });
+
+  it('sticky side panels sit below the header, not under it', () => {
+    for (const page of ['layers', 'preview']) {
+      const html = readFileSync(resolve(__dirname, `../${page}.template.html`), 'utf8');
+      for (const m of html.matchAll(/position: sticky; top: ([^;]+);/g)) expect(m[1]).toContain('var(--header-h)');
+    }
+  });
+});

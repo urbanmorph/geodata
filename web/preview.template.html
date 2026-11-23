@@ -40,8 +40,8 @@
       #workspace { display: none; grid-template-columns: minmax(0, 1fr) min(360px, 38%); gap: var(--sp-5); align-items: start; }
       #workspace.show { display: grid; }
       #map {
-        position: sticky; top: 16px;
-        height: calc(100vh - 80px); min-height: 420px;
+        position: sticky; top: calc(var(--header-h) + 16px);
+        height: calc(100vh - var(--header-h) - 80px); min-height: 420px;
         border: var(--border-edge); border-radius: var(--radius-sm); overflow: hidden;
         background: var(--bg-elevated);
       }

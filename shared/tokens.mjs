@@ -119,7 +119,7 @@ export const ICON = decl([['--icon-sm', '16px'], ['--icon-md', '20px'], ['--icon
 /** The smallest touch target. */
 export const TAP = decl([['--tap', '44px']]);
 
-export const LAYOUT = decl([['--page-max', '1120px']]);
+export const LAYOUT = decl([['--page-max', '1120px'], ['--header-h', '72px']]);
 
 /** Media-query widths (CSS cannot read custom properties in @media, so these stay numbers). */
 export const BREAKPOINTS = Object.freeze({ sm: 640, md: 900, lg: 1100 });

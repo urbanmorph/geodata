@@ -20,7 +20,7 @@
       .layers-search:focus-within { outline: var(--border-focus); outline-offset: 2px; box-shadow: var(--shadow), var(--shadow-halo); }
       .search-meta { margin: var(--sp-2) 0 0; }
       .layers-body { display: grid; grid-template-columns: 240px minmax(0, 1fr); gap: 40px; align-items: start; margin-top: 28px; }
-      .theme-index { position: sticky; top: 16px; max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; border: var(--border-edge); background: var(--bg-elevated); }
+      .theme-index { position: sticky; top: calc(var(--header-h) + 16px); max-height: calc(100vh - var(--header-h) - 32px); overflow-y: auto; display: flex; flex-direction: column; border: var(--border-edge); background: var(--bg-elevated); }
       .theme-index__group + .theme-index__group { border-top: var(--border-edge); }
       /* Desktop, with JS and no search: every realm, but only the themes of the one in view (layers.ts). */
       @media (min-width: 901px) { .theme-index.is-following .theme-index__group:not(.is-active) a:not(.theme-index__realm) { display: none; } }
