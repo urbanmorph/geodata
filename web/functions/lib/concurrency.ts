@@ -20,3 +20,29 @@ export async function mapConcurrent<T, R>(
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
   return out;
 }
+
+/** At most `limit` holders at a time. `acquire(rank)` resolves with the function that
+ *  gives the turn back (calling it again does nothing); a freed turn goes to the lowest
+ *  rank waiting, first come among equals. */
+export function turns(limit: number): { acquire(rank?: number): Promise<() => void> } {
+  let free = limit;
+  const waiting: Array<{ rank: number; grant: () => void }> = []; // kept in rank order
+  const handBack = () => {
+    const next = waiting.shift();
+    if (next) next.grant();
+    else free++;
+  };
+  const turn = () => {
+    let done = false;
+    return () => { if (!done) { done = true; handBack(); } };
+  };
+  return {
+    acquire(rank = 0) {
+      if (free > 0) { free--; return Promise.resolve(turn()); }
+      return new Promise((r) => {
+        const at = waiting.findIndex((w) => w.rank > rank);
+        waiting.splice(at < 0 ? waiting.length : at, 0, { rank, grant: () => r(turn()) });
+      });
+    },
+  };
+}

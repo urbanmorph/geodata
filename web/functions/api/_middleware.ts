@@ -1,6 +1,7 @@
 import { notFoundForUnmatched } from '../lib/api-not-found';
 import { SECURITY_HEADERS_NON_HTML } from '../lib/security-headers';
 import { apiError, serverError } from '../lib/http';
+import { addTiming, timing } from '../lib/server-timing';
 
 // CORS preflight + shared environment shape.
 // Pages Functions read this from each /api/* handler via the `data` arg.
@@ -45,6 +46,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   }
   // A handler that throws would otherwise reach the caller as Cloudflare's HTML
   // error page (1101): every /api answer is JSON {error, status}.
+  const t0 = Date.now();
   let resp: Response;
   try {
     resp = notFoundForUnmatched(await ctx.next(), new URL(ctx.request.url).pathname);
@@ -57,5 +59,6 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   if (READS.has(ctx.request.method)) headers.set('access-control-allow-origin', '*');
   else headers.delete('access-control-allow-origin');
   for (const [k, v] of Object.entries(SECURITY_HEADERS_NON_HTML)) if (!headers.has(k)) headers.set(k, v);
+  addTiming(headers, { after: [timing('api', Date.now() - t0)] }); // the whole chain: limit, handler, the rest
   return new Response(resp.body, { status: resp.status, headers });
 };
