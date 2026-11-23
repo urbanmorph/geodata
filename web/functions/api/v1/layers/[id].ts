@@ -4,6 +4,8 @@ import { countApiUse } from '../../../lib/usage';
 import { json } from '../../../lib/http';
 import { resolveLayer } from '../../../lib/api-layer';
 import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from '../../../lib/edge-cache';
+import { withLookups } from '../../../lib/lookups';
+import { pointProfilesOn } from '../../../lib/point-profiles';
 
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
@@ -12,6 +14,9 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const { layer, catalog, version, url } = r;
   countApiUse(ctx, layer.id);
 
-  return cached(ctx, cacheKey(version, url), EDGE_TTL.catalog, async () =>
-    json(200, { data: await attachFilterStats(ctx, toApiLayer(layer, catalog, true)) }, { 'cache-control': CACHE_CONTROL.catalog }));
+  return cached(ctx, cacheKey(version, url), EDGE_TTL.catalog, async () => {
+    const api = await attachFilterStats(ctx, toApiLayer(layer, catalog, true));
+    // Which lookup reads the layer, said only while the lookups are published.
+    return json(200, { data: pointProfilesOn(ctx.env, url) ? withLookups(api) : api }, { 'cache-control': CACHE_CONTROL.catalog });
+  });
 };

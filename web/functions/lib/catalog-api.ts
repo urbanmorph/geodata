@@ -2,6 +2,7 @@ import { fetchAsset, loadCatalogVersioned, type AssetCtx } from './catalog-loade
 import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from './edge-cache';
 import { json } from './http';
 import { layerIsNonCommercial, NC_NOTICE } from '../../../shared/licences.mjs';
+import { realmOf } from '../../../shared/realms.mjs';
 export interface CatalogLayer {
   id: string;
   level: string;
@@ -45,6 +46,8 @@ export interface CatalogData {
 
 export interface LayerFilter {
   category?: string;
+  /** below, ground or air (shared/realms.mjs). */
+  realm?: string;
   level?: string;
   source?: string;
   q?: string;
@@ -67,6 +70,8 @@ export interface ApiLayer {
   level: string;
   source: string;
   category: string;
+  /** below, ground or air: where the layer sits (shared/realms.mjs, as on /layers). */
+  realm: string;
   rows: number | null;
   provenance: string;
   licence?: string;
@@ -83,6 +88,7 @@ export interface ApiLayer {
 export function filterLayers(layers: CatalogLayer[], filter: LayerFilter): CatalogLayer[] {
   return layers.filter((l) => {
     if (filter.category && l.category !== filter.category) return false;
+    if (filter.realm && realmOf(l) !== filter.realm) return false;
     if (filter.level && l.level !== filter.level) return false;
     if (filter.source && l.source !== filter.source) return false;
     if (filter.q) {
@@ -124,6 +130,7 @@ export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = f
     level: layer.level,
     source: layer.source,
     category: layer.category,
+    realm: realmOf(layer),
     rows: layer.rows,
     provenance: layer.provenance,
     licence: layer.licence,

@@ -14,7 +14,7 @@ import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
 import { STATIC_PAGES, releasePages, urlset, SITE_ORIGIN as ORIGIN } from '../../shared/sitemap.mjs';
 import { LEVEL_META as BUILTIN_LEVEL_META, pickPrimary } from '../../shared/level-meta.mjs';
 import { THEME_DESC, THEME_GLYPH, themeDesc } from './themes.mjs';
-import { REALMS, realmOf } from './realms.mjs';
+import { REALMS, realmOf } from '../../shared/realms.mjs';
 import { indiaMapHtml } from './india-map.mjs';
 import { WARD_BBOXES } from '../functions/lib/ward-bboxes.ts';
 import { WARD_PLACES } from '../functions/lib/ward-places.ts';
@@ -657,7 +657,7 @@ const allCategories = new Set([
 ]);
 const sortedCats = [...new Set([...CATEGORY_ORDER, 'other'])].filter((c) => allCategories.has(c));
 
-// /layers (Option B, then realms): three realms (scripts/realms.json), each
+// /layers (Option B, then realms): three realms (shared/realms.json), each
 // with a section per theme that has layers there, and an index beside them
 // grouped the same way. Rendered in page order: renderRow fills the search
 // index (/layer-index.json) as it goes, and it must follow the rows.

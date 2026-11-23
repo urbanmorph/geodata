@@ -146,6 +146,18 @@ describe('paginateResults', () => {
   });
 });
 
+describe('realm (shared/realms.mjs, the same rule as /layers)', () => {
+  it('every API layer says its realm', () => {
+    expect(toApiLayer(SAMPLE_CATALOG.layers[0], SAMPLE_CATALOG).realm).toBe('ground');
+    expect(toApiLayer(SAMPLE_CATALOG.layers[2], SAMPLE_CATALOG).realm).toBe('below');
+  });
+
+  it('filterLayers takes a realm', () => {
+    expect(filterLayers(SAMPLE_CATALOG.layers, { realm: 'below' }).map((l) => l.id)).toEqual(['seismic_zones']);
+    expect(filterLayers(SAMPLE_CATALOG.layers, { realm: 'ground' })).toHaveLength(2);
+  });
+});
+
 describe('toApiLayer', () => {
   it('transforms a catalog layer to the API shape', () => {
     const api = toApiLayer(SAMPLE_CATALOG.layers[0], SAMPLE_CATALOG);

@@ -135,3 +135,41 @@ test("the npm server offers the point lookups only with BHARATLAS_POINT_PROFILES
   assert.match(src, /readToolsFor\(POINT_PROFILES\)/);
   assert.match(src, /instructionsCore\(POINT_PROFILES\)/);
 });
+
+// Lookup filters (owner design, 2026-11-23): the listings say each layer's realm
+// and the lookups that read it; ground_at and surface_at read only the sections or
+// layers asked for.
+test("list_layers passes realm, and keeps realm and lookups in the compact list", async () => {
+  assert.deepEqual(readToolRequest("list_layers", { realm: "below" }).params.realm, "below");
+  const out = shapeReadResult("list_layers", {
+    data: [{ id: "seismic_zones", realm: "below", lookups: { ground: "seismic", surface: "hazards" }, downloads: {} }, { id: "lgd_villages", realm: "ground", downloads: {} }],
+  });
+  assert.equal(out.data[0].realm, "below");
+  assert.deepEqual(out.data[0].lookups, { ground: "seismic", surface: "hazards" });
+  assert.equal("lookups" in out.data[1], false);
+  const { READ_TOOLS } = await import("./read-tools.js");
+  const list = READ_TOOLS.find((t) => t.name === "list_layers");
+  assert.deepEqual(list.inputSchema.properties.realm.enum, ["below", "ground", "air"]);
+  assert.match(READ_TOOLS.find((t) => t.name === "get_layer_detail").description, /realm/);
+});
+
+test("ground_at and surface_at pass sections and layers, as arrays or comma lists", () => {
+  assert.deepEqual(readToolRequest("ground_at", { lat: 1, lng: 2, sections: ["soil", "seismic"] }).params, { lat: 1, lng: 2, sections: "soil,seismic" });
+  assert.deepEqual(readToolRequest("surface_at", { lat: 1, lng: 2, layers: "airports, dem" }).params, { lat: 1, lng: 2, layers: "airports,dem" });
+  assert.throws(() => readToolRequest("surface_at", { lat: 1, lng: 2, sections: [1] }), /sections must be a list/);
+});
+
+test("the lookup tools tell agents to narrow a narrow question and read everything for a broad one", async () => {
+  const { READ_TOOLS } = await import("./read-tools.js");
+  for (const name of ["ground_at", "surface_at"]) {
+    const t = READ_TOOLS.find((x) => x.name === name);
+    assert.ok(t.inputSchema.properties.sections, name);
+    assert.ok(t.inputSchema.properties.layers, name);
+    assert.match(t.description, /narrow question.*sections/i, name);
+    assert.match(t.description, /broad/i, name);
+  }
+  assert.deepEqual(READ_TOOLS.find((x) => x.name === "ground_at").inputSchema.properties.sections.items.enum,
+    ["seismic", "geology", "resources", "groundwater", "soil", "subsidence", "underground", "watershed"]);
+  assert.deepEqual(READ_TOOLS.find((x) => x.name === "surface_at").inputSchema.properties.sections.items.enum,
+    ["place", "land", "climate", "water", "hazards", "protected", "access", "services", "infrastructure"]);
+});

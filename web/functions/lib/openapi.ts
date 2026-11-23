@@ -15,6 +15,8 @@ export function specPathForRouteFile(file: string): string {
   return '/' + path;
 }
 
+import { REALM_IDS } from '../../../shared/realms.mjs';
+
 const ref = (kind: string, name: string) => ({ $ref: `#/components/${kind}/${name}` });
 const q = (name: string, description: string, schema: Record<string, unknown>, required = false) =>
   ({ name, in: 'query', required, description, schema });
@@ -104,13 +106,14 @@ const BASE = {
           q('category', 'Only this category (see /categories), e.g. `boundaries`, `city-wards`.', { type: 'string' }),
           q('level', 'Only this level (see /levels), e.g. `district`.', { type: 'string' }),
           q('source', 'Only this source, e.g. `LGD`.', { type: 'string' }),
+          q('realm', 'Only this realm: `below` (rocks, faults, minerals, aquifers, groundwater), `ground` (boundaries, wards, rivers, forests, roads, places) or `air` (cyclone tracks). Another value is a 400 naming these.', { type: 'string', enum: REALM_IDS }),
           q('q', 'Text search (case-insensitive substring) over id, source, notes, category, level and tags.', { type: 'string' }),
           ref('parameters', 'Limit500'),
           ref('parameters', 'Offset'),
         ],
         responses: {
           '200': ok('A page of layers', { allOf: [ref('schemas', 'Page'), { type: 'object', properties: { data: { type: 'array', items: ref('schemas', 'Layer') } } }] }),
-          ...errors('429'),
+          ...errors('400', '429'),
         },
       },
     },
@@ -356,6 +359,7 @@ const BASE = {
           level: { type: 'string' },
           source: { type: 'string' },
           category: { type: 'string' },
+          realm: { type: 'string', enum: REALM_IDS, description: 'Where the layer sits: below ground, on the ground or in the air (as /layers groups them).' },
           rows: { type: ['integer', 'null'] },
           provenance: { type: 'string' },
           licence: { type: 'string', description: 'SPDX-style licence id(s) of the source, e.g. `CC0-1.0`, `ODbL-1.0`, `GODL-India`.' },
@@ -454,6 +458,29 @@ const BASE = {
   },
 } as const;
 
+/** A lookup's sections and the layers each reads, for its sections= and layers= (lib/lookups.ts
+ *  lookupGuide() builds it from the lookup's own table; this file imports nothing heavy, since the
+ *  build (prerender.mjs) reads it too). */
+export interface LookupDoc { sections: readonly string[]; bySection: string; wards: boolean }
+export type LookupGuide = Record<'ground' | 'surface', LookupDoc>;
+
+/** sections= and layers= of a lookup. */
+const lookupFilters = (d: LookupDoc, cost: string) => [
+  q('sections', `Read only these sections (comma-separated): ${d.sections.join(', ')}. Default all. ${cost} An unknown section is a 400 naming the valid ones.`,
+    { type: 'array', items: { type: 'string', enum: [...d.sections] } }),
+  q('layers', `Read only these layers (comma-separated ids, the rasters too), as well as any sections asked. Default all. By section: ${d.bySection}.` +
+    (d.wards ? ' A ward layer (wards_<city>, sbm_wards, wb_amrut_wards) named here is read even where it does not cover the point (then `not_covered`).' : '') +
+    ' A layer this lookup does not read is a 400 naming the valid ones. `/layers` says which section reads each layer (`lookups`).',
+  { type: 'array', items: { type: 'string' } }),
+];
+
+// Rough cost, measured on a preview at fresh points (2026-11-23): each section alone, and the whole lookup.
+const GROUND_COST = 'Rough cost: one section answers in about 0.1 to 0.25 s; soil (the SoilGrids raster), geology and groundwater read the most files; all eight together about 0.3 to 0.5 s.';
+const SURFACE_COST = 'Rough cost: one section answers in about 0.1 to 0.35 s; land (three rasters), water and place (with the ward layer) read the most files, about 10 each; all nine together read 30 to 100 files and take about 0.6 to 2 s.';
+
+const FILTER_NOTE ='With `sections` or `layers` only those are read (same response shape, `filter` says what was asked; asked sections in the same order) and the answer is cached under the normalised filter. ' +
+  'Pass them for a narrow question (the seismic zone, the nearest station, the ward); leave them out for a broad one. ';
+
 // The point lookups, described only while they are published (lib/point-profiles.ts).
 const POINT_PROFILE_PATHS_SPEC = {
   '/ground': {
@@ -469,6 +496,7 @@ const POINT_PROFILE_PATHS_SPEC = {
         '`contains` entries list the features holding the point; `nearest` entries give `count` within `radius_km` and the nearest few with `distance_km` (points by distance to the point, lines by true distance to the line: `distance_to`). ' +
         'Every entry has a `status`: `found`, `none_within_radius` (the layer covers the area, nothing is that close; `radius_km: 0` on an all-India map such as the NDEM flood extents means the point is in none of its areas) or `not_covered` (the layer does not reach this point, e.g. subsidence outside its cities). ' +
         'Each entry also says its `about`: scale or resolution, vintage and the date bharatlas fetched it; `disclaimer` says once that this is screening information, not for site or engineering decisions. ' +
+        FILTER_NOTE +
         'Layers are read six at a time. A layer that cannot be read within 2.5 seconds of its turn, or before the answer\'s 4-second limit, is listed in `unavailable` (reason `took longer than 2500 ms`, `took longer than the answer\'s 4000 ms`, or `could not be read`) and the rest still answer; such an answer is not kept in the edge cache, so asking again usually completes it. `summary` says it in one line. ' +
         'The answer is for the point snapped to 3 decimal places (about 100 m; `point` says which), kept in the edge cache for an hour when every layer answered, never by clients. Uses the locate rate limit (60 a minute).',
       parameters: [
@@ -492,7 +520,8 @@ const POINT_PROFILE_PATHS_SPEC = {
         '`hazards` (seismic zone, landslide hazard and recorded landslides, cyclone tracks within 100 km, coastal regulation zone), `protected` (recorded forest, the nearest protected area and wildlife corridor, 0 km when inside), ' +
         '`access` (nearest national highway, railway station, metro or suburban station, airport, bus stop), `services` (nearest hospital from three sources, school, places within 1 km), `infrastructure` (power line, power plant, water-supply facility, distance to India\'s outline). ' +
         'Entries follow /ground: `credit`, `about`, `status` (found, none_within_radius, not_covered), `non_commercial` and `licence_notice`, `units`, `summary`, `disclaimer`, `unavailable`. Raster entries (`match: pixel`) carry `values`. ' +
-        '`air` points to the mugilu MCP (conditions_at) for the air above the point. Snapped to about 100 m and edge-cached like /ground; uses the locate rate limit (60 a minute).',
+        '`air` points to the mugilu MCP (conditions_at) for the air above the point. Snapped to about 100 m and edge-cached like /ground; uses the locate rate limit (60 a minute). ' +
+        FILTER_NOTE,
       parameters: [
         LAT, LNG,
         q('open_only', 'true leaves out the non-commercial layers (NRSC land degradation, NDEM floods, landslide hazard and cyclone tracks); they are named in `omitted_non_commercial`.', { type: 'boolean', default: false }),
@@ -513,6 +542,10 @@ const POINT_PROFILE_SCHEMAS = {
       summary: { type: 'string', description: 'The profile in one readable line.' },
       disclaimer: { type: 'string', description: 'Screening information, not for site or engineering decisions.' },
       omitted_non_commercial: { type: 'array', items: { type: 'string' }, description: 'With open_only=true: the non-commercial layers left out.' },
+      filter: {
+        type: 'object', description: 'With sections= or layers=: what was asked, sorted (only that was read).',
+        properties: { sections: { type: 'array', items: { type: 'string' } }, layers: { type: 'array', items: { type: 'string' } } },
+      },
       sections: {
         type: 'object',
         description: 'seismic, geology, resources, groundwater, soil, subsidence, underground, watershed: each maps a layer id (or `soilgrids`) to its entry.',
@@ -563,16 +596,43 @@ const POINT_PROFILE_SCHEMAS = {
   },
 } as const;
 
-/** The full description (every route file, point lookups included): what the tests hold the handlers to. */
-export const OPENAPI = openapiFor(true);
+/** The lookups' sections= and layers=, and a listed layer's `lookups`, from the lookups' guide. */
+function withLookupFilters(guide: LookupGuide) {
+  const P = POINT_PROFILE_PATHS_SPEC;
+  const withParams = <T extends { get: { parameters: readonly unknown[] } }>(path: T, extra: unknown[]) =>
+    ({ ...path, get: { ...path.get, parameters: [...path.get.parameters, ...extra] } });
+  const layer = BASE.components.schemas.Layer;
+  return {
+    paths: {
+      '/ground': withParams(P['/ground'], lookupFilters(guide.ground, GROUND_COST)),
+      '/surface': withParams(P['/surface'], lookupFilters(guide.surface, SURFACE_COST)),
+    },
+    Layer: {
+      ...layer,
+      properties: {
+        ...layer.properties,
+        lookups: {
+          type: 'object',
+          description: 'Only for a layer a point lookup reads: the section of /ground and of /surface that reads it, e.g. `{"ground": "seismic", "surface": "hazards"}` for seismic_zones. Pass the section as `sections=` (or the layer as `layers=`) to read only that.',
+          properties: { ground: { type: 'string', enum: [...guide.ground.sections] }, surface: { type: 'string', enum: [...guide.surface.sections] } },
+        },
+      },
+    },
+  };
+}
 
-/** The description as published: without the point lookups while they are off. */
-export function openapiFor(pointProfiles: boolean) {
+/** The description as published: without the point lookups while they are off; with them, their
+ *  filters from `guide` (lib/lookups.ts; the build, which only counts paths, passes none). */
+export function openapiFor(pointProfiles: boolean, guide?: LookupGuide) {
   if (!pointProfiles) return BASE;
+  const filters = guide && withLookupFilters(guide);
   return {
     ...BASE,
     info: { ...BASE.info, description: BASE.info.description + ' The point lookups /ground and /surface share the locate limit.' },
-    paths: { ...BASE.paths, ...POINT_PROFILE_PATHS_SPEC },
-    components: { ...BASE.components, schemas: { ...BASE.components.schemas, ...POINT_PROFILE_SCHEMAS } },
+    paths: { ...BASE.paths, ...POINT_PROFILE_PATHS_SPEC, ...filters?.paths },
+    components: {
+      ...BASE.components,
+      schemas: { ...BASE.components.schemas, ...POINT_PROFILE_SCHEMAS, ...(filters ? { Layer: filters.Layer } : {}) },
+    },
   };
 }

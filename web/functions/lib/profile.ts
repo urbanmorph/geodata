@@ -189,6 +189,8 @@ export interface ProfileResponse {
   summary: string;
   disclaimer: string;
   sections: Record<string, Record<string, ProfileEntry>>;
+  /** With sections= or layers=: what was asked (only that was read). */
+  filter?: ProfileFilter;
   /** With open_only: the non-commercial layers left out. */
   omitted_non_commercial?: string[];
   unavailable: Array<{ layer_id: string; reason: string }>;
@@ -230,6 +232,8 @@ export interface ProfileSpec {
   nothing: string;
   /** More rows for this point (e.g. the city ward layer covering it). */
   expand?: (lat: number, lng: number, catalog: CatalogData) => ProfileLayer[];
+  /** Every layer `expand` may add, its section, and its row: a filter can ask for one by id. */
+  expandable?: { section: string; ids: readonly string[]; row: (id: string) => ProfileLayer };
   /** Summary lines that need several entries (e.g. the nearest hospital across three layers). */
   conclude?: (sections: ProfileResponse['sections']) => string[];
 }
@@ -404,7 +408,55 @@ async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog
 export type ProfileOpts = {
   budgetMs?: number; deadlineMs?: number;
   waitUntil?: (p: Promise<unknown>) => void; openOnly?: boolean;
+  /** Read only these sections and layers (see parseProfileFilter); none reads everything. */
+  filter?: ProfileFilter;
 };
+
+// ── filters: sections= and layers= ───────────────────────────────────────────
+
+/** What a filtered lookup reads: whole sections, single layers (an id, an entry's key or a
+ *  raster id), or both (their union). Sorted and deduped, so equal asks share a cache key. */
+export interface ProfileFilter { sections?: string[]; layers?: string[] }
+
+/** The names a profile's layers= takes: raster ids, layer ids and entry keys, and the ids `expand` may add. */
+const layerNames = (spec: ProfileSpec): string[] => [...new Set([
+  ...spec.pixels.map((p) => p.id), ...spec.layers.flatMap((l) => [l.id, l.key ?? l.id]), ...(spec.expandable?.ids ?? []),
+])];
+
+const listParam = (params: URLSearchParams, name: string) =>
+  [...new Set(params.getAll(name).flatMap((v) => v.split(',')).map((v) => v.trim()).filter(Boolean))].sort();
+
+/** sections= and layers= of a lookup request, checked against the profile and normalised;
+ *  no filter (undefined) when neither is given or every section is asked (that is everything). */
+export function parseProfileFilter(spec: ProfileSpec, params: URLSearchParams): { filter: ProfileFilter | undefined } | { error: string } {
+  const sections = listParam(params, 'sections');
+  const layers = listParam(params, 'layers');
+  const badSection = sections.find((s) => !spec.sections.includes(s));
+  if (badSection) return { error: `Unknown section "${badSection}". Valid sections: ${spec.sections.join(', ')}.` };
+  const names = layerNames(spec);
+  const badLayer = layers.find((l) => !names.includes(l));
+  if (badLayer) return { error: `"${badLayer}" is not read by this lookup. Valid layers: ${names.join(', ')}.` };
+  if (sections.length === spec.sections.length || (!sections.length && !layers.length)) return { filter: undefined };
+  return { filter: { ...(sections.length ? { sections } : {}), ...(layers.length ? { layers } : {}) } };
+}
+
+/** The profile reading only what `filter` asks (the profile itself when there is no filter). */
+export function selectProfile(spec: ProfileSpec, filter: ProfileFilter | undefined): ProfileSpec {
+  if (!filter) return spec;
+  const asked = (section: string, ...names: string[]) =>
+    !!filter.sections?.includes(section) || names.some((n) => filter.layers?.includes(n));
+  const layers = spec.layers.filter((l) => asked(l.section, l.id, l.key ?? l.id));
+  const pixels = spec.pixels.filter((p) => asked(p.section, p.id));
+  const x = spec.expandable;
+  const byId = x ? (filter.layers ?? []).filter((id) => x.ids.includes(id)) : [];
+  const expand = spec.expand && ((lat: number, lng: number, catalog: CatalogData) => {
+    const rows = spec.expand!(lat, lng, catalog).filter((l) => asked(l.section, l.id));
+    return [...rows, ...byId.filter((id) => !rows.some((r) => r.id === id)).map(x!.row)];
+  });
+  const sections = spec.sections.filter((s) => filter.sections?.includes(s)
+    || layers.some((l) => l.section === s) || pixels.some((p) => p.section === s) || (byId.length > 0 && x!.section === s));
+  return { ...spec, layers, pixels, sections, ...(expand ? { expand } : {}) };
+}
 
 /** A profile at lat/lng: every layer and pixel source read in parallel, their reads taking
  *  turns (table order first), each layer under its own budget, all under the answer's deadline. */
@@ -413,6 +465,7 @@ export async function profileAt(
   deps: ProfileDeps, opts: ProfileOpts = {},
 ): Promise<ProfileResponse> {
   const start = Date.now();
+  profile = selectProfile(profile, opts.filter);
   const budget = opts.budgetMs ?? LAYER_BUDGET_MS;
   const deadline = opts.deadlineMs ?? ANSWER_DEADLINE_MS;
   const queue = turns(R2_CONCURRENCY);
@@ -517,6 +570,7 @@ export async function profileAt(
     summary: lines.length ? lines.join('. ') + '.' : profile.nothing,
     disclaimer: profile.disclaimer,
     sections,
+    ...(opts.filter ? { filter: opts.filter } : {}),
     ...(opts.openOnly ? { omitted_non_commercial: layers.map(keyOf).filter((id) => omitted.includes(id)) } : {}),
     unavailable,
     attribution: [...credits],

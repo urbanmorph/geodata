@@ -59,6 +59,24 @@ Column naming conventions (vary by source):
 - Block: Block_LGD, BNAME, block_name, blkcode11
 - Names are often UPPERCASE in LGD layers, mixed case in other sources`;
 
+/** The lookup tools' advice on sections and layers. */
+const NARROW = (tool, examples) =>
+  `For a narrow question pass sections (or layers) so ${tool} reads only those: one section takes about 0.1 to 0.3 s, against up to 2 s for everything, and the answer is only what was asked (${examples}). ` +
+  "For a broad one ('what is at this point?', a site screening) pass neither and it reads everything. " +
+  "list_layers and get_layer_detail say which section reads a layer (lookups); an unknown section, or a layer the tool does not read, is an error naming the valid ones.";
+
+/** The sections and layers arguments of a lookup tool. */
+const lookupFilterArgs = (sections, layerExamples) => ({
+  sections: {
+    type: "array", items: { type: "string", enum: sections },
+    description: "Read only these sections (an array, or one comma-separated string); default all",
+  },
+  layers: {
+    type: "array", items: { type: "string" },
+    description: `Read only these layers (ids, e.g. ${layerExamples}), as well as any sections asked; default all`,
+  },
+});
+
 const READ_ONLY = { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false };
 
 export const READ_TOOLS = [
@@ -66,9 +84,10 @@ export const READ_TOOLS = [
     name: "list_layers",
     description:
       "List available geo layers. Use to discover what data bharatlas has. " +
-      "Returns layer IDs, names, row counts, categories, and download formats. " +
+      "Returns layer IDs, names, row counts, categories, realm (below, ground or air) and, for the layers the point lookups read, " +
+      "`lookups` ({ground: section, surface: section}: the section of ground_at or surface_at that reads the layer). " +
       "Filter by category (boundaries, city-wards, environment, water, agriculture, transport, etc.), " +
-      "admin level (state, district, block, village, etc.), source, or text search.",
+      "realm, admin level (state, district, block, village, etc.), source, or text search.",
     inputSchema: {
       type: "object",
       properties: {
@@ -83,6 +102,11 @@ export const READ_TOOLS = [
         source: {
           type: "string",
           description: "Filter by data source: LGD, SOI, Bhuvan, OpenCity, DataMeet, etc.",
+        },
+        realm: {
+          type: "string",
+          enum: ["below", "ground", "air"],
+          description: "Filter by realm: below (rocks, faults, minerals, aquifers, groundwater), ground (boundaries, wards, rivers, forests, roads, places), air (cyclone tracks)",
         },
         q: {
           type: "string",
@@ -217,13 +241,15 @@ export const READ_TOOLS = [
       "bulk density, CEC, nitrogen, WRB soil group) and the nearest Soil Health Card sample, ground subsidence (cm/yr) in megacities, " +
       "and tunnels, buried pipelines and cables, mines and caves nearby. Returns a one-line `summary` plus `sections`, " +
       "each layer with its credit, licence (non-commercial ones flagged) and status (found, none_within_radius, or not_covered where the layer does not reach the point); layers that could not be read are listed in `unavailable`. " +
-      "Example: 'what is under this plot in Delhi?' -> lat: 28.525, lng: 77.085.",
+      "Example: 'what is under this plot in Delhi?' -> lat: 28.525, lng: 77.085. " +
+      NARROW("ground_at", "'what seismic zone is this?' -> sections: [\"seismic\"]; 'is the groundwater safe here?' -> sections: [\"groundwater\"]; 'soil at this farm' -> sections: [\"soil\"]"),
     inputSchema: {
       type: "object",
       properties: {
         lat: { type: "number", description: "Latitude (6 to 38, India bounding box)" },
         lng: { type: "number", description: "Longitude (68 to 98, India bounding box)" },
         open_only: { type: "boolean", description: "true leaves out the non-commercial layers (for commercial use); default false" },
+        ...lookupFilterArgs(["seismic", "geology", "resources", "groundwater", "soil", "subsidence", "underground", "watershed"], "soilgrids (the SoilGrids raster), seismic_zones, cgwb_aquifers"),
       },
       required: ["lat", "lng"],
     },
@@ -237,13 +263,15 @@ export const READ_TOOLS = [
       "the nearest highway, railway and metro station, airport and bus stop; the nearest hospital (three sources) and school, and places within 1 km; " +
       "the nearest power line, power plant and water-supply facility; distance to India's outline. Returns a one-line `summary` and `sections`, " +
       "each with its credit, licence, scale, vintage and status; for the air above the point, `air` points to the mugilu MCP's conditions_at. " +
-      "Example: 'what is around this plot in Kolkata?' -> lat: 22.57, lng: 88.36.",
+      "Example: 'what is around this plot in Kolkata?' -> lat: 22.57, lng: 88.36. " +
+      NARROW("surface_at", "'which ward is this?' -> sections: [\"place\"]; 'nearest railway station' -> layers: [\"ir_stations\"]; 'how high is it?' -> layers: [\"dem\"]"),
     inputSchema: {
       type: "object",
       properties: {
         lat: { type: "number", description: "Latitude (6 to 38, India bounding box)" },
         lng: { type: "number", description: "Longitude (68 to 98, India bounding box)" },
         open_only: { type: "boolean", description: "true leaves out the non-commercial layers (for commercial use); default false" },
+        ...lookupFilterArgs(["place", "land", "climate", "water", "hazards", "protected", "access", "services", "infrastructure"], "dem, worldcover and worldpop (the rasters), ir_stations, gs_highways, or a ward layer such as wards_chennai"),
       },
       required: ["lat", "lng"],
     },
@@ -257,7 +285,8 @@ export const READ_TOOLS = [
     name: "get_layer_detail",
     description:
       "Get full metadata for a single layer: download URLs (parquet, pmtiles, geojson, kml, shapefile), " +
-      "attribution, license, feature count, level metadata, and versions (the dated releases to cite).",
+      "attribution, license, feature count, level metadata, realm (below, ground or air), `lookups` (the section of ground_at or surface_at that reads it, if any), " +
+      "and versions (the dated releases to cite).",
     inputSchema: {
       type: "object",
       properties: {
@@ -306,7 +335,7 @@ export function readToolsFor(pointProfiles) {
   return pointProfiles ? READ_TOOLS : READ_TOOLS.filter((t) => !POINT_PROFILE_TOOLS.has(t.name));
 }
 
-const POINT_PROFILE_PATTERN = `- **A point's profile**: ground_at says what is below a lat/lng (seismic zone, faults, rock, aquifer, groundwater, SoilGrids soil, subsidence, tunnels and buried utilities); surface_at what is on the ground there (place, land cover, elevation, population, water, hazards, protected areas, access, services). One call each instead of many locate/nearby calls; each part carries its source, licence, scale and vintage. Tell "not_covered" (the layer does not reach the point) apart from "none_within_radius" (radius_km 0: the point is in none of an all-India map's areas, e.g. not in a mapped flood area); say nothing about layers in "unavailable". Give a section's year with its values (about.vintage, or "not dated by the source" with about.fetched_at), and its scale: GLHYMPS is global and coarse, SoilGrids a 250 m model. A section with non_commercial: true is for non-commercial use only: say so and quote its licence_notice; open_only: true leaves those sections out. Pass on the disclaimer (screening information, not for site or engineering decisions). For the air above the point, use the mugilu MCP's conditions_at (surface_at's "air" says how).`;
+const POINT_PROFILE_PATTERN = `- **A point's profile**: ground_at says what is below a lat/lng (seismic zone, faults, rock, aquifer, groundwater, SoilGrids soil, subsidence, tunnels and buried utilities); surface_at what is on the ground there (place, land cover, elevation, population, water, hazards, protected areas, access, services). One call each instead of many locate/nearby calls; each part carries its source, licence, scale and vintage. For a narrow question pass sections (or layers): the seismic zone is sections ["seismic"], the ward sections ["place"], the nearest station layers ["ir_stations"]; list_layers says each layer's lookups (which section reads it). Pass neither for a broad question. Tell "not_covered" (the layer does not reach the point) apart from "none_within_radius" (radius_km 0: the point is in none of an all-India map's areas, e.g. not in a mapped flood area); say nothing about layers in "unavailable". Give a section's year with its values (about.vintage, or "not dated by the source" with about.fetched_at), and its scale: GLHYMPS is global and coarse, SoilGrids a 250 m model. A section with non_commercial: true is for non-commercial use only: say so and quote its licence_notice; open_only: true leaves those sections out. Pass on the disclaimer (screening information, not for site or engineering decisions). For the air above the point, use the mugilu MCP's conditions_at (surface_at's "air" says how).`;
 
 /** How an agent should use the read tools; each server adds its own intro. */
 export function instructionsCore(pointProfiles) {
@@ -373,8 +402,8 @@ export function readToolRequest(name, args = {}) {
   if (!isReadTool(name)) return null;
   switch (name) {
     case "list_layers": {
-      const { category, level, source, q, limit = 20, offset } = args;
-      return { path: "/layers", params: { category, level, source, q, limit, offset } };
+      const { category, level, source, realm, q, limit = 20, offset } = args;
+      return { path: "/layers", params: { category, level, source, realm, q, limit, offset } };
     }
     case "get_layer_schema":
       return { path: layerPath(args.layer_id, "/schema"), params: {} };
@@ -411,11 +440,14 @@ export function readToolRequest(name, args = {}) {
       return { path: "/locate", params };
     }
     case "ground_at":
-    case "surface_at":
-      return {
-        path: name === "ground_at" ? "/ground" : "/surface",
-        params: { lat: args.lat, lng: args.lng, ...(args.open_only === true ? { open_only: "true" } : {}) },
-      };
+    case "surface_at": {
+      const params = { lat: args.lat, lng: args.lng, ...(args.open_only === true ? { open_only: "true" } : {}) };
+      const sections = listArg(args.sections, "sections", "section names");
+      const layers = listArg(args.layers, "layers", "layer IDs");
+      if (sections) params.sections = sections.join(",");
+      if (layers) params.layers = layers.join(",");
+      return { path: name === "ground_at" ? "/ground" : "/surface", params };
+    }
     case "list_categories":
       return { path: "/categories", params: {} };
     case "get_layer_detail":
@@ -444,7 +476,8 @@ export function shapeReadResult(name, result) {
     return {
       ...result,
       data: result.data.map((l) => ({
-        id: l.id, level: l.level, source: l.source, category: l.category,
+        id: l.id, level: l.level, source: l.source, category: l.category, realm: l.realm,
+        ...(l.lookups ? { lookups: l.lookups } : {}),
         rows: l.rows, licence: l.licence, notes: l.notes,
         ...(l.non_commercial ? { non_commercial: true, licence_notice: l.licence_notice } : {}),
       })),

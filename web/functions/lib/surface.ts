@@ -5,7 +5,8 @@
 import type { CatalogData } from './catalog-api';
 import { SURFACE_PIXELS, SURFACE_RASTERS } from './surface-rasters';
 import { SEISMIC_ABOUT } from './ground';
-import { fallbackWardLayers, wardLayersAt } from './ward-locate';
+import { fallbackWardLayers, NATIONAL_WARD_LAYERS, wardLayersAt } from './ward-locate';
+import { WARD_BBOXES } from './ward-bboxes';
 import {
   BASE_DEPS, first, km, nearestSay, num, profileAt,
   type PixelResult, type PixelSource, type ProfileDeps, type ProfileEntry, type ProfileLayer, type ProfileOpts,
@@ -162,12 +163,15 @@ function nearestHealth(sections: ProfileResponse['sections']): string[] {
   return [`Nearest health facility ${km(e!.nearest![0].distance_km)} away${name ? ` (${name}, ${id})` : ` (${id})`}`];
 }
 
+/** A ward layer's row: a city's map, or the national one (SBM, and WB AMRUT in West Bengal). */
+const wardRow = (id: string): ProfileLayer => ({
+  id, section: 'place', match: 'contains', about: { scale: NATIONAL_WARD_LAYERS.includes(id) ? 'national ward map (SBM)' : 'city ward map' },
+});
+
 /** The city ward layer(s) whose extent holds the point; the national ward layer elsewhere. */
 function wardRows(lat: number, lng: number): ProfileLayer[] {
   const city = wardLayersAt(lng, lat);
-  return (city.length ? city : fallbackWardLayers(lng, lat)).map((id) => ({
-    id, section: 'place', match: 'contains' as const, about: { scale: city.length ? 'city ward map' : 'national ward map (SBM)' },
-  }));
+  return (city.length ? city : fallbackWardLayers(lng, lat)).map(wardRow);
 }
 
 export const SURFACE_PROFILE: ProfileSpec = {
@@ -177,6 +181,7 @@ export const SURFACE_PROFILE: ProfileSpec = {
   disclaimer: SURFACE_DISCLAIMER,
   nothing: 'Nothing found on the ground here in the layers checked.',
   expand: (lat, lng) => wardRows(lat, lng),
+  expandable: { section: 'place', ids: [...Object.keys(WARD_BBOXES), ...NATIONAL_WARD_LAYERS], row: wardRow },
   conclude: nearestHealth,
 };
 

@@ -128,6 +128,19 @@ describe('openParquet: the footer read doubles as the head', () => {
     expect(calls.length).toBeLessThanOrEqual(1);
   });
 
+  // Overture places' footer is 1.5 MB (233 row groups x 51 columns), past the first tail read:
+  // the rest came as a range read, which the colo's cache does not keep, so every fresh isolate
+  // read about 1 MB from R2 before it could count a place (the likely cost behind a live /surface
+  // call that ran out of time on places).
+  it('a footer longer than the tail comes in one more tail read (kept by the colo), never a range read', async () => {
+    const { r2, calls } = bucket();
+    const { metadata } = await openParquet(r2, 'k3.parquet', 64);
+    const footer = new DataView(buf.buffer, buf.byteOffset + buf.byteLength - 8).getUint32(0, true) + 8;
+    expect(footer).toBeGreaterThan(64);
+    expect(calls).toEqual(['tail 64', `tail ${footer}`]);
+    expect(metadata.row_groups).toHaveLength(4);
+  });
+
   it('a missing key is an error, not remembered', async () => {
     const r2 = { get: async () => null, head: async () => null } as unknown as R2Bucket;
     await expect(openParquet(r2, 'gone.parquet')).rejects.toThrow(/not found/);
