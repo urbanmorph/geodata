@@ -5,7 +5,7 @@
  */
 import { parquetReadObjects, parquetSchema } from 'hyparquet';
 import type { FileMetaData, SchemaElement } from 'hyparquet';
-import { compressors } from 'hyparquet-compressors';
+import { compressors } from './zstd';
 import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { QUERY_JUNK_COLUMNS } from './junk-columns';

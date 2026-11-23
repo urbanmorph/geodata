@@ -23,7 +23,8 @@
     "jszip": "^3.10.1",
     "maplibre-gl": "^4.7.1",
     "pbf": "^4.0.2",
-    "pmtiles": "^3.2.1"
+    "pmtiles": "^3.2.1",
+    "zstd-wasm-decoder": "0.2.3"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20260520.1",

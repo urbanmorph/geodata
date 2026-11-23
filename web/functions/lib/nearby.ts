@@ -26,7 +26,7 @@
 // dense layers like hospitals and POIs. See issue #100.
 import { parquetQuery, parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
-import { compressors } from 'hyparquet-compressors';
+import { compressors } from './zstd';
 import { openParquet, r2KeyFromLayer } from './parquet-r2';
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';

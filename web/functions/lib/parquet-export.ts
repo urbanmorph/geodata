@@ -13,7 +13,7 @@
  */
 import { parquetReadObjects } from 'hyparquet';
 import type { FileMetaData } from 'hyparquet';
-import { compressors } from 'hyparquet-compressors';
+import { compressors } from './zstd';
 import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
 import {
   BBOX_COLS,
