@@ -106,7 +106,7 @@ describe('lean home page', () => {
   it('groups the theme cards by realm, each card on its /layers section with the same count', () => {
     const groups = [...home.matchAll(/<div class="realm-group">\s*<h3 class="realm-group__title"><a href="\/layers#([a-z]+)">([^<]+)<\/a><\/h3>\s*<p class="realm-group__desc">([^<]+)<\/p>([\s\S]*?)<\/div>\s*(?=<div class="realm-group">|<p class="see-all">)/g)];
     expect(groups.map((g) => [g[1], g[2]])).toEqual([['below', 'Below ground'], ['ground', 'On the ground'], ['air', 'In the air']]);
-    const realmsJson = JSON.parse(read('scripts/realms.json')).realms as { id: string; desc: string }[];
+    const realmsJson = JSON.parse(read('../shared/realms.json')).realms as { id: string; desc: string }[];
     for (const g of groups) {
       expect(g[3]).toBe(realmsJson.find((r) => r.id === g[1])!.desc);
       for (const m of g[4].matchAll(/<a class="theme-card" href="\/layers#([a-z]+)-([a-z-]+)">[\s\S]*?<span class="count">(\d+)<\/span>/g)) {

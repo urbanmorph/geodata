@@ -2,7 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, relative, resolve } from 'node:path';
-import { OPENAPI, specPathForRouteFile } from '../functions/lib/openapi';
+import { specPathForRouteFile } from '../functions/lib/openapi';
+import { OPENAPI } from '../functions/lib/lookups';
 import { QUERY_OPTIONS } from '../functions/lib/query-params';
 import { onRequestGet } from '../functions/api/v1/openapi.json';
 
@@ -113,6 +114,29 @@ describe('a layer names its citable versions (spec-data-lifecycle 8.4)', () => {
     expect(v.type).toBe('array');
     expect(Object.keys(v.items.properties).sort()).toEqual(['code', 'released', 'sha256', 'url', 'w3id']);
     expect(v.description).toMatch(/newest first/);
+  });
+});
+
+// Lookup filters (2026-11-23): realm and lookups on layers; sections and layers on the lookups.
+describe('realms and lookup filters', () => {
+  const S = OPENAPI.components.schemas as any;
+  const P = OPENAPI.paths as any;
+  const param = (path: string, name: string) => paramsOf(path).find((p) => p.name === name) as any;
+  it('the Layer schema says realm and lookups', () => {
+    expect(S.Layer.properties.realm.enum).toEqual(['below', 'ground', 'air']);
+    expect(S.Layer.properties.lookups.properties).toEqual({ ground: expect.any(Object), surface: expect.any(Object) });
+  });
+  it('/layers takes realm and can answer 400', () => {
+    expect(param('/layers', 'realm').schema.enum).toEqual(['below', 'ground', 'air']);
+    expect(P['/layers'].get.responses['400']).toBeTruthy();
+  });
+  it('/ground and /surface take sections (their own) and layers, listing each section\'s layers and the rasters', () => {
+    expect(param('/ground', 'sections').schema.items.enum).toEqual(['seismic', 'geology', 'resources', 'groundwater', 'soil', 'subsidence', 'underground', 'watershed']);
+    expect(param('/surface', 'sections').schema.items.enum).toEqual(['place', 'land', 'climate', 'water', 'hazards', 'protected', 'access', 'services', 'infrastructure']);
+    expect(param('/ground', 'layers').description).toMatch(/soil: soilgrids \(raster\), slusi_soil_health/);
+    expect(param('/surface', 'layers').description).toMatch(/land: worldcover \(raster\), dem \(raster\), worldpop \(raster\), corestack_lulc_blocks/);
+    expect(param('/surface', 'layers').description).toMatch(/ward layer/);
+    expect(S.GroundResult.properties.filter).toBeTruthy();
   });
 });
 

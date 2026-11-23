@@ -1,8 +1,8 @@
 // GET /api/v1/openapi.json: the OpenAPI 3.1 description of this API
-// (functions/lib/openapi.ts). Before this route existed the path fell through
+// (functions/lib/openapi.ts, with the point lookups' filters from lib/lookups.ts). Before this route existed the path fell through
 // to the site's HTML. Built once per flag state: an ETag (and 304) is all the
 // caching it needs. The point lookups appear only while POINT_PROFILES is on.
-import { openapiFor } from '../../lib/openapi';
+import { describeApi } from '../../lib/lookups';
 import { etagFor, notModified } from '../../lib/edge-cache';
 import { pointProfilesOn } from '../../lib/point-profiles';
 
@@ -10,7 +10,7 @@ const bodies = new Map<boolean, { body: string; etag: string }>();
 function bodyFor(on: boolean) {
   let b = bodies.get(on);
   if (!b) {
-    const body = JSON.stringify(openapiFor(on), null, 2);
+    const body = JSON.stringify(describeApi(on), null, 2);
     b = { body, etag: etagFor(body) };
     bodies.set(on, b);
   }

@@ -28,6 +28,9 @@ export const FALLBACK_WARD_LAYER = 'sbm_wards';
 const WB_WARD_LAYER = 'wb_amrut_wards';
 const WEST_BENGAL_BBOX = [85.8, 21.5, 89.9, 27.3] as const; // [west, south, east, north]
 
+/** Every national ward layer fallbackWardLayers may name. */
+export const NATIONAL_WARD_LAYERS: readonly string[] = [FALLBACK_WARD_LAYER, WB_WARD_LAYER];
+
 /** The national ward layer(s) to ask where no city ward layer answers. */
 export function fallbackWardLayers(lng: number, lat: number): string[] {
   const [w, s, e, n] = WEST_BENGAL_BBOX;

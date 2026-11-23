@@ -219,11 +219,14 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <tr><td><code>category</code></td><td>string</td><td>Filter by category (e.g. <code>boundaries</code>, <code>city-wards</code>, <code>environment</code>)</td></tr>
         <tr><td><code>level</code></td><td>string</td><td>Filter by admin level (e.g. <code>state</code>, <code>district</code>)</td></tr>
         <tr><td><code>source</code></td><td>string</td><td>Filter by data source (e.g. <code>LGD</code>, <code>OpenCity</code>)</td></tr>
+        <tr><td><code>realm</code></td><td>string</td><td><code>below</code> (rocks, faults, minerals, aquifers, groundwater), <code>ground</code> (boundaries, wards, rivers, forests, roads, places) or <code>air</code> (cyclone tracks), as the <a href="/layers">layers page</a> groups them; another value is a 400 naming these</td></tr>
         <tr><td><code>q</code></td><td>string</td><td>Text search (case-insensitive substring) across id, source, notes, category, level and tags</td></tr>
         <tr><td><code>limit</code></td><td>int</td><td>Results per page (default 100, max 500)</td></tr>
         <tr><td><code>offset</code></td><td>int</td><td>Skip N results (default 0)</td></tr>
       </table>
-      <pre><code>curl https://bharatlas.com/api/v1/layers?category=city-wards&amp;limit=5</code></pre>
+      <p>Each layer says its <code>realm</code>.<!-- point-profiles --> A layer the point lookups read also says <code>lookups</code>: the section of <a href="#ground"><code>/ground</code></a> and of <a href="#surface"><code>/surface</code></a> that reads it, e.g. <code>{"ground": "seismic", "surface": "hazards"}</code> for <code>seismic_zones</code>.<!-- /point-profiles --></p>
+      <pre><code>curl https://bharatlas.com/api/v1/layers?category=city-wards&amp;limit=5
+curl https://bharatlas.com/api/v1/layers?realm=below</code></pre>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id</span></h3>
       <p>Single layer detail with download URLs, licence and attribution.</p>
@@ -369,10 +372,15 @@ curl "https://bharatlas.com/api/v1/nearby?lat=12.30&amp;lng=76.65&amp;layer=gs_w
         <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Latitude (6-38)</td></tr>
         <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68-98)</td></tr>
         <tr><td><code>open_only</code></td><td>bool</td><td><code>true</code> leaves out the non-commercial layers (listed in <code>omitted_non_commercial</code>)</td></tr>
+        <tr><td><code>sections</code></td><td>string</td><td>Comma-separated sections to read (default all): <code>seismic</code>, <code>geology</code>, <code>resources</code>, <code>groundwater</code>, <code>soil</code>, <code>subsidence</code>, <code>underground</code>, <code>watershed</code>. An unknown one is a 400 naming the valid ones</td></tr>
+        <tr><td><code>layers</code></td><td>string</td><td>Comma-separated layers to read, as well as any sections asked: any layer id the lookup reads (its <code>lookups</code> in <code>/api/v1/layers</code>) or <code>soilgrids</code>, the SoilGrids raster (section <code>soil</code>). A layer it does not read is a 400 naming the valid ones</td></tr>
       </table>
+      <p><b>Ask for less when the question is narrow.</b> With <code>sections</code> or <code>layers</code> only those are read: the same answer for them, sooner, with <code>filter</code> saying what was asked. <code>?sections=seismic</code> answers "which seismic zone is this?"; <code>?sections=soil</code> or <code>?layers=soilgrids</code> the soil. Leave both out for a broad question. One section answers in about 0.1 to 0.25 seconds; soil, geology and groundwater read the most. All eight take about 0.3 to 0.5 seconds.</p>
       <p>Every entry says its <code>about</code>: scale or resolution, the period its data describe (or "not dated by the source", where the source gives none) and the date we fetched it. This is screening information, not a site investigation: the answer's <code>disclaimer</code> says so. The answer is for the point snapped to about 100 m.</p>
       <pre><code># What is under this plot in south-west Delhi?
-curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085"</code></pre>
+curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085"
+# Only its seismic zone and soil
+curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085&amp;sections=seismic,soil"</code></pre>
 
       <h3 id="surface"><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/surface</span></h3>
       <p>What is on the ground at a point, in one call. Same conventions as <code>/ground</code> (credit, licence, <code>about</code>, <code>status</code>, <code>open_only</code>, <code>summary</code>, <code>disclaimer</code>); its sections:</p>
@@ -393,9 +401,14 @@ curl "https://bharatlas.com/api/v1/ground?lat=28.525&amp;lng=77.085"</code></pre
         <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Latitude (6-38)</td></tr>
         <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68-98)</td></tr>
         <tr><td><code>open_only</code></td><td>bool</td><td><code>true</code> leaves out the non-commercial layers</td></tr>
+        <tr><td><code>sections</code></td><td>string</td><td>Comma-separated sections to read (default all): <code>place</code>, <code>land</code>, <code>climate</code>, <code>water</code>, <code>hazards</code>, <code>protected</code>, <code>access</code>, <code>services</code>, <code>infrastructure</code>. An unknown one is a 400 naming the valid ones</td></tr>
+        <tr><td><code>layers</code></td><td>string</td><td>Comma-separated layers to read, as well as any sections asked: any layer id the lookup reads (its <code>lookups</code> in <code>/api/v1/layers</code>), the rasters <code>worldcover</code>, <code>dem</code> and <code>worldpop</code> (section <code>land</code>), or a ward layer (section <code>place</code>; read even where it does not cover the point, then <code>not_covered</code>). A layer it does not read is a 400 naming the valid ones</td></tr>
       </table>
+      <p>As on <code>/ground</code>, pass <code>sections</code> or <code>layers</code> for a narrow question: <code>?sections=place</code> for the ward and admin units, <code>?layers=ir_stations</code> for the nearest railway station, <code>?layers=dem</code> for the elevation. One section answers in about 0.1 to 0.35 seconds; land (three rasters), water and place (with the ward layer) read the most. All nine read 30 to 100 files and take about 0.6 to 2 seconds.</p>
       <pre><code># What is around this point in central Kolkata?
-curl "https://bharatlas.com/api/v1/surface?lat=22.57&amp;lng=88.36"</code></pre>
+curl "https://bharatlas.com/api/v1/surface?lat=22.57&amp;lng=88.36"
+# Only the ward and admin units, and the nearest railway station
+curl "https://bharatlas.com/api/v1/surface?lat=22.57&amp;lng=88.36&amp;sections=place&amp;layers=ir_stations"</code></pre>
 <!-- /point-profiles -->
 
       <h2>Admin units by code</h2>

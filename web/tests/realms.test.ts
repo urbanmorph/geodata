@@ -1,10 +1,10 @@
 // /layers groups its themes under three realms (below ground, on the ground,
 // in the air). Site organisation only: a layer's category (API, MCP) never
-// changes. One source of truth: scripts/realms.json, read by scripts/realms.mjs.
+// changes. One source of truth: shared/realms.json, read by shared/realms.mjs (the /layers build and the API).
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { REALMS, realmOf, realmOverrides } from '../scripts/realms.mjs';
+import { REALMS, realmOf, realmOverrides } from '../../shared/realms.mjs';
 
 const read = (f: string) => readFileSync(resolve(__dirname, '..', f), 'utf8');
 type Layer = { id: string; level: string; category?: string; provenance?: string };
@@ -22,7 +22,7 @@ describe('realms', () => {
   });
 
   it('every theme has a default realm', () => {
-    const defaults = JSON.parse(read('scripts/realms.json')).categories as Record<string, string>;
+    const defaults = JSON.parse(read('../shared/realms.json')).categories as Record<string, string>;
     for (const cat of Object.keys(catalog.categories)) expect(realmIds, cat).toContain(defaults[cat]);
   });
 

@@ -4,6 +4,7 @@ import { coloOf } from '../functions/lib/colo-cache';
 import { pmtilesFor } from '../functions/lib/locate';
 import { onRequestGet as ground } from '../functions/api/v1/ground';
 import { onRequestGet as surface } from '../functions/api/v1/surface';
+import { SURFACE_PROFILE } from '../functions/lib/surface';
 
 // Usage (plan F13): a call to a point lookup counts like a call that names a layer
 // (countApiUse), under endpoint:ground or endpoint:surface; a 404 while the flag is
@@ -85,7 +86,7 @@ describe('a point lookup reads through the colo cache', () => {
         get: async (key: string) => { r2reads.push(key); return { key, size: 8, etag: 'e', httpEtag: '"e"', httpMetadata: {}, arrayBuffer: async () => new ArrayBuffer(4) }; },
       };
       let storedWhileRunning = -1;
-      const handler = profileHandler('surface', async (lat, lng, _c, r2) => {
+      const handler = profileHandler('surface', SURFACE_PROFILE, async (lat, lng, _c, r2) => {
         expect(coloOf(r2)).toBeDefined();
         await (await r2.get('a/dem.tif', { range: { offset: 0, length: 4 } }) as R2ObjectBody).arrayBuffer();
         storedWhileRunning = [...store.keys()].filter((k) => k.includes('__colo')).length;

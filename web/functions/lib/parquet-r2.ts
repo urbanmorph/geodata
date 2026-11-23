@@ -36,10 +36,12 @@ export function clearMetadataCache(): void {
   metaCache.clear();
 }
 
-export function cachedMetadata(file: AsyncBuffer): Promise<FileMetaData> {
+/** `tailBytes`: how much of the end is already in hand, so the parse reads no more (default hyparquet's 512 KB). */
+export function cachedMetadata(file: AsyncBuffer, tailBytes?: number): Promise<FileMetaData> {
+  const parse = () => parquetMetadataAsync(file, tailBytes ? { initialFetchSize: tailBytes } : undefined);
   const key = file.cacheKey;
-  if (!key) return parquetMetadataAsync(file);
-  return metaCache.get(key, () => parquetMetadataAsync(file), file);
+  if (!key) return parse();
+  return metaCache.get(key, parse, file);
 }
 
 export function r2KeyFromLayer(layer: Pick<CatalogLayer, 'parquet'>): string | null {
@@ -88,29 +90,44 @@ export const FOOTER_READ_BYTES = 1 << 19;
 
 /** A parquet on R2 and its parsed footer. Without a remembered head, one read of
  *  the file's tail gives its size, etag and footer (a head, then a footer read,
- *  cost two round trips one after the other: a point profile opens ~30 files). */
-export async function openParquet(r2: R2Bucket, key: string): Promise<{ file: AsyncBuffer; metadata: FileMetaData }> {
-  const file = await openWithTail(r2, key);
-  return { file, metadata: await cachedMetadata(file) };
+ *  cost two round trips one after the other: a point profile opens ~30 files).
+ *  `tailBytes`: how much of the end to read first (tests make it small). */
+export async function openParquet(r2: R2Bucket, key: string, tailBytes = FOOTER_READ_BYTES): Promise<{ file: AsyncBuffer; metadata: FileMetaData }> {
+  const { file, tail } = await openWithTail(r2, key, tailBytes);
+  return { file, metadata: await cachedMetadata(file, tail) };
 }
 
-/** The file, its last FOOTER_READ_BYTES already read when its head was not remembered. */
-async function openWithTail(r2: R2Bucket, key: string): Promise<AsyncBuffer> {
+/** The footer's length, with its 8-byte trailer, from the file's last bytes. */
+const footerBytes = (tail: ArrayBuffer) => (tail.byteLength >= 8 ? new DataView(tail).getUint32(tail.byteLength - 8, true) + 8 : 0);
+
+/** The file, and how much of its end (all of its footer) is already read when its head was not remembered. */
+async function openWithTail(r2: R2Bucket, key: string, tailBytes: number): Promise<{ file: AsyncBuffer; tail?: number }> {
   const head = freshHead(key);
-  if (head) return bufferFor(r2, key, head);
-  const read = async () => {
-    const obj = await r2.get(key, { range: { suffix: FOOTER_READ_BYTES } });
-    return obj && { obj, data: await obj.arrayBuffer() };
+  if (head) return { file: bufferFor(r2, key, head) };
+  const read = async (suffix: number) => {
+    const got = await withTimeout((async () => {
+      const obj = await r2.get(key, { range: { suffix } });
+      return obj && { obj, data: await obj.arrayBuffer() };
+    })(), READ_TIMEOUT_MS, `R2 read ${key} [tail]`);
+    if (!got) throw new Error(`R2 key not found: ${key}`);
+    return got;
   };
-  const got = await withTimeout(read(), READ_TIMEOUT_MS, `R2 read ${key} [tail]`);
-  if (!got) throw new Error(`R2 key not found: ${key}`);
+  let got = await read(tailBytes);
+  // A longer footer (Overture places: 1.5 MB) in one more tail read: the colo's cache keeps
+  // tail reads, not range reads, so a fresh isolate then gets it from the colo, not R2.
+  const footer = footerBytes(got.data);
+  if (footer > got.data.byteLength && footer <= got.obj.size) got = await read(footer);
   rememberHead(key, got.obj);
   const base = bufferFor(r2, key, got.obj);
-  const tailStart = got.obj.size - got.data.byteLength;
+  const { data } = got;
+  const tailStart = got.obj.size - data.byteLength;
   return {
-    ...base,
-    slice: (start, end = base.byteLength) =>
-      (start >= tailStart ? Promise.resolve(got.data.slice(start - tailStart, end - tailStart)) : base.slice(start, end)),
+    file: {
+      ...base,
+      slice: (start, end = base.byteLength) =>
+        (start >= tailStart ? Promise.resolve(data.slice(start - tailStart, end - tailStart)) : base.slice(start, end)),
+    },
+    tail: data.byteLength,
   };
 }
 
