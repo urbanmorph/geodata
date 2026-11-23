@@ -192,9 +192,13 @@ async function runRoute(req: Request, env: Env, deps: McpDeps, path: string, sea
   const layerId = route[0].exec(path)?.[1];
   const url = new URL(`/api/v1${path}`, req.url);
   url.search = search.toString();
+  // The API counts this call as MCP use (usage.ts reads the bharatlas-mcp/ user agent).
+  const request = new Request(url, { headers: { accept: 'application/json', 'user-agent': 'bharatlas-mcp/hosted' } });
+  // The caller's colo, for the call's speed record (api-calls.ts); a constructed request has no cf of its own.
+  const cf = (req as { cf?: unknown }).cf;
+  if (cf) Object.defineProperty(request, 'cf', { value: cf });
   return route[1]({
-    // The API counts this call as MCP use (usage.ts reads the bharatlas-mcp/ user agent).
-    request: new Request(url, { headers: { accept: 'application/json', 'user-agent': 'bharatlas-mcp/hosted' } }),
+    request,
     env,
     params: layerId ? { id: layerId } : {},
     waitUntil: deps.waitUntil,

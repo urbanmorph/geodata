@@ -284,6 +284,17 @@ describe('the API handlers get a full context from the hosted MCP', () => {
     expect(waited).toHaveLength(1);
     expect(got.ua).toBe('bharatlas-mcp/hosted');
   });
+  it("carries the caller's colo over, so the call's speed is recorded where it was served (api-calls.ts)", async () => {
+    let colo: unknown;
+    const routes: ApiRoute[] = [[/^\/layers\/([^/]+)$/, async (ctx) => {
+      colo = (ctx.request as { cf?: { colo?: string } }).cf?.colo;
+      return new Response('{"data":{}}', { headers: { 'content-type': 'application/json' } });
+    }]];
+    const outer = post(call('get_layer_detail', { layer_id: 'lgd_states' }));
+    Object.defineProperty(outer, 'cf', { value: { colo: 'SIN' } });
+    await handleMcp(outer, {} as never, { routes, rateLimit: allow, waitUntil: () => {} });
+    expect(colo).toBe('SIN');
+  });
   it('the /mcp function hands its own waitUntil over', () => {
     expect(readFileSync(resolve(__dirname, '../functions/mcp.ts'), 'utf8')).toMatch(/waitUntil: \(p\) => ctx\.waitUntil\(p\)/);
   });

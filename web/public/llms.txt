@@ -24,7 +24,7 @@ The server sends instructions at connection time that teach schema-first queryin
 ## REST API
 
 Base URL: `https://bharatlas.com/api/v1`
-No auth. No API key. CORS enabled. Please send a `User-Agent` that names your app (for example `my-app/1.0`). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are.
+No auth. No API key. CORS enabled. Please send a `User-Agent` that names your app (for example `my-app/1.0`). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are. For each call we also keep how long it took, which Cloudflare data centre answered and, for the bharatlas MCP, its version number: never your IP or the point you asked about.
 OpenAPI 3.1 description: https://bharatlas.com/api/v1/openapi.json
 Developer guide: https://bharatlas.com/docs
 Rate limits: 120 requests/minute per IP; 60/minute for the locate endpoints.

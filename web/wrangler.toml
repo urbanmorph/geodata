@@ -22,3 +22,10 @@ PUBLIC_TURNSTILE_SITEKEY = ""
 # The point lookups (/api/v1/ground, /surface, MCP ground_at/surface_at), released 2026-11-22.
 # "off" is the kill switch; keep it in step with POINT_PROFILES in ci.yml's build env.
 POINT_PROFILES = "on"
+
+# Analytics Engine: one data point per counted /api/v1 call, its speed and how it was
+# answered (lib/api-calls.ts), read back by the ops dashboard. Created on the first write.
+# No IP, coordinate or caller id is written. Not available in local dev (the binding is absent).
+[[analytics_engine_datasets]]
+binding = "API_CALLS"
+dataset = "bharatlas_api_calls"

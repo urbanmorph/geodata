@@ -13,6 +13,7 @@ export type Env = {
   TURNSTILE_SECRET?: string;
   IP_SALT?: string;    // salts hashed IPs (rate-limit keys); unsalted when absent
   POINT_PROFILES?: string; // "on" publishes /api/v1/ground and /surface (lib/point-profiles.ts)
+  API_CALLS?: AnalyticsEngineDataset; // each counted call's speed (lib/api-calls.ts); absent in local dev
 };
 
 const READS = new Set(['GET', 'HEAD']);

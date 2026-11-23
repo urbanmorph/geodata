@@ -279,7 +279,12 @@ const COULD_NOT_READ = 'could not be read';
 /** True when an answer missed a layer only by chance (a timeout or a failed read), so it is
  *  not worth keeping; a layer that is not published yet is a lasting part of the answer. */
 export function partialByChance(r: Pick<ProfileResponse, 'unavailable'>): boolean {
-  return r.unavailable.some((u) => u.reason === COULD_NOT_READ || u.reason.startsWith(TOOK_LONGER));
+  return missedByChance(r) > 0;
+}
+
+/** How many layers an answer missed by chance (see partialByChance). */
+export function missedByChance(r: Pick<ProfileResponse, 'unavailable'>): number {
+  return r.unavailable.filter((u) => u.reason === COULD_NOT_READ || u.reason.startsWith(TOOK_LONGER)).length;
 }
 
 /** A layer's budget that runs except while the layer only waits for a turn to read

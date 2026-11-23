@@ -9,11 +9,12 @@
 // read every layer's metadata again; x-profile-reads, x-profile-colo-hits and
 // server-timing (catalog, lookup, profile, between the middlewares' limit and api:
 // lib/server-timing.ts, which also says what the Workers clock leaves out) say where an
-// answer's time went.
+// answer's time went; each counted call's time, reads, colo hits and partial layers are
+// also recorded for the ops dashboard (lib/api-calls.ts).
 import type { Env } from '../api/_middleware';
 import { loadCatalogVersioned } from './catalog-loader';
 import {
-  parseProfileFilter, partialByChance, snapPoint, SNAP_DECIMALS, type ProfileOpts, type ProfileResponse, type ProfileSpec,
+  missedByChance, parseProfileFilter, snapPoint, SNAP_DECIMALS, type ProfileOpts, type ProfileResponse, type ProfileSpec,
 } from './profile';
 import type { CatalogData } from './catalog-api';
 import { apiError, json, serverError } from './http';
@@ -23,6 +24,7 @@ import { coloBucket, coloCache } from './colo-cache';
 import { notPublished, pointProfilesOn } from './point-profiles';
 import { countApiUse, endpointUsageId } from './usage';
 import { timing } from './server-timing';
+import { noteCall, timedCall } from './api-calls';
 
 export type ProfileRun = (lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, opts: ProfileOpts) => Promise<ProfileResponse>;
 
@@ -45,7 +47,7 @@ export function countingBucket(r2: R2Bucket): { bucket: R2Bucket; reads: () => n
 /** `run` (the profile `spec`) as a GET handler for /api/v1/<name>. `version` names what the catalog does not (e.g. raster files), for the cache key. */
 export function profileHandler(name: string, spec: ProfileSpec, run: ProfileRun, version: string): PagesFunction<Env> {
   const label = name[0].toUpperCase() + name.slice(1);
-  return async (ctx) => {
+  return timedCall(async (ctx) => {
     const url = new URL(ctx.request.url);
     if (!pointProfilesOn(ctx.env, url)) return notPublished(url.pathname);
     const pt = parseIndiaPoint(url.searchParams);
@@ -78,11 +80,13 @@ export function profileHandler(name: string, spec: ProfileSpec, run: ProfileRun,
         } finally {
           colo.startPuts(); // the answer is done: what it read for the next isolate, without slowing this one
         }
+        const partial = missedByChance(profile);
+        noteCall(ctx.request, { reads: reads(), coloHits: colo.hits(), partial });
         return json(200, profile, {
           'cache-control': 'private, no-store',
           'x-profile-reads': String(reads()),
           'x-profile-colo-hits': String(colo.hits()),
-          ...(partialByChance(profile) ? { [NO_STORE]: '1' } : {}),
+          ...(partial ? { [NO_STORE]: '1' } : {}),
         });
       });
       // Where the time went, for this request (never the stored copy's): the catalog, the
@@ -95,5 +99,5 @@ export function profileHandler(name: string, spec: ProfileSpec, run: ProfileRun,
     } catch (e) {
       return serverError(label, e);
     }
-  };
+  });
 }

@@ -1,5 +1,6 @@
 import type { Env } from '../../../_middleware';
 import { countApiUse } from '../../../../lib/usage';
+import { timedCall } from '../../../../lib/api-calls';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
@@ -9,7 +10,7 @@ import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
   const { layer, version, url } = r;
@@ -27,4 +28,4 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       return serverError('Schema read', e);
     }
   });
-};
+});

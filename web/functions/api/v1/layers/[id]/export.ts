@@ -2,6 +2,7 @@ import type { Env } from '../../../_middleware';
 import { SERVER_SHAPE_EXPORT } from '../../../../../../shared/large-load.mjs';
 import { mimeFor } from '../../../../../../shared/mime.mjs';
 import { countApiUse } from '../../../../lib/usage';
+import { timedCall } from '../../../../lib/api-calls';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { queryFailure } from '../../../../lib/parquet-query';
 import {
@@ -56,7 +57,7 @@ export function exportBody(chunks: AsyncIterable<string>): ReadableStream<Uint8A
   });
 }
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const url = new URL(ctx.request.url);
   const format = (url.searchParams.get('format') || (SERVER_SHAPE_EXPORT ? 'geojson' : 'csv')).toLowerCase() as ExportFormat;
   if (!EXPORT_FORMATS.includes(format)) {
@@ -103,4 +104,4 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   } catch (e) {
     return fail(e);
   }
-};
+});
