@@ -12,7 +12,7 @@
 // read whole once per isolate and kept as flat coordinates, not read per call.
 import { parquetReadObjects } from 'hyparquet';
 import type { AsyncBuffer, FileMetaData } from 'hyparquet';
-import { compressors } from 'hyparquet-compressors';
+import { compressors } from './zstd';
 import { openParquet, r2KeyFromLayer, readWhole } from './parquet-r2';
 import { BBOX_COLS, QueryInputError, READ_WINDOW_ROWS, isGeomColumn, readWindows, topLevelColumns } from './parquet-query';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
