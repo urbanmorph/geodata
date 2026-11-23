@@ -38,6 +38,8 @@ export const TOKENS = `
     background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
     background-size: 48px 48px;
     overflow-x: clip;
+    /* Anchor jumps land below the sticky header. */
+    scroll-padding-top: var(--header-h);
   }
   body { font: var(--fs-base)/var(--lh-base) var(--font-sans); padding-top: 0 !important; }
   a { color: var(--accent); text-decoration: none; }
@@ -60,6 +62,7 @@ export const TOKENS = `
      between pages (reading text keeps a 720px measure inside it). The header is
      a full-width bar whose content lines up with that column. */
   .site-header {
+    position: sticky; top: 0; z-index: var(--z-sticky);
     display: flex; align-items: center; justify-content: space-between;
     gap: var(--sp-4); flex-wrap: wrap;
     margin-inline: calc(50% - 50vw); margin-bottom: var(--sp-6);
@@ -96,7 +99,7 @@ export const TOKENS = `
   }
   .nav-toggle:focus-visible ~ .nav-burger { outline: var(--border-focus); outline-offset: 2px; }
   @media (max-width: 640px) {
-    .site-header { gap: var(--sp-2); margin-bottom: var(--sp-4); position: relative; }
+    .site-header { gap: var(--sp-2); margin-bottom: var(--sp-4); }
     .nav-burger { display: inline-flex; }
     .site-nav { display: none; flex-direction: column; align-items: stretch; gap: 0; width: 100%; margin-top: var(--sp-2); }
     .nav-toggle:checked ~ .site-nav { display: flex; }
