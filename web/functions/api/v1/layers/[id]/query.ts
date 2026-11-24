@@ -1,7 +1,7 @@
 import type { Env } from '../../../_middleware';
 import { countApiUse } from '../../../../lib/usage';
 import { timedCall } from '../../../../lib/api-calls';
-import { ncFields } from '../../../../lib/catalog-api';
+import { ncFields, noMatchHint } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, queryFailure } from '../../../../lib/parquet-query';
 import { parseQueryParams, queryCacheUrl } from '../../../../lib/query-params';
@@ -19,7 +19,13 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r2Key = r2KeyFromLayer(layer);
   if (!r2Key) return apiError(404, 'No parquet file for this layer');
 
-  const { select, groupBy, sum, limit, where, includeCentroid } = parseQueryParams(url.searchParams);
+  let parsed: ReturnType<typeof parseQueryParams>;
+  try {
+    parsed = parseQueryParams(url.searchParams);
+  } catch (e) {
+    return queryFailure('Query', layer.id)(e);
+  }
+  const { select, groupBy, sum, limit, where, includeCentroid } = parsed;
 
   const run = async (): Promise<Response> => {
     try {
@@ -28,13 +34,15 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
       const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
       const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters });
       const timing = Date.now() - start;
+      // A filter that matched nothing: usually a wrong column value or spelling.
+      const hint = (where || filters?.length) && result.total === 0 ? { hint: noMatchHint(layer.id) } : {};
 
-      return json(200, { data: result, layer_id: layer.id, ...ncFields(layer), timing_ms: timing }, {
+      return json(200, { data: result, layer_id: layer.id, ...ncFields(layer), timing_ms: timing, ...hint }, {
         'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
         ...(groupBy ? { etag: `"${version}-${file.etag}"` } : {}),
       });
     } catch (e) {
-      return queryFailure('Query')(e);
+      return queryFailure('Query', layer.id)(e);
     }
   };
 

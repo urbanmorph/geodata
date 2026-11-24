@@ -4,6 +4,7 @@ import { timedCall } from '../../../../lib/api-calls';
 import { ncFields } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { getSchema } from '../../../../lib/parquet-query';
+import { bakedSchema } from '../../../../lib/baked-schema';
 import { apiError, json, serverError } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
@@ -20,6 +21,10 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   if (!r2Key) return apiError(404, 'No parquet file for this layer');
 
   return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
+    // The baked file (a static asset of this deploy) when it matches the parquet;
+    // else the live read from R2.
+    const baked = await bakedSchema(ctx, layer);
+    if (baked) return json(200, { data: baked, ...ncFields(layer) }, { 'cache-control': CACHE, etag: `"${version}-baked"` });
     try {
       const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
       const schema = await getSchema(file);
