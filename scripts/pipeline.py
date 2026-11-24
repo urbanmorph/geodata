@@ -26,7 +26,20 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 
 BUCKET = 'geodata-data'
-R2_PUBLIC = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
+# The bucket's public address: a custom domain on bharatlas.com (cached at the edge, Smart
+# Tiered Cache) since Nov 2026. The r2.dev address still serves the same bucket; release
+# manifests and older links keep it.
+R2_PUBLIC = 'https://data.bharatlas.com'
+R2_PUBLIC_LEGACY = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
+
+
+def public_r2_key(url: str) -> str | None:
+    """The bucket key behind a public URL of the bucket (either address); None otherwise."""
+    for base in (R2_PUBLIC, R2_PUBLIC_LEGACY):
+        if url.startswith(base + '/'):
+            return url[len(base) + 1:]
+    return None
+
 
 CONTENT_TYPES = {
     '.parquet': 'application/vnd.apache.parquet',
@@ -861,9 +874,8 @@ def find_parquet(layer: dict) -> Path | None:
     if not url:
         return None
     names = dict.fromkeys((url.rsplit('/', 1)[-1], unversioned_name(url)))
-    baked_dir = None
-    if url.startswith(R2_PUBLIC + '/'):
-        baked_dir = (ROOT / 'data' / 'baked' / url[len(R2_PUBLIC) + 1:]).parent
+    key = public_r2_key(url)
+    baked_dir = (ROOT / 'data' / 'baked' / key).parent if key else None
     for name in names:
         for d in (ROOT / 'sources' / 'india-geodata', baked_dir):
             if d is not None and (d / name).exists():

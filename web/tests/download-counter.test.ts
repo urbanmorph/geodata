@@ -18,7 +18,7 @@ describe('classifyDownload', () => {
     let n = 0;
     for (const l of catalog.layers) for (const f of FORMATS) {
       const url = l[f]?.url;
-      if (!url || !/r2\.dev\//.test(url)) continue;
+      if (!url || !/^https:\/\/(data\.bharatlas\.com|pub-[0-9a-f]+\.r2\.dev)\//.test(url)) continue; // the bucket, either address
       n++;
       const got = classifyDownload(keyOf(url), catalog);
       if (got?.layer_id !== l.id || got?.format !== f) wrong.push(`${keyOf(url)} -> ${JSON.stringify(got)}`);

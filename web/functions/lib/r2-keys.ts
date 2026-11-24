@@ -4,8 +4,10 @@ import { SUBMISSION_ID } from './submissions-sql';
 // lists every curated file; per-state LGD extracts and the extra files of a
 // baked community layer follow fixed key shapes (see classifyDownload).
 
-/** Public base URL of the geodata-data R2 bucket. */
-export const R2_PUBLIC_BASE = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
+/** Public base URL of the geodata-data R2 bucket: its custom domain (edge-cached, Smart
+ *  Tiered Cache) since Nov 2026. The r2.dev address serves the same bucket; older links,
+ *  release manifests and community files may still name it (r2KeyFromUrl reads either). */
+export const R2_PUBLIC_BASE = 'https://data.bharatlas.com';
 
 /** The R2 object key of a public file URL (everything after the host), or null. */
 export function r2KeyFromUrl(url: string | null | undefined): string | null {

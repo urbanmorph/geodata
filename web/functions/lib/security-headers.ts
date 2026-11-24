@@ -38,7 +38,8 @@ const CSP_DIRECTIVES: Array<[directive: string, sources: string[]]> = [
     "'self'",
     'blob:',
     'https://cdn.jsdelivr.net/npm/@duckdb/',                        // DuckDB-WASM .wasm fetch (db.ts, getJsDelivrBundles)
-    'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev',          // R2 public bucket — catalog parquets, pmtiles
+    'https://data.bharatlas.com',                                   // the R2 bucket on our domain (edge-cached): catalog parquets, pmtiles
+    'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev',          // the same bucket's r2.dev address: older links, release manifests
     'https://challenges.cloudflare.com',                            // Turnstile API
     'https://collect.bharatlas.com',                                // keyring sync of "Your submissions" (collect's /keyrings API)
     'https://extensions.duckdb.org',                                // DuckDB-WASM lazy `parquet` extension fetch

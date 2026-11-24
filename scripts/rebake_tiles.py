@@ -65,6 +65,7 @@ from build_filter_stats import panel_stats, stats_for_parquet, tile_filter_colum
 import tile_probe  # noqa: E402
 from pipeline import (  # noqa: E402
     R2_PUBLIC,
+    public_r2_key,
     Deadline,
     OutOfTime,
     _remote_has,
@@ -429,7 +430,10 @@ def versioned_key(layer: dict, md5: str) -> str:
     """<stem>.<md5[:8]>.pmtiles next to the current tiles, or next to the
     file the tiles were made from when the layer had none."""
     url = (layer.get('pmtiles') or {}).get('url') or source_of(layer)[0]
-    return tile_keys.versioned_key(url.split('.r2.dev/', 1)[1], md5, 'pmtiles')
+    key = public_r2_key(url)
+    if key is None:
+        raise ValueError(f'not an R2 public URL: {url}')
+    return tile_keys.versioned_key(key, md5, 'pmtiles')
 
 
 def with_note(notes: str | None) -> str:
