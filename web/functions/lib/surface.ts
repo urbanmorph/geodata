@@ -7,6 +7,7 @@ import { SURFACE_PIXELS, SURFACE_RASTERS } from './surface-rasters';
 import { SEISMIC_ABOUT } from './ground';
 import { fallbackWardLayers, NATIONAL_WARD_LAYERS, wardLayersAt } from './ward-locate';
 import { WARD_BBOXES } from './ward-bboxes';
+import { wardLine } from './ward-label';
 import {
   BASE_DEPS, first, km, nearestSay, num, profileAt,
   type PixelResult, type PixelSource, type ProfileDeps, type ProfileEntry, type ProfileLayer, type ProfileOpts,
@@ -169,9 +170,11 @@ const NATIONAL_WARD_SCALE: Record<string, string> = {
   wb_amrut_wards: 'West Bengal ward map (WB AMRUT)',
 };
 
-/** A ward layer's row: a city's map, or a fallback one named by its source. */
+/** A ward layer's row: a city's map, or a fallback one named by its source. Its summary
+ *  line names the ward (ward-label.ts, from shared/ward_columns.json). */
 const wardRow = (id: string): ProfileLayer => ({
   id, section: 'place', match: 'contains', about: { scale: NATIONAL_WARD_SCALE[id] ?? 'city ward map' },
+  say: (e) => (e.features?.[0] ? wardLine(id, e.features[0]) : null),
 });
 
 /** The city ward layer(s) whose extent holds the point; the national ward layer elsewhere. */
@@ -187,6 +190,7 @@ export const SURFACE_PROFILE: ProfileSpec = {
   disclaimer: SURFACE_DISCLAIMER,
   nothing: 'Nothing found on the ground here in the layers checked.',
   expand: (lat, lng) => wardRows(lat, lng),
+  expandAfter: 'lgd_subdistricts', // the ward after the sub-district, before the constituencies
   expandable: { section: 'place', ids: [...Object.keys(WARD_BBOXES), ...NATIONAL_WARD_LAYERS], row: wardRow },
   conclude: nearestHealth,
 };
@@ -197,7 +201,7 @@ export const SURFACE_DEPS: ProfileDeps = { ...BASE_DEPS, pixels: SURFACE_PIXELS 
 export function airPointer(lat: number, lng: number) {
   return {
     note: 'For the air above this point (air quality, heat, rain, fog, official warnings) ask mugilu, the open sky of India.',
-    mcp: { server: 'https://mugilu.live/mcp', tool: 'conditions_at', arguments: { lat, lng } },
+    mcp: { server: 'https://mugilu.live/mcp', tool: 'conditions_at', arguments: { place: `${lat},${lng}` } },
   };
 }
 

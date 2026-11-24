@@ -1,0 +1,216 @@
+{
+  "_about": "Which columns hold a ward's number and name in each ward layer (every source names them differently). Read by scripts/build_ward_index.py (ward pages: columns, parse, groups, name_reject, *_patterns) and web/functions/lib/ward-label.ts (surface_at's summary line: all of it, plus national and summary).",
+  "columns": {
+    "wards_ahmedabad": [
+      "sourcewardcode",
+      "sourcewardname",
+      "Area"
+    ],
+    "wards_vadodara": [
+      "ward_no",
+      "ward_name",
+      "Area"
+    ],
+    "wards_surat": [
+      "wardcode",
+      "wardname",
+      "Area"
+    ],
+    "wards_pune": [
+      "wardnum",
+      "Name2",
+      "Area"
+    ],
+    "wards_bengaluru_gba": [
+      "ward_id",
+      "ward_name",
+      "Area"
+    ],
+    "wards_bengaluru_bbmp_2022": [
+      "KGISWardNo",
+      "KGISWardName",
+      "Area"
+    ],
+    "wards_mysuru": [
+      "KGISWardNo",
+      "KGISWardName",
+      "Area"
+    ],
+    "wards_lucknow": [
+      "Ward Num",
+      "Ward Name",
+      "Area"
+    ],
+    "wards_kanpur": [
+      "Ward No",
+      "Ward Name",
+      "Area"
+    ],
+    "wards_bhopal": [
+      "Ward_Number",
+      "Name",
+      "Area"
+    ],
+    "wards_indore": [
+      "sourcewardcode",
+      "ward_lgd_name",
+      "Area"
+    ],
+    "wards_kochi": [
+      "sourcewardcode",
+      "ward_lgd_name",
+      "Area"
+    ],
+    "wards_bhubaneshwar": [
+      "wardno",
+      "municipalzone",
+      "Zone"
+    ],
+    "wards_vizag": [
+      "sourcewardcode",
+      "zone",
+      "Zone"
+    ],
+    "wards_madurai": [
+      "sourcewardcode",
+      "zone",
+      "Zone"
+    ],
+    "wards_coimbatore": [
+      "2011WardNumbers",
+      "Zone",
+      "Zone"
+    ],
+    "wards_kolkata": [
+      "WARD",
+      null,
+      null
+    ],
+    "wards_mumbai": [
+      "NAME2",
+      null,
+      null
+    ],
+    "wards_patna": [
+      "wardname",
+      null,
+      null
+    ],
+    "wards_pcmc": [
+      "wardnum",
+      null,
+      null
+    ],
+    "wards_guwahati": [
+      "sourcewardcode",
+      null,
+      null
+    ],
+    "wards_faridabad": [
+      "Ward_No",
+      null,
+      null
+    ],
+    "wards_vijayawada": [
+      "WARD_NO",
+      null,
+      null
+    ],
+    "wards_chennai": [
+      "name2",
+      null,
+      null
+    ],
+    "wards_chandigarh": [
+      "Ward_name",
+      null,
+      null
+    ],
+    "wards_jaipur": [
+      "wardcode",
+      null,
+      null
+    ],
+    "wards_gurugram": [
+      "sourcewardcode",
+      null,
+      null
+    ],
+    "wards_thane": [
+      "sourcewardcode",
+      null,
+      null
+    ],
+    "wards_navi_mumbai": [
+      "sourcewardcode",
+      null,
+      null
+    ],
+    "wards_kalyan_dombivli": [
+      "sourcewardcode",
+      null,
+      null
+    ],
+    "wards_pune_2025": [
+      "AdminNo",
+      "Field",
+      "Ward office"
+    ]
+  },
+  "parse": {
+    "wards_hyderabad": [
+      "ward",
+      "Area",
+      "^(\\d+)\\s*-\\s*(.*)$"
+    ],
+    "wards_hyderabad_osm": [
+      "Name",
+      "Area",
+      "^ward\\s+(\\d+)\\s*(.*)$"
+    ]
+  },
+  "groups": {
+    "wards_bengaluru_gba": [
+      "Corporation",
+      "Corporation"
+    ]
+  },
+  "name_reject": "\\(m\\.?\\s*corp|\\(m\\s*cl|^ward\\s*no\\.?\\s*\\d*$|^\\d+$|^<?null>?$|^none$|^n/?a$|^nil$|^-+$",
+  "number_patterns": [
+    "sourcewardcode",
+    "ward_no",
+    "wardno",
+    "ward_num",
+    "wardnum",
+    "ward_number",
+    "wardnumber",
+    "ward_code",
+    "wardcode",
+    "ward"
+  ],
+  "name_patterns": [
+    "sourcewardname",
+    "ward_name",
+    "wardname",
+    "ward_title",
+    "locality"
+  ],
+  "national": {
+    "sbm_wards": [
+      "wardcode",
+      "wardname",
+      "Area"
+    ],
+    "wb_amrut_wards": [
+      "Ward_No",
+      null,
+      null
+    ]
+  },
+  "summary": {
+    "_about": "What the summary calls a layer's unit (default \"Ward\"); null leaves the layer out of the summary (its answer is still in the section).",
+    "wards_bengaluru_bbmp_2022": null,
+    "wards_hyderabad_osm": null,
+    "wards_pune_2025": "Ward office"
+  }
+}

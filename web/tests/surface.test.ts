@@ -104,6 +104,22 @@ const deps: ProfileDeps = {
 };
 
 describe('surfaceAt', () => {
+  it('says the ward right after the sub-district, before the constituency', async () => {
+    // Jaali, Karnataka: outside every city ward map, so the national SBM ward map answers.
+    const at = (props: Record<string, Record<string, unknown>>): ProfileDeps => ({
+      ...deps,
+      locate: async (_lat, _lng, ids) => ({
+        point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1,
+        results: { x: ids.filter((id) => props[id]).map((id) => ({ layer_id: id, level: id, category: 'x', feature: { properties: props[id] } })) },
+      }) as LocateResponse,
+    });
+    const s = await surfaceAt(13.993, 74.522, catalog, {} as R2Bucket, at({
+      lgd_subdistricts: { sdtname: 'Bhatkal' }, sbm_wards: { wardcode: '8', wardname: 'Jali Dodmane' }, lgd_assembly: { ac_name: 'Bhatkal' },
+    }));
+    expect(s.summary).toMatch(/Sub-district: Bhatkal\. Ward 8, Jali Dodmane\. Assembly constituency Bhatkal/);
+    expect(Object.keys(s.sections.place).indexOf('sbm_wards')).toBe(Object.keys(s.sections.place).indexOf('lgd_subdistricts') + 1);
+  });
+
   it('finds the river by true distance and says it', async () => {
     const s = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, deps);
     expect(s.sections.water.wris_rivers).toMatchObject({ status: 'found', distance_to: 'shape', nearest: [{ distance_km: 1.5 }] });
@@ -146,7 +162,8 @@ describe('surfaceAt', () => {
   it('points to mugilu for the air above, with the same point', async () => {
     const s = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, deps);
     expect(s.air).toEqual(airPointer(22.57, 88.36));
-    expect(s.air.mcp).toEqual({ server: 'https://mugilu.live/mcp', tool: 'conditions_at', arguments: { lat: 22.57, lng: 88.36 } });
+    // mugilu's conditions_at takes one `place`: a name or "lat,lon" (it answered {lat, lng} with "place is required").
+    expect(s.air.mcp).toEqual({ server: 'https://mugilu.live/mcp', tool: 'conditions_at', arguments: { place: '22.57,88.36' } });
   });
 
   it('carries the disclaimer and the place', async () => {
