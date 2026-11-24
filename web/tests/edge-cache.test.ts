@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { answerKey, cached, cacheKey, NO_STORE, type EdgeCache } from '../functions/lib/edge-cache';
 import { ANSWER_V } from '../functions/lib/answer-versions';
 
@@ -260,5 +261,12 @@ describe('cached: the durable second level (KV)', () => {
     const c = ctxWith(broken);
     const res = await cached(c.ctx, AKEY, 600, body('{"ok":1}'), memoryCache().cache); await c.settle();
     expect(await res.text()).toBe('{"ok":1}');
+  });
+});
+
+describe('the durable second level is bound for production', () => {
+  it('wrangler.toml binds ANSWERS to a KV namespace', () => {
+    const toml = readFileSync(new URL('../wrangler.toml', import.meta.url), 'utf8');
+    expect(toml).toMatch(/\[\[kv_namespaces\]\]\s*binding = "ANSWERS"\s*id = "[0-9a-f]{32}"/);
   });
 });
