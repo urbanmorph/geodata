@@ -49,7 +49,7 @@ describe('coalesced', () => {
     const columns = ['xmin', 'ymin', 'xmax', 'ymax'];
     reads.length = 0;
     const plain = await parquetReadObjects({ file, metadata, compressors, columns, rowStart: 0, rowEnd: 2048 });
-    expect(reads.length).toBe(4); // hyparquet asks for each column chunk on its own
+    expect(reads.length).toBeLessThanOrEqual(4); // hyparquet <1.33 asked for each column chunk on its own; 1.33 joins adjacent ones
     reads.length = 0;
     const one = coalesced(file, chunkRanges(metadata, columns, 0, 2048));
     const rows = await parquetReadObjects({ file: one, metadata, compressors, columns, rowStart: 0, rowEnd: 2048 });

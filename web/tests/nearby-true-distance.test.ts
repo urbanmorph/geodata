@@ -84,3 +84,18 @@ describe('nearbyTrueDistance', () => {
     expect(r).toMatchObject({ total: 0, features: [] });
   });
 });
+
+// Overture's `sources` (list<struct>: which dataset each field came from) cost the most
+// CPU of any column: a nested column is decoded for its whole row group (20,480 rows)
+// to give one feature, and with it a nearby at central Pune ran out of CPU (1102,
+// 24 Nov 2026). Nearby leaves it out; query can still select it.
+describe('nearby leaves out a nested sources column', () => {
+  const pts = readFileSync(new URL('./fixtures/nearby-points-sources.parquet', import.meta.url));
+  const cat = {
+    layers: [{ id: 'pts', parquet: { url: 'https://pub-x.r2.dev/t/src.parquet', bytes: pts.byteLength } }],
+  } as unknown as CatalogData;
+  it('every other column, nested ones included, but not sources', async () => {
+    const r = await nearbyTrueDistance(20, 80.0104, 0.5, 'pts', cat, fakeR2({ 't/src.parquet': pts }), 1);
+    expect(r.features[0].properties).toEqual({ name: 'pt10', kind: 'point', names: { primary: 'PT10' } });
+  });
+});

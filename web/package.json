@@ -2,7 +2,9 @@
   "name": "geodata-viewer",
   "private": true,
   "version": "0.1.0",
-  "engines": { "node": ">=22.5" },
+  "engines": {
+    "node": ">=22.5"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -18,7 +20,7 @@
     "@resvg/resvg-wasm": "^2.6.2",
     "@tmcw/togeojson": "^5.8.1",
     "fzstd": "^0.1.1",
-    "hyparquet": "^1.26.0",
+    "hyparquet": "^1.33.0",
     "hyparquet-compressors": "^1.1.1",
     "jszip": "^3.10.1",
     "maplibre-gl": "^4.7.1",

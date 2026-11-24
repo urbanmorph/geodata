@@ -85,6 +85,12 @@ export function haversineKm(lat1: number, lng1: number, lat2: number, lng2: numb
 
 /** The geometry column, by exact name (parquet-query's isGeomColumn): "any
  *  name containing geom" also caught source columns such as GEOM_UNIT. */
+/** Overture's `sources` (list<struct>: the dataset each field came from) is left out of
+ *  nearby features unless asked for: a nested column is decoded for its whole row group
+ *  to give one row, and this one cost the most (a nearby at central Pune ran out of CPU,
+ *  24 Nov 2026). /query can still select it. */
+const omittedByDefault = (c: { name: string; nested: boolean }): boolean => c.nested && c.name === 'sources';
+
 function pickGeomCol(cols: string[]): string | null {
   return cols.find(isGeomColumn) ?? null;
 }
@@ -291,7 +297,8 @@ export async function nearby(
   const { file, metadata } = await openParquet(r2, r2Key);
   // Top-level fields only; a flat schema.slice(1) would false-match struct
   // children like `bbox.{xmin,ymin,xmax,ymax}` as top-level cols.
-  const allCols = topLevelColumns(metadata).map((c) => c.name);
+  const top = topLevelColumns(metadata);
+  const allCols = top.map((c) => c.name);
   const geomCol = pickGeomCol(allCols);
   if (!geomCol) throw new QueryInputError(`Layer ${layerId} parquet has no geometry column`);
 
@@ -302,7 +309,7 @@ export async function nearby(
   let winners: BboxWinner[];
 
   if (hasBboxCols) {
-    const cols = columns ? allCols.filter((c) => columns.includes(c)) : allCols;
+    const cols = columns ? allCols.filter((c) => columns.includes(c)) : top.filter((c) => !omittedByDefault(c)).map((c) => c.name);
     const r = await nearestRows(file, metadata, cols, geomCol, lat, lng, radiusKm, limit);
     skip = new Set([geomCol, 'xmin', 'ymin', 'xmax', 'ymax', 'bbox']);
     winners = r.winners;
