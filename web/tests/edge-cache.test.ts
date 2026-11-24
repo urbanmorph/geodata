@@ -202,7 +202,6 @@ describe('cached: the durable second level (KV)', () => {
     return {
       store,
       kv: {
-        async get(k: string) { return store.get(k)?.value ?? null; },
         async getWithMetadata(k: string) { const e = store.get(k); return { value: e?.value ?? null, metadata: e?.metadata ?? null }; },
         async put(k: string, value: string, opts?: { metadata?: unknown }) { store.set(k, { value, metadata: opts?.metadata ?? null }); },
       },
@@ -210,7 +209,9 @@ describe('cached: the durable second level (KV)', () => {
   }
   const ctxWith = (kv: unknown) => {
     const pending: Promise<unknown>[] = [];
-    return { ctx: { request: new Request('https://bharatlas.com/api/v1/x'), env: { ANSWERS: kv }, waitUntil: (p: Promise<unknown>) => { pending.push(p); } }, settle: () => Promise.all(pending) };
+    // settle waits for work started from inside other waitUntil work too, as the runtime does
+    const settle = async () => { for (let n = -1; n !== pending.length;) { n = pending.length; await Promise.all(pending); } };
+    return { ctx: { request: new Request('https://bharatlas.com/api/v1/x'), env: { ANSWERS: kv }, waitUntil: (p: Promise<unknown>) => { pending.push(p); } }, settle };
   };
   const AKEY = answerKey('query', 'L1', new URL('https://bharatlas.com/api/v1/layers/x/query?a=1'));
 
@@ -241,23 +242,53 @@ describe('cached: the durable second level (KV)', () => {
     await c.settle();
     expect(store.size).toBe(0);
   });
-  it('a KV entry past its ttl is served STALE and refreshed, like a colo one', async () => {
-    const { kv } = memoryKv();
+  it('a KV entry past its ttl is served STALE and refreshed in KV too, like a colo one', async () => {
+    const { kv, store } = memoryKv();
     let n = 0;
-    const compute = async () => new Response(String(++n));
-    vi.spyOn(Date, 'now').mockReturnValue(5_000_000);
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    // the first answer at once; the refresh only when released, to see the state in between
+    const compute = async () => { if (++n > 1) await held; return new Response(String(n)); };
+    try {
+      vi.spyOn(Date, 'now').mockReturnValue(5_000_000);
+      const a = ctxWith(kv);
+      await cached(a.ctx, AKEY, 600, compute, memoryCache().cache); await a.settle();
+      vi.spyOn(Date, 'now').mockReturnValue(5_000_000 + 700_000);
+      const b = ctxWith(kv);
+      const colo = memoryCache();
+      const stale = await cached(b.ctx, AKEY, 600, compute, colo.cache);
+      expect(stale.headers.get('x-edge-cache')).toBe('STALE');
+      // the colo copy of a stale KV entry keeps only what is left of its 2x ttl ...
+      expect(colo.store.get(AKEY)!.headers.get('cache-control')).toBe('public, max-age=500');
+      expect(await stale.text()).toBe('1');
+      release();
+      await b.settle();
+      // ... until the refresh replaces it, here and in KV
+      expect([...store.values()][0].value).toBe('2');
+      expect(colo.store.get(AKEY)!.headers.get('cache-control')).toBe('public, max-age=1200');
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+  it('the KV write takes its copy before the answer streams to the caller', async () => {
+    const { kv, store } = memoryKv();
+    const c = ctxWith(kv);
+    const res = await cached(c.ctx, AKEY, 600, body('{"streamed":1}'), memoryCache().cache);
+    expect(await res.text()).toBe('{"streamed":1}'); // the caller reads it first
+    await c.settle();
+    expect([...store.values()][0]?.value).toBe('{"streamed":1}');
+  });
+  it('a KV hit answers 304 to a matching If-None-Match', async () => {
+    const { kv } = memoryKv();
     const a = ctxWith(kv);
-    await cached(a.ctx, AKEY, 600, compute, memoryCache().cache); await a.settle();
-    vi.spyOn(Date, 'now').mockReturnValue(5_000_000 + 700_000);
-    const b = ctxWith(kv);
-    const stale = await cached(b.ctx, AKEY, 600, compute, memoryCache().cache);
-    expect(stale.headers.get('x-edge-cache')).toBe('STALE');
-    expect(await stale.text()).toBe('1');
-    await b.settle();
-    vi.restoreAllMocks();
+    await cached(a.ctx, AKEY, 600, body('{}', { etag: '"e9"' }), memoryCache().cache); await a.settle();
+    const pending: Promise<unknown>[] = [];
+    const b = { request: new Request('https://bharatlas.com/api/v1/x', { headers: { 'if-none-match': '"e9"' } }), env: { ANSWERS: kv }, waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
+    const res = await cached(b, AKEY, 600, body('{}'), memoryCache().cache);
+    expect(res.status).toBe(304);
   });
   it('a failing or slow KV never fails or holds up the answer', async () => {
-    const broken = { get: async () => { throw new Error('kv down'); }, getWithMetadata: async () => { throw new Error('kv down'); }, put: async () => { throw new Error('kv down'); } };
+    const broken = { getWithMetadata: async () => { throw new Error('kv down'); }, put: async () => { throw new Error('kv down'); } };
     const c = ctxWith(broken);
     const res = await cached(c.ctx, AKEY, 600, body('{"ok":1}'), memoryCache().cache); await c.settle();
     expect(await res.text()).toBe('{"ok":1}');
