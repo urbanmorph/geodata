@@ -1,7 +1,9 @@
-// POST /mcp: bharatlas's hosted MCP server (lib/mcp.ts). GET has no handler here,
-// so it falls through to the prerendered /mcp page that explains the server.
+// POST /mcp: bharatlas's hosted MCP server (lib/mcp.ts). A GET from an MCP client
+// (Accept: text/event-stream, asking for a server-sent event stream) gets 405, as the
+// Streamable HTTP spec asks of a server that sends none; any other GET falls through to
+// the prerendered /mcp page that explains the server.
 import type { Env } from './api/_middleware';
-import { handleMcp, API_ROUTES, apiRateLimit } from './lib/mcp';
+import { handleMcp, methodNotAllowed, API_ROUTES, apiRateLimit } from './lib/mcp';
 import { pointProfilesOn } from './lib/point-profiles';
 
 const serve: PagesFunction<Env> = (ctx) =>
@@ -14,3 +16,5 @@ const serve: PagesFunction<Env> = (ctx) =>
 
 export const onRequestPost = serve;
 export const onRequestOptions = serve;
+export const onRequestGet: PagesFunction<Env> = (ctx) =>
+  (ctx.request.headers.get('accept') ?? '').includes('text/event-stream') ? methodNotAllowed() : ctx.next();
