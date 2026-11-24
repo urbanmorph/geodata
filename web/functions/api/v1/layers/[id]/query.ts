@@ -15,7 +15,7 @@ import { loadValueIndex } from '../../../../lib/value-index';
 export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
-  const { layer, version, dataVersion, url } = r;
+  const { layer, dataVersion, url } = r;
   countApiUse(ctx, layer.id);
 
   const r2Key = r2KeyFromLayer(layer);
@@ -46,7 +46,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
 
       return json(200, { data: result, layer_id: layer.id, ...ncFields(layer), timing_ms: timing, ...hint }, {
         'cache-control': groupBy ? 'public, max-age=3600, stale-while-revalidate=86400' : 'public, max-age=300, stale-while-revalidate=3600',
-        ...(groupBy ? { etag: `"${version}-${file.etag}"` } : {}),
+        ...(groupBy ? { etag: `"${dataIdentity(layer)}-${file.etag}"` } : {}),
       });
     } catch (e) {
       return queryFailure('Query', layer.id)(e);

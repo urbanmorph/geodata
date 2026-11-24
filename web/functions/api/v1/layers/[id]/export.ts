@@ -79,7 +79,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
     const { where } = parseQueryParams(url.searchParams);
     if (url.searchParams.get('estimate') === '1') {
       // The Filter panel asks this on every filter change, then exports: the
-      // answer depends only on the deploy, the file and the query, so the colo keeps it.
+      // answer depends only on the code (ANSWER_V), the layer and the query, so the colo keeps it.
       return cached(ctx, answerKey('export', dataIdentity(layer), url), EDGE_TTL.r2, async () => {
         try {
           const plan = await withColoReads(ctx, dataVersion, async (r2) => planExport(await asyncBufferFromR2(r2, r2Key), { where, filters }));

@@ -194,7 +194,7 @@ export function toApiLevel(catalog: CatalogData): Array<{ id: string; order: num
     .sort((a, b) => a.order - b.order);
 }
 
-/** A GET handler answering { data: build(catalog) }, kept in the colo per deploy. */
+/** A GET handler answering { data: build(catalog) }, kept in the colo per data version (edge-cache.ts answerKey). */
 export function catalogEndpoint(build: (catalog: CatalogData) => unknown): PagesFunction<{ ASSETS: Fetcher }> {
   return async (ctx) => {
     const { catalog, dataVersion } = await loadCatalogVersioned(ctx);

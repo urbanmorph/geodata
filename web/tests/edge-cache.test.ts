@@ -178,10 +178,16 @@ describe('cached: stale-while-revalidate', () => {
 // the answer read, never the build id. A code change that changes an answer bumps the version
 // (golden-answers.test.ts fails until it does).
 describe('answerKey', () => {
-  it('endpoint and its answer version, the data identity, then the path and sorted query; same on every host', () => {
-    const a = answerKey('query', 'L1', new URL('https://preview.pages.dev/api/v1/layers/x/query?b=2&a=1'));
+  it('endpoint and its answer version, the data identity, then the path and sorted query; the same on both live hosts', () => {
+    const a = answerKey('query', 'L1', new URL('https://geodata-3ij.pages.dev/api/v1/layers/x/query?b=2&a=1'));
     expect(a).toBe(`https://bharatlas.com/__cache/a/query.v${ANSWER_V.query}/L1/api/v1/layers/x/query?a=1&b=2`);
     expect(answerKey('query', 'L1', new URL('https://bharatlas.com/api/v1/layers/x/query?a=1&b=2'))).toBe(a);
     expect(answerKey('query', 'L2', new URL('https://bharatlas.com/api/v1/layers/x/query?a=1&b=2'))).not.toBe(a);
+  });
+  it('a preview (a branch on pages.dev) keeps its own answers: it may carry new code before its version bump', () => {
+    const url = (host: string) => new URL(`https://${host}/api/v1/layers/x/query?a=1`);
+    expect(answerKey('query', 'L1', url('geodata-3ij.pages.dev'))).toBe(answerKey('query', 'L1', url('bharatlas.com')));
+    expect(answerKey('query', 'L1', url('my-branch.geodata-3ij.pages.dev'))).not.toBe(answerKey('query', 'L1', url('bharatlas.com')));
+    expect(answerKey('query', 'L1', url('abc123.geodata-3ij.pages.dev'))).toContain('/preview/abc123.geodata-3ij.pages.dev/');
   });
 });

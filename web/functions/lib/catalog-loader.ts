@@ -65,9 +65,10 @@ async function load(ctx: AssetCtx): Promise<LoadedCatalog> {
   };
 }
 
-/** The catalog and the deploy version: a short hash of the build id and the
- *  catalog text. Every deploy gets a new one, so cache keys built on it move
- *  on and nothing needs purging. */
+/** The catalog, the deploy version (a short hash of the build id and the catalog text: every
+ *  deploy gets a new one, so page keys built on it move on and nothing needs purging) and
+ *  the data version (the catalog and the baked files only: API answer keys, which a
+ *  code-only deploy keeps). */
 export function loadCatalogVersioned(ctx: AssetCtx): Promise<LoadedCatalog> {
   return loaded.get('', () => load(ctx), ctx.request);
 }

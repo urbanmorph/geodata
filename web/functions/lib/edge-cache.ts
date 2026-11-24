@@ -12,13 +12,16 @@
 import { apiError } from './http';
 import { withTimeout } from './isolate-cache';
 import { ANSWER_V, type AnswerEndpoint } from './answer-versions';
+import { countedHost } from './usage';
 
 export type EdgeCache = Pick<Cache, 'match' | 'put'>;
 type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void };
 
-/** How long the colo keeps an answer (seconds). Catalog answers can't go stale
- *  (the key moves with the catalog); R2 answers allow for an object replaced
- *  under the same key. */
+/** How long the colo serves an answer as fresh (seconds); it is kept as long again to be
+ *  served stale while one refresh runs (cached()). Catalog answers can't go stale (the key
+ *  moves with the catalog); R2 answers allow for an object replaced under the same key, so
+ *  such an answer can outlive an overwrite by up to twice this (2 h; policy is to never
+ *  overwrite R2 keys, and a layer refresh changes the catalog, so the key). */
 export const EDGE_TTL = { catalog: 86_400, r2: 3_600, page: 86_400, live: 60 } as const;
 
 /** The cache-control the answers carry for browsers and the CDN: catalog API
@@ -51,9 +54,12 @@ export function cacheKey(version: string, url: URL, opts: { query?: boolean } = 
 
 /** An API answer's key: the endpoint and its answer version, the identity of the data the
  *  answer read (a layer's catalog entry, or the catalog), then path and sorted query. No
- *  build id: a deploy that changes neither keeps it. */
+ *  build id: a deploy that changes neither keeps it. A preview (a branch on pages.dev) may
+ *  carry new code before its version bump, so its answers are kept apart from the live
+ *  site's (bharatlas.com and its pages.dev address, usage.ts countedHost). */
 export function answerKey(endpoint: AnswerEndpoint, identity: string, url: URL): string {
-  return cacheKey(`a/${endpoint}.v${ANSWER_V[endpoint]}/${identity}`, url);
+  const scope = countedHost(url) ? '' : `preview/${url.hostname}/`;
+  return cacheKey(`a/${scope}${endpoint}.v${ANSWER_V[endpoint]}/${identity}`, url);
 }
 
 /** The identity of a piece of data for answerKey: a short hash of its JSON. */
@@ -146,8 +152,11 @@ export async function cached(
     const cc = hit.headers.get(CLIENT_CC);
     const storedAt = Number(hit.headers.get(STORED_AT));
     const stale = cache && storedAt > 0 && Date.now() - storedAt > ttl * 1000;
-    if (stale && !(Date.now() - (refreshing.get(key) ?? 0) < REFRESH_MS)) {
+    for (const [k, at] of refreshing) if (Date.now() - at >= REFRESH_MS) refreshing.delete(k); // cut-off refreshes
+    if (stale && !refreshing.has(key)) {
       refreshing.set(key, Date.now());
+      // The refresh runs after the answer was sent: its own reads and colo hits are not in
+      // this call's speed record (api-calls.ts recorded it when the answer went out).
       ctx.waitUntil(compute()
         .then((fresh) => { if (fresh.status === 200 && !fresh.headers.has(NO_STORE)) store(ctx, cache, key, ttl, withHeaders(fresh, { etag: fresh.headers.get('etag') ?? etagFor(key) })); })
         .catch(() => {})

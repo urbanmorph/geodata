@@ -14,7 +14,7 @@ const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
-  const { layer, version, dataVersion, url } = r;
+  const { layer, dataVersion, url } = r;
   countApiUse(ctx, layer.id);
 
   const r2Key = r2KeyFromLayer(layer);
@@ -24,11 +24,11 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
     // The baked file (a static asset of this deploy) when it matches the parquet;
     // else the live read from R2.
     const baked = await bakedSchema(ctx, layer);
-    if (baked) return json(200, { data: baked, ...ncFields(layer) }, { 'cache-control': CACHE, etag: `"${version}-baked"` });
+    if (baked) return json(200, { data: baked, ...ncFields(layer) }, { 'cache-control': CACHE, etag: `"${dataVersion}-baked"` });
     try {
       const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
       const schema = await getSchema(file);
-      return json(200, { data: schema, ...ncFields(layer) }, { 'cache-control': CACHE, etag: `"${version}-${file.etag}"` });
+      return json(200, { data: schema, ...ncFields(layer) }, { 'cache-control': CACHE, etag: `"${dataVersion}-${file.etag}"` });
     } catch (e) {
       return queryFailure('Schema read', layer.id)(e);
     }

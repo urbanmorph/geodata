@@ -106,8 +106,9 @@ export const COLO_R2_TTL = 3_600;
  *  pinned, so it serves the old upload, whole and consistent, until COLO_R2_TTL. */
 const changed = new Map<string, string>();
 
-/** `r2` with its shared range reads kept in the colo under the deploy `version`
- *  (a deploy that changes a layer's file changes the version). */
+/** `r2` with its shared range reads kept in the colo under the data `version`
+ *  (catalog-loader.ts dataVersion: a layer refresh changes it, a code-only deploy does not;
+ *  reads are etag-pinned, parquet-r2.ts, so an overwrite is never mixed in). */
 export function coloBucket(r2: R2Bucket, colo: ColoCache, version: string): R2Bucket {
   const get = async (key: string, opts?: R2GetOptions): Promise<R2ObjectBody | R2Object | null> => {
     const range = opts?.range as R2Range | undefined;
@@ -156,7 +157,7 @@ export function countingBucket(r2: R2Bucket): { bucket: R2Bucket; reads: () => n
   return { bucket, reads: () => n };
 }
 
-/** `fn` with `ctx.env.R2` read through the colo (coloBucket, keyed by the deploy
+/** `fn` with `ctx.env.R2` read through the colo (coloBucket, keyed by the data
  *  `version`), noting on the call (api-calls.ts) how many reads went to R2 and how
  *  many the colo answered. The puts go out once `fn` is done. */
 export async function withColoReads<T>(
