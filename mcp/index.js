@@ -9,16 +9,16 @@ import {
 import { readFileSync, writeFileSync, existsSync, chmodSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { instructionsCore, readToolsFor, isReadTool, POINT_PROFILE_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment } from "./read-tools.js";
+import { instructionsCore, readToolsFor, isReadTool, POINT_PROFILE_TOOLS, readToolRequest, shapeReadResult, toSearchParams, idSegment, pointProfilesOn, resultText, withRetry } from "./read-tools.js";
 
-// The point lookups (ground_at, surface_at) stay unpublished until their release; BHARATLAS_POINT_PROFILES=on offers them.
-const POINT_PROFILES = process.env.BHARATLAS_POINT_PROFILES === "on";
+// The point lookups (ground_at, surface_at): offered unless BHARATLAS_POINT_PROFILES=off.
+const POINT_PROFILES = pointProfilesOn(process.env);
 import { withClientIds, importSummary } from "./import-records.js";
 import { parseShareLink, atLeastScope } from "./collect-links.js";
 import { createMapBody } from "./create-map.js";
 
 /** One version for the server and its user agent; bump with every release (version.test.js). */
-const VERSION = "1.7.0";
+const VERSION = "1.8.0";
 
 const API = process.env.BHARATLAS_API || "https://bharatlas.com/api/v1";
 
@@ -175,12 +175,14 @@ const TOOLS = [
 const USER_AGENT = process.env.BHARATLAS_MCP_UA || `bharatlas-mcp/${VERSION}`;
 
 async function request(method, url, { headers = {}, body } = {}) {
-  const init = { method, headers: { "user-agent": USER_AGENT, ...headers }, signal: AbortSignal.timeout(30_000) };
+  const init = { method, headers: { "user-agent": USER_AGENT, ...headers } };
   if (body !== undefined) {
     init.body = JSON.stringify(body);
     init.headers["content-type"] = "application/json";
   }
-  const res = await fetch(url, init);
+  const send = () => fetch(url, { ...init, signal: AbortSignal.timeout(30_000) });
+  // A read is sent once more after a passing 429/502/503; a write never is.
+  const res = method === "GET" ? await withRetry(send) : await send();
   const text = await res.text();
   let parsed;
   try { parsed = text ? JSON.parse(text) : {}; } catch { parsed = { raw: text }; }
@@ -330,7 +332,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const result = await handleTool(name, args || {});
     return {
-      content: [{ type: "text", text: JSON.stringify(result, null, 2) }],
+      content: [{ type: "text", text: resultText(result) }],
     };
   } catch (error) {
     return {
