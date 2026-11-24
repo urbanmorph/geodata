@@ -7,7 +7,7 @@
 const CORE = `Workflow patterns:
 
 - **Discovery**: start with list_layers or list_categories to find relevant layers. Use the q parameter for text search.
-- **Schema first**: always call get_layer_schema BEFORE query_layer. Column names vary per layer (e.g. "state" vs "State_LGD" vs "stname"). The schema shows exact names and sample values.
+- **Schema first**: always call get_layer_schema BEFORE query_layer. Column names vary per layer (e.g. "state" vs "State_LGD" vs "stname"). The schema shows exact names and values (every value of a column with at most 20, and how many distinct values each has).
 - **Filtering**: query_layer where is an exact, case-insensitive match (no partial or substring match). Pass column=value pairs; check the schema for the right column name and value format. Columns the schema marks as type "nested" (structs, lists, maps, e.g. Overture names/addresses) can be selected but not used in where or group_by (the API returns 400 listing the flat columns).
 - **Counting**: use group_by to count features by any column. Example: group_by "category" on the gs_wildlife layer returns national parks vs sanctuaries.
 - **Totals**: add sum (numeric columns) to group_by to total values per group, e.g. group_by "district" + sum ["area_ha"] rolls block-level areas up to districts. Percentages are not additive: sum the underlying amounts and recompute shares.
@@ -27,6 +27,7 @@ Source preference (multiple layers often cover the same level):
 - **Admin boundaries** (state, district, subdistrict, block, village): prefer LGD (lgd_*) as the authoritative source. SOI, Bhuvan, and geoBoundaries are cross-reference alternates with slightly different counts/boundaries. Mention alternates if the user asks about discrepancies.
 - **City wards**: each city has its own layer (wards_chennai, wards_pune, etc.). Some cities have multiple vintages (e.g. Bengaluru has GBA 2025 + BBMP 2022 historical).
 - **Environment/infrastructure/health**: usually one source per layer. Check the source field.
+- **Places near a point**: a kind of place with its own layer is faster and more complete there than in Overture: hospitals and health centres (nic_health: PHCs, CHCs, sub-centres, district hospitals; nhp_hospitals: the national hospital directory), schools (udise_schools), railway stations (ir_stations), metro stations (urban_rail_stations), bus stops (bus_stops), airports (airports), police stations (police_stations_<state>, e.g. police_stations_delhi; list_layers q "police"). Use overture_places_india for other kinds of place (shops, restaurants, banks, hotels, places of worship) or when the user wants business names and addresses.
 - **Community submissions**: ALWAYS check list_submissions alongside list_layers when searching. Community layers may cover areas or topics that curated layers don't. They work with query_layer and get_layer_schema identically.
 - When multiple sources exist, tell the user which one you're using and why. If results seem wrong, try the alternate source.
 
@@ -61,7 +62,7 @@ Column naming conventions (vary by source):
 
 /** The lookup tools' advice on sections and layers. */
 const NARROW = (tool, examples) =>
-  `For a narrow question pass sections (or layers) so ${tool} reads only those: one section takes about 0.1 to 0.3 s, against up to 2 s for everything, and the answer is only what was asked (${examples}). ` +
+  `For a narrow question pass sections (or layers) so ${tool} reads only those: one section takes about 0.1 to 0.3 s, against up to 3 s for everything, and the answer is only what was asked (${examples}). ` +
   "For a broad one ('what is at this point?', a site screening) pass neither and it reads everything. " +
   "list_layers and get_layer_detail say which section reads a layer (lookups); an unknown section, or a layer the tool does not read, is an error naming the valid ones.";
 
@@ -120,7 +121,7 @@ export const READ_TOOLS = [
   {
     name: "get_layer_schema",
     description:
-      "Get column names, types, and sample values for a layer. " +
+      "Get column names, types, and values for a layer (all of them for a column with at most 20; distinct_count; up to 50 values with row counts). " +
       "Use BEFORE querying to discover what columns exist and what values they contain. " +
       "Essential for knowing the right column names for filters.",
     inputSchema: {
@@ -471,7 +472,38 @@ export function toSearchParams(params) {
 
 /** Shape an API answer for the model: list_layers drops the per-layer download
  *  URLs (get_layer_detail has them), which keeps the list compact. */
-export function shapeReadResult(name, result) {
+/** The npm server offers ground_at and surface_at unless BHARATLAS_POINT_PROFILES=off
+ *  (the API's own kill switch is POINT_PROFILES=off). */
+export function pointProfilesOn(env) {
+  return env.BHARATLAS_POINT_PROFILES !== "off";
+}
+
+/** A tool answer as the model reads it: compact JSON (indentation only cost tokens),
+ *  big integers as numbers. */
+export function resultText(value) {
+  return JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? Number(v) : v));
+}
+
+const RETRYABLE = new Set([429, 502, 503]);
+/** `send()` (a read), sent once more after a passing 429, 502 or 503. */
+export async function withRetry(send, { delayMs = 600 } = {}) {
+  const res = await send();
+  if (!RETRYABLE.has(res.status)) return res;
+  await new Promise((r) => setTimeout(r, delayMs));
+  return send();
+}
+
+/** The server's own timings: for us (Server-Timing, the speed records), not the model. */
+const TIMINGS = ["timing_ms", "layer_timing_ms"];
+const withoutTimings = (r) => {
+  if (!r || typeof r !== "object" || Array.isArray(r) || !TIMINGS.some((k) => k in r)) return r;
+  const out = { ...r };
+  for (const k of TIMINGS) delete out[k];
+  return out;
+};
+
+export function shapeReadResult(name, raw) {
+  const result = withoutTimings(raw);
   if (name === "list_layers" && Array.isArray(result?.data)) {
     return {
       ...result,

@@ -9,10 +9,10 @@
 
 import type { Env } from '../api/_middleware';
 import {
-  instructionsCore, readToolsFor, readToolRequest, shapeReadResult, toSearchParams, POINT_PROFILE_TOOLS,
+  instructionsCore, readToolsFor, readToolRequest, resultText, shapeReadResult, toSearchParams, POINT_PROFILE_TOOLS,
 } from '../../../mcp/read-tools.js';
 import { apiLimitFor } from './api-ratelimit';
-import { json, safeStringify } from './http';
+import { json } from './http';
 import { onRequestGet as layersIndex } from '../api/v1/layers/index';
 import { onRequestGet as layerDetail } from '../api/v1/layers/[id]';
 import { onRequestGet as layerSchema } from '../api/v1/layers/[id]/schema';
@@ -27,7 +27,7 @@ import { onRequestGet as submissions } from '../api/v1/submissions/index';
 const PROTOCOL_VERSION = '2025-06-18';
 const SUPPORTED_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
 // The same version as the npm package (mcp/version.test.js holds them equal).
-const SERVER_INFO = { name: 'bharatlas', title: "bharatlas: India's open geo data", version: '1.7.0' };
+const SERVER_INFO = { name: 'bharatlas', title: "bharatlas: India's open geo data", version: '1.8.0' };
 const MAX_BODY = 64 * 1024;
 
 export const instructions = (pointProfiles: boolean) => `bharatlas MCP server (hosted, read-only). India's open geo data: curated layers (state to village boundaries, city wards, forests, hospitals, highways, rivers, canals, groundwater, agro-climatic zones, floods, seismic zones) plus community submissions.
@@ -87,7 +87,7 @@ function rpc(body: unknown): Response {
   });
 }
 const toolText = (value: unknown, isError = false) => ({
-  content: [{ type: 'text', text: safeStringify(value, 2) }],
+  content: [{ type: 'text', text: resultText(value) }],
   ...(isError ? { isError: true } : {}),
 });
 

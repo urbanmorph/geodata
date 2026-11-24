@@ -77,8 +77,9 @@ async function run() {
       proc.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: listId, method: "tools/list" }) + "\n");
     });
     const tools = listResult.result.tools;
-    // 8 query tools + 9 collect authoring tools (merged in 1.1.0).
-    assert(tools.length === 17, "17 tools available");
+    // 8 query tools + 9 collect authoring tools (merged in 1.1.0) + ground_at, surface_at (1.8.0).
+    assert(tools.length === 19, "19 tools available");
+    assert(tools.some((t) => t.name === "ground_at") && tools.some((t) => t.name === "surface_at"), "point lookups offered by default (1.8.0)");
     assert(tools.some((t) => t.name === "nearby"), "has nearby tool");
     const ql = tools.find((t) => t.name === "query_layer");
     assert(ql?.inputSchema?.properties?.sum?.type === "array", "query_layer exposes sum (1.2.0)");
@@ -362,6 +363,18 @@ async function run() {
       console.log(`  (nearby endpoint not yet deployed: ${e.message})`);
       passed++;
     }
+
+    // ── 1.8.0: point lookups, compact answers without timings ──
+    console.log("\n1.8.0: what is below and on the surface at Connaught Place, Delhi");
+    const g = await call(proc, "ground_at", { lat: 28.6315, lng: 77.2167 });
+    assert(!g.error && typeof g.summary === "string" && Object.keys(g.sections || {}).length > 0,
+      `ground_at answers with sections (${Object.keys(g.sections || {}).join(", ")})`);
+    assert(!("timing_ms" in g) && !("layer_timing_ms" in g), "ground_at: the server's timings are left out");
+    const s1 = await call(proc, "surface_at", { lat: 28.6315, lng: 77.2167, sections: ["place", "hazards"] });
+    assert(!s1.error && Object.keys(s1.sections || {}).every((k) => ["place", "hazards"].includes(k)) && s1.sections?.place,
+      `surface_at sections= narrows the answer (${Object.keys(s1.sections || {}).join(", ")})`);
+    const sb = await call(proc, "surface_at", { lat: 28.6315, lng: 77.2167, sections: ["no_such_section"] });
+    assert(typeof sb.error === "string", `an unknown section is an error: ${String(sb.error).slice(0, 80)}`);
 
   } catch (e) {
     console.error("\nTest error:", e.message);

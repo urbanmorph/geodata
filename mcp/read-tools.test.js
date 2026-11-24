@@ -128,10 +128,10 @@ test("surface_at asks /surface", () => {
   assert.deepEqual(readToolRequest("surface_at", { lat: 22.57, lng: 88.36, open_only: true }), { path: "/surface", params: { lat: 22.57, lng: 88.36, open_only: "true" } });
 });
 
-test("the npm server offers the point lookups only with BHARATLAS_POINT_PROFILES=on", async () => {
+test("the npm server offers the point lookups unless BHARATLAS_POINT_PROFILES=off (1.8.0)", async () => {
   const { readFileSync } = await import("node:fs");
   const src = readFileSync(new URL("./index.js", import.meta.url), "utf8");
-  assert.match(src, /process\.env\.BHARATLAS_POINT_PROFILES === "on"/);
+  assert.match(src, /const POINT_PROFILES = pointProfilesOn\(process\.env\)/);
   assert.match(src, /readToolsFor\(POINT_PROFILES\)/);
   assert.match(src, /instructionsCore\(POINT_PROFILES\)/);
 });
@@ -172,4 +172,56 @@ test("the lookup tools tell agents to narrow a narrow question and read everythi
     ["seismic", "geology", "resources", "groundwater", "soil", "subsidence", "underground", "watershed"]);
   assert.deepEqual(READ_TOOLS.find((x) => x.name === "surface_at").inputSchema.properties.sections.items.enum,
     ["place", "land", "climate", "water", "hazards", "protected", "access", "services", "infrastructure"]);
+});
+
+// 1.8.0 (24 Nov 2026): the point lookups are live on the API since 22 Nov, so the
+// npm server offers them unless switched off; answers reach the model compact and
+// without the server's own timings; a read that meets a passing 429/502/503 is
+// tried once more.
+import { pointProfilesOn, resultText, withRetry } from "./read-tools.js";
+
+test("ground_at and surface_at are offered unless BHARATLAS_POINT_PROFILES=off", () => {
+  assert.equal(pointProfilesOn({}), true);
+  assert.equal(pointProfilesOn({ BHARATLAS_POINT_PROFILES: "on" }), true);
+  assert.equal(pointProfilesOn({ BHARATLAS_POINT_PROFILES: "off" }), false);
+});
+
+test("answers are compact JSON; big integers are numbers", () => {
+  assert.equal(resultText({ a: [1, 2], b: { c: "x" }, n: 3n }), '{"a":[1,2],"b":{"c":"x"},"n":3}');
+});
+
+test("the server's timings are left out of what the model reads", () => {
+  const out = shapeReadResult("surface_at", { point: { lat: 1, lng: 2 }, sections: {}, timing_ms: 812, layer_timing_ms: { a: 3 } });
+  assert.deepEqual(out, { point: { lat: 1, lng: 2 }, sections: {} });
+  const q = shapeReadResult("query_layer", { data: { total: 1, rows: [] }, layer_id: "x", timing_ms: 40 });
+  assert.deepEqual(q, { data: { total: 1, rows: [] }, layer_id: "x" });
+  const n = shapeReadResult("nearby", { total: 2, features: [], timing_ms: 9, rows_scanned: 100 });
+  assert.deepEqual(n, { total: 2, features: [], rows_scanned: 100 });
+});
+
+test("a read is tried once more after a 429, 502 or 503, never after other errors", async () => {
+  const run = async (statuses) => {
+    let calls = 0;
+    const res = await withRetry(async () => ({ status: statuses[calls++] ?? 200 }), { delayMs: 0 });
+    return { calls, status: res.status };
+  };
+  assert.deepEqual(await run([503]), { calls: 2, status: 200 });
+  assert.deepEqual(await run([429]), { calls: 2, status: 200 });
+  assert.deepEqual(await run([502, 502]), { calls: 2, status: 502 });  // once only
+  assert.deepEqual(await run([500]), { calls: 1, status: 500 });
+  assert.deepEqual(await run([400]), { calls: 1, status: 400 });
+  assert.deepEqual(await run([200]), { calls: 1, status: 200 });
+});
+
+// Overture is the heaviest layer to answer from (4.8M places, nested columns): a nearby
+// on it costs 1-3 s, on a dedicated flat layer 0.3-0.5 s (Nov 2026). For kinds of place
+// that have their own layer, the model is steered there first.
+test("the instructions steer places with their own layer away from Overture", () => {
+  for (const pp of [false, true]) {
+    const text = instructionsCore(pp);
+    for (const id of ["nic_health", "nhp_hospitals", "udise_schools", "ir_stations", "urban_rail_stations", "bus_stops", "airports", "police_stations_"]) {
+      assert.ok(text.includes(id), `${id} named (pointProfiles=${pp})`);
+    }
+    assert.match(text, /overture_places_india[^.]*for other kinds of place/);
+  }
 });
