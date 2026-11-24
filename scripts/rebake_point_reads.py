@@ -65,23 +65,30 @@ REPORT = 'report.json'
 LOCK_OWNER = 'rebake_point_reads (data/point-read-rebake)'
 ZSTD_LEVEL = 9
 BATCH_ROWS = 65_536
+# The columns /nearby prunes row groups by (overlappingRowGroups); no reader of ours uses other statistics.
+BBOX = ('xmin', 'ymin', 'xmax', 'ymax')
 
 
 @dataclass(frozen=True)
 class Layout:
     rows_per_group: int
     page_bytes: int = 8192
-    dictionary: bool = False
+    # Dictionary pages for every column (True), none (False) or the named columns.
+    dictionary: bool | tuple[str, ...] = False
     compression: str = 'zstd'
+    # Columns given min/max statistics (and a column index); None: every column. Each
+    # chunk's statistics sit in the footer, which grows with the row groups.
+    statistics: tuple[str, ...] | None = None
+    # '2.0': DATA_PAGE_V2, which states its rows, so hyparquet skips the pages before a
+    # read unread for nested columns too (a v1 page of a nested column is always decoded).
+    page_version: str = '1.0'
 
 
 # Chosen by measurement (a bench over 32 points per layer: CPU per answer with every
 # cache cold, with the footer kept, and with the footer and bbox columns kept; footer
 # bytes and parse; file bytes). Rows per group keep each footer under FOOTER_READ_BYTES
 # (one tail read) and its parse near the old one's.
-# Measured and left as published: wris_dams (5 ms an answer at most), overture_places_india
-# (its answer shows no rows, so only its footer and bbox columns cost; no layout tried beat
-# the published one, and pyarrow's nested encoding grew it 25%), wris_waterbodies (read from
+# Measured and left as published: wris_dams (5 ms an answer at most), wris_waterbodies (read from
 # its map tiles, not the parquet), udise_schools (4.7 -> 1.8 ms an answer, but without
 # DuckDB's dictionaries it grew from 93 to 101-105 MB, past LARGE_FILTER_BYTES (100 MB),
 # which would move its Filter & export panel from the browser to the server).
@@ -93,6 +100,19 @@ PLAN: dict[str, Layout] = {
     # One row, India's outline, read whole by a fresh isolate: unpacking its ZSTD was 57 of
     # 64 ms. Uncompressed, 3.2 -> 5.1 MB (under nearby-geometry's 8 MB whole-file limit).
     'india_boundary': Layout(rows_per_group=1, compression='none'),
+    # Overture places (4.76M rows) for /nearby, whose 5 winners each decoded the nested
+    # columns (names, addresses, brand, taxonomy, websites) of a whole 20,480-row group,
+    # several groups at once. Measured 24 Nov 2026 (hyparquet 1.33, 6 points, real nearby
+    # code over a local file; CPU medians of 3 runs): warm 237-416 -> 53-86 ms an answer,
+    # cold 361-631 -> 220-319 ms; a cold Pune answer ran out of a 384 MB V8 heap and now
+    # finishes in 136 MB. /query where basic_category (its dictionary kept) 1.7 -> 0.9 s.
+    # Rows per group are the footer's price: 12,288 -> 388 groups, footer 1.46 -> 2.0 MB
+    # (a second tail read), parse 48 -> 78 ms, parsed 10 -> 22 MB per isolate; 8,192 rows
+    # (33 MB parsed) and 4,096 (64 MB) cost more memory than they saved. Statistics on the
+    # bbox columns only keep the footer down; v2 pages let hyparquet skip the pages before a
+    # row. 482 -> 619 MB (no dictionaries on the nested strings); same rows, order, values.
+    'overture_places_india': Layout(rows_per_group=12_288, dictionary=('basic_category', 'operating_status'),
+                                    statistics=BBOX, page_version='2.0'),
 }
 
 
@@ -100,15 +120,17 @@ PLAN: dict[str, Layout] = {
 
 def rewrite(src: Path, dst: Path, layout: Layout) -> None:
     """`src`'s rows, in order, to `dst` as `layout`: exactly rows_per_group rows a
-    group (the last holds the rest), data pages of about page_bytes, its codec, page
-    index and min/max statistics on, the schema and key-value metadata as they were."""
+    group (the last holds the rest), data pages of about page_bytes and its page version,
+    its codec, page index and min/max statistics on (for layout.statistics), the schema
+    and key-value metadata as they were."""
     f = pq.ParquetFile(src)
     schema = f.schema_arrow
     n = layout.rows_per_group
     with pq.ParquetWriter(
         dst, schema, compression=layout.compression,
         compression_level=ZSTD_LEVEL if layout.compression == 'zstd' else None, data_page_size=layout.page_bytes,
-        use_dictionary=layout.dictionary, write_page_index=True, write_statistics=True, store_schema=False,
+        use_dictionary=layout.dictionary, write_page_index=True, data_page_version=layout.page_version,
+        write_statistics=list(layout.statistics) if layout.statistics is not None else True, store_schema=False,
     ) as w:
         held: list[pa.RecordBatch] = []
         rows = 0
@@ -138,20 +160,32 @@ def describe(path: Path) -> dict:
             'footer_bytes': footer, 'bytes': path.stat().st_size}
 
 
-def pages_in_first_chunk(path: Path, column: str) -> int:
-    """Data pages in the first row group's chunk of `column`, counted by walking its page headers."""
+def _first_chunk_page_kinds(path: Path, column: str) -> list[int]:
+    """The page types in the first row group's chunk of `column` (path in schema, e.g.
+    tags.list.element), in order, by walking its page headers."""
     rg = pq.ParquetFile(path).metadata.row_group(0)
-    col = next(rg.column(j) for j in range(rg.num_columns) if rg.column(j).path_in_schema == column)
+    col = next(rg.column(j) for j in range(rg.num_columns)
+               if rg.column(j).path_in_schema in (column, f'{column}.list.element'))
     start = col.dictionary_page_offset or col.data_page_offset
     with path.open('rb') as fh:
         fh.seek(start)
         data = fh.read(col.total_compressed_size)
-    pos = pages = 0
+    pos, kinds = 0, []
     while pos < len(data):
         kind, size, pos = _page_header(data, pos)
-        pages += kind in (0, 3)  # DATA_PAGE, DATA_PAGE_V2
+        kinds.append(kind)
         pos += size
-    return pages
+    return kinds
+
+
+def pages_in_first_chunk(path: Path, column: str) -> int:
+    """Data pages in the first row group's chunk of `column`."""
+    return sum(k in (0, 3) for k in _first_chunk_page_kinds(path, column))  # DATA_PAGE, DATA_PAGE_V2
+
+
+def page_kinds_in_first_chunk(path: Path, column: str) -> set[int]:
+    """The kinds of data page (0 DATA_PAGE, 3 DATA_PAGE_V2) in the first row group's chunk of `column`."""
+    return {k for k in _first_chunk_page_kinds(path, column) if k in (0, 3)}
 
 
 def _page_header(data: bytes, pos: int) -> tuple[int, int, int]:

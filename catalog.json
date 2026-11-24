@@ -7034,9 +7034,9 @@
       "source": "Overture",
       "rows": 4758311,
       "parquet": {
-        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-11-18.0-r3/overture_places_india.parquet",
+        "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-11-18.0-r3/overture_places_india.2ac57af6.parquet",
         "upstream_url": "https://overturemaps-us-west-2.s3.us-west-2.amazonaws.com/release/2026-11-18.0/theme=places/type=place/",
-        "bytes": 482353155
+        "bytes": 619348346
       },
       "pmtiles": {
         "url": "https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev/pois/overture-places/2026-11-18.0-r3/overture_places_india.pmtiles",

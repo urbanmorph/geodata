@@ -73,6 +73,34 @@ def test_rewrite_splits_a_column_into_small_pages(tmp_path: Path) -> None:
     assert rpr.pages_in_first_chunk(dst, 'id') == 6  # a page closes past page_bytes at each 1,024-row write batch
 
 
+def test_rewrite_keeps_statistics_for_the_named_columns_only(tmp_path: Path) -> None:
+    src = _source(tmp_path / 'src.parquet')
+    dst = tmp_path / 'dst.parquet'
+    rpr.rewrite(src, dst, rpr.Layout(rows_per_group=8, page_bytes=64, statistics=rpr.BBOX))
+    md = pq.ParquetFile(dst).metadata
+    with_stats = {md.row_group(0).column(j).path_in_schema for j in range(md.num_columns)
+                  if md.row_group(0).column(j).is_stats_set}
+    assert with_stats == set(rpr.BBOX)
+    assert rpr.verify(src, dst)['rows'] == 50
+
+
+def test_rewrite_keeps_dictionaries_for_the_named_columns_only(tmp_path: Path) -> None:
+    src = _source(tmp_path / 'src.parquet')
+    dst = tmp_path / 'dst.parquet'
+    rpr.rewrite(src, dst, rpr.Layout(rows_per_group=8, page_bytes=64, dictionary=('pH',)))
+    rg = pq.ParquetFile(dst).metadata.row_group(0)
+    assert {rg.column(j).path_in_schema for j in range(rg.num_columns) if rg.column(j).has_dictionary_page} == {'pH'}
+    assert rpr.verify(src, dst)['rows'] == 50
+
+
+def test_rewrite_can_write_v2_data_pages(tmp_path: Path) -> None:
+    src = _source(tmp_path / 'src.parquet', n=3000)
+    dst = tmp_path / 'dst.parquet'
+    rpr.rewrite(src, dst, rpr.Layout(rows_per_group=3000, page_bytes=256, page_version='2.0'))
+    assert rpr.page_kinds_in_first_chunk(dst, 'tags') == {3}  # DATA_PAGE_V2: hyparquet skips one unread, nested or not
+    assert rpr.verify(src, dst)['rows'] == 3000
+
+
 def test_rewrite_can_store_uncompressed(tmp_path: Path) -> None:
     src = _source(tmp_path / 'src.parquet')
     dst = tmp_path / 'dst.parquet'
