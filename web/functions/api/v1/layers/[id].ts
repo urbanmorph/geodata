@@ -4,7 +4,7 @@ import { countApiUse } from '../../../lib/usage';
 import { timedCall } from '../../../lib/api-calls';
 import { json } from '../../../lib/http';
 import { resolveLayer } from '../../../lib/api-layer';
-import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from '../../../lib/edge-cache';
+import { answerKey, cached, CACHE_CONTROL, EDGE_TTL } from '../../../lib/edge-cache';
 import { withLookups } from '../../../lib/lookups';
 import { pointProfilesOn } from '../../../lib/point-profiles';
 
@@ -12,12 +12,13 @@ import { pointProfilesOn } from '../../../lib/point-profiles';
 export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
-  const { layer, catalog, version, url } = r;
+  const { layer, catalog, dataVersion, url } = r;
   countApiUse(ctx, layer.id);
+  // Which lookup reads the layer, said only while the lookups are published.
+  const lookups = pointProfilesOn(ctx.env, url);
 
-  return cached(ctx, cacheKey(version, url), EDGE_TTL.catalog, async () => {
+  return cached(ctx, answerKey('detail', `${dataVersion}${lookups ? '.lookups' : ''}`, url), EDGE_TTL.catalog, async () => {
     const api = await attachFilterStats(ctx, toApiLayer(layer, catalog, true));
-    // Which lookup reads the layer, said only while the lookups are published.
-    return json(200, { data: pointProfilesOn(ctx.env, url) ? withLookups(api) : api }, { 'cache-control': CACHE_CONTROL.catalog });
+    return json(200, { data: lookups ? withLookups(api) : api }, { 'cache-control': CACHE_CONTROL.catalog });
   });
 });

@@ -13,7 +13,7 @@ import {
 import { parseQueryParams } from '../../../../lib/query-params';
 import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
-import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
+import { answerKey, cached, dataIdentity, EDGE_TTL } from '../../../../lib/edge-cache';
 
 /** Where the whole layer lives, for the over-the-cap message: a layer split
  *  per state ships its GeoJSON/KML/shapefile as zips of state files. */
@@ -68,7 +68,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   if (paused) return apiError(400, paused);
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
-  const { layer, version } = r;
+  const { layer, dataVersion } = r;
   const r2Key = r2KeyFromLayer(layer);
   if (!r2Key) return apiError(404, 'No parquet file for this layer');
   countApiUse(ctx, layer.id);
@@ -80,9 +80,9 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
     if (url.searchParams.get('estimate') === '1') {
       // The Filter panel asks this on every filter change, then exports: the
       // answer depends only on the deploy, the file and the query, so the colo keeps it.
-      return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
+      return cached(ctx, answerKey('export', dataIdentity(layer), url), EDGE_TTL.r2, async () => {
         try {
-          const plan = await withColoReads(ctx, version, async (r2) => planExport(await asyncBufferFromR2(r2, r2Key), { where, filters }));
+          const plan = await withColoReads(ctx, dataVersion, async (r2) => planExport(await asyncBufferFromR2(r2, r2Key), { where, filters }));
           return json(200, { data: {
             total: plan.total, estimated_bytes: plan.estimatedBytes, max_rows: EXPORT_MAX_ROWS, max_bytes: EXPORT_MAX_BYTES,
             shape_bytes: plan.shapeBytes, max_shape_bytes: EXPORT_MAX_SHAPE_BYTES,
@@ -93,7 +93,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
       });
     }
     // The rows stream after this returns, still read through the colo (only the footer is kept there).
-    const out = await withColoReads(ctx, version, async (r2) =>
+    const out = await withColoReads(ctx, dataVersion, async (r2) =>
       exportRows(await asyncBufferFromR2(r2, r2Key), { where, filters, format, name: layer.id, tooManyHint: downloadsHint(layer) }));
     return new Response(exportBody(out.chunks), {
       headers: {

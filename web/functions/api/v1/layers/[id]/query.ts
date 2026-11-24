@@ -9,13 +9,13 @@ import { parseQueryParams, queryCacheUrl } from '../../../../lib/query-params';
 import { parseFilterParam } from '../../../../lib/parquet-export';
 import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
-import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
+import { answerKey, cached, dataIdentity, EDGE_TTL } from '../../../../lib/edge-cache';
 import { loadValueIndex } from '../../../../lib/value-index';
 
 export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
-  const { layer, version, url } = r;
+  const { layer, version, dataVersion, url } = r;
   countApiUse(ctx, layer.id);
 
   const r2Key = r2KeyFromLayer(layer);
@@ -36,7 +36,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
       // A large layer's baked value index lets a filter read only the row groups it needs;
       // fetched while the parquet's footer is read.
       const indexed = where || filters?.length || groupBy ? loadValueIndex(ctx, layer) : null;
-      const { file, result } = await withColoReads(ctx, version, async (r2) => {
+      const { file, result } = await withColoReads(ctx, dataVersion, async (r2) => {
         const file = await asyncBufferFromR2(r2, r2Key);
         return { file, result: await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters, valueIndex: await indexed }) };
       });
@@ -56,5 +56,5 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   // Every answer is kept in the colo: a filtered row answer (at most 1,000 rows)
   // on a large layer is a whole-file scan (an Overture hospital query took 15 s
   // every time). The key leaves out parameters that can't change the answer.
-  return cached(ctx, cacheKey(version, queryCacheUrl(url)), EDGE_TTL.r2, run);
+  return cached(ctx, answerKey('query', dataIdentity(layer), queryCacheUrl(url)), EDGE_TTL.r2, run);
 });

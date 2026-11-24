@@ -37,7 +37,9 @@ export function bakedFrom(made: ParquetRef | undefined, layer: { parquet?: Parqu
   return !!layer.parquet?.url && made?.url === layer.parquet.url && made.bytes === (layer.parquet.bytes ?? null);
 }
 
-export type LoadedCatalog ={ catalog: CatalogData; version: string };
+/** `version`: the deploy (build id and catalog), for pages. `dataVersion`: the data only
+ *  (catalog and the baked files, data-id.txt), for API answers, which a code-only deploy keeps. */
+export type LoadedCatalog = { catalog: CatalogData; version: string; dataVersion: string };
 
 // One load per isolate: catalog.json changes only with a deploy, which starts
 // new isolates. Only a loaded catalog is shared across requests (a load in
@@ -45,15 +47,22 @@ export type LoadedCatalog ={ catalog: CatalogData; version: string };
 const loaded = new ResolvedCache<LoadedCatalog>();
 
 async function load(ctx: AssetCtx): Promise<LoadedCatalog> {
-  const [r, build] = await Promise.all([
+  const text = (path: string) => fetchAsset(ctx, path).then((b) => (b.ok && !isSpaFallback(b) ? b.text() : ''), () => '');
+  const [r, build, data] = await Promise.all([
     fetchAsset(ctx, '/catalog.json'),
     // Written by every vite build (vite.config.ts): a deploy that changes only
     // code or pages still gets a new version. Absent (tests, dev) → ''.
-    fetchAsset(ctx, '/build-id.txt').then((b) => (b.ok ? b.text() : ''), () => ''),
+    text('/build-id.txt'),
+    // The baked files' id (scripts/data-id.mjs), for the data version.
+    text('/data-id.txt'),
   ]);
   if (!r.ok) throw new Error(`catalog.json fetch failed: ${r.status}`);
-  const text = await r.text();
-  return { catalog: JSON.parse(text) as CatalogData, version: await shortHash(`${build.trim()}\n${text}`) };
+  const catalogText = await r.text();
+  return {
+    catalog: JSON.parse(catalogText) as CatalogData,
+    version: await shortHash(`${build.trim()}\n${catalogText}`),
+    dataVersion: await shortHash(`data:${data.trim()}\n${catalogText}`),
+  };
 }
 
 /** The catalog and the deploy version: a short hash of the build id and the

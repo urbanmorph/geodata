@@ -1,5 +1,5 @@
 import { fetchAsset, loadCatalogVersioned, type AssetCtx } from './catalog-loader';
-import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from './edge-cache';
+import { answerKey, cached, CACHE_CONTROL, EDGE_TTL } from './edge-cache';
 import { json } from './http';
 import { layerIsNonCommercial, NC_NOTICE } from '../../../shared/licences.mjs';
 import { realmOf } from '../../../shared/realms.mjs';
@@ -197,8 +197,8 @@ export function toApiLevel(catalog: CatalogData): Array<{ id: string; order: num
 /** A GET handler answering { data: build(catalog) }, kept in the colo per deploy. */
 export function catalogEndpoint(build: (catalog: CatalogData) => unknown): PagesFunction<{ ASSETS: Fetcher }> {
   return async (ctx) => {
-    const { catalog, version } = await loadCatalogVersioned(ctx);
-    return cached(ctx, cacheKey(version, new URL(ctx.request.url)), EDGE_TTL.catalog, async () =>
+    const { catalog, dataVersion } = await loadCatalogVersioned(ctx);
+    return cached(ctx, answerKey('layers', dataVersion, new URL(ctx.request.url)), EDGE_TTL.catalog, async () =>
       json(200, { data: build(catalog) }, { 'cache-control': CACHE_CONTROL.catalog }));
   };
 }

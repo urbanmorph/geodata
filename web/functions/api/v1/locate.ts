@@ -28,7 +28,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   }
 
   timeOnly(ctx.request, endpointUsageId('locate'));
-  const { catalog, version } = await loadCatalogVersioned(ctx);
+  const { catalog, dataVersion } = await loadCatalogVersioned(ctx);
 
   // An explicit list: a retired id is asked as its successor, an unknown one is
   // reported (it used to vanish, answering an empty 200 that looked like "no
@@ -44,7 +44,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
     }
   }
 
-  const result = await withColoReads(ctx, version, async (r2) => {
+  const result = await withColoReads(ctx, dataVersion, async (r2) => {
     const first = await locate(lat, lng, layerIds, zoom, catalog, r2);
     // A city ward layer chosen by bbox can miss the point (Jaipur's layer is
     // Greater Jaipur only): ask the national SBM ward layer as a second pass.

@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 // @ts-expect-error: plain .mjs
 import { renderNotFoundPage } from './scripts/not-found-page.mjs';
+import { dataId } from './scripts/data-id.mjs';
 // @ts-expect-error: plain .mjs
 import { releasePages } from './scripts/releases-page.mjs';
 
@@ -50,6 +51,8 @@ function buildIdPlugin(): Plugin {
     apply: 'build',
     generateBundle() {
       this.emitFile({ type: 'asset', fileName: 'build-id.txt', source: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}\n` });
+      // dist/data-id.txt: the baked data's id (scripts/data-id.mjs); API answer keys follow it, not the build.
+      this.emitFile({ type: 'asset', fileName: 'data-id.txt', source: `${dataId(resolve(__dirname, 'public/api-data'))}\n` });
     },
   };
 }

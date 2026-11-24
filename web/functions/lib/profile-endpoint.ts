@@ -19,7 +19,7 @@ import {
 import type { CatalogData } from './catalog-api';
 import { apiError, json, serverError } from './http';
 import { parseIndiaPoint } from './api-layer';
-import { cached, cacheKey, defaultCache, EDGE_TTL, NO_STORE } from './edge-cache';
+import { answerKey, cached, defaultCache, EDGE_TTL, NO_STORE } from './edge-cache';
 import { coloBucket, coloCache, countingBucket } from './colo-cache';
 import { notPublished, pointProfilesOn } from './point-profiles';
 import { countApiUse, endpointUsageId } from './usage';
@@ -29,7 +29,7 @@ import { noteCall, timedCall } from './api-calls';
 export type ProfileRun = (lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, opts: ProfileOpts) => Promise<ProfileResponse>;
 
 /** `run` (the profile `spec`) as a GET handler for /api/v1/<name>. `version` names what the catalog does not (e.g. raster files), for the cache key. */
-export function profileHandler(name: string, spec: ProfileSpec, run: ProfileRun, version: string): PagesFunction<Env> {
+export function profileHandler(name: 'ground' | 'surface', spec: ProfileSpec, run: ProfileRun, version: string): PagesFunction<Env> {
   const label = name[0].toUpperCase() + name.slice(1);
   return timedCall(async (ctx) => {
     const url = new URL(ctx.request.url);
@@ -44,7 +44,7 @@ export function profileHandler(name: string, spec: ProfileSpec, run: ProfileRun,
     const { lat, lng } = snapPoint(pt.lat, pt.lng);
     try {
       const t0 = Date.now();
-      const { catalog, version: catalogVersion } = await loadCatalogVersioned(ctx);
+      const { catalog, dataVersion } = await loadCatalogVersioned(ctx);
       const tCatalog = Date.now();
       let tRun: number | undefined;
       const keyUrl = new URL(url.origin + url.pathname);
@@ -54,13 +54,13 @@ export function profileHandler(name: string, spec: ProfileSpec, run: ProfileRun,
       if (filter?.sections) keyUrl.searchParams.set('sections', filter.sections.join(','));
       if (filter?.layers) keyUrl.searchParams.set('layers', filter.layers.join(','));
       keyUrl.searchParams.set('v', version);
-      const res = await cached(ctx, cacheKey(catalogVersion, keyUrl), EDGE_TTL.r2, async () => {
+      const res = await cached(ctx, answerKey(name, dataVersion, keyUrl), EDGE_TTL.r2, async () => {
         tRun = Date.now();
         const { bucket, reads } = countingBucket(ctx.env.R2);
         const colo = coloCache(defaultCache(), (p) => ctx.waitUntil(p));
         let profile: ProfileResponse;
         try {
-          profile = await run(lat, lng, catalog, coloBucket(bucket, colo, catalogVersion), { openOnly, filter, waitUntil: (p) => ctx.waitUntil(p) });
+          profile = await run(lat, lng, catalog, coloBucket(bucket, colo, dataVersion), { openOnly, filter, waitUntil: (p) => ctx.waitUntil(p) });
         } finally {
           colo.startPuts(); // the answer is done: what it read for the next isolate, without slowing this one
         }

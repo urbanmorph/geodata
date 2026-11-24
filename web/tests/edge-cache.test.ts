@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { cached, cacheKey, NO_STORE, type EdgeCache } from '../functions/lib/edge-cache';
+import { answerKey, cached, cacheKey, NO_STORE, type EdgeCache } from '../functions/lib/edge-cache';
+import { ANSWER_V } from '../functions/lib/answer-versions';
 
 /** An in-memory stand-in for caches.default (which vitest's node env lacks). */
 function memoryCache() {
@@ -54,12 +55,12 @@ describe('cached', () => {
     expect(compute).toHaveBeenCalledTimes(1);
   });
 
-  it("stores for its own ttl but gives clients the handler's cache-control", async () => {
+  it("stores for its ttl plus as long again to serve stale, but gives clients the handler's cache-control", async () => {
     const { cache, store } = memoryCache();
     const c = ctxFor('https://bharatlas.com/x');
     await cached(c.ctx, 'k', 600, body('{}'), cache);
     await c.settle();
-    expect(store.get('k')!.headers.get('cache-control')).toBe('public, max-age=600');
+    expect(store.get('k')!.headers.get('cache-control')).toBe('public, max-age=1200');
     const hit = await cached(ctxFor('https://bharatlas.com/x').ctx, 'k', 600, body('{}'), cache);
     expect(hit.headers.get('cache-control')).toBe('public, max-age=3600');
   });
@@ -125,5 +126,62 @@ describe('cached', () => {
     const r = await cached(c.ctx, 'k', 600, body('{"a":2}'), hung, 30);
     expect(await r.text()).toBe('{"a":2}');
     expect(Date.now() - t0).toBeLessThan(1000);
+  });
+});
+
+// Stale-while-revalidate over the Cache API (it ignores the header): an answer past its ttl
+// is served at once, marked STALE, while a fresh one is computed in the background; so a
+// popular answer never makes a caller wait for its recompute.
+describe('cached: stale-while-revalidate', () => {
+  const at = (ms: number) => vi.spyOn(Date, 'now').mockReturnValue(ms);
+  it('past its ttl: served STALE, refreshed in the background, fresh next time', async () => {
+    const { cache } = memoryCache();
+    let n = 0;
+    const compute = async () => new Response(String(++n), { headers: { 'cache-control': 'public, max-age=60' } });
+    at(1_000_000);
+    const a = ctxFor('https://bharatlas.com/x');
+    await cached(a.ctx, 'k', 600, compute, cache); await a.settle();
+    at(1_000_000 + 601_000);
+    const b = ctxFor('https://bharatlas.com/x');
+    const stale = await cached(b.ctx, 'k', 600, compute, cache);
+    expect(await stale.text()).toBe('1');
+    expect(stale.headers.get('x-edge-cache')).toBe('STALE');
+    await b.settle();
+    const c = ctxFor('https://bharatlas.com/x');
+    const fresh = await cached(c.ctx, 'k', 600, compute, cache);
+    expect(await fresh.text()).toBe('2');
+    expect(fresh.headers.get('x-edge-cache')).toBe('HIT');
+    vi.restoreAllMocks();
+  });
+  it('one background refresh per key at a time; a failed one keeps the stale answer', async () => {
+    const { cache } = memoryCache();
+    let calls = 0;
+    let fail = false;
+    const compute = async () => { calls++; return fail ? new Response('no', { status: 500 }) : new Response('ok'); };
+    at(2_000_000);
+    const a = ctxFor('https://bharatlas.com/x');
+    await cached(a.ctx, 'k2', 600, compute, cache); await a.settle();
+    at(2_000_000 + 700_000);
+    fail = true;
+    const b = ctxFor('https://bharatlas.com/x');
+    const c = ctxFor('https://bharatlas.com/x');
+    await Promise.all([cached(b.ctx, 'k2', 600, compute, cache), cached(c.ctx, 'k2', 600, compute, cache)]);
+    await b.settle(); await c.settle();
+    expect(calls).toBe(2); // the first compute, then one refresh for the two stale hits
+    const d = ctxFor('https://bharatlas.com/x');
+    expect(await (await cached(d.ctx, 'k2', 600, compute, cache)).text()).toBe('ok');
+    vi.restoreAllMocks();
+  });
+});
+
+// Answer keys outlive deploys: an endpoint's answer version (answer-versions.ts) and the data
+// the answer read, never the build id. A code change that changes an answer bumps the version
+// (golden-answers.test.ts fails until it does).
+describe('answerKey', () => {
+  it('endpoint and its answer version, the data identity, then the path and sorted query; same on every host', () => {
+    const a = answerKey('query', 'L1', new URL('https://preview.pages.dev/api/v1/layers/x/query?b=2&a=1'));
+    expect(a).toBe(`https://bharatlas.com/__cache/a/query.v${ANSWER_V.query}/L1/api/v1/layers/x/query?a=1&b=2`);
+    expect(answerKey('query', 'L1', new URL('https://bharatlas.com/api/v1/layers/x/query?a=1&b=2'))).toBe(a);
+    expect(answerKey('query', 'L2', new URL('https://bharatlas.com/api/v1/layers/x/query?a=1&b=2'))).not.toBe(a);
   });
 });

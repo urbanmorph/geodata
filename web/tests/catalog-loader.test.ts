@@ -64,6 +64,23 @@ describe('catalog loader', () => {
     expect(b.catalog).toEqual(CATALOG);
   });
 
+  it('a data version that follows the catalog and the baked files (data-id.txt), never the build', async () => {
+    const files = (build: string, data: string, catalog = CATALOG) => ctxWith(async (url) =>
+      new Response(url.endsWith('/build-id.txt') ? build : url.endsWith('/data-id.txt') ? data : JSON.stringify(catalog)));
+    const a = await loadCatalogVersioned(files('build-1', 'data-1'));
+    __resetCatalogForTest();
+    const b = await loadCatalogVersioned(files('build-2', 'data-1'));
+    __resetCatalogForTest();
+    const c = await loadCatalogVersioned(files('build-2', 'data-2'));
+    __resetCatalogForTest();
+    const d = await loadCatalogVersioned(files('build-2', 'data-1', { ...CATALOG, layers: [] }));
+    expect(a.dataVersion).toMatch(/^[0-9a-f]{12}$/);
+    expect(b.dataVersion).toBe(a.dataVersion); // a code-only deploy keeps it
+    expect(b.version).not.toBe(a.version);     // pages still move on
+    expect(c.dataVersion).not.toBe(a.dataVersion);
+    expect(d.dataVersion).not.toBe(a.dataVersion);
+  });
+
   it('fetchAsset falls back to a same-origin fetch without ASSETS (tests, stub contexts)', async () => {
     const zone = vi.fn(async () => new Response('x'));
     vi.stubGlobal('fetch', zone);
