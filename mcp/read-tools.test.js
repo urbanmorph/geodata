@@ -212,3 +212,16 @@ test("a read is tried once more after a 429, 502 or 503, never after other error
   assert.deepEqual(await run([400]), { calls: 1, status: 400 });
   assert.deepEqual(await run([200]), { calls: 1, status: 200 });
 });
+
+// Overture is the heaviest layer to answer from (4.8M places, nested columns): a nearby
+// on it costs 1-3 s, on a dedicated flat layer 0.3-0.5 s (Nov 2026). For kinds of place
+// that have their own layer, the model is steered there first.
+test("the instructions steer places with their own layer away from Overture", () => {
+  for (const pp of [false, true]) {
+    const text = instructionsCore(pp);
+    for (const id of ["nic_health", "nhp_hospitals", "udise_schools", "ir_stations", "urban_rail_stations", "bus_stops", "airports", "police_stations_"]) {
+      assert.ok(text.includes(id), `${id} named (pointProfiles=${pp})`);
+    }
+    assert.match(text, /overture_places_india[^.]*for other kinds of place/);
+  }
+});

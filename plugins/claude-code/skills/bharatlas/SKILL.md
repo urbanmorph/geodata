@@ -35,6 +35,7 @@ bharatlas (bharatlas.com) is India's open geo atlas: open data layers you can ma
 ### Source preference
 
 - Admin boundaries (state to village): prefer LGD (`lgd_*`) as authoritative. SOI, Bhuvan, geoBoundaries are cross-reference alternates; mention them if the user asks about discrepancies.
+- Places near a point: use the dedicated layer when one exists (hospitals `nic_health` / `nhp_hospitals`, schools `udise_schools`, railway stations `ir_stations`, metro `urban_rail_stations`, `bus_stops`, `airports`, `police_stations_<state>`); it is faster and more complete. Use `overture_places_india` for other kinds of place (shops, restaurants, banks, hotels) or for business names and addresses.
 - City wards: one layer per city (`wards_chennai`, `wards_pune`, ...); some cities have multiple vintages.
 - Always join on LGD codes, not names (spellings drift across sources).
 
