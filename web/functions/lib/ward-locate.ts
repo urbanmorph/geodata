@@ -23,8 +23,9 @@ export const WARD_MARGIN_DEG = 0.01;
 // cities too. City layers stay first choice: they are cleaner where they exist.
 export const FALLBACK_WARD_LAYER = 'sbm_wards';
 
-// SBM has no West Bengal; WB AMRUT's ward layer covers 52 towns there. Asked
-// only for points inside West Bengal's extent, so elsewhere costs nothing.
+// SBM has only 7 West Bengal towns (183 wards, Nov 2026); WB AMRUT's ward layer covers 52
+// towns there. Asked only for points inside West Bengal's extent, so elsewhere costs nothing;
+// where both answer, surface_at's summary says the ward once (profile.ts).
 const WB_WARD_LAYER = 'wb_amrut_wards';
 const WEST_BENGAL_BBOX = [85.8, 21.5, 89.9, 27.3] as const; // [west, south, east, north]
 

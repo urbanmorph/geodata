@@ -234,6 +234,8 @@ export interface ProfileSpec {
   expand?: (lat: number, lng: number, catalog: CatalogData) => ProfileLayer[];
   /** Every layer `expand` may add, its section, and its row: a filter can ask for one by id. */
   expandable?: { section: string; ids: readonly string[]; row: (id: string) => ProfileLayer };
+  /** The layer `expand`'s rows follow (in the section and the summary); the end of the table without it. */
+  expandAfter?: string;
   /** Summary lines that need several entries (e.g. the nearest hospital across three layers). */
   conclude?: (sections: ProfileResponse['sections']) => string[];
 }
@@ -478,7 +480,10 @@ export async function profileAt(
   const pastDeadline = new Promise<never>((_, reject) => { deadlineTimer = setTimeout(() => reject(new PastDeadline()), deadline); });
   pastDeadline.catch(() => {}); // raced by every layer; none may be left when it fires
   const byId = new Map(catalog.layers.map((l) => [l.id, l]));
-  const layers = [...profile.layers, ...(profile.expand?.(lat, lng, catalog) ?? [])];
+  const extra = profile.expand?.(lat, lng, catalog) ?? [];
+  const i = profile.expandAfter ? profile.layers.findIndex((l) => (l.key ?? l.id) === profile.expandAfter) : -1;
+  const at = i < 0 ? profile.layers.length : i + 1; // the named layer filtered out: at the end
+  const layers = [...profile.layers.slice(0, at), ...extra, ...profile.layers.slice(at)];
   const keyOf = (l: ProfileLayer) => l.key ?? l.id;
   const sections: ProfileResponse['sections'] = Object.fromEntries(profile.sections.map((s) => [s, {}]));
   const unavailable: ProfileResponse['unavailable'] = [];
@@ -568,7 +573,8 @@ export async function profileAt(
   // Credits follow the sections too, so the list is the same however the reads finish.
   const credits = new Set(profile.sections.flatMap((s) => Object.keys(sections[s]))
     .flatMap((k) => creditOfKey.get(k) ?? []));
-  const lines = [...said.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])];
+  // A line said twice (two ward maps naming the same ward) is said once.
+  const lines = [...new Set([...said.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])])];
 
   return {
     point: { lat, lng },

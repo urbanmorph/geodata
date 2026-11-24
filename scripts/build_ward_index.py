@@ -41,84 +41,27 @@ OSM_KIND_ORDER = {'suburb': 0, 'quarter': 1, 'neighbourhood': 2}
 ZONE_MIN_UNIQUE = 0.9                         # share of features with their own ward number, for zones to be read
 MAX_AREAS = 8                                 # the biggest places first, so a dense ward stays readable
 
-# Per-layer column maps, keyed by the columns each city's source actually ships
-# (verified against the live schemas). (number_col, name_col_or_None, label).
-# name_col None => number-only source => no table emitted. Overrides win over the
-# heuristic so an ambiguous column (Mumbai's NAME2 is a letter CODE, not an area;
-# Bhubaneswar has a zone but no street name) resolves faithfully.
-OVERRIDES: dict[str, tuple[str, str | None, str | None]] = {
-    # (number_col, name_col_or_None, label). Verified against each city's actual
-    # parquet columns — every city ships these under a different name. name_col
-    # None => number-only source => no table.
-    'wards_ahmedabad':         ('sourcewardcode', 'sourcewardname', 'Area'),
-    'wards_vadodara':          ('ward_no',        'ward_name',      'Area'),
-    'wards_surat':             ('wardcode',       'wardname',       'Area'),
-    'wards_pune':              ('wardnum',        'Name2',          'Area'),
-    'wards_bengaluru_gba':     ('ward_id',        'ward_name',      'Area'),
-    'wards_bengaluru_bbmp_2022': ('KGISWardNo',   'KGISWardName',   'Area'),
-    'wards_mysuru':            ('KGISWardNo',     'KGISWardName',   'Area'),
-    'wards_lucknow':           ('Ward Num',       'Ward Name',      'Area'),
-    'wards_kanpur':            ('Ward No',        'Ward Name',      'Area'),
-    'wards_bhopal':            ('Ward_Number',    'Name',           'Area'),
-    'wards_indore':            ('sourcewardcode', 'ward_lgd_name',  'Area'),
-    'wards_kochi':             ('sourcewardcode', 'ward_lgd_name',  'Area'),
-    # Zone-only sources: no street/area name, but a named municipal zone — itself
-    # a real GSC query ("ahmedabad zone list", "bmc zone list", "surat zone map").
-    'wards_bhubaneshwar':      ('wardno',         'municipalzone',  'Zone'),
-    'wards_vizag':             ('sourcewardcode', 'zone',           'Zone'),
-    'wards_madurai':           ('sourcewardcode', 'zone',           'Zone'),
-    'wards_coimbatore':        ('2011WardNumbers', 'Zone',          'Zone'),
-    # Number-only sources — the name column is the number itself, the city corp
-    # string, or absent. We never fabricate an area; these get no table.
-    'wards_kolkata':           ('WARD',           None,             None),
-    'wards_mumbai':            ('NAME2',          None,             None),
-    'wards_patna':             ('wardname',       None,             None),  # "Ward N" only (cleaned Nov 2026)
-    'wards_pcmc':              ('wardnum',        None,             None),  # "name" is "NN, Zone X", not a locality
-    'wards_guwahati':          ('sourcewardcode', None,             None),  # sourcewardname is "<Null>" for every row
-    'wards_faridabad':         ('Ward_No',        None,             None),
-    'wards_vijayawada':        ('WARD_NO',        None,             None),
-    'wards_chennai':           ('name2',          None,             None),
-    'wards_chandigarh':        ('Ward_name',      None,             None),  # "Ward_name" holds the number
-    'wards_jaipur':            ('wardcode',       None,             None),  # ward_lgd_name is the corp string
-    'wards_gurugram':          ('sourcewardcode', None,             None),
-    'wards_thane':             ('sourcewardcode', None,             None),
-    'wards_navi_mumbai':       ('sourcewardcode', None,             None),
-    'wards_kalyan_dombivli':   ('sourcewardcode', None,             None),  # ward_lgd_name is the corp string
-    # Pune's 15 administrative wards are its ward offices, each named.
-    'wards_pune_2025':         ('AdminNo',        'Field',          'Ward office'),
-}
-
-# A few cities pack number and name into one column. (column, label, pattern with
-# (number)(name) groups; the view reads the number with the same pattern, case-insensitive).
-PARSE_WARD_NAME: dict[str, tuple[str, str, str]] = {
-    'wards_hyderabad': ('ward', 'Area', r'^(\d+)\s*-\s*(.*)$'),          # GHMC: "127-RANGAREDDY NAGAR"
-    'wards_hyderabad_osm': ('Name', 'Area', r'^ward\s+(\d+)\s*(.*)$'),  # OpenStreetMap: "Ward 91 Khairatabad"
-}
-
-# A resolved name is rejected (treated as absent) when it is really the ward
-# number again, an empty/placeholder, or the municipal-corporation string that
-# some `ward_lgd_name` columns carry instead of a locality. Keeps Indore's
-# "Mundlaa Naayta" and Kochi's "Island North" while dropping "Jaipur (M Corp.)".
-NAME_REJECT = re.compile(
-    r'\(m\.?\s*corp|\(m\s*cl|^ward\s*no\.?\s*\d*$|^\d+$|^<?null>?$|^none$|^n/?a$|^nil$|^-+$',
-    re.I,
-)
-
-# Heuristic fallbacks for ward layers without an explicit override, lowest match
-# index wins. Kept conservative: a name is only claimed from an unmistakable
-# area/locality column, never from a bare "name" that might be the city.
-# Layers whose ward numbers restart per sub-body: (group column, its label).
-# Greater Bengaluru's 5 corporations each number their wards from 1 (369 wards,
-# 112 distinct numbers), so a ward is (corporation, number), never a number alone.
-GROUPS = {
-    'wards_bengaluru_gba': ('Corporation', 'Corporation'),
-}
-
-NUMBER_PATTERNS = [
-    'sourcewardcode', 'ward_no', 'wardno', 'ward_num', 'wardnum',
-    'ward_number', 'wardnumber', 'ward_code', 'wardcode', 'ward',
-]
-NAME_PATTERNS = ['sourcewardname', 'ward_name', 'wardname', 'ward_title', 'locality']
+# Which columns hold a ward's number and name in each ward layer, kept in one file read
+# here (ward pages) and by web/functions/lib/ward-label.ts (surface_at's summary):
+# shared/ward_columns.json. Every city's source names them differently.
+#   columns: layer -> (number_col, name_col or None, label). name_col None => a
+#            number-only source (no area table). Overrides win over the heuristic, so an
+#            ambiguous column (Mumbai's NAME2 is a letter code, not an area) resolves faithfully.
+#   parse:   layers that pack number and name into one column: (column, label, pattern
+#            with (number)(name) groups; the view reads the number with it, case-insensitive).
+#   groups:  layers whose ward numbers restart per sub-body: (group column, its label).
+#            Greater Bengaluru's 5 corporations each number their wards from 1.
+#   name_reject: a resolved name that is the ward number again, a placeholder, or the
+#            corporation string some ward_lgd_name columns carry (dropped, case-insensitive).
+#   number_patterns / name_patterns: heuristic fallbacks, lowest index wins; a name is
+#            claimed only from an unmistakable area/locality column.
+WARD_COLUMNS = json.loads((ROOT / 'shared' / 'ward_columns.json').read_text())
+OVERRIDES: dict[str, tuple[str, str | None, str | None]] = {k: tuple(v) for k, v in WARD_COLUMNS['columns'].items()}
+PARSE_WARD_NAME: dict[str, tuple[str, str, str]] = {k: tuple(v) for k, v in WARD_COLUMNS['parse'].items()}
+NAME_REJECT = re.compile(WARD_COLUMNS['name_reject'], re.I)
+GROUPS = {k: tuple(v) for k, v in WARD_COLUMNS['groups'].items()}
+NUMBER_PATTERNS = WARD_COLUMNS['number_patterns']
+NAME_PATTERNS = WARD_COLUMNS['name_patterns']
 
 
 find_parquet = pipeline.find_parquet  # tests patch this module attribute
