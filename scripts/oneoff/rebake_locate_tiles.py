@@ -42,6 +42,7 @@ sys.path.insert(0, str(HERE))
 from bake_formats import pmtiles_args  # noqa: E402
 from pipeline import (  # noqa: E402
     R2_PUBLIC,
+    public_r2_key,
     atomic_output,
     download,
     file_md5,
@@ -71,7 +72,9 @@ def tippecanoe_cmd(geojson: Path, out: Path, layer: str) -> list[str]:
 def tiles_key(pmtiles_url: str, tiles: Path) -> str:
     """<stem>.<md5[:8]>.pmtiles beside the layer's current tiles (an earlier
     .z12 or md5 suffix replaced, not stacked)."""
-    key = pmtiles_url.split('.r2.dev/', 1)[1]
+    key = public_r2_key(pmtiles_url)  # the data domain or the old r2.dev address
+    if key is None:
+        raise ValueError(f'not an R2 public URL: {pmtiles_url}')
     return versioned_key(re.sub(rf'\.z{MAX_ZOOM}(?=\.pmtiles$)', '', key), file_md5(tiles))
 
 

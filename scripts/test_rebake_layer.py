@@ -24,6 +24,16 @@ def test_r2_key_from_url_strips_public_host() -> None:
     assert r2_key_from_url(f'{R2}/water/wetlands/x.parquet') == 'water/wetlands/x.parquet'
 
 
+def test_r2_key_from_url_takes_the_data_domain_and_the_old_r2_dev_host() -> None:
+    # data.bharatlas.com serves the bucket since Nov 2026; release manifests and old
+    # links keep the r2.dev address, which still works.
+    from rebake_layer import r2_key_from_url
+    import pipeline
+    assert pipeline.R2_PUBLIC == 'https://data.bharatlas.com'
+    assert r2_key_from_url('https://data.bharatlas.com/water/wetlands/x.parquet') == 'water/wetlands/x.parquet'
+    assert r2_key_from_url(f'{pipeline.R2_PUBLIC_LEGACY}/water/wetlands/x.parquet') == 'water/wetlands/x.parquet'
+
+
 def test_r2_key_from_url_rejects_non_r2_url() -> None:
     from rebake_layer import r2_key_from_url
     with pytest.raises(ValueError):
@@ -144,7 +154,8 @@ def test_patch_catalog_points_the_parquet_at_the_new_key(tmp_path: Path) -> None
     patch_catalog('wards_x', 'admin/wards-x/wards_x.0a1b2c3d.parquet', 99, cat, man)
     out = json.loads(cat.read_text())
     assert out['layers'][0] == {'id': 'a', 'parquet': {'url': f'{R2}/x/a.parquet', 'bytes': 1}}
-    assert out['layers'][1]['parquet'] == {'url': f'{R2}/admin/wards-x/wards_x.0a1b2c3d.parquet',
+    # the new key on the data domain; the old r2.dev entry it replaces was read fine
+    assert out['layers'][1]['parquet'] == {'url': 'https://data.bharatlas.com/admin/wards-x/wards_x.0a1b2c3d.parquet',
                                            'upstream_url': 'u', 'bytes': 99}
     assert out['layers'][1]['pmtiles']['bytes'] == 3
     assert json.loads(man.read_text()) == [{'id': 'wards_x', 'r2_prefix': 'admin/wards-x',

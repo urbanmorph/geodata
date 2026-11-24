@@ -6,7 +6,8 @@ import { onRequestGet as releasesFn, onRequestHead as releasesHead } from '../fu
 import { onRequestGet as apiReleases } from '../functions/api/v1/releases';
 import { isKnownRoute } from '../functions/lib/routes';
 
-const R2 = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev';
+// the bucket's address (r2-keys.ts R2_PUBLIC_BASE): its custom domain since Nov 2026
+const R2 = 'https://data.bharatlas.com';
 
 describe('releaseRoute', () => {
   it('serves the index, manifest, changes and sums as committed static files', () => {

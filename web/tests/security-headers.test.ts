@@ -223,8 +223,17 @@ describe('Security headers — SECURITY_HEADERS_HTML (Pages Function responses)'
     expect(csp).toMatch(/https:\/\/challenges\.cloudflare\.com/);
     // DuckDB-WASM worker + wasm (MapLibre is bundled, not from a CDN)
     expect(csp).toContain('https://cdn.jsdelivr.net/npm/@duckdb/');
-    // R2 public reads for layer downloads
+    // R2 public reads: the bucket on our domain, and its r2.dev address (older links)
     expect(csp).toMatch(/https:\/\/pub-0429b8e3b5a946e69ea007df844a6f1c\.r2\.dev/);
+    expect(csp).toContain('https://data.bharatlas.com');
+  });
+
+  it('the static _headers of the site and of collect let the map read the bucket at both addresses', () => {
+    for (const f of ['public/_headers', '../collect/public/_headers']) {
+      const connect = /connect-src ([^;]*)/.exec(readFileSync(new URL(`../${f}`, import.meta.url), 'utf8'))?.[1] ?? '';
+      expect(connect, f).toContain('https://data.bharatlas.com');
+      expect(connect, f).toContain('https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev');
+    }
   });
 
   it('CSP allows the Cloudflare Web Analytics beacon', () => {

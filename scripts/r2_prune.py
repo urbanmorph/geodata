@@ -33,7 +33,7 @@ from typing import Iterable, Iterator
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-from pipeline import BUCKET, R2_PUBLIC, log  # noqa: E402
+from pipeline import BUCKET, log, public_r2_key  # noqa: E402
 from tile_keys import unversioned_name  # noqa: E402
 
 ROOT = HERE.parent
@@ -63,8 +63,9 @@ def _strings(obj) -> Iterator[str]:
 def r2_key(url: str) -> str | None:
     """The R2 key behind a public R2 URL or a bharatlas release URL; None for anything else."""
     url = url.split('?', 1)[0].split('#', 1)[0]
-    if url.startswith(R2_PUBLIC + '/'):
-        return url[len(R2_PUBLIC) + 1:]
+    key = public_r2_key(url)  # the data domain or the old r2.dev address
+    if key is not None:
+        return key
     if url.startswith(SITE_RELEASES) and url != SITE_RELEASES:
         return 'releases/' + url[len(SITE_RELEASES):]
     return None

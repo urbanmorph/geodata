@@ -172,7 +172,7 @@ describe('main.ts: a failed layer open is caught', () => {
 describe('home page preconnects', () => {
   const HTML = src('index.template.html');
   it('only to the data host the map uses on open', () => {
-    expect(HTML).toContain('<link rel="preconnect" href="https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev" crossorigin />');
+    expect(HTML).toContain('<link rel="preconnect" href="https://data.bharatlas.com" crossorigin />');
     expect(HTML).not.toContain('tile.openstreetmap.org'); // no basemap uses it
     expect(HTML).not.toContain('preconnect" href="https://cdn.jsdelivr.net'); // only once Filter opens
     expect(HTML).not.toContain('preconnect" href="https://tiles.openfreemap.org'); // not on the default basemap

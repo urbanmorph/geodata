@@ -40,7 +40,8 @@ def test_patch_catalog_fills_the_empty_parquet_block_in_place(tmp_path: Path):
     ]}))
     b.patch_catalog('gb_adm1', 'geoboundaries/IND_ADM1.0a1b2c3d.parquet', 123, catalog=cat)
     layers = json.loads(cat.read_text())['layers']
-    assert layers[0]['parquet'] == {'url': f'{R2}/geoboundaries/IND_ADM1.0a1b2c3d.parquet', 'bytes': 123}
+    # new uploads are named on the data domain (pipeline.R2_PUBLIC)
+    assert layers[0]['parquet'] == {'url': 'https://data.bharatlas.com/geoboundaries/IND_ADM1.0a1b2c3d.parquet', 'bytes': 123}
     assert list(layers[0]) == ['id', 'rows', 'geojson', 'parquet', 'pmtiles']  # same place, nothing else moved
     assert layers[1]['parquet'] == {'url': 'keep'}
 

@@ -409,3 +409,20 @@ def test_no_script_hand_rolls_a_spatial_connection():
     offenders = [p.name for p in HERE.glob('*.py') if not p.name.startswith('test_') and p.name != 'pipeline.py'
                  and "INSTALL spatial; LOAD spatial" in p.read_text() and 'geometry_always_xy' in p.read_text()]
     assert offenders == []
+
+
+def test_the_data_domain_etag_is_an_md5_like_r2_devs_but_not_a_look_alike_hosts():
+    # data.bharatlas.com serves the bucket since Nov 2026: a bake that downloads a catalog
+    # file from it checks the body against the single-part ETag, as it did on r2.dev.
+    class Resp:
+        headers = {'ETag': '"6831456362688a4dfb423374f07e54af"'}
+    assert pipeline._served_md5(Resp(), 'https://data.bharatlas.com/admin/x.pmtiles') == '6831456362688a4dfb423374f07e54af'
+    assert pipeline._served_md5(Resp(), f'{pipeline.R2_PUBLIC_LEGACY}/admin/x.pmtiles') == '6831456362688a4dfb423374f07e54af'
+    assert pipeline._served_md5(Resp(), 'https://data.bharatlas.com.evil.example/x') is None
+
+
+def test_public_r2_key_reads_both_addresses_and_nothing_that_only_looks_like_them():
+    assert pipeline.public_r2_key('https://data.bharatlas.com/a/b.parquet') == 'a/b.parquet'
+    assert pipeline.public_r2_key(f'{pipeline.R2_PUBLIC_LEGACY}/a/b.parquet') == 'a/b.parquet'
+    assert pipeline.public_r2_key('https://data.bharatlas.com.evil.example/a/b.parquet') is None
+    assert pipeline.public_r2_key('https://data.bharatlas.comx/a') is None

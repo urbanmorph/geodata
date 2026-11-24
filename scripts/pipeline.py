@@ -26,7 +26,20 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 
 BUCKET = 'geodata-data'
-R2_PUBLIC = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
+# The bucket's public address: a custom domain on bharatlas.com (cached at the edge, Smart
+# Tiered Cache) since Nov 2026. The r2.dev address still serves the same bucket; release
+# manifests and older links keep it.
+R2_PUBLIC = 'https://data.bharatlas.com'
+R2_PUBLIC_LEGACY = 'https://pub-0429b8e3b5a946e69ea007df844a6f1c.r2.dev'
+
+
+def public_r2_key(url: str) -> str | None:
+    """The bucket key behind a public URL of the bucket (either address); None otherwise."""
+    for base in (R2_PUBLIC, R2_PUBLIC_LEGACY):
+        if url.startswith(base + '/'):
+            return url[len(base) + 1:]
+    return None
+
 
 CONTENT_TYPES = {
     '.parquet': 'application/vnd.apache.parquet',
@@ -124,9 +137,10 @@ def _total_size(resp, start: int) -> int | None:
     return start + int(cl) if cl is not None else None
 
 
-# Hosts whose single-part ETag is the body's MD5 (S3 semantics). Elsewhere an
-# ETag is opaque, even when it happens to look like 32 hex digits.
-MD5_ETAG_HOSTS = ('.r2.dev', '.r2.cloudflarestorage.com', '.amazonaws.com')
+# Hosts whose single-part ETag is the body's MD5 (S3 semantics): R2 at either of its
+# addresses (the data domain passes R2's ETag through), S3. Elsewhere an ETag is opaque,
+# even when it happens to look like 32 hex digits.
+MD5_ETAG_HOSTS = ('.r2.dev', '.r2.cloudflarestorage.com', '.amazonaws.com', '.data.bharatlas.com')
 
 
 def _served_md5(resp, url: str) -> str | None:
@@ -448,7 +462,7 @@ def _put_args(local: Path, md5: str) -> dict:
     ext = ''.join(local.suffixes[-1:])
     return {
         'ContentType': CONTENT_TYPES.get(ext, 'application/octet-stream'),
-        # Downloads save as files (cross-origin links to r2.dev ignore the
+        # Downloads save as files (cross-origin links to the bucket ignore the
         # HTML download attribute); pmtiles stays inline for MapLibre's range reads.
         'ContentDisposition': 'inline' if ext == '.pmtiles' else f'attachment; filename="{local.name}"',
         'CacheControl': 'public, max-age=604800, immutable',
@@ -861,9 +875,8 @@ def find_parquet(layer: dict) -> Path | None:
     if not url:
         return None
     names = dict.fromkeys((url.rsplit('/', 1)[-1], unversioned_name(url)))
-    baked_dir = None
-    if url.startswith(R2_PUBLIC + '/'):
-        baked_dir = (ROOT / 'data' / 'baked' / url[len(R2_PUBLIC) + 1:]).parent
+    key = public_r2_key(url)
+    baked_dir = (ROOT / 'data' / 'baked' / key).parent if key else None
     for name in names:
         for d in (ROOT / 'sources' / 'india-geodata', baked_dir):
             if d is not None and (d / name).exists():

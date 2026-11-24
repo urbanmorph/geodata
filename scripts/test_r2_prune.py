@@ -202,3 +202,12 @@ def test_only_r2_prune_deletes_from_r2():
     deleters = sorted(p.relative_to(here).as_posix() for p in here.rglob('*.py')
                       if not p.name.startswith('test_') and 'delete_object' in p.read_text())
     assert deleters == ['r2_prune.py']
+
+
+def test_a_release_pinned_r2_dev_url_and_its_data_domain_url_are_the_same_key():
+    # The catalog moved to data.bharatlas.com (Nov 2026); release manifests keep r2.dev.
+    # A pinned object must stay pinned whichever address names it.
+    import pipeline
+    key = 'releases/bharatlas-cw-2026.11/cw_villages.parquet'
+    assert rp.r2_key(f'{pipeline.R2_PUBLIC_LEGACY}/{key}') == key
+    assert rp.r2_key(f'https://data.bharatlas.com/{key}') == key

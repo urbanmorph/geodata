@@ -47,7 +47,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 sys.path.insert(0, str(HERE))
 from pipeline import (  # noqa: E402
-    R2_PUBLIC, Deadline, OutOfTime, _remote_has, cached, download, file_md5, log, make_con, patient_r2_client,
+    R2_PUBLIC, public_r2_key, Deadline, OutOfTime, _remote_has, cached, download, file_md5, log, make_con, patient_r2_client,
     r2_upload_retrying, rebake_flatten_bbox, upload_lock, write_json,
     work_dir,
 )
@@ -70,11 +70,12 @@ def find_layer(catalog: dict, layer_id: str) -> dict:
 
 
 def r2_key_from_url(url: str) -> str:
-    """Strip the R2 public host prefix; what's left is the bucket-relative key."""
-    prefix = R2_PUBLIC + '/'
-    if not url.startswith(prefix):
+    """Strip the R2 public host prefix (the data domain or the old r2.dev address); what's
+    left is the bucket-relative key."""
+    key = public_r2_key(url)
+    if key is None:
         raise ValueError(f'not an R2 public URL: {url}')
-    return url[len(prefix):]
+    return key
 
 
 # ── checks ───────────────────────────────────────────────────────────────────

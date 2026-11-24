@@ -16,9 +16,10 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE / 'oneoff'))  # a finished one-off, kept for the record
 import rebake_locate_tiles as rt  # noqa: E402
 import tile_keys  # noqa: E402
+import pipeline  # noqa: E402
 from pipeline import file_md5  # noqa: E402
 
-URL = 'https://pub-x.r2.dev/postal/boundaries/bharatviz_pincodes.pmtiles'
+URL = f'{pipeline.R2_PUBLIC_LEGACY}/postal/boundaries/bharatviz_pincodes.pmtiles'
 
 
 def test_tiles_go_to_zoom_12_and_keep_every_feature_there():
@@ -35,9 +36,9 @@ def test_new_tiles_go_to_a_content_versioned_key(tmp_path):
     out.write_bytes(b'tiles v1')
     first = rt.tiles_key(URL, out)
     assert first == f'postal/boundaries/bharatviz_pincodes.{file_md5(out)[:8]}.pmtiles'
-    assert tile_keys.is_rebaked({'url': f'https://pub-x.r2.dev/{first}'})
+    assert tile_keys.is_rebaked({'url': f'{pipeline.R2_PUBLIC}/{first}'})
     out.write_bytes(b'tiles v2')
-    second = rt.tiles_key(f'https://pub-x.r2.dev/{first}', out)
+    second = rt.tiles_key(f'{pipeline.R2_PUBLIC}/{first}', out)
     assert second != first and second.startswith('postal/boundaries/bharatviz_pincodes.')
     assert rt.tiles_key(URL.replace('.pmtiles', '.z12.pmtiles'), out) == second
 
@@ -60,8 +61,8 @@ def test_layers_already_on_rebaked_tiles_are_skipped_unless_forced(tmp_path, mon
 
 def test_patch_points_the_layer_at_the_new_tiles_and_keeps_the_rest():
     layer = {'id': 'bharatviz_pincodes', 'rows': 3, 'pmtiles': {'url': URL, 'bytes': 1, 'upstream_url': 'u'}}
-    out = rt.patched_layer(layer, 'https://pub-x.r2.dev', 'postal/boundaries/bharatviz_pincodes.z12.pmtiles', 99)
-    assert out['pmtiles'] == {'url': 'https://pub-x.r2.dev/postal/boundaries/bharatviz_pincodes.z12.pmtiles',
+    out = rt.patched_layer(layer, pipeline.R2_PUBLIC, 'postal/boundaries/bharatviz_pincodes.z12.pmtiles', 99)
+    assert out['pmtiles'] == {'url': f'{pipeline.R2_PUBLIC}/postal/boundaries/bharatviz_pincodes.z12.pmtiles',
                               'bytes': 99, 'upstream_url': 'u'}
     assert out['rows'] == 3 and layer['pmtiles']['url'] == URL  # input untouched
 
