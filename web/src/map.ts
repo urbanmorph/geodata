@@ -609,7 +609,7 @@ async function loadFilterColumns(
   const baked = await loadBakedStats(layer.id, await getCatalog(), large);
   const source = columnStatsSource(!!baked, large);
   if (source === 'none') {
-    console.warn('no filter stats file for large layer', layer.id); // scripts/bake_large_filter_stats.py
+    console.warn('no filter stats file for large layer', layer.id); // scripts/bake_filter_stats.py
     return null;
   }
 

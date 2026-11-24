@@ -21,7 +21,7 @@ Per layer:
   5. uploads to versioned keys (<stem>.<md5[:8]>.<ext>), md5-skipped, while
      holding the shared upload lock
   6. --register: patch catalog.json and scripts/external-ingested.json in
-     place (and bake the Filter panel's stats file, bake_large_filter_stats),
+     place (and bake the Filter panel's stats file, bake_filter_stats),
      only once the query check for the layer has passed (the record
      WORK/<id>/query_check.json, written after timing a where + group_by
      query through the API code against the uploaded parquet)
@@ -54,7 +54,7 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from pipeline import log  # noqa: E402
 import bake_land_water as blw  # noqa: E402
-import bake_large_filter_stats  # noqa: E402
+import bake_filter_stats  # noqa: E402
 import ingest_ramseraph as ir  # noqa: E402
 import rebake_tiles as rt  # noqa: E402
 from bake_formats import shapefile_key, short_field_names  # noqa: E402
@@ -406,7 +406,7 @@ def main(argv: list[str]) -> int:
                 states = len(state_counts(_con(), built['files']['parquet'], layer.state_column))
                 register(layer, published, built['total'], states)
                 # The Filter panel's stats, a static file per layer (never in the catalog).
-                bake_large_filter_stats.bake()
+                bake_filter_stats.bake()
                 log(f'  {lid}: in catalog.json and the manifest')
         except OutOfTime as e:
             log(f'STOPPED: {e}; finished steps are cached, re-run to continue')

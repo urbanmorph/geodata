@@ -41,7 +41,8 @@ BEFORE = {'row_count': 60, 'columns': [
     {'name': 'sometimes', 'type': 'string', 'distinct': 2, 'null_frac': 0.25, 'min': 'x', 'max': 'y',
      'top_values': [{'v': 'x', 'n': 24}, {'v': 'y', 'n': 21}]},
     {'name': 'never', 'type': 'string', 'distinct': 0, 'null_frac': 1.0},
-    {'name': 'constant', 'type': 'string', 'distinct': 1, 'null_frac': 0.0, 'min': 'same', 'max': 'same'},
+    {'name': 'constant', 'type': 'string', 'distinct': 1, 'null_frac': 0.0, 'min': 'same', 'max': 'same',
+     'top_values': [{'v': 'same', 'n': 60}]},
     {'name': 'nested', 'type': 'blob', 'distinct': -1, 'null_frac': 0},
     {'name': 'geometry', 'type': 'geometry', 'distinct': -1, 'null_frac': 0}]}
 
@@ -55,6 +56,26 @@ def test_stats_match_the_per_column_output_in_two_scans(fixture_parquet):
     con = CountingCon(fixture_parquet)
     assert fs.stats_for_parquet(fixture_parquet, con) == BEFORE
     assert con.scans == 2          # was 1 + 1 per column + 1 per faceted column (14)
+
+
+def test_a_one_value_column_keeps_its_value(fixture_parquet):
+    # /api/v1/layers/{id}/schema lists a column's values when it has at most 20,
+    # one included (the panel drops such columns, so its choices are unchanged).
+    s = fs.stats_for_parquet(fixture_parquet, duckdb.connect())
+    assert next(c for c in s['columns'] if c['name'] == 'constant')['top_values'] == [{'v': 'same', 'n': 60}]
+
+
+def test_parquet_columns_are_the_top_level_columns_with_their_parquet_types(fixture_parquet):
+    # What the API's schemaType reads (hyparquet's physical and converted type),
+    # so a baked schema types each column as the live read does.
+    cols = fs.parquet_columns(duckdb.connect(), str(fixture_parquet))
+    assert [c['name'] for c in cols] == ['state', 'state_code', 'flag', 'val', 'sometimes', 'never',
+                                         'constant', 'nested', 'geometry']
+    by = {c['name']: c for c in cols}
+    assert by['state'] == {'name': 'state', 'type': 'BYTE_ARRAY', 'converted_type': 'UTF8'}
+    assert by['state_code'] == {'name': 'state_code', 'type': 'INT32', 'converted_type': 'INT_32'}
+    assert by['flag'] == {'name': 'flag', 'type': 'BOOLEAN'}
+    assert by['nested'] == {'name': 'nested', 'nested': True}
 
 
 def test_equivalences_match_in_one_scan(fixture_parquet):
@@ -112,6 +133,8 @@ def test_panel_stats_come_from_where_the_viewer_reads_them(tmp_path):
     assert stats('big', 500) == filed                                           # the layer's file
     assert stats('other_big', 500) is None      # large, no file: no panel, so no columns
     assert stats('small', 10) == probed         # the browser's probe
+    (tmp_path / 'small.json').write_text(json.dumps(filed))  # every layer has a file for /schema now,
+    assert stats('small', 10) == probed         # but the viewer only reads a large layer's
     assert fs.panel_stats({'id': 'x', 'parquet': None}, {}, lambda: probed, tmp_path, 100) is None
 
 
