@@ -163,9 +163,15 @@ function nearestHealth(sections: ProfileResponse['sections']): string[] {
   return [`Nearest health facility ${km(e!.nearest![0].distance_km)} away${name ? ` (${name}, ${id})` : ` (${id})`}`];
 }
 
-/** A ward layer's row: a city's map, or the national one (SBM, and WB AMRUT in West Bengal). */
+/** The fallback ward layers, each named by its own source (SBM has no West Bengal; WB AMRUT covers it). */
+const NATIONAL_WARD_SCALE: Record<string, string> = {
+  sbm_wards: 'national ward map (SBM)',
+  wb_amrut_wards: 'West Bengal ward map (WB AMRUT)',
+};
+
+/** A ward layer's row: a city's map, or a fallback one named by its source. */
 const wardRow = (id: string): ProfileLayer => ({
-  id, section: 'place', match: 'contains', about: { scale: NATIONAL_WARD_LAYERS.includes(id) ? 'national ward map (SBM)' : 'city ward map' },
+  id, section: 'place', match: 'contains', about: { scale: NATIONAL_WARD_SCALE[id] ?? 'city ward map' },
 });
 
 /** The city ward layer(s) whose extent holds the point; the national ward layer elsewhere. */

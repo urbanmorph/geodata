@@ -59,6 +59,13 @@ describe('the surface layer table', () => {
     expect(ids(12.9716, 77.5946).some((id) => id.startsWith('wards_bengaluru'))).toBe(true);
     expect(ids(26.915, 70.908)).toEqual(['sbm_wards']);
   });
+
+  it('names each national ward layer by its own source: SBM, or WB AMRUT in West Bengal', () => {
+    const scales = (lat: number, lng: number) => Object.fromEntries(SURFACE_PROFILE.expand!(lat, lng, CATALOG).map((l) => [l.id, l.about?.scale]));
+    expect(scales(26.915, 70.908)).toEqual({ sbm_wards: 'national ward map (SBM)' });
+    // Siliguri: inside West Bengal, no city ward layer there
+    expect(scales(26.7271, 88.3953)).toEqual({ sbm_wards: 'national ward map (SBM)', wb_amrut_wards: 'West Bengal ward map (WB AMRUT)' });
+  });
 });
 
 // ── the runner, with fake engines ────────────────────────────────────────────
