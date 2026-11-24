@@ -28,7 +28,8 @@ export function isBakedFor(stats: BakedStats, layer: { parquet?: { url: string; 
  * column but the geometry, typed as schemaType types it, with distinct_values
  * (as text, sorted) when the whole file has 1 to MAX_DISTINCT_SAMPLE of them.
  * Added: distinct_count (whole file) and, for a column with more values than
- * that, the baked top values with their row counts.
+ * that, the baked top values with their row counts, unless every value
+ * appears once (an id column: the list would only add bytes).
  */
 export function schemaFromStats(stats: BakedStats): LayerSchema {
   const byName = new Map(stats.columns.map((c) => [c.name, c]));
@@ -42,7 +43,7 @@ export function schemaFromStats(stats: BakedStats): LayerSchema {
       const top = (st.top_values ?? []).map((t) => ({ value: String(t.v), count: t.n }));
       if (st.distinct >= 1 && st.distinct <= MAX_DISTINCT_SAMPLE && top.length === st.distinct) {
         col.distinct_values = top.map((t) => t.value).sort();
-      } else if (top.length) {
+      } else if (top.some((t) => t.count > 1)) {
         col.top_values = top;
       }
       col.distinct_count = st.distinct;

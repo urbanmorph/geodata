@@ -47,9 +47,20 @@ describe('a baked schema answers as the live read does', () => {
     expect(by.never.distinct_count).toBe(0);
     expect(by.id.distinct_count).toBe(30);
     expect(by.id.distinct_values).toBeUndefined();
-    expect(by.id.top_values).toHaveLength(30);
-    expect(by.id.top_values![0]).toEqual({ value: 'r0', count: 1 });
+    expect(by.id.top_values).toBeUndefined();             // every value once: a list of ids says nothing
     expect(by.names.distinct_count).toBeUndefined();
+  });
+
+  it('keeps the top values with counts when some value repeats', () => {
+    const top_values = Array.from({ length: 25 }, (_, i) => ({ v: `s${i}`, n: i === 0 ? 6 : 1 }));
+    const stats: BakedStats = {
+      ...STATS,
+      columns: STATS.columns.map((c) => (c.name === 'id' ? { ...c, distinct: 25, top_values } : c)),
+    };
+    const id = schemaFromStats(stats).columns.find((c) => c.name === 'id')!;
+    expect(id.distinct_count).toBe(25);
+    expect(id.top_values).toHaveLength(25);
+    expect(id.top_values![0]).toEqual({ value: 's0', count: 6 });
   });
 });
 

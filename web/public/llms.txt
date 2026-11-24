@@ -32,7 +32,7 @@ Rate limits: 120 requests/minute per IP; 60/minute for the locate endpoints.
 Endpoints:
 - GET /api/v1/layers: list layers with ?category, ?level, ?source, ?q, ?limit, ?offset; each layer with a parquet gives its schema_url
 - GET /api/v1/layers/:id: single layer detail with download URLs, attribution, licence and dated versions to cite
-- GET /api/v1/layers/:id/schema: column names, types (nested columns marked), distinct values (all of them when there are at most 20; curated layers also give distinct_count and, up to 50 values, top_values with counts). Read it before querying.
+- GET /api/v1/layers/:id/schema: column names, types (nested columns marked), distinct values (all of them when there are at most 20; curated layers also give distinct_count and, up to 50 values, top_values with counts unless every value appears once). Read it before querying.
 - GET /api/v1/layers/:id/query: select any column; filter (where for exact, case-insensitive matches; filter as a JSON list for in, range, search and bool) and group_by with sum on flat columns. An unknown column, or a where pair without "=", is a 400 that says what to fix; a filter that matches nothing adds a hint naming the layer's schema.
 - GET /api/v1/layers/:id/export: the rows matching a filter, with their shapes, as GeoJSON, KML or CSV (format=; estimate=1 for the count and size only; at most 50,000 rows)
 - GET /api/v1/layers/:id/counts: feature counts with optional grouping (deprecated: use /query with group_by)

@@ -143,7 +143,7 @@ const BASE = {
                 type: { type: 'string' },
                 distinct_values: { type: 'array', items: { type: 'string' } },
                 distinct_count: { type: 'integer', description: 'Curated layers: distinct values in the whole layer.' },
-                top_values: { type: 'array', description: 'Curated layers, columns with 21 to 50 values: each value and its row count, most rows first.', items: { type: 'object', properties: { value: { type: 'string' }, count: { type: 'integer' } } } },
+                top_values: { type: 'array', description: 'Curated layers, columns with 21 to 50 values: each value and its row count, most rows first. Left out when every value appears once.', items: { type: 'object', properties: { value: { type: 'string' }, count: { type: 'integer' } } } },
               } } },
             },
           })),
