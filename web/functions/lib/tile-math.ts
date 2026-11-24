@@ -15,6 +15,14 @@ export function tileBounds(x: number, y: number, z: number): { west: number; sou
   return { west, south, east, north };
 }
 
+/** The longitude and latitude of point (px, py) of tile z/x/y (tile coordinates, 0 to
+ *  `extent`). The latitude goes through Mercator: a straight line between the tile's north
+ *  and south edges is up to ~12 m off in a zoom-10 tile and ~200 m in a zoom-8 one, mid-tile. */
+export function tilePointToLngLat(z: number, x: number, y: number, px: number, py: number, extent: number): [number, number] {
+  const n = 2 ** z;
+  return [((x + px / extent) / n) * 360 - 180, tileToLat(y + py / extent, n)];
+}
+
 function tileToLat(y: number, n: number): number {
   return (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / n))) * 180) / Math.PI;
 }

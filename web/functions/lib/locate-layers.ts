@@ -4,6 +4,6 @@ export const DEFAULT_LOCATE_LAYERS = [
   'lgd_states', 'lgd_districts', 'lgd_subdistricts', 'lgd_blocks',
   'lgd_parliament', 'lgd_assembly',
   'bharatviz_pincodes', 'seismic_zones',
-  'wris_basins', 'soi_forests', 'gs_wildlife', 'bm_eco_zones',
+  'wris_basin', 'soi_forests', 'gs_wildlife', 'bm_eco_zones',
   'high_courts',
 ] as const;

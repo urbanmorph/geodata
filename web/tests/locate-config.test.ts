@@ -64,3 +64,14 @@ describe('resolveLocateConfig', () => {
       .toEqual({ label: 'My ward', mode: 'contains' });
   });
 });
+
+// DEFAULT_LOCATE_LAYERS named "wris_basins"; the layer is "wris_basin", so the default
+// locate silently answered without the river basin (found 24 Nov 2026).
+import { DEFAULT_LOCATE_LAYERS as DEFAULTS } from '../functions/lib/locate-layers';
+import { readFileSync as readCatalogFile } from 'node:fs';
+describe('the default locate layers', () => {
+  it('are all layers of the catalog', () => {
+    const ids = new Set((JSON.parse(readCatalogFile(new URL('../../catalog.json', import.meta.url), 'utf8')) as { layers: Array<{ id: string }> }).layers.map((l) => l.id));
+    expect(DEFAULTS.filter((id) => !ids.has(id))).toEqual([]);
+  });
+});

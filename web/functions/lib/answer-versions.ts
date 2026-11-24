@@ -9,9 +9,9 @@ export const ANSWER_V = {
   query: 1,
   counts: 1,
   export: 1,   // the estimate (export rows themselves are never cached)
-  nearby: 1,
-  ground: 1,
-  surface: 1,
+  nearby: 2,   // v2: tile shapes decoded with Mercator latitudes (24 Nov 2026)
+  ground: 2,   // v2: locate's tiles decoded with Mercator latitudes
+  surface: 2,  // v2: the same, and the default basin layer id
 } as const;
 
 export type AnswerEndpoint = keyof typeof ANSWER_V;

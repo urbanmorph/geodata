@@ -168,7 +168,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > export es
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > ground@v1 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > ground@v2 1`] = `
 [
   {
     "attribution": [],
@@ -1142,7 +1142,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: t
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > nearby > nearby@v1 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > nearby > nearby@v2 1`] = `
 [
   {
     "body": {
@@ -1612,7 +1612,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > schema: r
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v1 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v2 1`] = `
 [
   {
     "air": {
