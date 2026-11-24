@@ -2,20 +2,26 @@
 // files but never a Function's response, so each API call, /view page and OG
 // image used to be rebuilt on every request.
 //
-// Keys start with the catalog version (a hash of catalog.json): a deploy that
-// changes the catalog changes every key, so there is nothing to purge. Callers
-// do their own checks first (validation, the layer lookup, countApiUse) and
-// wrap only the work: a hit still counts the call.
+// Page keys (cacheKey) start with the deploy version (build id and catalog): a deploy
+// changes every page key, so there is nothing to purge. API answer keys (answerKey) carry
+// the endpoint's answer version and the data it read instead, so a deploy keeps them. An
+// answer past its ttl is served stale while a fresh one is computed (stale-while-revalidate
+// by hand: the Cache API ignores the header). Callers do their own checks first
+// (validation, the layer lookup, countApiUse) and wrap only the work: a hit still counts.
 
 import { apiError } from './http';
 import { withTimeout } from './isolate-cache';
+import { ANSWER_V, type AnswerEndpoint } from './answer-versions';
+import { countedHost } from './usage';
 
 export type EdgeCache = Pick<Cache, 'match' | 'put'>;
 type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void };
 
-/** How long the colo keeps an answer (seconds). Catalog answers can't go stale
- *  (the key moves with the catalog); R2 answers allow for an object replaced
- *  under the same key. */
+/** How long the colo serves an answer as fresh (seconds); it is kept as long again to be
+ *  served stale while one refresh runs (cached()). Catalog answers can't go stale (the key
+ *  moves with the catalog); R2 answers allow for an object replaced under the same key, so
+ *  such an answer can outlive an overwrite by up to twice this (2 h; policy is to never
+ *  overwrite R2 keys, and a layer refresh changes the catalog, so the key). */
 export const EDGE_TTL = { catalog: 86_400, r2: 3_600, page: 86_400, live: 60 } as const;
 
 /** The cache-control the answers carry for browsers and the CDN: catalog API
@@ -45,6 +51,19 @@ export function cacheKey(version: string, url: URL, opts: { query?: boolean } = 
   }
   return key;
 }
+
+/** An API answer's key: the endpoint and its answer version, the identity of the data the
+ *  answer read (a layer's catalog entry, or the catalog), then path and sorted query. No
+ *  build id: a deploy that changes neither keeps it. A preview (a branch on pages.dev) may
+ *  carry new code before its version bump, so its answers are kept apart from the live
+ *  site's (bharatlas.com and its pages.dev address, usage.ts countedHost). */
+export function answerKey(endpoint: AnswerEndpoint, identity: string, url: URL): string {
+  const scope = countedHost(url) ? '' : `preview/${url.hostname}/`;
+  return cacheKey(`a/${scope}${endpoint}.v${ANSWER_V[endpoint]}/${identity}`, url);
+}
+
+/** The identity of a piece of data for answerKey: a short hash of its JSON. */
+export const dataIdentity = (data: unknown): string => hash(JSON.stringify(data));
 
 /** caches.default where the runtime has it (Workers), else null (vitest). */
 export function defaultCache(): EdgeCache | null {
@@ -97,9 +116,29 @@ export function matchWithin(cache: EdgeCache, key: string, ms: number): Promise<
   return withTimeout(cache.match(key), ms, 'cache lookup').catch(() => undefined);
 }
 
+/** When an answer was stored (ms since the epoch), for stale-while-revalidate. */
+const STORED_AT = 'x-edge-stored-at';
+// Keys being refreshed in the background by this isolate, and since when: one refresh per
+// key at a time. A refresh cut off before it ended stops counting after REFRESH_MS.
+const refreshing = new Map<string, number>();
+const REFRESH_MS = 60_000;
+
+/** `compute()` stored under `key` for `ttl` seconds plus as long again to be served stale. */
+function store(ctx: CacheCtx, cache: EdgeCache, key: string, ttl: number, res: Response): void {
+  const stored = withHeaders(res.clone(), {
+    'cache-control': `public, max-age=${ttl * 2}`,
+    [CLIENT_CC]: res.headers.get('cache-control'),
+    [STORED_AT]: String(Date.now()),
+    'x-edge-cache': null,
+  });
+  ctx.waitUntil(cache.put(key, stored).catch(() => {}));
+}
+
 /** The stored answer for `key`, or `compute()`'s, stored for `ttl` seconds when
- *  it is a 200. Adds an ETag (from the key, unless the handler set one) and
- *  answers 304 to a matching If-None-Match. Cache failures fall back to compute. */
+ *  it is a 200. Past `ttl` a stored answer is still served (STALE) for as long again
+ *  while one fresh one is computed in the background. Adds an ETag (from the key,
+ *  unless the handler set one) and answers 304 to a matching If-None-Match. Cache
+ *  failures fall back to compute. */
 export async function cached(
   ctx: CacheCtx,
   key: string,
@@ -111,21 +150,28 @@ export async function cached(
   const hit = cache ? await matchWithin(cache, key, matchTimeoutMs) : undefined;
   if (hit) {
     const cc = hit.headers.get(CLIENT_CC);
-    return notModified(ctx.request, withHeaders(hit, { 'cache-control': cc, [CLIENT_CC]: null, 'x-edge-cache': 'HIT' }));
+    const storedAt = Number(hit.headers.get(STORED_AT));
+    const stale = cache && storedAt > 0 && Date.now() - storedAt > ttl * 1000;
+    for (const [k, at] of refreshing) if (Date.now() - at >= REFRESH_MS) refreshing.delete(k); // cut-off refreshes
+    if (stale && !refreshing.has(key)) {
+      refreshing.set(key, Date.now());
+      // The refresh runs after the answer was sent: its own reads and colo hits are not in
+      // this call's speed record (api-calls.ts recorded it when the answer went out).
+      ctx.waitUntil(compute()
+        .then((fresh) => { if (fresh.status === 200 && !fresh.headers.has(NO_STORE)) store(ctx, cache, key, ttl, withHeaders(fresh, { etag: fresh.headers.get('etag') ?? etagFor(key) })); })
+        .catch(() => {})
+        .finally(() => refreshing.delete(key)));
+    }
+    return notModified(ctx.request, withHeaders(hit, {
+      'cache-control': cc, [CLIENT_CC]: null, [STORED_AT]: null, 'x-edge-cache': stale ? 'STALE' : 'HIT',
+    }));
   }
 
   let res = await compute();
   if (res.status !== 200) return res;
   const keep = !res.headers.has(NO_STORE);
   res = withHeaders(res, { etag: res.headers.get('etag') ?? etagFor(key), 'x-edge-cache': 'MISS', [NO_STORE]: null });
-  if (cache && keep) {
-    const stored = withHeaders(res.clone(), {
-      'cache-control': `public, max-age=${ttl}`,
-      [CLIENT_CC]: res.headers.get('cache-control'),
-      'x-edge-cache': null,
-    });
-    ctx.waitUntil(cache.put(key, stored).catch(() => {}));
-  }
+  if (cache && keep) store(ctx, cache, key, ttl, res);
   return notModified(ctx.request, res);
 }
 

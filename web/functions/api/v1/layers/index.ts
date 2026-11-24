@@ -1,7 +1,7 @@
 import type { Env } from '../../_middleware';
 import { loadCatalogVersioned } from '../../../lib/catalog-loader';
 import { filterLayers, paginateResults, toApiLayer, type ApiLayer } from '../../../lib/catalog-api';
-import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from '../../../lib/edge-cache';
+import { answerKey, cached, CACHE_CONTROL, EDGE_TTL } from '../../../lib/edge-cache';
 import { apiError, json } from '../../../lib/http';
 import { withLookups } from '../../../lib/lookups';
 import { pointProfilesOn } from '../../../lib/point-profiles';
@@ -13,9 +13,10 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   if (realm && !REALM_IDS.includes(realm)) return apiError(400, `Unknown realm "${realm}". Valid realms: ${REALM_IDS.join(', ')}.`);
   // Which lookup reads each layer, said only while the lookups are published.
   const shape: (l: ApiLayer) => ApiLayer = pointProfilesOn(ctx.env, url) ? withLookups : (l) => l;
-  const { catalog, version } = await loadCatalogVersioned(ctx);
+  const { catalog, dataVersion } = await loadCatalogVersioned(ctx);
+  const identity = `${dataVersion}${shape === withLookups ? '.lookups' : ''}`;
 
-  return cached(ctx, cacheKey(version, url), EDGE_TTL.catalog, async () => {
+  return cached(ctx, answerKey('layers', identity, url), EDGE_TTL.catalog, async () => {
     const filtered = filterLayers(catalog.layers, {
       category: url.searchParams.get('category') || undefined,
       level: url.searchParams.get('level') || undefined,

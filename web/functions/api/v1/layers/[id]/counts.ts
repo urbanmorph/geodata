@@ -8,7 +8,7 @@
 import type { Env } from '../../../_middleware';
 import { fetchAsset, type AssetCtx } from '../../../../lib/catalog-loader';
 import { noMatchHint, type CatalogLayer } from '../../../../lib/catalog-api';
-import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
+import { answerKey, cached, EDGE_TTL } from '../../../../lib/edge-cache';
 import { countApiUse } from '../../../../lib/usage';
 import { timedCall } from '../../../../lib/api-calls';
 import { apiError, json } from '../../../../lib/http';
@@ -23,10 +23,10 @@ type CountsCtx = AssetCtx & { env: { R2: R2Bucket } };
 export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
   if (r instanceof Response) return r;
-  const { layer, version, url } = r;
+  const { layer, dataVersion, url } = r;
   countApiUse(ctx, layer.id);
 
-  const res = await cached(ctx, cacheKey(version, url), EDGE_TTL.r2, () => answer(ctx, layer, url.searchParams));
+  const res = await cached(ctx, answerKey('counts', dataVersion, url), EDGE_TTL.r2, () => answer(ctx, layer, url.searchParams));
   return retiring(res, layer.id, url.searchParams.get('group_by'));
 });
 

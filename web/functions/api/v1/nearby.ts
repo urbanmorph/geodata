@@ -7,7 +7,7 @@ import { nearbyTrueDistance } from '../../lib/nearby-true-distance';
 import { queryFailure } from '../../lib/parquet-query';
 import { apiError, json } from '../../lib/http';
 import { parseIndiaPoint, resolveLayer } from '../../lib/api-layer';
-import { cached, cacheKey, EDGE_TTL } from '../../lib/edge-cache';
+import { answerKey, cached, dataIdentity, EDGE_TTL } from '../../lib/edge-cache';
 
 export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -21,13 +21,12 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
 
   const r = await resolveLayer(ctx, { param: 'layer', missingStatus: 400 });
   if (r instanceof Response) return r;
-  const { layer, catalog, version } = r;
+  const { layer, catalog, dataVersion } = r;
   countApiUse(ctx, layer.id);
 
-  // ".shape": answers measured to the shape (lib/nearby-true-distance.ts) never share a key with the bbox-centre ones.
-  return cached(ctx, cacheKey(`${version}.shape`, url), EDGE_TTL.r2, async () => {
+  return cached(ctx, answerKey('nearby', dataIdentity(layer), url), EDGE_TTL.r2, async () => {
     try {
-      const result = await withColoReads(ctx, version, (r2) => nearbyTrueDistance(lat, lng, radiusKm, layer.id, catalog, r2, limit));
+      const result = await withColoReads(ctx, dataVersion, (r2) => nearbyTrueDistance(lat, lng, radiusKm, layer.id, catalog, r2, limit));
       return json(200, result, { 'cache-control': 'public, max-age=3600, stale-while-revalidate=86400' });
     } catch (e) {
       return queryFailure('Nearby')(e);

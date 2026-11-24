@@ -8,7 +8,8 @@ import { apiError } from './http';
 
 export const LAYER_ID = /^[a-zA-Z0-9_-]+$/;
 
-export type ResolvedLayer = { layer: CatalogLayer; catalog: CatalogData; version: string; url: URL };
+/** `version`: the deploy's (pages, ETags); `dataVersion`: the data's (API answer keys, colo-kept R2 bytes). */
+export type ResolvedLayer = { layer: CatalogLayer; catalog: CatalogData; version: string; dataVersion: string; url: URL };
 
 /**
  * The shared lookup behind every route that names a curated layer (/api/v1,
@@ -26,9 +27,9 @@ export async function findLayer(ctx: AssetCtx, id: string, url: URL, param?: str
   if (!LAYER_ID.test(id)) return { kind: 'invalid' };
   const moved = retiredRedirect(url, id, param);
   if (moved) return { kind: 'moved', response: moved };
-  const { catalog, version } = await loadCatalogVersioned(ctx);
+  const { catalog, version, dataVersion } = await loadCatalogVersioned(ctx);
   const layer = catalog.layers.find((l) => l.id === id);
-  return layer ? { kind: 'found', layer, catalog, version, url } : { kind: 'missing', catalog };
+  return layer ? { kind: 'found', layer, catalog, version, dataVersion, url } : { kind: 'missing', catalog };
 }
 
 /**
