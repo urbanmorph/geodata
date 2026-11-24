@@ -1,6 +1,6 @@
 import { VectorTile } from '@mapbox/vector-tile';
 import Pbf from 'pbf';
-import { tileBounds } from './tile-math';
+import { tilePointToLngLat } from './tile-math';
 import { pointInPolygon } from './point-in-polygon';
 import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
 
@@ -15,7 +15,6 @@ export function findFeaturesAtPoint(
   lng: number, lat: number,
 ): LocateHit[] {
   const tile = new VectorTile(new Pbf(tileData));
-  const bounds = tileBounds(x, y, z);
   const hits: LocateHit[] = [];
 
   for (const layerName of Object.keys(tile.layers)) {
@@ -24,7 +23,7 @@ export function findFeaturesAtPoint(
       const feat = layer.feature(i);
       if (feat.type !== 3) continue; // only polygons
 
-      const rings = toGeoRings(feat, bounds, layer.extent);
+      const rings = toGeoRings(feat, z, x, y, layer.extent);
       if (!rings.length) continue;
 
       // MultiPolygon: test each polygon separately
@@ -43,16 +42,10 @@ export function findFeaturesAtPoint(
 
 function toGeoRings(
   feat: { loadGeometry(): { x: number; y: number }[][] },
-  bounds: { west: number; south: number; east: number; north: number },
+  z: number, x: number, y: number,
   extent: number,
 ): [number, number][][] {
-  const geom = feat.loadGeometry();
-  return geom.map((ring) =>
-    ring.map(({ x, y }) => [
-      bounds.west + (x / extent) * (bounds.east - bounds.west),
-      bounds.north - (y / extent) * (bounds.north - bounds.south),
-    ] as [number, number]),
-  );
+  return feat.loadGeometry().map((ring) => ring.map((p) => tilePointToLngLat(z, x, y, p.x, p.y, extent)));
 }
 
 /**

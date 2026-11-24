@@ -13,7 +13,7 @@ import { VectorTile } from '@mapbox/vector-tile';
 import Pbf from 'pbf';
 import type { CatalogData } from './catalog-api';
 import { pmtilesFor, tilesAt } from './locate';
-import { lngLatToTile, tileBounds } from './tile-math';
+import { lngLatToTile, tilePointToLngLat } from './tile-math';
 import { r2KeyFromUrl } from './r2-keys';
 import { queryBbox } from './nearby';
 import { closestOnGeometry, type GeomHit, type NearestShapeOpts, type ShapeAnswer } from './nearby-geometry';
@@ -59,11 +59,9 @@ export function nearestInTiles(
   const best = new Map<string, GeomHit>();
   for (const { z, x, y, data } of tiles) {
     const tile = new VectorTile(new Pbf(data));
-    const b = tileBounds(x, y, z);
     for (const name of Object.keys(tile.layers)) {
       const layer = tile.layers[name];
-      const toLngLat = ({ x: px, y: py }: { x: number; y: number }): Coord =>
-        [b.west + (px / layer.extent) * (b.east - b.west), b.north - (py / layer.extent) * (b.north - b.south)];
+      const toLngLat = ({ x: px, y: py }: { x: number; y: number }): Coord => tilePointToLngLat(z, x, y, px, py, layer.extent);
       for (let i = 0; i < layer.length; i++) {
         const f = layer.feature(i);
         const parts = f.loadGeometry().map((ring) => ring.map(toLngLat));

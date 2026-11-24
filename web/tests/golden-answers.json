@@ -3,9 +3,12 @@
   "detail@v1": "ad0bc1339547f2e9",
   "export@v1": "b77bbe98e7ae17c7",
   "ground@v1": "573336a52b0f917d",
+  "ground@v2": "573336a52b0f917d",
   "layers@v1": "f3ff9a3d5c04d30a",
   "nearby@v1": "1bbcfb9674986fe0",
+  "nearby@v2": "1bbcfb9674986fe0",
   "query@v1": "44b7ad2ce4b984ae",
   "schema@v1": "3af95f46c737330d",
-  "surface@v1": "238cc03efd010e3f"
+  "surface@v1": "238cc03efd010e3f",
+  "surface@v2": "238cc03efd010e3f"
 }
