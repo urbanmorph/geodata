@@ -91,12 +91,14 @@ const toolText = (value: unknown, isError = false) => ({
   ...(isError ? { isError: true } : {}),
 });
 
+/** 405 for anything but POST and OPTIONS: this server sends no event stream (a GET from an MCP client). */
+export const methodNotAllowed = (): Response =>
+  new Response('Method Not Allowed', { status: 405, headers: { allow: 'POST, OPTIONS', ...CORS } });
+
 /** POST one JSON-RPC request, get one JSON response. */
 export async function handleMcp(req: Request, env: Env, deps: McpDeps): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405, headers: { allow: 'POST, OPTIONS', ...CORS } });
-  }
+  if (req.method !== 'POST') return methodNotAllowed();
 
   if (Number(req.headers.get('content-length') || 0) > MAX_BODY) {
     return new Response('Payload Too Large', { status: 413, headers: CORS });
