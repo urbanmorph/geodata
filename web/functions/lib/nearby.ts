@@ -259,21 +259,24 @@ export async function nearestRows(
   return { winners: topKByDistance(found, limit), total, rowsScanned };
 }
 
-/** `cols` of the rows at these indexes, by index: in parallel, in windows of at most
- *  READ_WINDOW_ROWS rows (rows far apart in one row group must not decode every row between them). */
+/** `cols` of the rows at these indexes, by index, in windows of at most READ_WINDOW_ROWS rows
+ *  (rows far apart in one row group must not decode every row between them). Every window's
+ *  bytes are fetched together up front (coalesced); the windows are decoded one at a time, as a
+ *  nested column is decoded for its whole row group (Overture at central Pune ran out of
+ *  resources with two at once, Nov 2026). Decoding is single-threaded, so this costs no time. */
 export async function readRowsAt(
-  file: AsyncBuffer, metadata: FileMetaData, cols: string[], indexes: number[],
+  file: AsyncBuffer, metadata: FileMetaData, cols: string[], indexes: number[], windowRows = READ_WINDOW_ROWS,
 ): Promise<Map<number, Record<string, unknown>>> {
-  const windows = readWindows([...new Set(indexes)].sort((a, b) => a - b), READ_WINDOW_ROWS);
+  const windows = readWindows([...new Set(indexes)].sort((a, b) => a - b), windowRows);
   const rowFile = coalesced(file, windows.flatMap((w) => chunkRanges(metadata, cols, w[0], w[w.length - 1] + 1)));
   const out = new Map<number, Record<string, unknown>>();
-  await mapConcurrent(windows, R2_CONCURRENCY, async (idxs) => {
+  for (const idxs of windows) {
     const lo = idxs[0];
     const rows = await parquetReadObjects({
       file: rowFile, metadata, compressors, columns: cols, rowStart: lo, rowEnd: idxs[idxs.length - 1] + 1,
     }) as Array<Record<string, unknown>>;
     for (const i of idxs) out.set(i, rows[i - lo]);
-  });
+  }
   return out;
 }
 
