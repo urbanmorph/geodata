@@ -80,6 +80,7 @@ describe('callDataPoint', () => {
   it('a stale answer served while it refreshes (edge-cache.ts) is a hit: it came from the cache', () => {
     const p = callDataPoint(req('https://bharatlas.com/api/v1/layers/x/query'), { subject: 'x', channel: 'api' }, 200, 3, 'STALE');
     expect(p.blobs?.[4]).toBe('hit');
+    expect(callDataPoint(req('https://bharatlas.com/api/v1/layers/x/query'), { subject: 'x', channel: 'api' }, 200, 3, 'KV').blobs?.[4]).toBe('hit');
   });
   it('an answer the colo never keeps (an error, an uncached route) is "none"', () => {
     const p = callDataPoint(req('https://bharatlas.com/api/v1/nearby?layer=x&lat=1&lng=2'), { subject: 'x', channel: 'api' }, 500, 10, null);

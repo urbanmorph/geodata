@@ -69,8 +69,8 @@ const coloOf = (request: Request): string => {
 export function callDataPoint(request: Request, note: CallNote, status: number, ms: number, edgeCache: string | null): AnalyticsEngineDataPoint {
   const url = new URL(request.url);
   const subject = note.subject ?? '';
-  // STALE: served from the colo while it refreshes (edge-cache.ts), so a hit.
-  const cache = edgeCache === 'HIT' || edgeCache === 'STALE' ? 'hit' : edgeCache === 'MISS' ? 'miss' : 'none';
+  // STALE (served while it refreshes) and KV (the durable second level): from a cache, so hits.
+  const cache = edgeCache === 'HIT' || edgeCache === 'STALE' || edgeCache === 'KV' ? 'hit' : edgeCache === 'MISS' ? 'miss' : 'none';
   return {
     indexes: [subject],
     blobs: [subject, note.channel ?? '', mcpVersion(request.headers.get('user-agent')), coloOf(request), cache, filterUsed(url.searchParams), callRoute(url.pathname)],

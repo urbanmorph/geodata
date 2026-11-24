@@ -191,3 +191,74 @@ describe('answerKey', () => {
     expect(answerKey('query', 'L1', url('abc123.geodata-3ij.pages.dev'))).toContain('/preview/abc123.geodata-3ij.pages.dev/');
   });
 });
+
+// A durable second level (KV, binding ANSWERS) behind the per-data-centre cache, for API
+// answers only: a data centre that has never seen an answer reads it in one KV get instead
+// of recomputing it (caches.default is per data centre). Absent binding: as before.
+describe('cached: the durable second level (KV)', () => {
+  function memoryKv() {
+    const store = new Map<string, { value: string; metadata: unknown }>();
+    return {
+      store,
+      kv: {
+        async get(k: string) { return store.get(k)?.value ?? null; },
+        async getWithMetadata(k: string) { const e = store.get(k); return { value: e?.value ?? null, metadata: e?.metadata ?? null }; },
+        async put(k: string, value: string, opts?: { metadata?: unknown }) { store.set(k, { value, metadata: opts?.metadata ?? null }); },
+      },
+    };
+  }
+  const ctxWith = (kv: unknown) => {
+    const pending: Promise<unknown>[] = [];
+    return { ctx: { request: new Request('https://bharatlas.com/api/v1/x'), env: { ANSWERS: kv }, waitUntil: (p: Promise<unknown>) => { pending.push(p); } }, settle: () => Promise.all(pending) };
+  };
+  const AKEY = answerKey('query', 'L1', new URL('https://bharatlas.com/api/v1/layers/x/query?a=1'));
+
+  it('an answer computed in one data centre is read from KV in another, not recomputed', async () => {
+    const { kv, store } = memoryKv();
+    let computed = 0;
+    const compute = async () => { computed++; return new Response('{"n":1}', { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=60', etag: '"e1"' } }); };
+    const a = ctxWith(kv);
+    await cached(a.ctx, AKEY, 600, compute, memoryCache().cache); await a.settle();
+    expect(store.size).toBe(1);
+    const elsewhere = memoryCache(); // another data centre: an empty colo cache
+    const b = ctxWith(kv);
+    const res = await cached(b.ctx, AKEY, 600, compute, elsewhere.cache); await b.settle();
+    expect(await res.text()).toBe('{"n":1}');
+    expect(res.headers.get('x-edge-cache')).toBe('KV');
+    expect(res.headers.get('content-type')).toBe('application/json');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=60');
+    expect(res.headers.get('etag')).toBe('"e1"');
+    expect(computed).toBe(1);
+    expect(elsewhere.store.size).toBe(1); // and that data centre now keeps it
+  });
+  it('pages and other non-answer keys never go to KV; nor partial answers or errors', async () => {
+    const { kv, store } = memoryKv();
+    const c = ctxWith(kv);
+    await cached(c.ctx, 'https://bharatlas.com/__cache/v1/view/x', 600, body('{}'), memoryCache().cache);
+    await cached(c.ctx, AKEY, 600, async () => new Response('{}', { headers: { [NO_STORE]: '1' } }), memoryCache().cache);
+    await cached(c.ctx, AKEY, 600, async () => new Response('no', { status: 500 }), memoryCache().cache);
+    await c.settle();
+    expect(store.size).toBe(0);
+  });
+  it('a KV entry past its ttl is served STALE and refreshed, like a colo one', async () => {
+    const { kv } = memoryKv();
+    let n = 0;
+    const compute = async () => new Response(String(++n));
+    vi.spyOn(Date, 'now').mockReturnValue(5_000_000);
+    const a = ctxWith(kv);
+    await cached(a.ctx, AKEY, 600, compute, memoryCache().cache); await a.settle();
+    vi.spyOn(Date, 'now').mockReturnValue(5_000_000 + 700_000);
+    const b = ctxWith(kv);
+    const stale = await cached(b.ctx, AKEY, 600, compute, memoryCache().cache);
+    expect(stale.headers.get('x-edge-cache')).toBe('STALE');
+    expect(await stale.text()).toBe('1');
+    await b.settle();
+    vi.restoreAllMocks();
+  });
+  it('a failing or slow KV never fails or holds up the answer', async () => {
+    const broken = { get: async () => { throw new Error('kv down'); }, getWithMetadata: async () => { throw new Error('kv down'); }, put: async () => { throw new Error('kv down'); } };
+    const c = ctxWith(broken);
+    const res = await cached(c.ctx, AKEY, 600, body('{"ok":1}'), memoryCache().cache); await c.settle();
+    expect(await res.text()).toBe('{"ok":1}');
+  });
+});
