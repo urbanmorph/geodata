@@ -186,6 +186,7 @@ describe('R2 answers are edge-cached', () => {
     const r = await call(nearbyRoute, '/api/v1/nearby?lat=12&lng=77&layer=dist');
     expect(r.status).toBeGreaterThanOrEqual(400);
     expect(counted).toEqual(['dist']);
-    expect(cache.store.size).toBe(0);
+    // the failed answer is not kept; the parquet footer it read is, for the next isolate (colo-cache.ts)
+    expect([...cache.store.keys()].filter((k) => !k.includes('/__colo/'))).toEqual([]);
   });
 });

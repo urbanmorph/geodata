@@ -57,13 +57,16 @@ export async function incrementApiUse(db: RunnableD1, layerId: string, channel: 
   ]);
 }
 
+/** The channel a call on the live site counts under, or null (a preview, a crawler, our smoke test). */
+const countedChannel = (request: Request): Channel | null =>
+  countedHost(new URL(request.url)) ? usageChannel(request.headers.get('user-agent')) : null;
+
 /** Count a call that names a layer, without delaying the answer (waitUntil; failures ignored). */
 export function countApiUse(
   ctx: { request: Request; env: { DB?: RunnableD1 }; waitUntil(p: Promise<unknown>): void },
   layerId: string,
 ): void {
-  if (!countedHost(new URL(ctx.request.url))) return;
-  const channel = usageChannel(ctx.request.headers.get('user-agent'));
+  const channel = countedChannel(ctx.request);
   if (!channel) return;
   noteCall(ctx.request, { subject: layerId, channel }); // its speed too (api-calls.ts), when the handler is timed
   if (!ctx.env.DB) return;
@@ -106,4 +109,11 @@ export function usageLine(u: Usage): string {
     u.downloads ? `${fmtCount(u.downloads)} download${u.downloads === 1 ? '' : 's'}` : '',
     queries ? `${fmtCount(queries)} API quer${queries === 1 ? 'y' : 'ies'}${u.mcp ? ` (${fmtCount(u.mcp)} via MCP)` : ''}` : '',
   ].filter(Boolean).join(' · ');
+}
+
+/** Record a call's speed (api-calls.ts) under `subject`, by countApiUse's rules, without
+ *  counting it as use: /locate, which the viewer's button calls on every tap. */
+export function timeOnly(request: Request, subject: string): void {
+  const channel = countedChannel(request);
+  if (channel) noteCall(request, { subject, channel });
 }

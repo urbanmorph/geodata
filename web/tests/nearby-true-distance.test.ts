@@ -54,6 +54,22 @@ describe('nearbyTrueDistance', () => {
     expect(r.features.map((f) => f.properties.name)).toEqual(['pt10', 'pt11', 'pt9']);
   });
 
+  it('treats points whose bbox is rounded outward (Overture keeps float32 bboxes) as points', async () => {
+    // nearby-points-rounded.parquet: the 50 points of nearby-lines.parquet, each bbox
+    // widened by one float32 step (1.5e-5 degrees), as Overture publishes them. Taken
+    // for shapes, Delhi 5 km on overture_places_india read 32,466 rows and answered
+    // "500, approximate", and other points ran out of CPU (Cloudflare 1102).
+    const pts = readFileSync(new URL('./fixtures/nearby-points-rounded.parquet', import.meta.url));
+    const cat = {
+      layers: [{ id: 'pts', parquet: { url: 'https://pub-x.r2.dev/t/pts.parquet', bytes: pts.byteLength } }],
+    } as unknown as CatalogData;
+    const r = await nearbyTrueDistance(20, 80.0104, 0.5, 'pts', cat, fakeR2({ 't/pts.parquet': pts }), 3);
+    expect(r._distance_to).toBe('point');
+    expect(r._source).toBe('parquet-bbox');
+    expect(r._approximate).toBeUndefined();
+    expect(r.features.map((f) => f.properties.name)).toEqual(['pt10', 'pt11', 'pt9']);
+  });
+
   it('reads a layer too heavy for its shapes from the map tiles, with every column from the parquet', async () => {
     const r = await nearbyTrueDistance(LAT, LNG, 5, 'lines', catalog, r2(), 10, { parquetShapeBytes: 0 });
     expect(r._source).toBe('tiles-shape');

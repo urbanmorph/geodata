@@ -8,7 +8,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { callDataPoint, callRoute, filterUsed, mcpVersion, timedCall, API_CALLS_DATASET } from '../functions/lib/api-calls';
-import { countApiUse } from '../functions/lib/usage';
+import { countApiUse, timeOnly } from '../functions/lib/usage';
 import { profileHandler } from '../functions/lib/profile-endpoint';
 import { SURFACE_PROFILE } from '../functions/lib/surface';
 
@@ -122,6 +122,24 @@ describe('timedCall', () => {
   });
 });
 
+describe('timeOnly', () => {
+  const located = timedCall(async (ctx) => { timeOnly(ctx.request, 'endpoint:locate'); return new Response('{}'); });
+  const ctxOf = (request: Request, env: Record<string, unknown>) => ({ request, env, waitUntil: () => {} });
+  it('records the call\'s speed under its subject, by the same rules as a counted call', async () => {
+    const ds = dataset();
+    await located(ctxOf(req('https://bharatlas.com/api/v1/locate?lat=1&lng=2', 'bharatlas-mcp/1.7.0'), { API_CALLS: ds }));
+    await located(ctxOf(req('https://bharatlas.com/api/v1/locate', 'Googlebot/2.1'), { API_CALLS: ds }));
+    await located(ctxOf(req('https://feat-x.geodata-3ij.pages.dev/api/v1/locate'), { API_CALLS: ds }));
+    expect(ds.points.map((p) => p.blobs?.slice(0, 3))).toEqual([['endpoint:locate', 'mcp', '1.7.0']]);
+  });
+  it('writes nothing to the usage tables', async () => {
+    let d1 = 0;
+    const DB = { prepare: () => { d1++; throw new Error('no'); }, batch: async () => { d1++; return []; } };
+    await located(ctxOf(req('https://bharatlas.com/api/v1/locate'), { DB, API_CALLS: dataset() }));
+    expect(d1).toBe(0);
+  });
+});
+
 describe('a point lookup records its reads, colo hits and partial layers', () => {
   it('a computed answer carries them; the colo cache hit that follows does not', async () => {
     const store = new Map<string, Response>();
@@ -166,6 +184,19 @@ describe('every counted /api/v1 call is timed', () => {
       expect(src, f).toMatch(/export const onRequestGet(: PagesFunction<Env>)? = timedCall\(/);
     }
     expect(read('functions/lib/profile-endpoint.ts')).toMatch(/return timedCall\(/);
+  });
+  it('/locate is timed but not counted as use (the viewer calls it on every tap)', () => {
+    const src = read('functions/api/v1/locate.ts');
+    expect(src).toMatch(/export const onRequestGet(: PagesFunction<Env>)? = timedCall\(/);
+    expect(src).toMatch(/timeOnly\(ctx\.request, endpointUsageId\('locate'\)\)/);
+    expect(src).not.toMatch(/countApiUse\(/);
+  });
+  it('the R2 routes read through the colo cache, as the point lookups do', () => {
+    for (const f of ['nearby.ts', 'locate.ts', 'layers/[id]/query.ts', 'layers/[id]/export.ts']) {
+      const src = read(`functions/api/v1/${f}`);
+      expect(src, f).toMatch(/withColoReads\(/);
+      expect(src, f).not.toMatch(/ctx\.env\.R2/);
+    }
   });
   it('the binding is declared for production', () => {
     expect(read('wrangler.toml')).toMatch(new RegExp(`\\[\\[analytics_engine_datasets\\]\\]\\s*binding = "API_CALLS"\\s*dataset = "${API_CALLS_DATASET}"`));

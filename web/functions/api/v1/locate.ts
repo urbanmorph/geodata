@@ -1,13 +1,16 @@
 import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
-import { loadCatalog } from '../../lib/catalog-loader';
+import { loadCatalogVersioned } from '../../lib/catalog-loader';
+import { timedCall } from '../../lib/api-calls';
+import { withColoReads } from '../../lib/colo-cache';
+import { endpointUsageId, timeOnly } from '../../lib/usage';
 import { locate, DEFAULT_LOCATE_LAYERS } from '../../lib/locate';
 import { resolveLocateLayers, wardFallbackNeeded, mergeLocateResults, fallbackWardLayers, MAX_LOCATE_LAYERS } from '../../lib/ward-locate';
 import { apiError, json } from '../../lib/http';
 import { parseIndiaPoint } from '../../lib/api-layer';
 import { successorOf } from '../../lib/retired-layers';
 
-export const onRequestGet: PagesFunction<Env> = async (ctx) => {
+export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const url = new URL(ctx.request.url);
   const pt = parseIndiaPoint(url.searchParams);
   if ('error' in pt) return apiError(400, pt.error);
@@ -24,7 +27,8 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     return apiError(400, `ask at most ${MAX_LOCATE_LAYERS} layers at once`);
   }
 
-  const catalog = await loadCatalog(ctx);
+  timeOnly(ctx.request, endpointUsageId('locate'));
+  const { catalog, version } = await loadCatalogVersioned(ctx);
 
   // An explicit list: a retired id is asked as its successor, an unknown one is
   // reported (it used to vanish, answering an empty 200 that looked like "no
@@ -40,16 +44,18 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
     }
   }
 
-  const result = await locate(lat, lng, layerIds, zoom, catalog, ctx.env.R2);
-
-  // A city ward layer chosen by bbox can miss the point (Jaipur's layer is
-  // Greater Jaipur only): ask the national SBM ward layer as a second pass.
-  if (wardFallbackNeeded(layersParam, layerIds, result.results)) {
-    const extra = await locate(lat, lng, fallbackWardLayers(lng, lat), zoom, catalog, ctx.env.R2);
-    result.results = mergeLocateResults(result.results, extra.results);
-    result.queried_layers = [...result.queried_layers, ...extra.queried_layers];
-    if (extra.failed_layers) result.failed_layers = [...(result.failed_layers ?? []), ...extra.failed_layers];
-  }
+  const result = await withColoReads(ctx, version, async (r2) => {
+    const first = await locate(lat, lng, layerIds, zoom, catalog, r2);
+    // A city ward layer chosen by bbox can miss the point (Jaipur's layer is
+    // Greater Jaipur only): ask the national SBM ward layer as a second pass.
+    if (wardFallbackNeeded(layersParam, layerIds, first.results)) {
+      const extra = await locate(lat, lng, fallbackWardLayers(lng, lat), zoom, catalog, r2);
+      first.results = mergeLocateResults(first.results, extra.results);
+      first.queried_layers = [...first.queried_layers, ...extra.queried_layers];
+      if (extra.failed_layers) first.failed_layers = [...(first.failed_layers ?? []), ...extra.failed_layers];
+    }
+    return first;
+  });
 
   return json(200, unknown.length ? { ...result, unknown_layers: unknown } : result, { 'cache-control': 'private, no-store' });
-};
+});
