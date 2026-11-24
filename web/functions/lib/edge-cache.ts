@@ -21,8 +21,8 @@ export const EDGE_TTL = { catalog: 86_400, r2: 3_600, page: 86_400, live: 60 } a
 /** The cache-control the answers carry for browsers and the CDN: catalog API
  *  answers, rendered pages (/view, /c, community files), and live counters. */
 export const CACHE_CONTROL = {
-  catalog: 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400',
-  page: 'public, max-age=300, s-maxage=300, stale-while-revalidate=86400',
+  catalog: 'public, max-age=3600, stale-while-revalidate=86400',
+  page: 'public, max-age=300, stale-while-revalidate=86400',
   live: 'public, max-age=30, stale-while-revalidate=120',
 } as const;
 

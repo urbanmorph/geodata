@@ -59,6 +59,28 @@ export function clearHeadCache(): void {
   headCache.clear();
 }
 
+/** An object changed under its key between two reads of one file (an overwrite): the
+ *  reads cannot be combined. This isolate forgets the object's head, so the next open
+ *  reads it afresh. */
+export class StaleObjectError extends Error {
+  constructor(readonly key: string) {
+    super(`R2 object ${key} changed while it was being read; retry`);
+    this.name = 'StaleObjectError';
+  }
+}
+
+/** An R2 get pinned to the etag the file was opened with: its body, or StaleObjectError. An
+ *  isolate holding the old head (HEAD_TTL_MS) answers one 503 (queryFailure) before it heals. */
+async function pinnedGet(r2: R2Bucket, key: string, etag: string, range: { offset: number; length: number }): Promise<R2ObjectBody> {
+  const obj = await r2.get(key, { range, onlyIf: { etagMatches: etag } });
+  if (!obj) throw new Error(`R2 range read failed: ${key} [${range.offset}:${range.offset + range.length}]`);
+  if (!('arrayBuffer' in obj)) {
+    headCache.delete(key);
+    throw new StaleObjectError(key);
+  }
+  return obj;
+}
+
 type Head = { size: number; etag: string };
 
 function freshHead(key: string): Head | undefined {
@@ -156,16 +178,11 @@ function bufferFor(r2: R2Bucket, key: string, head: Head): AsyncBuffer {
     colo: coloOf(r2),
     async slice(start: number, end?: number): Promise<ArrayBuffer> {
       const length = (end ?? byteLength) - start;
-      const read = async () => {
-        const obj = await r2.get(key, { range: { offset: start, length } });
-        if (!obj) throw new Error(`R2 range read failed: ${key} [${start}:${start + length}]`);
-        return obj.arrayBuffer();
-      };
+      const read = async () => (await pinnedGet(r2, key, head.etag, { offset: start, length })).arrayBuffer();
       return withTimeout(read(), READ_TIMEOUT_MS, `R2 read ${key} [${start}:${start + length}]`);
     },
     async* stream(start: number, end: number): AsyncGenerator<Uint8Array> {
-      const obj = await r2.get(key, { range: { offset: start, length: end - start } });
-      if (!obj) throw new Error(`R2 range read failed: ${key} [${start}:${end}]`);
+      const obj = await pinnedGet(r2, key, head.etag, { offset: start, length: end - start });
       const reader = obj.body.getReader();
       try {
         for (;;) {

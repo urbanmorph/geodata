@@ -3,7 +3,7 @@
 
 export const PNG_HEADERS = {
   'content-type': 'image/png',
-  'cache-control': 'public, max-age=2592000, s-maxage=2592000, stale-while-revalidate=86400',
+  'cache-control': 'public, max-age=2592000, stale-while-revalidate=86400',
 };
 
 export function ogError(status: number, body: string): Response {

@@ -124,6 +124,17 @@ describe('an index that does not match the file is not used', () => {
   });
 });
 
+describe('an index baked from another upload with the same layout is not used', () => {
+  it('its etag differs from the file\'s: the scan answers', async () => {
+    const pinned = (etag: string) => ({ ...file(), etag });
+    const other = parseValueIndex({ ...INDEX, etag: 'e-old', columns: { ...INDEX.columns, cat: { values: { cafe: '2:4,' } } } });
+    expect(await query(pinned('e-new'), { where: { cat: 'cafe' }, limit: 5, valueIndex: other }))
+      .toEqual(await query(pinned('e-new'), { where: { cat: 'cafe' }, limit: 5 }));
+    const same = parseValueIndex({ ...INDEX, etag: 'e-new' });
+    expect(((await query(pinned('e-new'), { where: { cat: 'cafe' }, limit: 5, valueIndex: same })) as QueryResult).total).toBe(5);
+  });
+});
+
 describe('more shapes answer as the scan does', () => {
   it('group_by with a where value the index does not have (zero rows, the scan\'s hints)', async () => {
     const { a, b } = await both({ groupBy: 'status', where: { cat: 'library' } });

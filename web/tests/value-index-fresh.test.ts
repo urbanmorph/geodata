@@ -45,8 +45,9 @@ describe('value indexes are fresh', () => {
     for (const { id, cols } of due) {
       const p = `web/public/api-data/value-index/${id}.json`;
       if (!existsSync(new URL(p, ROOT))) { bad.push(`${id}: missing`); continue; }
-      const f = JSON.parse(read(p)) as { parquet: unknown; rows?: number; columns: Record<string, unknown> };
+      const f = JSON.parse(read(p)) as { parquet: unknown; rows?: number; etag?: string; columns: Record<string, unknown> };
       if (typeof f.rows !== 'number') bad.push(`${id}: no row count`);
+      if (typeof f.etag !== 'string' || !f.etag) bad.push(`${id}: no parquet etag`);
       const layer = byId.get(id)!;
       if (JSON.stringify(f.parquet) !== JSON.stringify({ url: layer.parquet!.url, bytes: layer.parquet!.bytes ?? null })) bad.push(`${id}: stale`);
       const missing = cols.filter((c) => !(c in f.columns));
