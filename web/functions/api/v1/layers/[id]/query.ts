@@ -10,6 +10,7 @@ import { parseFilterParam } from '../../../../lib/parquet-export';
 import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
+import { loadValueIndex } from '../../../../lib/value-index';
 
 export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   const r = await resolveLayer(ctx);
@@ -32,9 +33,12 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
     try {
       const start = Date.now();
       const filters = parseFilterParam(url.searchParams.get('filter'));
+      // A large layer's baked value index lets a filter read only the row groups it needs;
+      // fetched while the parquet's footer is read.
+      const indexed = where || filters?.length || groupBy ? loadValueIndex(ctx, layer) : null;
       const { file, result } = await withColoReads(ctx, version, async (r2) => {
         const file = await asyncBufferFromR2(r2, r2Key);
-        return { file, result: await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters }) };
+        return { file, result: await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters, valueIndex: await indexed }) };
       });
       const timing = Date.now() - start;
       // A filter that matched nothing: usually a wrong column value or spelling.

@@ -11,6 +11,7 @@ import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { QUERY_JUNK_COLUMNS } from './junk-columns';
 import { apiError, serverError } from './http';
 import { schemaHint } from './catalog-api';
+import type { ValueIndex } from './value-index';
 
 export interface ColumnSchema {
   name: string;
@@ -242,9 +243,14 @@ export async function query(
     filters?: FilterSpec[];
     /** Distinct-group cap (default MAX_GROUP_KEYS); tests lower it. */
     maxGroupKeys?: number;
+    /** The layer's baked value index (value-index.ts), when fresh: fewer row groups read. */
+    valueIndex?: ValueIndex | null;
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await cachedMetadata(file);
+  // An index baked from another file (an unversioned key overwritten under the same size) is not used.
+  const valueIndex = opts.valueIndex && opts.valueIndex.rowGroups === metadata.row_groups.length
+    && opts.valueIndex.rows === Number(metadata.num_rows) ? opts.valueIndex : null;
   const cols = topLevelColumns(metadata);
   const allCols = cols.map((c) => c.name);
   // Every check before any row is read: an unknown where column used to scan
@@ -273,10 +279,10 @@ export async function query(
     if (sumCols.length) {
       validateSumColumns(sumCols, Object.fromEntries(cols.map((c) => [c.name, c.nested ? undefined : c.element.type])));
     }
-    return groupByQuery(file, metadata, allCols, opts.groupBy, opts.where, sumCols, opts.filters, opts.maxGroupKeys);
+    return groupByQuery(file, metadata, allCols, opts.groupBy, opts.where, sumCols, opts.filters, opts.maxGroupKeys, valueIndex);
   }
 
-  return selectQuery(file, metadata, allCols, opts);
+  return selectQuery(file, metadata, allCols, { ...opts, valueIndex });
 }
 
 // Parquet physical types we can total. INT96 is a legacy timestamp and BYTE_ARRAY
@@ -297,6 +303,14 @@ export function validateSumColumns(
       throw new QueryInputError(`Sum column "${c}" is not numeric. Numeric columns: ${numeric.join(', ')}`);
     }
   }
+}
+
+/** The MAX_GROUP_BY_VALUES largest groups, largest first, ties by value: the same top
+ *  whether the counts came from a scan (row groups arrive in any order) or the value index. */
+export function topCounts(counts: Readonly<Record<string, number>>): Record<string, number> {
+  return Object.fromEntries(Object.entries(counts)
+    .sort((a, b) => b[1] - a[1] || (a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : 0))
+    .slice(0, MAX_GROUP_BY_VALUES));
 }
 
 /**
@@ -336,16 +350,14 @@ export function groupAccumulator(groupCol: string, sumCols: string[] = [], maxKe
       }
     },
     result(): { counts: Record<string, number>; total: number; sums?: Record<string, Record<string, number>> } {
-      const kept = Object.entries(counts)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, MAX_GROUP_BY_VALUES);
+      const top = topCounts(counts);
       const out: { counts: Record<string, number>; total: number; sums?: Record<string, Record<string, number>> } = {
-        counts: Object.fromEntries(kept),
+        counts: top,
         total,
       };
       if (sumCols.length) {
         const round = (x: number) => Math.round(x * 1e6) / 1e6;
-        out.sums = Object.fromEntries(kept.map(([k]) => [
+        out.sums = Object.fromEntries(Object.keys(top).map((k) => [
           k,
           Object.fromEntries(sumCols.map((c) => [c, round(sums[k][c])])),
         ]));
@@ -396,8 +408,9 @@ export async function scanMatches(
   cols: string[],
   match: (row: Record<string, unknown>) => boolean,
   keep: number,
+  spans: Array<{ start: number; end: number }> = rowGroupSpans(metadata),
 ): Promise<{ perGroup: Array<{ idxs: number[]; count: number; last: number; sample?: Record<string, string[]> }>; total: number }> {
-  const perGroup = await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
+  const perGroup = await mapConcurrent(spans, R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: cols, rowStart: span.start, rowEnd: span.end,
     }) as Record<string, unknown>[];
@@ -417,6 +430,21 @@ export async function scanMatches(
 }
 
 /**
+ * Row groups a where can match, from the value index: the groups holding every indexed
+ * where value (null: no where column is indexed, so every group), and the exact match
+ * count when the where is one indexed column and nothing else filters.
+ */
+export function candidateGroups(
+  index: ValueIndex | null | undefined, where: Array<[string, string]>, filters: FilterSpec[],
+): { groups: number[] | null; total?: number; counts?: Map<number, number> } {
+  const maps = index ? where.map(([col, val]) => index.groups(col, val)).filter((m): m is Map<number, number> => m !== null) : [];
+  if (!maps.length) return { groups: null };
+  const groups = [...maps[0].keys()].filter((g) => maps.every((m) => m.has(g))).sort((a, b) => a - b);
+  if (where.length > 1 || filters.length) return { groups };
+  return { groups, total: [...maps[0].values()].reduce((n, k) => n + k, 0), counts: maps[0] };
+}
+
+/**
  * Rows are read row group by row group (bounded parallel), never the whole
  * table at once: pass 1 reads only the where columns and keeps the first
  * `limit` matching row numbers (counting all matches); pass 2 reads the
@@ -429,7 +457,7 @@ async function selectQuery(
   allCols: string[],
   opts: {
     select?: string[]; where?: Record<string, string>; limit?: number; includeCentroid?: boolean;
-    filters?: FilterSpec[];
+    filters?: FilterSpec[]; valueIndex?: ValueIndex | null;
   },
 ): Promise<QueryResult> {
   // query() has checked every select column exists. The default leaves out the
@@ -466,7 +494,31 @@ async function selectQuery(
   // Pass 1: where and filter columns only; each group is reduced to its match
   // count and first `limit` row numbers as soon as it arrives.
   const matchCols = [...new Set([...where.map(([c]) => c), ...filters.map((f) => f.col)])];
-  const { perGroup, total } = await scanMatches(file, metadata, matchCols, rowMatcher(where, filters), limit);
+  const match = rowMatcher(where, filters);
+  const spans = rowGroupSpans(metadata);
+  const cand = candidateGroups(opts.valueIndex, where, filters);
+  let perGroup: Awaited<ReturnType<typeof scanMatches>>['perGroup'];
+  let total: number;
+  if (cand.total !== undefined) {
+    // The index has the count, and each group's: read just the first groups that hold
+    // `limit` matching rows between them, in one go.
+    total = cand.total;
+    const needed: number[] = [];
+    let found = 0;
+    for (const g of cand.groups!) {
+      if (found >= limit) break;
+      needed.push(g);
+      found += cand.counts!.get(g) ?? 0;
+    }
+    ({ perGroup } = await scanMatches(file, metadata, matchCols, match, limit, needed.map((g) => spans[g])));
+  } else {
+    ({ perGroup, total } = await scanMatches(file, metadata, matchCols, match, limit,
+      cand.groups ? cand.groups.map((g) => spans[g]) : spans));
+  }
+  // No match: the hints sample the first row group, as a full scan does.
+  if (total === 0 && !perGroup[0]?.sample && spans.length) {
+    perGroup = (await scanMatches(file, metadata, matchCols, match, limit, [spans[0]])).perGroup;
+  }
   const hitGroups: number[][] = []; // row numbers to return, per row group, in order
   let kept = 0;
   for (const g of perGroup) {
@@ -503,6 +555,7 @@ async function groupByQuery(
   sumCols: string[] = [],
   filters: FilterSpec[] = [],
   maxKeys = MAX_GROUP_KEYS,
+  valueIndex?: ValueIndex | null,
 ): Promise<GroupByResult> {
   if (!allCols.includes(groupCol)) {
     const available = allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c));
@@ -514,9 +567,17 @@ async function groupByQuery(
   const filtered = where.length > 0 || filters.length > 0;
   const match = rowMatcher(where, filters);
   const colList = [...readCols]; // query() has checked each exists
+  // Counts of one indexed column with nothing else asked: the index has them (an indexed
+  // column has at most 1,000 values, bake_value_index.MAX_VALUES, well under maxKeys).
+  const indexed = !filtered && !sumCols.length ? valueIndex?.counts(groupCol) : null;
+  if (indexed) return { column: groupCol, counts: topCounts(indexed), total: Number(metadata.num_rows) };
   const acc = groupAccumulator(groupCol, sumCols, maxKeys);
   let sample: Record<string, string[]> | undefined;
-  await mapConcurrent(rowGroupSpans(metadata), R2_CONCURRENCY, async (span) => {
+  const allSpans = rowGroupSpans(metadata);
+  const cand = candidateGroups(valueIndex, where, filters);
+  // Row group 0 is always read: a zero-result answer's hints sample it, as a full scan does.
+  const spans = cand.groups ? [...new Set([0, ...cand.groups])].map((g) => allSpans[g]) : allSpans;
+  await mapConcurrent(spans, R2_CONCURRENCY, async (span) => {
     const rows = await parquetReadObjects({
       file, metadata, compressors, columns: colList, rowStart: span.start, rowEnd: span.end,
     }) as Record<string, unknown>[];

@@ -21,6 +21,22 @@ export function fetchAsset(ctx: AssetCtx, path: string): Promise<Response> {
  *  index.html, 200: an HTML answer where a file or JSON was due means "not there". */
 export const isSpaFallback = (res: Response): boolean => (res.headers.get('content-type') ?? '').startsWith('text/html');
 
+/** A baked JSON file of this deployment (stats, value index), or null when it is missing or unreadable. */
+export async function fetchBakedJson<T>(ctx: AssetCtx, path: string): Promise<T | null> {
+  try {
+    const r = await fetchAsset(ctx, path);
+    return r.ok && !isSpaFallback(r) ? await r.json() as T : null;
+  } catch {
+    return null;
+  }
+}
+
+type ParquetRef = { url: string; bytes: number | null };
+/** A baked file was made from the parquet the catalog names now (same url and bytes). */
+export function bakedFrom(made: ParquetRef | undefined, layer: { parquet?: ParquetRef | null }): boolean {
+  return !!layer.parquet?.url && made?.url === layer.parquet.url && made.bytes === (layer.parquet.bytes ?? null);
+}
+
 export type LoadedCatalog ={ catalog: CatalogData; version: string };
 
 // One load per isolate: catalog.json changes only with a deploy, which starts

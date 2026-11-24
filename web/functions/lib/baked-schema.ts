@@ -4,7 +4,7 @@
 // p50 of 3 s per edge-cache miss (Nov 2026). The file is used only while it
 // was baked from the catalog's parquet (same url and bytes); a community layer
 // (c_*) or a missing or stale file falls back to the live read (getSchema).
-import { fetchAsset, isSpaFallback, type AssetCtx } from './catalog-loader';
+import { bakedFrom, fetchBakedJson, type AssetCtx } from './catalog-loader';
 import { statsPath } from './catalog-api';
 import { isGeomColumn, MAX_DISTINCT_SAMPLE, schemaType, type ColumnSchema, type LayerSchema } from './parquet-query';
 
@@ -19,8 +19,7 @@ export interface BakedStats {
 
 /** The file has a schema and was baked from the parquet the catalog names now. */
 export function isBakedFor(stats: BakedStats, layer: { parquet?: { url: string; bytes: number | null } | null }): boolean {
-  return !!stats.schema && !!layer.parquet?.url
-    && stats.parquet?.url === layer.parquet.url && stats.parquet.bytes === (layer.parquet.bytes ?? null);
+  return !!stats.schema && bakedFrom(stats.parquet, layer);
 }
 
 /**
@@ -59,12 +58,6 @@ export async function bakedSchema(
   layer: { id: string; parquet?: { url: string; bytes: number | null } | null },
 ): Promise<LayerSchema | null> {
   if (layer.id.startsWith('c_')) return null;
-  try {
-    const r = await fetchAsset(ctx, statsPath(layer.id));
-    if (!r.ok || isSpaFallback(r)) return null;
-    const stats = await r.json() as BakedStats;
-    return isBakedFor(stats, layer) ? schemaFromStats(stats) : null;
-  } catch {
-    return null;
-  }
+  const stats = await fetchBakedJson<BakedStats>(ctx, statsPath(layer.id));
+  return stats && isBakedFor(stats, layer) ? schemaFromStats(stats) : null;
 }
