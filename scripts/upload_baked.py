@@ -3,7 +3,7 @@ Upload data/baked/* to R2 via the S3-compatible API (pipeline.r2_upload).
 
 Idempotent: skips each object whose md5 matches the local file (sizes alone
 miss a lat,lon swap). pipeline.r2_upload also sets Content-Type and
-Content-Disposition (attachment, so cross-origin links to pub-*.r2.dev
+Content-Disposition (attachment, so cross-origin links to the bucket (data.bharatlas.com, pub-*.r2.dev)
 download; pmtiles stays inline) and uploads large files in parts.
 
 Env required:

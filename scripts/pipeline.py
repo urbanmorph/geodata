@@ -137,9 +137,10 @@ def _total_size(resp, start: int) -> int | None:
     return start + int(cl) if cl is not None else None
 
 
-# Hosts whose single-part ETag is the body's MD5 (S3 semantics). Elsewhere an
-# ETag is opaque, even when it happens to look like 32 hex digits.
-MD5_ETAG_HOSTS = ('.r2.dev', '.r2.cloudflarestorage.com', '.amazonaws.com')
+# Hosts whose single-part ETag is the body's MD5 (S3 semantics): R2 at either of its
+# addresses (the data domain passes R2's ETag through), S3. Elsewhere an ETag is opaque,
+# even when it happens to look like 32 hex digits.
+MD5_ETAG_HOSTS = ('.r2.dev', '.r2.cloudflarestorage.com', '.amazonaws.com', '.data.bharatlas.com')
 
 
 def _served_md5(resp, url: str) -> str | None:
@@ -461,7 +462,7 @@ def _put_args(local: Path, md5: str) -> dict:
     ext = ''.join(local.suffixes[-1:])
     return {
         'ContentType': CONTENT_TYPES.get(ext, 'application/octet-stream'),
-        # Downloads save as files (cross-origin links to r2.dev ignore the
+        # Downloads save as files (cross-origin links to the bucket ignore the
         # HTML download attribute); pmtiles stays inline for MapLibre's range reads.
         'ContentDisposition': 'inline' if ext == '.pmtiles' else f'attachment; filename="{local.name}"',
         'CacheControl': 'public, max-age=604800, immutable',

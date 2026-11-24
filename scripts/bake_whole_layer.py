@@ -291,7 +291,7 @@ def curated_layers() -> list[tuple[str, str, str, int]]:
                     continue
                 url: str = pq["url"]
                 # Derive R2 prefix and basename from the URL path.
-                # URL example: https://pub-...r2.dev/admin/wards-chennai/wards_chennai.parquet
+                # URL example: https://data.bharatlas.com/admin/wards-chennai/wards_chennai.parquet
                 if url.startswith(r2_base):
                     rel = url[len(r2_base):]  # "admin/wards-chennai/wards_chennai.parquet"
                 else:

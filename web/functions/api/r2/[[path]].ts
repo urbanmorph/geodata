@@ -18,7 +18,7 @@ type Params = { path: string[] };
 
 // Tight allowlist: this endpoint exists to serve community-submitted files
 // (see render-view.ts → /api/r2/community/<id>/<filename>). Curated layers
-// are served via the public R2 URL (pub-…r2.dev/…) directly, never through
+// are served via the bucket's public address (data.bharatlas.com, or the older pub-…r2.dev) directly, never through
 // here. Reject any other prefix so a future stray object can't be exfiltrated
 // via the bharatlas-branded same-origin path.
 const ALLOWED_PREFIX = /^community\//;
