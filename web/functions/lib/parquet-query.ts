@@ -6,7 +6,7 @@
 import { parquetReadObjects, parquetSchema } from 'hyparquet';
 import type { FileMetaData, SchemaElement } from 'hyparquet';
 import { compressors } from './zstd';
-import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
+import { cachedMetadata, StaleObjectError, type AsyncBuffer } from './parquet-r2';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { QUERY_JUNK_COLUMNS } from './junk-columns';
 import { apiError, serverError } from './http';
@@ -54,10 +54,12 @@ export class QueryInputError extends Error {}
  *  points at the layer's schema (queryFailure). */
 export class ColumnInputError extends QueryInputError {}
 
-/** The catch for a read route: a QueryInputError is the caller's 400, anything
- *  else the generic 500 for `what` (its detail goes to the log only). Given the
- *  layer id, a column error also names the layer's schema. */
+/** The catch for a read route: a QueryInputError is the caller's 400, a file changed
+ *  while it was read a 503 to retry, anything else the generic 500 for `what` (its
+ *  detail goes to the log only). Given the layer id, a column error also names the
+ *  layer's schema. */
 export const queryFailure = (what: string, layerId?: string) => (e: unknown): Response => {
+  if (e instanceof StaleObjectError) return apiError(503, 'The layer\'s file is being updated; retry in a moment.', { 'retry-after': '5' });
   if (!(e instanceof QueryInputError)) return serverError(what, e);
   return apiError(400, e instanceof ColumnInputError && layerId ? `${e.message} ${schemaHint(layerId)}` : e.message);
 };
@@ -248,9 +250,10 @@ export async function query(
   },
 ): Promise<QueryResult | GroupByResult> {
   const metadata = await cachedMetadata(file);
-  // An index baked from another file (an unversioned key overwritten under the same size) is not used.
-  const valueIndex = opts.valueIndex && opts.valueIndex.rowGroups === metadata.row_groups.length
-    && opts.valueIndex.rows === Number(metadata.num_rows) ? opts.valueIndex : null;
+  // An index baked from another upload (an unversioned key overwritten) is not used.
+  const vi = opts.valueIndex;
+  const valueIndex = vi && vi.rowGroups === metadata.row_groups.length && vi.rows === Number(metadata.num_rows)
+    && !(vi.etag && file.etag && vi.etag !== file.etag) ? vi : null;
   const cols = topLevelColumns(metadata);
   const allCols = cols.map((c) => c.name);
   // Every check before any row is read: an unknown where column used to scan

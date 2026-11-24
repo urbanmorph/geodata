@@ -52,7 +52,24 @@ def test_fresh_only_while_baked_from_the_catalogs_parquet_with_the_same_columns(
     p = tmp_path / 'x.json'
     assert not bvi.is_fresh(p, layer, ['cat'])
     p.write_text(json.dumps({'parquet': {'url': 'https://r2/x.parquet', 'bytes': 10}, 'row_groups': 1, 'rows': 1,
-                             'columns': {'cat': {'values': {}}}}))
+                             'etag': 'e1', 'columns': {'cat': {'values': {}}}}))
     assert bvi.is_fresh(p, layer, ['cat'])
     assert not bvi.is_fresh(p, layer, ['cat', 'status'])  # a column now indexable is missing
     assert not bvi.is_fresh(p, {**layer, 'parquet': {'url': 'https://r2/x.parquet', 'bytes': 11}}, ['cat'])
+
+
+def test_the_etag_is_recorded_as_the_worker_binding_reads_it():
+    assert bvi.bare_etag('"c45d6efa59201e0bf70167bf2948f597-10"') == 'c45d6efa59201e0bf70167bf2948f597-10'
+    assert bvi.bare_etag('W/"abc"') == 'abc'
+    assert bvi.bare_etag(None) is None
+    assert bvi.remote_etag(str(FIXTURE)) is None  # a local file has none
+
+
+def test_an_index_without_the_parquets_etag_is_rebaked(tmp_path):
+    layer = {'id': 'x', 'parquet': {'url': 'https://r2/x.parquet', 'bytes': 10}}
+    p = tmp_path / 'x.json'
+    p.write_text(json.dumps({'parquet': layer['parquet'], 'row_groups': 1, 'rows': 1, 'columns': {'cat': {'values': {}}}}))
+    assert not bvi.is_fresh(p, layer, ['cat'])
+    p.write_text(json.dumps({'parquet': layer['parquet'], 'row_groups': 1, 'rows': 1, 'etag': 'e1',
+                             'columns': {'cat': {'values': {}}}}))
+    assert bvi.is_fresh(p, layer, ['cat'])

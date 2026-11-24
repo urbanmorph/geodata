@@ -100,15 +100,30 @@ const bytesObject = (key: string, size: number, etag: string, data: ArrayBuffer)
 /** R2 answers kept in the colo for an hour (as /api answers are: an object may be replaced under its key). */
 export const COLO_R2_TTL = 3_600;
 
+/** Keys found overwritten in this isolate, with the etag of the upload they replaced: colo
+ *  copies of that upload are skipped (and replaced by the next read); copies of the new one
+ *  are used as usual. A small file whose reads all fall inside its colo-kept tail is never
+ *  pinned, so it serves the old upload, whole and consistent, until COLO_R2_TTL. */
+const changed = new Map<string, string>();
+
 /** `r2` with its shared range reads kept in the colo under the deploy `version`
  *  (a deploy that changes a layer's file changes the version). */
 export function coloBucket(r2: R2Bucket, colo: ColoCache, version: string): R2Bucket {
   const get = async (key: string, opts?: R2GetOptions): Promise<R2ObjectBody | R2Object | null> => {
     const range = opts?.range as R2Range | undefined;
-    if (!shared(key, range) || opts?.onlyIf) return r2.get(key, opts);
+    if (!shared(key, range) || opts?.onlyIf) {
+      const obj = await r2.get(key, opts);
+      // A pinned read that found another upload (parquet-r2.ts pinnedGet): what the colo
+      // keeps for this key is from before the overwrite; read it from R2 from now on.
+      const was = (opts?.onlyIf as { etagMatches?: string } | undefined)?.etagMatches;
+      if (was && obj && !('arrayBuffer' in obj)) changed.set(key, was);
+      return obj;
+    }
     const ck = `r2/${version}/${key}#${rangeKey(range!)}`;
     const hit = await colo.get(ck);
-    if (hit && hit.meta.size && hit.meta.etag) return bytesObject(key, Number(hit.meta.size), hit.meta.etag, hit.data);
+    if (hit && hit.meta.size && hit.meta.etag && hit.meta.etag !== changed.get(key)) {
+      return bytesObject(key, Number(hit.meta.size), hit.meta.etag, hit.data);
+    }
     const obj = await r2.get(key, opts);
     if (!obj || !('arrayBuffer' in obj)) return obj;
     const data = await obj.arrayBuffer();

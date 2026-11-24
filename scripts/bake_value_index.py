@@ -26,6 +26,7 @@ from __future__ import annotations
 import json
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 import duckdb
@@ -95,13 +96,28 @@ def build_index(url: str, columns: list[str]) -> dict:
     return out
 
 
+def bare_etag(etag: str | None) -> str | None:
+    """An HTTP ETag ("x", W/"x") as the Worker's R2 binding gives it (x)."""
+    return etag.removeprefix('W/').strip('"') if etag else None
+
+
+def remote_etag(url: str) -> str | None:
+    """The object's etag from its public URL (the same as R2's own); None for a local file."""
+    if not url.startswith('http'):
+        return None
+    req = urllib.request.Request(url, method='HEAD', headers={'user-agent': 'bharatlas-bake'})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return bare_etag(r.headers.get('etag'))
+
+
 def is_fresh(path: Path, layer: dict, columns: list[str]) -> bool:
     """The file exists, was baked from the catalog's parquet, and indexes these columns."""
     try:
         baked = json.loads(path.read_text())
     except (OSError, ValueError):
         return False
-    return baked.get('parquet') == source_of(layer) and 'rows' in baked and set(baked.get('columns', {})) == set(columns)
+    return (baked.get('parquet') == source_of(layer) and 'rows' in baked and bool(baked.get('etag'))
+            and set(baked.get('columns', {})) == set(columns))
 
 
 def bake(catalog_path: Path = CATALOG, stats_dir: Path = STATS_DIR, index_dir: Path = INDEX_DIR,
@@ -135,14 +151,16 @@ def bake(catalog_path: Path = CATALOG, stats_dir: Path = STATS_DIR, index_dir: P
         t0 = time.monotonic()
         try:
             index = build_index(layer['parquet']['url'], cols)
-        except duckdb.Error as e:
+            etag = remote_etag(layer['parquet']['url'])
+        except (duckdb.Error, OSError) as e:
             log(f'  {lid}: NOT saved ({e}); re-run to retry')
             left += 1
             continue
         path = index_dir / f'{lid}.json'
         path.parent.mkdir(parents=True, exist_ok=True)
         with atomic_output(path) as part:
-            part.write_text(json.dumps({'parquet': source_of(layer), **index}, ensure_ascii=False, separators=(',', ':')) + '\n')
+            part.write_text(json.dumps({'parquet': source_of(layer), 'etag': etag, **index},
+                                       ensure_ascii=False, separators=(',', ':')) + '\n')
         done.append(lid)
         log(f'  {lid}: {path.stat().st_size / 1e3:,.0f} KB in {time.monotonic() - t0:,.0f} s')
     return done, left

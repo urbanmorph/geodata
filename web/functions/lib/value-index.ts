@@ -13,12 +13,15 @@ export interface ValueIndexFile {
   parquet: { url: string; bytes: number | null };
   row_groups: number;
   rows: number;
+  /** The parquet's R2 etag when baked (absent for a local file). */
+  etag?: string;
   columns: Record<string, { values: Record<string, string>; nulls?: string }>;
 }
 
 export interface ValueIndex {
   rowGroups: number;
   rows: number;
+  etag?: string;
   /** Row group -> rows of `col` equal to `lower` (case-insensitive, as where matches), in
    *  row-group order; an empty map when none; null when `col` is not indexed. */
   groups(col: string, lower: string): Map<number, number> | null;
@@ -66,6 +69,7 @@ export function parseValueIndex(file: ValueIndexFile): ValueIndex {
   return {
     rowGroups: file.row_groups,
     rows: file.rows,
+    etag: file.etag,
     groups: (col, lower) => {
       const c = column(col);
       return c ? (c.byLower.get(lower) ?? new Map()) : null;

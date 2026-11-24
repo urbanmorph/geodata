@@ -4,7 +4,7 @@ import type { Env } from '../_middleware';
 import { apiError, json } from '../../lib/http';
 import { loadReleaseIndex } from '../../lib/releases';
 
-const CACHE = 'public, max-age=300, s-maxage=3600, stale-while-revalidate=86400';
+const CACHE = 'public, max-age=300, stale-while-revalidate=86400';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const index = await loadReleaseIndex(ctx);
