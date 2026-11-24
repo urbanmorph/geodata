@@ -1,7 +1,7 @@
 ---
 name: bharatlas
 description: Use this skill for questions about India's geography and administrative data, or to author your own map. Activates when the user asks what state / district / subdistrict / block / village / ward / constituency / pincode / seismic zone / eco zone a place or coordinate is in; wants counts or lists of Indian admin units, forests, wildlife, rivers, reservoirs, dams, hospitals, highways, airports, flood or seismic zones; wants features near a point; wants to download an Indian geo layer (Parquet, PMTiles, GeoJSON, KML, Shapefile); or wants to run a crowd map-capture with collect (design a form, review contributions, submit it to bharatlas as a layer). Triggers on phrases like "which district is this", "how many villages in", "wards in Chennai", "reservoirs near", "download the boundaries", "locate this lat lng", or any mention of bharatlas or collect.
-version: 1.7.0
+version: 1.8.0
 license: MIT
 ---
 
@@ -26,7 +26,7 @@ bharatlas (bharatlas.com) is India's open geo atlas: open data layers you can ma
 ## Read workflow
 
 1. **Discover**: `list_layers` (filter by category, level, source, or `q` search) and `list_categories`. Always check `list_submissions` too, community layers may cover topics the curated set does not.
-2. **Schema first**: call `get_layer_schema` BEFORE `query_layer`. Column names vary by source ("state" vs "State_LGD" vs "stname"); the schema shows exact names and sample values.
+2. **Schema first**: call `get_layer_schema` BEFORE `query_layer`. Column names vary by source ("state" vs "State_LGD" vs "stname"); the schema shows exact names and values.
 3. **Query**: `query_layer` with `where` (case-insensitive column=value), `select`, or `group_by` for counts. Reads the parquet at runtime.
 4. **Locate**: `locate` with lat/lng returns every admin boundary and zone containing that point in one call. The "where am I?" tool.
 5. **Nearby**: `nearby` finds features of a layer within a radius (points, lines, or polygons).
