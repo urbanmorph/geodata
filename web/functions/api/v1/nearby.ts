@@ -2,6 +2,7 @@ import type { Env } from '../_middleware';
 import { clampNum } from '../../lib/query-params';
 import { countApiUse } from '../../lib/usage';
 import { timedCall } from '../../lib/api-calls';
+import { withColoReads } from '../../lib/colo-cache';
 import { nearbyTrueDistance } from '../../lib/nearby-true-distance';
 import { queryFailure } from '../../lib/parquet-query';
 import { apiError, json } from '../../lib/http';
@@ -26,7 +27,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   // ".shape": answers measured to the shape (lib/nearby-true-distance.ts) never share a key with the bbox-centre ones.
   return cached(ctx, cacheKey(`${version}.shape`, url), EDGE_TTL.r2, async () => {
     try {
-      const result = await nearbyTrueDistance(lat, lng, radiusKm, layer.id, catalog, ctx.env.R2, limit);
+      const result = await withColoReads(ctx, version, (r2) => nearbyTrueDistance(lat, lng, radiusKm, layer.id, catalog, r2, limit));
       return json(200, result, { 'cache-control': 'public, max-age=3600, stale-while-revalidate=86400' });
     } catch (e) {
       return queryFailure('Nearby')(e);

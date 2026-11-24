@@ -9,7 +9,8 @@
 // Puts wait until the answer is out (startPuts), so they never compete with the
 // lookup's own reads for the Worker's six connections. A lookup that is slow or fails
 // is a miss: the cache can make an answer faster, never later.
-import { matchWithin, type EdgeCache } from './edge-cache';
+import { defaultCache, matchWithin, type EdgeCache } from './edge-cache';
+import { noteCall } from './api-calls';
 
 const KEY_ORIGIN = 'https://bharatlas.com/__colo/';
 const META = 'x-colo-';
@@ -122,4 +123,39 @@ export function coloBucket(r2: R2Bucket, colo: ColoCache, version: string): R2Bu
       return typeof v === 'function' ? v.bind(target) : v;
     },
   });
+}
+
+/** The bucket, counting its reads (get and head): every read waits for one of the
+ *  Worker's six connections, so the count is what sets an answer's latency. */
+export function countingBucket(r2: R2Bucket): { bucket: R2Bucket; reads: () => number } {
+  let n = 0;
+  const bucket = new Proxy(r2, {
+    get(target, prop) {
+      const v = Reflect.get(target, prop);
+      if ((prop === 'get' || prop === 'head') && typeof v === 'function') {
+        return (...args: unknown[]) => { n++; return v.apply(target, args); };
+      }
+      return typeof v === 'function' ? v.bind(target) : v;
+    },
+  });
+  return { bucket, reads: () => n };
+}
+
+/** `fn` with `ctx.env.R2` read through the colo (coloBucket, keyed by the deploy
+ *  `version`), noting on the call (api-calls.ts) how many reads went to R2 and how
+ *  many the colo answered. The puts go out once `fn` is done. */
+export async function withColoReads<T>(
+  ctx: { request: Request; env: { R2: R2Bucket }; waitUntil(p: Promise<unknown>): void },
+  version: string,
+  fn: (r2: R2Bucket) => Promise<T>,
+  cache: EdgeCache | null = defaultCache(),
+): Promise<T> {
+  const { bucket, reads } = countingBucket(ctx.env.R2);
+  const colo = coloCache(cache, (p) => ctx.waitUntil(p));
+  try {
+    return await fn(coloBucket(bucket, colo, version));
+  } finally {
+    colo.startPuts();
+    noteCall(ctx.request, { reads: reads(), coloHits: colo.hits() });
+  }
 }

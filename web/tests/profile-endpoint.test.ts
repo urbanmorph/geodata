@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { countingBucket, profileHandler } from '../functions/lib/profile-endpoint';
+import { profileHandler } from '../functions/lib/profile-endpoint';
+import { countingBucket } from '../functions/lib/colo-cache';
 import { coloOf } from '../functions/lib/colo-cache';
 import { pmtilesFor } from '../functions/lib/locate';
 import { onRequestGet as ground } from '../functions/api/v1/ground';

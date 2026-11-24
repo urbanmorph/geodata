@@ -3,6 +3,7 @@ import { SERVER_SHAPE_EXPORT } from '../../../../../../shared/large-load.mjs';
 import { mimeFor } from '../../../../../../shared/mime.mjs';
 import { countApiUse } from '../../../../lib/usage';
 import { timedCall } from '../../../../lib/api-calls';
+import { withColoReads } from '../../../../lib/colo-cache';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { queryFailure } from '../../../../lib/parquet-query';
 import {
@@ -81,7 +82,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
       // answer depends only on the deploy, the file and the query, so the colo keeps it.
       return cached(ctx, cacheKey(version, url), EDGE_TTL.r2, async () => {
         try {
-          const plan = await planExport(await asyncBufferFromR2(ctx.env.R2, r2Key), { where, filters });
+          const plan = await withColoReads(ctx, version, async (r2) => planExport(await asyncBufferFromR2(r2, r2Key), { where, filters }));
           return json(200, { data: {
             total: plan.total, estimated_bytes: plan.estimatedBytes, max_rows: EXPORT_MAX_ROWS, max_bytes: EXPORT_MAX_BYTES,
             shape_bytes: plan.shapeBytes, max_shape_bytes: EXPORT_MAX_SHAPE_BYTES,
@@ -91,8 +92,9 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
         }
       });
     }
-    const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
-    const out = await exportRows(file, { where, filters, format, name: layer.id, tooManyHint: downloadsHint(layer) });
+    // The rows stream after this returns, still read through the colo (only the footer is kept there).
+    const out = await withColoReads(ctx, version, async (r2) =>
+      exportRows(await asyncBufferFromR2(r2, r2Key), { where, filters, format, name: layer.id, tooManyHint: downloadsHint(layer) }));
     return new Response(exportBody(out.chunks), {
       headers: {
         'content-type': mimeFor(format),

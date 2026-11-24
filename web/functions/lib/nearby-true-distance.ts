@@ -61,9 +61,20 @@ function candidatesOf(spans: RowSpan[], boxes: GroupBoxes[], lat: number, lng: n
   return out;
 }
 
+/** A bbox at most this wide and tall (degrees, about 11 m) is a point. Overture keeps
+ *  float32 bboxes rounded outward, so each of its 4.8M points spans about 1.5e-5 degrees;
+ *  taken for shapes they sent nearby down the shape path, which capped the answer at
+ *  "500, approximate" or ran out of CPU (Nov 2026). A real shape this small is
+ *  measured to within metres by its centre anyway. */
+const POINT_EXTENT_DEG = 1e-4;
+
 /** Whether any row of these row groups has an extent (a line or polygon); a point layer has none. */
 function anyExtent(boxes: GroupBoxes[]): boolean {
-  for (const b of boxes) for (let i = 0; i < b.xmin.length; i++) if (b.xmax[i] > b.xmin[i] || b.ymax[i] > b.ymin[i]) return true;
+  for (const b of boxes) {
+    for (let i = 0; i < b.xmin.length; i++) {
+      if (b.xmax[i] - b.xmin[i] > POINT_EXTENT_DEG || b.ymax[i] - b.ymin[i] > POINT_EXTENT_DEG) return true;
+    }
+  }
   return false;
 }
 

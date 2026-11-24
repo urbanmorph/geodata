@@ -1,6 +1,7 @@
 import type { Env } from '../../../_middleware';
 import { countApiUse } from '../../../../lib/usage';
 import { timedCall } from '../../../../lib/api-calls';
+import { withColoReads } from '../../../../lib/colo-cache';
 import { ncFields, noMatchHint } from '../../../../lib/catalog-api';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
 import { query, queryFailure } from '../../../../lib/parquet-query';
@@ -31,8 +32,10 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
     try {
       const start = Date.now();
       const filters = parseFilterParam(url.searchParams.get('filter'));
-      const file = await asyncBufferFromR2(ctx.env.R2, r2Key);
-      const result = await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters });
+      const { file, result } = await withColoReads(ctx, version, async (r2) => {
+        const file = await asyncBufferFromR2(r2, r2Key);
+        return { file, result: await query(file, { select, where, groupBy, sum, limit, includeCentroid, filters }) };
+      });
       const timing = Date.now() - start;
       // A filter that matched nothing: usually a wrong column value or spelling.
       const hint = (where || filters?.length) && result.total === 0 ? { hint: noMatchHint(layer.id) } : {};

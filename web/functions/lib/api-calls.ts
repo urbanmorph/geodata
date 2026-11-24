@@ -1,7 +1,7 @@
 // How fast the API and MCP answer real callers: one Workers Analytics Engine data
 // point (dataset bharatlas_api_calls, binding API_CALLS) per counted /api/v1 call,
 // that is every call countApiUse counts (usage.ts: the live site, no crawlers or smoke
-// test). The ops dashboard reads them back with the AE SQL API (p50/p95, partial and
+// test), and /locate by the same rules (timeOnly: timed, not counted as use). The ops dashboard reads them back with the AE SQL API (p50/p95, partial and
 // cache-hit rates, colos, MCP versions).
 //
 // timedCall wraps a handler, so the hosted MCP, which runs handlers in-process and

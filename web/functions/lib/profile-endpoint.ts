@@ -20,29 +20,13 @@ import type { CatalogData } from './catalog-api';
 import { apiError, json, serverError } from './http';
 import { parseIndiaPoint } from './api-layer';
 import { cached, cacheKey, defaultCache, EDGE_TTL, NO_STORE } from './edge-cache';
-import { coloBucket, coloCache } from './colo-cache';
+import { coloBucket, coloCache, countingBucket } from './colo-cache';
 import { notPublished, pointProfilesOn } from './point-profiles';
 import { countApiUse, endpointUsageId } from './usage';
 import { timing } from './server-timing';
 import { noteCall, timedCall } from './api-calls';
 
 export type ProfileRun = (lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, opts: ProfileOpts) => Promise<ProfileResponse>;
-
-/** The bucket, counting its reads (get and head): every read waits for one of the
- *  Worker's six connections, so the count is what sets an answer's latency. */
-export function countingBucket(r2: R2Bucket): { bucket: R2Bucket; reads: () => number } {
-  let n = 0;
-  const bucket = new Proxy(r2, {
-    get(target, prop) {
-      const v = Reflect.get(target, prop);
-      if ((prop === 'get' || prop === 'head') && typeof v === 'function') {
-        return (...args: unknown[]) => { n++; return v.apply(target, args); };
-      }
-      return typeof v === 'function' ? v.bind(target) : v;
-    },
-  });
-  return { bucket, reads: () => n };
-}
 
 /** `run` (the profile `spec`) as a GET handler for /api/v1/<name>. `version` names what the catalog does not (e.g. raster files), for the cache key. */
 export function profileHandler(name: string, spec: ProfileSpec, run: ProfileRun, version: string): PagesFunction<Env> {

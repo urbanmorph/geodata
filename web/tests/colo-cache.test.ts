@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { coloBucket, coloCache, coloOf } from '../functions/lib/colo-cache';
+import { coloBucket, coloCache, coloOf, withColoReads } from '../functions/lib/colo-cache';
+import { noteCall, timedCall } from '../functions/lib/api-calls';
 import type { EdgeCache } from '../functions/lib/edge-cache';
 
 // A point lookup on a fresh isolate re-read every layer's metadata from R2 (95 of
@@ -145,5 +146,35 @@ describe('coloBucket', () => {
     const colo = coloCache(null, () => {});
     expect(coloOf(coloBucket(r2().bucket, colo, 'v1'))).toBe(colo);
     expect(coloOf(r2().bucket)).toBeUndefined();
+  });
+});
+
+// Nearby, query, export and locate read R2 directly: a fresh isolate re-read every
+// parquet footer and tile directory, and nearby re-decoded the bbox columns, on every
+// edge-cache miss. Through the colo (as /ground and /surface read) a second isolate
+// in the data centre gets them in milliseconds; the call's record (api-calls.ts) says
+// how many reads it made and how many the colo answered.
+describe('withColoReads', () => {
+  it('reads through the colo and notes the reads and colo hits on the call', async () => {
+    const { cache } = memoryCache();
+    const d = deferred();
+    let r2Gets = 0;
+    const r2 = {
+      get: async (key: string) => { r2Gets++; return { key, size: 10, etag: 'e1', arrayBuffer: async () => bytes(7, 8) }; },
+    } as unknown as R2Bucket;
+    const points: AnalyticsEngineDataPoint[] = [];
+    const env = { R2: r2, API_CALLS: { writeDataPoint: (p: AnalyticsEngineDataPoint) => points.push(p) } };
+    const handler = timedCall(async (ctx: { request: Request; env: typeof env; waitUntil: (p: Promise<unknown>) => void }) => {
+      noteCall(ctx.request, { subject: 'lgd_states' });
+      const obj = await withColoReads(ctx, 'v1', (b) => b.get('t/a.parquet', { range: { suffix: 8 } }), cache);
+      return new Response(String(obj?.size));
+    });
+    const call = () => handler({ request: new Request('https://bharatlas.com/api/v1/nearby'), env, waitUntil: d.defer });
+
+    expect(await (await call()).text()).toBe('10');
+    await d.settle();
+    expect(await (await call()).text()).toBe('10');
+    expect(r2Gets).toBe(1);                                         // the second isolate's footer came from the colo
+    expect(points.map((p) => p.doubles!.slice(2, 4))).toEqual([[1, 0], [0, 1]]); // R2 reads, colo hits
   });
 });
