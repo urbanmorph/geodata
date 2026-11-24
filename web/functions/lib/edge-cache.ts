@@ -15,7 +15,13 @@ import { ANSWER_V, type AnswerEndpoint } from './answer-versions';
 import { countedHost } from './usage';
 
 export type EdgeCache = Pick<Cache, 'match' | 'put'>;
-type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void };
+/** A KV namespace, as far as the durable second level uses it. */
+type AnswersKv = {
+  getWithMetadata<M>(key: string, type: 'text'): Promise<{ value: string | null; metadata: M | null }>;
+  put(key: string, value: string, opts: { expirationTtl: number; metadata: unknown }): Promise<void>;
+};
+/** `env.ANSWERS`, when bound, is the durable second level for API answers (cached()). */
+type CacheCtx = { request: Request; waitUntil(p: Promise<unknown>): void; env?: unknown };
 
 /** How long the colo serves an answer as fresh (seconds); it is kept as long again to be
  *  served stale while one refresh runs (cached()). Catalog answers can't go stale (the key
@@ -123,15 +129,60 @@ const STORED_AT = 'x-edge-stored-at';
 const refreshing = new Map<string, number>();
 const REFRESH_MS = 60_000;
 
-/** `compute()` stored under `key` for `ttl` seconds plus as long again to be served stale. */
-function store(ctx: CacheCtx, cache: EdgeCache, key: string, ttl: number, res: Response): void {
+/** `res` kept in the colo under `key` for `ttl` seconds plus as long again to be served
+ *  stale, stamped with when it was made (`at`, now unless it came from KV). */
+function store(ctx: CacheCtx, cache: EdgeCache, key: string, ttl: number, res: Response, at = Date.now()): void {
+  // What is left of its 2x ttl: a copy of an older answer (from KV) never outlives the original.
+  const left = Math.max(60, ttl * 2 - Math.floor((Date.now() - at) / 1000));
   const stored = withHeaders(res.clone(), {
-    'cache-control': `public, max-age=${ttl * 2}`,
+    'cache-control': `public, max-age=${left}`,
     [CLIENT_CC]: res.headers.get('cache-control'),
-    [STORED_AT]: String(Date.now()),
+    [STORED_AT]: String(at),
     'x-edge-cache': null,
   });
   ctx.waitUntil(cache.put(key, stored).catch(() => {}));
+}
+
+// ── the durable second level: KV, API answers only ──────────────────────────
+// caches.default is per data centre: a data centre that never saw an answer recomputed it.
+// API answers (answerKey) are also kept in KV (binding ANSWERS, when bound), so it reads
+// them in one get. KV keys are at most 512 bytes: the key is a SHA-256 of the cache key.
+// The answer's own headers and when it was made ride in the metadata (a profile answer's
+// x-profile-reads diagnostics are not kept). The account is on Workers Paid (1M KV writes
+// a month); a burst of unique queries is bounded by the API's per-IP rate limit.
+type KvMeta = { t: number; ct: string | null; cc: string | null; etag: string | null };
+const ANSWER_PREFIX = `${KEY_ORIGIN}a/`;
+
+async function kvKey(key: string): Promise<string> {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
+  return `a1:${[...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, '0')).join('')}`;
+}
+
+/** The answer kept in KV for `key`, rebuilt as a response with when it was made; null otherwise. */
+async function fromKv(kv: AnswersKv, key: string, ms: number): Promise<{ res: Response; at: number } | null> {
+  try {
+    const got = await withTimeout(kv.getWithMetadata<KvMeta>(await kvKey(key), 'text'), ms, 'KV lookup');
+    if (got.value === null || !got.metadata) return null;
+    const m = got.metadata;
+    const headers: Record<string, string> = {};
+    if (m.ct) headers['content-type'] = m.ct;
+    if (m.cc) headers['cache-control'] = m.cc;
+    if (m.etag) headers.etag = m.etag;
+    return { res: new Response(got.value, { headers }), at: m.t };
+  } catch {
+    return null;
+  }
+}
+
+/** How long a KV lookup may take before the answer is computed instead. */
+const KV_LOOKUP_MS = 400;
+
+/** `res` kept in KV under `key` for twice `ttl` (KV's own expiry), once the answer is out.
+ *  The copy is taken now: by the time the digest is done the body may be streaming out. */
+function toKv(ctx: CacheCtx, kv: AnswersKv, key: string, ttl: number, res: Response): void {
+  const meta: KvMeta = { t: Date.now(), ct: res.headers.get('content-type'), cc: res.headers.get('cache-control'), etag: res.headers.get('etag') };
+  const copy = res.clone();
+  ctx.waitUntil((async () => kv.put(await kvKey(key), await copy.text(), { expirationTtl: Math.max(60, ttl * 2), metadata: meta }))().catch(() => {}));
 }
 
 /** The stored answer for `key`, or `compute()`'s, stored for `ttl` seconds when
@@ -147,31 +198,46 @@ export async function cached(
   cache: EdgeCache | null = defaultCache(),
   matchTimeoutMs = MATCH_TIMEOUT_MS,
 ): Promise<Response> {
-  const hit = cache ? await matchWithin(cache, key, matchTimeoutMs) : undefined;
-  if (hit) {
-    const cc = hit.headers.get(CLIENT_CC);
-    const storedAt = Number(hit.headers.get(STORED_AT));
-    const stale = cache && storedAt > 0 && Date.now() - storedAt > ttl * 1000;
+  const kv = key.startsWith(ANSWER_PREFIX) ? (ctx.env as { ANSWERS?: AnswersKv } | undefined)?.ANSWERS : undefined;
+  /** Keep a fresh answer everywhere it is kept. */
+  const keepFresh = (res: Response) => {
+    if (cache) store(ctx, cache, key, ttl, res);
+    if (kv) toKv(ctx, kv, key, ttl, res);
+  };
+  /** Past ttl: one background refresh per key (its reads are not in this call's speed
+   *  record: api-calls.ts recorded it when the answer went out). */
+  const refreshIfStale = (madeAt: number): boolean => {
+    const stale = madeAt > 0 && Date.now() - madeAt > ttl * 1000;
     for (const [k, at] of refreshing) if (Date.now() - at >= REFRESH_MS) refreshing.delete(k); // cut-off refreshes
     if (stale && !refreshing.has(key)) {
       refreshing.set(key, Date.now());
-      // The refresh runs after the answer was sent: its own reads and colo hits are not in
-      // this call's speed record (api-calls.ts recorded it when the answer went out).
       ctx.waitUntil(compute()
-        .then((fresh) => { if (fresh.status === 200 && !fresh.headers.has(NO_STORE)) store(ctx, cache, key, ttl, withHeaders(fresh, { etag: fresh.headers.get('etag') ?? etagFor(key) })); })
+        .then((fresh) => { if (fresh.status === 200 && !fresh.headers.has(NO_STORE)) keepFresh(withHeaders(fresh, { etag: fresh.headers.get('etag') ?? etagFor(key) })); })
         .catch(() => {})
         .finally(() => refreshing.delete(key)));
     }
+    return stale;
+  };
+
+  const hit = cache ? await matchWithin(cache, key, matchTimeoutMs) : undefined;
+  if (hit) {
+    const stale = refreshIfStale(Number(hit.headers.get(STORED_AT)));
     return notModified(ctx.request, withHeaders(hit, {
-      'cache-control': cc, [CLIENT_CC]: null, [STORED_AT]: null, 'x-edge-cache': stale ? 'STALE' : 'HIT',
+      'cache-control': hit.headers.get(CLIENT_CC), [CLIENT_CC]: null, [STORED_AT]: null, 'x-edge-cache': stale ? 'STALE' : 'HIT',
     }));
+  }
+  const durable = kv ? await fromKv(kv, key, Math.min(matchTimeoutMs, KV_LOOKUP_MS)) : null;
+  if (durable) {
+    if (cache) store(ctx, cache, key, ttl, durable.res, durable.at); // this data centre keeps it now
+    const stale = refreshIfStale(durable.at);
+    return notModified(ctx.request, withHeaders(durable.res, { 'x-edge-cache': stale ? 'STALE' : 'KV' }));
   }
 
   let res = await compute();
   if (res.status !== 200) return res;
   const keep = !res.headers.has(NO_STORE);
   res = withHeaders(res, { etag: res.headers.get('etag') ?? etagFor(key), 'x-edge-cache': 'MISS', [NO_STORE]: null });
-  if (cache && keep) store(ctx, cache, key, ttl, res);
+  if (keep) keepFresh(res);
   return notModified(ctx.request, res);
 }
 

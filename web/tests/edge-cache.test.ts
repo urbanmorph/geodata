@@ -1,4 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { answerKey, cached, cacheKey, NO_STORE, type EdgeCache } from '../functions/lib/edge-cache';
 import { ANSWER_V } from '../functions/lib/answer-versions';
 
@@ -189,5 +190,114 @@ describe('answerKey', () => {
     expect(answerKey('query', 'L1', url('geodata-3ij.pages.dev'))).toBe(answerKey('query', 'L1', url('bharatlas.com')));
     expect(answerKey('query', 'L1', url('my-branch.geodata-3ij.pages.dev'))).not.toBe(answerKey('query', 'L1', url('bharatlas.com')));
     expect(answerKey('query', 'L1', url('abc123.geodata-3ij.pages.dev'))).toContain('/preview/abc123.geodata-3ij.pages.dev/');
+  });
+});
+
+// A durable second level (KV, binding ANSWERS) behind the per-data-centre cache, for API
+// answers only: a data centre that has never seen an answer reads it in one KV get instead
+// of recomputing it (caches.default is per data centre). Absent binding: as before.
+describe('cached: the durable second level (KV)', () => {
+  function memoryKv() {
+    const store = new Map<string, { value: string; metadata: unknown }>();
+    return {
+      store,
+      kv: {
+        async getWithMetadata(k: string) { const e = store.get(k); return { value: e?.value ?? null, metadata: e?.metadata ?? null }; },
+        async put(k: string, value: string, opts?: { metadata?: unknown }) { store.set(k, { value, metadata: opts?.metadata ?? null }); },
+      },
+    };
+  }
+  const ctxWith = (kv: unknown) => {
+    const pending: Promise<unknown>[] = [];
+    // settle waits for work started from inside other waitUntil work too, as the runtime does
+    const settle = async () => { for (let n = -1; n !== pending.length;) { n = pending.length; await Promise.all(pending); } };
+    return { ctx: { request: new Request('https://bharatlas.com/api/v1/x'), env: { ANSWERS: kv }, waitUntil: (p: Promise<unknown>) => { pending.push(p); } }, settle };
+  };
+  const AKEY = answerKey('query', 'L1', new URL('https://bharatlas.com/api/v1/layers/x/query?a=1'));
+
+  it('an answer computed in one data centre is read from KV in another, not recomputed', async () => {
+    const { kv, store } = memoryKv();
+    let computed = 0;
+    const compute = async () => { computed++; return new Response('{"n":1}', { headers: { 'content-type': 'application/json', 'cache-control': 'public, max-age=60', etag: '"e1"' } }); };
+    const a = ctxWith(kv);
+    await cached(a.ctx, AKEY, 600, compute, memoryCache().cache); await a.settle();
+    expect(store.size).toBe(1);
+    const elsewhere = memoryCache(); // another data centre: an empty colo cache
+    const b = ctxWith(kv);
+    const res = await cached(b.ctx, AKEY, 600, compute, elsewhere.cache); await b.settle();
+    expect(await res.text()).toBe('{"n":1}');
+    expect(res.headers.get('x-edge-cache')).toBe('KV');
+    expect(res.headers.get('content-type')).toBe('application/json');
+    expect(res.headers.get('cache-control')).toBe('public, max-age=60');
+    expect(res.headers.get('etag')).toBe('"e1"');
+    expect(computed).toBe(1);
+    expect(elsewhere.store.size).toBe(1); // and that data centre now keeps it
+  });
+  it('pages and other non-answer keys never go to KV; nor partial answers or errors', async () => {
+    const { kv, store } = memoryKv();
+    const c = ctxWith(kv);
+    await cached(c.ctx, 'https://bharatlas.com/__cache/v1/view/x', 600, body('{}'), memoryCache().cache);
+    await cached(c.ctx, AKEY, 600, async () => new Response('{}', { headers: { [NO_STORE]: '1' } }), memoryCache().cache);
+    await cached(c.ctx, AKEY, 600, async () => new Response('no', { status: 500 }), memoryCache().cache);
+    await c.settle();
+    expect(store.size).toBe(0);
+  });
+  it('a KV entry past its ttl is served STALE and refreshed in KV too, like a colo one', async () => {
+    const { kv, store } = memoryKv();
+    let n = 0;
+    let release: () => void = () => {};
+    const held = new Promise<void>((r) => { release = r; });
+    // the first answer at once; the refresh only when released, to see the state in between
+    const compute = async () => { if (++n > 1) await held; return new Response(String(n)); };
+    try {
+      vi.spyOn(Date, 'now').mockReturnValue(5_000_000);
+      const a = ctxWith(kv);
+      await cached(a.ctx, AKEY, 600, compute, memoryCache().cache); await a.settle();
+      vi.spyOn(Date, 'now').mockReturnValue(5_000_000 + 700_000);
+      const b = ctxWith(kv);
+      const colo = memoryCache();
+      const stale = await cached(b.ctx, AKEY, 600, compute, colo.cache);
+      expect(stale.headers.get('x-edge-cache')).toBe('STALE');
+      // the colo copy of a stale KV entry keeps only what is left of its 2x ttl ...
+      expect(colo.store.get(AKEY)!.headers.get('cache-control')).toBe('public, max-age=500');
+      expect(await stale.text()).toBe('1');
+      release();
+      await b.settle();
+      // ... until the refresh replaces it, here and in KV
+      expect([...store.values()][0].value).toBe('2');
+      expect(colo.store.get(AKEY)!.headers.get('cache-control')).toBe('public, max-age=1200');
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+  it('the KV write takes its copy before the answer streams to the caller', async () => {
+    const { kv, store } = memoryKv();
+    const c = ctxWith(kv);
+    const res = await cached(c.ctx, AKEY, 600, body('{"streamed":1}'), memoryCache().cache);
+    expect(await res.text()).toBe('{"streamed":1}'); // the caller reads it first
+    await c.settle();
+    expect([...store.values()][0]?.value).toBe('{"streamed":1}');
+  });
+  it('a KV hit answers 304 to a matching If-None-Match', async () => {
+    const { kv } = memoryKv();
+    const a = ctxWith(kv);
+    await cached(a.ctx, AKEY, 600, body('{}', { etag: '"e9"' }), memoryCache().cache); await a.settle();
+    const pending: Promise<unknown>[] = [];
+    const b = { request: new Request('https://bharatlas.com/api/v1/x', { headers: { 'if-none-match': '"e9"' } }), env: { ANSWERS: kv }, waitUntil: (p: Promise<unknown>) => { pending.push(p); } };
+    const res = await cached(b, AKEY, 600, body('{}'), memoryCache().cache);
+    expect(res.status).toBe(304);
+  });
+  it('a failing or slow KV never fails or holds up the answer', async () => {
+    const broken = { getWithMetadata: async () => { throw new Error('kv down'); }, put: async () => { throw new Error('kv down'); } };
+    const c = ctxWith(broken);
+    const res = await cached(c.ctx, AKEY, 600, body('{"ok":1}'), memoryCache().cache); await c.settle();
+    expect(await res.text()).toBe('{"ok":1}');
+  });
+});
+
+describe('the durable second level is bound for production', () => {
+  it('wrangler.toml binds ANSWERS to a KV namespace', () => {
+    const toml = readFileSync(new URL('../wrangler.toml', import.meta.url), 'utf8');
+    expect(toml).toMatch(/\[\[kv_namespaces\]\]\s*binding = "ANSWERS"\s*id = "[0-9a-f]{32}"/);
   });
 });

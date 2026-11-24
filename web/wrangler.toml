@@ -29,3 +29,10 @@ POINT_PROFILES = "on"
 [[analytics_engine_datasets]]
 binding = "API_CALLS"
 dataset = "bharatlas_api_calls"
+
+# KV: API answers' durable second level behind the per-data-centre cache (lib/edge-cache.ts
+# cached()): a data centre that never saw an answer reads it here instead of recomputing it.
+# API answers only (answerKey), never pages; KV expires each entry at twice its ttl.
+[[kv_namespaces]]
+binding = "ANSWERS"
+id = "8b3ba54794d84dcd802fc4f3fcd8c22e"
