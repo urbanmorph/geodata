@@ -98,14 +98,16 @@ describe('API layer detail keeps its filter_stats when they live in a file', () 
   it('adds the file\'s stats when the catalog has none', async () => {
     const { attachFilterStats } = await import('../functions/lib/catalog-api');
     const s = { row_count: 3, columns: [] };
-    const assets = { fetch: vi.fn(async (u: string) => (String(u).endsWith('/api-data/filter-stats/big.json')
+    const assets = { fetch: vi.fn(async (u: string) => (/\/api-data\/filter-stats\/(big|small)\.json$/.test(String(u))
       ? new Response(JSON.stringify(s)) : new Response('', { status: 404 }))) };
     const ctx = { request: new Request('https://bharatlas.com/api/v1/layers/big'), env: { ASSETS: assets } };
-    const big = await attachFilterStats(ctx, { id: 'big' } as never);
+    const sized = (id: string, bytes: number) => ({ id, downloads: { parquet: { url: 'x', bytes } } });
+    const big = await attachFilterStats(ctx, sized('big', 200 * MB) as never);
     expect((big as { filter_stats?: unknown }).filter_stats).toEqual(s);
-    const small = await attachFilterStats(ctx, { id: 'small' } as never);
+    // Every layer has a file now (for /schema); a small layer's detail stays as it was.
+    const small = await attachFilterStats(ctx, sized('small', MB) as never);
     expect((small as { filter_stats?: unknown }).filter_stats).toBeUndefined();
-    const kept = await attachFilterStats(ctx, { id: 'big', filter_stats: { row_count: 9 } } as never);
+    const kept = await attachFilterStats(ctx, { ...sized('big', 200 * MB), filter_stats: { row_count: 9 } } as never);
     expect((kept as { filter_stats: { row_count: number } }).filter_stats.row_count).toBe(9);
   });
 });

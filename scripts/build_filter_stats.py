@@ -135,9 +135,9 @@ def panel_stats(layer: dict, catalog: dict, probe: Callable[[], dict | None],
                 stats_dir: Path = PANEL_STATS_DIR, threshold: int | None = None) -> dict | None:
     """The column stats the viewer's Filter panel ranks for `layer`, from
     where it reads them (web/src/filter-stats.ts, filter-schema.ts
-    columnStatsSource): the catalog's filter_stats, else the layer's
-    filter-stats file; else, for a parquet at or under LARGE_FILTER_BYTES,
-    what the browser's probe finds (`probe()`). None when there is no panel:
+    columnStatsSource): the catalog's filter_stats; else, for a parquet over
+    LARGE_FILTER_BYTES, the layer's filter-stats file; else what the
+    browser's probe finds (`probe()`). None when there is no panel:
     no parquet, or a large layer without a stats file."""
     pq = layer.get('parquet') or {}
     if not pq.get('url'):
@@ -145,15 +145,13 @@ def panel_stats(layer: dict, catalog: dict, probe: Callable[[], dict | None],
     inline = (catalog.get('filter_stats') or {}).get(layer['id'])
     if inline:
         return inline
-    filed = stats_dir / f"{layer['id']}.json"
-    if filed.exists():
-        return json.loads(filed.read_text())
     if threshold is None:
-        from bake_large_filter_stats import large_filter_bytes  # it imports this module
+        from bake_filter_stats import large_filter_bytes  # it imports this module
         threshold = large_filter_bytes()
-    if isinstance(pq.get('bytes'), int) and pq['bytes'] > threshold:
-        return None
-    return probe()
+    if not (isinstance(pq.get('bytes'), int) and pq['bytes'] > threshold):
+        return probe()  # every layer has a file (for /schema), but the viewer reads only a large one's
+    filed = stats_dir / f"{layer['id']}.json"
+    return json.loads(filed.read_text()) if filed.exists() else None
 
 
 def tile_filter_columns(stats: dict) -> list[str]:
@@ -263,7 +261,9 @@ def stats_for_parquet(path: Path | str, con: duckdb.DuckDBPyConnection, probe: b
             entry['max'] = _coerce(max_v, norm)
         columns.append(entry)
 
-    faceted = [c for c in columns if 2 <= c['distinct'] <= FACET_THRESHOLD]
+    # One-value columns too: /api/v1/layers/{id}/schema lists their value (the
+    # panel drops them, so its choices are unchanged).
+    faceted = [c for c in columns if 1 <= c['distinct'] <= FACET_THRESHOLD]
     try:
         top = value_counts(con, src, [c['name'] for c in faceted], MAX_TOP_VALUES)
     except duckdb.Error:  # one column breaks the merged scan: take them one at a time
@@ -278,6 +278,33 @@ def stats_for_parquet(path: Path | str, con: duckdb.DuckDBPyConnection, probe: b
             c['top_values'] = [{'v': _coerce(v, c['type']), 'n': n} for v, n in top[c['name']]]
 
     return {'row_count': int(row_count), 'columns': columns}
+
+
+def parquet_columns(con, src: str) -> list[dict]:
+    """The parquet's top-level columns in order, each with the physical and
+    converted type the API reads (hyparquet's SchemaElement, which
+    web/functions/lib/parquet-query.ts schemaType maps), or nested: true for a
+    struct, list or map. Reads the footer only."""
+    rows = con.execute(
+        f"SELECT name, type, converted_type, num_children FROM parquet_schema('{src}')").fetchall()
+    out: list[dict] = []
+    i = 1  # rows[0] is the root
+    while i < len(rows):
+        name, ptype, ctype, kids = rows[i]
+        col: dict = {'name': name}
+        if kids:
+            col['nested'] = True
+        else:
+            col['type'] = ptype
+            if ctype:
+                col['converted_type'] = ctype
+        out.append(col)
+        # Skip the column's descendants (each child may have children of its own).
+        pending, i = kids or 0, i + 1
+        while pending:
+            pending += (rows[i][3] or 0) - 1
+            i += 1
+    return out
 
 
 def _coerce(v, norm: str):
@@ -389,15 +416,24 @@ def pick_canonical(group: list[str], columns: list[dict]) -> str:
     return sorted(group, key=score, reverse=True)[0]
 
 
-def build_all(layers: list[tuple[str, Path | str]]) -> dict:
-    """layers: [(layer_id, local parquet path or http(s) URL), …]"""
+def connect(*paths: Path | str) -> duckdb.DuckDBPyConnection:
+    """A connection with spatial and, when a path is a URL, httpfs that retries
+    and backs off: R2's public URL answers 429 to bursts of range requests
+    (Overture places, 24 Nov 2026), which DuckDB's default 3 quick retries lose."""
     con = duckdb.connect()
     try:
         con.execute('INSTALL spatial; LOAD spatial')
     except duckdb.Error:
         pass
-    if any(is_url(p) for _, p in layers):
+    if any(is_url(p) for p in paths):
         con.execute('INSTALL httpfs; LOAD httpfs')
+        con.execute('SET http_retries = 8; SET http_retry_wait_ms = 2000; SET http_retry_backoff = 2')
+    return con
+
+
+def build_all(layers: list[tuple[str, Path | str]]) -> dict:
+    """layers: [(layer_id, local parquet path or http(s) URL), …]"""
+    con = connect(*(p for _, p in layers))
     out: dict = {}
     for layer_id, path in layers:
         s = stats_for_parquet(path, con)

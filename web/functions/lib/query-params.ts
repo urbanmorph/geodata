@@ -5,6 +5,8 @@
 // where-filter, so every new option MUST be added to RESERVED or it silently
 // turns into a filter on a non-existent column.
 
+import { ColumnInputError } from './parquet-query';
+
 export interface ParsedQueryParams {
   select?: string[];
   groupBy?: string;
@@ -25,6 +27,11 @@ export function clampNum(v: string | null, def: number, lo: number, hi: number, 
   return Number.isFinite(n) ? Math.min(Math.max(n, lo), hi) : def;
 }
 
+const whereFormat = (pair: string) =>
+  `where has "${pair.trim()}", which is not a col=value pair. Write where=col=value pairs, comma separated `
+  + '(where=STNAME=KERALA,DTNAME=IDUKKI), or put each filter in its own ?col=value parameter '
+  + '(needed when a value has a comma).';
+
 function list(v: string | null): string[] | undefined {
   const items = v?.split(',').map((s) => s.trim()).filter(Boolean);
   return items?.length ? items : undefined;
@@ -38,8 +45,11 @@ export function parseQueryParams(sp: URLSearchParams): ParsedQueryParams {
   const whereParam = sp.get('where');
   if (whereParam) {
     for (const pair of whereParam.split(',')) {
+      if (!pair.trim()) continue;
       const eq = pair.indexOf('=');
-      if (eq > 0) where[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
+      // A pair without a column and "=" was dropped: the answer was every row, 200.
+      if (eq < 1 || !pair.slice(0, eq).trim()) throw new ColumnInputError(whereFormat(pair));
+      where[pair.slice(0, eq).trim()] = pair.slice(eq + 1).trim();
     }
   }
   for (const [k, v] of sp.entries()) {

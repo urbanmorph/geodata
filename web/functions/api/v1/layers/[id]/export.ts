@@ -72,7 +72,7 @@ export const onRequestGet: PagesFunction<Env> = timedCall(async (ctx) => {
   if (!r2Key) return apiError(404, 'No parquet file for this layer');
   countApiUse(ctx, layer.id);
 
-  const fail = queryFailure('Export');
+  const fail = queryFailure('Export', layer.id);
   try {
     const filters = parseFilterParam(url.searchParams.get('filter'));
     const { where } = parseQueryParams(url.searchParams);

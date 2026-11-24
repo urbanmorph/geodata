@@ -7,14 +7,14 @@
 // (without group_by, to the filtered total).
 import type { Env } from '../../../_middleware';
 import { fetchAsset, type AssetCtx } from '../../../../lib/catalog-loader';
-import type { CatalogLayer } from '../../../../lib/catalog-api';
+import { noMatchHint, type CatalogLayer } from '../../../../lib/catalog-api';
 import { cached, cacheKey, EDGE_TTL } from '../../../../lib/edge-cache';
 import { countApiUse } from '../../../../lib/usage';
 import { timedCall } from '../../../../lib/api-calls';
-import { apiError, json, serverError } from '../../../../lib/http';
+import { apiError, json } from '../../../../lib/http';
 import { resolveLayer } from '../../../../lib/api-layer';
 import { r2KeyFromLayer, asyncBufferFromR2 } from '../../../../lib/parquet-r2';
-import { query, QueryInputError, type GroupByResult, type QueryResult } from '../../../../lib/parquet-query';
+import { query, queryFailure, type GroupByResult, type QueryResult } from '../../../../lib/parquet-query';
 
 const CACHE = 'public, max-age=86400, stale-while-revalidate=86400';
 
@@ -83,15 +83,16 @@ async function answer(ctx: CountsCtx, layer: CatalogLayer, params: URLSearchPara
     if (!groupBy) {
       // The filtered total: only the filter column is scanned.
       const q = await query(file, { where, select: [filterCol!], limit: 1 }) as QueryResult;
-      return respond({ layer_id: id, total: q.total, filter: { column: filterCol, value: filterVal } });
+      return respond({ layer_id: id, total: q.total, filter: { column: filterCol, value: filterVal }, ...noMatch(id, where, q.total) });
     }
     const g = await query(file, { groupBy, where }) as GroupByResult;
-    return respond({ layer_id: id, total: g.total, group_by: groupBy, counts: g.counts });
+    return respond({ layer_id: id, total: g.total, group_by: groupBy, counts: g.counts, ...noMatch(id, where, g.total) });
   } catch (e) {
-    if (e instanceof QueryInputError) return apiError(400, e.message);
-    return serverError('Counts', e);
+    return queryFailure('Counts', id)(e);
   }
 }
+
+const noMatch = (id: string, where: object | undefined, total: number) => (where && total === 0 ? { hint: noMatchHint(id) } : {});
 
 const respond = (data: unknown) => json(200, { data }, { 'cache-control': CACHE });
 

@@ -3,6 +3,7 @@ import { cached, cacheKey, CACHE_CONTROL, EDGE_TTL } from './edge-cache';
 import { json } from './http';
 import { layerIsNonCommercial, NC_NOTICE } from '../../../shared/licences.mjs';
 import { realmOf } from '../../../shared/realms.mjs';
+import { usesServerFilter } from '../../../shared/large-load.mjs';
 export interface CatalogLayer {
   id: string;
   level: string;
@@ -78,6 +79,8 @@ export interface ApiLayer {
   attribution?: CatalogLayer['attribution'];
   notes?: string;
   downloads: Record<string, { url: string; bytes: number | null }>;
+  /** Where to read the layer's columns and values (/api/v1/layers/{id}/schema); set when it has a parquet. */
+  schema_url?: string;
   level_meta?: { label: string; unit: string; description: string };
   filter_stats?: unknown;
   non_commercial?: true;
@@ -112,6 +115,20 @@ export function paginateResults<T>(items: T[], opts: PaginationOpts): PaginatedR
   };
 }
 
+/** The layer's schema, as the API names its own routes (relative, as in /counts' Link header). */
+export const schemaPath = (id: string): string => `/api/v1/layers/${encodeURIComponent(id)}/schema`;
+
+/** Said with a column error: where to find the columns, and how where matches. */
+export const schemaHint = (id: string): string =>
+  `The layer's columns and their values are at ${schemaPath(id)}. where matching is exact, case-insensitive.`;
+
+/** Said with an answer whose filter matched no row. */
+export const noMatchHint = (id: string): string =>
+  `No rows matched. where matching is exact, case-insensitive (no partial match): check the column names and values at ${schemaPath(id)}.`;
+
+/** Where a layer's baked stats file is served (scripts/bake_filter_stats.py). */
+export const statsPath = (id: string): string => `/api-data/filter-stats/${encodeURIComponent(id)}.json`;
+
 const FORMATS = ['parquet', 'pmtiles', 'geojson', 'kml', 'shapefile'] as const;
 
 /** Spread into every answer about a layer or its rows: a non-commercial layer says so, in a field and in words. */
@@ -137,6 +154,7 @@ export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = f
     attribution: layer.attribution,
     notes: layer.notes,
     downloads,
+    ...(layer.parquet?.url ? { schema_url: schemaPath(layer.id) } : {}),
     level_meta: catalog.level_meta?.[layer.id],
     ...ncFields(layer),
   };
@@ -148,11 +166,13 @@ export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = f
 }
 
 /** Layer detail: a layer over LARGE_FILTER_BYTES keeps its filter stats in
- *  /api-data/filter-stats/<id>.json, not in the catalog; add them from there. */
+ *  /api-data/filter-stats/<id>.json, not in the catalog; add them from there.
+ *  Smaller layers have a file too (for /schema), but their detail stays as it
+ *  was: the stats come from the catalog or not at all. */
 export async function attachFilterStats(ctx: AssetCtx, api: ApiLayer): Promise<ApiLayer> {
-  if (api.filter_stats) return api;
+  if (api.filter_stats || !usesServerFilter({ parquet: api.downloads?.parquet })) return api;
   try {
-    const r = await fetchAsset(ctx, `/api-data/filter-stats/${encodeURIComponent(api.id)}.json`);
+    const r = await fetchAsset(ctx, statsPath(api.id));
     if (r.ok) return { ...api, filter_stats: await r.json() };
   } catch { /* no file: no stats */ }
   return api;

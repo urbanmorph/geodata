@@ -229,15 +229,15 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 curl https://bharatlas.com/api/v1/layers?realm=below</code></pre>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id</span></h3>
-      <p>Single layer detail with download URLs, licence and attribution.</p>
+      <p>Single layer detail with download URLs, licence and attribution. A layer with a parquet file says where its schema is in <code>schema_url</code> (as do the layers in the list above).</p>
       <pre><code>curl https://bharatlas.com/api/v1/layers/lgd_states</code></pre>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/schema</span></h3>
-      <p>Column names, types, and sample values. Reads parquet metadata from R2 at runtime. Use this to discover what columns a layer has before querying. Nested columns (structs, lists, maps, such as Overture's <code>names</code> or <code>addresses</code>) are listed with type <code>nested</code>: you can <code>select</code> them, but not filter or group on them.</p>
+      <p>Column names, types, and values. Use this to discover what columns a layer has, and how its values are spelled, before querying. A column with at most 20 values lists them all in <code>distinct_values</code>. For curated layers the answer comes from stats baked over the whole file, so it also gives <code>distinct_count</code> (distinct values in the whole layer) and, for a column with 21 to 50 values, <code>top_values</code> with their row counts (left out when every value appears once, as in an id column); community layers are read from their parquet file at the time of the call. Nested columns (structs, lists, maps, such as Overture's <code>names</code> or <code>addresses</code>) are listed with type <code>nested</code>: you can <code>select</code> them, but not filter or group on them.</p>
       <pre><code>curl https://bharatlas.com/api/v1/layers/airports/schema</code></pre>
 
       <h3><span class="badge badge--stable method">GET</span> <span class="endpoint">/api/v1/layers/:id/query</span></h3>
-      <p>Query layer data with filters and grouping. Reads the parquet from R2 at runtime, no pre-computation needed. Works for curated and community layers. An unknown column in <code>select</code>, <code>where</code>, <code>filter</code>, <code>group_by</code> or <code>sum</code> is a <code>400</code> that lists the layer’s columns, before any row is read. A filter that matches nothing returns <code>hints</code> with the column’s values. Answers are kept in the edge cache for up to an hour.</p>
+      <p>Query layer data with filters and grouping. Reads the parquet from R2 at runtime, no pre-computation needed. Works for curated and community layers. An unknown column in <code>select</code>, <code>where</code>, <code>filter</code>, <code>group_by</code> or <code>sum</code> is a <code>400</code> that lists the layer’s columns and names its schema, before any row is read. So is a <code>where</code> pair without <code>=</code>. A filter that matches nothing returns <code>hints</code> with the column’s values and a <code>hint</code> naming the layer’s schema. Answers are kept in the edge cache for up to an hour.</p>
       <table>
         <tr><th>Param</th><th>Type</th><th>Description</th></tr>
         <tr><td><code>select</code></td><td>string</td><td>Comma-separated column names to return</td></tr>

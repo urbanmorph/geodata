@@ -10,11 +10,23 @@ import { cachedMetadata, type AsyncBuffer } from './parquet-r2';
 import { mapConcurrent, R2_CONCURRENCY } from './concurrency';
 import { QUERY_JUNK_COLUMNS } from './junk-columns';
 import { apiError, serverError } from './http';
+import { schemaHint } from './catalog-api';
 
 export interface ColumnSchema {
   name: string;
   type: string;
   distinct_values?: unknown[];
+  /** Baked answers only (lib/baked-schema.ts): distinct values in the whole file. */
+  distinct_count?: number;
+  /** Baked answers only: the most common values and their row counts, for a
+   *  column with more than MAX_DISTINCT_SAMPLE values (up to 50 of them). */
+  top_values?: Array<{ value: string; count: number }>;
+}
+
+/** The /schema answer. */
+export interface LayerSchema {
+  row_count: number;
+  columns: ColumnSchema[];
 }
 
 export interface QueryResult {
@@ -37,10 +49,17 @@ export interface GroupByResult {
 /** A caller mistake (bad column, wrong type, missing group_by): maps to HTTP 400. */
 export class QueryInputError extends Error {}
 
+/** A column that is not there, or is nested or the geometry: the 400 also
+ *  points at the layer's schema (queryFailure). */
+export class ColumnInputError extends QueryInputError {}
+
 /** The catch for a read route: a QueryInputError is the caller's 400, anything
- *  else the generic 500 for `what` (its detail goes to the log only). */
-export const queryFailure = (what: string) => (e: unknown): Response =>
-  e instanceof QueryInputError ? apiError(400, e.message) : serverError(what, e);
+ *  else the generic 500 for `what` (its detail goes to the log only). Given the
+ *  layer id, a column error also names the layer's schema. */
+export const queryFailure = (what: string, layerId?: string) => (e: unknown): Response => {
+  if (!(e instanceof QueryInputError)) return serverError(what, e);
+  return apiError(400, e instanceof ColumnInputError && layerId ? `${e.message} ${schemaHint(layerId)}` : e.message);
+};
 
 /** The Filter panel's filters (web/src/filter-where.ts ActiveFilter), sent as
  *  `filter=` JSON for layers too large to filter in the browser. */
@@ -84,7 +103,7 @@ export function rowMatcher(where: Array<[string, string]>, filters: FilterSpec[]
 
 const MAX_ROWS = 1000;
 const MAX_GROUP_BY_VALUES = 500;
-const MAX_DISTINCT_SAMPLE = 20;
+export const MAX_DISTINCT_SAMPLE = 20;
 /** Most distinct group keys one group_by holds while counting. Every key is an
  *  object entry (plus a sums record), so grouping 4.8M Overture names by name
  *  would hold millions of them in a 128 MB Worker before the top 500 are cut. */
@@ -140,10 +159,10 @@ function assertFlat(cols: ReturnType<typeof topLevelColumns>, names: string[]): 
   const flat = cols.filter((c) => !c.nested && !isGeomColumn(c.name)).map((c) => c.name);
   for (const n of names) {
     if (nested.has(n)) {
-      throw new QueryInputError(`Column "${n}" is nested (struct, list or map) and can't be filtered or grouped. Flat columns: ${flat.join(', ')}`);
+      throw new ColumnInputError(`Column "${n}" is nested (struct, list or map) and can't be filtered or grouped. Flat columns: ${flat.join(', ')}`);
     }
     if (isGeomColumn(n) && cols.some((c) => c.name === n)) {
-      throw new QueryInputError(`Column "${n}" is the geometry and can't be filtered or grouped. For a point per row use include_centroid=true; for shapes use the layer's downloads. Flat columns: ${flat.join(', ')}`);
+      throw new ColumnInputError(`Column "${n}" is the geometry and can't be filtered or grouped. For a point per row use include_centroid=true; for shapes use the layer's downloads. Flat columns: ${flat.join(', ')}`);
     }
   }
 }
@@ -156,7 +175,7 @@ export function assertFilterColumns(cols: ReturnType<typeof topLevelColumns>, na
   const missing = names.filter((n) => !known.has(n));
   if (missing.length) {
     const flat = cols.filter((c) => !c.nested && !isGeomColumn(c.name)).map((c) => c.name);
-    throw new QueryInputError(`Filter column(s) ${missing.map((m) => `"${m}"`).join(', ')} not found. Flat columns: ${flat.join(', ')}`);
+    throw new ColumnInputError(`Filter column(s) ${missing.map((m) => `"${m}"`).join(', ')} not found. Flat columns: ${flat.join(', ')}`);
   }
 }
 
@@ -175,10 +194,7 @@ export function sampleSpans(metadata: FileMetaData): Array<{ start: number; end:
   return [...picks].map((i) => ({ start: spans[i].start, end: Math.min(spans[i].end, spans[i].start + SAMPLE_ROWS_PER_GROUP) }));
 }
 
-export async function getSchema(file: AsyncBuffer): Promise<{
-  row_count: number;
-  columns: ColumnSchema[];
-}> {
+export async function getSchema(file: AsyncBuffer): Promise<LayerSchema> {
   const metadata = await cachedMetadata(file);
   const rowCount = metadata.row_groups.reduce((s, rg) => s + Number(rg.num_rows), 0);
 
@@ -239,13 +255,13 @@ export async function query(
   // block polygons is a one-request Worker kill: shapes come from downloads.
   const geomSelected = (opts.select ?? []).filter((c) => isGeomColumn(c) && allCols.includes(c));
   if (geomSelected.length) {
-    throw new QueryInputError(`Column "${geomSelected[0]}" is the geometry and can't be selected. For a point per row use include_centroid=true; for shapes use the layer's downloads or /export.`);
+    throw new ColumnInputError(`Column "${geomSelected[0]}" is the geometry and can't be selected. For a point per row use include_centroid=true; for shapes use the layer's downloads or /export.`);
   }
   // An unknown select column used to be dropped silently (all unknown: total 0).
   const unknownSelect = (opts.select ?? []).filter((c) => !allCols.includes(c));
   if (unknownSelect.length) {
     const selectable = allCols.filter((c) => !isGeomColumn(c));
-    throw new QueryInputError(`Select column(s) ${unknownSelect.map((c) => `"${c}"`).join(', ')} not found. Columns: ${selectable.join(', ')}`);
+    throw new ColumnInputError(`Select column(s) ${unknownSelect.map((c) => `"${c}"`).join(', ')} not found. Columns: ${selectable.join(', ')}`);
   }
 
   const sumCols = opts.sum?.length ? opts.sum : [];
@@ -275,7 +291,7 @@ export function validateSumColumns(
   const numeric = Object.keys(types).filter((c) => NUMERIC_TYPES.has(types[c] ?? '') && !isJunkColumn(c));
   for (const c of sumCols) {
     if (!(c in types)) {
-      throw new QueryInputError(`Sum column "${c}" not found. Numeric columns: ${numeric.join(', ')}`);
+      throw new ColumnInputError(`Sum column "${c}" not found. Numeric columns: ${numeric.join(', ')}`);
     }
     if (!NUMERIC_TYPES.has(types[c] ?? '')) {
       throw new QueryInputError(`Sum column "${c}" is not numeric. Numeric columns: ${numeric.join(', ')}`);
@@ -490,7 +506,7 @@ async function groupByQuery(
 ): Promise<GroupByResult> {
   if (!allCols.includes(groupCol)) {
     const available = allCols.filter((c) => !isGeomColumn(c) && !isJunkColumn(c));
-    throw new QueryInputError(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
+    throw new ColumnInputError(`Column "${groupCol}" not found. Available: ${available.join(', ')}`);
   }
 
   const where = lowerWhere(whereObj);
@@ -521,7 +537,7 @@ async function groupByQuery(
   };
 }
 
-function schemaType(type?: string | number, convertedType?: string | number): string {
+export function schemaType(type?: string | number, convertedType?: string | number): string {
   const t = String(type ?? '').toUpperCase();
   if (t.includes('INT') || t.includes('FLOAT') || t.includes('DOUBLE')) return 'number';
   if (t.includes('BYTE_ARRAY') || t.includes('FIXED')) {

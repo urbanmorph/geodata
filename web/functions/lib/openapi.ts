@@ -130,15 +130,21 @@ const BASE = {
       get: {
         operationId: 'getLayerSchema',
         tags: ['Layers'],
-        summary: 'Column names, types and sample values (read this before querying)',
-        description: 'Columns of type `nested` (structs, lists, maps) can be selected but not filtered or grouped.',
+        summary: 'Column names, types and values (read this before querying)',
+        description: 'Columns of type `nested` (structs, lists, maps) can be selected but not filtered or grouped. A column with at most 20 values lists them in `distinct_values`. Curated layers answer from stats baked over the whole file, adding `distinct_count` and, for 21 to 50 values, `top_values` with row counts; community layers are read from their parquet file.',
         parameters: [LAYER_ID],
         responses: {
           '200': ok('The schema', data({
             type: 'object',
             properties: {
               row_count: { type: 'integer' },
-              columns: { type: 'array', items: { type: 'object', properties: { name: { type: 'string' }, type: { type: 'string' }, distinct_values: { type: 'array', items: { type: 'string' } } } } },
+              columns: { type: 'array', items: { type: 'object', properties: {
+                name: { type: 'string' },
+                type: { type: 'string' },
+                distinct_values: { type: 'array', items: { type: 'string' } },
+                distinct_count: { type: 'integer', description: 'Curated layers: distinct values in the whole layer.' },
+                top_values: { type: 'array', description: 'Curated layers, columns with 21 to 50 values: each value and its row count, most rows first. Left out when every value appears once.', items: { type: 'object', properties: { value: { type: 'string' }, count: { type: 'integer' } } } },
+              } } },
             },
           })),
           ...errors('301', '400', '404', '429', '500'),
@@ -151,11 +157,11 @@ const BASE = {
         tags: ['Layers'],
         summary: 'Filter, select, group and total a layer’s rows',
         description:
-          'Reads the layer’s Parquet file. Filters are exact, case-insensitive matches on flat columns, given as `where=col=val,col2=val2` or as plain `col=val` parameters (any parameter that is not an option below is a filter; use that form when a value contains a comma). Geometry columns are never returned. With `group_by` the result is counts per value (and `sums` with `sum`); without it, rows. An unknown column in `select`, `where`, `filter`, `group_by` or `sum` is a 400 that lists the columns, before any row is read. A filter that matches nothing returns `hints` with the column’s values. Answers are kept in the edge cache for up to an hour.',
+          'Reads the layer’s Parquet file. Filters are exact, case-insensitive matches on flat columns, given as `where=col=val,col2=val2` or as plain `col=val` parameters (any parameter that is not an option below is a filter; use that form when a value contains a comma). Geometry columns are never returned. With `group_by` the result is counts per value (and `sums` with `sum`); without it, rows. An unknown column in `select`, `where`, `filter`, `group_by` or `sum` is a 400 that lists the columns and names the layer’s schema, before any row is read; so is a `where` pair without `=`. A filter that matches nothing returns `hints` with the column’s values, and `hint` naming the layer’s schema. Answers are kept in the edge cache for up to an hour.',
         parameters: [
           LAYER_ID,
           q('select', 'Comma-separated columns to return. Default: every column except the geometry and the bounding-box columns (`xmin`, `ymin`, `xmax`, `ymax`; `_lat` and `_lng` carry the centre). An unknown column is a 400.', { type: 'string' }),
-          q('where', 'Filters as `col=val,col2=val2` (exact, case-insensitive).', { type: 'string' }),
+          q('where', 'Filters as `col=val,col2=val2` (exact, case-insensitive). A pair without `=` is a 400.', { type: 'string' }),
           q('group_by', 'Count rows per value of this column.', { type: 'string' }),
           q('sum', 'With `group_by`: comma-separated numeric columns to total per group. Percentages are not additive: sum the amounts and recompute shares.', { type: 'string' }),
           q('limit', 'Most rows to return: 1–1000, default 100.', { type: 'integer', minimum: 1, maximum: 1000, default: 100 }),
@@ -172,6 +178,7 @@ const BASE = {
               data: { oneOf: [ref('schemas', 'QueryRows'), ref('schemas', 'QueryGroups')] },
               layer_id: { type: 'string' },
               timing_ms: { type: 'integer' },
+              hint: { type: 'string', description: 'When a filter matched no row: how matching works and where the layer’s schema is.' },
             },
           }),
           ...errors('301', '400', '404', '429', '500'),
@@ -188,7 +195,7 @@ const BASE = {
           LAYER_ID,
           q('format', 'geojson (default), kml or csv.', { type: 'string', enum: ['geojson', 'kml', 'csv'], default: 'geojson' }),
           q('estimate', '1: only the match count and the estimated size of each format (JSON), no export.', { type: 'string', enum: ['1'] }),
-          q('where', 'Filters as `col=val,col2=val2` (exact, case-insensitive).', { type: 'string' }),
+          q('where', 'Filters as `col=val,col2=val2` (exact, case-insensitive). A pair without `=` is a 400.', { type: 'string' }),
           q('filter', 'Filters as a JSON list, for more than exact matches: `[{"col":"sname","kind":"in","values":["KA","TN"]}]`; kinds `in` (case-insensitive, any of the values), `range` (numeric `min` and/or `max`), `search` (case-insensitive substring `q`), `bool` (`v`). Combined with `where` (all must match).', { type: 'string' }),
         ],
         responses: { '200': { description: 'The file, streamed' }, ...errors('301', '400', '404', '429', '500') },
@@ -365,6 +372,7 @@ const BASE = {
           licence: { type: 'string', description: 'SPDX-style licence id(s) of the source, e.g. `CC0-1.0`, `ODbL-1.0`, `GODL-India`.' },
           attribution: { type: 'object', description: 'Who to credit: `primary` is the source, `publisher` who prepared it.', properties: { primary: ref('schemas', 'Credit'), publisher: ref('schemas', 'Credit') } },
           notes: { type: 'string' },
+          schema_url: { type: 'string', description: 'Where the layer’s columns and values are (`/api/v1/layers/{id}/schema`); set when the layer has a parquet file.' },
           downloads: { type: 'object', description: 'Format → file: parquet, pmtiles, geojson, kml, shapefile (each where available).', additionalProperties: { type: 'object', properties: { url: { type: 'string', format: 'uri' }, bytes: { type: ['integer', 'null'] } } } },
           versions: {
             type: 'array',
