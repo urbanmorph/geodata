@@ -20,8 +20,21 @@ describe('wardLine', () => {
     expect(wardLine('wards_jaipur', { wardcode: '12', ward_lgd_name: 'Jaipur (M Corp.)' })).toBe('Ward 12');
     expect(wardLine('wb_amrut_wards', { Ward_No: 6, Name: 'Purulia' })).toBe('Ward 6');
   });
-  it('a zone-only source names the zone as a zone', () => {
-    expect(wardLine('wards_bhubaneshwar', { wardno: '12', municipalzone: 'North' })).toBe('Ward 12, North zone');
+  it('a zone-only source names the zone as a zone, once', () => {
+    expect(wardLine('wards_bhubaneshwar', { wardno: 'W27', municipalzone: 'South-West Zone' })).toBe('Ward W27, South-West Zone');
+    expect(wardLine('wards_coimbatore', { '2011WardNumbers': 51, Zone: 'Cental Zone' })).toBe('Ward 51, Cental Zone');
+    expect(wardLine('wards_madurai', { sourcewardcode: '3', zone: 'North' })).toBe('Ward 3, North zone');
+  });
+  it('a number column that already says "Ward" is not said twice', () => {
+    expect(wardLine('wards_patna', { wardname: 'Ward 28' })).toBe('Ward 28');
+    expect(wardLine('sbm_wards', { wardcode: 'Ward No. 6', wardname: 'WARD NO. 06' })).toBe('Ward 6');
+  });
+  it('values read as the rest of the summary reads them: spaces collapsed, 49.0 as 49', () => {
+    expect(wardLine('wards_pune_2025', { AdminNo: 7, Field: 'Aundh  Baner' })).toBe('Ward office 7, Aundh Baner');
+    expect(wardLine('wards_vijayawada', { WARD_NO: 49.0 })).toBe('Ward 49');
+  });
+  it('a parsed name the ward pages would reject is left out', () => {
+    expect(wardLine('wards_hyderabad', { ward: '12-Ward No 12' })).toBe('Ward 12');
   });
   it('the national ward map, and a unit with its own name', () => {
     expect(wardLine('sbm_wards', { wardcode: '8', wardname: 'Jali Dodmane' })).toBe('Ward 8, Jali Dodmane');

@@ -481,8 +481,8 @@ export async function profileAt(
   pastDeadline.catch(() => {}); // raced by every layer; none may be left when it fires
   const byId = new Map(catalog.layers.map((l) => [l.id, l]));
   const extra = profile.expand?.(lat, lng, catalog) ?? [];
-  const after = profile.expandAfter ? profile.layers.findIndex((l) => (l.key ?? l.id) === profile.expandAfter) + 1 : 0;
-  const at = after > 0 ? after : profile.layers.length;
+  const i = profile.expandAfter ? profile.layers.findIndex((l) => (l.key ?? l.id) === profile.expandAfter) : -1;
+  const at = i < 0 ? profile.layers.length : i + 1; // the named layer filtered out: at the end
   const layers = [...profile.layers.slice(0, at), ...extra, ...profile.layers.slice(at)];
   const keyOf = (l: ProfileLayer) => l.key ?? l.id;
   const sections: ProfileResponse['sections'] = Object.fromEntries(profile.sections.map((s) => [s, {}]));
@@ -573,7 +573,8 @@ export async function profileAt(
   // Credits follow the sections too, so the list is the same however the reads finish.
   const credits = new Set(profile.sections.flatMap((s) => Object.keys(sections[s]))
     .flatMap((k) => creditOfKey.get(k) ?? []));
-  const lines = [...said.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])];
+  // A line said twice (two ward maps naming the same ward) is said once.
+  const lines = [...new Set([...said.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])])];
 
   return {
     point: { lat, lng },

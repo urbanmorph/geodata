@@ -120,6 +120,26 @@ describe('surfaceAt', () => {
     expect(Object.keys(s.sections.place).indexOf('sbm_wards')).toBe(Object.keys(s.sections.place).indexOf('lgd_subdistricts') + 1);
   });
 
+  it('two ward maps that say the same ward say it once (West Bengal: SBM and WB AMRUT)', async () => {
+    const at = (props: Record<string, Record<string, unknown>>): ProfileDeps => ({
+      ...deps,
+      locate: async (_lat, _lng, ids) => ({
+        point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1,
+        results: { x: ids.filter((id) => props[id]).map((id) => ({ layer_id: id, level: id, category: 'x', feature: { properties: props[id] } })) },
+      }) as LocateResponse,
+    });
+    const wbCatalog = { ...catalog, layers: [...catalog.layers, layer('wb_amrut_wards')] } as CatalogData;
+    const s = await surfaceAt(22.75, 88.34, wbCatalog, {} as R2Bucket, at({
+      sbm_wards: { wardcode: '6', wardname: 'WARD NO. 06' }, wb_amrut_wards: { Ward_No: 6, Name: 'Serampore' },
+    }));
+    expect(s.summary.match(/Ward 6/g)).toHaveLength(1);
+  });
+
+  it('with the sub-district filtered out, the ward still answers', async () => {
+    const s = await surfaceAt(13.993, 74.522, catalog, {} as R2Bucket, deps, { filter: { layers: ['lgd_assembly', 'sbm_wards'] } });
+    expect(Object.keys(s.sections.place)).toEqual(expect.arrayContaining(['sbm_wards']));
+  });
+
   it('finds the river by true distance and says it', async () => {
     const s = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, deps);
     expect(s.sections.water.wris_rivers).toMatchObject({ status: 'found', distance_to: 'shape', nearest: [{ distance_km: 1.5 }] });
