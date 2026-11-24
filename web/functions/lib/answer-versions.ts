@@ -11,7 +11,7 @@ export const ANSWER_V = {
   export: 1,   // the estimate (export rows themselves are never cached)
   nearby: 2,   // v2: tile shapes decoded with Mercator latitudes (24 Nov 2026)
   ground: 2,   // v2: locate's tiles decoded with Mercator latitudes
-  surface: 2,  // v2: the same, and the default basin layer id
+  surface: 2,  // v2: the same (its place and zone rows read through locate)
 } as const;
 
 export type AnswerEndpoint = keyof typeof ANSWER_V;
