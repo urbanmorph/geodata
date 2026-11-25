@@ -5,11 +5,13 @@
   "ground:tiles@v3": "9dc91635d5f2d3cb",
   "ground:tiles@v4": "9dc91635d5f2d3cb",
   "ground:tiles@v5": "9dc91635d5f2d3cb",
+  "ground:tiles@v6": "9dc91635d5f2d3cb",
   "ground@v1": "573336a52b0f917d",
   "ground@v2": "573336a52b0f917d",
   "ground@v3": "573336a52b0f917d",
   "ground@v4": "882455b7fd727fdc",
   "ground@v5": "882455b7fd727fdc",
+  "ground@v6": "882455b7fd727fdc",
   "layers@v1": "f3ff9a3d5c04d30a",
   "nearby:tiles@v2": "8f848da05f437e2b",
   "nearby:tiles@v3": "8f848da05f437e2b",
@@ -22,9 +24,11 @@
   "surface:tiles@v3": "9dc91635d5f2d3cb",
   "surface:tiles@v4": "9dc91635d5f2d3cb",
   "surface:tiles@v5": "9dc91635d5f2d3cb",
+  "surface:tiles@v6": "9dc91635d5f2d3cb",
   "surface@v1": "238cc03efd010e3f",
   "surface@v2": "238cc03efd010e3f",
   "surface@v3": "238cc03efd010e3f",
   "surface@v4": "439f1bfc488df763",
-  "surface@v5": "439f1bfc488df763"
+  "surface@v5": "439f1bfc488df763",
+  "surface@v6": "439f1bfc488df763"
 }

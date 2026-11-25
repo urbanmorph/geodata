@@ -109,6 +109,9 @@ describe('summary lines', () => {
     const name = 'Drainage area of Andaman & Nicobar Islands';
     expect(say('wris_subbasin', { match: 'contains', status: 'found', features: [{ ba_name: name, sub_basin: name }] })).toBe(`River basin: ${name}`);
     expect(say('wris_subbasin', { match: 'contains', status: 'found', features: [{ ba_name: 'Ganga', sub_basin: 'Yamuna' }] })).toBe('River basin: Ganga, Yamuna');
+    // a trailing "Basin" is not a different name (Jaisalmer)
+    expect(say('wris_subbasin', { match: 'contains', status: 'found', features: [{ ba_name: 'Area of Inland drainage in Rajasthan Basin', sub_basin: 'Area of Inland drainage in Rajasthan' }] }))
+      .toBe('River basin: Area of Inland drainage in Rajasthan Basin');
   });
   it('a protected area named only by its kind says where it is (Vapi)', () => {
     const near = (properties: Record<string, unknown>, d: number) => say('gs_wildlife_nearest', { match: 'nearest', status: 'found', nearest: [{ distance_km: d, lat: 0, lng: 0, properties }] });
@@ -185,6 +188,22 @@ describe('surfaceAt', () => {
     expect(s.sections.access.airports).toMatchObject({ status: 'none_within_radius', count: 0, nearest: [] });
     expect(s.sections.access.airports.count_capped).toBeUndefined();
     expect(s.summary).not.toMatch(/airport|Heliport/i);
+  });
+
+  it('a point outside India says so first (Kathmandu); one just off the outline does not', async () => {
+    const outline = (d: number): ProfileDeps => ({ ...deps,
+      locate: async (_lat, _lng, ids) => ({ point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1, results: {} }) as LocateResponse,
+      nearbyByGeometry: async (_lat, _lng, _r, id) => (id === 'india_boundary'
+        ? { features: [{ properties: {}, lat: 27.3, lng: 84.6, distance_km: d }], total: 1, capped: false }
+        : { features: [], total: 0, capped: false }) });
+    const s = await surfaceAt(27.7172, 85.324, catalog, {} as R2Bucket, outline(80.97));
+    expect(s.summary).toMatch(/^This point is outside India, 81\.0 km from its outline\./);
+    const coast = await surfaceAt(7.01, 93.93, catalog, {} as R2Bucket, outline(0.4));
+    expect(coast.summary).not.toMatch(/outside India/);
+    const home = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, { ...outline(80),
+      locate: async (_lat, _lng, ids) => ({ point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1,
+        results: { x: ids.filter((id) => id === 'lgd_states').map((id) => ({ layer_id: id, level: id, category: 'x', feature: { properties: { STNAME: 'WEST BENGAL' } } })) } }) as LocateResponse });
+    expect(home.summary).not.toMatch(/outside India/); // inside a state: never outside
   });
 
   it('finds the river by true distance and says it', async () => {

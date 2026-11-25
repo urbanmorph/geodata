@@ -38,6 +38,9 @@ export interface ProfileLayer {
   /** With shape: read the shapes from the map tiles (default; small reads, cached) or from the
    *  parquet (one row group at a time: for a radius too large for tiles, such as India's outline). */
   shapeFrom?: 'tiles' | 'parquet';
+  /** contains: when no polygon holds the point, the nearest one within this many km answers
+   *  (edge_km says how far its edge is): a national map whose coast stops short of the shore. */
+  edgeKm?: number;
   /** Only rows this keeps count (e.g. skip a layer's "non-wetland area" polygons, or an airport
    *  layer's heliports). Without shape it filters the `candidates` nearest rows, so set those
    *  wide enough; the columns it reads must be in `fields`. */
@@ -91,12 +94,12 @@ export function cleanText(v: unknown): string | null {
   return s === '' || s === '-' || /^n\/?a$/i.test(s) || /^null$/i.test(s) ? null : s;
 }
 
-/** Parts joined by `sep`, blanks left out and each said once (case and spacing ignored):
- *  a basin and sub-basin of one name, or a ward named only by its number, read once. */
-export function joinOnce(parts: Array<string | null | undefined>, sep = ', '): string {
+/** Parts joined by `sep`, blanks left out and each said once (case and spacing ignored, and
+ *  whatever `same` strips): a basin and sub-basin of one name, or a ward named only by its number, read once. */
+export function joinOnce(parts: Array<string | null | undefined>, sep = ', ', same = (s: string) => s): string {
   const seen = new Set<string>();
   return parts.filter((p): p is string => {
-    const k = p?.replace(/\s+/g, ' ').trim().toLowerCase();
+    const k = p && same(p.replace(/\s+/g, ' ').trim().toLowerCase());
     if (!k || seen.has(k)) return false;
     seen.add(k);
     return true;
@@ -189,6 +192,8 @@ export interface ProfileEntry {
   distance_to?: 'point' | 'shape';
   count?: number;
   count_capped?: true;
+  /** contains, with edgeKm: no polygon holds the point; the nearest one, whose mapped edge is this far, answers. */
+  edge_km?: number;
   nearest?: NearestItem[];
   stats?: Record<string, number | null>;
   links?: Record<string, string>;
@@ -255,6 +260,8 @@ export interface ProfileSpec {
   expandAfter?: string;
   /** Summary lines that need several entries (e.g. the nearest hospital across three layers). */
   conclude?: (sections: ProfileResponse['sections']) => string[];
+  /** Lines said before all others, from several entries (e.g. a point outside India). */
+  preface?: (sections: ProfileResponse['sections']) => string[];
 }
 
 /** An entry's vintage where its source gives no date: the answer then dates it by fetched_at, never by silence. */
@@ -394,8 +401,15 @@ async function readContains(
   const features = dedupeFeatures(Object.values(r.results).flat()
     .filter((h) => h.layer_id === spec.id).map((h) => pick(h.feature.properties, spec.fields)));
   const none = spec.allIndia ? { status: 'none_within_radius' as const, radius_km: 0 } : { status: 'not_covered' as const };
+  // A coarse map's coast can stop short of a point on land: the nearest polygon within edgeKm answers.
+  let edge: number | undefined;
+  if (!features.length && spec.edgeKm) {
+    const near = (await deps.nearbyFromTiles(lat, lng, spec.edgeKm, spec.id, catalog, r2, { limit: 1 })).features[0];
+    if (near) { features.push(pick(near.properties, spec.fields)); edge = near.distance_km; }
+  }
   return {
     match: 'contains', ...(features.length ? { status: 'found' as const } : none), features,
+    ...(edge !== undefined ? { edge_km: edge } : {}),
     ...(spec.decode && features[0] ? { decoded: spec.decode(features[0]) } : {}),
   };
 }
@@ -615,7 +629,7 @@ export async function profileAt(
   const credits = new Set(profile.sections.flatMap((s) => Object.keys(sections[s]))
     .flatMap((k) => creditOfKey.get(k) ?? []));
   // A line said twice (two ward maps naming the same ward) is said once.
-  const lines = [...new Set([...heard.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])])];
+  const lines = [...new Set([...(profile.preface?.(sections) ?? []), ...heard.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])])];
 
   return {
     point: { lat, lng },
