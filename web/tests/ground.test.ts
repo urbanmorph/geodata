@@ -271,6 +271,13 @@ describe('groundAt', () => {
     expect(say(entry({ class: 'Not Assessed', sgw_dev_pe: 0, block: 'Joshimath' }))).toBe('Groundwater extraction: Not Assessed');
   });
 
+  it('outside the five cities, says subsidence is not measured there (Joshimath, Jharia)', () => {
+    const say = GROUND_LAYERS.find((l) => l.id === 'subsidence_megacities')!.say!;
+    const entry = (status: string) => ({ layer_id: 'x', match: 'nearest', status, credit: { name: 'c' }, count: 0, nearest: [], stats: { median_VLM_cm_per_yr: null, points: 0, readings: 0 } }) as never;
+    expect(say(entry('not_covered'))).toBe('Subsidence: not measured here (the satellite data covers Bengaluru, Chennai, Delhi, Kolkata and Mumbai only)');
+    expect(say(entry('none_within_radius'))).toBeNull(); // inside a city, no point within 500 m: nothing to say
+  });
+
   it('a groundwater sample with no year (0 in the file) is said without one (Jaisalmer)', () => {
     const say = GROUND_LAYERS.find((l) => l.id === 'gw_quality_postmonsoon')!.say!;
     const entry = (year: unknown) => ({ layer_id: 'x', match: 'nearest', status: 'found', credit: { name: 'c' },

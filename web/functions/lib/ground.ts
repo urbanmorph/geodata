@@ -201,6 +201,7 @@ export const GROUND_LAYERS: ProfileLayer[] = [
     fields: ['VLM_cm_per_yr', 'city'], units: { VLM_cm_per_yr: 'cm/yr of vertical land motion; negative means sinking', median_VLM_cm_per_yr: 'cm/yr' },
     median: { field: 'VLM_cm_per_yr', name: 'median_VLM_cm_per_yr', perPoint: ['Longitude', 'Latitude'] },
     say: (e) => {
+      if (e.status === 'not_covered') return 'Subsidence: not measured here (the satellite data covers Bengaluru, Chennai, Delhi, Kolkata and Mumbai only)';
       const m = e.stats?.median_VLM_cm_per_yr;
       return typeof m === 'number'
         ? `Ground ${m < 0 ? 'sinking' : 'rising'} about ${Math.abs(m)} cm/yr (median of ${e.stats?.points ?? e.count} satellite points within ${(e.radius_km ?? 0) * 1000} m)`
