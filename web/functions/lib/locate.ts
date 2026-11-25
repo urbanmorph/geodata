@@ -7,6 +7,7 @@ import { r2KeyFromUrl } from './r2-keys';
 import type { AsyncBuffer } from 'hyparquet';
 import { coalesced, type ByteRange } from './parquet-coalesce';
 import { ByteLru } from './isolate-cache';
+import { indexEntry, indexHits, POINT_INDEX, type IndexShare, type PointIndexManifest } from './point-index';
 
 export { DEFAULT_LOCATE_LAYERS } from './locate-layers';
 
@@ -28,6 +29,15 @@ export interface LocateResponse {
   timing_ms: number;
 }
 
+export interface LocateOpts {
+  /** The merged point index (default: the deployment's, point-index.ts). */
+  index?: PointIndexManifest;
+  /** Calls passing the same scope (one answer's) share their reads of an index tile. */
+  scope?: object;
+  /** How a call waits on such a read another call started (the profiles pause the layer's clock). */
+  wait?: <T>(p: Promise<T>) => Promise<T>;
+}
+
 export async function locate(
   lat: number,
   lng: number,
@@ -35,15 +45,18 @@ export async function locate(
   zoom: number,
   catalog: CatalogData,
   r2: R2Bucket,
+  opts: LocateOpts = {},
 ): Promise<LocateResponse> {
   const start = Date.now();
+  const index = opts.index ?? POINT_INDEX;
+  const share = { scope: opts.scope ?? {}, wait: opts.wait };
 
   const layers = layerIds
     .map((id) => catalog.layers.find((l) => l.id === id))
     .filter((l): l is CatalogLayer => !!l && !!l.pmtiles);
 
   const settled = await Promise.allSettled(
-    layers.map((layer) => queryLayer(layer, zoom, lng, lat, r2)),
+    layers.map((layer) => answerLayer(layer, zoom, lng, lat, r2, index, share)),
   );
 
   const grouped: Record<string, LocateResult[]> = {};
@@ -180,6 +193,23 @@ export async function tilesAt(pm: PMTiles, key: string, z: number, coords: Array
     out[i] = data;
   }));
   return out as Array<ArrayBuffer | null>;
+}
+
+/** The layer's polygons at the point: from the merged index when it can answer for the layer,
+ *  else (or when reading it fails) from the layer's own tiles. */
+async function answerLayer(
+  layer: CatalogLayer, zoom: number, lng: number, lat: number, r2: R2Bucket, index: PointIndexManifest, share: IndexShare,
+) {
+  const entry = indexEntry(index, layer, zoom);
+  if (entry) {
+    try {
+      return await indexHits(index, entry, layer.id, lng, lat, r2,
+        (key, z, x, y) => tileAt(pmtilesFor(r2, key), key, z, x, y), share);
+    } catch (e) {
+      console.error(`locate: ${layer.id} from the point index failed, reading its own tiles:`, (e as Error)?.message ?? e);
+    }
+  }
+  return queryLayer(layer, zoom, lng, lat, r2);
 }
 
 async function queryLayer(

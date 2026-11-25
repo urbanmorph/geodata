@@ -71,7 +71,7 @@ const BASE = {
         parameters: [
           LAT, LNG,
           q('layers', 'Comma-separated layer ids to test (at most 25). A retired id is tested as its successor; an id that is not a layer is listed in `unknown_layers`, and when none is a layer the answer is 400. Omit for the default set plus any covering ward layer.', { type: 'string', examples: ['lgd_states,lgd_districts'] }),
-          q('zoom', 'Tile zoom used for the test: 4–16, default 14 (finer is more exact at boundaries).', { type: 'integer', minimum: 4, maximum: 16, default: 14 }),
+          q('zoom', 'Tile zoom used for the test: 4–16, default 14 (finer is more exact at boundaries). At 12 and above, the admin, ward and zone layers asked most are read from one merged index drawn from their full shapes.', { type: 'integer', minimum: 4, maximum: 16, default: 14 }),
         ],
         responses: {
           '200': ok('Matches grouped by category', ref('schemas', 'LocateResult')),

@@ -117,6 +117,17 @@ describe('coloBucket', () => {
     expect(colo2.hits()).toBe(3);
   });
 
+  it("the point index's field files (read as one range) come from the colo next time; other JSON does not", async () => {
+    const { b2, reads, colo2 } = await warm([
+      ['point-index/props/zz.1234abcd.json', { range: { offset: 0, length: 100 } }],
+      ['other/x.json', { range: { offset: 0, length: 100 } }],
+    ]);
+    await b2.get('point-index/props/zz.1234abcd.json', { range: { offset: 0, length: 100 } });
+    await b2.get('other/x.json', { range: { offset: 0, length: 100 } });
+    expect(reads).toEqual(['other/x.json 0-100']);
+    expect(colo2.hits()).toBe(1);
+  });
+
   it('point-specific parquet rows, whole-object gets, heads and missing keys go to R2 every time', async () => {
     const { b2, reads } = await warm([
       ['a/x.parquet', { range: { offset: 0, length: 10 } }],

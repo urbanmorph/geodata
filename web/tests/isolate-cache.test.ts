@@ -5,7 +5,7 @@
 // /api/v1/nearby call for the layer wait ~60 s, until the platform limit.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { ResolvedCache, withTimeout } from '../functions/lib/isolate-cache';
+import { InflightShare, ResolvedCache, withTimeout } from '../functions/lib/isolate-cache';
 import { cachedMetadata, clearMetadataCache, clearHeadCache, asyncBufferFromR2 } from '../functions/lib/parquet-r2';
 import { pmtilesFor } from '../functions/lib/locate';
 import { loadCatalog, __resetCatalogForTest } from '../functions/lib/catalog-loader';
@@ -155,5 +155,26 @@ describe('catalog and release index loads', () => {
     void loadReleaseIndex(ctx(never));
     const ok = ctx(async () => new Response(JSON.stringify({ latest: {} })));
     expect(await settles(loadReleaseIndex(ok))).toBe('ok');
+  });
+});
+
+describe('InflightShare', () => {
+  it('shares a load in flight within its scope only, and keeps nothing once it settles', async () => {
+    const share = new InflightShare<number>();
+    let loads = 0;
+    const load = () => new Promise<number>((r) => setTimeout(() => r(++loads), 5));
+    const a = {}, b = {};
+    const [x, y, z] = await Promise.all([share.get('k', load, a), share.get('k', load, a), share.get('k', load, b)]);
+    expect([x, y]).toEqual([1, 1]);
+    expect(z).toBe(2); // another scope: its own load
+    expect(await share.get('k', load, a)).toBe(3); // settled: not kept
+    expect(await share.get('k', load)).toBe(4); // no scope: never shared
+  });
+
+  it('a rejected load is not handed to a later caller', async () => {
+    const share = new InflightShare<number>();
+    const scope = {};
+    await expect(share.get('k', () => Promise.reject(new Error('x')), scope)).rejects.toThrow('x');
+    expect(await share.get('k', async () => 7, scope)).toBe(7);
   });
 });

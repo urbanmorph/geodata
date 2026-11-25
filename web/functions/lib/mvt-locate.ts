@@ -7,18 +7,23 @@ import { GIS_ARTEFACT_COLUMNS as JUNK_PROPS } from './junk-columns';
 export interface LocateHit {
   layer_name: string;
   properties: Record<string, unknown>;
+  /** The feature's id, when the tile has one (the merged point index's parquet row + 1). */
+  id?: number;
 }
 
+/** The polygons of tile z/x/y holding the point; with `only`, of that tile layer alone. */
 export function findFeaturesAtPoint(
   tileData: ArrayBuffer,
   z: number, x: number, y: number,
   lng: number, lat: number,
+  only?: string,
 ): LocateHit[] {
   const tile = new VectorTile(new Pbf(tileData));
   const hits: LocateHit[] = [];
 
-  for (const layerName of Object.keys(tile.layers)) {
+  for (const layerName of only === undefined ? Object.keys(tile.layers) : [only]) {
     const layer = tile.layers[layerName];
+    if (!layer) continue;
     for (let i = 0; i < layer.length; i++) {
       const feat = layer.feature(i);
       if (feat.type !== 3) continue; // only polygons
@@ -30,7 +35,7 @@ export function findFeaturesAtPoint(
       const polys = splitMultiPolygon(rings);
       for (const poly of polys) {
         if (pointInPolygon([lng, lat], poly)) {
-          hits.push({ layer_name: layerName, properties: cleanProperties(feat.properties) });
+          hits.push({ layer_name: layerName, properties: cleanProperties(feat.properties), ...(feat.id !== undefined ? { id: feat.id } : {}) });
           break;
         }
       }
@@ -79,7 +84,7 @@ function signedArea(ring: [number, number][]): number {
 
 // FIX #6: strip internal/computed fields from MVT properties (junk-columns.ts).
 
-function cleanProperties(props: Record<string, unknown>): Record<string, unknown> {
+export function cleanProperties(props: Record<string, unknown>): Record<string, unknown> {
   const out: Record<string, unknown> = {};
   for (const [k, v] of Object.entries(props)) {
     if (!JUNK_PROPS.has(k.toLowerCase())) out[k] = v;
