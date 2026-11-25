@@ -327,7 +327,7 @@ class LayerClock {
  *  a time, the layers earlier in the table first) and tells the layer's clock. `release()`,
  *  for a layer given up on, hands back its turns: its reads in flight finish (and fill the
  *  colo's cache), the rest are refused. */
-function turnTakingBucket(r2: R2Bucket, queue: ReturnType<typeof turns>, rank: number, clock: LayerClock): { bucket: R2Bucket; release(): void } {
+function turnTakingBucket(r2: R2Bucket, queue: ReturnType<typeof turns>, rank: number, clock: LayerClock): { bucket: R2Bucket; wait: SharedWait; release(): void } {
   const held = new Set<() => void>();
   let released = false;
   const take = (fn: (...a: unknown[]) => Promise<unknown>) => async (...args: unknown[]) => {
@@ -353,14 +353,26 @@ function turnTakingBucket(r2: R2Bucket, queue: ReturnType<typeof turns>, rank: n
       return prop === 'get' || prop === 'head' ? take(bound) : bound;
     },
   });
-  return { bucket, release() { released = true; for (const give of held) give(); held.clear(); } };
+  // Waiting on a read another layer makes for both (a merged index tile) is waiting for a
+  // turn: the clock pauses, as it does while this layer's own reads queue.
+  const wait: SharedWait = async (p) => {
+    clock.queued();
+    try { return await p; } finally { clock.granted(); clock.read(); }
+  };
+  return { bucket, wait, release() { released = true; for (const give of held) give(); held.clear(); } };
 }
+
+/** Waits on a read another layer of the answer started (see turnTakingBucket). */
+type SharedWait = <T>(p: Promise<T>) => Promise<T>;
 
 type LayerAnswer = Omit<ProfileEntry, 'credit' | 'layer_id'>;
 
-/** `scope`: one per answer, so its contains layers share their reads of a merged index tile. */
-async function readContains(spec: ProfileLayer, lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, deps: ProfileDeps, scope: object): Promise<LayerAnswer> {
-  const r: LocateResponse = await deps.locate(lat, lng, [spec.id], ZOOM, catalog, r2, { scope });
+/** `scope`: one per answer, so its contains layers share their reads of a merged index tile
+ *  (`wait`: how this layer waits on one another layer started). */
+async function readContains(
+  spec: ProfileLayer, lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, deps: ProfileDeps, scope: object, wait: SharedWait,
+): Promise<LayerAnswer> {
+  const r: LocateResponse = await deps.locate(lat, lng, [spec.id], ZOOM, catalog, r2, { scope, wait });
   if (r.failed_layers?.includes(spec.id)) throw new Error('tiles could not be read');
   const features = dedupeFeatures(Object.values(r.results).flat()
     .filter((h) => h.layer_id === spec.id).map((h) => pick(h.feature.properties, spec.fields)));
@@ -495,11 +507,11 @@ export async function profileAt(
   const scope = {}; // this answer's: its layers share reads of the merged point index
 
   /** `read` through its own turn-taking bucket, under its budget and the answer's deadline. */
-  const timed = async <T>(id: string, rank: number, read: (r2: R2Bucket) => Promise<T>): Promise<T> => {
+  const timed = async <T>(id: string, rank: number, read: (r2: R2Bucket, wait: SharedWait) => Promise<T>): Promise<T> => {
     const t0 = Date.now();
     const clock = new LayerClock(budget);
     const mine = turnTakingBucket(r2, queue, rank, clock);
-    const work = read(mine.bucket);
+    const work = read(mine.bucket, mine.wait);
     try {
       return await Promise.race([work, clock.out, pastDeadline]);
     } catch (e) {
@@ -529,7 +541,7 @@ export async function profileAt(
     if (opts.openOnly && ncFields(layer).non_commercial) { omitted.push(key); return; }
     try {
       const read = spec.match === 'contains' ? readContains : readNearest;
-      const got = await timed(key, order, (bucket) => read(spec, lat, lng, catalog, bucket, deps, scope));
+      const got = await timed(key, order, (bucket, wait) => read(spec, lat, lng, catalog, bucket, deps, scope, wait));
       const entry: ProfileEntry = {
         layer_id: spec.id, credit: creditOf(layer), ...ncFields(layer),
         about: { vintage: UNDATED, ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },

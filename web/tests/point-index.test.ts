@@ -160,6 +160,25 @@ describe('locate with the merged point index', () => {
   });
 });
 
+describe('a read shared within a scope', () => {
+  it('a call waiting on another call\'s read says so (wait), and reads itself if that read fails', async () => {
+    const failing = { get: async () => { throw new Error('released'); } } as unknown as R2Bucket;
+    const good = bucket({ ...OBJECTS, 'point-index/place-f.pmtiles': OBJECTS['point-index/place.pmtiles'] });
+    const scope = {};
+    const waited: unknown[] = [];
+    const wait = <T>(p: Promise<T>) => { waited.push(p); return p; };
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const index = indexWith('place-f');
+    const [, b] = await Promise.all([
+      run(77.52, 12.95, { index, scope }, failing, CATALOG, ['pa']),
+      locate(12.95, 77.52, ['pa'], 14, CATALOG, good.r2, { index, scope, wait }),
+    ]);
+    expect(waited).toHaveLength(1);
+    expect(b.results.boundaries?.[0].feature.properties).toEqual({ name: 'west', code: 1 });
+    expect(good.keys()).toEqual(['point-index/place-f.pmtiles']); // from the index, not pa's own tiles
+  });
+});
+
 describe('the point profiles', () => {
   it('ask every contains layer of one answer under one scope', async () => {
     const scopes: unknown[] = [];

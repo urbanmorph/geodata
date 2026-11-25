@@ -74,23 +74,41 @@ async function readSidecar(r2: R2Bucket, key: string, bytes: number | null): Pro
   return JSON.parse(new TextDecoder().decode(await obj.arrayBuffer()));
 }
 
+/** One answer's sharing: calls with the same `scope` share a read; `wait` is how a call
+ *  waits on a read another call started. */
+export type IndexShare = { scope?: object; wait?: <T>(p: Promise<T>) => Promise<T> };
+
+/** `load` shared within `share.scope`. A call that did not start the read waits on it through
+ *  `share.wait`, and makes its own read if the shared one fails (its starter may have been given
+ *  up on: profile.ts refuses a released layer's reads). */
+async function sharedLoad<V>(cache: { get(k: string, l: () => Promise<V>, s?: object): Promise<V> }, key: string, load: () => Promise<V>, share: IndexShare): Promise<V> {
+  let mine = false;
+  const p = cache.get(key, () => { mine = true; return load(); }, share.scope);
+  if (mine) return p;
+  try {
+    return await (share.wait ? share.wait(p) : p);
+  } catch {
+    return cache.get(key, load);
+  }
+}
+
 /** Tile z/x/y of the archive at R2 `key` (null: the archive has none there). */
 export type TileReader = (key: string, z: number, x: number, y: number) => Promise<ArrayBuffer | null>;
 
 /** `layerId`'s polygons holding the point, as its own tiles would answer them, from the index. */
 export async function indexHits(
   index: PointIndexManifest, entry: PointIndexLayer, layerId: string, lng: number, lat: number,
-  r2: R2Bucket, readTile: TileReader, scope?: object,
+  r2: R2Bucket, readTile: TileReader, share: IndexShare = {},
 ): Promise<LocateHit[]> {
   const key = keyOf(index.archives[entry.archive].url);
   const z = index.zoom;
   const { x, y } = lngLatToTile(lng, lat, z);
-  const data = await tileReads.get(`${key}/${z}/${x}/${y}`, () => readTile(key, z, x, y), scope);
+  const data = await sharedLoad(tileReads, `${key}/${z}/${x}/${y}`, () => readTile(key, z, x, y), share);
   if (!data) return [];
   const hits = findFeaturesAtPoint(data, z, x, y, lng, lat, layerId);
   if (!entry.props || !hits.length) return hits.map(({ layer_name, properties }) => ({ layer_name, properties }));
   const propsKey = keyOf(entry.props.url);
-  const rows = await sidecars.get(propsKey, () => readSidecar(r2, propsKey, entry.props!.bytes), scope);
+  const rows = await sharedLoad(sidecars, propsKey, () => readSidecar(r2, propsKey, entry.props!.bytes), share);
   return hits.map((h) => {
     const row = h.id === undefined ? undefined : rows[h.id - 1];
     if (!row) throw new Error(`point index: ${layerId} has no fields for feature ${h.id}`);

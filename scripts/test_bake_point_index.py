@@ -17,7 +17,8 @@ def layer(lid: str, licence: str = 'CC0-1.0', bytes_: int = 10) -> dict:
             'pmtiles': {'url': f'https://data.bharatlas.com/x/{lid}.pmtiles', 'bytes': 5}}
 
 
-@pytest.mark.parametrize('licence', ['ODbL-1.0', 'CC-BY-SA-2.5-IN', 'CC-BY-SA-4.0', 'odbl'])
+@pytest.mark.parametrize('licence', ['ODbL-1.0', 'CC-BY-SA-2.5-IN', 'CC-BY-SA-4.0', 'odbl',
+                                     'Creative Commons Attribution-ShareAlike 4.0'])
 def test_share_alike_licences(licence):
     assert bpi.share_alike(licence)
 

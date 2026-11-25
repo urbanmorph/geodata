@@ -51,7 +51,7 @@ from bake_formats import gis_artefact_columns  # noqa: E402
 from bake_value_index import remote_etag  # noqa: E402
 from pipeline import (  # noqa: E402
     ROOT, Deadline, OutOfTime, R2_PUBLIC, atomic_output, cached, download, file_md5, log, make_con,
-    r2_client, r2_upload, take_max_minutes, with_retries, work_dir, write_if_changed,
+    r2_client, r2_upload, with_retries, work_dir, write_if_changed,
 )
 from tile_keys import versioned_key  # noqa: E402
 
@@ -73,7 +73,7 @@ ARCHIVES = {
     'zones': {'layers': ZONES, 'props': 'sidecar'},
 }
 
-_SHARE_ALIKE = re.compile(r'odbl|(^|[^a-z])sa([^a-z]|$)', re.I)
+_SHARE_ALIKE = re.compile(r'odbl|share-?alike|(^|[^a-z])sa([^a-z]|$)', re.I)
 
 
 def share_alike(licence: str | None) -> bool:
@@ -160,10 +160,11 @@ def fetch(layer: dict, etag: str) -> Path:
     return dest
 
 
-def fields_of(layer: dict, junk: set[str]) -> list[str]:
-    """The popup fields the layer's tiles carry now (two range reads, cached by the tiles' url)."""
+def fields_of(layer: dict, tiles_etag: str, junk: set[str]) -> list[str]:
+    """The popup fields the layer's tiles carry now (two range reads, cached by the tiles' etag,
+    so tiles uploaded again under the same key are read again)."""
     url = layer['pmtiles']['url']
-    out = WORK / 'fields' / f"{layer['id']}.{hashlib.sha256(url.encode()).hexdigest()[:12]}.json"
+    out = WORK / 'fields' / f"{layer['id']}.{tiles_etag}.json"
     cached(out, lambda p: p.write_text(json.dumps(at.archive_fields(at.http_reader(url)))))
     return [f for f in json.loads(out.read_text()) if f.lower() not in junk]
 
@@ -177,7 +178,11 @@ def export(con, src: Path, fields: list[str], out: Path) -> None:
     g = _q(geom) if geom else f"ST_GeomFromWKB({_q(next(c for c in cols if c.lower() in ('geometry', 'geom')))})"
     if 'f' in fields:
         raise ValueError(f'{src.name}: a popup field named "f" clashes with the feature id')
-    keep = ''.join(f'{_q(c)}, ' for c in fields if c in cols)
+    missing = [c for c in fields if c not in cols]
+    if missing:  # the layer's own tiles carry a field the parquet lacks: the index would answer without it
+        raise ValueError(f'{src.name}: its tiles carry {missing}, which the parquet has not; '
+                         'leave the layer out or rebake its tiles')
+    keep = ''.join(f'{_q(c)}, ' for c in fields)
     con.execute(f"""COPY (SELECT * FROM (
           SELECT {keep}(file_row_number + 1)::BIGINT AS f,
                  CASE WHEN ST_GeometryType({g})::VARCHAR IN ('POLYGON', 'MULTIPOLYGON') THEN {g}
@@ -208,7 +213,8 @@ def bake(catalog: dict, deadline: Deadline, s3=None) -> dict:
             etag = with_retries(lambda: remote_etag(layer['parquet']['url']))
             if not etag:
                 raise OSError(f'{lid}: no etag for {layer["parquet"]["url"]}')
-            fields = fields_of(layer, junk)
+            tiles_etag = with_retries(lambda: remote_etag(layer['pmtiles']['url']))
+            fields = fields_of(layer, tiles_etag or 'none', junk)
             seq = WORK / 'seq' / f'{lid}.{etag}.{build_key([(lid, etag, fields)], False)}.geojsonl'
             if not seq.exists():
                 src = fetch(layer, etag)
@@ -238,7 +244,7 @@ def bake(catalog: dict, deadline: Deadline, s3=None) -> dict:
             log(f'  {name}: tippecanoe, {len(inputs)} layers at z{ZOOM}')
             t0 = time.monotonic()
             cached(out, lambda p: subprocess.run(tippecanoe_cmd(p, inputs, ids_only), check=True, capture_output=True,
-                                                 timeout=TILE_TIMEOUT_S))
+                                                 timeout=max(60, min(TILE_TIMEOUT_S, deadline.left()))))
             log(f'  {name}: {out.stat().st_size / 1e6:,.1f} MB in {time.monotonic() - t0:,.0f} s')
         archives[name] = upload(s3, out, versioned_key(f'{PREFIX}/{name}.pmtiles', file_md5(out)))
         log(f'  {name}: {archives[name]["url"]}')
@@ -246,10 +252,8 @@ def bake(catalog: dict, deadline: Deadline, s3=None) -> dict:
 
 
 def main(argv: list[str]) -> int:
-    args, minutes = take_max_minutes(argv[1:], 600)
-    if '--minutes' in args:
-        i = args.index('--minutes')
-        minutes, args = float(args[i + 1]), args[:i] + args[i + 2:]
+    args = argv[1:]
+    minutes = float(args[args.index('--minutes') + 1]) if '--minutes' in args else 600.0
     no_upload = '--no-upload' in args
     catalog = json.loads(CATALOG.read_text())
     try:

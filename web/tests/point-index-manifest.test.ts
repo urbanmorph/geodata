@@ -9,7 +9,7 @@ import type { CatalogLayer } from '../functions/lib/catalog-api';
 
 const catalog = JSON.parse(readFileSync(new URL('../../catalog.json', import.meta.url), 'utf8')) as { layers: CatalogLayer[] };
 const byId = new Map(catalog.layers.map((l) => [l.id, l]));
-const SHARE_ALIKE = /odbl|(^|[^a-z])sa([^a-z]|$)/i; // scripts/bake_point_index.py share_alike
+const SHARE_ALIKE = /odbl|share-?alike|(^|[^a-z])sa([^a-z]|$)/i; // scripts/bake_point_index.py share_alike
 
 describe('the point index manifest', () => {
   const layers = Object.entries(POINT_INDEX.layers);
