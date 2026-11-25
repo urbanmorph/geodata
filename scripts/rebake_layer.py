@@ -51,6 +51,7 @@ from pipeline import (  # noqa: E402
     r2_upload_retrying, rebake_flatten_bbox, upload_lock, write_json,
     work_dir,
 )
+from bake_point_index import refresh_note  # noqa: E402
 from tile_keys import versioned_key  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
@@ -186,6 +187,8 @@ def rebake(layer: dict, deadline: Deadline, upload: bool = True) -> dict | None:
         publish(dst, key)
         patch_catalog(lid, key, out['new_bytes'])
         log(f'  {lid}: on R2 as {key}; catalog.json patched')
+        if note := refresh_note(lid):
+            log(f'  NEXT: {note}')
     return out
 
 
