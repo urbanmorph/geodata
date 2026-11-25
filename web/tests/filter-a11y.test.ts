@@ -41,6 +41,16 @@ afterEach(() => {
 });
 
 describe('Filter panel accessibility', () => {
+  it('the export buttons stay out of the way until a value is picked, then appear', () => {
+    const actions = document.querySelector<HTMLElement>('.filter-panel__actions')!;
+    expect(actions.hidden).toBe(true);
+    const chip = field('state').querySelector<HTMLButtonElement>('.filter-chip')!;
+    chip.click();
+    expect(actions.hidden).toBe(false);
+    expect([...actions.querySelectorAll('button')].every((b) => !b.disabled)).toBe(true);
+    chip.click();
+    expect(actions.hidden).toBe(true);
+  });
   it('facet chips expose their pressed state', () => {
     const chip = field('state').querySelector<HTMLButtonElement>('.filter-chip')!;
     expect(chip.getAttribute('aria-pressed')).toBe('false');
