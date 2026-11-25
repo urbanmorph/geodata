@@ -3606,3 +3606,1176 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: 
   },
 ]
 `;
+
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > ground:tiles@v3 1`] = `
+[
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.52,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.58,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.66,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.99,
+      "lng": 77.62,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.72,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.4,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {},
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.52,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.58,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.66,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.99,
+      "lng": 77.62,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.72,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.4,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {},
+    "zoom": 14,
+  },
+  {
+    "capped": false,
+    "features": [
+      {
+        "distance_km": 0.56,
+        "lat": 28.505,
+        "lng": 77.09984,
+        "properties": {
+          "name": "line5",
+        },
+      },
+      {
+        "distance_km": 1.67,
+        "lat": 28.48502,
+        "lng": 77.10048,
+        "properties": {
+          "name": "line4",
+        },
+      },
+      {
+        "distance_km": 2.78,
+        "lat": 28.52499,
+        "lng": 77.09919,
+        "properties": {
+          "name": "line6",
+        },
+      },
+      {
+        "distance_km": 3.89,
+        "lat": 28.46503,
+        "lng": 77.10113,
+        "properties": {
+          "name": "line3",
+        },
+      },
+    ],
+    "total": 4,
+  },
+  {
+    "capped": false,
+    "features": [
+      {
+        "distance_km": 0.83,
+        "lat": 28.44252,
+        "lng": 77.00024,
+        "properties": {
+          "name": "line2",
+        },
+      },
+      {
+        "distance_km": 1.39,
+        "lat": 28.4625,
+        "lng": 76.9996,
+        "properties": {
+          "name": "line3",
+        },
+      },
+    ],
+    "total": 2,
+  },
+]
+`;
+
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > surface:tiles@v3 1`] = `
+[
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.52,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.58,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.66,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.99,
+      "lng": 77.62,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.72,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.4,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {},
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.52,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.58,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 1,
+              "name": "west",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.66,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 1.5,
+              "zone": "III",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.99,
+      "lng": 77.62,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "boundaries": [
+        {
+          "category": "boundaries",
+          "feature": {
+            "properties": {
+              "code": 2,
+              "name": "east",
+            },
+          },
+          "layer_id": "pa",
+          "level": "boundaries",
+        },
+      ],
+      "hazards": [
+        {
+          "category": "hazards",
+          "feature": {
+            "properties": {
+              "area": 2.25,
+              "zone": "IV",
+            },
+          },
+          "layer_id": "zz",
+          "level": "hazards",
+        },
+      ],
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.72,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {
+      "wards": [
+        {
+          "category": "wards",
+          "feature": {
+            "properties": {
+              "no": 7,
+              "ward": "W1",
+            },
+          },
+          "layer_id": "pb",
+          "level": "wards",
+        },
+      ],
+    },
+    "zoom": 14,
+  },
+  {
+    "point": {
+      "lat": 12.95,
+      "lng": 77.4,
+    },
+    "queried_layers": [
+      "pa",
+      "pb",
+      "zz",
+    ],
+    "results": {},
+    "zoom": 14,
+  },
+  {
+    "capped": false,
+    "features": [
+      {
+        "distance_km": 0.56,
+        "lat": 28.505,
+        "lng": 77.09984,
+        "properties": {
+          "name": "line5",
+        },
+      },
+      {
+        "distance_km": 1.67,
+        "lat": 28.48502,
+        "lng": 77.10048,
+        "properties": {
+          "name": "line4",
+        },
+      },
+      {
+        "distance_km": 2.78,
+        "lat": 28.52499,
+        "lng": 77.09919,
+        "properties": {
+          "name": "line6",
+        },
+      },
+      {
+        "distance_km": 3.89,
+        "lat": 28.46503,
+        "lng": 77.10113,
+        "properties": {
+          "name": "line3",
+        },
+      },
+    ],
+    "total": 4,
+  },
+  {
+    "capped": false,
+    "features": [
+      {
+        "distance_km": 0.83,
+        "lat": 28.44252,
+        "lng": 77.00024,
+        "properties": {
+          "name": "line2",
+        },
+      },
+      {
+        "distance_km": 1.39,
+        "lat": 28.4625,
+        "lng": 76.9996,
+        "properties": {
+          "name": "line3",
+        },
+      },
+    ],
+    "total": 2,
+  },
+]
+`;
+
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > nearby: a line layer answered from its tiles > nearby:tiles@v2 1`] = `
+[
+  {
+    "_distance_to": "shape",
+    "_source": "tiles-shape",
+    "_truncated": false,
+    "center": {
+      "lat": 28.5,
+      "lng": 77.012,
+    },
+    "features": [
+      {
+        "_distance_km": 0.31,
+        "_lat": 28.50281,
+        "_lng": 77.01191,
+        "properties": {
+          "name": "line5",
+        },
+      },
+      {
+        "_distance_km": 1.91,
+        "_lat": 28.48284,
+        "_lng": 77.01255,
+        "properties": {
+          "name": "line4",
+        },
+      },
+      {
+        "_distance_km": 2.54,
+        "_lat": 28.5228,
+        "_lng": 77.01127,
+        "properties": {
+          "name": "line6",
+        },
+      },
+      {
+        "_distance_km": 4.13,
+        "_lat": 28.46284,
+        "_lng": 77.0132,
+        "properties": {
+          "name": "line3",
+        },
+      },
+      {
+        "_distance_km": 4.76,
+        "_lat": 28.54278,
+        "_lng": 77.01062,
+        "properties": {
+          "name": "line7",
+        },
+      },
+    ],
+    "radius_km": 5,
+    "total": 5,
+  },
+  {
+    "_distance_to": "shape",
+    "_source": "tiles-shape",
+    "_truncated": false,
+    "center": {
+      "lat": 28.45,
+      "lng": 77,
+    },
+    "features": [
+      {
+        "_distance_km": 0.83,
+        "_lat": 28.44252,
+        "_lng": 77.00024,
+        "properties": {
+          "name": "line2",
+        },
+      },
+      {
+        "_distance_km": 1.39,
+        "_lat": 28.4625,
+        "_lng": 76.9996,
+        "properties": {
+          "name": "line3",
+        },
+      },
+    ],
+    "radius_km": 3,
+    "total": 2,
+  },
+]
+`;

@@ -31,6 +31,10 @@ import type { CatalogData, CatalogLayer } from '../functions/lib/catalog-api';
 import type { LocateResponse } from '../functions/lib/locate';
 import type { NearbyResult } from '../functions/lib/nearby';
 import { fakeR2 } from './helpers/fake-r2';
+import { locate, clearTileCache } from '../functions/lib/locate';
+import { clearPointIndexCache, type PointIndexManifest } from '../functions/lib/point-index';
+import { nearbyFromTiles } from '../functions/lib/nearby-tiles';
+import { nearbyTrueDistance } from '../functions/lib/nearby-true-distance';
 
 const REGISTRY = JSON.parse(readFileSync(new URL('./golden-answers.json', import.meta.url), 'utf8')) as Record<string, string>;
 const fixture = (f: string) => readFileSync(new URL(`./fixtures/${f}`, import.meta.url));
@@ -92,12 +96,14 @@ async function call(handler: Handler, path: string, params: Record<string, strin
 const both = async (handler: Handler, path: string, params: Record<string, string> = {}) =>
   [await call(handler, path, params, true), await call(handler, path, params, false)];
 
-/** The registry check, then the readable snapshot. */
-function expectGolden(endpoint: AnswerEndpoint, answers: unknown) {
-  const key = `${endpoint}@v${ANSWER_V[endpoint]}`;
+/** The registry check, then the readable snapshot. `part` names a second set of answers for
+ *  the same endpoint (registered as "<endpoint>:<part>@v<n>"). */
+function expectGolden(endpoint: AnswerEndpoint, answers: unknown, part = '') {
+  const name = part ? `${endpoint}:${part}` : endpoint;
+  const key = `${name}@v${ANSWER_V[endpoint]}`;
   const hash = createHash('sha256').update(JSON.stringify(answers)).digest('hex').slice(0, 16);
-  expect(REGISTRY[key], `The ${endpoint} answers changed. Bump ANSWER_V.${endpoint} in functions/lib/answer-versions.ts, `
-    + `then add to tests/golden-answers.json: "${endpoint}@v${ANSWER_V[endpoint] + (REGISTRY[key] ? 1 : 0)}": "${hash}"`).toBe(hash);
+  expect(REGISTRY[key], `The ${name} answers changed. Bump ANSWER_V.${endpoint} in functions/lib/answer-versions.ts, `
+    + `then add to tests/golden-answers.json: "${name}@v${ANSWER_V[endpoint] + (REGISTRY[key] ? 1 : 0)}": "${hash}"`).toBe(hash);
   expect(answers).toMatchSnapshot(key);
 }
 
@@ -185,5 +191,69 @@ describe('golden answers (a changed answer needs its ANSWER_V bumped)', () => {
       body(await groundAt(13.993, 74.522, g, {} as R2Bucket, deps)),
       body(await groundAt(13.993, 74.522, g, {} as R2Bucket, deps, { filter: { sections: ['seismic'] } })),
     ]);
+  });
+
+  // The tile path. The answers above never decode a map tile (fixed readers, small parquets),
+  // so a change to tile decoding (mvt-locate, nearby-tiles, tile-math, the merged point index)
+  // would leave them unchanged. These read real tile fixtures: such a change alters them, and
+  // nearby, ground and surface all build on these reads, so each has its own registry line.
+  describe('the tile path', () => {
+    const P = (n: string) => fixture(`point-index/${n}`);
+    const BASE = 'https://data.bharatlas.com';
+    const TILES_R2 = fakeR2({
+      't/pa.pmtiles': P('pa.pmtiles'), 't/pb.pmtiles': P('pb.pmtiles'), 't/zz.pmtiles': P('zz.pmtiles'),
+      'point-index/place.pmtiles': P('place.pmtiles'), 'point-index/zones.pmtiles': P('zones.pmtiles'),
+      'point-index/props/zz.json': P('zz.props.json'),
+      't/lines.parquet': LINES, 't/lines.pmtiles': fixture('nearby-lines.pmtiles'),
+    });
+    const tileLayer = (id: string, category: string): CatalogLayer => ({
+      id, name: id, level: category, category, source: 'Test', licence: 'CC0-1.0',
+      parquet: { url: `${BASE}/t/${id}.parquet`, bytes: 100 }, pmtiles: { url: `${BASE}/t/${id}.pmtiles`, bytes: 1 },
+    }) as CatalogLayer;
+    const tileCatalog = {
+      categories: {}, levels: {}, level_meta: {},
+      layers: [tileLayer('pa', 'boundaries'), tileLayer('pb', 'wards'), tileLayer('zz', 'hazards'),
+        { ...tileLayer('lines', 'water'), parquet: { url: `${BASE}/t/lines.parquet`, bytes: LINES.byteLength } }],
+    } as unknown as CatalogData;
+    const entry = (id: string, archive: string, extra = {}) => ({
+      archive, parquet: { url: `${BASE}/t/${id}.parquet`, bytes: 100 }, etag: `e-${id}`, pmtiles: `${BASE}/t/${id}.pmtiles`, ...extra,
+    });
+    const INDEX: PointIndexManifest = {
+      zoom: 12,
+      archives: { place: { url: `${BASE}/point-index/place.pmtiles`, bytes: 1 }, zones: { url: `${BASE}/point-index/zones.pmtiles`, bytes: 1 } },
+      layers: {
+        pa: entry('pa', 'place'), pb: entry('pb', 'place'),
+        zz: entry('zz', 'zones', { props: { url: `${BASE}/point-index/props/zz.json`, bytes: P('zz.props.json').byteLength } }),
+      },
+    };
+    const NO_INDEX: PointIndexManifest = { zoom: 12, archives: {}, layers: {} };
+    // [lng, lat] inside, between and outside the fixtures' shapes (tests/fixtures/make-point-index.py)
+    const POINTS: Array<[number, number]> = [[77.52, 12.95], [77.58, 12.95], [77.66, 12.95], [77.62, 12.99], [77.72, 12.95], [77.40, 12.95]];
+
+    beforeEach(() => { clearTileCache(); clearPointIndexCache(); });
+
+    /** What locate reads from tiles, per layer and through the merged index, and the nearest
+     *  shapes from the lines' tiles: the reads every point profile is built from. */
+    async function tileReads() {
+      const out: unknown[] = [];
+      for (const index of [NO_INDEX, INDEX]) {
+        for (const [lng, lat] of POINTS) out.push(body(await locate(lat, lng, ['pa', 'pb', 'zz'], 14, tileCatalog, TILES_R2, { index })));
+      }
+      for (const [lat, lng, r] of [[28.5, 77.1, 5], [28.45, 77.0, 3]]) {
+        out.push(body(await nearbyFromTiles(lat, lng, r, 'lines', tileCatalog, TILES_R2, { limit: 5 })));
+      }
+      return out;
+    }
+    it('ground and surface: locate and the nearest shapes, from tiles', async () => {
+      const reads = await tileReads();
+      expectGolden('ground', reads, 'tiles');
+      expectGolden('surface', reads, 'tiles');
+    });
+    it('nearby: a line layer answered from its tiles', async () => {
+      expectGolden('nearby', [
+        body(await nearbyTrueDistance(28.5, 77.012, 5, 'lines', tileCatalog, TILES_R2, 5, { parquetShapeBytes: 0 })),
+        body(await nearbyTrueDistance(28.45, 77.0, 3, 'lines', tileCatalog, TILES_R2, 3, { parquetShapeBytes: 0 })),
+      ], 'tiles');
+    });
   });
 });
