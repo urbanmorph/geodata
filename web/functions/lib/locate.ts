@@ -92,23 +92,20 @@ export async function locate(
   };
 }
 
-// One reader per R2 key per isolate, so the archive's header and directory
-// cache survive between requests (keys are versioned, so a rebake is a new key).
-// ResolvedValueCache, not pmtiles' default SharedPromiseCache: that one keeps
-// the pending header/directory promise, which never settles once the request
-// that started the read has ended (isolate-cache.ts).
-// Its reads go through the bucket of the request asking now (a request may wrap
-// its bucket, e.g. to count its reads: profile-endpoint.ts).
-const readers = new Map<string, { pm: PMTiles; source: R2Source }>();
+// A reader per call, over one cache per R2 key per isolate: the archive's header and
+// directories survive between requests (keys are versioned, so a rebake is a new key),
+// while each reader reads through the bucket of the request that asked for it (a request
+// wraps its bucket to count its reads and keep them in the colo's cache:
+// profile-endpoint.ts). One reader shared by every request read through whichever
+// request asked last, so a running request's reads went through another's bucket.
+// ResolvedValueCache, not pmtiles' default SharedPromiseCache: that one keeps the pending
+// header/directory promise, which never settles once the request that started the read
+// has ended (isolate-cache.ts).
+const archiveCaches = new Map<string, ResolvedValueCache>();
 export function pmtilesFor(r2: R2Bucket, key: string): PMTiles {
-  let r = readers.get(key);
-  if (!r) {
-    const source = new R2Source(r2, key);
-    r = { pm: new PMTiles(source, new ResolvedValueCache()), source };
-    readers.set(key, r);
-  }
-  r.source.bucket = r2;
-  return r.pm;
+  let cache = archiveCaches.get(key);
+  if (!cache) archiveCaches.set(key, (cache = new ResolvedValueCache()));
+  return new PMTiles(new R2Source(r2, key), cache);
 }
 
 // Recently read tiles, per isolate: a popular point (a city centre, a ward
