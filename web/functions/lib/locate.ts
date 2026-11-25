@@ -8,6 +8,7 @@ import type { AsyncBuffer } from 'hyparquet';
 import { coalesced, type ByteRange } from './parquet-coalesce';
 import { ByteLru } from './isolate-cache';
 import { indexEntry, indexHits, POINT_INDEX, type IndexShare, type PointIndexManifest } from './point-index';
+import { dedupeFeatures } from './same-features';
 
 export { DEFAULT_LOCATE_LAYERS } from './locate-layers';
 
@@ -59,29 +60,7 @@ export async function locate(
     layers.map((layer) => answerLayer(layer, zoom, lng, lat, r2, index, share)),
   );
 
-  const grouped: Record<string, LocateResult[]> = {};
-  const failed: string[] = [];
-  for (let i = 0; i < layers.length; i++) {
-    const s = settled[i];
-    if (s.status === 'rejected') {
-      failed.push(layers[i].id);
-      console.error(`locate: ${layers[i].id} failed:`, (s.reason as Error)?.message ?? s.reason);
-      continue;
-    }
-    if (!s.value.length) continue;
-    const layer = layers[i];
-    for (const hit of s.value) {
-      const cat = layer.category;
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push({
-        layer_id: layer.id,
-        level: layer.level,
-        category: cat,
-        feature: { properties: hit.properties },
-      });
-    }
-  }
-
+  const { grouped, failed } = groupHits(layers, settled);
   return {
     point: { lat, lng },
     zoom,
@@ -90,6 +69,27 @@ export async function locate(
     ...(failed.length ? { failed_layers: failed } : {}),
     timing_ms: Date.now() - start,
   };
+}
+
+/** Each layer's hits under its category, a feature the source repeats once (bharatviz_pincodes
+ *  has every polygon twice); the layers that could not be read, listed. */
+export function groupHits(
+  layers: CatalogLayer[], settled: PromiseSettledResult<Array<{ properties: Record<string, unknown> }>>[],
+): { grouped: Record<string, LocateResult[]>; failed: string[] } {
+  const grouped: Record<string, LocateResult[]> = {};
+  const failed: string[] = [];
+  layers.forEach((layer, i) => {
+    const s = settled[i];
+    if (s.status === 'rejected') {
+      failed.push(layer.id);
+      console.error(`locate: ${layer.id} failed:`, (s.reason as Error)?.message ?? s.reason);
+      return;
+    }
+    for (const properties of dedupeFeatures(s.value.map((h) => h.properties))) {
+      (grouped[layer.category] ??= []).push({ layer_id: layer.id, level: layer.level, category: layer.category, feature: { properties } });
+    }
+  });
+  return { grouped, failed };
 }
 
 // A reader per call, over one cache per R2 key per isolate: the archive's header and
