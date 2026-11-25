@@ -5,13 +5,13 @@
 export const ANSWER_V = {
   layers: 1,   // /api/v1/layers and /api/v1/categories
   detail: 1,   // /api/v1/layers/{id}
-  schema: 1,
-  query: 1,
+  schema: 2,   // v2: a converted file's __mlocate fields hidden as GIS artefacts (25 Nov 2026)
+  query: 2,    // v2: the same
   counts: 1,
   export: 1,   // the estimate (export rows themselves are never cached)
-  nearby: 2,   // v2: tile shapes decoded with Mercator latitudes (24 Nov 2026)
-  ground: 4,   // v4: no stage for units not assessed, no year 0, subsidence said not measured outside its cities (25 Nov 2026)
-  surface: 4,  // v4: airports only (no heliports), a ward named only by its number said once (25 Nov 2026)
+  nearby: 3,   // v3: __mlocate fields dropped (25 Nov 2026); v2: Mercator latitudes (24 Nov 2026)
+  ground: 5,   // v5: water is no rock (the 1:2,000,000 map speaks); v4: not assessed, year 0, subsidence (25 Nov 2026)
+  surface: 5,  // v5: basin said once, FSI forest named, a sanctuary named by kind says its state; v4: airports, ward (25 Nov 2026)
 } as const;
 
 export type AnswerEndpoint = keyof typeof ANSWER_V;

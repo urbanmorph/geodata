@@ -75,6 +75,9 @@ const gwQualitySay = (season: string) => (e: ProfileEntry) => {
 
 /** Plan F1: the zones are the 2016 code's. A 2025 revision (with a Zone VI along the Himalaya)
  *  was issued in November 2025 and reported withdrawn by BIS in March 2026, so 2016 applies. */
+/** A 1:50,000 lithology value that is not rock (GSI maps rivers and tanks as WATER or WATER BODY). */
+const NOT_ROCK = /^(water( body)?|river|tank|lake|reservoir|sea)$/i;
+
 export const SEISMIC_ABOUT = {
   scale: 'national zoning map', vintage: 'BIS IS 1893 (Part 1):2016',
   note: 'the 2016 zones II to V; the 2025 revision, which added a Zone VI along the Himalaya, was reported withdrawn in March 2026',
@@ -107,10 +110,16 @@ export const GROUND_LAYERS: ProfileLayer[] = [
   { id: 'gsi_lithology_50k', section: 'geology', match: 'contains', about: { scale: '1:50,000' },
     say: (e) => {
       const rock = first(e, 'lithologic');
+      if (rock && NOT_ROCK.test(rock)) return null; // water mapped over the rock: the 2M map speaks (fallbackFor)
       const about = [first(e, 'age'), first(e, 'group_name')].filter(Boolean).join(', ');
       return rock && `Rock: ${rock}${about ? ` (${about})` : ''}`;
     } },
-  { id: 'gsi_geology_2m', section: 'geology', match: 'contains', about: { scale: '1:2,000,000 (coarse; a fallback where 1:50,000 lithology is missing)' } },
+  { id: 'gsi_geology_2m', section: 'geology', match: 'contains', about: { scale: '1:2,000,000 (coarse; a fallback where 1:50,000 lithology is missing)' },
+    fallbackFor: 'gsi_lithology_50k',
+    say: (e) => {
+      const rock = first(e, 'index_');
+      return rock && `Rock (1:2,000,000 map): ${rock}${first(e, 'age') ? ` (${first(e, 'age')})` : ''}`;
+    } },
   { id: 'bhuvan_geomorphology_50k', section: 'geology', match: 'contains', about: { scale: '1:50,000', vintage: '2005-06 imagery' },
     say: (e) => first(e, 'Des') && `Landform: ${first(e, 'Des')}` },
   { id: 'gsi_drilling_boreholes', section: 'geology', match: 'nearest', radiusKm: 25, about: { scale: 'exploration boreholes' },

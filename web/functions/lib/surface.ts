@@ -9,7 +9,7 @@ import { fallbackWardLayers, NATIONAL_WARD_LAYERS, wardLayersAt } from './ward-l
 import { WARD_BBOXES } from './ward-bboxes';
 import { wardLine } from './ward-label';
 import {
-  BASE_DEPS, first, km, nearestSay, num, profileAt,
+  BASE_DEPS, first, joinOnce, km, nearestSay, num, profileAt,
   type PixelResult, type PixelSource, type ProfileDeps, type ProfileEntry, type ProfileLayer, type ProfileOpts,
   type ProfileResponse, type ProfileSpec, type Props,
 } from './profile';
@@ -29,10 +29,17 @@ const ADMIN = (id: string, field: string, label: string): ProfileLayer => ({
 });
 
 const nearestOf = (what: string, field: string) => nearestSay(what, field);
-const insideOr = (what: string, field: string) => (e: ProfileEntry) => {
+/** `name` names it: a field, or a function of the entry. */
+const insideOr = (what: string, name: string | ((e: ProfileEntry) => string | null)) => (e: ProfileEntry) => {
   const n = e.nearest?.[0];
   if (!n) return null;
-  return n.distance_km === 0 ? `Inside ${what} ${first(e, field) ?? ''}`.trim() : `${what[0].toUpperCase()}${what.slice(1)} ${km(n.distance_km)} away${first(e, field) ? ` (${first(e, field)})` : ''}`;
+  const it = typeof name === 'string' ? first(e, name) : name(e);
+  return n.distance_km === 0 ? `Inside ${what} ${it ?? ''}`.trim() : `${what[0].toUpperCase()}${what.slice(1)} ${km(n.distance_km)} away${it ? ` (${it})` : ''}`;
+};
+/** A protected area's name; one named only by its kind ("Wildlife Sanctuary", Dadra & Nagar Haveli) says its state. */
+const paName = (e: ProfileEntry) => {
+  const name = first(e, 'name');
+  return name && /^(wildlife |bird )?sanctuary$|^national park$|^(tiger|conservation|community) reserve$/i.test(name) ? joinOnce([name, first(e, 'state')]) : name;
 };
 const WETLAND = (p: Props) => !/non-wetland/i.test(String(p.descr ?? '')) && !/non-wetland/i.test(String(p.level1 ?? ''));
 
@@ -62,7 +69,7 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
   // ── water ──
   { id: 'wris_basin', section: 'water', match: 'contains', fields: ['ba_name', 'bacode', 'area_sqkm'], about: { scale: 'national basins (India-WRIS)' } },
   { id: 'wris_subbasin', section: 'water', match: 'contains', fields: ['ba_name', 'sub_basin'], about: { scale: 'sub-basins (India-WRIS)' },
-    say: (e) => first(e, 'sub_basin') && `River basin: ${first(e, 'ba_name')}, ${first(e, 'sub_basin')}` },
+    say: (e) => first(e, 'sub_basin') && `River basin: ${joinOnce([first(e, 'ba_name'), first(e, 'sub_basin')])}` },
   { id: 'wris_rivers', section: 'water', match: 'nearest', shape: true, radiusKm: 10, about: { scale: 'river lines (India-WRIS, 1:250,000)' },
     fields: ['rivname', 'major_tributary', 'sub_basin', 'layer'], say: nearestOf('Nearest river', 'rivname') },
   { id: 'wris_waterbodies', section: 'water', match: 'nearest', shape: true, radiusKm: 2, about: { scale: 'water body outlines (India-WRIS)' },
@@ -92,9 +99,13 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
     say: (e) => (e.status === 'found' ? 'Inside a Coastal Regulation Zone' : null) },
   // ── protected ──
   { id: 'fsi_recorded_forest_area', section: 'protected', match: 'contains', allIndia: true, about: { scale: 'recorded forest area (FSI)' },
-    say: (e) => (e.status === 'found' ? 'Inside a recorded forest area' : null) },
+    say: (e) => {
+      if (e.status !== 'found') return null;
+      const what = first(e, 'name') ?? first(e, 'name_of_rf') ?? first(e, 'division');
+      return `Inside an FSI recorded forest area${what ? ` (${what})` : ''}`;
+    } },
   { id: 'gs_wildlife', key: 'gs_wildlife_nearest', section: 'protected', match: 'nearest', about: { scale: 'protected area outlines (PM GatiShakti)' }, shape: true, radiusKm: 50,
-    fields: ['name', 'category', 'state', 'area_sqkm'], units: { area_sqkm: 'sq km' }, say: insideOr('protected area', 'name') },
+    fields: ['name', 'category', 'state', 'area_sqkm'], units: { area_sqkm: 'sq km' }, say: insideOr('protected area', paName) },
   { id: 'wildlife_corridors', section: 'protected', match: 'nearest', about: { scale: 'corridor outlines' }, shape: true, radiusKm: 10, fields: ['name', 'type'], say: insideOr('wildlife corridor', 'name') },
   // ── access ──
   { id: 'gs_highways', section: 'access', match: 'nearest', about: { scale: 'national highway lines (PM GatiShakti, MoRTH)' }, shape: true, radiusKm: 25, fields: ['road_name', 'road_type', 'lane_statu', 'category'],

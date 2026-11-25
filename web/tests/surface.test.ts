@@ -103,6 +103,28 @@ const deps: ProfileDeps = {
   },
 };
 
+describe('summary lines', () => {
+  const say = (key: string, e: Record<string, unknown>) => SURFACE_LAYERS.find((l) => (l.key ?? l.id) === key)!.say!({ layer_id: 'x', credit: { name: 'c' }, ...e } as never);
+  it('a basin whose sub-basin has its name says it once (Port Blair)', () => {
+    const name = 'Drainage area of Andaman & Nicobar Islands';
+    expect(say('wris_subbasin', { match: 'contains', status: 'found', features: [{ ba_name: name, sub_basin: name }] })).toBe(`River basin: ${name}`);
+    expect(say('wris_subbasin', { match: 'contains', status: 'found', features: [{ ba_name: 'Ganga', sub_basin: 'Yamuna' }] })).toBe('River basin: Ganga, Yamuna');
+  });
+  it('a protected area named only by its kind says where it is (Vapi)', () => {
+    const near = (properties: Record<string, unknown>, d: number) => say('gs_wildlife_nearest', { match: 'nearest', status: 'found', nearest: [{ distance_km: d, lat: 0, lng: 0, properties }] });
+    expect(near({ name: 'Wildlife Sanctuary', category: 'Sanctuary', state: 'Dadra & Nagar Haveli' }, 14.4))
+      .toBe('Protected area 14.4 km away (Wildlife Sanctuary, Dadra & Nagar Haveli)');
+    expect(near({ name: 'Gir', category: 'National Park', state: 'Gujarat' }, 3)).toBe('Protected area 3.0 km away (Gir)');
+  });
+  it('a recorded forest area says it is FSI\'s, and names it or its division (Dharavi)', () => {
+    const inside = (p: Record<string, unknown>) => say('fsi_recorded_forest_area', { match: 'contains', status: 'found', features: [p] });
+    expect(inside({ name: ' ', name_of_rf: ' ', division: 'DFO Mumbai Mangroves Conservation Unit' }))
+      .toBe('Inside an FSI recorded forest area (DFO Mumbai Mangroves Conservation Unit)');
+    expect(inside({ name: 'Nagla Block', division: 'Thane' })).toBe('Inside an FSI recorded forest area (Nagla Block)');
+    expect(inside({})).toBe('Inside an FSI recorded forest area');
+  });
+});
+
 describe('surfaceAt', () => {
   it('says the ward right after the sub-district, before the constituency', async () => {
     // Jaali, Karnataka: outside every city ward map, so the national SBM ward map answers.
