@@ -294,7 +294,7 @@ curl -o villages.geojson "https://bharatlas.com/api/v1/layers/lgd_villages/expor
         <tr><td><code>lat</code></td><td>float <b>*</b></td><td>Latitude (6 to 38, India bounding box)</td></tr>
         <tr><td><code>lng</code></td><td>float <b>*</b></td><td>Longitude (68 to 98, India bounding box)</td></tr>
         <tr><td><code>layers</code></td><td>string</td><td>Comma-separated layer IDs to test, at most 25 (default: <!-- DOCS_LOCATE_N --> admin and zone layers, plus the city ward layer covering the point). A retired id is tested as its successor; an id that is not a layer comes back in <code>unknown_layers</code>, and when none is a layer the answer is <code>400</code>.</td></tr>
-        <tr><td><code>zoom</code></td><td>int</td><td>Tile resolution 4-16 (default 14, auto-capped to layer max zoom)</td></tr>
+        <tr><td><code>zoom</code></td><td>int</td><td>Tile resolution 4-16 (default 14, auto-capped to layer max zoom). At 12 and above, the admin, ward and zone layers asked most are read from one merged index drawn from their full shapes</td></tr>
       </table>
       <pre><code>curl "https://bharatlas.com/api/v1/locate?lat=12.97&amp;lng=77.59"</code></pre>
       <p>Response groups results by category:</p>

@@ -358,8 +358,9 @@ function turnTakingBucket(r2: R2Bucket, queue: ReturnType<typeof turns>, rank: n
 
 type LayerAnswer = Omit<ProfileEntry, 'credit' | 'layer_id'>;
 
-async function readContains(spec: ProfileLayer, lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, deps: ProfileDeps): Promise<LayerAnswer> {
-  const r: LocateResponse = await deps.locate(lat, lng, [spec.id], ZOOM, catalog, r2);
+/** `scope`: one per answer, so its contains layers share their reads of a merged index tile. */
+async function readContains(spec: ProfileLayer, lat: number, lng: number, catalog: CatalogData, r2: R2Bucket, deps: ProfileDeps, scope: object): Promise<LayerAnswer> {
+  const r: LocateResponse = await deps.locate(lat, lng, [spec.id], ZOOM, catalog, r2, { scope });
   if (r.failed_layers?.includes(spec.id)) throw new Error('tiles could not be read');
   const features = dedupeFeatures(Object.values(r.results).flat()
     .filter((h) => h.layer_id === spec.id).map((h) => pick(h.feature.properties, spec.fields)));
@@ -491,6 +492,7 @@ export async function profileAt(
   const said: Array<[number, string]> = [];
   const creditOfKey = new Map<string, string>();
   const omitted: string[] = [];
+  const scope = {}; // this answer's: its layers share reads of the merged point index
 
   /** `read` through its own turn-taking bucket, under its budget and the answer's deadline. */
   const timed = async <T>(id: string, rank: number, read: (r2: R2Bucket) => Promise<T>): Promise<T> => {
@@ -527,7 +529,7 @@ export async function profileAt(
     if (opts.openOnly && ncFields(layer).non_commercial) { omitted.push(key); return; }
     try {
       const read = spec.match === 'contains' ? readContains : readNearest;
-      const got = await timed(key, order, (bucket) => read(spec, lat, lng, catalog, bucket, deps));
+      const got = await timed(key, order, (bucket) => read(spec, lat, lng, catalog, bucket, deps, scope));
       const entry: ProfileEntry = {
         layer_id: spec.id, credit: creditOf(layer), ...ncFields(layer),
         about: { vintage: UNDATED, ...spec.about, ...(layer.fetched_at ? { fetched_at: layer.fetched_at.slice(0, 10) } : {}) },

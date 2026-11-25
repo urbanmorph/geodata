@@ -1,0 +1,279 @@
+{
+  "zoom": 12,
+  "archives": {
+    "place": {
+      "url": "https://data.bharatlas.com/point-index/place.0c4e31ec.pmtiles",
+      "bytes": 86597205
+    },
+    "zones": {
+      "url": "https://data.bharatlas.com/point-index/zones.1a5b6096.pmtiles",
+      "bytes": 47254930
+    }
+  },
+  "layers": {
+    "lgd_states": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/states/LGD_States.148c41d7.parquet",
+        "bytes": 7878522
+      },
+      "etag": "148c41d717319772f2a0d9e65ab3df5a",
+      "pmtiles": "https://data.bharatlas.com/admin/states/LGD_States.pmtiles"
+    },
+    "lgd_districts": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/districts/LGD_Districts.f7cd82af.parquet",
+        "bytes": 24114074
+      },
+      "etag": "f7cd82afbb1b636883f50bfd9b26e5ce",
+      "pmtiles": "https://data.bharatlas.com/admin/districts/LGD_Districts.pmtiles"
+    },
+    "lgd_subdistricts": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/subdistricts/LGD_Subdistricts.a20ac04c.parquet",
+        "bytes": 70353127
+      },
+      "etag": "e03c8ce88a02698e877dd0882c273634-3",
+      "pmtiles": "https://data.bharatlas.com/admin/subdistricts/LGD_Subdistricts.pmtiles"
+    },
+    "lgd_blocks": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/blocks/LGD_Blocks.4ac6f168.parquet",
+        "bytes": 74019556
+      },
+      "etag": "7045348bbc76284112d09ef4c91eac6a-3",
+      "pmtiles": "https://data.bharatlas.com/admin/blocks/LGD_Blocks.c00ac144.pmtiles"
+    },
+    "lgd_assembly": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/electoral/constituencies/LGD_Assembly_Constituencies.5fdeda70.parquet",
+        "bytes": 41915941
+      },
+      "etag": "5fdeda70613bdb3d10640e313aeb449c",
+      "pmtiles": "https://data.bharatlas.com/electoral/constituencies/LGD_Assembly_Constituencies.pmtiles"
+    },
+    "lgd_parliament": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/electoral/constituencies/LGD_Parliament_Constituencies.535f5e16.parquet",
+        "bytes": 23021399
+      },
+      "etag": "535f5e16fa8179fecdb796b2bda2a08f",
+      "pmtiles": "https://data.bharatlas.com/electoral/constituencies/LGD_Parliament_Constituencies.pmtiles"
+    },
+    "sbm_wards": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/boundaries/sbm-wards/SBM_Wards.parquet",
+        "bytes": 66680769
+      },
+      "etag": "e1ec8744e2fff6be1a87018620502b14",
+      "pmtiles": "https://data.bharatlas.com/boundaries/sbm-wards/SBM_Wards.70fe7054.pmtiles"
+    },
+    "wb_amrut_wards": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/boundaries/wb-amrut-wards/WB_AMRUT_Wards.parquet",
+        "bytes": 5390936
+      },
+      "etag": "e41882059b4fa8d7c0f8ce232b5a37f9",
+      "pmtiles": "https://data.bharatlas.com/boundaries/wb-amrut-wards/WB_AMRUT_Wards.pmtiles"
+    },
+    "wards_bengaluru_gba": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-bengaluru-gba/wards_bengaluru_gba.61db3a4a.parquet",
+        "bytes": 846137
+      },
+      "etag": "61db3a4a4bc70b97cdb78c032a0c8efc",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles"
+    },
+    "wards_hyderabad": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.parquet",
+        "bytes": 400309
+      },
+      "etag": "6d126a7d56c0bedfd75d50c6884f45d5",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.pmtiles"
+    },
+    "wards_mumbai": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-mumbai/wards_mumbai.1318f1c2.parquet",
+        "bytes": 221162
+      },
+      "etag": "1318f1c22061f12d91fcb636056a001f",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-mumbai/wards_mumbai.pmtiles"
+    },
+    "wards_kolkata": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-kolkata/wards_kolkata.8255116f.parquet",
+        "bytes": 525677
+      },
+      "etag": "8255116fe9766a7b6d1420bea5d5f620",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-kolkata/wards_kolkata.pmtiles"
+    },
+    "seismic_zones": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/environment/seismic/Seismic_Zones.ccdea0fb.parquet",
+        "bytes": 3551375
+      },
+      "etag": "ccdea0fb2128b2fc9259a0348e42cf85",
+      "pmtiles": "https://data.bharatlas.com/environment/seismic/Seismic_Zones.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/seismic_zones.a5602c4a.json",
+        "bytes": 4018
+      }
+    },
+    "agro_climatic_zones": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/agriculture/agro-climatic-zones/Agro_Climatic_Zones.parquet",
+        "bytes": 4227967
+      },
+      "etag": "10feaf14f34bf554839e0da367deeb75",
+      "pmtiles": "https://data.bharatlas.com/agriculture/agro-climatic-zones/Agro_Climatic_Zones.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/agro_climatic_zones.2532a192.json",
+        "bytes": 7513
+      }
+    },
+    "agro_ecological_zones": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/agriculture/agro-ecological-zones/Agro_Ecological_Zones.parquet",
+        "bytes": 3873774
+      },
+      "etag": "054a3d3c5165b18537e6ff056c299a70",
+      "pmtiles": "https://data.bharatlas.com/agriculture/agro-ecological-zones/Agro_Ecological_Zones.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/agro_ecological_zones.9c5350a1.json",
+        "bytes": 3557
+      }
+    },
+    "bm_eco_zones": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.f430a732.parquet",
+        "bytes": 2295075
+      },
+      "etag": "f430a732ab2e58bd8722b801bbc55da0",
+      "pmtiles": "https://data.bharatlas.com/environment/forests/Bharatmaps_Parivesh_Eco_Sensitive_Zones.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/bm_eco_zones.439b9624.json",
+        "bytes": 81125
+      }
+    },
+    "biogeographic_zones": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/environment/biogeographic/Biogeographic_Zones.parquet",
+        "bytes": 4002631
+      },
+      "etag": "77d1690a380e4d8e3d1a10ecac387946",
+      "pmtiles": "https://data.bharatlas.com/environment/biogeographic/Biogeographic_Zones.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/biogeographic_zones.faef9a1a.json",
+        "bytes": 8388
+      }
+    },
+    "wris_basin": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/water/hydro-boundaries/WRIS_Basin.cbfdfe38.parquet",
+        "bytes": 3137376
+      },
+      "etag": "cbfdfe382061c395192f5375dbc51a1f",
+      "pmtiles": "https://data.bharatlas.com/water/hydro-boundaries/WRIS_Basin.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/wris_basin.baff968b.json",
+        "bytes": 7041
+      }
+    },
+    "wris_subbasin": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/water/hydro-boundaries/WRIS_SubBasin.0db0344c.parquet",
+        "bytes": 14517043
+      },
+      "etag": "0db0344ca01176ea31ea479b574cbfc1",
+      "pmtiles": "https://data.bharatlas.com/water/hydro-boundaries/WRIS_SubBasin.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/wris_subbasin.1e83bfa1.json",
+        "bytes": 13711
+      }
+    },
+    "cgwb_aquifers": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/water/groundwater/CGWB_Aquifers.parquet",
+        "bytes": 28324146
+      },
+      "etag": "5b0d7a26f00f31ca1d19f5c9153a1572",
+      "pmtiles": "https://data.bharatlas.com/water/groundwater/CGWB_Aquifers.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/cgwb_aquifers.834cc58c.json",
+        "bytes": 264932
+      }
+    },
+    "gs_wildlife": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.parquet",
+        "bytes": 21547108
+      },
+      "etag": "20c169c5fb369d5e65bc0a1eb73f8b95",
+      "pmtiles": "https://data.bharatlas.com/environment/forests/GatiShakti_Wildlife_Sanctuaries_and_National_Parks.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/gs_wildlife.23d0ed79.json",
+        "bytes": 824125
+      }
+    },
+    "cgwb_gw_extraction": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/water/groundwater/CGWB_Groundwater_Extraction.parquet",
+        "bytes": 68510484
+      },
+      "etag": "7e7de9049bf293f69698d308a0943665-2",
+      "pmtiles": "https://data.bharatlas.com/water/groundwater/CGWB_Groundwater_Extraction.71c26a82.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/cgwb_gw_extraction.00361b4c.json",
+        "bytes": 2358030
+      }
+    },
+    "glhymps_permeability": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/water/glhymps-permeability/GLHYMPS_India.3d26649d.parquet",
+        "bytes": 8132161
+      },
+      "etag": "3d26649d37b72250a01e5c17b2ea63fb",
+      "pmtiles": "https://data.bharatlas.com/water/glhymps-permeability/GLHYMPS_India.20e62c98.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/glhymps_permeability.ce99c26a.json",
+        "bytes": 429532
+      }
+    },
+    "gsi_geology_2m": {
+      "archive": "zones",
+      "parquet": {
+        "url": "https://data.bharatlas.com/environment/gsi-geology-2m/NGDR_Geology_2M.parquet",
+        "bytes": 24874481
+      },
+      "etag": "45b93d0e49a8d9ffda45c44c11c84b60",
+      "pmtiles": "https://data.bharatlas.com/environment/gsi-geology-2m/NGDR_Geology_2M.pmtiles",
+      "props": {
+        "url": "https://data.bharatlas.com/point-index/props/gsi_geology_2m.6d85649e.json",
+        "bytes": 1298196
+      }
+    }
+  }
+}

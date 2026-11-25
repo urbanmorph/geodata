@@ -82,12 +82,16 @@ export function coloOf(r2: R2Bucket): ColoCache | undefined {
   return (r2 as unknown as { [COLO]?: ColoCache })[COLO];
 }
 
+/** The point index's field files (scripts/bake_point_index.py). */
+const POINT_INDEX_PROPS = 'point-index/props/';
+
 /** Reads every point shares: a parquet file's tail (its footer), and range reads of
- *  tile archives and GeoTIFFs (headers, directories, tiles, pixel blocks). A parquet's
- *  other ranges are rows near one point (bbox columns are kept decoded instead). */
+ *  tile archives, GeoTIFFs (headers, directories, tiles, pixel blocks) and the point
+ *  index's field files. A parquet's other ranges are rows near one point (bbox columns
+ *  are kept decoded instead). */
 function shared(key: string, range: R2Range | undefined): boolean {
   if (!range) return false;
-  return ('suffix' in range && range.suffix !== undefined) || /\.(pmtiles|tiff?)$/i.test(key);
+  return ('suffix' in range && range.suffix !== undefined) || /\.(pmtiles|tiff?)$/i.test(key) || key.startsWith(POINT_INDEX_PROPS);
 }
 
 const rangeKey = (r: R2Range) => ('suffix' in r && r.suffix !== undefined ? `-${r.suffix}`

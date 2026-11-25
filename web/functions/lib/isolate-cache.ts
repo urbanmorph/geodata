@@ -7,13 +7,39 @@
 // request for that key wait until the platform limit (~60 s on /api/v1/nearby).
 
 /**
+ * Loads in flight by key, shared only among callers passing the same `scope` (the
+ * request, or an object that lives only as long as it); nothing is kept once a load
+ * settles, so a rejected load is never handed to a later caller.
+ */
+export class InflightShare<V> {
+  private inflight = new WeakMap<object, Map<string, Promise<V>>>();
+
+  get(key: string, load: () => Promise<V>, scope?: object): Promise<V> {
+    if (!scope) return load();
+    let mine = this.inflight.get(scope);
+    const shared = mine?.get(key);
+    if (shared) return shared;
+    if (!mine) this.inflight.set(scope, (mine = new Map()));
+    const p = load();
+    const own = mine;
+    own.set(key, p);
+    p.finally(() => own.delete(key)).catch(() => {});
+    return p;
+  }
+
+  clear(): void {
+    this.inflight = new WeakMap();
+  }
+}
+
+/**
  * Values by key, least recently used out past `max`. A load in flight is
  * shared only with callers passing the same `scope` (the request, or an object
  * that lives only as long as it); a rejected load is not kept.
  */
 export class ResolvedCache<V> {
   private values = new Map<string, V>();
-  private inflight = new WeakMap<object, Map<string, Promise<V>>>();
+  private inflight = new InflightShare<V>();
 
   constructor(private readonly max = Infinity) {}
 
@@ -24,27 +50,16 @@ export class ResolvedCache<V> {
       this.values.set(key, v); // most recently used last
       return Promise.resolve(v);
     }
-    const pending = scope ? this.inflight.get(scope) : undefined;
-    const shared = pending?.get(key);
-    if (shared) return shared;
-
-    const p = load().then((v) => {
+    return this.inflight.get(key, () => load().then((v) => {
       this.values.set(key, v);
       while (this.values.size > this.max) this.values.delete(this.values.keys().next().value!);
       return v;
-    });
-    if (scope) {
-      const mine = pending ?? new Map<string, Promise<V>>();
-      if (!pending) this.inflight.set(scope, mine);
-      mine.set(key, p);
-      p.finally(() => mine.delete(key)).catch(() => {});
-    }
-    return p;
+    }), scope);
   }
 
   clear(): void {
     this.values.clear();
-    this.inflight = new WeakMap();
+    this.inflight.clear();
   }
 }
 
