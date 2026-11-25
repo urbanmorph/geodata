@@ -311,6 +311,15 @@ describe('groundAt', () => {
     const far = await run(7.01, 93.93, catalog, { ...none });
     expect(far.sections.seismic.seismic_zones).toMatchObject({ status: 'not_covered', features: [] });
     expect(far.sections.seismic.seismic_zones.edge_km).toBeUndefined();
+    // the edge read failing keeps the answer (not covered), not "could not be read"
+    const failing = await run(7.01, 93.93, catalog, { ...none, nearbyFromTiles: async () => { throw new Error('R2 down'); } });
+    expect(failing.sections.seismic.seismic_zones).toMatchObject({ status: 'not_covered' });
+    // a polygon the tiles hold at the point (distance 0) is a plain match, no edge note
+    const inside = await run(7.01, 93.93, catalog, { ...none, nearbyFromTiles: async (_lat, _lng, _r, id) => (id === 'seismic_zones'
+      ? { features: [{ properties: zone, lat: 7.0, lng: 93.93, distance_km: 0 }], total: 1, capped: false } : { features: [], total: 0, capped: false }) });
+    expect(inside.sections.seismic.seismic_zones).toMatchObject({ status: 'found', features: [zone] });
+    expect(inside.sections.seismic.seismic_zones.edge_km).toBeUndefined();
+    expect(inside.summary).not.toMatch(/the map's edge/);
   });
 
   it('outside the five cities, says subsidence is not measured there (Joshimath, Jharia)', () => {

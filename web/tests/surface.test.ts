@@ -197,8 +197,17 @@ describe('surfaceAt', () => {
       nearbyByGeometry: async (_lat, _lng, _r, id) => (id === 'india_boundary'
         ? { features: [{ properties: {}, lat: 27.3, lng: 84.6, distance_km: d }], total: 1, capped: false }
         : { features: [], total: 0, capped: false }) });
-    const s = await surfaceAt(27.7172, 85.324, catalog, {} as R2Bucket, outline(80.97));
+    const land = (d: number, cover: PixelResult): ProfileDeps => ({ ...outline(d), pixels: { ...deps.pixels, worldcover: async () => cover } });
+    const s = await surfaceAt(27.7172, 85.324, catalog, {} as R2Bucket, land(80.97, { status: 'ok', data: { land_cover: 'Cropland', land_cover_code: 40 } }));
     expect(s.summary).toMatch(/^This point is outside India, 81\.0 km from its outline\./);
+    // water in no state is not "outside India": the Gulf of Kutch, off Mumbai, Palk Bay are Indian waters
+    for (const cover of [{ status: 'ok', data: { land_cover: 'Permanent water bodies', land_cover_code: 80 } }, { status: 'none', reason: 'no land cover at sea' }] as PixelResult[]) {
+      const sea = await surfaceAt(22.6, 69.8, catalog, {} as R2Bucket, land(14.39, cover));
+      expect(sea.summary).toMatch(/^At sea, 14\.4 km from India's coast or land border\./);
+      expect(sea.summary).not.toMatch(/outside India/);
+    }
+    // land cover unread (unavailable): nothing said either way
+    expect((await surfaceAt(27.7, 85.3, catalog, {} as R2Bucket, outline(80))).summary).not.toMatch(/outside India|At sea/);
     const coast = await surfaceAt(7.01, 93.93, catalog, {} as R2Bucket, outline(0.4));
     expect(coast.summary).not.toMatch(/outside India/);
     const home = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, { ...outline(80),

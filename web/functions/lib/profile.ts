@@ -404,8 +404,12 @@ async function readContains(
   // A coarse map's coast can stop short of a point on land: the nearest polygon within edgeKm answers.
   let edge: number | undefined;
   if (!features.length && spec.edgeKm) {
-    const near = (await deps.nearbyFromTiles(lat, lng, spec.edgeKm, spec.id, catalog, r2, { limit: 1 })).features[0];
-    if (near) { features.push(pick(near.properties, spec.fields)); edge = near.distance_km; }
+    // A failed read keeps the answer this layer had (not covered); a distance of 0 is a plain match.
+    const near = (await deps.nearbyFromTiles(lat, lng, spec.edgeKm, spec.id, catalog, r2, { limit: 1 }).catch(() => null))?.features[0];
+    if (near) {
+      features.push(pick(near.properties, spec.fields));
+      if (near.distance_km > 0) edge = near.distance_km;
+    }
   }
   return {
     match: 'contains', ...(features.length ? { status: 'found' as const } : none), features,

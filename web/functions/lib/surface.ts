@@ -209,14 +209,19 @@ export const SURFACE_PROFILE: ProfileSpec = {
   preface: outsideIndia,
 };
 
-/** Away from India's outline (OUTSIDE_KM or more) and in no state: the answer says first that the point is outside India.
- *  Closer, a coarse coast or border could leave a point on land in no state (Great Nicobar). */
+/** In no state and OUTSIDE_KM or more from India's outline, the answer says first where the point is.
+ *  On land (WorldCover, not water) it is outside India (Kathmandu); on water it is at sea, which may
+ *  still be Indian waters (the Gulf of Kutch, off Mumbai, Palk Bay), so only the distance is said.
+ *  Nearer the outline a coarse coast or border can leave a point on land in no state (Great Nicobar). */
 const OUTSIDE_KM = 5;
+const WATER = 80; // ESA WorldCover: permanent water bodies
 function outsideIndia(sections: ProfileResponse['sections']): string[] {
   const state = sections.place?.lgd_states;
   const d = sections.infrastructure?.india_outline?.nearest?.[0]?.distance_km;
-  return state && state.status !== 'found' && d !== undefined && d >= OUTSIDE_KM
-    ? [`This point is outside India, ${km(d)} from its outline`] : [];
+  const cover = sections.land?.worldcover; // absent when it could not be read: then nothing is said
+  if (!state || state.status === 'found' || d === undefined || d < OUTSIDE_KM || !cover) return [];
+  const land = cover.status === 'found' && value(cover, 'land_cover_code') !== WATER;
+  return [land ? `This point is outside India, ${km(d)} from its outline` : `At sea, ${km(d)} from India's coast or land border`];
 }
 
 export const SURFACE_DEPS: ProfileDeps = { ...BASE_DEPS, pixels: SURFACE_PIXELS };
