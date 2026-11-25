@@ -205,8 +205,9 @@ export const SURFACE_PROFILE: ProfileSpec = {
   expand: (lat, lng) => wardRows(lat, lng),
   expandAfter: 'lgd_subdistricts', // the ward after the sub-district, before the constituencies
   expandable: { section: 'place', ids: [...Object.keys(WARD_BBOXES), ...NATIONAL_WARD_LAYERS], row: wardRow },
-  conclude: nearestHealth,
+  conclude: healthUnlessAbroad,
   preface: outsideIndia,
+  quiet: quietOutside,
 };
 
 /** In no state and OUTSIDE_KM or more from India's outline, the answer says first where the point is.
@@ -215,13 +216,27 @@ export const SURFACE_PROFILE: ProfileSpec = {
  *  Nearer the outline a coarse coast or border can leave a point on land in no state (Great Nicobar). */
 const OUTSIDE_KM = 5;
 const WATER = 80; // ESA WorldCover: permanent water bodies
-function outsideIndia(sections: ProfileResponse['sections']): string[] {
+function whereOutside(sections: ProfileResponse['sections']): { at: 'land' | 'sea'; km: number } | null {
   const state = sections.place?.lgd_states;
   const d = sections.infrastructure?.india_outline?.nearest?.[0]?.distance_km;
   const cover = sections.land?.worldcover; // absent when it could not be read: then nothing is said
-  if (!state || state.status === 'found' || d === undefined || d < OUTSIDE_KM || !cover) return [];
-  const land = cover.status === 'found' && value(cover, 'land_cover_code') !== WATER;
-  return [land ? `This point is outside India, ${km(d)} from its outline` : `At sea, ${km(d)} from India's coast or land border`];
+  if (!state || state.status === 'found' || d === undefined || d < OUTSIDE_KM || !cover) return null;
+  return { at: cover.status === 'found' && value(cover, 'land_cover_code') !== WATER ? 'land' : 'sea', km: d };
+}
+function outsideIndia(sections: ProfileResponse['sections']): string[] {
+  const w = whereOutside(sections);
+  if (!w) return [];
+  return [w.at === 'land' ? `This point is outside India, ${km(w.km)} from its outline` : `At sea, ${km(w.km)} from India's coast or land border`];
+}
+/** Said first, the distance is not said again; abroad, India's service lists name only stray
+ *  records (a Dhanbad hospital geocoded to Kathmandu), so their lines are left out too. */
+const SERVICES = SURFACE_LAYERS.filter((l) => l.section === 'services').map((l) => l.key ?? l.id);
+function quietOutside(sections: ProfileResponse['sections']): string[] {
+  const w = whereOutside(sections);
+  return w ? ['india_outline', ...(w.at === 'land' ? SERVICES : [])] : [];
+}
+function healthUnlessAbroad(sections: ProfileResponse['sections']): string[] {
+  return whereOutside(sections)?.at === 'land' ? [] : nearestHealth(sections);
 }
 
 export const SURFACE_DEPS: ProfileDeps = { ...BASE_DEPS, pixels: SURFACE_PIXELS };

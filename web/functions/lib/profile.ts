@@ -262,6 +262,8 @@ export interface ProfileSpec {
   conclude?: (sections: ProfileResponse['sections']) => string[];
   /** Lines said before all others, from several entries (e.g. a point outside India). */
   preface?: (sections: ProfileResponse['sections']) => string[];
+  /** Entry keys whose own lines the summary leaves out (their entries stay in the sections). */
+  quiet?: (sections: ProfileResponse['sections']) => string[];
 }
 
 /** An entry's vintage where its source gives no date: the answer then dates it by fetched_at, never by silence. */
@@ -625,9 +627,10 @@ export async function profileAt(
   // A stand-in speaks only where the layer it stands in for said nothing.
   const spoke = new Set(said.map(([, , k]) => k));
   const standsInFor = new Map(layers.map((l) => [keyOf(l), l.fallbackFor]));
+  const hush = new Set(profile.quiet?.(sections) ?? []);
   const heard = said.filter(([, , k]) => {
     const finer = k && standsInFor.get(k);
-    return !(finer && spoke.has(finer));
+    return !(finer && spoke.has(finer)) && !(k && hush.has(k));
   });
   // Credits follow the sections too, so the list is the same however the reads finish.
   const credits = new Set(profile.sections.flatMap((s) => Object.keys(sections[s]))

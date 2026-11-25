@@ -1612,7 +1612,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > schema: r
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v6 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v7 1`] = `
 [
   {
     "air": {
@@ -4152,7 +4152,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > surface:tiles@v6 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > surface:tiles@v7 1`] = `
 [
   {
     "point": {
