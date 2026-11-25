@@ -2,12 +2,12 @@
   "zoom": 12,
   "archives": {
     "place": {
-      "url": "https://data.bharatlas.com/point-index/place.0c4e31ec.pmtiles",
-      "bytes": 86597205
+      "url": "https://data.bharatlas.com/point-index/place.4e53cad1.pmtiles",
+      "bytes": 125064798
     },
     "zones": {
-      "url": "https://data.bharatlas.com/point-index/zones.1a5b6096.pmtiles",
-      "bytes": 47254930
+      "url": "https://data.bharatlas.com/point-index/zones.c6e5cbef.pmtiles",
+      "bytes": 47254894
     }
   },
   "layers": {
@@ -83,6 +83,15 @@
       "etag": "e41882059b4fa8d7c0f8ce232b5a37f9",
       "pmtiles": "https://data.bharatlas.com/boundaries/wb-amrut-wards/WB_AMRUT_Wards.pmtiles"
     },
+    "wards_ahmedabad": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-ahmedabad/wards_ahmedabad.7fd0eb49.parquet",
+        "bytes": 77995
+      },
+      "etag": "7fd0eb49a2c487df81f47b540084a89f",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-ahmedabad/wards_ahmedabad.pmtiles"
+    },
     "wards_bengaluru_gba": {
       "archive": "place",
       "parquet": {
@@ -91,6 +100,33 @@
       },
       "etag": "61db3a4a4bc70b97cdb78c032a0c8efc",
       "pmtiles": "https://data.bharatlas.com/admin/wards-bengaluru-gba/wards_bengaluru_gba.pmtiles"
+    },
+    "wards_bhopal": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-bhopal/wards_bhopal.785888c7.parquet",
+        "bytes": 114563
+      },
+      "etag": "785888c75d924508ff358b3d534f323f",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-bhopal/wards_bhopal.pmtiles"
+    },
+    "wards_gurugram": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-gurugram/wards_gurugram.44c3cbf1.parquet",
+        "bytes": 60049
+      },
+      "etag": "44c3cbf1039fe83ad389974dd187e52c",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-gurugram/wards_gurugram.pmtiles"
+    },
+    "wards_guwahati": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-guwahati/wards_guwahati.bc6dd324.parquet",
+        "bytes": 199803
+      },
+      "etag": "bc6dd324321aabf38f7858d0ae4a34b3",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-guwahati/wards_guwahati.pmtiles"
     },
     "wards_hyderabad": {
       "archive": "place",
@@ -101,14 +137,50 @@
       "etag": "6d126a7d56c0bedfd75d50c6884f45d5",
       "pmtiles": "https://data.bharatlas.com/admin/wards-hyderabad-ghmc-2022/wards_hyderabad.pmtiles"
     },
-    "wards_mumbai": {
+    "wards_indore": {
       "archive": "place",
       "parquet": {
-        "url": "https://data.bharatlas.com/admin/wards-mumbai/wards_mumbai.1318f1c2.parquet",
-        "bytes": 221162
+        "url": "https://data.bharatlas.com/admin/wards-indore/wards_indore.44e0c87a.parquet",
+        "bytes": 88115
       },
-      "etag": "1318f1c22061f12d91fcb636056a001f",
-      "pmtiles": "https://data.bharatlas.com/admin/wards-mumbai/wards_mumbai.pmtiles"
+      "etag": "44e0c87ae89fe21389ffd72f415f69b1",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-indore/wards_indore.pmtiles"
+    },
+    "wards_jaipur": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-jaipur/wards_jaipur.12128f32.parquet",
+        "bytes": 76986
+      },
+      "etag": "12128f32d399dbfb76342a78ae8fc30b",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-jaipur/wards_jaipur.pmtiles"
+    },
+    "wards_kalyan_dombivli": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-kalyan-dombivli/wards_kalyan_dombivli.parquet",
+        "bytes": 120019
+      },
+      "etag": "34ce90b5fd3bdd6e637f7b5213148dce",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-kalyan-dombivli/wards_kalyan_dombivli.pmtiles"
+    },
+    "wards_kanpur": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-kanpur/wards_kanpur.5dc81188.parquet",
+        "bytes": 68867
+      },
+      "etag": "5dc81188b8fd221c05e3806489cc1d1d",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-kanpur/wards_kanpur.pmtiles"
+    },
+    "wards_kochi": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-kochi/wards_kochi.76f11a1d.parquet",
+        "bytes": 135362
+      },
+      "etag": "76f11a1dc51cc6f0a68eb66b0f27442d",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-kochi/wards_kochi.pmtiles"
     },
     "wards_kolkata": {
       "archive": "place",
@@ -118,6 +190,132 @@
       },
       "etag": "8255116fe9766a7b6d1420bea5d5f620",
       "pmtiles": "https://data.bharatlas.com/admin/wards-kolkata/wards_kolkata.pmtiles"
+    },
+    "wards_lucknow": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-lucknow/wards_lucknow.a8990615.parquet",
+        "bytes": 101675
+      },
+      "etag": "a8990615df2e9ed8310aa11f7b8f3e7f",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-lucknow/wards_lucknow.pmtiles"
+    },
+    "wards_madurai": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-madurai/wards_madurai.4264acd0.parquet",
+        "bytes": 135171
+      },
+      "etag": "4264acd04c8a1197d2d232ae187b6fa8",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-madurai/wards_madurai.pmtiles"
+    },
+    "wards_mumbai": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-mumbai/wards_mumbai.1318f1c2.parquet",
+        "bytes": 221162
+      },
+      "etag": "1318f1c22061f12d91fcb636056a001f",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-mumbai/wards_mumbai.pmtiles"
+    },
+    "wards_navi_mumbai": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-navi-mumbai/wards_navi_mumbai.b560a6ff.parquet",
+        "bytes": 85108
+      },
+      "etag": "b560a6ff10e07f9bf89d420b39b7eb21",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-navi-mumbai/wards_navi_mumbai.pmtiles"
+    },
+    "wards_patna": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-patna/wards_patna.parquet",
+        "bytes": 250944
+      },
+      "etag": "854be569cb33cbbaadd53e621b1425f0",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-patna/wards_patna.pmtiles"
+    },
+    "wards_pune": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-pune/wards_pune.f55b90b0.parquet",
+        "bytes": 66852
+      },
+      "etag": "f55b90b094ea7544c1e0b4c8498e9c6c",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-pune/wards_pune.pmtiles"
+    },
+    "wards_pune_2025": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-pune-2025/wards_pune_2025.parquet",
+        "bytes": 43879
+      },
+      "etag": "a5d9f7cafb18dda41d45f0b2dff91e39",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-pune-2025/wards_pune_2025.pmtiles"
+    },
+    "wards_surat": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-surat/wards_surat.e8eca35e.parquet",
+        "bytes": 320433
+      },
+      "etag": "e8eca35e10f8acc21d7adefdad3c1f2a",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-surat/wards_surat.pmtiles"
+    },
+    "wards_thane": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-thane/wards_thane.61b92808.parquet",
+        "bytes": 62268
+      },
+      "etag": "61b92808ba77bf7ac8f51bf17a35cd4b",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-thane/wards_thane.pmtiles"
+    },
+    "wards_vadodara": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-vadodara/wards_vadodara.3c1d74b2.parquet",
+        "bytes": 22428
+      },
+      "etag": "3c1d74b28c1933dfe3f4d8236f6b197e",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-vadodara/wards_vadodara.z12.pmtiles"
+    },
+    "wards_vizag": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/admin/wards-vizag/wards_vizag.5cfa95ef.parquet",
+        "bytes": 152604
+      },
+      "etag": "5cfa95ef0d6faa8ab6cddd752672601c",
+      "pmtiles": "https://data.bharatlas.com/admin/wards-vizag/wards_vizag.pmtiles"
+    },
+    "bharatviz_pincodes": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/postal/boundaries/bharatviz_pincodes.1de66297.parquet",
+        "bytes": 1410819
+      },
+      "etag": "1de66297ce7b55df34ea438922755b36",
+      "pmtiles": "https://data.bharatlas.com/postal/boundaries/bharatviz_pincodes.z12.pmtiles"
+    },
+    "soi_forests": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/environment/forests/SOI_Forests.parquet",
+        "bytes": 81409189
+      },
+      "etag": "1edff9f3bb85fa161703595a7fdaa509-2",
+      "pmtiles": "https://data.bharatlas.com/environment/forests/SOI_Forests.3ad9c5b7.pmtiles"
+    },
+    "high_courts": {
+      "archive": "place",
+      "parquet": {
+        "url": "https://data.bharatlas.com/judiciary/high_courts.f36b3c70.parquet",
+        "bytes": 7503807
+      },
+      "etag": "f36b3c70f49751119be74bb408b653ed",
+      "pmtiles": "https://data.bharatlas.com/judiciary/high_courts.f335070d.pmtiles"
     },
     "seismic_zones": {
       "archive": "zones",
@@ -180,8 +378,8 @@
       "etag": "77d1690a380e4d8e3d1a10ecac387946",
       "pmtiles": "https://data.bharatlas.com/environment/biogeographic/Biogeographic_Zones.pmtiles",
       "props": {
-        "url": "https://data.bharatlas.com/point-index/props/biogeographic_zones.faef9a1a.json",
-        "bytes": 8388
+        "url": "https://data.bharatlas.com/point-index/props/biogeographic_zones.837ea11a.json",
+        "bytes": 3136
       }
     },
     "wris_basin": {

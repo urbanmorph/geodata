@@ -110,3 +110,41 @@ def test_tile_ids_are_row_numbers_plus_one_and_carry_no_f(tmp_path):
 
 def test_manifest_path_is_under_api_data():
     assert bpi.MANIFEST == Path(bpi.ROOT) / 'web' / 'public' / 'api-data' / 'point-index.json'
+
+
+def test_every_city_ward_layer_is_planned_from_the_generated_ward_list():
+    # a new city's wards (scripts/gen-ward-bboxes.mjs) join the index without editing this script
+    wards = bpi.ward_layers()
+    assert {'wards_ahmedabad', 'wards_mumbai', 'wards_vizag'} <= set(wards)
+    assert all(w.startswith('wards_') for w in wards)
+    assert {'sbm_wards', 'wb_amrut_wards'} <= set(bpi.ARCHIVES['place']['layers'])
+    assert set(wards) <= set(bpi.ARCHIVES['place']['layers'])
+
+
+def test_the_default_locate_layers_are_all_planned():
+    # web/functions/lib/locate-layers.ts DEFAULT_LOCATE_LAYERS: a default lookup reads only the index
+    import re
+    ts = (bpi.ROOT / 'web' / 'functions' / 'lib' / 'locate-layers.ts').read_text()
+    body = ts[ts.index('DEFAULT_LOCATE_LAYERS'):]
+    defaults = set(re.findall(r"'([a-z0-9_]+)'", body[:body.index('] as const')]))
+    planned = {lid for spec in bpi.ARCHIVES.values() for lid in spec['layers']}
+    assert {'bharatviz_pincodes', 'soi_forests', 'high_courts'} <= defaults
+    assert sorted(defaults - planned) == []
+
+
+def test_the_manifest_holds_every_layer_the_bake_plans_and_no_other():
+    # Fails after a layer refresh or a new planned layer until the bake runs again:
+    #   python3 -u scripts/bake_point_index.py   (then commit web/public/api-data/point-index.json)
+    catalog = json.loads(bpi.CATALOG.read_text())
+    planned = {lyr['id'] for rows in bpi.plan(catalog).values() for lyr in rows}
+    indexed = set(json.loads(bpi.MANIFEST.read_text())['layers'])
+    assert sorted(planned - indexed) == [], 'planned but not in the index: re-run scripts/bake_point_index.py'
+    assert sorted(indexed - planned) == [], 'in the index but no longer planned: re-run scripts/bake_point_index.py'
+
+
+def test_refresh_note_names_the_bake_for_an_indexed_layer_only(tmp_path):
+    m = tmp_path / 'point-index.json'
+    m.write_text(json.dumps({'zoom': 12, 'archives': {}, 'layers': {'lgd_states': {}}}))
+    assert 'bake_point_index.py' in bpi.refresh_note('lgd_states', m)
+    assert bpi.refresh_note('wris_dams', m) is None
+    assert bpi.refresh_note('lgd_states', tmp_path / 'missing.json') is None

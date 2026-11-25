@@ -62,14 +62,26 @@ PREFIX = 'point-index'
 TILE_TIMEOUT_S = 3600
 
 ADMIN = ['lgd_states', 'lgd_districts', 'lgd_subdistricts', 'lgd_blocks', 'lgd_assembly', 'lgd_parliament']
-WARDS = ['sbm_wards', 'wb_amrut_wards', 'wards_bengaluru_gba', 'wards_chennai', 'wards_hyderabad',
-         'wards_hyderabad_osm', 'wards_mumbai', 'wards_delhi', 'wards_kolkata']
+WARD_BBOXES = ROOT / 'web' / 'functions' / 'lib' / 'ward-bboxes.ts'
+
+
+def ward_layers(ts: Path = WARD_BBOXES) -> list[str]:
+    """Every city ward layer, from the generated ward list (scripts/gen-ward-bboxes.mjs), so a
+    new city's wards join the index on the next bake. Share-alike ones are left out by plan()."""
+    return sorted(set(re.findall(r'"(wards_[a-z0-9_]+)"\s*:', ts.read_text())))
+
+
+# The national ward maps first, then the cities'.
+WARDS = ['sbm_wards', 'wb_amrut_wards', *ward_layers()]
+# The other polygon layers of a default locate (locate-layers.ts DEFAULT_LOCATE_LAYERS), with
+# their popup fields in the tiles: a per-layer field file is loaded whole, too big for 63,864 pincodes.
+LOOKUP = ['bharatviz_pincodes', 'soi_forests', 'high_courts']
 ZONES = ['seismic_zones', 'agro_climatic_zones', 'agro_ecological_zones', 'bm_eco_zones', 'biogeographic_zones',
          'wris_basin', 'wris_subbasin', 'cgwb_aquifers', 'gs_wildlife', 'cgwb_gw_extraction',
          'glhymps_permeability', 'gsi_geology_2m']
 # props: 'tiles' (popup fields in each feature) or 'sidecar' (ids only; fields in a JSON per layer).
 ARCHIVES = {
-    'place': {'layers': ADMIN + WARDS, 'props': 'tiles'},
+    'place': {'layers': ADMIN + WARDS + LOOKUP, 'props': 'tiles'},
     'zones': {'layers': ZONES, 'props': 'sidecar'},
 }
 
@@ -79,6 +91,19 @@ _SHARE_ALIKE = re.compile(r'odbl|share-?alike|(^|[^a-z])sa([^a-z]|$)', re.I)
 def share_alike(licence: str | None) -> bool:
     """ODbL or a CC BY-SA licence: its share-alike terms would reach a file merged with other layers."""
     return bool(licence and _SHARE_ALIKE.search(licence))
+
+
+def refresh_note(lid: str, manifest: Path = MANIFEST) -> str | None:
+    """What a script that refreshed layer `lid` should say when the index holds it (the index
+    answers it from the old files' tiles no more; CI fails until the bake runs), else None."""
+    try:
+        indexed = json.loads(manifest.read_text()).get('layers', {})
+    except (OSError, ValueError):
+        return None  # no readable manifest: CI says what to do
+    if lid not in indexed:
+        return None
+    return (f'{lid} is in the point index: run `python3 -u scripts/bake_point_index.py` and commit '
+            'web/public/api-data/point-index.json (CI fails until then)')
 
 
 def plan(catalog: dict, archives: dict = ARCHIVES) -> dict[str, list[dict]]:
