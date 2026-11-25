@@ -140,6 +140,31 @@ describe('surfaceAt', () => {
     expect(Object.keys(s.sections.place)).toEqual(expect.arrayContaining(['sbm_wards']));
   });
 
+  it('the nearest airport is an airport: helipads and closed airfields are left out (Jaisalmer)', async () => {
+    let asked = 0;
+    const s = await surfaceAt(26.912, 70.912, catalog, {} as R2Bucket, { ...deps, nearby: async (lat, lng, r, id, cat, r2, limit, cols) => {
+      if (id !== 'airports') return deps.nearby(lat, lng, r, id, cat, r2, limit, cols);
+      asked = limit ?? 0;
+      return near([
+        { p: { name: 'Jaisalmer Indira Helipad', type: 'heliport' }, d: 2.9 },
+        { p: { name: 'Old Strip', type: 'closed' }, d: 5 },
+        { p: { name: 'Jaisalmer Airport', type: 'medium_airport', iata_code: 'JSA' }, d: 12.4 },
+      ]);
+    } });
+    expect(asked).toBeGreaterThanOrEqual(100);
+    expect(s.sections.access.airports).toMatchObject({ status: 'found', count: 1, nearest: [{ distance_km: 12.4, properties: { name: 'Jaisalmer Airport' } }] });
+    expect(s.summary).toMatch(/Nearest airport 12.4 km away \(Jaisalmer Airport\)/);
+    expect(s.summary).not.toMatch(/Helipad/);
+  });
+
+  it('with only helipads within the radius, no airport is near (not a gap)', async () => {
+    const s = await surfaceAt(13.503, 75.093, catalog, {} as R2Bucket, { ...deps, nearby: async (lat, lng, r, id, cat, r2, limit, cols) =>
+      (id === 'airports' ? near([{ p: { name: 'Koteshwara Heliport', type: 'heliport' }, d: 42.3 }]) : deps.nearby(lat, lng, r, id, cat, r2, limit, cols)) });
+    expect(s.sections.access.airports).toMatchObject({ status: 'none_within_radius', count: 0, nearest: [] });
+    expect(s.sections.access.airports.count_capped).toBeUndefined();
+    expect(s.summary).not.toMatch(/airport|Heliport/i);
+  });
+
   it('finds the river by true distance and says it', async () => {
     const s = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, deps);
     expect(s.sections.water.wris_rivers).toMatchObject({ status: 'found', distance_to: 'shape', nearest: [{ distance_km: 1.5 }] });

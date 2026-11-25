@@ -265,6 +265,29 @@ describe('groundAt', () => {
     expect(say(entry({ class: 'Safe', sgw_dev_pe: 41.6, block: 'Latur' }))).toBe('Groundwater extraction: Safe (42% of the annual extractable resource, Latur block)');
   });
 
+  it('says no percentage for a unit not assessed, even where the file has 0 (Joshimath, Jharia)', () => {
+    const say = GROUND_LAYERS.find((l) => l.id === 'cgwb_gw_extraction')!.say!;
+    const entry = (p: Record<string, unknown>) => ({ layer_id: 'x', match: 'contains', status: 'found', credit: { name: 'c' }, features: [p] }) as never;
+    expect(say(entry({ class: 'Not Assessed', sgw_dev_pe: 0, block: 'Joshimath' }))).toBe('Groundwater extraction: Not Assessed');
+  });
+
+  it('outside the five cities, says subsidence is not measured there (Joshimath, Jharia)', () => {
+    const say = GROUND_LAYERS.find((l) => l.id === 'subsidence_megacities')!.say!;
+    const entry = (status: string) => ({ layer_id: 'x', match: 'nearest', status, credit: { name: 'c' }, count: 0, nearest: [], stats: { median_VLM_cm_per_yr: null, points: 0, readings: 0 } }) as never;
+    expect(say(entry('not_covered'))).toBe('Subsidence: not measured here (the satellite data covers Bengaluru, Chennai, Delhi, Kolkata and Mumbai only)');
+    expect(say(entry('none_within_radius'))).toBeNull(); // inside a city, no point within 500 m: nothing to say
+  });
+
+  it('a groundwater sample with no year (0 in the file) is said without one (Jaisalmer)', () => {
+    const say = GROUND_LAYERS.find((l) => l.id === 'gw_quality_postmonsoon')!.say!;
+    const entry = (year: unknown) => ({ layer_id: 'x', match: 'nearest', status: 'found', credit: { name: 'c' },
+      nearest: [{ distance_km: 3, lat: 0, lng: 0, properties: { GWQ: 'Potable', YEAR: year } }] }) as never;
+    expect(say(entry('0'))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable');
+    expect(say(entry(null))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable');
+    expect(say(entry('2015'))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable (2015)');
+    expect(say(entry('2011-2012'))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable (2011-2012)');
+  });
+
   it('gives every partial-coverage layer of plan A2 a footprint (A2: not_covered vs none_within_radius)', () => {
     const row = (id: string) => GROUND_LAYERS.find((l) => l.id === id)!;
     for (const id of ['subsidence_megacities', 'atal_bhujal_wells', 'slusi_soil_health']) expect(row(id).coverageKm, id).toBeGreaterThan(row(id).radiusKm!);

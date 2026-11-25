@@ -168,7 +168,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > export es
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > ground@v3 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > ground@v4 1`] = `
 [
   {
     "attribution": [],
@@ -779,7 +779,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > 
         },
       },
     },
-    "summary": "Nothing found below this point in the layers checked.",
+    "summary": "Subsidence: not measured here (the satellite data covers Bengaluru, Chennai, Delhi, Kolkata and Mumbai only).",
     "unavailable": [
       {
         "layer_id": "soilgrids",
@@ -1612,7 +1612,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > schema: r
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v3 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v4 1`] = `
 [
   {
     "air": {
@@ -1640,6 +1640,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: 
       "access": {
         "airports": {
           "about": {
+            "note": "airports only: the layer's heliports, helipads, seaplane base and closed airfields are left out",
             "scale": "airport points (OurAirports)",
             "vintage": "not dated by the source (see fetched_at, when bharatlas fetched it)",
           },
@@ -2557,6 +2558,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: 
       "access": {
         "airports": {
           "about": {
+            "note": "airports only: the layer's heliports, helipads, seaplane base and closed airfields are left out",
             "scale": "airport points (OurAirports)",
             "vintage": "not dated by the source (see fetched_at, when bharatlas fetched it)",
           },
@@ -3607,7 +3609,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > ground:tiles@v3 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > ground:tiles@v4 1`] = `
 [
   {
     "point": {
@@ -4150,7 +4152,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > surface:tiles@v3 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > surface:tiles@v4 1`] = `
 [
   {
     "point": {
