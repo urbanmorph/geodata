@@ -68,7 +68,8 @@ const GW_QUALITY: Omit<ProfileLayer, 'id' | 'section'> = {
 };
 const gwQualitySay = (season: string) => (e: ProfileEntry) => {
   const n = e.nearest?.[0];
-  return n && first(e, 'GWQ') ? `${season} groundwater sample ${km(n.distance_km)} away: ${first(e, 'GWQ')}${first(e, 'YEAR') ? ` (${first(e, 'YEAR')})` : ''}` : null;
+  const year = num(first(e, 'YEAR')); // 0 in the file is no year
+  return n && first(e, 'GWQ') ? `${season} groundwater sample ${km(n.distance_km)} away: ${first(e, 'GWQ')}${year ? ` (${year})` : ''}` : null;
 };
 
 /** Plan F1: the zones are the 2016 code's. A 2025 revision (with a Zone VI along the Himalaya)
@@ -135,8 +136,10 @@ export const GROUND_LAYERS: ProfileLayer[] = [
   { id: 'cgwb_gw_extraction', section: 'groundwater', match: 'contains', about: { scale: 'per assessment unit (block, mandal or taluk)', vintage: 'CGWB 2020 assessment' },
     units: { sgw_dev_pe: '% (stage of groundwater extraction)' },
     say: (e) => {
-      const stage = num(first(e, 'sgw_dev_pe'));
-      return first(e, 'class') && `Groundwater extraction: ${first(e, 'class')}${stage !== null && stage >= 0 ? ` (${Math.round(stage)}% of the annual extractable resource${first(e, 'block') ? `, ${first(e, 'block')} block` : ''})` : ''}`;
+      // A unit CGWB did not assess has no stage, whether the file says -9999 (Gosaba) or 0 (Joshimath).
+      const cls = first(e, 'class');
+      const stage = cls && /not assessed/i.test(cls) ? null : num(first(e, 'sgw_dev_pe'));
+      return cls && `Groundwater extraction: ${cls}${stage !== null && stage >= 0 ? ` (${Math.round(stage)}% of the annual extractable resource${first(e, 'block') ? `, ${first(e, 'block')} block` : ''})` : ''}`;
     } },
   { id: 'bhuvan_gw_prospects', section: 'groundwater', match: 'contains', about: { scale: '1:50,000' } },
   { id: 'glhymps_permeability', section: 'groundwater', match: 'contains', decode: DECODERS.glhymps,

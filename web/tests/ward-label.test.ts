@@ -29,6 +29,9 @@ describe('wardLine', () => {
     expect(wardLine('wards_patna', { wardname: 'Ward 28' })).toBe('Ward 28');
     expect(wardLine('sbm_wards', { wardcode: 'Ward No. 6', wardname: 'WARD NO. 06' })).toBe('Ward 6');
   });
+  it('a name that is only the ward number again is not said (Jharia: "Ward 45")', () => {
+    expect(wardLine('sbm_wards', { wardcode: '45', wardname: 'Ward 45' })).toBe('Ward 45');
+  });
   it('values read as the rest of the summary reads them: spaces collapsed, 49.0 as 49', () => {
     expect(wardLine('wards_pune_2025', { AdminNo: 7, Field: 'Aundh  Baner' })).toBe('Ward office 7, Aundh Baner');
     expect(wardLine('wards_vijayawada', { WARD_NO: 49.0 })).toBe('Ward 49');

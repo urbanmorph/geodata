@@ -175,7 +175,7 @@
       "Corporation"
     ]
   },
-  "name_reject": "\\(m\\.?\\s*corp|\\(m\\s*cl|^ward\\s*no\\.?\\s*\\d*$|^\\d+$|^<?null>?$|^none$|^n/?a$|^nil$|^-+$",
+  "name_reject": "\\(m\\.?\\s*corp|\\(m\\s*cl|^ward\\s*(no\\.?)?\\s*\\d*$|^\\d+$|^<?null>?$|^none$|^n/?a$|^nil$|^-+$",
   "number_patterns": [
     "sourcewardcode",
     "ward_no",

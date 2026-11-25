@@ -38,7 +38,9 @@ export interface ProfileLayer {
   /** With shape: read the shapes from the map tiles (default; small reads, cached) or from the
    *  parquet (one row group at a time: for a radius too large for tiles, such as India's outline). */
   shapeFrom?: 'tiles' | 'parquet';
-  /** With shape: only rows this keeps count (e.g. skip a layer's "non-wetland area" polygons). */
+  /** Only rows this keeps count (e.g. skip a layer's "non-wetland area" polygons, or an airport
+   *  layer's heliports). Without shape it filters the `candidates` nearest rows, so set those
+   *  wide enough; the columns it reads must be in `fields`. */
   keep?: (p: Props) => boolean;
   /** A layer that covers only part of India: when nothing is within radiusKm, a
    *  feature within coverageKm means "none within the radius", none means "not covered". */
@@ -407,9 +409,11 @@ async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog
     capped = g.capped;
   } else {
     const n = await deps.nearby(lat, lng, radiusKm, spec.id, catalog, r2, spec.candidates ?? show, columnsOf(spec));
-    items = n.features.map((f) => ({ distance_km: f._distance_km, lat: f._lat, lng: f._lng, properties: f.properties, raw: f.properties }));
-    count = n.total;
-    capped = n.total > n.features.length && !!spec.median; // a median over fewer than all
+    const kept = spec.keep ? n.features.filter((f) => spec.keep!(f.properties)) : n.features;
+    items = kept.map((f) => ({ distance_km: f._distance_km, lat: f._lat, lng: f._lng, properties: f.properties, raw: f.properties }));
+    count = spec.keep ? kept.length : n.total;
+    // a median, or a kept count, over fewer than all
+    capped = n.total > n.features.length && !!(spec.median || spec.keep);
   }
   let status: ProfileStatus = count ? 'found' : 'none_within_radius';
   // Only when nothing is near: is the layer anywhere around? (Outside its row groups' bounds this reads only the footer.)
