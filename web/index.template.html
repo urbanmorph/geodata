@@ -432,6 +432,7 @@
       @keyframes filter-slide { from { transform: translateX(8px); opacity: 0; } to { transform: none; opacity: 1; } }
       .filter-panel__head { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-3-5) var(--sp-4-5); border-bottom: var(--border-line); }
       .filter-panel__title { font-weight: 600; font-size: var(--fs-base); }
+      .filter-panel__title:focus { outline: none; } /* focused by script when the panel opens; not a control */
       .filter-panel__close { min-width: 44px; min-height: 44px; background: transparent; border: none; font-size: var(--fs-xl); line-height: 1; color: var(--muted); cursor: pointer; padding: 0 var(--sp-1); }
       .filter-panel__close:hover { color: var(--fg); }
       .filter-panel[hidden] { display: none; }
@@ -448,6 +449,7 @@
       .filter-panel__err { color: #b91c1c; }
       .filter-panel__ok { color: #166534; }
       .filter-panel__actions { display: flex; flex-direction: column; gap: var(--sp-1-5); }
+      .filter-panel__actions[hidden] { display: none; }
       .filter-panel__btn {
         display: flex;
         justify-content: space-between;
@@ -606,11 +608,13 @@
         .filter-panel__btn {
           flex-direction: column;
           align-items: center;
+          justify-content: center;
           gap: var(--sp-0-5);
-          padding: var(--sp-2-5) var(--sp-1-5);
-          min-height: 56px;
+          padding: var(--sp-2) var(--sp-1-5);
+          min-height: 44px;
         }
-        .filter-panel__btn .muted { font-size: var(--fs-xs); }
+        /* The format name is enough on a phone; the what-it's-for line stays on wider screens. */
+        .filter-panel__btn .muted { display: none; }
 
         /* Touch targets: 44px minimum */
         #map-overlay button.close,

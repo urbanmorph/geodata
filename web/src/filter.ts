@@ -50,17 +50,17 @@ export function mountFilterPanel(
   // opens the layer's parquet (shared/large-load.mjs).
   const server = usesServerFilter(layer);
   const firstBtn = server
-    ? `<button class="filter-panel__btn filter-panel__btn--primary" data-fmt="csv" disabled>
+    ? `<button class="filter-panel__btn filter-panel__btn--primary" data-fmt="csv">
             <span class="fmt">CSV</span><span class="muted">spreadsheets · centre point</span>
           </button>`
-    : `<button class="filter-panel__btn filter-panel__btn--primary" data-fmt="parquet" disabled>
+    : `<button class="filter-panel__btn filter-panel__btn--primary" data-fmt="parquet">
             <span class="fmt">Parquet</span><span class="muted">analytics · smallest</span>
           </button>`;
   const shapeBtns = server && !SERVER_SHAPE_EXPORT ? '' : `
-          <button class="filter-panel__btn" data-fmt="geojson" disabled>
+          <button class="filter-panel__btn" data-fmt="geojson">
             <span class="fmt">GeoJSON</span><span class="muted">QGIS, web</span>
           </button>
-          <button class="filter-panel__btn" data-fmt="kml" disabled>
+          <button class="filter-panel__btn" data-fmt="kml">
             <span class="fmt">KML</span><span class="muted">Google Earth &amp; Maps</span>
           </button>`;
   const hint = server
@@ -78,9 +78,9 @@ export function mountFilterPanel(
       <div class="filter-panel__cols" id="filter-cols"></div>
       <div class="filter-panel__foot">
         <div class="filter-panel__row" id="filter-summary">
-          <span class="filter-panel__muted">Pick a value above to enable export.</span>
+          <span class="filter-panel__muted">Pick a value to filter and export.</span>
         </div>
-        <div class="filter-panel__actions">
+        <div class="filter-panel__actions" hidden>
           ${firstBtn}${shapeBtns}
         </div>
         <div class="filter-panel__status" id="filter-status" aria-live="polite"></div>
@@ -95,6 +95,7 @@ export function mountFilterPanel(
   const status = panel.querySelector('#filter-status') as HTMLElement;
   const exportBtns = Array.from(panel.querySelectorAll<HTMLButtonElement>('[data-fmt]'));
   const closeBtn = panel.querySelector('.filter-panel__close') as HTMLButtonElement;
+  const actionsEl = panel.querySelector('.filter-panel__actions') as HTMLElement;
   const setExportEnabled = (on: boolean) => exportBtns.forEach((b) => (b.disabled = !on));
 
   // Per-column filter state; null = no filter on that column.
@@ -118,13 +119,16 @@ export function mountFilterPanel(
     const active = getActiveFilters();
     const mapFilter = buildMaplibreFilter(active);
     callbacks.onActiveFiltersChange?.(active, mapFilter);
-    setExportEnabled(active.length > 0);
+    // No filter, nothing to export: the buttons stay hidden rather than shown disabled
+    // (on a phone they took a third of the sheet).
+    actionsEl.hidden = !active.length;
+    setExportEnabled(true);
     window.clearTimeout(countTimer);
     countLoader?.dismiss();
     countLoader = undefined;
     callbacks.onCount?.(null);
     if (!active.length) {
-      summary.innerHTML = `<span class="filter-panel__muted">Pick a value above to enable export.</span>`;
+      summary.innerHTML = `<span class="filter-panel__muted">Pick a value to filter and export.</span>`;
       return;
     }
     summary.innerHTML = `<span class="filter-panel__muted">Counting…</span>`;
