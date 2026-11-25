@@ -206,6 +206,17 @@ describe('surfaceAt', () => {
       expect(sea.summary).toMatch(/^At sea, 14\.4 km from India's coast or land border\./);
       expect(sea.summary).not.toMatch(/outside India/);
     }
+    // said once, and no Indian services abroad (a mis-geocoded record put a Dhanbad hospital in Kathmandu)
+    expect(s.summary).not.toMatch(/from India's outline \(coast or land border\)/);
+    expect(s.summary).not.toMatch(/health facility|Near PHC/);
+    const sea = await surfaceAt(15, 88, catalog, {} as R2Bucket, land(545, { status: 'none', reason: 'sea' }));
+    expect(sea.summary.match(/545\.0 km/g)).toHaveLength(1);
+    // inside India the outline line and the services stay
+    const inIndia = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, { ...land(3, { status: 'ok', data: { land_cover: 'Built-up', land_cover_code: 50 } }),
+      locate: async (_lat, _lng, ids) => ({ point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1,
+        results: { x: ids.filter((id) => id === 'lgd_states').map((id) => ({ layer_id: id, level: id, category: 'x', feature: { properties: { STNAME: 'WEST BENGAL' } } })) } }) as LocateResponse });
+    expect(inIndia.summary).toMatch(/3\.0 km from India's outline/);
+    expect(inIndia.summary).toMatch(/Nearest health facility 1\.2 km away/);
     // land cover unread (unavailable): nothing said either way
     expect((await surfaceAt(27.7, 85.3, catalog, {} as R2Bucket, outline(80))).summary).not.toMatch(/outside India|At sea/);
     const coast = await surfaceAt(7.01, 93.93, catalog, {} as R2Bucket, outline(0.4));
