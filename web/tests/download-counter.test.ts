@@ -79,10 +79,13 @@ describe('the download route does not count crawlers', () => {
       const r = await onRequestGet({
         request: new Request('https://bharatlas.com/api/dl/admin/states/LGD_States.parquet', { headers: { 'user-agent': ua } }),
         params: { path: ['admin', 'states', 'LGD_States.parquet'] },
-        env: { DB: {}, ASSETS: { fetch: async () => new Response('{"layers":[]}') } },
+        // A catalog load that answers late, as on a loaded CI runner: it must finish inside this test,
+        // or it lands in the shared catalog cache during the next one (an empty catalog counts nothing).
+        env: { DB: {}, ASSETS: { fetch: () => new Promise((ok) => setTimeout(() => ok(new Response('{"layers":[]}')), 2)) } },
         waitUntil: (p: Promise<unknown>) => waits.push(p),
       } as never);
       expect(r.status).toBe(302);
+      await Promise.all(waits);
       return waits.length;
     };
     expect(await run('Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)')).toBe(0);
