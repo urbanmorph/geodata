@@ -1640,7 +1640,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: 
       "access": {
         "airports": {
           "about": {
-            "note": "airports only: the layer's heliports, helipads, seaplane base and closed airfields are left out",
+            "note": "airports with an airport (IATA) code only: heliports, closed fields, flying clubs and airstrips without one are left out",
             "scale": "airport points (OurAirports)",
             "vintage": "not dated by the source (see fetched_at, when bharatlas fetched it)",
           },
@@ -2558,7 +2558,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: 
       "access": {
         "airports": {
           "about": {
-            "note": "airports only: the layer's heliports, helipads, seaplane base and closed airfields are left out",
+            "note": "airports with an airport (IATA) code only: heliports, closed fields, flying clubs and airstrips without one are left out",
             "scale": "airport points (OurAirports)",
             "vintage": "not dated by the source (see fetched_at, when bharatlas fetched it)",
           },

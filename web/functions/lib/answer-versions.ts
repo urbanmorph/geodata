@@ -11,7 +11,7 @@ export const ANSWER_V = {
   export: 1,   // the estimate (export rows themselves are never cached)
   nearby: 3,   // v3: __mlocate fields dropped (25 Nov 2026); v2: Mercator latitudes (24 Nov 2026)
   ground: 6,   // v6: a zone within 2 km of a coarse coast answers (Great Nicobar); v5: water is no rock (25 Nov 2026)
-  surface: 6,  // v6: outside India said first, the same zone edge, a basin's trailing Basin ignored; v5: names said once (25 Nov 2026)
+  surface: 6,  // v6: airports with an IATA code only, outside India said first, the same zone edge, a basin's trailing Basin ignored; v5: names said once (25 Nov 2026)
 } as const;
 
 export type AnswerEndpoint = keyof typeof ANSWER_V;

@@ -165,7 +165,7 @@ describe('surfaceAt', () => {
     expect(Object.keys(s.sections.place)).toEqual(expect.arrayContaining(['sbm_wards']));
   });
 
-  it('the nearest airport is an airport: helipads and closed airfields are left out (Jaisalmer)', async () => {
+  it('the nearest airport is one with an airport (IATA) code: helipads, closed fields and airstrips left out', async () => {
     let asked = 0;
     const s = await surfaceAt(26.912, 70.912, catalog, {} as R2Bucket, { ...deps, nearby: async (lat, lng, r, id, cat, r2, limit, cols) => {
       if (id !== 'airports') return deps.nearby(lat, lng, r, id, cat, r2, limit, cols);
@@ -173,6 +173,7 @@ describe('surfaceAt', () => {
       return near([
         { p: { name: 'Jaisalmer Indira Helipad', type: 'heliport' }, d: 2.9 },
         { p: { name: 'Old Strip', type: 'closed' }, d: 5 },
+        { p: { name: 'Flying Club Field', type: 'small_airport', iata_code: '' }, d: 8 }, // no airport code (Behala, Gauchar)
         { p: { name: 'Jaisalmer Airport', type: 'medium_airport', iata_code: 'JSA' }, d: 12.4 },
       ]);
     } });
