@@ -288,6 +288,10 @@ describe('groundAt', () => {
     const g = await at({ lithologic: 'SILT-CLAY', age: 'PLEISTOCENE' });
     expect(g.summary).toMatch(/Rock: SILT-CLAY \(PLEISTOCENE\)/);
     expect(g.summary).not.toMatch(/1:2,000,000/); // the finer map spoke: the coarse one stays quiet
+    // the finer layer with no rock value, or not asked for: the coarse map speaks
+    expect((await at({ lithologic: null, toposheet_: '74E13' })).summary).toMatch(/Rock \(1:2,000,000 map\)/);
+    const only2m = await run(19.798, 85.825, catalog, {}, { filter: { layers: ['gsi_geology_2m'] } });
+    expect(Object.keys(only2m.sections.geology)).toEqual(['gsi_geology_2m']);
   });
 
   it('outside the five cities, says subsidence is not measured there (Joshimath, Jharia)', () => {

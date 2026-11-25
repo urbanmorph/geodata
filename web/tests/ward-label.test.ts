@@ -29,6 +29,9 @@ describe('wardLine', () => {
     expect(wardLine('wards_patna', { wardname: 'Ward 28' })).toBe('Ward 28');
     expect(wardLine('sbm_wards', { wardcode: 'Ward No. 6', wardname: 'WARD NO. 06' })).toBe('Ward 6');
   });
+  it('a name that repeats the head is said once', () => {
+    expect(wardLine('sbm_wards', { wardcode: '12A', wardname: 'Ward 12a' })).toBe('Ward 12A');
+  });
   it('a name that is only the ward number again is not said (Jharia: "Ward 45")', () => {
     expect(wardLine('sbm_wards', { wardcode: '45', wardname: 'Ward 45' })).toBe('Ward 45');
   });

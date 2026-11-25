@@ -1421,7 +1421,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > query > q
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > schema: read live, and from a baked stats file of a non-commercial layer > schema@v2 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > schema: read live, and from a baked stats file of a non-commercial layer > schema@v1 1`] = `
 [
   {
     "body": {

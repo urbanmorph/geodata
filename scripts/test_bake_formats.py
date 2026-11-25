@@ -162,3 +162,9 @@ def test_write_all_formats_writes_every_format_from_the_parquet(tmp_path):
     assert '<Placemark' in path['kml'].read_text()
     with zipfile.ZipFile(path['shapefile']) as z:
         assert 'a_very_lon  a_very_long_column' in z.read('columns.txt').decode()
+
+
+def test_gis_artefact_columns_reads_only_column_names():
+    cols = f.gis_artefact_columns()
+    assert {'ogc_fid', 'shape_area', '__mlocate_', '__mlocate0', '__mlocate8'} <= cols
+    assert all(' ' not in c for c in cols), cols  # no comment text read as a name

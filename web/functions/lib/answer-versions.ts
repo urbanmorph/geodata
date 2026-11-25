@@ -5,8 +5,8 @@
 export const ANSWER_V = {
   layers: 1,   // /api/v1/layers and /api/v1/categories
   detail: 1,   // /api/v1/layers/{id}
-  schema: 2,   // v2: a converted file's __mlocate fields hidden as GIS artefacts (25 Nov 2026)
-  query: 2,    // v2: the same
+  schema: 1,
+  query: 2,    // v2: the __mlocate fields of a converted file left out of the default columns (25 Nov 2026)
   counts: 1,
   export: 1,   // the estimate (export rows themselves are never cached)
   nearby: 3,   // v3: __mlocate fields dropped (25 Nov 2026); v2: Mercator latitudes (24 Nov 2026)
