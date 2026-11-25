@@ -68,7 +68,8 @@ const GW_QUALITY: Omit<ProfileLayer, 'id' | 'section'> = {
 };
 const gwQualitySay = (season: string) => (e: ProfileEntry) => {
   const n = e.nearest?.[0];
-  const year = num(first(e, 'YEAR')); // 0 in the file is no year
+  const y = first(e, 'YEAR');
+  const year = y && num(y) !== 0 ? y : null; // 0 in the file is no year; a range (2011-2012) stays
   return n && first(e, 'GWQ') ? `${season} groundwater sample ${km(n.distance_km)} away: ${first(e, 'GWQ')}${year ? ` (${year})` : ''}` : null;
 };
 

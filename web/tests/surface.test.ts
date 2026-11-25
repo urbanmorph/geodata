@@ -157,6 +157,14 @@ describe('surfaceAt', () => {
     expect(s.summary).not.toMatch(/Helipad/);
   });
 
+  it('with only helipads within the radius, no airport is near (not a gap)', async () => {
+    const s = await surfaceAt(13.503, 75.093, catalog, {} as R2Bucket, { ...deps, nearby: async (lat, lng, r, id, cat, r2, limit, cols) =>
+      (id === 'airports' ? near([{ p: { name: 'Koteshwara Heliport', type: 'heliport' }, d: 42.3 }]) : deps.nearby(lat, lng, r, id, cat, r2, limit, cols)) });
+    expect(s.sections.access.airports).toMatchObject({ status: 'none_within_radius', count: 0, nearest: [] });
+    expect(s.sections.access.airports.count_capped).toBeUndefined();
+    expect(s.summary).not.toMatch(/airport|Heliport/i);
+  });
+
   it('finds the river by true distance and says it', async () => {
     const s = await surfaceAt(22.57, 88.36, catalog, {} as R2Bucket, deps);
     expect(s.sections.water.wris_rivers).toMatchObject({ status: 'found', distance_to: 'shape', nearest: [{ distance_km: 1.5 }] });

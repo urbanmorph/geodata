@@ -278,6 +278,7 @@ describe('groundAt', () => {
     expect(say(entry('0'))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable');
     expect(say(entry(null))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable');
     expect(say(entry('2015'))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable (2015)');
+    expect(say(entry('2011-2012'))).toBe('Post-monsoon groundwater sample 3.0 km away: Potable (2011-2012)');
   });
 
   it('gives every partial-coverage layer of plan A2 a footprint (A2: not_covered vs none_within_radius)', () => {

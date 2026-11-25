@@ -109,3 +109,10 @@ def test_the_historical_osm_hyderabad_map_keeps_its_ward_n_name_parse():
     col, label, pattern = w.PARSE_WARD_NAME['wards_hyderabad_osm']
     assert (col, label) == ('Name', 'Area')
     assert re.match(pattern, 'Ward 91 Khairatabad', re.I).groups() == ('91', 'Khairatabad')
+
+
+def test_real_name_drops_a_name_that_is_only_the_ward_number():
+    assert w.real_name('Ward 45') == ''
+    assert w.real_name('WARD NO. 06') == ''
+    assert w.real_name('Wardha') == 'Wardha'
+    assert w.real_name('Ward 12 A') == 'Ward 12 A'

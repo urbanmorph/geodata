@@ -412,7 +412,8 @@ async function readNearest(spec: ProfileLayer, lat: number, lng: number, catalog
     const kept = spec.keep ? n.features.filter((f) => spec.keep!(f.properties)) : n.features;
     items = kept.map((f) => ({ distance_km: f._distance_km, lat: f._lat, lng: f._lng, properties: f.properties, raw: f.properties }));
     count = spec.keep ? kept.length : n.total;
-    // a median, or a kept count, over fewer than all
+    // a median, or a kept count, over fewer than all. (A keep that drops all of a capped set
+    // would read as none near: set `candidates` well above the rows a radius can hold.)
     capped = n.total > n.features.length && !!(spec.median || spec.keep);
   }
   let status: ProfileStatus = count ? 'found' : 'none_within_radius';
