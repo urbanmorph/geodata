@@ -4,7 +4,7 @@
 // mugilu's (an MCP pointer in `air`).
 import type { CatalogData } from './catalog-api';
 import { SURFACE_PIXELS, SURFACE_RASTERS } from './surface-rasters';
-import { SEISMIC_ABOUT } from './ground';
+import { edgeNote, SEISMIC_ABOUT, SEISMIC_EDGE_KM } from './ground';
 import { fallbackWardLayers, NATIONAL_WARD_LAYERS, wardLayersAt } from './ward-locate';
 import { WARD_BBOXES } from './ward-bboxes';
 import { wardLine } from './ward-label';
@@ -69,7 +69,7 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
   // ── water ──
   { id: 'wris_basin', section: 'water', match: 'contains', fields: ['ba_name', 'bacode', 'area_sqkm'], about: { scale: 'national basins (India-WRIS)' } },
   { id: 'wris_subbasin', section: 'water', match: 'contains', fields: ['ba_name', 'sub_basin'], about: { scale: 'sub-basins (India-WRIS)' },
-    say: (e) => first(e, 'sub_basin') && `River basin: ${joinOnce([first(e, 'ba_name'), first(e, 'sub_basin')])}` },
+    say: (e) => first(e, 'sub_basin') && `River basin: ${joinOnce([first(e, 'ba_name'), first(e, 'sub_basin')], ', ', (s) => s.replace(/ basin$/, ''))}` },
   { id: 'wris_rivers', section: 'water', match: 'nearest', shape: true, radiusKm: 10, about: { scale: 'river lines (India-WRIS, 1:250,000)' },
     fields: ['rivname', 'major_tributary', 'sub_basin', 'layer'], say: nearestOf('Nearest river', 'rivname') },
   { id: 'wris_waterbodies', section: 'water', match: 'nearest', shape: true, radiusKm: 2, about: { scale: 'water body outlines (India-WRIS)' },
@@ -86,8 +86,8 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
   { id: 'ndem_floods_1998_2022', section: 'water', match: 'contains', allIndia: true, about: { scale: 'flood extents mapped from satellite', vintage: '1998 to 2022' },
     say: (e) => (e.status === 'found' ? 'Inside an area NDEM mapped as flooded between 1998 and 2022' : null) },
   // ── hazards ──
-  { id: 'seismic_zones', section: 'hazards', match: 'contains', about: SEISMIC_ABOUT,
-    say: (e) => first(e, 'seismic_zo') },
+  { id: 'seismic_zones', section: 'hazards', match: 'contains', about: SEISMIC_ABOUT, edgeKm: SEISMIC_EDGE_KM,
+    say: (e) => first(e, 'seismic_zo') && `${first(e, 'seismic_zo')}${edgeNote(e)}` },
   { id: 'ndem_landslide_hazard', section: 'hazards', match: 'contains', about: { scale: 'landslide hazard zonation (NDEM)' } },
   { id: 'gsi_landslide_inventory', section: 'hazards', match: 'nearest', radiusKm: 5, about: { scale: 'recorded landslides (GSI)' },
     fields: ['SLIDE_NAME', 'DISTRICT', 'MATERIAL_TYPE', 'MOVEMENT_TYPE', 'ACTIVITY', 'TRIGGERING'],
@@ -115,8 +115,8 @@ export const SURFACE_LAYERS: ProfileLayer[] = [
   { id: 'urban_rail_stations', section: 'access', match: 'nearest', about: { scale: 'station points (OpenStreetMap)' }, radiusKm: 5, coverageKm: 30, fields: ['name', 'system', 'lines', 'mode'],
     say: nearestOf('Nearest metro or suburban station', 'name') },
   { id: 'airports', section: 'access', match: 'nearest', radiusKm: 100, show: 1, fields: ['name', 'type', 'iata_code', 'municipality'],
-    about: { scale: 'airport points (OurAirports)', note: 'airports only: the layer\'s heliports, helipads, seaplane base and closed airfields are left out' },
-    candidates: 100, keep: (p) => /^(large|medium|small)_airport$/.test(String(p.type)),
+    about: { scale: 'airport points (OurAirports)', note: 'airports with an airport (IATA) code only: heliports, closed fields, flying clubs and airstrips without one are left out' },
+    candidates: 100, keep: (p) => /^(large|medium|small)_airport$/.test(String(p.type)) && /^[A-Z]{3}$/.test(String(p.iata_code ?? '').trim()),
     say: nearestOf('Nearest airport', 'name') },
   { id: 'bus_stops', section: 'access', match: 'nearest', radiusKm: 1, coverageKm: 15, fields: ['name', 'city', 'operator'],
     about: { scale: 'bus stops in the cities that publish them' } },
@@ -206,7 +206,23 @@ export const SURFACE_PROFILE: ProfileSpec = {
   expandAfter: 'lgd_subdistricts', // the ward after the sub-district, before the constituencies
   expandable: { section: 'place', ids: [...Object.keys(WARD_BBOXES), ...NATIONAL_WARD_LAYERS], row: wardRow },
   conclude: nearestHealth,
+  preface: outsideIndia,
 };
+
+/** In no state and OUTSIDE_KM or more from India's outline, the answer says first where the point is.
+ *  On land (WorldCover, not water) it is outside India (Kathmandu); on water it is at sea, which may
+ *  still be Indian waters (the Gulf of Kutch, off Mumbai, Palk Bay), so only the distance is said.
+ *  Nearer the outline a coarse coast or border can leave a point on land in no state (Great Nicobar). */
+const OUTSIDE_KM = 5;
+const WATER = 80; // ESA WorldCover: permanent water bodies
+function outsideIndia(sections: ProfileResponse['sections']): string[] {
+  const state = sections.place?.lgd_states;
+  const d = sections.infrastructure?.india_outline?.nearest?.[0]?.distance_km;
+  const cover = sections.land?.worldcover; // absent when it could not be read: then nothing is said
+  if (!state || state.status === 'found' || d === undefined || d < OUTSIDE_KM || !cover) return [];
+  const land = cover.status === 'found' && value(cover, 'land_cover_code') !== WATER;
+  return [land ? `This point is outside India, ${km(d)} from its outline` : `At sea, ${km(d)} from India's coast or land border`];
+}
 
 export const SURFACE_DEPS: ProfileDeps = { ...BASE_DEPS, pixels: SURFACE_PIXELS };
 

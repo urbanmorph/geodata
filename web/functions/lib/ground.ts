@@ -73,10 +73,16 @@ const gwQualitySay = (season: string) => (e: ProfileEntry) => {
   return n && first(e, 'GWQ') ? `${season} groundwater sample ${km(n.distance_km)} away: ${first(e, 'GWQ')}${year ? ` (${year})` : ''}` : null;
 };
 
+/** A zone taken from its nearest polygon (edgeKm) says so. */
+export const edgeNote = (e: ProfileEntry) => (e.edge_km === undefined ? '' : `, the nearest zone: the map's edge is ${km(e.edge_km)} away`);
+
 /** Plan F1: the zones are the 2016 code's. A 2025 revision (with a Zone VI along the Himalaya)
  *  was issued in November 2025 and reported withdrawn by BIS in March 2026, so 2016 applies. */
 /** A 1:50,000 lithology value that is not rock (GSI maps rivers and tanks as WATER or WATER BODY). */
 const NOT_ROCK = /^(water( body)?|river|tank|lake|reservoir|sea)$/i;
+
+/** The zone map's coast stops up to about 1 km short of the shore (Indira Point, Campbell Bay). */
+export const SEISMIC_EDGE_KM = 2;
 
 export const SEISMIC_ABOUT = {
   scale: 'national zoning map', vintage: 'BIS IS 1893 (Part 1):2016',
@@ -85,8 +91,8 @@ export const SEISMIC_ABOUT = {
 
 export const GROUND_LAYERS: ProfileLayer[] = [
   // ── seismic ──
-  { id: 'seismic_zones', section: 'seismic', match: 'contains', about: SEISMIC_ABOUT,
-    say: (e) => first(e, 'seismic_zo') && `${first(e, 'seismic_zo')}${first(e, 'intensity_') ? ` (${first(e, 'intensity_')})` : ''}` },
+  { id: 'seismic_zones', section: 'seismic', match: 'contains', about: SEISMIC_ABOUT, edgeKm: SEISMIC_EDGE_KM,
+    say: (e) => first(e, 'seismic_zo') && `${first(e, 'seismic_zo')}${first(e, 'intensity_') ? ` (${first(e, 'intensity_')})` : ''}${edgeNote(e)}` },
   { id: 'gem_active_faults', section: 'seismic', match: 'nearest', shape: true, radiusKm: 50,
     about: { scale: 'regional fault traces (75 in India)', vintage: 'GEM GAF-DB, June 2021' },
     fields: ['name', 'slip_type', 'net_slip_rate', 'average_dip', 'activity_confidence', 'last_movement', 'catalog_name'],

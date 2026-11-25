@@ -294,6 +294,34 @@ describe('groundAt', () => {
     expect(Object.keys(only2m.sections.geology)).toEqual(['gsi_geology_2m']);
   });
 
+  it('a point just off a zone map\'s coarse coast takes the zone within 2 km, and says so (Great Nicobar)', async () => {
+    const none = { locate: async (_lat: number, _lng: number, ids: string[]) => ({ point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1, results: {} }) as LocateResponse };
+    const zone = { seismic_zo: 'Seismic Zone-V', intensity_: 'Very Severe Intensity Zone' };
+    const asked: number[] = [];
+    const g = await run(7.01, 93.93, catalog, { ...none,
+      nearbyFromTiles: async (_lat, _lng, r, id) => {
+        if (id !== 'seismic_zones') return { features: [], total: 0, capped: false };
+        asked.push(r);
+        return { features: [{ properties: zone, lat: 7.0, lng: 93.93, distance_km: 0.1 }], total: 1, capped: false };
+      } });
+    expect(asked).toEqual([2]);
+    expect(g.sections.seismic.seismic_zones).toMatchObject({ status: 'found', features: [zone], edge_km: 0.1 });
+    expect(g.summary).toMatch(/Seismic Zone-V \(Very Severe Intensity Zone\), the nearest zone: the map's edge is 0\.10 km away/);
+    // farther than 2 km off every zone: not covered, as before
+    const far = await run(7.01, 93.93, catalog, { ...none });
+    expect(far.sections.seismic.seismic_zones).toMatchObject({ status: 'not_covered', features: [] });
+    expect(far.sections.seismic.seismic_zones.edge_km).toBeUndefined();
+    // the edge read failing keeps the answer (not covered), not "could not be read"
+    const failing = await run(7.01, 93.93, catalog, { ...none, nearbyFromTiles: async () => { throw new Error('R2 down'); } });
+    expect(failing.sections.seismic.seismic_zones).toMatchObject({ status: 'not_covered' });
+    // a polygon the tiles hold at the point (distance 0) is a plain match, no edge note
+    const inside = await run(7.01, 93.93, catalog, { ...none, nearbyFromTiles: async (_lat, _lng, _r, id) => (id === 'seismic_zones'
+      ? { features: [{ properties: zone, lat: 7.0, lng: 93.93, distance_km: 0 }], total: 1, capped: false } : { features: [], total: 0, capped: false }) });
+    expect(inside.sections.seismic.seismic_zones).toMatchObject({ status: 'found', features: [zone] });
+    expect(inside.sections.seismic.seismic_zones.edge_km).toBeUndefined();
+    expect(inside.summary).not.toMatch(/the map's edge/);
+  });
+
   it('outside the five cities, says subsidence is not measured there (Joshimath, Jharia)', () => {
     const say = GROUND_LAYERS.find((l) => l.id === 'subsidence_megacities')!.say!;
     const entry = (status: string) => ({ layer_id: 'x', match: 'nearest', status, credit: { name: 'c' }, count: 0, nearest: [], stats: { median_VLM_cm_per_yr: null, points: 0, readings: 0 } }) as never;
