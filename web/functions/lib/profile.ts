@@ -61,6 +61,9 @@ export interface ProfileLayer {
   about?: { scale?: string; vintage?: string; note?: string };
   /** One sentence for the summary, or null. */
   say?: (e: ProfileEntry) => string | null | undefined;
+  /** The key of a finer layer this one stands in for: its line is said only when that layer says none
+   *  (the 1:2,000,000 geology where the 1:50,000 lithology is missing or water). */
+  fallbackFor?: string;
   /** Related downloads for the entry (e.g. a layer's full readings), from its catalog entry. */
   links?: (layer: CatalogLayer) => Record<string, string>;
 }
@@ -86,6 +89,18 @@ export function cleanText(v: unknown): string | null {
   const range = s.match(/^(.+?)\s+to\s+(.+)$/i);
   if (range && range[1].replace(/^0+(?=\d)/, '') === range[2].replace(/^0+(?=\d)/, '')) s = range[1].replace(/^0+(?=\d)/, '');
   return s === '' || s === '-' || /^n\/?a$/i.test(s) || /^null$/i.test(s) ? null : s;
+}
+
+/** Parts joined by `sep`, blanks left out and each said once (case and spacing ignored):
+ *  a basin and sub-basin of one name, or a ward named only by its number, read once. */
+export function joinOnce(parts: Array<string | null | undefined>, sep = ', '): string {
+  const seen = new Set<string>();
+  return parts.filter((p): p is string => {
+    const k = p?.replace(/\s+/g, ' ').trim().toLowerCase();
+    if (!k || seen.has(k)) return false;
+    seen.add(k);
+    return true;
+  }).join(sep);
 }
 
 /** A field of the first feature (contains) or the nearest one, as summary text. */
@@ -506,7 +521,7 @@ export async function profileAt(
   const sections: ProfileResponse['sections'] = Object.fromEntries(profile.sections.map((s) => [s, {}]));
   const unavailable: ProfileResponse['unavailable'] = [];
   const timing: Record<string, number> = {};
-  const said: Array<[number, string]> = [];
+  const said: Array<[number, string, string?]> = [];
   const creditOfKey = new Map<string, string>();
   const omitted: string[] = [];
   const scope = {}; // this answer's: its layers share reads of the merged point index
@@ -556,7 +571,7 @@ export async function profileAt(
       if (links && Object.keys(links).length) entry.links = links;
       sections[spec.section][key] = entry;
       const line = spec.say?.(entry);
-      if (line) said.push([order, line]);
+      if (line) said.push([order, line, key]);
       if (entry.status === 'found') creditOfKey.set(key, `${entry.credit.name} (${layer.licence ?? 'see source'})`);
     } catch (e) {
       failed(key, e);
@@ -589,11 +604,18 @@ export async function profileAt(
   }
   unavailable.sort((a, b) => order(a.layer_id) - order(b.layer_id));
   said.sort((a, b) => a[0] - b[0]);
+  // A stand-in speaks only where the layer it stands in for said nothing.
+  const spoke = new Set(said.map(([, , k]) => k));
+  const standsInFor = new Map(layers.map((l) => [keyOf(l), l.fallbackFor]));
+  const heard = said.filter(([, , k]) => {
+    const finer = k && standsInFor.get(k);
+    return !(finer && spoke.has(finer));
+  });
   // Credits follow the sections too, so the list is the same however the reads finish.
   const credits = new Set(profile.sections.flatMap((s) => Object.keys(sections[s]))
     .flatMap((k) => creditOfKey.get(k) ?? []));
   // A line said twice (two ward maps naming the same ward) is said once.
-  const lines = [...new Set([...said.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])])];
+  const lines = [...new Set([...heard.map(([, s]) => s), ...(profile.conclude?.(sections) ?? [])])];
 
   return {
     point: { lat, lng },

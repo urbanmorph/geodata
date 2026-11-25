@@ -3,7 +3,7 @@
 // says which is which, read here and by scripts/build_ward_index.py (ward pages), so the
 // two never disagree.
 import raw from '../../../shared/ward_columns.json';
-import { cleanText } from './profile';
+import { cleanText, joinOnce } from './profile';
 
 /** (number column, name column or null, what the name is: Area, Zone, ... or null). */
 type Cols = [string, string | null, string | null];
@@ -54,7 +54,7 @@ export function wardLine(id: string, row: Record<string, unknown>): string | nul
   if (!no && !name) return null;
   const head = no ? `${unit} ${no}` : unit;
   // A zone named without the word ("North") says it; most sources' names carry it ("South-West Zone").
-  const named = name ? `, ${name}${label === 'Zone' && !/zone/i.test(name) ? ' zone' : ''}` : '';
+  const named = name && `${name}${label === 'Zone' && !/zone/i.test(name) ? ' zone' : ''}`;
   const group = GROUPS[id] ? value(row, GROUPS[id][0]) : null;
-  return `${head}${named}${group ? ` (${group} ${GROUPS[id][1]})` : ''}`;
+  return `${joinOnce([head, named])}${group ? ` (${group} ${GROUPS[id][1]})` : ''}`;
 }

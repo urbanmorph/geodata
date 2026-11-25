@@ -168,7 +168,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > export es
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > ground@v4 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > ground@v5 1`] = `
 [
   {
     "attribution": [],
@@ -1142,7 +1142,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: t
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > nearby > nearby@v2 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > nearby > nearby@v3 1`] = `
 [
   {
     "body": {
@@ -1228,7 +1228,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > nearby > 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > query > query@v1 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > query > query@v2 1`] = `
 [
   {
     "body": {
@@ -1612,7 +1612,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > schema: r
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v4 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: the national ward map and a city one; open_only and a sections filter > surface@v5 1`] = `
 [
   {
     "air": {
@@ -3609,7 +3609,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > surface: 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > ground:tiles@v4 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > ground:tiles@v5 1`] = `
 [
   {
     "point": {
@@ -4152,7 +4152,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > surface:tiles@v4 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > ground and surface: locate and the nearest shapes, from tiles > surface:tiles@v5 1`] = `
 [
   {
     "point": {
@@ -4695,7 +4695,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > nearby: a line layer answered from its tiles > nearby:tiles@v2 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > the tile path > nearby: a line layer answered from its tiles > nearby:tiles@v3 1`] = `
 [
   {
     "_distance_to": "shape",

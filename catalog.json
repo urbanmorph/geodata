@@ -2467,7 +2467,7 @@
       "category": "infrastructure",
       "provenance": "curated",
       "fetched_at": "2026-05-23T17:18:45.854281+00:00",
-      "notes": "India Post pincode boundary polygons (simplified). 63,864 polygons. \u00a9 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz.",
+      "notes": "India Post pincode boundary polygons (simplified). 63,864 polygons. \u00a9 2025 Saket Choudhary, MIT-licensed via bharatviz.org. Source: bharatviz.org/India_pincodes_simplified.geojson; code repo github.com/saketlab/bharatviz. Coverage: the Andaman and Nicobar Islands are drawn as a few coarse polygons (4 to 11 vertices each) that leave gaps, including central Port Blair, so a point there may fall in no pincode.",
       "source_check": {
         "method": "manual",
         "url": "https://bharatviz.org/",

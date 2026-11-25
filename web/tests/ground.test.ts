@@ -271,6 +271,29 @@ describe('groundAt', () => {
     expect(say(entry({ class: 'Not Assessed', sgw_dev_pe: 0, block: 'Joshimath' }))).toBe('Groundwater extraction: Not Assessed');
   });
 
+  it('water in the 1:50,000 lithology is no rock: the 1:2,000,000 map speaks instead (Puri)', async () => {
+    const at = (litho: Record<string, unknown>) => run(19.798, 85.825, catalog, {
+      locate: async (_lat, _lng, ids) => ({
+        point: { lat: 0, lng: 0 }, zoom: 14, queried_layers: ids, timing_ms: 1,
+        results: { environment: ids.flatMap((id) => (id === 'gsi_lithology_50k' ? [litho] : id === 'gsi_geology_2m'
+          ? [{ index_: 'UNDIFF.FLUVIAL / AEOLIAN / COASTA &  GLACIAL  SEDIMENTS', age: 'QUATERNARY' }] : [])
+          .map((properties) => ({ layer_id: id, level: id, category: 'environment', feature: { properties } }))) },
+      }) as LocateResponse,
+    });
+    for (const lithologic of ['WATER', 'Water Body']) {
+      const g = await at({ lithologic, toposheet_: '74E13' });
+      expect(g.summary).not.toMatch(/water/i);
+      expect(g.summary).toMatch(/Rock \(1:2,000,000 map\): UNDIFF\.FLUVIAL \/ AEOLIAN \/ COASTA & GLACIAL SEDIMENTS \(QUATERNARY\)/);
+    }
+    const g = await at({ lithologic: 'SILT-CLAY', age: 'PLEISTOCENE' });
+    expect(g.summary).toMatch(/Rock: SILT-CLAY \(PLEISTOCENE\)/);
+    expect(g.summary).not.toMatch(/1:2,000,000/); // the finer map spoke: the coarse one stays quiet
+    // the finer layer with no rock value, or not asked for: the coarse map speaks
+    expect((await at({ lithologic: null, toposheet_: '74E13' })).summary).toMatch(/Rock \(1:2,000,000 map\)/);
+    const only2m = await run(19.798, 85.825, catalog, {}, { filter: { layers: ['gsi_geology_2m'] } });
+    expect(Object.keys(only2m.sections.geology)).toEqual(['gsi_geology_2m']);
+  });
+
   it('outside the five cities, says subsidence is not measured there (Joshimath, Jharia)', () => {
     const say = GROUND_LAYERS.find((l) => l.id === 'subsidence_megacities')!.say!;
     const entry = (status: string) => ({ layer_id: 'x', match: 'nearest', status, credit: { name: 'c' }, count: 0, nearest: [], stats: { median_VLM_cm_per_yr: null, points: 0, readings: 0 } }) as never;
