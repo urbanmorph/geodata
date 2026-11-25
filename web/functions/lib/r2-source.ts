@@ -2,7 +2,7 @@ import { EtagMismatch, type Source, type RangeResponse } from 'pmtiles';
 import { READ_TIMEOUT_MS, withTimeout } from './isolate-cache';
 
 export class R2Source implements Source {
-  constructor(public bucket: R2Bucket, private key: string) {}
+  constructor(private readonly bucket: R2Bucket, private readonly key: string) {}
 
   getKey(): string {
     return this.key;

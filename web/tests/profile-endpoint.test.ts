@@ -58,17 +58,17 @@ describe('countingBucket', () => {
   });
 });
 
-describe('a tile reader kept for the isolate', () => {
-  it('reads through the bucket of the request asking now', async () => {
+describe('tile readers and requests', () => {
+  it("a request's reads go through its own bucket, even after another request asked for the same archive", async () => {
     const seen: string[] = [];
     const bucket = (name: string) => ({
       get: async () => { seen.push(name); return null; },
     }) as unknown as R2Bucket;
     const a = pmtilesFor(bucket('a'), 'k/reader-test.pmtiles');
-    const b = pmtilesFor(bucket('b'), 'k/reader-test.pmtiles');
-    expect(b).toBe(a);
+    const b = pmtilesFor(bucket('b'), 'k/reader-test.pmtiles'); // a second request, while the first still runs
+    await a.getHeader().catch(() => {});
     await b.getHeader().catch(() => {});
-    expect(seen).toEqual(['b']);
+    expect(seen).toEqual(['a', 'b']);
   });
 });
 
