@@ -96,7 +96,11 @@ def share_alike(licence: str | None) -> bool:
 def refresh_note(lid: str, manifest: Path = MANIFEST) -> str | None:
     """What a script that refreshed layer `lid` should say when the index holds it (the index
     answers it from the old files' tiles no more; CI fails until the bake runs), else None."""
-    if lid not in json.loads(manifest.read_text()).get('layers', {}):
+    try:
+        indexed = json.loads(manifest.read_text()).get('layers', {})
+    except (OSError, ValueError):
+        return None  # no readable manifest: CI says what to do
+    if lid not in indexed:
         return None
     return (f'{lid} is in the point index: run `python3 -u scripts/bake_point_index.py` and commit '
             'web/public/api-data/point-index.json (CI fails until then)')

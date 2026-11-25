@@ -10,6 +10,11 @@ on:
       - 'web/migrations/**'
       - '.github/workflows/python-tests.yml'
       - '.flake8'
+      # what the point index plans from (test_bake_point_index.py): a new or refreshed layer
+      - 'catalog.json'
+      - 'web/functions/lib/ward-bboxes.ts'
+      - 'web/functions/lib/locate-layers.ts'
+      - 'web/public/api-data/point-index.json'
   push:
     branches: [main]
     paths:
@@ -17,6 +22,11 @@ on:
       - 'web/migrations/**'
       - '.github/workflows/python-tests.yml'
       - '.flake8'
+      # what the point index plans from (test_bake_point_index.py): a new or refreshed layer
+      - 'catalog.json'
+      - 'web/functions/lib/ward-bboxes.ts'
+      - 'web/functions/lib/locate-layers.ts'
+      - 'web/public/api-data/point-index.json'
   workflow_dispatch:
 
 permissions:

@@ -147,3 +147,4 @@ def test_refresh_note_names_the_bake_for_an_indexed_layer_only(tmp_path):
     m.write_text(json.dumps({'zoom': 12, 'archives': {}, 'layers': {'lgd_states': {}}}))
     assert 'bake_point_index.py' in bpi.refresh_note('lgd_states', m)
     assert bpi.refresh_note('wris_dams', m) is None
+    assert bpi.refresh_note('lgd_states', tmp_path / 'missing.json') is None
