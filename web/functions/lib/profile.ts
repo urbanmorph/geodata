@@ -9,6 +9,7 @@
 import type { CatalogData, CatalogLayer } from './catalog-api';
 import { ncFields } from './catalog-api';
 import { locate as locateEngine, type LocateResponse } from './locate';
+import { dedupeFeatures } from './same-features';
 import { nearby as nearbyEngine } from './nearby';
 import { nearbyByGeometry } from './nearby-geometry';
 import { nearbyFromTiles } from './nearby-tiles';
@@ -117,19 +118,7 @@ export const nearestSay = (what: string, nameField = 'name') => (e: ProfileEntry
   return `${what} ${km(n.distance_km)} away${name ? ` (${name})` : ''}`;
 };
 
-const canonical = (p: Props) => JSON.stringify(Object.keys(p).sort().map((k) => [k, p[k]]),
-  (_k, v) => (typeof v === 'bigint' ? Number(v) : v));
-
-/** Features with identical properties, once. */
-export function dedupeFeatures(features: Props[]): Props[] {
-  const seen = new Set<string>();
-  return features.filter((f) => {
-    const key = canonical(f);
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
+export { dedupeFeatures } from './same-features';
 
 export function median(values: unknown[]): number | null {
   const xs = values.map(num).filter((v): v is number => v !== null).sort((a, b) => a - b);
