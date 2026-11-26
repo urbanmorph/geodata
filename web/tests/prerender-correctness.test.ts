@@ -56,7 +56,7 @@ describe('FAQ: the visible questions and the FAQPage JSON-LD are the same text',
   });
   it('/mcp', () => {
     const html = read('mcp.html');
-    const faq = html.slice(html.indexOf('What you can ask'), html.indexOf('query tools</h2>'));
+    const faq = html.slice(html.indexOf('What you can ask'), html.indexOf('Read tools</h2>'));
     const visible = pairs(faq, /<p class="question">([\s\S]*?)<\/p>/g, /<p class="answer">([\s\S]*?)<\/p>/g);
     expect(visible.length).toBeGreaterThanOrEqual(8);
     expect(visible).toEqual(faqLd(html));

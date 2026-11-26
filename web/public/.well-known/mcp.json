@@ -6,7 +6,7 @@
   "remote": {
     "url": "https://bharatlas.com/mcp",
     "transport": "streamable-http",
-    "tools": "read-only (the eight query tools)"
+    "tools": "read-only (the ten read tools)"
   },
   "server": {
     "command": "npx",
@@ -22,6 +22,8 @@
     "get_layer_detail",
     "list_categories",
     "list_submissions",
+    "ground_at",
+    "surface_at",
     "register_map",
     "list_my_maps",
     "get_map",

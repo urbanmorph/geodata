@@ -1,13 +1,13 @@
 ---
 name: bharatlas
-description: Use this skill for questions about India's geography and administrative data, or to author your own map. Activates when the user asks what state / district / subdistrict / block / village / ward / constituency / pincode / seismic zone / eco zone a place or coordinate is in; wants counts or lists of Indian admin units, forests, wildlife, rivers, reservoirs, dams, hospitals, highways, airports, flood or seismic zones; wants features near a point; wants to download an Indian geo layer (Parquet, PMTiles, GeoJSON, KML, Shapefile); or wants to run a crowd map-capture with collect (design a form, review contributions, submit it to bharatlas as a layer). Triggers on phrases like "which district is this", "how many villages in", "wards in Chennai", "reservoirs near", "download the boundaries", "locate this lat lng", or any mention of bharatlas or collect.
+description: Use this skill for questions about India's geography and administrative data, or to author your own map. Activates when the user asks what state / district / subdistrict / block / village / ward / constituency / pincode / seismic zone / eco zone a place or coordinate is in; wants counts or lists of Indian admin units, forests, wildlife, rivers, reservoirs, dams, hospitals, highways, airports, flood or seismic zones; wants features near a point; wants to download an Indian geo layer (Parquet, PMTiles, GeoJSON, KML, Shapefile); or wants to run a crowd map-capture with collect (design a form, review contributions, submit it to bharatlas as a layer). Triggers on phrases like "which district is this", "what is under / around this point", "seismic zone or soil here", "how many villages in", "wards in Chennai", "reservoirs near", "download the boundaries", "locate this lat lng", or any mention of bharatlas or collect.
 version: 1.8.0
 license: MIT
 ---
 
 # bharatlas: India's open geo atlas via MCP
 
-bharatlas (bharatlas.com) is India's open geo atlas: open data layers you can map, query and download. This skill drives 17 MCP tools: a read side over curated layers plus community submissions, and an authoring side for collect maps.
+bharatlas (bharatlas.com) is India's open geo atlas: open data layers you can map, query and download. This skill drives 19 MCP tools: a read side over curated layers plus community submissions, and an authoring side for collect maps.
 
 ## When to use
 
@@ -31,6 +31,7 @@ bharatlas (bharatlas.com) is India's open geo atlas: open data layers you can ma
 4. **Locate**: `locate` with lat/lng returns every admin boundary and zone containing that point in one call. The "where am I?" tool.
 5. **Nearby**: `nearby` finds features of a layer within a radius (points, lines, or polygons).
 6. **Download**: `get_layer_detail` returns direct URLs for the formats the layer has (parquet and pmtiles always; geojson, kml and shapefile for most).
+7. **Point profile**: for "what is here?" questions, `surface_at` (place, land, water, hazards, protected areas, access, services) and `ground_at` (seismic zone, faults, rock, aquifer, groundwater, soil, subsidence) answer many layers in one call, with a one-line `summary`. Ask only the `sections` or `layers` you need: a narrow call is faster.
 
 ### Source preference
 

@@ -72,7 +72,7 @@ describe('/mcp protocol', () => {
     expect(json.result.protocolVersion).toBe('2025-06-18');
   });
 
-  it('tools/list offers exactly the eight read tools, all marked read-only (the point lookups are unpublished)', async () => {
+  it('tools/list offers exactly the eight read tools, all marked read-only, while the point lookups are switched off', async () => {
     const { json } = await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' });
     const names = json.result.tools.map((t: { name: string }) => t.name);
     expect(names).toEqual([

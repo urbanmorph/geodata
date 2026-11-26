@@ -526,9 +526,9 @@ const POINT_PROFILE_PATHS_SPEC = {
         'Sections: `place` (state, district, sub-district, block, constituencies, pincode, city or national ward), `land` (land cover, elevation and slope from Copernicus DEM GLO-90, population per km2 from WorldPop 2020, CoRE Stack block land use, land degradation), ' +
         '`climate` (agro-climatic, agro-ecological, eco and biogeographic zones), `water` (basin and sub-basin; the nearest river, water body, reservoir, dam, wetland and Ramsar site by true distance; Amrit Sarovar ponds; recorded floods and NDEM flood extents), ' +
         '`hazards` (seismic zone, landslide hazard and recorded landslides, cyclone tracks within 100 km, coastal regulation zone), `protected` (recorded forest, the nearest protected area and wildlife corridor, 0 km when inside), ' +
-        '`access` (nearest national highway, railway station, metro or suburban station, airport, bus stop), `services` (nearest hospital from three sources, school, places within 1 km), `infrastructure` (power line, power plant, water-supply facility, distance to India\'s outline). ' +
+        '`access` (nearest national highway, railway station, metro or suburban station, airport with an IATA code, bus stop), `services` (nearest hospital from three sources, school, places within 1 km), `infrastructure` (power line, power plant, water-supply facility, distance to India\'s outline). ' +
         'Entries follow /ground: `credit`, `about`, `status` (found, none_within_radius, not_covered), `non_commercial` and `licence_notice`, `units`, `summary`, `disclaimer`, `unavailable`. Raster entries (`match: pixel`) carry `values`. ' +
-        '`air` points to the mugilu MCP (conditions_at) for the air above the point. Snapped to about 100 m and edge-cached like /ground; uses the locate rate limit (60 a minute). ' +
+        'A point in no state and 5 km or more from India\'s outline: the `summary` opens with "This point is outside India" (on land) or "At sea", and abroad leaves out the services. `air` points to the mugilu MCP (conditions_at) for the air above the point. Snapped to about 100 m and edge-cached like /ground; uses the locate rate limit (60 a minute). ' +
         FILTER_NOTE,
       parameters: [
         LAT, LNG,

@@ -261,9 +261,10 @@ export const READ_TOOLS = [
       "What is on the ground at a point, in one call: the admin units, ward and pincode; land cover, elevation and slope, " +
       "population density and block land use; climate zones; the river basin, nearest river, water body, dam and wetland, and flood history; " +
       "hazards (seismic zone, landslides, cyclone tracks, coastal regulation zone); forests and protected areas with the nearest one; " +
-      "the nearest highway, railway and metro station, airport and bus stop; the nearest hospital (three sources) and school, and places within 1 km; " +
+      "the nearest highway, railway and metro station, airport (one with an IATA code) and bus stop; the nearest hospital (three sources) and school, and places within 1 km; " +
       "the nearest power line, power plant and water-supply facility; distance to India's outline. Returns a one-line `summary` and `sections`, " +
       "each with its credit, licence, scale, vintage and status; for the air above the point, `air` points to the mugilu MCP's conditions_at. " +
+      "A point in no state and 5 km or more from India's outline: the summary opens with \"This point is outside India\" (on land) or \"At sea\". " +
       "Example: 'what is around this plot in Kolkata?' -> lat: 22.57, lng: 88.36. " +
       NARROW("surface_at", "'which ward is this?' -> sections: [\"place\"]; 'nearest railway station' -> layers: [\"ir_stations\"]; 'how high is it?' -> layers: [\"dem\"]"),
     inputSchema: {

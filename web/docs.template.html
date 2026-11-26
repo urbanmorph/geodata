@@ -148,7 +148,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
         <tr><td><code>GET /ground</code></td><td>What is below a point: seismic zone, faults, rock, aquifer, groundwater, soil, subsidence, tunnels, in one call</td></tr>
         <tr><td><code>GET /surface</code></td><td>What is on the ground at a point: place, land, water, hazards, protected areas, access, services, in one call</td></tr>
 <!-- /point-profiles -->
-        <tr><td><code>GET /layers</code></td><td>Every layer: search by category (theme), level, source</td></tr>
+        <tr><td><code>GET /layers</code></td><td>Every layer: search by theme, level, source</td></tr>
         <tr><td><code>GET /layers/:id</code></td><td>One layer: licence, attribution, download links</td></tr>
         <tr><td><code>GET /layers/:id/schema</code></td><td>Column names, types and values; read this before querying</td></tr>
         <tr><td><code>GET /layers/:id/query</code></td><td>Filter, select, group and total rows</td></tr>
@@ -164,7 +164,7 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
       <table>
         <tr><th>What</th><th>Limit</th></tr>
         <tr><td>Read endpoints</td><td>120 requests a minute per IP</td></tr>
-        <tr><td><code>/locate</code> and <code>/layers/:id/locate</code></td><td>60 requests a minute per IP</td></tr>
+        <tr><td><code>/locate</code> and <code>/layers/:id/locate</code><!-- point-profiles -->, <code>/ground</code> and <code>/surface</code><!-- /point-profiles --></td><td>60 requests a minute per IP</td></tr>
         <tr><td>Submissions (write)</td><td>5 an hour, 20 a day per IP</td></tr>
       </table>
       </div>
@@ -522,7 +522,7 @@ curl -X POST https://collect.bharatlas.com/api/collect/v1/collections/ID/publish
 
 <!-- DOCS_FAQ_HTML -->
       <h2>For LLMs</h2>
-      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp@latest</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. 17 tools with built-in instructions: 8 for reading (schema-first querying, spatial joins, multi-source awareness) plus 9 for authoring collect maps.</p>
+      <p>Use the <a href="/mcp">bharatlas MCP server</a> (<code>npx bharatlas-mcp@latest</code>) to connect Claude, GPT, Gemini, or any MCP-compatible LLM directly to this API. Its tools come with built-in instructions: read tools (schema-first querying, spatial joins, multi-source awareness<!-- point-profiles -->, and point lookups: what is below and on the ground at a point<!-- /point-profiles -->) plus 9 for authoring collect maps.</p>
     </main>
 
     <!-- FOOTER -->
