@@ -23,6 +23,7 @@ import { onRequestGet as ground } from '../api/v1/ground';
 import { onRequestGet as surface } from '../api/v1/surface';
 import { onRequestGet as categories } from '../api/v1/categories';
 import { onRequestGet as submissions } from '../api/v1/submissions/index';
+import { isNotCounted } from './usage';
 
 const PROTOCOL_VERSION = '2025-06-18';
 const SUPPORTED_VERSIONS = ['2025-06-18', '2025-03-26', '2024-11-05'];
@@ -187,6 +188,9 @@ async function callTool(req: Request, env: Env, deps: McpDeps, name: string, arg
   }
 }
 
+/** The user agent of the hosted MCP's in-process API calls (usage.ts counts it as MCP use). */
+const HOSTED_UA = 'bharatlas-mcp/hosted';
+
 /** Run the /api/v1 handler for `path` in-process (no fetch back to bharatlas.com). */
 async function runRoute(req: Request, env: Env, deps: McpDeps, path: string, search: URLSearchParams): Promise<Response> {
   const route = deps.routes.find(([re]) => re.test(path));
@@ -194,8 +198,11 @@ async function runRoute(req: Request, env: Env, deps: McpDeps, path: string, sea
   const layerId = route[0].exec(path)?.[1];
   const url = new URL(`/api/v1${path}`, req.url);
   url.search = search.toString();
-  // The API counts this call as MCP use (usage.ts reads the bharatlas-mcp/ user agent).
-  const request = new Request(url, { headers: { accept: 'application/json', 'user-agent': 'bharatlas-mcp/hosted' } });
+  // The API counts this call as MCP use (usage.ts reads the bharatlas-mcp/ user agent), unless the
+  // caller is one the site does not count (our test client, a crawler): then the inner request says
+  // so, and is neither counted nor timed. The caller's user agent is only classified, never passed on.
+  const ua = isNotCounted(req.headers.get('user-agent')) ? `${HOSTED_UA} (bharatlas-mcp-test)` : HOSTED_UA;
+  const request = new Request(url, { headers: { accept: 'application/json', 'user-agent': ua } });
   // The caller's colo, for the call's speed record (api-calls.ts); a constructed request has no cf of its own.
   const cf = (req as { cf?: unknown }).cf;
   if (cf) Object.defineProperty(request, 'cf', { value: cf });
