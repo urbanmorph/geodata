@@ -6,13 +6,13 @@ bharatlas is an atlas, REST API, and MCP server for India's geospatial data. Ope
 
 ## MCP server
 
-Hosted (no install, the 8 query tools, read-only): https://bharatlas.com/mcp (Streamable HTTP). Claude Code: `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`
+Hosted (no install, the 10 read tools, read-only): https://bharatlas.com/mcp (Streamable HTTP). Claude Code: `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`
 
-Install (all 17 tools, including collect authoring): `npx bharatlas-mcp@latest`
+Install (all 19 tools, including collect authoring): `npx bharatlas-mcp@latest`
 
 We count MCP calls per layer, and keep nothing about the caller.
 
-17 tools. Query (8): list_layers, get_layer_schema, query_layer, locate, nearby, get_layer_detail, list_categories, list_submissions. Authoring collect maps (9): register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish, create_map (optional).
+19 tools. Read (10): list_layers, get_layer_schema, query_layer, locate, nearby, get_layer_detail, list_categories, list_submissions, ground_at (what is below a point: seismic zone, faults, rock, aquifer, groundwater, soil, subsidence), surface_at (what is on the ground at a point: place, land, water, hazards, protected areas, access, services). Authoring collect maps (9): register_map, list_my_maps, get_map, get_records, edit_map, moderate_record, import_points, publish, create_map (optional).
 
 Configuration:
 ```json
@@ -27,7 +27,7 @@ Base URL: `https://bharatlas.com/api/v1`
 No auth. No API key. CORS enabled. Please send a `User-Agent` that names your app (for example `my-app/1.0`). We read it only to tell apps, AI tools and crawlers apart, so our counts of how each mode is used stay honest. We don't store it, and we don't track who you are. For each call we also keep how long it took, which Cloudflare data centre answered and, for the bharatlas MCP, its version number: never your IP or the point you asked about.
 OpenAPI 3.1 description: https://bharatlas.com/api/v1/openapi.json
 Developer guide: https://bharatlas.com/docs
-Rate limits: 120 requests/minute per IP; 60/minute for the locate endpoints.
+Rate limits: 120 requests/minute per IP; 60/minute for the locate endpoints, /ground and /surface.
 
 Endpoints:
 - GET /api/v1/layers: list layers with ?category, ?level, ?source, ?q, ?limit, ?offset; each layer with a parquet gives its schema_url
@@ -39,6 +39,8 @@ Endpoints:
 - GET /api/v1/locate: point-in-polygon across admin layers and zones, with LGD codes (and the city ward where covered); ids in layers= that are not layers come back in unknown_layers
 - GET /api/v1/layers/:id/locate: the feature of one layer containing, or nearest to, a point (mode=auto, contains or nearest)
 - GET /api/v1/nearby: find features within a radius (points, polygons, lines)
+- GET /api/v1/ground: what is below a point, in one call: seismic zone and faults, rock and landform, minerals, aquifer and groundwater, soil, subsidence, tunnels, watershed; a one-line summary plus sections, each with its credit and licence
+- GET /api/v1/surface: what is on the ground at a point, in one call: place (admin units, ward, pincode), land, climate zones, water, hazards, protected areas, access (the nearest airport is one with an IATA code), services, infrastructure. A point in no state and 5 km or more from India's outline opens with "This point is outside India" (on land) or "At sea".
 - GET /api/v1/categories: themes (categories) with layer counts
 - GET /api/v1/levels: admin hierarchy levels
 - GET /api/v1/downloads/counts: download statistics

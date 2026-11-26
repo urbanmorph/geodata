@@ -1050,7 +1050,7 @@ await renderPage('docs', {
       {
         '@type': 'WebAPI',
         name: 'bharatlas API v1',
-        description: `Public JSON API for India's open geo layers. ${Object.keys(openapiFor(POINT_PROFILES).paths).length} endpoints: locate a point, find features nearby, list layers, read a layer's schema, query, filter, group and export its rows, usage and download counts, themes, levels, community submissions and dated releases.`,
+        description: `Public JSON API for India's open geo layers. ${Object.keys(openapiFor(POINT_PROFILES).paths).length} endpoints: locate a point, find features nearby,${POINT_PROFILES ? ' say what is below and on the ground at a point,' : ''} list layers, read a layer's schema, query, filter, group and export its rows, usage and download counts, themes, levels, community submissions and dated releases.`,
         url: ORIGIN + '/docs',
         provider: PUBLISHER_LD,
         documentation: ORIGIN + '/docs',
@@ -1135,7 +1135,9 @@ await renderPage('mcp', {
       {
         '@type': 'SoftwareApplication',
         name: 'bharatlas-mcp',
-        description: "MCP server for India's open geo data. 17 tools for LLMs: 8 for reading (list, schema, query, locate, nearby, categories, submissions, downloads) plus 9 for authoring collect maps (register, create, edit, moderate, import, publish and more).",
+        description: POINT_PROFILES
+          ? "MCP server for India's open geo data. 19 tools for LLMs: 10 for reading (list, schema, query, locate, nearby, themes, submissions, downloads, and what is below and on the ground at a point) plus 9 for authoring collect maps (register, create, edit, moderate, import, publish and more)."
+          : "MCP server for India's open geo data. 17 tools for LLMs: 8 for reading (list, schema, query, locate, nearby, themes, submissions, downloads) plus 9 for authoring collect maps (register, create, edit, moderate, import, publish and more).",
         url: ORIGIN + '/mcp',
         applicationCategory: 'DeveloperApplication',
         operatingSystem: 'Any',

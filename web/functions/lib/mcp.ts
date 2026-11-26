@@ -57,7 +57,7 @@ type Handler = (ctx: { request: Request; env: Env; params: Record<string, string
 /** An /api/v1 path pattern (one capture = the layer id) and its handler. */
 export type ApiRoute = [RegExp, Handler];
 type RateLimit = (req: Request, tool: string) => Promise<{ ok: true } | { ok: false; retryAfter: number }>;
-/** pointProfiles: offer ground_at and surface_at (lib/point-profiles.ts; off unless published). */
+/** pointProfiles: offer ground_at and surface_at (lib/point-profiles.ts; on in production since MCP 1.8.0). */
 export interface McpDeps { routes: ApiRoute[]; rateLimit: RateLimit; waitUntil: WaitUntil; pointProfiles?: boolean }
 
 const asHandler = (h: unknown) => h as Handler;
@@ -75,7 +75,7 @@ export const API_ROUTES: ApiRoute[] = [
 ];
 
 /** The API's own per-IP limit, shared with /api/v1 (same keys, same D1 rows, and
- *  the same non-blocking check): 120 calls a minute, locate and ground_at 60 on the locate key. */
+ *  the same non-blocking check): 120 calls a minute, locate, ground_at and surface_at 60 on the locate key. */
 export function apiRateLimit(env: Env, waitUntil: WaitUntil): RateLimit {
   return (req, tool) => apiLimitFor(req, env, tool === 'locate' || POINT_PROFILE_TOOLS.has(tool), waitUntil);
 }

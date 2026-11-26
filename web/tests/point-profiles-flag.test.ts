@@ -90,12 +90,15 @@ describe('the build-time copy', () => {
     expect(gatePointProfiles(html, true)).toBe('a\nsecret\nb');
   });
 
-  it('marks every mention of the lookups in the docs template, and in nothing else that ships', () => {
+  it('marks every mention of the lookups in the page templates; the static files list them (released in MCP 1.8.0)', () => {
     const docs = readFileSync(new URL('../docs.template.html', import.meta.url), 'utf8');
     expect(gatePointProfiles(docs, false)).not.toMatch(/\/ground|\/surface|ground_at|surface_at/);
     expect(gatePointProfiles(docs, true)).toMatch(/\/api\/v1\/ground/);
-    for (const f of ['../public/llms.txt', '../mcp.template.html', '../public/.well-known/mcp.json']) {
-      expect(readFileSync(new URL(f, import.meta.url), 'utf8'), f).not.toMatch(/ground_at|surface_at|\/api\/v1\/ground/);
+    const mcp = readFileSync(new URL('../mcp.template.html', import.meta.url), 'utf8');
+    expect(gatePointProfiles(mcp, false)).not.toMatch(/ground_at|surface_at/);
+    expect(gatePointProfiles(mcp, true)).toMatch(/ground_at[\s\S]*surface_at/);
+    for (const f of ['../public/llms.txt', '../public/.well-known/mcp.json']) {
+      expect(readFileSync(new URL(f, import.meta.url), 'utf8'), f).toMatch(/ground_at[\s\S]*surface_at/);
     }
     expect(POINT_PROFILE_FAQ.length).toBe(2);
   });

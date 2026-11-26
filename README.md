@@ -59,9 +59,9 @@ bharatlas is an atlas of India's open geo layers, from the national boundary dow
 - **Community layers** (`/c/<id>`): submissions wait in a queue and appear once the owner approves them, each with its source, licence and a "useful" vote. The submitter gets a token that proves they made it; to change or remove a submission, contact us with that token.
 - **Embed** (`/embed/<id>`): an iframe of any map, plus PNG export.
 - **Collect** ([collect.bharatlas.com](https://collect.bharatlas.com)): design a small form, share a link, and anyone with it adds points, lines and areas from their phone with no account. Review contributions, then download them or submit them to bharatlas as a layer (reviewed before it appears). Links are token-scoped (view, collect, admin); a map's admin controls their own map.
-- **API** (`/api/v1`): list, schema, query, filter, `group_by` with per-group sums, export a filtered slice, locate (point-in-polygon across layers, or in one layer) and nearby (features within a radius).
+- **API** (`/api/v1`): list, schema, query, filter, `group_by` with per-group sums, export a filtered slice, locate (point-in-polygon across layers, or in one layer), nearby (features within a radius), and `/ground` and `/surface` (what is below and on the ground at a point, in one call).
 - **Releases** ([`/releases`](https://bharatlas.com/releases)): dated copies that never change, pinned by SHA-256, each with a permanent [w3id.org](https://w3id.org/bharatlas) address to cite.
-- **MCP server** ([`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp)): 17 tools for LLMs, for reading layers and for authoring collect maps. Also shipped as a Claude Code plugin.
+- **MCP server** ([`bharatlas-mcp`](https://www.npmjs.com/package/bharatlas-mcp)): 19 tools for LLMs, for reading layers and for authoring collect maps. Also shipped as a Claude Code plugin.
 
 ## Layers and sources
 
@@ -100,7 +100,7 @@ Counts are of the curated entries in `catalog.json` (21 November 2026). The file
 
 `bharatlas-mcp` is a stdio MCP server published on [npm](https://www.npmjs.com/package/bharatlas-mcp) and in the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.sathya-sankaran/bharatlas-mcp) as `io.github.sathya-sankaran/bharatlas-mcp` (the npm badge above shows the current version). It is also listed on Glama, as the [repository](https://glama.ai/mcp/servers/urbanmorph/geodata) and as the [hosted connector](https://glama.ai/mcp/connectors/io.github.sathya-sankaran/bharatlas-mcp). Read tools need no key; collect tools act only on maps whose share link you register.
 
-**Hosted, nothing to install.** The eight read tools also run at `https://bharatlas.com/mcp` (Streamable HTTP, no key, read-only). Add it as a custom connector in Claude.ai or ChatGPT, or:
+**Hosted, nothing to install.** The ten read tools also run at `https://bharatlas.com/mcp` (Streamable HTTP, no key, read-only). Add it as a custom connector in Claude.ai or ChatGPT, or:
 
 ```bash
 claude mcp add --transport http bharatlas https://bharatlas.com/mcp
@@ -144,18 +144,20 @@ To try the tools without an LLM: `npx @modelcontextprotocol/inspector npx bharat
 
 ### Tools
 
-From [`mcp/index.js`](./mcp/index.js):
+From [`mcp/read-tools.js`](./mcp/read-tools.js) (read) and [`mcp/index.js`](./mcp/index.js) (collect):
 
 | Tool | What it does |
 |---|---|
-| `list_layers` | Find layers by category, level, source or text search |
+| `list_layers` | Find layers by theme, level, source or text search |
 | `get_layer_schema` | Column names, types and sample values; call before querying |
 | `query_layer` | Select columns, filter (exact, case-insensitive), `group_by` with per-group sums |
 | `locate` | Admin boundaries, zones and (in covered cities) the ward that contain a lat/lng |
 | `nearby` | Features from a layer within a radius of a point, nearest first |
-| `list_categories` | Categories with layer counts |
+| `list_categories` | Themes with layer counts |
 | `get_layer_detail` | Download URLs, attribution, licence, feature count and dated versions to cite for one layer |
 | `list_submissions` | Community-submitted layers under open licences |
+| `ground_at` | What is below a point in one call: seismic zone, faults, rock, aquifer, groundwater, soil, subsidence |
+| `surface_at` | What is on the ground at a point in one call: place, land, water, hazards, protected areas, access, services |
 | `register_map` | Register a collect share link; its token sets your scope (view, collect, admin) |
 | `list_my_maps` | The collect maps registered on this machine |
 | `get_map` | A collect map's metadata and record counts |
@@ -189,6 +191,9 @@ curl 'https://bharatlas.com/api/v1/locate?lat=12.9716&lng=77.5946'
 
 # health facilities within 10 km of a point
 curl 'https://bharatlas.com/api/v1/nearby?lat=12.9716&lng=77.5946&layer=nic_health&radius_km=10'
+
+# what is on the ground at a point, in one call (/ground for what is below it)
+curl 'https://bharatlas.com/api/v1/surface?lat=12.9716&lng=77.5946'
 
 # one district's villages as GeoJSON (add estimate=1 for the count and size first)
 curl -o villages.geojson 'https://bharatlas.com/api/v1/layers/lgd_villages/export?where=dist_lgd=525&format=geojson'

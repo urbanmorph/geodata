@@ -7,7 +7,7 @@ Ask questions about India's geo data in natural language. This MCP server connec
 
 ## Install
 
-No install needed for the eight read tools: they also run hosted at `https://bharatlas.com/mcp` (Streamable HTTP, read-only), e.g. `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`. Install this package for all 17 tools, including collect authoring.
+No install needed for the ten read tools: they also run hosted at `https://bharatlas.com/mcp` (Streamable HTTP, read-only), e.g. `claude mcp add --transport http bharatlas https://bharatlas.com/mcp`. Install this package for all 19 tools, including collect authoring.
 
 Add to your MCP client config:
 
@@ -42,7 +42,7 @@ Add to your MCP client config:
 | **locate** | Point-in-polygon: what state, district, ward, zone is this point in? |
 | **nearby** | Find features within a radius. Works for points, polygons, and lines: lines and polygons are measured to the nearest part of their shape. |
 | **get_layer_detail** | Download URLs for the formats a layer has (parquet and pmtiles always; geojson, kml and shapefile for most), its attribution, licence and dated versions to cite |
-| **list_categories** | Browse categories with layer counts |
+| **list_categories** | Browse themes with layer counts |
 | **list_submissions** | Community-contributed layers under open licenses |
 
 ### Point profiles
@@ -50,7 +50,7 @@ Add to your MCP client config:
 | Tool | What it does |
 |------|-------------|
 | **ground_at** | What is below a point, in one call: seismic zone (BIS 2016), faults, lineaments and recorded earthquakes; rock and landform; coal, hydrocarbon and mineral blocks; aquifer, groundwater extraction, a permeability class (GLHYMPS, global and coarse) and nearby wells and samples; soil at three depths (ISRIC SoilGrids 2.0, 250 m) and the nearest Soil Health Card; subsidence in five megacities; tunnels and buried utilities |
-| **surface_at** | What is on the ground at a point, in one call: admin units, ward and pincode; land cover (ESA WorldCover), elevation and slope (Copernicus DEM) and population (WorldPop 2020); climate zones; basin, nearest river, water body, dam and wetland, flood history; hazards; forests and protected areas; nearest highway, station, airport and bus stop; nearest hospital and school; power lines and plants. For the air above, it points to mugilu's `conditions_at` |
+| **surface_at** | What is on the ground at a point, in one call: admin units, ward and pincode; land cover (ESA WorldCover), elevation and slope (Copernicus DEM) and population (WorldPop 2020); climate zones; basin, nearest river, water body, dam and wetland, flood history; hazards; forests and protected areas; nearest highway, station, airport (one with an IATA code) and bus stop; nearest hospital and school; power lines and plants. Outside India or at sea, the summary says so first. For the air above, it points to mugilu's `conditions_at` |
 
 Both take `sections` and `layers` (arrays, or comma-separated strings) to read only part of the answer: `sections: ["seismic"]` for the seismic zone, `sections: ["place"]` for the ward, `layers: ["ir_stations", "dem"]` for the nearest station and the elevation. One section answers in about 0.1 to 0.3 s; everything in up to 3 s. `list_layers` and `get_layer_detail` say each layer's `realm` (below, ground or air; `list_layers` filters by it) and, for a layer a lookup reads, its `lookups` (the section that reads it).
 

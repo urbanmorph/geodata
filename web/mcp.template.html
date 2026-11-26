@@ -28,7 +28,7 @@
 
       <div class="note install-box">
         <h3>Connect by URL (nothing to install)</h3>
-        <p>The eight query tools run at <code>https://bharatlas.com/mcp</code> (Streamable HTTP, no key). Add it as a custom connector in Claude.ai or ChatGPT, or from a terminal:</p>
+        <p>The read tools run at <code>https://bharatlas.com/mcp</code> (Streamable HTTP, no key). Add it as a custom connector in Claude.ai or ChatGPT, or from a terminal:</p>
         <pre><code># Claude Code
 claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 
@@ -77,16 +77,20 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
 
 <!-- MCP_FAQ -->
 
-      <h2>8 query tools</h2>
+      <h2>Read tools</h2>
       <ul>
-        <li><strong>list_layers</strong> -- discover layers by category, level, source, or text search</li>
+        <li><strong>list_layers</strong> -- discover layers by theme, level, source, or text search</li>
         <li><strong>get_layer_schema</strong> -- column names, types, distinct values (call before querying)</li>
         <li><strong>query_layer</strong> -- filter, select, group by any column (with per-group sums of numeric columns, e.g. block areas rolled up to districts); results include <code>_lat</code>/<code>_lng</code> for spatial layers</li>
         <li><strong>locate</strong> -- point-in-polygon across all admin layers + zones at once</li>
         <li><strong>nearby</strong> -- find features within a radius (works for points, polygons, and lines)</li>
-        <li><strong>get_layer_detail</strong> -- download URLs in 5 formats (parquet, pmtiles, geojson, kml, shapefile)</li>
-        <li><strong>list_categories</strong> -- browse by category (theme) with layer counts</li>
+        <li><strong>get_layer_detail</strong> -- download URLs for the formats the layer has (parquet and pmtiles always; geojson, kml and shapefile for most)</li>
+        <li><strong>list_categories</strong> -- browse themes, with layer counts</li>
         <li><strong>list_submissions</strong> -- community-contributed layers under open licenses</li>
+<!-- point-profiles -->
+        <li><strong>ground_at</strong> -- what is below a point, in one call: seismic zone, faults, rock, aquifer, groundwater, soil, subsidence</li>
+        <li><strong>surface_at</strong> -- what is on the ground at a point, in one call: place, land, water, hazards, protected areas, access, services</li>
+<!-- /point-profiles -->
       </ul>
 
       <h2 id="collect">Author your own maps (collect)</h2>
