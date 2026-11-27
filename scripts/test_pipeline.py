@@ -302,9 +302,21 @@ def test_sizes_and_names_record_each_file_by_size_and_content(tmp_path):
                                                         'names': pipeline.versioned_names({'parquet': a})}
 
 
-def test_whole_layer_geojson_fails_rather_than_ship_changed_geometry(tmp_path, monkeypatch):
+def test_whole_layer_geojson_falls_back_to_gdal_full_precision_when_every_grid_changes_geometry(tmp_path, monkeypatch):
+    # PMGSY_Blocks (Nov 2026): 7, 15 and 12 decimals each changed geometries; GDAL's
+    # plain (pre-RFC 7946) writer keeps 15 significant digits and repairs nothing.
     import bake_whole_layer as bwl
     monkeypatch.setattr(bwl, 'GEOJSON_FALLBACK_PRECISIONS', (8, 7))     # every grid too coarse
+    pq = _wkt_parquet(tmp_path / 'fine.parquet', ['LINESTRING(77 12, 77.000000002 12.000000001)'])
+    out = tmp_path / 'fine.geojson'
+    bwl.write_geojson_whole(pipeline.make_con(), pq, out)
+    geom = json.loads(out.read_text())['features'][0]['geometry']
+    assert geom == {'type': 'LineString', 'coordinates': [[77.0, 12.0], [77.000000002, 12.000000001]]}
+
+
+def test_whole_layer_geojson_fails_rather_than_ship_changed_geometry(tmp_path, monkeypatch):
+    import bake_whole_layer as bwl
+    monkeypatch.setattr(bwl, 'geojson_changed_features', lambda *a: 1)  # every writer changes something
     pq = _wkt_parquet(tmp_path / 'fine.parquet', ['LINESTRING(77 12, 77.000000002 12.000000001)'])
     with pytest.raises(ValueError, match='every precision'):
         bwl.write_geojson_whole(pipeline.make_con(), pq, tmp_path / 'fine.geojson')

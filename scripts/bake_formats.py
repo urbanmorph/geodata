@@ -14,12 +14,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 # atomic_output is re-exported for scripts on other branches.
-from pipeline import TOOL_TIMEOUT_S, atomic_output, download, log, run, sizes_and_names, write_stable_zip  # noqa: E402,F401
+from pipeline import (  # noqa: E402,F401
+    DBF_MAX_BYTES, TOOL_TIMEOUT_S, atomic_output, download, log, run, sizes_and_names, write_stable_zip)
 
 HERE = Path(__file__).resolve().parent
 JUNK_TS = HERE.parent / 'web' / 'functions' / 'lib' / 'junk-columns.ts'
 BBOX = ('bbox', 'xmin', 'ymin', 'xmax', 'ymax')
 DBF_NAME_MAX = 10
+DBF_MAX_FIELDS = 255  # the dBASE limit; GDAL writes more, most readers refuse them
 SHP_INTRO = ['Shapefile field names are limited to 10 characters.',
              'Full names (as in the Parquet / GeoJSON / API):', '']
 
@@ -161,16 +163,35 @@ def zip_with_key(src_dir: Path, out: Path, key_lines: list[str]) -> None:
     write_stable_zip(sorted(src_dir.iterdir()), out)
 
 
+class ShapefileTooBig(ValueError):
+    """The layer does not fit one shapefile (a 2 GB .shp/.dbf, or over 255
+    fields): ship none rather than one most GIS tools refuse."""
+
+
 def shapefile_zip_from_geojson(geojson: Path, out: Path, names: dict[str, str],
-                               intro: list[str] = SHP_INTRO) -> None:
-    """GeoJSON -> zipped shapefile with explicit short DBF names and a columns.txt key."""
+                               intro: list[str] = SHP_INTRO, max_bytes: int = DBF_MAX_BYTES,
+                               fid_column: str | None = None) -> None:
+    """GeoJSON -> zipped shapefile with explicit short DBF names and a columns.txt key.
+    String fields are as wide as their longest value (RESIZE=YES). `fid_column`
+    is a column GDAL wrote as each feature's "id" (it does so to OGC_FID): it
+    comes back from the id. Raises ShapefileTooBig, writing nothing, when the
+    layer has more fields than a .dbf holds or the .shp or .dbf would reach `max_bytes`."""
+    if len(names) > DBF_MAX_FIELDS:
+        raise ShapefileTooBig(f'{out.name}: {len(names)} fields, a .dbf holds {DBF_MAX_FIELDS}')
     layer = run(['ogrinfo', '-q', '-so', str(geojson)], timeout=600,
                 text=True).stdout.split(':', 1)[1].split('(')[0].strip()
-    select = ', '.join(f'"{long}" AS "{short}"' for long, short in names.items())
+
+    def source(long: str) -> str:
+        return 'FID' if long == fid_column else f'"{long}"'
+    select = ', '.join(f'{source(long)} AS "{short}"' for long, short in names.items())
     with tempfile.TemporaryDirectory(prefix='shp_') as tmp:
         tmp_dir = Path(tmp)
         run(['ogr2ogr', '-f', 'ESRI Shapefile', '-nlt', 'PROMOTE_TO_MULTI',
-             '-lco', 'ENCODING=UTF-8', '-dialect', 'OGRSQL',
+             '-lco', 'ENCODING=UTF-8', '-lco', 'RESIZE=YES', '-dialect', 'OGRSQL',
              '-sql', f'SELECT {select} FROM "{layer}"',
              str(tmp_dir / f'{out.name.removesuffix(".shp.zip")}.shp'), str(geojson)], timeout=TOOL_TIMEOUT_S)
+        too_big = [p.name for p in sorted(tmp_dir.iterdir())
+                   if p.suffix in ('.shp', '.dbf') and p.stat().st_size >= max_bytes]
+        if too_big:
+            raise ShapefileTooBig(f'{out.name}: {", ".join(too_big)} at or over {max_bytes:,} bytes')
         zip_with_key(tmp_dir, out, shapefile_key(names, intro))
