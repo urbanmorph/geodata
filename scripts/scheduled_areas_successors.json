@@ -1,0 +1,527 @@
+{
+  "_comment": "Each order names districts as they stood when it was notified. This maps (state, district as the order names it) to the current LGD districts that hold its area (names as in lgd_districts). The pool searched for a unit is the union of these. Sources: each group's REPORT.md in supporting-docs/scheduled-areas.",
+  "Andhra Pradesh": {
+    "East Godavari": [
+      "Alluri Sitharama Raju",
+      "Kakinada",
+      "East Godavari",
+      "Eluru"
+    ],
+    "Khammam": [
+      "Alluri Sitharama Raju",
+      "Eluru"
+    ],
+    "Warrangal": [
+      "Alluri Sitharama Raju",
+      "Eluru"
+    ],
+    "Srikakulam": [
+      "Srikakulam",
+      "Parvathipuram Manyam"
+    ],
+    "Visakhapatnam": [
+      "Alluri Sitharama Raju",
+      "Anakapalli",
+      "Visakhapatanam"
+    ],
+    "Vizianagaram": [
+      "Vizianagaram",
+      "Parvathipuram Manyam"
+    ],
+    "West Godavari": [
+      "Eluru",
+      "West Godavari"
+    ]
+  },
+  "Telangana": {
+    "Adilabad": [
+      "Adilabad",
+      "Mancherial",
+      "Kumuram Bheem Asifabad",
+      "Nirmal"
+    ],
+    "Khammam": [
+      "Khammam",
+      "Bhadradri Kothagudem",
+      "Mahabubabad"
+    ],
+    "Mahabubnagar": [
+      "Mahabubnagar",
+      "Nagarkurnool"
+    ],
+    "Mahbubnagar": [
+      "Mahabubnagar",
+      "Nagarkurnool"
+    ],
+    "Mahaboobnagar": [
+      "Mahabubnagar",
+      "Nagarkurnool"
+    ],
+    "Warangal": [
+      "Warangal",
+      "Hanumakonda",
+      "Mulugu",
+      "Jayashankar Bhupalapally",
+      "Mahabubabad"
+    ],
+    "Warrangal": [
+      "Warangal",
+      "Hanumakonda",
+      "Mulugu",
+      "Jayashankar Bhupalapally",
+      "Mahabubabad",
+      "Khammam",
+      "Bhadradri Kothagudem"
+    ],
+    "East Godavari": [
+      "Bhadradri Kothagudem",
+      "Mulugu"
+    ]
+  },
+  "Maharashtra": {
+    "Adilabad": [
+      "Nanded",
+      "Chandrapur"
+    ],
+    "Ahmednagar": [
+      "Ahmednagar"
+    ],
+    "Amravati": [
+      "Amravati"
+    ],
+    "Chandrapur": [
+      "Chandrapur"
+    ],
+    "Dhule": [
+      "Dhule",
+      "Nandurbar"
+    ],
+    "Gadchiroli": [
+      "Gadchiroli"
+    ],
+    "Jalgaon": [
+      "Jalgaon"
+    ],
+    "Nanded": [
+      "Nanded"
+    ],
+    "Nasik": [
+      "Nashik"
+    ],
+    "Pune": [
+      "Pune"
+    ],
+    "Thane": [
+      "Thane",
+      "Palghar"
+    ],
+    "Yavatmal": [
+      "Yavatmal"
+    ]
+  },
+  "Madhya Pradesh": {
+    "Balaghat": [
+      "Balaghat"
+    ],
+    "Barwani": [
+      "Barwani"
+    ],
+    "Betul": [
+      "Betul"
+    ],
+    "Chhindwara": [
+      "Chhindwara"
+    ],
+    "Dhar": [
+      "Dhar"
+    ],
+    "Dindori": [
+      "Dindori"
+    ],
+    "Hoshangabad": [
+      "Narmadapuram"
+    ],
+    "Jhabua": [
+      "Jhabua",
+      "Alirajpur"
+    ],
+    "Khandwa (East Nimar)": [
+      "East Nimar",
+      "Burhanpur"
+    ],
+    "Khargone (West Nimar)": [
+      "Khargone"
+    ],
+    "Mandla": [
+      "Mandla"
+    ],
+    "Ratlam": [
+      "Ratlam"
+    ],
+    "Seoni": [
+      "Seoni"
+    ],
+    "Shahdol": [
+      "Shahdol",
+      "Anuppur",
+      "Umaria"
+    ],
+    "Sheopur": [
+      "Sheopur"
+    ],
+    "Sidhi": [
+      "Sidhi",
+      "Singrauli"
+    ],
+    "Umaria": [
+      "Umaria"
+    ]
+  },
+  "Chhattisgarh": {
+    "Bastar": [
+      "Bastar",
+      "Narayanpur",
+      "Kondagaon"
+    ],
+    "Bilaspur": [
+      "Bilaspur",
+      "Gaurella Pendra Marwahi"
+    ],
+    "Dantewara": [
+      "Dantewada",
+      "Bijapur",
+      "Sukma"
+    ],
+    "Dhamtari": [
+      "Dhamtari"
+    ],
+    "Durg": [
+      "Durg",
+      "Balod"
+    ],
+    "Jashpur": [
+      "Jashpur"
+    ],
+    "Kanker": [
+      "Kanker"
+    ],
+    "Korba": [
+      "Korba"
+    ],
+    "Koria": [
+      "Korea",
+      "Manendragarh Chirimiri Bharatpur"
+    ],
+    "Raigarh": [
+      "Raigarh",
+      "Sarangarh Bilaigarh"
+    ],
+    "Raipur": [
+      "Raipur",
+      "Gariyaband"
+    ],
+    "Rajnandgaon": [
+      "Rajnandgaon",
+      "Mohla Manpur Ambagarh Chouki",
+      "Khairgarh Chhuikhadan Gandai"
+    ],
+    "Surguja": [
+      "Surguja",
+      "Balrampur",
+      "Surajpur"
+    ]
+  },
+  "Gujarat": {
+    "Broach": [
+      "Bharuch",
+      "Narmada"
+    ],
+    "Dangs": [
+      "Dang"
+    ],
+    "Panchmahals": [
+      "Panch Mahals",
+      "Dohad",
+      "Mahisagar"
+    ],
+    "Sabarkantha": [
+      "Sabar Kantha",
+      "Arvalli"
+    ],
+    "Surat": [
+      "Surat",
+      "Tapi"
+    ],
+    "Vadodara": [
+      "Vadodara",
+      "Chhotaudepur",
+      "Narmada"
+    ],
+    "Valsad": [
+      "Valsad",
+      "Navsari"
+    ],
+    "Panch Mahals": [
+      "Panch Mahals"
+    ],
+    "Sabar Kantha": [
+      "Sabar Kantha"
+    ],
+    "Dohad": [
+      "Dohad"
+    ],
+    "Narmada": [
+      "Narmada"
+    ],
+    "Tapi": [
+      "Tapi"
+    ],
+    "The Dangs": [
+      "Dang"
+    ],
+    "Bharuch": [
+      "Bharuch"
+    ],
+    "Navsari": [
+      "Navsari"
+    ]
+  },
+  "Himachal Pradesh": {
+    "Chamba": [
+      "Chamba"
+    ],
+    "Kinnaur": [
+      "Kinnaur"
+    ],
+    "Lahaul and Spiti": [
+      "Lahul And Spiti"
+    ]
+  },
+  "Jharkhand": {
+    "Dumka": [
+      "Dumka"
+    ],
+    "East-Singhbhum": [
+      "East Singhbum"
+    ],
+    "Garhwa": [
+      "Garhwa"
+    ],
+    "Godda": [
+      "Godda"
+    ],
+    "Gumla": [
+      "Gumla"
+    ],
+    "Jamtara": [
+      "Jamtara"
+    ],
+    "Latehar": [
+      "Latehar"
+    ],
+    "Lohardaga": [
+      "Lohardaga"
+    ],
+    "Pakur": [
+      "Pakur"
+    ],
+    "Palamu": [
+      "Palamu"
+    ],
+    "Ranchi": [
+      "Ranchi",
+      "Khunti"
+    ],
+    "Sahebganj": [
+      "Sahebganj"
+    ],
+    "Saraikela-Kharsawan": [
+      "Saraikela Kharsawan"
+    ],
+    "Simdega": [
+      "Simdega"
+    ],
+    "West-Singhbhum": [
+      "West Singhbhum"
+    ]
+  },
+  "Odisha": {
+    "Balasore": [
+      "Baleshwar"
+    ],
+    "Boudh-Khondmals": [
+      "Kandhamal",
+      "Boudh"
+    ],
+    "Ganjam": [
+      "Ganjam",
+      "Gajapati"
+    ],
+    "Kalahandi": [
+      "Kalahandi"
+    ],
+    "Keonjhar": [
+      "Kendujhar"
+    ],
+    "Koraput": [
+      "Koraput",
+      "Malkangiri",
+      "Nabarangpur",
+      "Rayagada"
+    ],
+    "Mayurbhanj": [
+      "Mayurbhanj"
+    ],
+    "Sambalpur": [
+      "Sambalpur",
+      "Deogarh"
+    ],
+    "Sundargarh": [
+      "Sundargarh"
+    ],
+    "Kandhamal": [
+      "Kandhamal"
+    ],
+    "Gajapati": [
+      "Gajapati"
+    ]
+  },
+  "Rajasthan": {
+    "Banswara": [
+      "Banswara"
+    ],
+    "Chittorgarh": [
+      "Chittorgarh"
+    ],
+    "Dungarpur": [
+      "Dungarpur"
+    ],
+    "Pali": [
+      "Pali"
+    ],
+    "Pratapgarh": [
+      "Pratapgarh"
+    ],
+    "Rajsamand": [
+      "Rajsamand"
+    ],
+    "Sirohi": [
+      "Sirohi"
+    ],
+    "Udaipur": [
+      "Udaipur",
+      "Salumbar"
+    ]
+  },
+  "Assam": {
+    "Baksa": [
+      "Baksa"
+    ],
+    "Chirang": [
+      "Chirang"
+    ],
+    "Dima Hasao": [
+      "Dima Hasao"
+    ],
+    "Karbi Anglong": [
+      "Karbi Anglong"
+    ],
+    "Kokrajhar": [
+      "Kokrajhar"
+    ],
+    "Tamulpur": [
+      "Tamulpur"
+    ],
+    "Udalguri": [
+      "Udalguri"
+    ],
+    "West Karbi Anglong": [
+      "West Karbi Anglong",
+      "Karbi Anglong"
+    ],
+    "Udalguri (added villages)": [
+      "Udalguri",
+      "Biswanath",
+      "Sonitpur",
+      "Darrang"
+    ],
+    "Tamulpur (added villages)": [
+      "Tamulpur",
+      "Baksa",
+      "Nalbari",
+      "Bajali"
+    ]
+  },
+  "Meghalaya": {
+    "East Garo Hills": [
+      "East Garo Hills"
+    ],
+    "East Jaintia Hills": [
+      "East Jaintia Hills"
+    ],
+    "East Khasi Hills": [
+      "East Khasi Hills"
+    ],
+    "Eastern West Khasi Hills": [
+      "Eastern West Khasi Hills"
+    ],
+    "North Garo Hills": [
+      "North Garo Hills"
+    ],
+    "Ri-Bhoi": [
+      "Ri Bhoi"
+    ],
+    "South Garo Hills": [
+      "South Garo Hills"
+    ],
+    "South West Garo Hills": [
+      "South West Garo Hills"
+    ],
+    "South West Khasi Hills": [
+      "South West Khasi Hills"
+    ],
+    "West Garo Hills": [
+      "West Garo Hills"
+    ],
+    "West Jaintia Hills": [
+      "West Jaintia Hills"
+    ],
+    "West Khasi Hills": [
+      "West Khasi Hills"
+    ]
+  },
+  "Mizoram": {
+    "Lawngtlai": [
+      "Lawngtlai"
+    ],
+    "Siaha": [
+      "Saiha"
+    ]
+  },
+  "Tripura": {
+    "Dhalai": [
+      "Dhalai"
+    ],
+    "Gomati": [
+      "Gomati"
+    ],
+    "Khowai": [
+      "Khowai"
+    ],
+    "North Tripura": [
+      "North Tripura"
+    ],
+    "Sepahijala": [
+      "Sepahijala"
+    ],
+    "South Tripura": [
+      "South Tripura"
+    ],
+    "Unakoti": [
+      "Unakoti"
+    ],
+    "West Tripura": [
+      "West Tripura"
+    ]
+  }
+}

@@ -1630,6 +1630,22 @@
    "verdict": "ok",
    "seen_at": "2026-11-21",
    "layers": []
+  },
+  {
+   "id": "bharatlas_scheduled_areas",
+   "publisher": "bharatlas, compiled from the Scheduled Areas notifications (Presidential orders, state lists, MoPR eGramSwaraj)",
+   "url": "https://bharatlas.com",
+   "kind": "manual",
+   "reason": "a bharatlas compilation of government notifications; no publisher terms page",
+   "stated": "CC0-1.0 (bharatlas curated); sources named in the layer notes",
+   "quote": "Owner decision 2026-11-27: synthesised from official notifications, released CC0 as bharatlas curated, sources mentioned in the text",
+   "verdict": "ok",
+   "seen_at": "2026-11-27",
+   "layers": [
+    "scheduled_areas_fifth",
+    "scheduled_areas_sixth"
+   ],
+   "decided": "2026-11-27 (owner): CC0, bharatlas curated, sources in the notes"
   }
  ]
 }
