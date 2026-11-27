@@ -2070,9 +2070,15 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/admin/blocks/PMGSY_Blocks.pmtiles",
         "bytes": 37787333
       },
-      "geojson": null,
+      "geojson": {
+        "url": "https://data.bharatlas.com/admin/blocks/PMGSY_Blocks.aec35afe.geojson",
+        "bytes": 540296552
+      },
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/admin/blocks/PMGSY_Blocks.700e3800.shp.zip",
+        "bytes": 150011914
+      },
       "licence": "GODL-India",
       "attribution": {
         "primary": {
@@ -2121,7 +2127,10 @@
       },
       "geojson": null,
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/admin/panchayats/LGD_panchayats.58b12cb5.shp.zip",
+        "bytes": 476330152
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -2170,7 +2179,10 @@
       },
       "geojson": null,
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/admin/villages/LGD_Villages.7e8712b1.shp.zip",
+        "bytes": 600160869
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -2453,9 +2465,18 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/postal/boundaries/bharatviz_pincodes.pmtiles",
         "bytes": 33231007
       },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
+      "geojson": {
+        "url": "https://data.bharatlas.com/postal/boundaries/bharatviz_pincodes.23da9fc8.geojson",
+        "bytes": 27395282
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/postal/boundaries/bharatviz_pincodes.5c2b3237.kml",
+        "bytes": 44254030
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/postal/boundaries/bharatviz_pincodes.cadc4b5d.shp.zip",
+        "bytes": 2234274
+      },
       "licence": "MIT",
       "attribution": {
         "primary": {
@@ -2737,7 +2758,10 @@
       },
       "geojson": null,
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/water/wetlands/Bharatmaps_Parivesh_Wetland_Boundaries.52ceef6c.shp.zip",
+        "bytes": 387559340
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -2903,9 +2927,15 @@
         "upstream_url": "https://github.com/yashveeeeeeer/india-geodata/releases/download/water/rivers/WRIS_Rivers.pmtiles",
         "bytes": 84360087
       },
-      "geojson": null,
+      "geojson": {
+        "url": "https://data.bharatlas.com/water/rivers/WRIS_Rivers.52df10c0.geojson",
+        "bytes": 501984106
+      },
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/water/rivers/WRIS_Rivers.dea165f0.shp.zip",
+        "bytes": 203154182
+      },
       "licence": "CC0-1.0",
       "attribution": {
         "primary": {
@@ -3247,9 +3277,18 @@
         "url": "https://data.bharatlas.com/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.fc08f98d.pmtiles",
         "bytes": 23494882
       },
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
+      "geojson": {
+        "url": "https://data.bharatlas.com/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.e9f738a2.geojson",
+        "bytes": 65191686
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.fe8eeece.kml",
+        "bytes": 121212751
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/healthcare/facilities/INDIA_HEALTH_FACILITIES_NIC.783049a8.shp.zip",
+        "bytes": 9298252
+      },
       "licence": "GODL-India",
       "attribution": {
         "primary": {
@@ -5454,6 +5493,14 @@
         "url": "https://data.bharatlas.com/geoboundaries/IND_ADM1.466461ac.pmtiles",
         "bytes": 1899106
       },
+      "kml": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM1.058f2f5c.kml",
+        "bytes": 23021526
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM1.56108ebc.shp.zip",
+        "bytes": 12670648
+      },
       "licence": "CC-BY-2.5-IN",
       "attribution": {
         "primary": {
@@ -5500,6 +5547,14 @@
       "pmtiles": {
         "url": "https://data.bharatlas.com/geoboundaries/IND_ADM2.87bacccd.pmtiles",
         "bytes": 4632639
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM2.ef195ae3.kml",
+        "bytes": 36596657
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM2.8958aee9.shp.zip",
+        "bytes": 15308685
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -5548,6 +5603,14 @@
         "url": "https://data.bharatlas.com/geoboundaries/IND_ADM3.50b78dec.pmtiles",
         "bytes": 11828870
       },
+      "kml": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM3.c6411667.kml",
+        "bytes": 91597897
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM3.72438471.shp.zip",
+        "bytes": 24022857
+      },
       "licence": "ODbL-1.0",
       "attribution": {
         "primary": {
@@ -5594,6 +5657,14 @@
       "pmtiles": {
         "url": "https://data.bharatlas.com/geoboundaries/IND_ADM4.c1550f23.pmtiles",
         "bytes": 12205168
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM4.06d94133.kml",
+        "bytes": 95101675
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/geoboundaries/IND_ADM4.4440f6eb.shp.zip",
+        "bytes": 24837626
       },
       "licence": "ODbL-1.0",
       "attribution": {
@@ -5879,9 +5950,18 @@
       "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS watersheds layer.",
-      "geojson": null,
-      "kml": null,
-      "shapefile": null,
+      "geojson": {
+        "url": "https://data.bharatlas.com/environment/wris-watersheds/WRIS_Watershed.494a1864.geojson",
+        "bytes": 349479156
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/environment/wris-watersheds/WRIS_Watershed.73ad2ec1.kml",
+        "bytes": 276227272
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/environment/wris-watersheds/WRIS_Watershed.09e0479e.shp.zip",
+        "bytes": 136227384
+      },
       "fetched_at": "2026-05-28T14:40:22+00:00",
       "source_check": {
         "method": "github_release",
@@ -5926,9 +6006,15 @@
       "category": "water",
       "provenance": "curated",
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS river polygons layer.",
-      "geojson": null,
+      "geojson": {
+        "url": "https://data.bharatlas.com/environment/wris-river-polygons/WRIS_River_Polygons.aff1cc36.geojson",
+        "bytes": 455550917
+      },
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/environment/wris-river-polygons/WRIS_River_Polygons.73817fe7.shp.zip",
+        "bytes": 187859071
+      },
       "fetched_at": "2026-05-28T14:41:20+00:00",
       "source_check": {
         "method": "github_release",
@@ -6917,7 +7003,10 @@
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from CWC WRIS waterbodies layer.",
       "geojson": null,
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/environment/wris-waterbodies/WRIS_Waterbodies.7f7b2fae.shp.zip",
+        "bytes": 396717715
+      },
       "fetched_at": "2026-06-01T01:45:45+00:00",
       "source_check": {
         "method": "github_release",
@@ -6963,7 +7052,10 @@
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from SLUSI hydro boundaries. Map tiles rebaked by bharatlas with the popup fields only; every column is in the parquet and the downloads.",
       "geojson": null,
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/environment/slusi-micro-watersheds/SLUSI_MicroWatersheds.532e4d1b.shp.zip",
+        "bytes": 531676791
+      },
       "fetched_at": "2026-06-01T02:01:45+00:00",
       "source_check": {
         "method": "github_release",
@@ -10701,7 +10793,10 @@
       "notes": "Pre-baked parquet + pmtiles compiled by ramSeraph/indianopenmaps (DataMeet community) from Geological Survey of India (NGDR / Bhukosh). The publisher states no open licence; republished with credit under bharatlas.com/about#sources-and-licensing (CC0 1.0 from the compiler). GSI publishes this map 11 times under different layer names (lithology_gcs_ngdr1 to lithology_gcs_ngdr11); bharatlas keeps one copy, the ngdr1 rows: 360,622 rock units. Nothing else is changed. Parquet and map tiles only: a whole-layer GeoJSON would be tens of GB; use Filter & export on the map, or the API, to download an area.",
       "geojson": null,
       "kml": null,
-      "shapefile": null,
+      "shapefile": {
+        "url": "https://data.bharatlas.com/environment/gsi-lithology-50k/NGDR_Lithology_50k.9a9297b4.shp.zip",
+        "bytes": 713686105
+      },
       "fetched_at": "2026-11-18T15:11:43+00:00",
       "source_check": {
         "method": "github_release",
