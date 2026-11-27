@@ -34,9 +34,14 @@ skip a key that already holds the same md5 and refuse one that holds other bytes
 from __future__ import annotations
 
 import json
+import os
 import re
 import sys
 from pathlib import Path
+
+# GDAL refuses to read back a GeoJSON feature over 200 MB (bp_wetlands has one) unless told
+# otherwise; set before duckdb-spatial loads GDAL, and inherited by ogr2ogr/ogrinfo.
+os.environ.setdefault('OGR_GEOJSON_MAX_OBJ_SIZE', '0')
 
 HERE = Path(__file__).resolve().parent.parent  # scripts/
 ROOT = HERE.parent
@@ -46,7 +51,8 @@ from bake_extracts import write_kml_from_geojson  # noqa: E402
 from bake_formats import ShapefileTooBig, shapefile_zip_from_geojson, short_field_names  # noqa: E402
 from bake_whole_layer import _detect_geom_col, write_geojson_whole  # noqa: E402
 from pipeline import (  # noqa: E402
-    BUCKET, R2_PUBLIC, Deadline, OutOfTime, atomic_output, download, file_md5, log, make_con, run, write_json)
+    BUCKET, R2_PUBLIC, Deadline, OutOfTime, ToolFailed, atomic_output, download, file_md5, log, make_con, run,
+    write_json)
 from tile_keys import REBAKE_SUFFIX, versioned_key  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
@@ -191,7 +197,7 @@ def ogr_summary(ds: str) -> tuple[int, list[str]]:
     """(feature count, field names) of the first layer GDAL opens in `ds`."""
     out = run(['ogrinfo', '-ro', '-so', '-al', ds], timeout=3600, text=True).stdout
     count = int(re.search(r'Feature Count: (\d+)', out).group(1))
-    fields = re.findall(r'^(\S[^:]*): (?:String|Integer|Integer64|Real|Date|DateTime|Time|Binary)',
+    fields = re.findall(r'^(\S[^:\n]*): (?:String|Integer|Integer64|Real|Date|DateTime|Time|Binary)',
                         out.split('Geometry Column', 1)[-1].split('Layer SRS', 1)[-1], re.M)
     return count, fields
 
@@ -239,7 +245,10 @@ def verify_file(fmt: str, path: Path, rows: int, columns: list[str],
     fields it should carry, in order (expected_fields)."""
     problems = []
     ds = f'/vsizip/{path}' if fmt == 'shapefile' else str(path)
-    count, fields = ogr_summary(ds)
+    try:
+        count, fields = ogr_summary(ds)
+    except ToolFailed as e:  # GDAL's KML reader runs out of memory on a 1.5 GB KML
+        return [f'GDAL cannot open it: {(e.stderr or "").strip().splitlines()[0][:200]}']
     if count != rows:
         problems.append(f'{count:,} features, parquet has {rows:,}')
     if fmt == 'kml':

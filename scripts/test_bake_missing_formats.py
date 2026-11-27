@@ -122,6 +122,19 @@ def test_verify_catches_a_kml_that_lost_a_column(tmp_path):
     assert bm.verify_file('kml', kml, 1, ['name', 'code']) == ["KML Data names differ: missing ['code'], extra []"]
 
 
+def test_field_names_of_a_geojson_whose_id_property_gdal_takes_as_its_fid(tmp_path):
+    gj = tmp_path / 'id.geojson'
+    gj.write_text(json.dumps({'type': 'FeatureCollection', 'features': [
+        {'type': 'Feature', 'properties': {'state': 's', 'id': 7}, 'geometry': {'type': 'Point', 'coordinates': [77, 12]}}]}))
+    assert bm.ogr_summary(str(gj)) == (1, ['state', 'id'])
+
+
+def test_a_file_gdal_cannot_open_fails_verification(tmp_path):
+    kml = tmp_path / 'broken.kml'
+    kml.write_text('<kml><Document><Placemark>')
+    assert bm.verify_file('kml', kml, 1, ['name'])[0].startswith('GDAL cannot open it')
+
+
 def test_plan_names_a_new_versioned_key_and_the_patch_adds_only_new_blocks(tmp_path, monkeypatch):
     monkeypatch.setattr(bm, 'ROOT', tmp_path)
     f = tmp_path / 'IND_ADM1.kml'
