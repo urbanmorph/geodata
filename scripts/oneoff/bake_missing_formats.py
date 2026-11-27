@@ -51,8 +51,8 @@ from bake_extracts import write_kml_from_geojson  # noqa: E402
 from bake_formats import ShapefileTooBig, shapefile_zip_from_geojson, short_field_names  # noqa: E402
 from bake_whole_layer import _detect_geom_col, write_geojson_whole  # noqa: E402
 from pipeline import (  # noqa: E402
-    BUCKET, R2_PUBLIC, Deadline, OutOfTime, ToolFailed, atomic_output, download, file_md5, log, make_con, run,
-    write_json)
+    BUCKET, R2_PUBLIC, Deadline, OutOfTime, ToolFailed, atomic_output, download, file_md5, log, make_con,
+    over_format_limit, run, write_json)
 from tile_keys import REBAKE_SUFFIX, versioned_key  # noqa: E402
 
 CATALOG = ROOT / 'catalog.json'
@@ -394,6 +394,12 @@ def cmd_estimate(args) -> int:
     return 0
 
 
+def is_held(entry: dict, max_gb: float) -> bool:
+    """Held back from the upload: over its format's download limit (KML 350 MB, GeoJSON 1 GB), or
+    over --max-gb whatever the format."""
+    return over_format_limit(entry['format'], entry['bytes']) or entry['bytes'] > max_gb * 1e9
+
+
 def cmd_plan(args) -> int:
     """Only files the catalog lacks, only ones that verify, and only those up to
     --max-gb; bigger verified files are listed in held_files.json for the owner."""
@@ -407,7 +413,7 @@ def cmd_plan(args) -> int:
         for f in want:
             if not report[f]:
                 entry = plan_entry(layer, f, paths[f])
-                (plan if entry['bytes'] <= args.max_gb * 1e9 else held).append(entry)
+                (held if is_held(entry, args.max_gb) else plan).append(entry)
     write_json(WORK / 'upload_plan.json', plan)
     write_json(WORK / 'held_files.json', held)
     before = CATALOG.read_text()

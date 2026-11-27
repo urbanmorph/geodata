@@ -55,7 +55,9 @@ from bake_extracts import (  # noqa: E402
     make_con,
     write_kml_from_geojson,
 )
-from pipeline import TOOL_TIMEOUT_S, atomic_output, is_fresh, run, write_stable_zip  # noqa: E402
+from pipeline import (  # noqa: E402
+    FORMAT_MAX_BYTES, TOOL_TIMEOUT_S, atomic_output, is_fresh, over_format_limit, run, write_stable_zip,
+)
 
 OUT = ROOT / "data" / "baked"
 SRC = ROOT / "sources" / "india-geodata"
@@ -318,6 +320,25 @@ def curated_layers() -> list[tuple[str, str, str, int]]:
 # Main
 # ---------------------------------------------------------------------------
 
+def set_aside_if_over_limit(fmt: str, path: Path) -> bool:
+    """Rename a baked file over its download limit to <name>.over-limit, so upload_r2.sh and
+    build_catalog never publish it (the viewer's Filter & export serves that format instead)."""
+    if not path.exists() or not over_format_limit(fmt, path.stat().st_size):
+        return False
+    path.replace(path.with_name(path.name + '.over-limit'))
+    print(f"held  {path.name} over the {FORMAT_MAX_BYTES[fmt]:,} B {fmt} limit (not published)")
+    return True
+
+
+def take_back_held(paths: dict, source: Path) -> None:
+    """Restore held files still fresh against the source, so the freshness checks see them and a
+    rerun with unchanged input rebakes nothing (they are set aside again at the end)."""
+    for fmt in ('geojson', 'kml'):
+        held = paths[fmt].with_name(paths[fmt].name + '.over-limit')
+        if held.exists() and not paths[fmt].exists() and held.stat().st_mtime >= source.stat().st_mtime:
+            held.replace(paths[fmt])
+
+
 def bake_one(
     con: duckdb.DuckDBPyConnection,
     label: str,
@@ -329,6 +350,7 @@ def bake_one(
     """Bake geojson + kml + shapefile.zip for one source parquet.
     Returns (written, skipped, errors)."""
     paths = out_paths(r2_prefix, basename)
+    take_back_held(paths, parquet_path)
     written = 0
     skipped = 0
     errors: list[str] = []
@@ -382,6 +404,9 @@ def bake_one(
             errors.append(f"{label} shapefile: {e}")
             print(f"FAIL  {label} fmt=shp.zip err={e}")
 
+    # after the shapefile (which reads the geojson): hold back what is over its download limit
+    for fmt in ('kml', 'geojson'):
+        set_aside_if_over_limit(fmt, paths[fmt])
     return written, skipped, errors
 
 

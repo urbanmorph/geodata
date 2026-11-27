@@ -150,3 +150,13 @@ def test_plan_names_a_new_versioned_key_and_the_patch_adds_only_new_blocks(tmp_p
     assert got['geojson'] == old_geojson and got['kml'] == {'url': p['url'], 'bytes': 6}
     assert patched['layers'][1] == {'id': 'other'}
     assert bm.patch_catalog(json.loads(json.dumps(patched)), [p]) == patched  # idempotent
+
+
+def test_the_plan_holds_a_kml_or_geojson_over_its_download_limit():
+    assert bm.is_held({'format': 'kml', 'bytes': 428_000_000}, max_gb=1.0)
+    assert not bm.is_held({'format': 'kml', 'bytes': 276_000_000}, max_gb=1.0)
+    assert not bm.is_held({'format': 'kml', 'bytes': 44_300_000}, max_gb=1.0)
+    assert not bm.is_held({'format': 'geojson', 'bytes': 540_000_000}, max_gb=1.0)
+    assert bm.is_held({'format': 'geojson', 'bytes': 1_066_000_000}, max_gb=3.0)
+    assert not bm.is_held({'format': 'shapefile', 'bytes': 714_000_000}, max_gb=1.0)
+    assert bm.is_held({'format': 'shapefile', 'bytes': 1_200_000_000}, max_gb=1.0)
