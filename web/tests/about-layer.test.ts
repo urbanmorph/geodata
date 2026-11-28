@@ -35,7 +35,7 @@ describe('aboutLayerHtml', () => {
 
   it('credits a requested layer under the licence, and says nothing on a layer no one requested', () => {
     const req = aboutLayerHtml({ layer: { ...layer, requested_by: { name: 'Sandilya MV' } }, meta, heading });
-    expect(req).toContain('Curated by bharatlas at the request of Sandilya MV');
+    expect(req).toContain('Curated by bharatlas at the request of <span class="about-panel__req-name">Sandilya MV</span>');
     expect(req.indexOf('about-panel__req')).toBeGreaterThan(req.indexOf('about-panel__lic'));
     expect(html).not.toContain('about-panel__req');
   });
