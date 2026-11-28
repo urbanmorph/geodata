@@ -165,7 +165,7 @@
       /* Download links live inside row__expand (under "Download:") instead
          of the action column — frees horizontal space for the title. */
       .row--compact .row__expand .row__downloads { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); color: var(--muted); }
-      .row--compact .row__expand .row__downloads .dl-inline { gap: var(--sp-1-5); align-items: baseline; flex-wrap: wrap; }
+      .row--compact .row__expand .row__downloads .dl-inline { --dl-gap: var(--sp-1-5); gap: var(--dl-gap); align-items: baseline; flex-wrap: wrap; }
       .row--compact .row__expand .row__downloads .dl-inline a { font-weight: 500; }
       .row--compact .row__expand {
         padding: var(--sp-2-5) var(--sp-1) var(--sp-3-5);
@@ -261,10 +261,11 @@
       .link--large .large-icon { width: 14px; height: 14px; margin-right: 3px; vertical-align: -2px; color: var(--warn); }
       .btn-primary.disabled { background: transparent; color: var(--muted); border: var(--border-dashed); cursor: not-allowed; }
 
-      .dl-inline { display: inline-flex; gap: var(--sp-4); align-items: center; font-size: var(--fs-sm); color: var(--muted); }
+      .dl-inline { --dl-gap: var(--sp-4); display: inline-flex; gap: var(--dl-gap); align-items: center; font-size: var(--fs-sm); color: var(--muted); }
       .dl-inline a { color: var(--fg); display: inline-flex; align-items: center; min-height: 44px; padding: var(--sp-2-5) var(--sp-1); }
       .dl-inline .size { color: var(--muted); font-variant-numeric: tabular-nums; font-size: var(--fs-xs); margin-left: var(--sp-0-5); }
-      .dl-inline .dot { color: var(--line); }
+      /* The separator between formats, drawn here so no row carries it; the '' alt text keeps it out of the link's name. */
+      .dl-inline > a:not(:first-child)::before { content: '·' / ''; display: inline-block; color: var(--line); margin-right: var(--dl-gap); }
       .dl-inline .count {
         font-variant-numeric: tabular-nums;
         font-size: var(--fs-xs);

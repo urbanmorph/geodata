@@ -176,8 +176,8 @@ function renderRow(level, layersForLevel, opts = {}) {
   const dlInline = downloads.length
     ? `<span class="dl-inline">${downloads
         .map(
-          (d, i) =>
-            `${i > 0 ? '<span class="dot">·</span>' : ''}${downloadAnchor(d)}<span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}`
+          (d) =>
+            `${downloadAnchor(d)}<span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}`
         )
         .join('')}</span>`
     : '';
