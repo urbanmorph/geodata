@@ -28,6 +28,11 @@
 /layer-index.json
   Cache-Control: public, max-age=300, stale-while-revalidate=86400
   CDN-Cache-Control: public, max-age=300, stale-while-revalidate=86400
+# Each /layers row's download links (prerender), fetched when the row opens.
+# Browser-cached briefly and not edge-cached (no CDN-Cache-Control), so a deploy
+# needs no purge of them and a refreshed layer's new file urls show within minutes.
+/layer-dl/*
+  Cache-Control: public, max-age=300
 
 # Sitemap + LLM discovery file — both static, both safe to cache an hour
 # at the edge with stale-while-revalidate so submissions / docs changes

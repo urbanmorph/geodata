@@ -9,6 +9,7 @@ import { escapeHtml } from './util';
 import { refreshLiveCounts } from './live-counts';
 import { focusOnSlash } from './search-pop';
 import { markLargeViews } from './large-load';
+import { wireLazyDownloads } from './layer-downloads';
 
 refreshLiveCounts();
 markLargeViews(document);
@@ -18,6 +19,8 @@ const grid = document.getElementById('catalog-grid');
 const empty = document.getElementById('catalog-empty');
 const meta = document.getElementById('search-meta');
 const strip = document.getElementById('requested');
+// Each row's download links load when it opens (layer-downloads.ts).
+if (grid) wireLazyDownloads(grid);
 
 if (input && grid) {
   const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
