@@ -2,7 +2,7 @@
 // on the About panel) and the rule that a requested (paid) layer never uses non-commercial sources.
 import { describe, expect, it } from 'vitest';
 import {
-  requestedBy, requestedByTagHtml, requestedByAboutHtml, requestedLayersThatAreNonCommercial,
+  requestedBy, requestedByTagHtml, requestedByAboutHtml, requestedLayersThatAreNonCommercial, requestedStripHtml, requestedFirst,
 } from '../../shared/requested-by.mjs';
 import catalog from '../../catalog.json';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
@@ -80,6 +80,37 @@ describe('an organisation credit: link and logo, both optional', () => {
       expect(svg, f).toContain('prefers-color-scheme:dark');
       expect(svg, f).not.toMatch(/<script|\bon[a-z]+=|href=|url\(/i);
     }
+  });
+});
+
+describe('requested layers come first on /layers', () => {
+  const layers = [
+    { id: 'a', name: 'Alpha', licence: 'CC0-1.0' },
+    { id: 'b', name: 'Beta <x>', licence: 'CC0-1.0', requested_by: { name: 'Altmo', url: 'https://www.altmo.app' } },
+    { id: 'c', name: 'Gamma', licence: 'CC0-1.0', requested_by: { name: 'Sandilya MV' } },
+  ];
+
+  it('lists the requested layers at the top, each opening its map with who asked', () => {
+    const html = requestedStripHtml(layers);
+    expect(html).toContain('id="requested"');
+    expect(html).toContain('<a class="req-strip__item" href="/view/b"><span class="req-strip__name">Beta &lt;x&gt;</span><span class="req-strip__by">Requested by Altmo</span></a>');
+    expect(html).toContain('href="/view/c"');
+    expect(html).not.toContain('/view/a');
+    // the requester's own link stays on the About panel: one link per item here
+    expect(html).not.toContain('altmo.app');
+  });
+
+  it('titles each item as the page does (the level label)', () => {
+    expect(requestedStripHtml(layers, (l) => `Label ${l.id}`)).toContain('<span class="req-strip__name">Label c</span>');
+  });
+
+  it('renders nothing when no layer was requested', () => {
+    expect(requestedStripHtml([layers[0]])).toBe('');
+  });
+
+  it('puts a level holding a requested layer ahead of the others, keeping their order otherwise', () => {
+    const byLevel = { l1: [layers[0]], l2: [layers[1]], l3: [layers[0]], l4: [layers[0], layers[2]] };
+    expect(requestedFirst(['l1', 'l2', 'l3', 'l4'], byLevel)).toEqual(['l2', 'l4', 'l1', 'l3']);
   });
 });
 

@@ -17,6 +17,7 @@ const input = document.getElementById('catalog-search') as HTMLInputElement | nu
 const grid = document.getElementById('catalog-grid');
 const empty = document.getElementById('catalog-empty');
 const meta = document.getElementById('search-meta');
+const strip = document.getElementById('requested');
 
 if (input && grid) {
   const sections = Array.from(grid.querySelectorAll<HTMLElement>('.category-section'));
@@ -121,6 +122,8 @@ if (input && grid) {
       if (realm) perSection.set(realm, (perSection.get(realm) ?? 0) + (perSection.get(sec) ?? 0));
     }
     for (const realm of realms) realm.hidden = !perSection.get(realm);
+    // The requested layers at the top are a starting point: a search shows only its matches.
+    if (strip) strip.hidden = !!query;
     showCounts(result ? perSection : null);
     showEmpty(result && result.totalMatches === 0 ? query : null);
     if (meta) meta.textContent = result ? matchLine(result.totalLayers, query) : '';

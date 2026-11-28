@@ -306,6 +306,12 @@
       .alt__row--primary { padding-bottom: var(--sp-1-5); border-bottom: var(--border-dashed); margin-bottom: var(--sp-1); }
       .alt__row .tag { font-size: var(--fs-xs); padding: 1px var(--sp-1-5); background: var(--accent-fill); color: var(--on-accent-fill); border-radius: var(--radius-pill); margin-left: var(--sp-1); vertical-align: middle; letter-spacing: .04em; }
       /* Site-wide use (scripts/usage-totals.mjs): downloads, and API queries once past the threshold. */
+      /* Requested layers open the page: one line of links, each to its map, in the credit's saffron. */
+      .req-strip { margin: var(--sp-3-5) 0 0; padding: var(--sp-2) var(--sp-3); border-left: var(--border-strong); border-left-color: var(--accent-fill); background: var(--accent-tint); }
+      .req-strip__title { margin: 0; font-size: var(--fs-sm); color: var(--muted); }
+      .req-strip__list { display: flex; flex-wrap: wrap; gap: 0 var(--sp-5); }
+      .req-strip__item { display: inline-flex; flex-wrap: wrap; align-items: baseline; align-content: center; gap: 0 var(--sp-1-5); min-height: 44px; color: var(--fg); font-weight: 600; }
+      .req-strip__by { font-size: var(--fs-xs); font-weight: 400; color: var(--muted); }
       .usage-block { list-style: none; margin: 0 0 var(--sp-3-5); padding: 0; display: flex; flex-wrap: wrap; gap: var(--sp-1-5) 22px; }
       .usage-block__item { display: flex; align-items: baseline; gap: var(--sp-1-5); color: var(--muted); font-size: var(--fs-sm); }
       .usage-block__item strong { color: var(--brand-green); font: 700 var(--fs-lg) var(--font-mono); }
@@ -325,6 +331,7 @@
           <input type="search" id="catalog-search" class="catalog-search" aria-label="Filter layers" placeholder="Filter by name, place or source" autocomplete="off" />
         </label>
         <p class="search-meta" id="search-meta" aria-live="polite"></p>
+        <!-- REQUESTED -->
       </div>
       <div class="layers-body">
         <nav class="theme-index" aria-label="Themes">

@@ -9,7 +9,7 @@ import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, MAP_TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
-import { requestedByTagHtml } from '../../shared/requested-by.mjs';
+import { requestedByTagHtml, requestedFirst, requestedStripHtml } from '../../shared/requested-by.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
 import { STATIC_PAGES, releasePages, urlset, SITE_ORIGIN as ORIGIN } from '../../shared/sitemap.mjs';
@@ -156,6 +156,11 @@ const downloadAnchor = (d) => `<a href="${esc(d.url)}" download data-fmt="${esc(
 /** "1,234 villages": a layer's row count in its level's unit, or '' when unknown. Not escaped. */
 const rowsText = (layer, meta) => (layer.rows != null ? `${fmtInt(layer.rows)} ${meta.unit || 'features'}` : '');
 
+// A row's title is clamped to two lines: a tooltip spells out one that could be cut (long, or
+// sharing its lines with a badge). Short titles go without, which keeps /layers in its budget.
+const TITLE_TIP_MIN = 30;
+const titleTip = (label, hasBadge) => (hasBadge || label.length > TITLE_TIP_MIN ? ` title="${esc(label)}"` : '');
+
 function renderRow(level, layersForLevel, opts = {}) {
   const meta = LEVEL_META[level];
   if (!meta) return '';
@@ -281,7 +286,7 @@ function renderRow(level, layersForLevel, opts = {}) {
       <div class="row__head">
         <details class="row__details">
           <summary class="row__summary">
-            <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}${nc ? ` <span class="badge lic-badge lic-badge--nc">${NC_LABEL}</span>` : ''}${reqTag ? ` ${reqTag}` : ''}</span>
+            <span class="row__title"${titleTip(meta.label, nc || reqTag)}>${esc(meta.label)}${nc ? ` <span class="badge lic-badge lic-badge--nc">${NC_LABEL}</span>` : ''}${reqTag ? ` ${reqTag}` : ''}</span>
             <span class="row__source" title="${esc(primary.attribution?.primary?.name || primary.source)}">${esc(primary.source)}</span>
             <span class="row__count">${countDisplay}</span>
           </summary>
@@ -612,7 +617,11 @@ const VISIBLE_LIMIT = 6;
 
 // One theme's layers within one realm: curated levels (LEVEL_ORDER) and community cards.
 const sectionContent = (realm, cat) => {
-  const levelsInCat = LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat && realmByLevel[lvl] === realm);
+  // A level holding a requested layer opens its section, so it is never folded under "Show all".
+  const levelsInCat = requestedFirst(
+    LEVEL_ORDER.filter((lvl) => byLevel[lvl]?.length && categoryByLevel[lvl] === cat && realmByLevel[lvl] === realm),
+    byLevel,
+  );
   const commInCat = (communityByCategory[cat] || []).filter((s) => realmOf({ id: s.id, category: cat }) === realm);
   return { levelsInCat, commInCat, total: levelsInCat.reduce((n, lvl) => n + byLevel[lvl].length, 0) + commInCat.length };
 };
@@ -782,6 +791,7 @@ await writeFile(
     LAYER_TOTAL: String(totalLayers),
     THEME_TOTAL: String(sectionCats.length),
     USAGE_BLOCK: usageBlockHtml(siteUse),
+    REQUESTED: requestedStripHtml([...curatedById.values()], (l) => LEVEL_META[l.level]?.label || l.id),
   }))),
 );
 await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));

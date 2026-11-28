@@ -50,6 +50,24 @@ export function requestedByAboutHtml(layer) {
     `<p class="about-panel__req-link"><a href="${REQUEST_URL}">Request a layer like this</a></p></div>`;
 }
 
+/** /layers opens with the requested layers: each opens its map, with who asked. '' when none.
+ *  labelOf gives a layer's title (the catalog's level label); the layer's name, then id, otherwise. */
+export function requestedStripHtml(layers, labelOf = (l) => l.name || l.id) {
+  const items = (layers || []).filter((l) => requestedBy(l));
+  if (!items.length) return '';
+  return `<section class="req-strip" id="requested" aria-labelledby="requested-title">` +
+    `<h2 class="req-strip__title" id="requested-title">Requested layers</h2><div class="req-strip__list">` +
+    items.map((l) => `<a class="req-strip__item" href="/view/${esc(l.id)}"><span class="req-strip__name">${esc(labelOf(l))}</span>` +
+      `<span class="req-strip__by">Requested by ${esc(requestedBy(l).name)}</span></a>`).join('') +
+    `</div></section>`;
+}
+
+/** A theme's levels with those holding a requested layer first (stable otherwise), so they are never folded away. */
+export function requestedFirst(levels, byLevel) {
+  const asked = (lvl) => (byLevel[lvl] || []).some((l) => requestedBy(l));
+  return [...levels.filter(asked), ...levels.filter((lvl) => !asked(lvl))];
+}
+
 /** Ids of requested layers that are non-commercial (licence or flag): must always be empty. */
 export function requestedLayersThatAreNonCommercial(layers) {
   return (layers || []).filter((l) => requestedBy(l) && layerIsNonCommercial(l)).map((l) => l.id);
