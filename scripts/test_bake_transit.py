@@ -316,13 +316,49 @@ def test_every_entry_is_odbl_transport_credits_osm_and_names_each_bus_source():
     for lid in b.LAYERS:
         e = b.catalog_entry(lid, SUMMARY['layers'][lid], UPLOADED[lid], '2026-11-17')
         assert e['licence'] == 'ODbL-1.0' and e['category'] == 'transport' and e['provenance'] == 'curated'
-        assert e['attribution']['primary']['name'] == '© OpenStreetMap contributors'
+        assert e['attribution']['primary']['name'].startswith('© OpenStreetMap contributors')
         assert e['parquet']['url'].endswith(UPLOADED[lid]['parquet']['key'])
         assert e['fetched_at'] == '2026-11-17' and e['rows'] == 10
         assert '—' not in e['notes'] and 'catalog' not in e['notes'].lower()
     notes = b.catalog_entry('bus_stops', SUMMARY['layers']['bus_stops'], UPLOADED['bus_stops'], '2026-11-17')['notes']
     for feed in b.FEEDS.values():
-        assert feed['source'] in notes and feed['licence'] in notes
+        assert (feed['source'] in notes) is ('bus_stops' in feed['layers'])
+
+
+def test_the_existing_layers_keep_the_osm_credit_and_the_new_ones_credit_every_source():
+    for lid in b.LAYERS:
+        name = b.catalog_entry(lid, SUMMARY['layers'][lid], UPLOADED[lid], '2026-11-17')['attribution']['primary']['name']
+        if lid in b.NEW_LAYERS:
+            assert all(f['source'] in name for f in b.FEEDS.values() if lid in f['layers'])
+        else:
+            assert name == '© OpenStreetMap contributors'
+    assert 'Indian Railways (CRIS)' in b.credit('transit_stops')
+
+
+def test_a_format_over_its_size_limit_is_not_planned_for_upload_nor_offered(monkeypatch):
+    monkeypatch.setattr(b.pipeline, 'FORMAT_MAX_BYTES', {'kml': 100})
+    files = {fmt: {'path': f'/x/Transit_Stops.{ext}', 'bytes': 150, 'md5': '0123456789abcdef'}
+             for fmt, ext in b.EXT.items()}
+    plan = b.upload_plan({'layers': {'transit_stops': {'files': files}}})
+    assert set(plan['transit_stops']) == {'parquet', 'geojson', 'shapefile'}
+    assert plan['transit_stops']['parquet']['key'] == 'transport/transit/Transit_Stops.01234567.parquet'
+    e = b.catalog_entry('transit_stops', {'rows': 1}, plan['transit_stops'], '2026-11-27')
+    assert 'kml' not in e and 'geojson' in e
+
+
+def test_refresh_forgets_the_named_sources_or_all_and_refuses_unknown_ones(tmp_path, monkeypatch):
+    monkeypatch.setattr(b, 'WORK', tmp_path)
+    zips = tmp_path / 'cache' / 'gtfs'
+    zips.mkdir(parents=True)
+    for k in ('mumbai', 'bmtc'):
+        (zips / f'{k}.zip').write_text('x')
+    src = {'osm': {}, 'mumbai': {}, 'bmtc': {}}
+    assert b.forget(src, None) == [] and set(src) == {'osm', 'mumbai', 'bmtc'}
+    assert b.forget(src, ['mumbai']) == ['mumbai'] and set(src) == {'osm', 'bmtc'}
+    assert not (zips / 'mumbai.zip').exists() and (zips / 'bmtc.zip').exists()
+    with pytest.raises(ValueError):
+        b.forget(src, ['nope'])
+    assert b.forget(src, []) == ['bmtc', 'osm'] and src == {}
 
 
 def catalog_file(tmp_path, layers=()):
@@ -380,3 +416,179 @@ def test_the_pull_follows_geofabriks_redirects_to_the_dated_extract(monkeypatch)
             'https://download.geofabrik.de/asia/india/india-latest.osm.pbf': 'india-261119.osm.pbf'}
     monkeypatch.setattr(b, 'head_location', hops.get)
     assert b.latest_extract_url() == 'https://download.geofabrik.de/asia/india/india-261119.osm.pbf'
+
+
+# ── public transport stops, ferry stops, intercity bus stands ───────────────
+
+ORIGINAL_BUS_FEEDS = {'bmtc', 'pmpml', 'mumbai', 'ahmedabad', 'chennai_cumta'}
+
+
+def test_every_feed_names_its_url_source_licence_page_and_layers():
+    for key, feed in b.FEEDS.items():
+        assert feed['url'].startswith('https://') and feed['page'].startswith('https://'), key
+        assert feed['source'] and feed['licence'], key
+        assert feed['layers'] and set(feed['layers']) <= set(b.LAYERS), key
+
+
+def test_bus_stops_keeps_its_own_feeds_and_the_new_city_feeds_go_to_transit_stops_only():
+    assert {k for k, f in b.FEEDS.items() if 'bus_stops' in f['layers']} == ORIGINAL_BUS_FEEDS
+    for key in ('tgsrtc', 'ktcl', 'hdbrts', 'calcutta', 'rajkot', 'davangere'):
+        assert 'transit_stops' in b.FEEDS[key]['layers'] and 'bus_stops' not in b.FEEDS[key]['layers']
+    assert b.FEEDS['ksrtc']['layers'] == ('intercity_bus_stands',)
+    assert 'ferry_stops' in b.FEEDS['calcutta']['layers']
+    assert b.FEEDS['mumbai']['city']['NMMT'] == 'Navi Mumbai'
+
+
+def test_no_feed_is_non_commercial_or_from_an_unlicensed_aggregator():
+    for key, feed in b.FEEDS.items():
+        assert not b.pipeline.is_non_commercial({'licence': feed['licence']}), key
+        assert 'India_GTFS' not in feed['url'] and 'chalo' not in feed['url'].lower(), key
+
+
+def test_tgsrtc_keeps_the_official_stops_only_not_the_collected_tgc_ones(tmp_path):
+    z = gtfs_zip(tmp_path / 'tg.zip', agency='agency_id,agency_name\nTGSRTC,Telangana State Road Transport Corporation\n',
+                 stops=('stop_id,stop_name,stop_lat,stop_lon\nRgqMpbyP,Charminar,17.358,78.474\n'
+                        'tgc-123,Warangal Bus Station,17.97,79.59\n'))
+    rows = b.gtfs_stops(z, 'tgsrtc', b.FEEDS['tgsrtc'])
+    assert [(r['stop_id'], r['city'], r['mode']) for r in rows] == [('RgqMpbyP', 'Hyderabad', 'bus')]
+
+
+CALCUTTA = dict(
+    agency=('agency_id,agency_name\nwbtc,WBTC\nshare_auto,Share autos\ner,Eastern Railway\n'
+            'wbstc_ferry,WBTC ferry\n'),
+    routes=('route_id,agency_id,route_type\nb1,wbtc,3\nt1,wbtc,0\na1,share_auto,3\nr1,er,2\nf1,wbstc_ferry,4\n'),
+    trips='route_id,trip_id,service_id\nb1,tb,s\nt1,tt,s\na1,ta,s\nr1,tr,s\nf1,tf,s\n',
+    stop_times=('trip_id,stop_id,stop_sequence\ntb,bus_esplanade,1\ntt,tram_esplanade,1\nta,auto_x,1\n'
+                'tr,rail_howrah,1\ntf,ferry_howrah,1\n'),
+    stops=('stop_id,stop_name,stop_lat,stop_lon,location_type\nbus_esplanade,Esplanade,22.56,88.35,0\n'
+           'tram_esplanade,Esplanade,22.561,88.351,0\nauto_x,X,22.5,88.3,0\nrail_howrah,Howrah,22.58,88.34,0\n'
+           'ferry_howrah,Howrah,22.584,88.344,0\nunserved,Nowhere,22.4,88.2,0\n'))
+
+
+def test_a_mixed_feed_gives_each_stop_the_mode_of_its_routes_and_leaves_out_skipped_agencies(tmp_path):
+    z = gtfs_zip(tmp_path / 'cal.zip', **CALCUTTA)
+    rows = {r['stop_id']: r for r in b.gtfs_stops(z, 'calcutta', b.FEEDS['calcutta'])}
+    assert {k: (r['mode'], r['city']) for k, r in rows.items()} == {
+        'bus_esplanade': ('bus', 'Kolkata'), 'tram_esplanade': ('tram', 'Kolkata'),
+        'ferry_howrah': ('ferry', 'Kolkata')}
+    assert rows['tram_esplanade']['operator'] == 'WBTC'
+
+
+def test_a_single_agency_feed_is_all_bus(tmp_path):
+    z = gtfs_zip(tmp_path / 'r.zip', stops=STOPS, agency='agency_id,agency_name\nRRL,Rajkot Rajpath Limited\n')
+    assert {r['mode'] for r in b.gtfs_stops(z, 'rajkot', b.FEEDS['rajkot'])} == {'bus'}
+
+
+def stop(name, lon, lat, **kw):
+    return {'name': name, 'lon': lon, 'lat': lat, **kw}
+
+
+def test_osm_bus_stops_only_where_the_layer_has_no_feed_for_the_city():
+    osm = [stop('A', 77.2, 28.6, city='Delhi'), stop('B', 88.3, 22.5, city='Kolkata'),
+           stop('C', 78.4, 17.4, city='Hyderabad'), stop('D', 76.3, 10.0, city='Kochi')]
+    feeds = [stop('E', 88.3, 22.5, city='Kolkata'), stop('F', 78.4, 17.4, city='Hyderabad'), stop('G', 1, 1, city=None)]
+    assert [r['city'] for r in b.osm_where_no_feed(osm, feeds)] == ['Delhi', 'Kochi']
+
+
+def test_thin_keeps_the_first_of_same_name_points_close_together_and_any_points_very_close():
+    rows = [stop('Panaji Ferry', 73.8300, 15.5000), stop('panaji  ferry', 73.8320, 15.5000),   # ~214 m, same name
+            stop('Other', 73.8300, 15.5003), stop('Far', 73.9, 15.6)]                          # ~33 m, any name
+    assert [r['name'] for r in b.thin(rows)] == ['Panaji Ferry', 'Far']
+
+
+def test_drop_near_leaves_out_osm_points_a_feed_already_has():
+    feed = [stop('Haveri New Bus Stand', 75.3978, 14.7881)]
+    osm = [stop('Haveri Bus Stand', 75.3980, 14.7882), stop('Hanagal', 75.128, 14.771)]
+    assert [r['name'] for r in b.drop_near(osm, feed)] == ['Hanagal']
+
+
+def test_osm_ferry_stops_are_terminals_ferry_stop_positions_and_stops_of_ferry_routes():
+    f = feats(node(1, 76.26, 9.97, amenity='ferry_terminal', name='High Court', operator='Kochi Water Metro'),
+              node(2, 76.30, 9.99, public_transport='stop_position', ferry='yes', name='Vyttila'),
+              node(3, 76.40, 9.90, name='Jetty on a route'),
+              node(4, 76.50, 9.80, public_transport='stop_position', bus='yes', name='Bus stop'),
+              node(5, 76.60, 9.70, amenity='ferry_terminal', name='Old', disused='yes'))
+    routes = [{'id': 9, 'tags': {'type': 'route', 'route': 'ferry', 'name': 'W1'},
+               'members': [('node', 3, 'stop'), ('node', 4, 'platform')]}]
+    rows = b.osm_ferry_stops(f, routes)
+    assert [(r['osm_id'], r['name'], r['operator']) for r in rows] == [
+        (1, 'High Court', 'Kochi Water Metro'), (2, 'Vyttila', None), (3, 'Jetty on a route', None)]
+
+
+def test_osm_bus_stations_are_live_amenity_bus_station_features():
+    f = feats(node(1, 77.57, 12.97, amenity='bus_station', name='Kempegowda Bus Station', operator='KSRTC'),
+              node(2, 77.0, 12.0, amenity='bus_station', name='Planned', construction='yes'),
+              node(3, 77.1, 12.1, highway='bus_stop', name='Stop'))
+    assert [(r['osm_type'], r['osm_id'], r['operator']) for r in b.osm_bus_stations(f)] == [('node', 1, 'KSRTC')]
+
+
+def test_transit_stops_have_one_mode_from_rail_metro_rrts_tram_and_bus():
+    rail = [{'name': 'ARASALLU', 'station_code': 'ARU', 'operator': 'South Western Railway', 'city': None,
+             'lon': 75.31, 'lat': 13.99}]
+    stations = [{'name': 'Majestic', 'system': 'Namma Metro', 'operator': None, 'mode': 'metro', 'city': 'Bengaluru',
+                 'osm_type': 'node', 'osm_id': 1, 'lon': 77.57, 'lat': 12.97},
+                {'name': 'Sahibabad', 'system': 'Delhi-Meerut RRTS (Namo Bharat)', 'operator': 'NCRTC', 'mode': 'rrts',
+                 'city': 'Delhi NCR', 'osm_type': 'node', 'osm_id': 2, 'lon': 77.35, 'lat': 28.67}]
+    src = {'source': 's', 'source_licence': 'ODbL-1.0', 'source_version': 'v'}
+    feed = [{'stop_id': 'tram_x', 'name': 'Esplanade', 'mode': 'tram', 'city': 'Kolkata', 'operator': 'WBTC',
+             'lon': 88.35, 'lat': 22.56, **src},
+            {'stop_id': 'f', 'name': 'Ghat', 'mode': 'ferry', 'city': 'Kolkata', 'operator': None,
+             'lon': 88.34, 'lat': 22.58, **src}]
+    osm_bus = [{'stop_id': 'node/7', 'osm_type': 'node', 'osm_id': 7, 'name': 'ITO', 'city': 'Delhi',
+                'operator': None, 'lon': 77.24, 'lat': 28.63}]
+    rows = b.transit_rows(rail, stations, feed, osm_bus,
+                          rail_src={'source': 'IR', 'source_licence': 'CC-BY-4.0', 'source_version': '2026-11-17'},
+                          osm_src={'source': 'OpenStreetMap', 'source_licence': 'ODbL-1.0',
+                                   'source_version': '2026-11-27'})
+    assert [(r['name'], r['mode']) for r in rows] == [('ARASALLU', 'rail'), ('Majestic', 'metro'),
+                                                      ('Sahibabad', 'rrts'), ('Esplanade', 'tram'), ('ITO', 'bus')]
+    assert {r['mode'] for r in rows} <= set(b.TRANSIT_MODES)
+    assert rows[1]['operator'] == 'Namma Metro' and rows[2]['operator'] == 'NCRTC'
+    assert rows[0]['station_code'] == 'ARU' and rows[4]['stop_id'] is None and rows[4]['osm_id'] == 7
+    assert rows[4]['source'] == 'OpenStreetMap' and rows[3]['source'] == 's'
+
+
+def test_a_station_two_systems_share_is_one_row_per_mode():
+    def st(system, mode, city):
+        return {'name': 'Anand Vihar', 'system': system, 'operator': None, 'mode': mode, 'city': city,
+                'osm_type': 'node', 'osm_id': 5, 'lon': 77.31, 'lat': 28.65}
+    stations = [st('Delhi Metro', 'metro', 'Delhi'), st('Delhi-Meerut RRTS (Namo Bharat)', 'rrts', 'Delhi NCR'),
+                st('Gurugram Metro', 'metro', 'Gurugram')]
+    rows = b.transit_rows([], stations, [], [], rail_src={}, osm_src={})
+    assert [(r['mode'], r['operator']) for r in rows] == [('metro', 'Delhi Metro'),
+                                                          ('rrts', 'Delhi-Meerut RRTS (Namo Bharat)')]
+
+
+def test_a_requested_layer_refuses_a_non_commercial_source():
+    ok = [{'source': 'a', 'source_licence': 'ODbL-1.0'}, {'source': 'b', 'source_licence': 'GODL-India'}]
+    b.refuse_non_commercial_sources('transit_stops', ok)
+    with pytest.raises(b.pipeline.RequestedLayerNotOpen):
+        b.refuse_non_commercial_sources('transit_stops', [*ok, {'source': 'c', 'source_licence': 'CC-BY-NC-4.0'}])
+    b.refuse_non_commercial_sources('ferry_stops', [{'source': 'c', 'source_licence': 'CC-BY-NC-4.0'}])  # not requested
+
+
+def test_only_transit_stops_is_requested_by_altmo():
+    for lid in b.LAYERS:
+        e = b.catalog_entry(lid, SUMMARY['layers'][lid], UPLOADED[lid], '2026-11-17')
+        if lid == 'transit_stops':
+            assert e['requested_by'] == {'name': 'Altmo', 'url': 'https://www.altmo.app',
+                                         'logo': '/requesters/altmo.svg'}
+        else:
+            assert 'requested_by' not in e
+
+
+def test_new_layers_notes_name_every_source_and_licence_and_have_no_em_dash():
+    for lid in ('transit_stops', 'ferry_stops', 'intercity_bus_stands'):
+        text = b.notes(lid)
+        assert '—' not in text and '–' not in text
+        for feed in b.FEEDS.values():
+            if lid in feed['layers']:
+                assert feed['source'] in text and feed['licence'] in text, (lid, feed['source'])
+    t = b.notes('transit_stops')
+    assert 'Contains data provided by TGSRTC' in t and 'August 2025' in t and 'ir_stations' in t
+
+
+def test_audit_counts_stops_by_mode_city_and_source():
+    rows = [{'mode': 'bus', 'city': 'Goa', 'source': 'KTCL'}] * 2 + [{'mode': 'rail', 'city': 'AGRA', 'source': 'IR'},
+                                                                     {'mode': 'rail', 'city': None, 'source': 'IR'}]
+    assert b.audit_stops(rows) == {'bus | Goa | KTCL': 2, 'rail | None | IR': 2}

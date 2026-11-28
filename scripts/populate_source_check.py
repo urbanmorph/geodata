@@ -98,6 +98,10 @@ OVERRIDES: dict[str, dict] = {
     'urban_rail_stations': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'urban_rail_lines': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'bus_stops': {'method': 'github_commit', 'url': 'https://github.com/Vonter/bmtc-gtfs/tree/main/gtfs'},
+    # stops, ferry stops and bus stands: the extract again (their many feeds rebuild with it monthly)
+    'transit_stops': {'method': 'http', 'url': GEOFABRIK_INDIA},
+    'ferry_stops': {'method': 'http', 'url': GEOFABRIK_INDIA},
+    'intercity_bus_stands': {'method': 'http', 'url': GEOFABRIK_INDIA},
     # scripts/bake_osm_underground.py: the same dated OSM extract
     'osm_tunnels': {'method': 'http', 'url': GEOFABRIK_INDIA},
     'osm_underground_utilities': {'method': 'http', 'url': GEOFABRIK_INDIA},

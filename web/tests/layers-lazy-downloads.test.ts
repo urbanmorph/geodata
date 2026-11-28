@@ -85,8 +85,9 @@ describe('the row download renderer', () => {
     const { downloadsHtml } = await import('../src/layer-downloads');
     const html = downloadsHtml(ENTRIES);
     expect(html).toMatch(/^Download: <span class="dl-inline">/);
-    expect(html).toContain('<a href="/api/dl/x/a.parquet" download data-fmt="parquet">parquet</a><span class="size">3.4 MB</span><span class="count" title="14 downloads">14</span>');
-    expect(html).toContain('<a href="https://data.bharatlas.com/x/a.pmtiles" download data-fmt="pmtiles">pmtiles</a><span class="size">1.2 MB</span><a ');
+    // each format's link, size and count wrap as one unit, never split across lines
+    expect(html).toContain('<span class="dl-item"><a href="/api/dl/x/a.parquet" download data-fmt="parquet">parquet</a><span class="size">3.4 MB</span><span class="count" title="14 downloads">14</span></span>');
+    expect(html).toContain('<span class="dl-item"><a href="https://data.bharatlas.com/x/a.pmtiles" download data-fmt="pmtiles">pmtiles</a><span class="size">1.2 MB</span></span><span class="dl-item">');
     expect(html).toMatch(/<a href="[^"]+" download data-fmt="shapefile">shp<\/a>/);
     expect(html).toContain('title="1,234 downloads"');
   });
@@ -140,7 +141,7 @@ describe('opening a row', () => {
     await flush();
     expect(dlCalls().map(([u]) => u)).toEqual(['/layer-dl/state.json']);
     const p = document.querySelector('.row__downloads')!;
-    expect(p.innerHTML).toMatch(/^Download: <span class="dl-inline"><a href="\/api\/dl\/x\/a.parquet" download(="")? data-fmt="parquet">parquet<\/a>/);
+    expect(p.innerHTML).toMatch(/^Download: <span class="dl-inline"><span class="dl-item"><a href="\/api\/dl\/x\/a.parquet" download(="")? data-fmt="parquet">parquet<\/a>/);
     expect(document.querySelector('[data-dl="soi_states"]')!.innerHTML).toContain('no downloads');
     expect(document.querySelector('[data-dl="lgd_states"] a[download]')).not.toBeNull();
     details.open = false; details.dispatchEvent(new Event('toggle'));

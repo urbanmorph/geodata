@@ -1,45 +1,58 @@
 #!/usr/bin/env python3
 """
-Transit layers: urban rail stations and lines (OpenStreetMap) and bus stops
-(open GTFS feeds where they exist, else OpenStreetMap), national, each row
-with its city, source, source licence and as-of date.
+Transit layers: urban rail stations and lines (OpenStreetMap), bus stops
+(open GTFS feeds where they exist, else OpenStreetMap), public transport
+stops, ferry stops and intercity bus stands, national, each row with its
+city, source, source licence and as-of date.
 
-  urban_rail_stations  metro and RRTS stations in operation
-  urban_rail_lines     operational lines as line geometry, one row per line
-  bus_stops            one point per stop, from the feed listed for its city
+  urban_rail_stations   metro and RRTS stations in operation
+  urban_rail_lines      operational lines as line geometry, one row per line
+  bus_stops             one point per stop, from the feed listed for its city
+  transit_stops         every train (Indian Railways, metro, RRTS), tram and
+                        city bus stop, one row per stop with its mode
+                        (requested by Altmo)
+  ferry_stops           ferry and water metro stops
+  intercity_bus_stands  state transport bus stands and stations
 
-Sources (owner decisions of 18 Nov 2026; research in
-supporting-docs/transit-sources-2026-11.md):
+Sources (owner decisions of 18 and 28 Nov 2026; research in
+supporting-docs/transit-sources-2026-11.md and -2026-11-28.md):
   * OpenStreetMap, a dated Geofabrik India extract (ODbL 1.0). Stations are
     the stop members of route relations, snapped to their station; Delhi
     Metro uses station tags (its relations were incomplete). OPERATIONAL
     keeps lines and stations mapped before they open out (Mumbai, Chennai);
     anything disused (the suspended Mumbai Monorail) is out too. Suburban
-    rail stays in ir_stations.
-  * GTFS feeds, stops only (no timetables): BMTC (Vonter, ODbL), PMPML and
-    Mumbai region (croyla, MIT-0), Ahmedabad (croyla, MIT), Chennai MTC
-    (CUMTA, no licence stated: government data republished with credit).
-  * OpenStreetMap bus stops for Delhi, Kolkata, Kochi and Hyderabad, inside
-    each city's own boundary layer (used only to select, never published).
+    rail stays in ir_stations. Ferry terminals and stops, and bus stations
+    (amenity=bus_station), come from the same extract.
+  * GTFS feeds, stops only (no timetables), each listed with the layers it
+    feeds (FEEDS). bus_stops keeps the five feeds it was published with;
+    transit_stops adds TGSRTC (official stops only), Goa KTCL,
+    Hubballi-Dharwad, Rajkot, Davangere and Kolkata (bus and tram);
+    ferry_stops takes Kolkata's ferries; intercity_bus_stands KSRTC.
+  * OpenStreetMap bus stops inside a city's own boundary layer (used only to
+    select, never published), only where the layer has no feed for the city.
+  * transit_stops' rail stops are the published ir_stations layer (CC BY 4.0).
 The layers are published under ODbL 1.0 as a whole; every row names its
 source and that source's licence.
 
 Steps (each cached under WORK and written atomically, so a killed run redoes
 only the step it was in; a second run with the same inputs does nothing):
-  pull      download the OSM extract and the feeds (once; --refresh refetches)
+  pull      download the OSM extract and the feeds (once; --refresh [KEY ...]
+            fetches them, or the named ones, again)
   extract   the OSM features transit needs, in three passes over the extract
-  bake      the three layers' parquet (flat bbox, Hilbert order), GeoJSON,
-            KML and Shapefile, and the audit against the reference counts
+  bake      the layers' parquet (flat bbox, Hilbert order), GeoJSON, KML and
+            Shapefile, and the audit (reference counts, stops per mode, city
+            and source)
   upload    to versioned keys <stem>.<md5[:8]>.<ext> under the shared upload
-            lock, skipping files R2 already holds (md5)
+            lock, skipping files R2 already holds (md5); --layers picks some
   register  patch catalog.json and scripts/external-ingested.json in place
+            (--layers picks some)
 Map tiles come after register, from the published parquet, by
 scripts/rebake_tiles.py (popup fields, decode checks, the audit rule).
 
 Run (R2 creds in the env for the cache backup and the upload):
     python3 -u scripts/bake_transit.py all --minutes 120     # pull, extract, bake
-    python3 -u scripts/bake_transit.py upload
-    python3 -u scripts/bake_transit.py register
+    python3 -u scripts/bake_transit.py upload [--layers transit_stops ferry_stops intercity_bus_stands]
+    python3 -u scripts/bake_transit.py register [--layers ...]
     python3 -u scripts/rebake_tiles.py urban_rail_stations urban_rail_lines bus_stops
 """
 from __future__ import annotations
@@ -82,27 +95,63 @@ OSM_LICENCE = 'ODbL-1.0'
 OSM_SOURCE = 'OpenStreetMap'
 GOVT_NO_LICENCE = 'none stated (government data, republished with credit)'
 
-# One per feed: (key, url, city by agency or one city, source, licence, credit page)
+# One per feed: url, city (one, or by agency id for a feed of several agencies), source, licence, credit page and
+# the layers it feeds. Optional: inner (a GTFS zip inside the download),
+# skip_stop_prefix (stops left out), skip_agencies (routes of these agencies
+# give no stops; a stop no other route serves is left out).
+CITY_BUS = ('bus_stops', 'transit_stops')       # the feeds bus_stops was published with
 FEEDS = {
     'bmtc': {'url': 'https://github.com/Vonter/bmtc-gtfs/raw/refs/heads/main/gtfs/bmtc.zip',
              'city': 'Bengaluru', 'source': 'BMTC GTFS (Vonter/bmtc-gtfs)', 'licence': 'ODbL-1.0',
-             'page': 'https://github.com/Vonter/bmtc-gtfs'},
+             'page': 'https://github.com/Vonter/bmtc-gtfs', 'layers': CITY_BUS},
     'pmpml': {'url': 'https://raw.githubusercontent.com/croyla/pmpml-gtfs/refs/heads/main/pmpml_gtfs_compat.zip',
               'city': 'Pune', 'source': 'PMPML GTFS (croyla/pmpml-gtfs)', 'licence': 'MIT-0',
-              'page': 'https://github.com/croyla/pmpml-gtfs'},
+              'page': 'https://github.com/croyla/pmpml-gtfs', 'layers': CITY_BUS},
     'mumbai': {'url': 'https://github.com/croyla/mumbai-gtfs/raw/refs/heads/main/gtfs_compat.zip',
-               'city': {'BEST': 'Mumbai', 'TMT': 'Thane', 'KDMT': 'Kalyan-Dombivli', 'VVMT': 'Vasai-Virar'},
+               'city': {'BEST': 'Mumbai', 'TMT': 'Thane', 'KDMT': 'Kalyan-Dombivli', 'VVMT': 'Vasai-Virar',
+                        'NMMT': 'Navi Mumbai'},
                'source': 'Mumbai region GTFS (croyla/mumbai-gtfs)', 'licence': 'MIT-0',
-               'page': 'https://github.com/croyla/mumbai-gtfs'},
+               'page': 'https://github.com/croyla/mumbai-gtfs', 'layers': CITY_BUS},
     'ahmedabad': {'url': 'https://github.com/croyla/amd-gtfs/raw/refs/heads/main/gtfs_compat.zip',
                   'city': {'AMTS': 'Ahmedabad', 'AJL': 'Ahmedabad', 'GTSL': 'Gandhinagar'},
                   'source': 'Ahmedabad GTFS (croyla/amd-gtfs)', 'licence': 'MIT',
-                  'page': 'https://github.com/croyla/amd-gtfs'},
+                  'page': 'https://github.com/croyla/amd-gtfs', 'layers': CITY_BUS},
     'chennai_cumta': {'url': 'https://test.cumta.org/static_mtc_gtfs_data.zip',
                       'inner': 'static_mtc_gtfs_data/chennai.bus.gtfs.zip',
                       'city': 'Chennai', 'source': 'CUMTA MTC GTFS (cumta.org)', 'licence': GOVT_NO_LICENCE,
-                      'page': 'https://cumta.tn.gov.in/'},
+                      'page': 'https://cumta.tn.gov.in/', 'layers': CITY_BUS},
+    # transit_stops only (owner, 28 Nov 2026). TGSRTC: the official Hyderabad feed of 25 Sep 2026 as
+    # mirrored by reclaimchennai, without the stops that repo collected from the bus tracker (tgc-*).
+    'tgsrtc': {'url': 'https://github.com/reclaimchennai/tgsrtc/raw/main/data/tgsrtc-gtfs.zip',
+               'skip_stop_prefix': 'tgc-', 'city': 'Hyderabad',
+               'source': 'TGSRTC GTFS, Open Data Telangana (via reclaimchennai/tgsrtc)', 'licence': 'GODL-India',
+               'page': 'https://www.tgsrtc.telangana.gov.in/open-data', 'layers': ('transit_stops',)},
+    'ktcl': {'url': 'https://ktclgoa.com/uploads/gtfs.zip', 'city': 'Goa',
+             'source': 'Kadamba Transport Corporation GTFS (ktclgoa.com)', 'licence': 'CC-BY-4.0',
+             'page': 'https://ktclgoa.com/gtfs/', 'layers': ('transit_stops',)},
+    'hdbrts': {'url': 'https://github.com/croyla/hdbrts-gtfs/raw/refs/heads/main/gtfs_compat.zip',
+               'city': 'Hubballi-Dharwad', 'source': 'Hubballi-Dharwad BRTS GTFS (croyla/hdbrts-gtfs)',
+               'licence': 'MIT', 'page': 'https://github.com/croyla/hdbrts-gtfs', 'layers': ('transit_stops',)},
+    'rajkot': {'url': 'https://github.com/croyla/rrl-gtfs/raw/refs/heads/main/gtfs_compat.zip',
+               'city': 'Rajkot', 'source': 'Rajkot Rajpath GTFS (croyla/rrl-gtfs)', 'licence': 'MIT-0',
+               'page': 'https://github.com/croyla/rrl-gtfs', 'layers': ('transit_stops',)},
+    'davangere': {'url': 'https://github.com/croyla/dvg-gtfs/raw/refs/heads/main/gtfs.zip',
+                  'city': 'Davangere', 'source': 'Davangere city bus GTFS (croyla/dvg-gtfs)', 'licence': 'MIT-0',
+                  'page': 'https://github.com/croyla/dvg-gtfs', 'layers': ('transit_stops',)},
+    # Kolkata: buses, minibuses and trams to transit_stops, ferries to ferry_stops; its share autos,
+    # metro and suburban rail are left out (rail and metro come from ir_stations and OpenStreetMap).
+    'calcutta': {'url': ('https://github.com/arkodeepg/calcutta-transport/raw/refs/heads/main/gtfs/'
+                         'calcutta-transport-gtfs.zip'),
+                 'city': 'Kolkata', 'skip_agencies': ('share_auto', 'er', 'ser', 'mrk'),
+                 'source': 'Calcutta Transport GTFS (arkodeepg/calcutta-transport)', 'licence': 'ODbL-1.0',
+                 'page': 'https://github.com/arkodeepg/calcutta-transport', 'layers': ('transit_stops', 'ferry_stops')},
+    'ksrtc': {'url': 'https://github.com/croyla/ksrtc-gtfs/raw/refs/heads/main/gtfs_compat.zip', 'city': None,
+              'source': 'KSRTC Karnataka intercity GTFS (croyla/ksrtc-gtfs)', 'licence': 'MIT-0',
+              'page': 'https://github.com/croyla/ksrtc-gtfs', 'layers': ('intercity_bus_stands',)},
 }
+# GTFS route_type -> mode (the basic types; any other gives the feed's own mode, bus by default)
+ROUTE_MODES = {'2': 'rail', '1': 'metro', '12': 'monorail', '0': 'tram', '3': 'bus', '4': 'ferry'}
+TRANSIT_MODES = ('rail', 'metro', 'rrts', 'monorail', 'tram', 'bus')    # transit_stops' modes, in row order
 
 
 # ── small helpers ───────────────────────────────────────────────────────────
@@ -184,14 +233,35 @@ def sources_path() -> Path:
     return WORK / 'cache' / 'sources.json'
 
 
-def pull(deadline: Deadline, refresh: bool = False) -> dict:
+def forget(sources: dict, refresh: list[str] | None) -> list[str]:
+    """Drop the sources to fetch again from `sources` (refresh: None = none,
+    [] = every one, else those keys) and delete their cached files; returns
+    the keys dropped. The OSM extract keeps its dated file (a new day is a new name)."""
+    known = {'osm', 'ir_stations', *FEEDS}
+    keys = sorted(sources) if refresh == [] else list(refresh or ())
+    unknown = set(keys) - known
+    if unknown:
+        raise ValueError(f'--refresh: unknown sources {sorted(unknown)} (known: {sorted(known)})')
+    for key in keys:
+        sources.pop(key, None)
+        stale = WORK / 'cache' / 'gtfs' / f'{key}.zip' if key in FEEDS else (
+            area_path(key) if key == 'ir_stations' else None)
+        if stale:
+            stale.unlink(missing_ok=True)
+    return keys
+
+
+def pull(deadline: Deadline, refresh: list[str] | None = None) -> dict:
     """Download the OSM extract (to raw/, 1.7 GB, re-downloadable by its dated
     name) and each feed (to cache/, backed up on R2). A source already pulled
-    is never fetched again unless --refresh; sources.json records what was
-    fetched (URL, md5, bytes, time)."""
+    is never fetched again unless named in --refresh (or --refresh alone:
+    all); sources.json records what was fetched (URL, md5, bytes, time) and
+    is saved after each source, so a killed pull keeps what it finished."""
     deadline.start('pull')
     path = sources_path()
-    sources = json.loads(path.read_text()) if path.exists() and not refresh else {}
+    sources = json.loads(path.read_text()) if path.exists() else {}
+    if forget(sources, refresh):
+        _save_sources(path, sources)
     if 'osm' not in sources:
         url = latest_extract_url()
         name = url.rsplit('/', 1)[1]
@@ -208,8 +278,6 @@ def pull(deadline: Deadline, refresh: bool = False) -> dict:
     for key, feed in FEEDS.items():
         deadline.check(f'pull {key}')
         dest = WORK / 'cache' / 'gtfs' / f'{key}.zip'
-        if refresh and key not in sources:
-            dest.unlink(missing_ok=True)
         pipeline.download(feed['url'], dest)
         if key not in sources:
             sources[key] = {'url': feed['url'], 'md5': pipeline.file_md5(dest), 'bytes': dest.stat().st_size,
@@ -219,18 +287,25 @@ def pull(deadline: Deadline, refresh: bool = False) -> dict:
     return sources
 
 
-def osm_dir(sources: dict) -> Path:
-    return WORK / 'cache' / 'osm' / sources['osm']['as_of']
-
-
 RAIL_ROUTES = ('subway', 'light_rail', 'monorail')
-# Features any of the three layers can use: stations, stops and platforms
-# (rail and bus). Kept whatever their state; is_live() decides later.
+# Features any of the layers can use: stations, stops and platforms (rail,
+# bus and ferry), bus stations, ferry terminals, and the rail and ferry route
+# relations. Kept whatever their state; is_live() decides later.
 FEATURE_SQL = """
-    (kind = 'relation' AND (tags['route'] IN {routes} OR tags['route_master'] IN {routes}))
+    (kind = 'relation' AND (tags['route'] IN {routes} OR tags['route_master'] IN {routes}
+                            OR tags['route'] = 'ferry'))
  OR (kind IN ('node', 'way') AND (tags['railway'] IN ('station', 'halt', 'stop', 'platform')
                                   OR tags['public_transport'] IN ('station', 'stop_position', 'platform')
-                                  OR tags['highway'] = 'bus_stop'))"""
+                                  OR tags['highway'] = 'bus_stop'
+                                  OR tags['amenity'] IN ('bus_station', 'ferry_terminal')))"""
+
+
+def osm_dir(sources: dict) -> Path:
+    """The extract's cached passes, by its date and the feature selection (a
+    changed FEATURE_SQL extracts again instead of reusing passes made without it)."""
+    import hashlib
+    tag = hashlib.md5(FEATURE_SQL.encode()).hexdigest()[:6]
+    return WORK / 'cache' / 'osm' / f"{sources['osm']['as_of']}-{tag}"
 
 
 def extract(sources: dict, deadline: Deadline) -> Path:
@@ -429,14 +504,17 @@ class _Grid:
     def __init__(self, items: list[dict]):
         self.cells: dict[tuple[int, int], list[dict]] = defaultdict(list)
         for it in items:
-            self.cells[(int(it['lon'] * 100), int(it['lat'] * 100))].append(it)
+            self.add(it)
+
+    def add(self, it: dict) -> None:
+        self.cells[(int(it['lon'] * 100), int(it['lat'] * 100))].append(it)
 
     def near(self, lon: float, lat: float, r: float) -> list[tuple[float, dict]]:
         cx, cy, span = int(lon * 100), int(lat * 100), int(r / 1000) + 1
         out = [(haversine_m(lon, lat, it['lon'], it['lat']), it)
                for dx in range(-span, span + 1) for dy in range(-span, span + 1)
                for it in self.cells.get((cx + dx, cy + dy), ())]
-        return sorted((d, it) for d, it in out if d <= r) if out else []
+        return sorted(((d, it) for d, it in out if d <= r), key=lambda x: x[0])
 
 
 def _snap(stop: dict, grid: _Grid) -> dict:
@@ -573,16 +651,29 @@ OSM_BUS_CITIES = {
 }
 
 
+AREA_LAYERS = (*dict.fromkeys(layer_id for layer_id, _ in OSM_BUS_CITIES.values()), 'ir_stations')
+IR_SOURCE = 'Indian Railways stations (bharatlas ir_stations: CRIS via PM GatiShakti and the IR GIS portal, Wikidata)'
+IR_LICENCE = 'CC-BY-4.0'
+
+
 def area_path(layer_id: str) -> Path:
     return WORK / 'cache' / 'areas' / f'{layer_id}.parquet'
+
+
+def points_table(con, name: str, items: list[dict]) -> None:
+    """A temp table (i, lon, lat) of the items, i their index (two list
+    parameters unnested: row-by-row inserts take minutes for 100k points)."""
+    con.execute(f"""CREATE OR REPLACE TEMP TABLE {name} AS
+                    SELECT (generate_subscripts($1::DOUBLE[], 1) - 1)::INTEGER AS i,
+                           unnest($1::DOUBLE[]) AS lon, unnest($2::DOUBLE[]) AS lat""",
+                [[it['lon'] for it in items], [it['lat'] for it in items]])
 
 
 def osm_bus_stops(con, features: dict) -> list[dict]:
     """OSM bus stops (highway=bus_stop, or a bus platform) inside each
     OSM_BUS_CITIES boundary, as stop rows (stop_id 'node/<id>' or 'way/<id>')."""
     stops = [f for f in features.values() if is_bus_stop(f['tags'])]
-    con.execute('CREATE OR REPLACE TEMP TABLE osm_stops (i INTEGER, lon DOUBLE, lat DOUBLE)')
-    con.executemany('INSERT INTO osm_stops VALUES (?, ?, ?)', [(i, f['lon'], f['lat']) for i, f in enumerate(stops)])
+    points_table(con, 'osm_stops', stops)
     rows = []
     for city, (layer_id, where) in OSM_BUS_CITIES.items():
         src = area_path(layer_id)
@@ -596,11 +687,74 @@ def osm_bus_stops(con, features: dict) -> list[dict]:
             """).fetchall()
         for (i,) in hits:
             f = stops[i]
-            rows.append({'stop_id': f'{f["type"]}/{f["id"]}', 'name': f['tags'].get('name'), 'city': city,
-                         'operator': f['tags'].get('operator') or f['tags'].get('network'),
-                         'lon': f['lon'], 'lat': f['lat']})
+            rows.append({'stop_id': f'{f["type"]}/{f["id"]}', **osm_row(f), 'city': city})
         log(f'  OpenStreetMap {city}: {len(hits):,} stops')
     return rows
+
+
+def osm_row(f: dict) -> dict:
+    t = f['tags']
+    return {'name': t.get('name'), 'operator': t.get('operator') or t.get('network'), 'osm_type': f['type'],
+            'osm_id': f['id'], 'lon': f['lon'], 'lat': f['lat']}
+
+
+def osm_where_no_feed(osm: list[dict], feed_rows: list[dict]) -> list[dict]:
+    """OSM stops of the cities none of the layer's feeds covers (the feed
+    listed for a city wins, so its stops are not doubled)."""
+    covered = {r['city'] for r in feed_rows if r.get('city')}
+    return [r for r in osm if r['city'] not in covered]
+
+
+SAME_PLACE_M = 300     # same-name points this close are one place ...
+ANY_PLACE_M = 50       # ... and points of any name this close
+FEED_HAS_IT_M = 200    # an OSM point this close to a feed's stop is that stop
+
+
+def thin(rows: list[dict], same_m: float = SAME_PLACE_M, any_m: float = ANY_PLACE_M) -> list[dict]:
+    """One row per place, the first in the given order: a later row is left
+    out when a kept one has its name within same_m, or any name within any_m
+    (OpenStreetMap often maps a terminal both as a point and as an area)."""
+    kept, grid = [], _Grid([])
+    for r in rows:
+        near = grid.near(r['lon'], r['lat'], same_m)
+        if any(d <= any_m or norm_name(k['name']) == norm_name(r['name']) for d, k in near):
+            continue
+        kept.append(r)
+        grid.add(r)
+    return kept
+
+
+def drop_near(rows: list[dict], keep: list[dict], m: float = FEED_HAS_IT_M) -> list[dict]:
+    """rows without the ones within m of any of `keep`."""
+    grid = _Grid(keep)
+    return [r for r in rows if not grid.near(r['lon'], r['lat'], m)]
+
+
+def is_ferry_stop(tags: dict) -> bool:
+    return tags.get('amenity') == 'ferry_terminal' or (
+        tags.get('ferry') == 'yes' and tags.get('public_transport') in ('stop_position', 'platform', 'station'))
+
+
+def osm_ferry_stops(features: dict, routes: list[dict]) -> list[dict]:
+    """Live ferry terminals, ferry stop positions and the stop members of live
+    ferry routes, terminals first, one row per place (thin)."""
+    picked = {k: f for k, f in features.items() if is_ferry_stop(f['tags']) and is_live(f['tags'])}
+    for r in routes:
+        if r['tags'].get('route') == 'ferry' and is_live(r['tags']):
+            for t, oid, role in r['members']:
+                f = features.get((t, oid))
+                if f and (role or '').startswith('stop') and is_live(f['tags']):
+                    picked[(t, oid)] = f
+    order = sorted(picked.values(), key=lambda f: (f['tags'].get('amenity') != 'ferry_terminal',
+                                                   f['type'] != 'node', f['id']))
+    return thin([osm_row(f) for f in order])
+
+
+def osm_bus_stations(features: dict) -> list[dict]:
+    """Live amenity=bus_station features, points before areas, one row per place."""
+    order = sorted((f for f in features.values() if f['tags'].get('amenity') == 'bus_station' and is_live(f['tags'])),
+                   key=lambda f: (f['type'] != 'node', f['id']))
+    return thin([osm_row(f) for f in order])
 
 
 def _save_sources(path: Path, sources: dict) -> None:
@@ -646,44 +800,133 @@ def feed_as_of(path: Path, feed: dict) -> str | None:
         return iso_date(info.get('feed_start_date') or (min(starts) if starts else None))
 
 
-def _serving_agencies(zf: zipfile.ZipFile) -> dict[str, list[str]]:
-    """{stop_id: agency ids serving it, in agency.txt order}, through
-    stop_times -> trips -> routes. Only the two id columns are kept."""
-    agency_of_route = {r['route_id']: r.get('agency_id', '') for r in _read_csv(zf, 'routes.txt')}
-    agency_of_trip = {r['trip_id']: agency_of_route.get(r['route_id'], '') for r in _read_csv(zf, 'trips.txt')}
+def _serving(zf: zipfile.ZipFile, skip_agencies=()) -> dict[str, tuple[list[str], list[str]]]:
+    """{stop_id: (agency ids serving it, in agency.txt order; their modes, in
+    ROUTE_MODES order)}, through stop_times -> trips -> routes, leaving out the
+    routes of skip_agencies. Only the id columns are kept."""
+    route = {r['route_id']: (r.get('agency_id', ''), r.get('route_type', '')) for r in _read_csv(zf, 'routes.txt')
+             if r.get('agency_id', '') not in skip_agencies}
+    route_of_trip = {r['trip_id']: route[r['route_id']] for r in _read_csv(zf, 'trips.txt') if r['route_id'] in route}
     order = {r.get('agency_id', ''): i for i, r in enumerate(_read_csv(zf, 'agency.txt'))}
-    served: dict[str, set[str]] = defaultdict(set)
+    modes = list(ROUTE_MODES.values())
+    served: dict[str, set[tuple[str, str]]] = defaultdict(set)
     member = next(n for n in zf.namelist() if n.rsplit('/', 1)[-1] == 'stop_times.txt')
     with zf.open(member) as f:
         for row in csv.DictReader(io.TextIOWrapper(f, encoding='utf-8-sig', newline='')):
             row = {k.strip(): v for k, v in row.items() if k}
-            served[row['stop_id'].strip()].add(agency_of_trip.get(row['trip_id'].strip(), ''))
-    return {s: sorted(a, key=lambda x: order.get(x, len(order))) for s, a in served.items()}
+            hit = route_of_trip.get(row['trip_id'].strip())
+            if hit:
+                served[row['stop_id'].strip()].add(hit)
+    return {s: (sorted({a for a, _ in hits}, key=lambda x: order.get(x, len(order))),
+                sorted({ROUTE_MODES[t] for _, t in hits if t in ROUTE_MODES}, key=modes.index))
+            for s, hits in served.items()}
 
 
 def gtfs_stops(path: Path, key: str, feed: dict) -> list[dict]:
     """The feed's stops and platforms (location_type 0 or empty) with a
-    position: stop_id, name, city, operator, lon, lat. A one-agency feed's
-    operator is that agency; otherwise every agency serving the stop, and the
-    city is the first one's (feed['city'] maps agency id to city)."""
+    position: stop_id, name, city, operator, mode, lon, lat. A one-agency
+    feed's operator is that agency and its mode the feed's (bus unless it
+    says); otherwise every agency serving the stop, the city the first one's
+    (feed['city'] maps agency id to city, or is the one city) and the mode
+    that of the routes serving it. skip_stop_prefix leaves stops out by id;
+    with skip_agencies, a stop only those agencies serve is left out."""
     with open_feed(path, feed) as zf:
         agencies = _read_csv(zf, 'agency.txt')
         names = {a.get('agency_id', ''): a.get('agency_name') or None for a in agencies}
-        serving = _serving_agencies(zf) if len(agencies) > 1 else None
+        skip_agencies = feed.get('skip_agencies', ())
+        serving = _serving(zf, skip_agencies) if len(agencies) > 1 else None
+        skip_prefix, default_mode, cities = feed.get('skip_stop_prefix'), feed.get('mode', 'bus'), feed['city']
         rows = []
         for s in _read_csv(zf, 'stops.txt'):
             if s.get('location_type', '') not in ('', '0') or not s.get('stop_lat') or not s.get('stop_lon'):
                 continue
+            if skip_prefix and s['stop_id'].startswith(skip_prefix):
+                continue
             if serving is None:
-                operator, city = (next(iter(names.values()), None), feed['city'])
+                operator, city, mode = next(iter(names.values()), None), cities, default_mode
             else:
-                ids = serving.get(s['stop_id'], [])
+                ids, modes = serving.get(s['stop_id'], ([], []))
+                if skip_agencies and not ids:
+                    continue
                 operator = '; '.join(names.get(a) or a for a in ids) or None
-                city = feed['city'].get(ids[0]) if ids else None
+                city = (cities.get(ids[0]) if ids else None) if isinstance(cities, dict) else cities
+                mode = modes[0] if modes else default_mode
             rows.append({'stop_id': s['stop_id'], 'name': s.get('stop_name') or None, 'city': city,
-                         'operator': operator, 'lon': float(s['stop_lon']), 'lat': float(s['stop_lat'])})
-    log(f'  {key}: {len(rows):,} stops')
+                         'operator': operator, 'mode': mode, 'lon': float(s['stop_lon']), 'lat': float(s['stop_lat'])})
+    log(f'  {key}: {len(rows):,} stops ' + str(dict(Counter(r['mode'] for r in rows))))
     return rows
+
+
+# ── public transport stops ──────────────────────────────────────────────────
+
+def rail_stops(con, path: Path) -> list[dict]:
+    """Indian Railways stations from the published ir_stations parquet: its
+    name (the CRIS name, else the Wikidata label), zone, city and code, each
+    the first of its columns that is not blank."""
+    def first(*cols: str) -> str:
+        return f"coalesce({', '.join(f'nullif(trim({c}), {chr(39) * 2})' for c in cols)})"
+    rows = con.execute(f"""
+        SELECT {first('sttnname', 'label')}, {first('fname', 'railway')}, {first('city')},
+               {first('stn_code', 'sttncode', 'code')}, ST_X(geometry), ST_Y(geometry)
+        FROM read_parquet('{path}') WHERE geometry IS NOT NULL ORDER BY 4, 1, 5, 6""").fetchall()
+    return [{'name': n, 'operator': op, 'city': city, 'station_code': code, 'lon': x, 'lat': y}
+            for n, op, city, code, x, y in rows]
+
+
+STOP_FIELDS = ('stop_id', 'station_code', 'osm_type', 'osm_id')
+
+
+def _stop(row: dict, **kw) -> dict:
+    return {**dict.fromkeys(STOP_FIELDS), **row, **kw}
+
+
+def transit_rows(rail: list[dict], stations: list[dict], feed_rows: list[dict], osm_bus: list[dict],
+                 rail_src: dict, osm_src: dict) -> list[dict]:
+    """transit_stops: rail stations, metro and RRTS stations (urban_rail_stations'
+    rows, operator falling back to the system; a station two systems share is
+    one row per mode), the feeds' tram and bus stops, then OpenStreetMap bus
+    stops (already only where no feed covers the city)."""
+    rows = [_stop(r, mode='rail', **rail_src) for r in rail]
+    seen = set()
+    for s in stations:
+        if (s['osm_type'], s['osm_id'], s['mode']) not in seen:
+            seen.add((s['osm_type'], s['osm_id'], s['mode']))
+            rows.append(_stop({k: s[k] for k in ('name', 'mode', 'city', 'osm_type', 'osm_id', 'lon', 'lat')},
+                              operator=s['operator'] or s['system'], **osm_src))
+    rows += [_stop(r) for r in feed_rows if r['mode'] in TRANSIT_MODES]
+    rows += [_stop(r, mode='bus', stop_id=None, **osm_src) for r in osm_bus]
+    return rows
+
+
+def refuse_non_commercial_sources(lid: str, rows: list[dict]) -> None:
+    """A requested layer is paid work: none of its rows may come from a
+    non-commercial source (pipeline.refuse_non_commercial_request checks the
+    layer's own licence at register)."""
+    if lid not in REQUESTED_BY:
+        return
+    bad = sorted({r['source'] for r in rows if pipeline.is_non_commercial({'licence': r['source_licence']})})
+    if bad:
+        raise pipeline.RequestedLayerNotOpen(f'{lid}: requested by {REQUESTED_BY[lid]["name"]} but has rows from '
+                                             f'non-commercial sources {bad}')
+
+
+def audit_stops(rows: list[dict]) -> dict:
+    """Rows per mode, city and source; rail rows per source only (their city
+    is the railway's own column, some 1,400 places)."""
+    by = Counter((r['mode'], None if r['mode'] == 'rail' else r.get('city'), r['source']) for r in rows)
+    return {f'{m} | {c} | {s}': n for (m, c, s), n in sorted(by.items(), key=lambda kv: tuple(map(str, kv[0])))}
+
+
+def add_states(con, rows: list[dict], states: Path) -> None:
+    """Each row's state: the LGD state boundary (lgd_states) its point falls
+    in, None offshore or outside them."""
+    points_table(con, 'pts', rows)
+    got = dict(con.execute(f"""
+        SELECT p.i, any_value(s.STNAME) FROM pts p
+        JOIN read_parquet('{states}') s ON ST_Intersects(s.geometry, ST_Point(p.lon, p.lat))   -- a SPATIAL_JOIN
+        GROUP BY p.i""").fetchall())
+    for i, r in enumerate(rows):
+        r['state'] = got.get(i)
 
 
 # ── bake ────────────────────────────────────────────────────────────────────
@@ -695,6 +938,12 @@ COLUMNS = {   # published columns, in order (geometry last); VARCHAR unless name
     'urban_rail_lines': ['name', 'ref', 'colour', 'system', 'city', 'mode', 'operator', 'from', 'to', 'osm_ids',
                          'source', 'source_licence', 'as_of'],
     'bus_stops': ['stop_id', 'name', 'city', 'operator', 'source', 'source_licence', 'as_of'],
+    'transit_stops': ['name', 'mode', 'operator', 'city', 'state', 'stop_id', 'station_code', 'osm_type',
+                      ('osm_id', 'BIGINT'), 'source', 'source_licence', 'source_version'],
+    'ferry_stops': ['name', 'operator', 'city', 'state', 'stop_id', 'osm_type', ('osm_id', 'BIGINT'),
+                    'source', 'source_licence', 'source_version'],
+    'intercity_bus_stands': ['name', 'operator', 'city', 'state', 'stop_id', 'osm_type', ('osm_id', 'BIGINT'),
+                             'source', 'source_licence', 'source_version'],
 }
 
 
@@ -779,15 +1028,63 @@ def audit_bus(rows: list[dict]) -> dict:
 def _inputs_hash(sources: dict) -> str:
     import hashlib
     h = hashlib.md5(json.dumps(sources, sort_keys=True).encode())
-    areas = [area_path(layer_id) for layer_id, _ in OSM_BUS_CITIES.values()]
-    for p in (Path(__file__), HERE / 'pipeline.py', HERE / 'bake_formats.py', *areas):
+    for p in (Path(__file__), HERE / 'pipeline.py', HERE / 'bake_formats.py', *map(area_path, AREA_LAYERS)):
         h.update(p.read_bytes())
     return h.hexdigest()
 
 
+def source_fields(source: str, licence: str, version: str | None) -> dict:
+    """What every row says of its source (bus_stops calls the version as_of)."""
+    return {'source': source, 'source_licence': licence, 'as_of': version, 'source_version': version}
+
+
+def build_rows(con, sources: dict, features: dict, routes: list[dict], deadline: Deadline) -> tuple[dict, dict]:
+    """({layer: (rows, geometry SQL)}, {layer: audit}) for every layer."""
+    osm = source_fields(OSM_SOURCE, OSM_LICENCE, sources['osm']['as_of'])
+    stations = [{**r, **osm} for r in build_stations(features, routes)]
+    lines = build_lines(routes)
+    for ln, wkt in zip(lines, line_geometries(con, lines)):
+        ln.update(osm, wkt=wkt)
+    missing = [ln['osm_ids'] for ln in lines if not ln['wkt']]
+    if missing:
+        raise RuntimeError(f'lines without geometry: {missing}')
+    deadline.check('bake: stops')
+    feeds = {key: [{**r, **source_fields(feed['source'], feed['licence'], sources[key]['as_of'])}
+                   for r in gtfs_stops(WORK / 'cache' / 'gtfs' / f'{key}.zip', key, feed)]
+             for key, feed in FEEDS.items()}
+
+    def of(lid: str, *modes: str) -> list[dict]:
+        return [r for key, feed in FEEDS.items() if lid in feed['layers'] for r in feeds[key]
+                if not modes or r['mode'] in modes]
+
+    osm_bus = [{**r, **osm} for r in osm_bus_stops(con, features)]
+    bus = of('bus_stops') + osm_where_no_feed(osm_bus, of('bus_stops'))
+    rail = rail_stops(con, area_path('ir_stations'))
+    transit = transit_rows(rail, stations, of('transit_stops'), osm_where_no_feed(osm_bus, of('transit_stops', 'bus')),
+                           rail_src=source_fields(IR_SOURCE, IR_LICENCE, sources['ir_stations']['as_of']), osm_src=osm)
+    ferry_feed, stands_feed = of('ferry_stops', 'ferry'), of('intercity_bus_stands')
+    ferry = [_stop(r) for r in ferry_feed] + [
+        _stop(r, mode='ferry', **osm) for r in drop_near(osm_ferry_stops(features, routes), ferry_feed)]
+    stands = [_stop(r) for r in stands_feed] + [
+        _stop(r, mode='bus', **osm) for r in drop_near(osm_bus_stations(features), stands_feed)]
+    for lid, rows in (('transit_stops', transit), ('ferry_stops', ferry), ('intercity_bus_stands', stands)):
+        refuse_non_commercial_sources(lid, rows)
+        add_states(con, rows, area_path('lgd_states'))
+
+    point = 'ST_Point(lon, lat)'
+    layer_rows = {'urban_rail_stations': (stations, point), 'urban_rail_lines': (lines, 'ST_GeomFromText(wkt)'),
+                  'bus_stops': (bus, point), 'transit_stops': (transit, point), 'ferry_stops': (ferry, point),
+                  'intercity_bus_stands': (stands, point)}
+    audits = {'urban_rail_stations': audit_stations(stations, tagged_counts(features)),
+              'urban_rail_lines': audit_lines(lines), 'bus_stops': audit_bus(bus),
+              'transit_stops': audit_stops(transit), 'ferry_stops': audit_stops(ferry),
+              'intercity_bus_stands': audit_stops(stands)}
+    return layer_rows, audits
+
+
 def bake(sources: dict, deadline: Deadline) -> dict:
-    """Build the three layers into out/. Nothing happens when the last bake
-    used the same sources and code and every file is still there."""
+    """Build the layers into out/. Nothing happens when the last bake used
+    the same sources and code and every file is still there."""
     import tempfile
     deadline.start('bake')
     out, summary_path = out_dir(), out_dir() / 'summary.json'
@@ -802,29 +1099,7 @@ def bake(sources: dict, deadline: Deadline) -> dict:
     con = pipeline.make_con()
     con.execute(f"SET temp_directory = '{WORK / 'duckdb_tmp'}'")
     features, routes = load_osm(con, osm_dir(sources))
-    osm_as_of = sources['osm']['as_of']
-    osm = {'source': OSM_SOURCE, 'source_licence': OSM_LICENCE, 'as_of': osm_as_of}
-
-    stations = [{**r, **osm} for r in build_stations(features, routes)]
-    lines = build_lines(routes)
-    for ln, wkt in zip(lines, line_geometries(con, lines)):
-        ln.update(osm, wkt=wkt)
-    missing = [ln['osm_ids'] for ln in lines if not ln['wkt']]
-    if missing:
-        raise RuntimeError(f'lines without geometry: {missing}')
-    deadline.check('bake: bus stops')
-    bus = []
-    for key, feed in FEEDS.items():
-        for r in gtfs_stops(WORK / 'cache' / 'gtfs' / f'{key}.zip', key, feed):
-            bus.append({**r, 'source': feed['source'], 'source_licence': feed['licence'],
-                        'as_of': sources[key]['as_of']})
-    bus += [{**r, **osm} for r in osm_bus_stops(con, features)]
-
-    layer_rows = {'urban_rail_stations': (stations, 'ST_Point(lon, lat)'),
-                  'urban_rail_lines': (lines, 'ST_GeomFromText(wkt)'),
-                  'bus_stops': (bus, 'ST_Point(lon, lat)')}
-    audits = {'urban_rail_stations': audit_stations(stations, tagged_counts(features)),
-              'urban_rail_lines': audit_lines(lines), 'bus_stops': audit_bus(bus)}
+    layer_rows, audits = build_rows(con, sources, features, routes, deadline)
     summary = {'inputs': inputs, 'built': datetime.now(timezone.utc).date().isoformat(), 'sources': sources,
                'reference': {'url': WIKI_URL, 'revision': WIKI_REVISION}, 'layers': {}}
     with tempfile.TemporaryDirectory(prefix='transit_', dir=out) as tmp:
@@ -847,19 +1122,34 @@ def bake(sources: dict, deadline: Deadline) -> dict:
     return summary
 
 
-def upload(summary_path: Path, uploaded_path: Path) -> dict:
-    """Every built file to its versioned key, holding the shared upload lock;
-    a file R2 already holds (same md5) is skipped. Records the keys for register."""
+def upload_plan(summary: dict, layers: list[str] | None = None) -> dict:
+    """{layer: {format: {key, bytes, md5}}}: the versioned key each built file
+    is published under. A file over pipeline.FORMAT_MAX_BYTES gets none (no
+    download offered in that format)."""
+    plan = {}
+    for lid in layers or summary['layers']:
+        plan[lid] = {}
+        for fmt, f in summary['layers'][lid]['files'].items():
+            if pipeline.over_format_limit(fmt, f['bytes']):
+                log(f'  {lid} {fmt} not published: {f["bytes"]:,} B is over the {fmt} limit')
+                continue
+            plan[lid][fmt] = {'key': versioned_key(f"{R2_PREFIX}/{Path(f['path']).name}", f['md5']),
+                              'bytes': f['bytes'], 'md5': f['md5']}
+    return plan
+
+
+def upload(summary_path: Path, uploaded_path: Path, layers: list[str] | None = None) -> dict:
+    """Every built file of `layers` (default all) to its versioned key, holding
+    the shared upload lock; a file R2 already holds (same md5) is skipped.
+    Records the keys for register, keeping those of layers not uploaded now."""
     summary = json.loads(summary_path.read_text())
+    plan = upload_plan(summary, layers)
     s3 = pipeline.r2_client()
-    uploaded = {}
     with upload_lock(owner=LOCK_OWNER):
-        for lid, built in summary['layers'].items():
-            uploaded[lid] = {}
-            for fmt, f in built['files'].items():
-                key = versioned_key(f"{R2_PREFIX}/{Path(f['path']).name}", f['md5'])
-                pipeline.r2_upload(s3, Path(f['path']), key)
-                uploaded[lid][fmt] = {'key': key, 'bytes': f['bytes'], 'md5': f['md5']}
+        for lid, files in plan.items():
+            for fmt, f in files.items():
+                pipeline.r2_upload(s3, Path(summary['layers'][lid]['files'][fmt]['path']), f['key'])
+    uploaded = {**(json.loads(uploaded_path.read_text()) if uploaded_path.exists() else {}), **plan}
     with atomic_output(uploaded_path) as part:
         part.write_text(json.dumps(uploaded, indent=1, sort_keys=True) + '\n')
     return uploaded
@@ -897,7 +1187,56 @@ LAYERS = {
         'tags': ['bus stops', 'bus', 'BMTC', 'PMPML', 'BEST', 'AMTS', 'Janmarg', 'MTC', 'GTFS', 'transit',
                  'OpenStreetMap', 'transport'],
     },
+    'transit_stops': {
+        'basename': 'Transit_Stops', 'source': 'Indian Railways, OpenStreetMap and city transit feeds',
+        'unit': 'stops', 'label': 'Public transport stops',
+        'description': ('Every railway, metro, RRTS and tram stop, and the city bus stops of every open bus feed '
+                        '(OpenStreetMap where a city has none), one point per stop with its mode, operator, city, '
+                        'state, source and licence.'),
+        'tags': ['public transport', 'transit stops', 'bus stops', 'railway stations', 'metro stations', 'tram',
+                 'RRTS', 'first and last mile', 'TGSRTC', 'Kadamba', 'GTFS', 'OpenStreetMap', 'transport'],
+    },
+    'ferry_stops': {
+        'basename': 'Ferry_Stops', 'source': 'OpenStreetMap and Calcutta Transport', 'unit': 'stops',
+        'label': 'Ferry and water metro stops',
+        'description': ('Ferry terminals, jetties and water metro stops, one point per place, from OpenStreetMap '
+                        'and, for Kolkata, the Calcutta Transport feed.'),
+        'tags': ['ferry', 'ferry terminals', 'jetties', 'water metro', 'Kochi Water Metro', 'Hooghly', 'transit',
+                 'OpenStreetMap', 'transport'],
+    },
+    'intercity_bus_stands': {
+        'basename': 'Intercity_Bus_Stands', 'source': 'OpenStreetMap and KSRTC (croyla/ksrtc-gtfs)',
+        'unit': 'bus stands', 'label': 'Intercity bus stands',
+        'description': ('Bus stands and bus stations across India from OpenStreetMap, with the stops of '
+                        'Karnataka\'s KSRTC intercity feed, one point per place.'),
+        'tags': ['bus stands', 'bus stations', 'intercity bus', 'state transport', 'KSRTC', 'GTFS', 'transit',
+                 'OpenStreetMap', 'transport'],
+    },
 }
+# Who asked for a layer (shown as "Requested by"; owner, 2026-11-28). A requested layer is never NC.
+REQUESTED_BY = {'transit_stops': {'name': 'Altmo', 'url': 'https://www.altmo.app', 'logo': '/requesters/altmo.svg'}}
+NEW_LAYERS = ('transit_stops', 'ferry_stops', 'intercity_bus_stands')   # credited source by source
+
+
+def _feeds_of(lid: str) -> list[dict]:
+    return [f for f in FEEDS.values() if lid in f['layers']]
+
+
+def _feed_list(lid: str) -> str:
+    return '; '.join(f'{f["source"]}, {f["licence"]}, {f["page"]}' for f in _feeds_of(lid))
+
+
+def credit(lid: str) -> str:
+    """The attribution line: OpenStreetMap, Indian Railways (transit_stops) and each feed."""
+    parts = [OSM_ATTRIBUTION['name'], *(['Indian Railways (CRIS)'] if lid == 'transit_stops' else []),
+             *(f['source'] for f in _feeds_of(lid))]
+    return '; '.join(parts)
+
+
+SHARED_NOTE = ('state is the LGD state (lgd_states) the point falls in (empty for the few points on the coast or a '
+               'river just outside that boundary). Every row names its source, source_licence '
+               'and source_version (the feed\'s version or start date, or the OpenStreetMap extract date); stop_id '
+               'is the feed\'s, osm_type and osm_id OpenStreetMap\'s. Names and positions are as published. ')
 
 
 def notes(lid: str) -> str:
@@ -922,7 +1261,44 @@ def notes(lid: str) -> str:
             'open lines (Mumbai Metro 2B and 9, Chennai Metro Yellow Line) are mapped over their operational stretch '
             'only. A direction mapped without a ref joins its same-named line. The colour column holds '
             'OpenStreetMap\'s colour tag as mapped (a name or a hex code).')
-    feeds = '; '.join(f'{f["source"]}, {f["licence"]}, {f["page"]}' for f in FEEDS.values())
+    if lid == 'transit_stops':
+        return ODBL_NOTE + (
+            'One row per train, tram and city bus stop, with its mode: rail (every Indian Railways station in the '
+            'Railway stations layer, ir_stations: CRIS via PM GatiShakti and the IR GIS portal, and Wikidata; '
+            'CC BY 4.0, credit Indian Railways (CRIS); station_code is the railway\'s code), metro and rrts (the '
+            'Metro and RRTS stations layer, urban_rail_stations, from OpenStreetMap), tram (Kolkata) and bus. '
+            'There is no monorail row while the Mumbai Monorail is suspended. City bus stops come from these GTFS '
+            f'feeds (stops only, no timetables): {_feed_list(lid)}. TGSRTC: only the stops of the official '
+            'Hyderabad feed of Open Data Telangana (Government Open Data License India; "Contains data provided '
+            'by TGSRTC"), read from the reclaimchennai/tgsrtc copy because the original download needs a form; '
+            'the stops that copy adds from the TGSRTC bus tracker are left out. Kadamba (Goa): the feed\'s '
+            'timetable ended in August 2025; its stops are kept, including those of its routes into Karnataka and '
+            'Maharashtra. Navi Mumbai comes from the Mumbai region feed (NMMT). Kolkata: the bus, minibus and tram '
+            'stops of the Calcutta Transport feed (its share autos, metro and suburban rail are left out; rail and '
+            'metro rows come from the layers above). A city with a feed takes its bus stops from the feed only; '
+            'OpenStreetMap (highway=bus_stop, or a bus platform) gives the stops of Delhi (NCT) and Kochi, inside '
+            'the city\'s boundary layer (lgd_states, wards_kochi). The CUMTA feed is government data with no '
+            'licence stated, republished with credit (bharatlas.com/about#sources-and-licensing); takedown on '
+            'request. Intercity buses are in Intercity bus stands (intercity_bus_stands), ferries in Ferry and '
+            'water metro stops (ferry_stops). ' + SHARED_NOTE + 'For rail rows source_version is the ir_stations '
+            'build date.').strip()
+    if lid == 'ferry_stops':
+        return ODBL_NOTE + (
+            f'Kolkata: the ferry stops of the Calcutta Transport feed ({_feed_list(lid)}). Everywhere else '
+            'OpenStreetMap: ferry terminals (amenity=ferry_terminal), ferry stop positions and the stops of ferry '
+            'routes, leaving out anything mapped as disused or under construction. One row per place: points of '
+            'one name within 300 m, or of any name within 50 m, are one (terminals first), and a point within '
+            '200 m of a feed stop is that stop. OpenStreetMap maps many river ghats and jetties as ferry '
+            'terminals, so not every row has a scheduled service. ' + SHARED_NOTE).strip()
+    if lid == 'intercity_bus_stands':
+        return ODBL_NOTE + (
+            f'The stops of the KSRTC Karnataka intercity feed ({_feed_list(lid)}): bus stands and stops on its '
+            'routes, some outside Karnataka (its timetable ran from August to September 2026; stops only). And '
+            'every bus station in OpenStreetMap (amenity=bus_station), which also holds city bus stations and '
+            'depots mapped as stations, leaving out anything mapped as disused or under construction. One row '
+            'per place: points of one name within 300 m, or of any name within 50 m, are one, and an '
+            'OpenStreetMap station within 200 m of a feed stop is that stop. ' + SHARED_NOTE).strip()
+    feeds = _feed_list('bus_stops')
     return ODBL_NOTE + (
         f'Stops only, no timetables. Bus feeds (GTFS): {feeds}. The volunteer feeds are compiled from the operators\' '
         'apps and websites; the CUMTA feed is government data with no licence stated, republished with credit '
@@ -937,11 +1313,13 @@ def catalog_entry(lid: str, built: dict, uploaded: dict, fetched_at: str) -> dic
     meta = LAYERS[lid]
     entry = {'id': lid, 'level': lid, 'source': meta['source'], 'rows': built['rows']}
     for fmt in EXT:
-        entry[fmt] = {'url': f'{pipeline.R2_PUBLIC}/{uploaded[fmt]["key"]}', 'bytes': uploaded[fmt]['bytes']}
-    entry.update({'licence': OSM_LICENCE,
-                  'attribution': {'primary': dict(OSM_ATTRIBUTION), 'publisher': dict(PUBLISHER)},
+        if fmt in uploaded:     # a format over its size limit is not offered
+            entry[fmt] = {'url': f'{pipeline.R2_PUBLIC}/{uploaded[fmt]["key"]}', 'bytes': uploaded[fmt]['bytes']}
+    primary = {**OSM_ATTRIBUTION, 'name': credit(lid)} if lid in NEW_LAYERS else dict(OSM_ATTRIBUTION)
+    entry.update({'licence': OSM_LICENCE, 'attribution': {'primary': primary, 'publisher': dict(PUBLISHER)},
                   'category': 'transport', 'provenance': 'curated', 'fetched_at': fetched_at,
-                  'notes': notes(lid), 'tags': list(meta['tags'])})
+                  'notes': notes(lid), 'tags': list(meta['tags']),
+                  **({'requested_by': dict(REQUESTED_BY[lid])} if lid in REQUESTED_BY else {})})
     return entry
 
 
@@ -961,19 +1339,19 @@ def manifest_entry(lid: str, built: dict, uploaded: dict, tiles: dict | None = N
 
 
 def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summary_path: Path | None = None,
-             uploaded_path: Path | None = None) -> None:
+             uploaded_path: Path | None = None, layers: list[str] | None = None) -> None:
     """Patch catalog.json and external-ingested.json in place (never rebuild the
-    catalog). Keeps what later steps added (tiles from rebake_tiles.py, the
-    source check's fingerprint, the refresh block) and records this build's
-    audit in refresh.audited_at / audit_result. Idempotent."""
+    catalog) for `layers` (default all). Keeps what later steps added (tiles
+    from rebake_tiles.py, the source check's fingerprint, the refresh block)
+    and records this build's audit in refresh.audited_at / audit_result. Idempotent."""
     from tile_keys import keep_rebaked
     summary = json.loads((summary_path or out_dir() / 'summary.json').read_text())
     uploaded = json.loads((uploaded_path or out_dir() / 'uploaded.json').read_text())
     fetched_at = summary['sources']['osm']['as_of']
     catalog = json.loads(catalog_path.read_text())
     manifest = json.loads(manifest_path.read_text())
-    for lid, meta in LAYERS.items():
-        built = summary['layers'][lid]
+    for lid in layers or LAYERS:
+        meta, built = LAYERS[lid], summary['layers'][lid]
         prev = next((x for x in catalog['layers'] if x.get('id') == lid), None) or {}
         entry = catalog_entry(lid, built, uploaded[lid], fetched_at)
         keep_rebaked(entry, prev, 'pmtiles')
@@ -992,18 +1370,29 @@ def register(catalog_path: Path = CATALOG, manifest_path: Path = MANIFEST, summa
 # ── CLI ─────────────────────────────────────────────────────────────────────
 
 def fetch_areas() -> None:
-    """The city boundary layers OSM bus stops are selected by (cached)."""
+    """The published layers the bake reads (cached): the city boundaries OSM
+    bus stops are selected by, the states, and ir_stations (transit_stops'
+    rail rows, recorded in sources.json with its build date)."""
     from bake_formats import fetch_layer_file
-    for layer_id, _ in OSM_BUS_CITIES.values():
+    for layer_id in AREA_LAYERS:
         area_path(layer_id).parent.mkdir(parents=True, exist_ok=True)
         fetch_layer_file(CATALOG, layer_id, 'parquet', area_path(layer_id))
+    sources = json.loads(sources_path().read_text())
+    if 'ir_stations' not in sources:
+        lyr = next(x for x in json.loads(CATALOG.read_text())['layers'] if x['id'] == 'ir_stations')
+        p = area_path('ir_stations')
+        sources['ir_stations'] = {'url': lyr['parquet']['url'], 'md5': pipeline.file_md5(p), 'bytes': p.stat().st_size,
+                                  'as_of': lyr['fetched_at'], 'fetched_at': pipeline.now_iso()}
+        _save_sources(sources_path(), sources)
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('step', choices=['all', 'pull', 'extract', 'bake', 'upload', 'register'])
     ap.add_argument('--minutes', type=float, default=150, help='stop cleanly between steps after this long')
-    ap.add_argument('--refresh', action='store_true', help='pull: fetch every source again')
+    ap.add_argument('--refresh', nargs='*', metavar='KEY',
+                    help='pull: fetch these sources again (osm, ir_stations, a feed key), or every one when none named')
+    ap.add_argument('--layers', nargs='+', choices=list(LAYERS), help='upload, register: only these layers')
     a = ap.parse_args(argv)
     deadline = Deadline(a.minutes)
     try:
@@ -1022,9 +1411,9 @@ def main(argv: list[str] | None = None) -> int:
                     log(json.dumps({lid: lyr['rows'] for lid, lyr in summary['layers'].items()}))
         elif a.step == 'upload':
             deadline.start('upload')
-            upload(out_dir() / 'summary.json', out_dir() / 'uploaded.json')
+            upload(out_dir() / 'summary.json', out_dir() / 'uploaded.json', a.layers)
         else:
-            register()
+            register(layers=a.layers)
     except OutOfTime as e:
         log(f'STOPPED: {e}; finished steps are kept, re-run to continue')
         return 3

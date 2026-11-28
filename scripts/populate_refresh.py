@@ -135,6 +135,12 @@ OVERRIDES: dict[str, dict] = {
                         'audit': OSM_AUDIT},
     'bus_stops': {'audit': 'stops per city against each GTFS feed\'s stops.txt and the OSM count in the city; '
                            'every row names its source and licence'},
+    'transit_stops': {'audit': 'stops per mode, city and source against each feed\'s stops.txt, ir_stations and '
+                               'urban_rail_stations; TGSRTC official stops only; no non-commercial source'},
+    'ferry_stops': {'audit': 'stops per source: the Kolkata feed\'s ferry stops and the OSM ferry terminals left '
+                             'after the one-row-per-place rule'},
+    'intercity_bus_stands': {'audit': 'stands per source: the KSRTC feed\'s stops and the OSM bus stations left '
+                                      'after the one-row-per-place rule'},
 }
 
 
