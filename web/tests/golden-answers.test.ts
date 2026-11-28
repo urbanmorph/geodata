@@ -55,7 +55,9 @@ const CATALOG = {
   layers: [
     { id: 'dist', name: 'Districts', level: 'district', category: 'boundaries', source: 'LGD', rows: 6, licence: 'GODL-India',
       parquet: { url: 'https://pub-x.r2.dev/t/dist.parquet', bytes: DIST.byteLength } },
+    // a requested layer: its requester rides on the list and detail answers
     { id: 'lines', name: 'Lines', level: 'river', category: 'water', source: 'Test', rows: 54, licence: 'CC0-1.0',
+      requested_by: { name: 'Requester A' },
       parquet: { url: 'https://pub-x.r2.dev/t/lines.parquet', bytes: LINES.byteLength } },
     // non-commercial, with a baked stats file (schema, Filter stats)
     { id: 'types', name: 'Types', level: 'facility', category: 'health', source: 'Test', rows: 30, licence: 'CC-BY-NC-4.0',
@@ -116,11 +118,14 @@ describe('golden answers (a changed answer needs its ANSWER_V bumped)', () => {
   it('layers: the list, categories and levels', async () => {
     expectGolden('layers', [
       ...await both(layersIndex, '/api/v1/layers'), ...await both(layersIndex, '/api/v1/layers?category=health'),
+      // a search that finds nothing says how to request the layer
+      await call(layersIndex, '/api/v1/layers?q=anganwadi'),
       await call(categories, '/api/v1/categories'), await call(levels, '/api/v1/levels'),
     ]);
   });
   it('detail', async () => {
-    expectGolden('detail', [...await both(layerDetail, '/api/v1/layers/dist', { id: 'dist' }), ...await both(layerDetail, '/api/v1/layers/types', { id: 'types' })]);
+    expectGolden('detail', [...await both(layerDetail, '/api/v1/layers/dist', { id: 'dist' }), ...await both(layerDetail, '/api/v1/layers/types', { id: 'types' }),
+      await call(layerDetail, '/api/v1/layers/lines', { id: 'lines' })]);
   });
   it('schema: read live, and from a baked stats file of a non-commercial layer', async () => {
     expectGolden('schema', [await call(schemaRoute, '/api/v1/layers/dist/schema', { id: 'dist' }), await call(schemaRoute, '/api/v1/layers/types/schema', { id: 'types' })]);

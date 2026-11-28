@@ -1,0 +1,16 @@
+{
+  "_comment": "Places a Scheduled Areas order cuts out of a notified unit ('X tahsil excluding Y'). Applied to area coverage only: a village a list names on its own keeps that reference. LGD ids checked 2026-11-27 (supporting-docs/scheduled-areas, the cut-outs page). Probable matches are listed but not applied.",
+  "exclusions": [
+    {"state": "Odisha", "label": "Gazalbadi and Gocha gram panchayats", "from": "Surada tahsil", "order": "C.O.109 (1977) item 7", "lgd_layer": "lgd_panchayats", "ids": ["118024", "118027"], "confidence": "matched"},
+    {"state": "Madhya Pradesh", "label": "Betul Development Block", "from": "Betul tahsil", "order": "C.O.192 (2003) item 9", "lgd_layer": "lgd_blocks", "ids": ["3763"], "confidence": "matched"},
+    {"state": "Madhya Pradesh", "label": "Bhuli", "from": "Pandurna patwari circle 12", "order": "C.O.192 (2003) item 17", "lgd_layer": "lgd_villages", "ids": ["495553"], "confidence": "matched"},
+    {"state": "Telangana", "label": "Yellandu town, Singareni, Kothagudem town", "from": "Yellandu taluq", "order": "C.O.26 (1950) item 12", "lgd_layer": "lgd_villages", "ids": ["802935", "579455", "802934"], "confidence": "matched"},
+    {"state": "Telangana", "label": "Paloncha, Borgampad, Ashwaraopet, Dammapet", "from": "Paloncha taluq", "order": "C.O.26 (1950) item 13", "lgd_layer": "lgd_villages", "ids": ["802933", "579345", "579537", "579547"], "confidence": "matched"},
+    {"state": "Andhra Pradesh", "label": "Kuknur", "from": "Paloncha taluq (now in AP)", "order": "C.O.26 (1950) item 13", "lgd_layer": "lgd_villages", "ids": ["579329"], "confidence": "matched"},
+    {"state": "Andhra Pradesh", "label": "Nelipak", "from": "Paloncha taluq (now in AP)", "order": "C.O.26 (1950) item 13", "lgd_layer": "lgd_villages", "ids": ["579056"], "confidence": "probable"},
+    {"state": "Andhra Pradesh", "label": "Kumarapuram, Konkasingi, Krishnadevipeta, Golugondapeta, Gunupudi, Pedajaggampeta, Sarabhupalapatnam", "from": "Visakhapatnam Agency", "order": "C.O.30 (1951)", "lgd_layer": "lgd_villages", "ids": ["585754", "585755", "585757", "585734", "585735", "585737", "585740"], "confidence": "matched"},
+    {"state": "Andhra Pradesh", "label": "Lakshmipuram", "from": "Visakhapatnam Agency", "order": "C.O.30 (1951)", "lgd_layer": "lgd_villages", "ids": ["585917"], "confidence": "probable"},
+    {"state": "Telangana", "label": "Ramachandrapuram", "from": "East Godavari Agency", "order": "C.O.50 (1955)", "lgd_layer": "lgd_villages", "ids": ["578958"], "confidence": "probable"},
+    {"state": "Andhra Pradesh", "label": "Purushothapatnam", "from": "East Godavari Agency", "order": "C.O.50 (1955)", "lgd_layer": "lgd_villages", "ids": ["579044"], "confidence": "probable"}
+  ]
+}

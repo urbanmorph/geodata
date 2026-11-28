@@ -26,6 +26,18 @@
       .stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: var(--sp-2); margin: var(--sp-3) 0; padding: 0; list-style: none; }
       .stats li { padding: var(--sp-3); font-size: var(--fs-sm); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm); }
       .stats b { display: block; font-size: var(--fs-xl); color: var(--fg); }
+      /* Request a layer (#request): the form posts to /api/request-layer (src/request-layer.ts). */
+      .req-list, .req-steps { margin: 0 0 var(--sp-3); padding-left: var(--sp-5); }
+      .req-list li, .req-steps li { margin: 0 0 var(--sp-1-5); }
+      .req-lic { margin: var(--sp-3) 0 var(--sp-4); }
+      .req-form { display: grid; gap: var(--sp-3); max-width: 40rem; margin: 0 0 var(--sp-6); }
+      .req-form label { display: grid; gap: var(--sp-1); font-weight: 600; font-size: var(--fs-sm); }
+      .req-form input, .req-form textarea { font: inherit; font-size: var(--fs-md); font-weight: 400; min-height: 44px; padding: var(--sp-2) var(--sp-3); color: var(--fg); background: var(--bg-elevated); border: var(--border-edge); border-radius: var(--radius-sm); }
+      .req-form textarea { min-height: 6rem; resize: vertical; }
+      .req-hint { font-weight: 400; color: var(--muted); }
+      .req-form .btn { justify-self: start; }
+      .req-status { margin: 0; font-size: var(--fs-sm); }
+      .req-status[data-state=error] { color: var(--err); }
       @media (max-width: 640px) { .endpoint { font-size: var(--fs-xs); } td code { word-break: break-all; } }
     </style>
   </head>
@@ -59,7 +71,7 @@ seismic zone  Zone II</code></pre>
         <a href="#endpoints">Endpoints</a>
         <a href="#limits">Limits and promises</a>
         <a href="#licences">Licences and credit</a>
-        <a href="#sponsor">Sponsor a layer</a>
+        <a href="#request">Request a layer</a>
         <a href="#built-with">Built with bharatlas</a>
         <a href="#reference">Full reference</a>
       </nav>
@@ -186,9 +198,47 @@ claude mcp add --transport http bharatlas https://bharatlas.com/mcp
   "publisher": { "name": "yashveeeeeeer/india-geodata", "url": "https://github.com/yashveeeeeeer/india-geodata" }
 }</code></pre>
 
-      <h2 id="sponsor">Sponsor a layer</h2>
-      <p>Need a layer that isn’t here: ward boundaries for your city, a scheme’s sites, a hazard map? Fund it, and we clean it, give it codes, keep it current and publish it openly for everyone, with your credit on the layer.</p>
-      <div class="cta-row"><a class="btn btn--line" href="/terms#contact">Propose a layer</a></div>
+      <h2 id="request">Request a layer</h2>
+      <p>Need a layer that isn’t here? Tell us what and where. We find the sources, match them to official boundaries, keep it current and publish it openly for everyone, with “Requested by” and your name on it.</p>
+
+      <h3>What a layer is</h3>
+      <ul class="req-list">
+        <li>One kind of feature: points, lines or areas (schools, roads, ward boundaries).</li>
+        <li>From one source, or a few that describe the same thing (one ministry’s list, a state’s notifications).</li>
+        <li>One extent: all of India, a state or a city.</li>
+        <li>The source’s columns as published, with LGD codes added where they can be matched.</li>
+        <li>On the map, the API and the MCP, and downloadable as Parquet, map tiles, GeoJSON, KML and shapefile.</li>
+        <li>Kept current when the source updates.</li>
+      </ul>
+      <p>Not a single layer: analysis or derived indicators, joining unrelated sources, private or personal data, or sources that need heavy cleaning. For those we send a quote first.</p>
+
+      <h3>How it works</h3>
+      <ol class="req-steps">
+        <li><strong>You request it.</strong> What, where, and a source if you know one.</li>
+        <li><strong>We check it can be done.</strong> Within 7 days: an open source exists, its licence allows republishing for any use, and the work fits a request. Sources licensed for non-commercial use only can’t be used for a requested layer.</li>
+        <li><strong>We email you to arrange Rs 499 by UPI.</strong> Only once we know we can build it. Bigger jobs get a quote first.</li>
+        <li><strong>We curate and publish it.</strong> Open to everyone, with “Requested by” your name. We send you the link.</li>
+      </ol>
+
+      <div class="note req-lic">
+        <p><strong>Licences on every curated layer.</strong> Each layer keeps its sources’ licences, stated on the layer and credited as the source asks. Where bharatlas compiles public records or adds its own work (codes, matching, fixes), we release that part as CC0. A requested layer never uses sources licensed for non-commercial use only: it is paid work, so its sources must allow any use, and the site checks this before a requested layer is published. A request can’t make a layer private, exclusive or non-commercial, or change what the sources say.</p>
+      </div>
+
+      <form class="req-form" id="request-form" novalidate>
+        <label for="rq-what">What layer do you need?
+          <textarea id="rq-what" name="what" required maxlength="2000" placeholder="e.g. Anganwadi centres in Pune with their ward"></textarea></label>
+        <label for="rq-place">Where
+          <input id="rq-place" name="place" maxlength="200" placeholder="State, district or city"></label>
+        <label for="rq-source">Source, if you know one <span class="req-hint">A link to the data or the notification</span>
+          <input id="rq-source" name="source" maxlength="500" placeholder="https://"></label>
+        <label for="rq-name">Name for the credit <span class="req-hint">Shown as “Requested by”. Leave blank to stay anonymous</span>
+          <input id="rq-name" name="name" maxlength="80"></label>
+        <label for="rq-email">Email <span class="req-hint">For our reply and the UPI details. Never shown</span>
+          <input id="rq-email" name="email" type="email" required maxlength="200" autocomplete="email"></label>
+        <div id="rq-captcha" data-sitekey="<!-- TURNSTILE_SITEKEY -->"></div>
+        <button class="btn btn--fill" type="submit" id="rq-send">Send request</button>
+        <p class="req-status" id="rq-status" role="status" aria-live="polite"></p>
+      </form>
 
       <h2 id="built-with">Built with bharatlas</h2>
       <div class="cards">
@@ -526,5 +576,6 @@ curl -X POST https://collect.bharatlas.com/api/collect/v1/collections/ID/publish
     </main>
 
     <!-- FOOTER -->
+    <script type="module" src="/src/request-layer.ts"></script>
   </body>
 </html>

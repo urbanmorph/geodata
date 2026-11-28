@@ -3026,5 +3026,65 @@
       "CGWB",
       "monsoon"
     ]
+  },
+  {
+    "id": "scheduled_areas_fifth",
+    "name": "Scheduled Areas, Fifth Schedule (PESA)",
+    "level": "scheduled_areas_fifth",
+    "category": "boundaries",
+    "source": "bharatlas (Presidential orders, state lists, MoPR eGramSwaraj)",
+    "description": "Scheduled Areas under the Fifth Schedule of the Constitution, where the Panchayats (Extension to Scheduled Areas) Act, 1996 (PESA) applies: Andhra Pradesh, Chhattisgarh, Gujarat, Himachal Pradesh, Jharkhand, Madhya Pradesh, Maharashtra, Odisha, Rajasthan and Telangana. Compiled by bharatlas from off",
+    "unit": "villages and areas",
+    "features": 91781,
+    "license": "CC0-1.0",
+    "r2_prefix": "boundaries/scheduled-areas",
+    "parquet_file": "scheduled_areas_fifth.ac8c2b5d.parquet",
+    "parquet_bytes": 61263641,
+    "pmtiles_file": "scheduled_areas_fifth.f8f746ef.pmtiles",
+    "pmtiles_bytes": 28408912,
+    "source_url": "https://bharatlas.com",
+    "source_org": "bharatlas, compiled from the Scheduled Areas notifications",
+    "notes": "Scheduled Areas under the Fifth Schedule of the Constitution, where the Panchayats (Extension to Scheduled Areas) Act, 1996 (PESA) applies: Andhra Pradesh, Chhattisgarh, Gujarat, Himachal Pradesh, Jharkhand, Madhya Pradesh, Maharashtra, Odisha, Rajasthan and Telangana. Compiled by bharatlas from official sources and released as CC0: the Presidential Scheduled Areas orders in force (C.O.9 and C.O.26 (1950), C.O.30 (1951), C.O.50 (1955), C.O.102 (1975), C.O.109 (1977), C.O.123 (1985), C.O.192 (2003), C.O.229 (2007) and C.O.270 (2018); Gazette of India, and the Ministry of Tribal Affairs list of 10 March 2026); the state lists that name their villages (Andhra Pradesh Finance G.O.Ms.6 of 2007, Telangana Finance G.O.Ms.89 of 2015, Odisha Bhulekh village lists for the 1977 tahsils); and the Ministry of Panchayati Raj's eGramSwaraj PESA village list (80,428 villages, November 2026). Each feature is an LGD village, or in Himachal Pradesh a notified district or tehsil. in_orders: named in an order or state list, or inside a notified district, tehsil, block or panchayat; in_pesa_list: marked PESA on eGramSwaraj; basis: both, order_only or pesa_only. Where the two disagree the layer shows it rather than choosing one. Places an order excludes are left out of that order's coverage. Orders name units as they stood on the order date and this layer draws today's LGD villages, so villages now in tehsils created later can show as pesa_only. 13,754 listed units with no LGD boundary (newer or forest villages, patwari circles, names not matched with confidence) are rows without geometry; why_unmapped says why. A compilation for reference, not a legal record: the notifications prevail.",
+    "tags": [
+      "Scheduled Areas",
+      "Fifth Schedule",
+      "PESA",
+      "tribal",
+      "Adivasi",
+      "gram sabha",
+      "panchayat",
+      "village",
+      "boundaries"
+    ]
+  },
+  {
+    "id": "scheduled_areas_sixth",
+    "name": "Tribal Areas, Sixth Schedule (autonomous councils)",
+    "level": "scheduled_areas_sixth",
+    "category": "boundaries",
+    "source": "bharatlas (Presidential orders, state lists, MoPR eGramSwaraj)",
+    "description": "Tribal areas under the Sixth Schedule of the Constitution (Paragraph 20), administered by autonomous councils: Bodoland Territorial Council, Karbi Anglong and Dima Hasao councils (Assam); Khasi Hills, Jaintia Hills and Garo Hills councils (Meghalaya); Tripura Tribal Areas Autonomous District Council",
+    "unit": "council areas",
+    "features": 999,
+    "license": "CC0-1.0",
+    "r2_prefix": "boundaries/scheduled-areas",
+    "parquet_file": "scheduled_areas_sixth.cba1f61d.parquet",
+    "parquet_bytes": 1932805,
+    "pmtiles_file": "scheduled_areas_sixth.9c5a1b34.pmtiles",
+    "pmtiles_bytes": 562717,
+    "source_url": "https://bharatlas.com",
+    "source_org": "bharatlas, compiled from the Scheduled Areas notifications",
+    "notes": "Tribal areas under the Sixth Schedule of the Constitution (Paragraph 20), administered by autonomous councils: Bodoland Territorial Council, Karbi Anglong and Dima Hasao councils (Assam); Khasi Hills, Jaintia Hills and Garo Hills councils (Meghalaya); Tripura Tribal Areas Autonomous District Council; Chakma, Lai and Mara councils (Mizoram). Compiled by bharatlas from official sources and released as CC0: the Constitution (Paragraph 20), the TTAADC Election Rules Appendix-I (Tripura Gazette, 2015), the Assam Gazette notifications adding 81 villages to Bodoland (2022 to 2024) and the 2025 delimitation order, and the Mizoram council village lists. Bodoland is drawn as its five districts, which the 2003 accord formed from its villages, plus the added villages; claims to exclude villages are pending and none is excluded here. Mizoram's councils are drawn by district: the Chakma and Lai councils share Lawngtlai and are not split. 496 listed villages with no LGD polygon (mostly forest villages and Mizoram villages) are rows without geometry. A compilation for reference, not a legal record: the notifications prevail.",
+    "tags": [
+      "Sixth Schedule",
+      "autonomous district council",
+      "tribal areas",
+      "Bodoland",
+      "TTAADC",
+      "Khasi Hills",
+      "Garo Hills",
+      "Karbi Anglong",
+      "boundaries"
+    ]
   }
 ]

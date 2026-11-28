@@ -7,11 +7,12 @@ import { availableDownloads, fmtBytes } from './format-hints';
 import { escapeHtml as esc, fmtDate } from '../../shared/format.mjs';
 import { buildWardTable, type WardIndex } from '../functions/lib/view-dataset';
 import { licenceBadgeHtml, layerIsNonCommercial } from '../../shared/licences.mjs';
+import { requestedByAboutHtml } from '../../shared/requested-by.mjs';
 
 type Fmt = { url: string; bytes: number } | null | undefined;
 export type AboutLayer = {
   id: string; source?: string; licence?: string; non_commercial?: boolean; rows?: number | null; fetched_at?: string;
-  description?: string; notes?: string;
+  description?: string; notes?: string; requested_by?: { name?: string; line?: string } | null;
   parquet?: Fmt; pmtiles?: Fmt; geojson?: Fmt; kml?: Fmt; shapefile?: Fmt;
 };
 export type AboutMeta = { description?: string } | undefined;
@@ -44,6 +45,7 @@ export function aboutLayerHtml({ layer, meta, heading, wardIndex }: {
     // Filled live by map.ts from /api/v1/usage: downloads and API/MCP queries.
     `<p class="about-panel__usage" data-usage hidden></p>` +
     (layer.licence ? `<p class="about-panel__lic">${licenceBadgeHtml(layer.licence, layerIsNonCommercial(layer))}</p>` : '') +
+    requestedByAboutHtml(layer) +
     (desc ? `<p class="about-panel__desc">${esc(desc)}</p>` : '') +
     (downloads ? `<h3 class="about-panel__h">Download</h3><div class="about-panel__dl">${downloads}</div>` : '') +
     // Its own slot: the ward list arrives later and fills just this (focus stays put).

@@ -113,6 +113,7 @@ describe('/layers filter: counts and the empty state', () => {
     const empty = document.getElementById('catalog-empty')!;
     expect(empty.hidden).toBe(false);
     expect(empty.textContent).toContain('No layers match "zzqxv"');
+    expect(empty.querySelector('a[href="/docs?q=zzqxv#request"]')?.textContent).toBe('Request this layer');
     const clear = empty.querySelector<HTMLButtonElement>('[data-clear-search]')!;
     expect(clear.textContent).toBe('clear the search');
     clear.click();

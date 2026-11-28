@@ -1,0 +1,15 @@
+{
+  "_comment": "Hand-checked mappings for units whose spelling no rule bridges. Key: state | level as the order lists it | name as the order spells it | district as the order names it. Each entry gives the LGD level and name, and why.",
+  "overrides": [
+    {"state": "Gujarat", "level": "tehsil", "name": "Mandvi", "district": "Surat", "lgd_level": "subdistrict", "lgd_name": "Mandvi surat", "why": "LGD adds the district to tell it from Mandvi in Kachchh"},
+    {"state": "Gujarat", "level": "tehsil", "name": "Deogarh Baria", "district": "Panchmahals", "lgd_level": "subdistrict", "lgd_name": "Devgadbaria", "why": "Same taluka, Gujarati spelling"},
+    {"state": "Gujarat", "level": "tehsil", "name": "Chhotaudepur", "district": "Vadodara", "lgd_level": "subdistrict", "lgd_name": "Chhota Udaipur", "why": "Same taluka"},
+    {"state": "Gujarat", "level": "other", "name": "Tilakwada", "district": "Vadodara", "lgd_level": "subdistrict", "lgd_name": "Tilakwada", "why": "A mahal in 1977, a taluka (subdistrict) now"},
+    {"state": "Gujarat", "level": "other", "name": "Vijaynagar", "district": "Sabarkantha", "lgd_level": "subdistrict", "lgd_name": "Vijaynagar", "why": "A mahal in 1977, a taluka (subdistrict) now"},
+    {"state": "Maharashtra", "level": "tehsil", "name": "Peint", "district": "Nasik", "lgd_level": "subdistrict", "lgd_name": "Peth", "why": "Peint is the old spelling of Peth taluka"},
+    {"state": "Chhattisgarh", "level": "block", "name": "Chauki", "district": "Rajnandgaon", "lgd_level": "block", "lgd_name": "A.CHOWKI (TD)", "why": "Ambagarh Chowki block (TD = tribal development)"},
+    {"state": "Rajasthan", "level": "gram_panchayat", "name": "Dhawariya", "district": "Udaipur", "lgd_level": "gram_panchayat", "lgd_name": "DHAWADIYA", "why": "r/d for the same Hindi letter"},
+    {"state": "Rajasthan", "level": "gram_panchayat", "name": "Bhopa Khera", "district": "Udaipur", "lgd_level": "gram_panchayat", "lgd_name": "BHOPA KHEDA", "why": "r/d for the same Hindi letter"},
+    {"state": "Rajasthan", "level": "gram_panchayat", "name": "Loutana", "district": "Sirohi", "lgd_level": "gram_panchayat", "lgd_name": "LOTANA", "why": "Same panchayat, spelling"}
+  ]
+}

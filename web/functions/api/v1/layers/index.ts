@@ -6,6 +6,7 @@ import { apiError, json } from '../../../lib/http';
 import { withLookups } from '../../../lib/lookups';
 import { pointProfilesOn } from '../../../lib/point-profiles';
 import { REALM_IDS } from '../../../../../shared/realms.mjs';
+import { requestLayerUrl } from '../../../../../shared/requested-by.mjs';
 
 export const onRequestGet: PagesFunction<Env> = async (ctx) => {
   const url = new URL(ctx.request.url);
@@ -33,6 +34,12 @@ export const onRequestGet: PagesFunction<Env> = async (ctx) => {
       },
     );
 
-    return json(200, page, { 'cache-control': CACHE_CONTROL.catalog });
+    // A search that finds nothing says how to ask for the layer (an agent can pass it on).
+    const q = url.searchParams.get('q')?.trim();
+    const request = q && filtered.length === 0
+      ? { request: { url: `${url.origin}${requestLayerUrl(q)}`,
+        note: 'No layer matches. Anyone can request one: bharatlas checks it can be built from an open source, then asks Rs 499 by UPI.' } }
+      : {};
+    return json(200, { ...page, ...request }, { 'cache-control': CACHE_CONTROL.catalog });
   });
 };

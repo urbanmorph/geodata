@@ -39,7 +39,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > counts: f
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > detail > detail@v1 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > detail > detail@v2 1`] = `
 [
   {
     "body": {
@@ -139,6 +139,33 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > detail > 
     },
     "lookups": false,
     "path": "/api/v1/layers/types",
+    "status": 200,
+  },
+  {
+    "body": {
+      "data": {
+        "category": "water",
+        "downloads": {
+          "parquet": {
+            "bytes": 4588,
+            "url": "https://pub-x.r2.dev/t/lines.parquet",
+          },
+        },
+        "id": "lines",
+        "level": "river",
+        "licence": "CC0-1.0",
+        "realm": "ground",
+        "requested_by": {
+          "name": "Requester A",
+        },
+        "rows": 54,
+        "schema_url": "/api/v1/layers/lines/schema",
+        "source": "Test",
+        "versions": [],
+      },
+    },
+    "lookups": true,
+    "path": "/api/v1/layers/lines",
     "status": 200,
   },
 ]
@@ -902,7 +929,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: the list, categories and levels > layers@v1 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: the list, categories and levels > layers@v2 1`] = `
 [
   {
     "body": {
@@ -935,6 +962,9 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: t
           "level": "river",
           "licence": "CC0-1.0",
           "realm": "ground",
+          "requested_by": {
+            "name": "Requester A",
+          },
           "rows": 54,
           "schema_url": "/api/v1/layers/lines/schema",
           "source": "Test",
@@ -997,6 +1027,9 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: t
           "level": "river",
           "licence": "CC0-1.0",
           "realm": "ground",
+          "requested_by": {
+            "name": "Requester A",
+          },
           "rows": 54,
           "schema_url": "/api/v1/layers/lines/schema",
           "source": "Test",
@@ -1086,6 +1119,21 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: t
     },
     "lookups": false,
     "path": "/api/v1/layers?category=health",
+    "status": 200,
+  },
+  {
+    "body": {
+      "data": [],
+      "limit": 100,
+      "offset": 0,
+      "request": {
+        "note": "No layer matches. Anyone can request one: bharatlas checks it can be built from an open source, then asks Rs 499 by UPI.",
+        "url": "https://bharatlas.com/docs?q=anganwadi#request",
+      },
+      "total": 0,
+    },
+    "lookups": true,
+    "path": "/api/v1/layers?q=anganwadi",
     "status": 200,
   },
   {
