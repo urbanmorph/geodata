@@ -165,7 +165,10 @@
       /* Download links live inside row__expand (under "Download:") instead
          of the action column — frees horizontal space for the title. */
       .row--compact .row__expand .row__downloads { font-size: var(--fs-sm); margin: 0 0 var(--sp-2); color: var(--muted); }
-      .row--compact .row__expand .row__downloads .dl-inline { --dl-gap: var(--sp-1-5); gap: var(--dl-gap); align-items: baseline; flex-wrap: wrap; }
+      /* "Download:" and the formats flow as one wrapping line (dl-inline adds no box of its own), so the label
+         never sits alone; each format's link, size and count (.dl-item) wrap together. */
+      .row--compact .row__expand .row__downloads { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: var(--sp-1-5); }
+      .row--compact .row__expand .row__downloads .dl-inline { --dl-gap: var(--sp-1-5); display: contents; }
       .row--compact .row__expand .row__downloads .dl-inline a { font-weight: 500; }
       .row--compact .row__expand {
         padding: var(--sp-2-5) var(--sp-1) var(--sp-3-5);
@@ -265,7 +268,8 @@
       .dl-inline a { color: var(--fg); display: inline-flex; align-items: center; min-height: 44px; padding: var(--sp-2-5) var(--sp-1); }
       .dl-inline .size { color: var(--muted); font-variant-numeric: tabular-nums; font-size: var(--fs-xs); margin-left: var(--sp-0-5); }
       /* The separator between formats, drawn here so no row carries it; the '' alt text keeps it out of the link's name. */
-      .dl-inline > a:not(:first-child)::before { content: '·' / ''; display: inline-block; color: var(--line); margin-right: var(--dl-gap); }
+      .dl-inline > a:not(:first-child)::before, .dl-item + .dl-item::before { content: '·' / ''; display: inline-block; color: var(--line); margin-right: var(--dl-gap); }
+      .dl-item { display: inline-flex; align-items: baseline; white-space: nowrap; }
       .dl-inline .count {
         font-variant-numeric: tabular-nums;
         font-size: var(--fs-xs);

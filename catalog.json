@@ -12805,6 +12805,10 @@
           "rrts | Delhi NCR | OpenStreetMap": 15,
           "tram | Kolkata | Calcutta Transport GTFS (arkodeepg/calcutta-transport)": 12
         }
+      },
+      "pmtiles": {
+        "url": "https://data.bharatlas.com/transport/transit/Transit_Stops.e96f7d55.pmtiles",
+        "bytes": 11896289
       }
     },
     {
@@ -12873,6 +12877,10 @@
           "ferry | Kolkata | Calcutta Transport GTFS (arkodeepg/calcutta-transport)": 15,
           "ferry | None | OpenStreetMap": 860
         }
+      },
+      "pmtiles": {
+        "url": "https://data.bharatlas.com/transport/transit/Ferry_Stops.5cee546e.pmtiles",
+        "bytes": 293038
       }
     },
     {
@@ -12941,6 +12949,10 @@
           "bus | None | KSRTC Karnataka intercity GTFS (croyla/ksrtc-gtfs)": 689,
           "bus | None | OpenStreetMap": 5110
         }
+      },
+      "pmtiles": {
+        "url": "https://data.bharatlas.com/transport/transit/Intercity_Bus_Stands.b3e12e28.pmtiles",
+        "bytes": 2105143
       }
     }
   ],

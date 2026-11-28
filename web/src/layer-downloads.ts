@@ -15,10 +15,10 @@ export type RowDownloads = Record<string, RowDownload[]>;
 const anchor = (d: RowDownload): string =>
   `<a href="${esc(d.url)}" download data-fmt="${esc(d.fmt)}">${d.fmt === 'shapefile' ? 'shp' : esc(d.fmt)}</a>`;
 
-/** The row's "Download:" line: each format with its size and count (the dots between are CSS). */
+/** The row's "Download:" line: each format with its size and count as one unit that wraps whole (the dots between are CSS). */
 export function downloadsHtml(list: RowDownload[]): string {
   return `Download: <span class="dl-inline">${list
-    .map((d) => `${anchor(d)}<span class="size">${fmtBytes(d.bytes)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}`)
+    .map((d) => `<span class="dl-item">${anchor(d)}<span class="size">${fmtBytes(d.bytes)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}</span>`)
     .join('')}</span>`;
 }
 
