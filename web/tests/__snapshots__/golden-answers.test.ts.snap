@@ -39,7 +39,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > counts: f
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > detail > detail@v2 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > detail > detail@v3 1`] = `
 [
   {
     "body": {
@@ -156,7 +156,9 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > detail > 
         "licence": "CC0-1.0",
         "realm": "ground",
         "requested_by": {
+          "logo": "https://bharatlas.com/requesters/altmo.svg",
           "name": "Requester A",
+          "url": "https://requester.example",
         },
         "rows": 54,
         "schema_url": "/api/v1/layers/lines/schema",
@@ -929,7 +931,7 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > ground > 
 ]
 `;
 
-exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: the list, categories and levels > layers@v2 1`] = `
+exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: the list, categories and levels > layers@v3 1`] = `
 [
   {
     "body": {
@@ -963,7 +965,9 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: t
           "licence": "CC0-1.0",
           "realm": "ground",
           "requested_by": {
+            "logo": "https://bharatlas.com/requesters/altmo.svg",
             "name": "Requester A",
+            "url": "https://requester.example",
           },
           "rows": 54,
           "schema_url": "/api/v1/layers/lines/schema",
@@ -1028,7 +1032,9 @@ exports[`golden answers (a changed answer needs its ANSWER_V bumped) > layers: t
           "licence": "CC0-1.0",
           "realm": "ground",
           "requested_by": {
+            "logo": "https://bharatlas.com/requesters/altmo.svg",
             "name": "Requester A",
+            "url": "https://requester.example",
           },
           "rows": 54,
           "schema_url": "/api/v1/layers/lines/schema",

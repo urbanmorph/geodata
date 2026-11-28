@@ -57,7 +57,7 @@ const CATALOG = {
       parquet: { url: 'https://pub-x.r2.dev/t/dist.parquet', bytes: DIST.byteLength } },
     // a requested layer: its requester rides on the list and detail answers
     { id: 'lines', name: 'Lines', level: 'river', category: 'water', source: 'Test', rows: 54, licence: 'CC0-1.0',
-      requested_by: { name: 'Requester A' },
+      requested_by: { name: 'Requester A', url: 'https://requester.example', logo: '/requesters/altmo.svg' },
       parquet: { url: 'https://pub-x.r2.dev/t/lines.parquet', bytes: LINES.byteLength } },
     // non-commercial, with a baked stats file (schema, Filter stats)
     { id: 'types', name: 'Types', level: 'facility', category: 'health', source: 'Test', rows: 30, licence: 'CC-BY-NC-4.0',

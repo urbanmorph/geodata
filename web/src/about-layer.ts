@@ -12,7 +12,7 @@ import { requestedByAboutHtml } from '../../shared/requested-by.mjs';
 type Fmt = { url: string; bytes: number } | null | undefined;
 export type AboutLayer = {
   id: string; source?: string; licence?: string; non_commercial?: boolean; rows?: number | null; fetched_at?: string;
-  description?: string; notes?: string; requested_by?: { name?: string; line?: string } | null;
+  description?: string; notes?: string; requested_by?: { name?: string; line?: string; url?: string; logo?: string } | null;
   parquet?: Fmt; pmtiles?: Fmt; geojson?: Fmt; kml?: Fmt; shapefile?: Fmt;
 };
 export type AboutMeta = { description?: string } | undefined;

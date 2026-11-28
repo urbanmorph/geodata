@@ -3,8 +3,8 @@
 // change. Bump an endpoint's number when a change alters its answers: golden-answers.test.ts
 // fails until you do (its snapshots are named by these versions).
 export const ANSWER_V = {
-  layers: 2,   // v2: requested_by on a requested layer; a search that finds nothing says how to request one (28 Nov 2026)
-  detail: 2,   // v2: requested_by on a requested layer (28 Nov 2026)
+  layers: 3,   // v3: requested_by may carry url and logo (28 Nov 2026). v2: requested_by on a requested layer; a search that finds nothing says how to request one (28 Nov 2026)
+  detail: 3,   // v3: requested_by may carry url and logo (28 Nov 2026). v2: requested_by on a requested layer (28 Nov 2026)
   schema: 1,
   query: 2,    // v2: the __mlocate fields of a converted file left out of the default columns (25 Nov 2026)
   counts: 1,
