@@ -1461,7 +1461,8 @@
    "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
-    "ir_stations"
+    "ir_stations",
+    "transit_stops"
    ],
    "sha256": "28588663927e23973e3326d09148d29fa3608ffda4c8fd0a68e8fd6e7de0afc8"
   },
@@ -1476,7 +1477,10 @@
    "verdict": "ok",
    "seen_at": "2026-11-20",
    "layers": [
-    "bus_stops"
+    "bus_stops",
+    "transit_stops",
+    "ferry_stops",
+    "intercity_bus_stands"
    ],
    "sha256": "31cc752b9116d28c4a3ae5631de7e1ca8b9e89555386bfaec81b7b4cf5ad98a6"
   },
@@ -1646,6 +1650,122 @@
     "scheduled_areas_sixth"
    ],
    "decided": "2026-11-27 (owner): CC0, bharatlas curated, sources in the notes"
+  },
+  {
+   "id": "tgsrtc_open_data",
+   "publisher": "TGSRTC (Open Data Telangana), via reclaimchennai/tgsrtc",
+   "url": "https://www.tgsrtc.telangana.gov.in/open-data",
+   "kind": "html",
+   "start": "Access to this Data is free",
+   "end": "non-commercial applications",
+   "stated": "GODL-India (data.telangana.gov.in); TGSRTC terms allow commercial use and redistribution, credit \"Contains data provided by TGSRTC\"",
+   "quote": "worldwide license to use, adapt, reproduce ... and redistribute this Data ... The Data may be used for commercial and non-commercial applications",
+   "verdict": "ok",
+   "layers": [
+    "transit_stops"
+   ],
+   "decided": "2026-11-28 (owner): sources for transit_stops (requested by Altmo), ferry_stops, intercity_bus_stands; official stops only, tgc- stops excluded",
+   "sha256": "383617e97127f7a58088c26cd4ab4c2208a5c93e5942c5289847f6431df04414",
+   "seen_at": "2026-11-28"
+  },
+  {
+   "id": "ktcl_gtfs",
+   "publisher": "Kadamba Transport Corporation Limited (Goa)",
+   "url": "https://ktclgoa.com/gtfs/",
+   "kind": "html",
+   "start": "The GTFS file referenced on this page",
+   "end": "Attribution 4.0 License",
+   "stated": "CC-BY-4.0, author Kadamba Transport Corporation Limited",
+   "quote": "The GTFS file referenced on this page is licensed under the Creative Commons Attribution 4.0 License",
+   "verdict": "ok",
+   "layers": [
+    "transit_stops"
+   ],
+   "decided": "2026-11-28 (owner): sources for transit_stops (requested by Altmo), ferry_stops, intercity_bus_stands",
+   "sha256": "0edead30aa4566acda0024ed26b44fbc4141e7ae82e5a71bd50edbb3c72af897",
+   "seen_at": "2026-11-28"
+  },
+  {
+   "id": "calcutta_transport",
+   "publisher": "Calcutta Transport contributors (arkodeepg/calcutta-transport)",
+   "url": "https://raw.githubusercontent.com/arkodeepg/calcutta-transport/main/README.md",
+   "kind": "text",
+   "start": "Data (`data/`, `gtfs/`)",
+   "end": "(ODbL) 1.0",
+   "stated": "ODbL-1.0 for data and the GTFS (code MIT)",
+   "quote": "Data (data/, gtfs/): Open Database License (ODbL) 1.0",
+   "verdict": "ok",
+   "layers": [
+    "transit_stops",
+    "ferry_stops"
+   ],
+   "decided": "2026-11-28 (owner): sources for transit_stops (requested by Altmo), ferry_stops, intercity_bus_stands",
+   "sha256": "57ab0141cfb80bd37e90c75e9afaf27e746fc2c3c7b6a5c982f411855cbfefd8",
+   "seen_at": "2026-11-28"
+  },
+  {
+   "id": "gh_croyla_hdbrts_gtfs",
+   "publisher": "croyla/hdbrts-gtfs (Hubballi-Dharwad BRTS)",
+   "url": "https://api.github.com/repos/croyla/hdbrts-gtfs/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "MIT",
+   "quote": "GitHub licence API: croyla/hdbrts-gtfs MIT",
+   "verdict": "ok",
+   "layers": [
+    "transit_stops"
+   ],
+   "decided": "2026-11-28 (owner): sources for transit_stops (requested by Altmo), ferry_stops, intercity_bus_stands",
+   "sha256": "e5dcffe836b6ec8a58e492419b550e65fb8cbdc308503979e5dacb33ac7ea3b7",
+   "seen_at": "2026-11-28"
+  },
+  {
+   "id": "gh_croyla_rrl_gtfs",
+   "publisher": "croyla/rrl-gtfs (Rajkot Rajpath)",
+   "url": "https://api.github.com/repos/croyla/rrl-gtfs/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "MIT-0",
+   "quote": "GitHub licence API: croyla/rrl-gtfs MIT-0",
+   "verdict": "ok",
+   "layers": [
+    "transit_stops"
+   ],
+   "decided": "2026-11-28 (owner): sources for transit_stops (requested by Altmo), ferry_stops, intercity_bus_stands",
+   "sha256": "30c9d55094e8d7287191bb37b0b12c2ca9dcea700183f9d9ba536a650b0362bd",
+   "seen_at": "2026-11-28"
+  },
+  {
+   "id": "gh_croyla_dvg_gtfs",
+   "publisher": "croyla/dvg-gtfs (Davangere city buses)",
+   "url": "https://api.github.com/repos/croyla/dvg-gtfs/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "MIT-0",
+   "quote": "GitHub licence API: croyla/dvg-gtfs MIT-0",
+   "verdict": "ok",
+   "layers": [
+    "transit_stops"
+   ],
+   "decided": "2026-11-28 (owner): sources for transit_stops (requested by Altmo), ferry_stops, intercity_bus_stands",
+   "sha256": "30c9d55094e8d7287191bb37b0b12c2ca9dcea700183f9d9ba536a650b0362bd",
+   "seen_at": "2026-11-28"
+  },
+  {
+   "id": "gh_croyla_ksrtc_gtfs",
+   "publisher": "croyla/ksrtc-gtfs (KSRTC Karnataka intercity)",
+   "url": "https://api.github.com/repos/croyla/ksrtc-gtfs/license",
+   "kind": "json",
+   "json_path": "license.spdx_id",
+   "stated": "MIT-0",
+   "quote": "GitHub licence API: croyla/ksrtc-gtfs MIT-0",
+   "verdict": "ok",
+   "layers": [
+    "intercity_bus_stands"
+   ],
+   "decided": "2026-11-28 (owner): sources for transit_stops (requested by Altmo), ferry_stops, intercity_bus_stands",
+   "sha256": "30c9d55094e8d7287191bb37b0b12c2ca9dcea700183f9d9ba536a650b0362bd",
+   "seen_at": "2026-11-28"
   }
  ]
 }

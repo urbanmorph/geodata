@@ -1301,6 +1301,21 @@
       "label": "Tribal Areas, Sixth Schedule (autonomous councils)",
       "unit": "council areas",
       "description": "Tribal areas under the Sixth Schedule of the Constitution (Paragraph 20), administered by autonomous councils: Bodoland Territorial Council, Karbi Anglong and Dima Hasao councils (Assam); Khasi Hills, Jaintia Hills and Garo Hills councils (Meghalaya); Tripura Tribal Areas Autonomous District Council"
+    },
+    "transit_stops": {
+      "label": "Public transport stops",
+      "unit": "stops",
+      "description": "Every railway, metro, RRTS and tram stop, and the city bus stops of every open bus feed (OpenStreetMap where a city has none), one point per stop with its mode, operator, city, state, source and licence."
+    },
+    "ferry_stops": {
+      "label": "Ferry and water metro stops",
+      "unit": "stops",
+      "description": "Ferry terminals, jetties and water metro stops, one point per place, from OpenStreetMap and, for Kolkata, the Calcutta Transport feed."
+    },
+    "intercity_bus_stands": {
+      "label": "Intercity bus stands",
+      "unit": "bus stands",
+      "description": "Bus stands and bus stations across India from OpenStreetMap, with the stops of Karnataka's KSRTC intercity feed, one point per place."
     }
   },
   "level_order": [
@@ -1472,7 +1487,10 @@
     "core_mws_drought",
     "wris_groundwater_levels",
     "scheduled_areas_fifth",
-    "scheduled_areas_sixth"
+    "scheduled_areas_sixth",
+    "transit_stops",
+    "ferry_stops",
+    "intercity_bus_stands"
   ],
   "layers": [
     {
@@ -12671,6 +12689,259 @@
         "Karbi Anglong",
         "boundaries"
       ]
+    },
+    {
+      "id": "transit_stops",
+      "level": "transit_stops",
+      "source": "Indian Railways, OpenStreetMap and city transit feeds",
+      "rows": 63409,
+      "parquet": {
+        "url": "https://data.bharatlas.com/transport/transit/Transit_Stops.a6d5c94c.parquet",
+        "bytes": 2878581
+      },
+      "geojson": {
+        "url": "https://data.bharatlas.com/transport/transit/Transit_Stops.8a64baee.geojson",
+        "bytes": 33898829
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/transport/transit/Transit_Stops.6b27b9af.kml",
+        "bytes": 55316105
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/transport/transit/Transit_Stops.bc297eb6.shp.zip",
+        "bytes": 3522795
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors; Indian Railways (CRIS); BMTC GTFS (Vonter/bmtc-gtfs); PMPML GTFS (croyla/pmpml-gtfs); Mumbai region GTFS (croyla/mumbai-gtfs); Ahmedabad GTFS (croyla/amd-gtfs); CUMTA MTC GTFS (cumta.org); TGSRTC GTFS, Open Data Telangana (via reclaimchennai/tgsrtc); Kadamba Transport Corporation GTFS (ktclgoa.com); Hubballi-Dharwad BRTS GTFS (croyla/hdbrts-gtfs); Rajkot Rajpath GTFS (croyla/rrl-gtfs); Davangere city bus GTFS (croyla/dvg-gtfs); Calcutta Transport GTFS (arkodeepg/calcutta-transport)",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-27",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and the sources named here and share changed versions of the data under ODbL. One row per train, tram and city bus stop, with its mode: rail (every Indian Railways station in the Railway stations layer, ir_stations: CRIS via PM GatiShakti and the IR GIS portal, and Wikidata; CC BY 4.0, credit Indian Railways (CRIS); station_code is the railway's code), metro and rrts (the Metro and RRTS stations layer, urban_rail_stations, from OpenStreetMap), tram (Kolkata) and bus. There is no monorail row while the Mumbai Monorail is suspended. City bus stops come from these GTFS feeds (stops only, no timetables): BMTC GTFS (Vonter/bmtc-gtfs), ODbL-1.0, https://github.com/Vonter/bmtc-gtfs; PMPML GTFS (croyla/pmpml-gtfs), MIT-0, https://github.com/croyla/pmpml-gtfs; Mumbai region GTFS (croyla/mumbai-gtfs), MIT-0, https://github.com/croyla/mumbai-gtfs; Ahmedabad GTFS (croyla/amd-gtfs), MIT, https://github.com/croyla/amd-gtfs; CUMTA MTC GTFS (cumta.org), none stated (government data, republished with credit), https://cumta.tn.gov.in/; TGSRTC GTFS, Open Data Telangana (via reclaimchennai/tgsrtc), GODL-India, https://www.tgsrtc.telangana.gov.in/open-data; Kadamba Transport Corporation GTFS (ktclgoa.com), CC-BY-4.0, https://ktclgoa.com/gtfs/; Hubballi-Dharwad BRTS GTFS (croyla/hdbrts-gtfs), MIT, https://github.com/croyla/hdbrts-gtfs; Rajkot Rajpath GTFS (croyla/rrl-gtfs), MIT-0, https://github.com/croyla/rrl-gtfs; Davangere city bus GTFS (croyla/dvg-gtfs), MIT-0, https://github.com/croyla/dvg-gtfs; Calcutta Transport GTFS (arkodeepg/calcutta-transport), ODbL-1.0, https://github.com/arkodeepg/calcutta-transport. TGSRTC: only the stops of the official Hyderabad feed of Open Data Telangana (Government Open Data License India; \"Contains data provided by TGSRTC\"), read from the reclaimchennai/tgsrtc copy because the original download needs a form; the stops that copy adds from the TGSRTC bus tracker are left out. Kadamba (Goa): the feed's timetable ended in August 2025; its stops are kept, including those of its routes into Karnataka and Maharashtra. Navi Mumbai comes from the Mumbai region feed (NMMT). Kolkata: the bus, minibus and tram stops of the Calcutta Transport feed (its share autos, metro and suburban rail are left out; rail and metro rows come from the layers above). A city with a feed takes its bus stops from the feed only; OpenStreetMap (highway=bus_stop, or a bus platform) gives the stops of Delhi (NCT) and Kochi, inside the city's boundary layer (lgd_states, wards_kochi). The CUMTA feed is government data with no licence stated, republished with credit (bharatlas.com/about#sources-and-licensing); takedown on request. Intercity buses are in Intercity bus stands (intercity_bus_stands), ferries in Ferry and water metro stops (ferry_stops). state is the LGD state (lgd_states) the point falls in (empty for the few points on the coast or a river just outside that boundary). Every row names its source, source_licence and source_version (the feed's version or start date, or the OpenStreetMap extract date); stop_id is the feed's, osm_type and osm_id OpenStreetMap's. Names and positions are as published. For rail rows source_version is the ir_stations build date.",
+      "tags": [
+        "public transport",
+        "transit stops",
+        "bus stops",
+        "railway stations",
+        "metro stations",
+        "tram",
+        "RRTS",
+        "first and last mile",
+        "TGSRTC",
+        "Kadamba",
+        "GTFS",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "requested_by": {
+        "name": "Altmo",
+        "url": "https://www.altmo.app",
+        "logo": "/requesters/altmo.svg"
+      },
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: stops per mode, city and source against each feed's stops.txt, ir_stations and urban_rail_stations; TGSRTC official stops only; no non-commercial source",
+        "audited_at": "2026-11-28",
+        "next_due": "2026-12-27",
+        "audit_result": {
+          "bus | Ahmedabad | Ahmedabad GTFS (croyla/amd-gtfs)": 3129,
+          "bus | Bengaluru | BMTC GTFS (Vonter/bmtc-gtfs)": 10114,
+          "bus | Chennai | CUMTA MTC GTFS (cumta.org)": 7128,
+          "bus | Davangere | Davangere city bus GTFS (croyla/dvg-gtfs)": 146,
+          "bus | Delhi | OpenStreetMap": 2539,
+          "bus | Gandhinagar | Ahmedabad GTFS (croyla/amd-gtfs)": 74,
+          "bus | Goa | Kadamba Transport Corporation GTFS (ktclgoa.com)": 3255,
+          "bus | Hubballi-Dharwad | Hubballi-Dharwad BRTS GTFS (croyla/hdbrts-gtfs)": 2332,
+          "bus | Hyderabad | TGSRTC GTFS, Open Data Telangana (via reclaimchennai/tgsrtc)": 5177,
+          "bus | Kalyan-Dombivli | Mumbai region GTFS (croyla/mumbai-gtfs)": 160,
+          "bus | Kochi | OpenStreetMap": 597,
+          "bus | Kolkata | Calcutta Transport GTFS (arkodeepg/calcutta-transport)": 1177,
+          "bus | Mumbai | Mumbai region GTFS (croyla/mumbai-gtfs)": 5013,
+          "bus | Navi Mumbai | Mumbai region GTFS (croyla/mumbai-gtfs)": 1920,
+          "bus | Pune | PMPML GTFS (croyla/pmpml-gtfs)": 7011,
+          "bus | Rajkot | Rajkot Rajpath GTFS (croyla/rrl-gtfs)": 760,
+          "bus | Thane | Mumbai region GTFS (croyla/mumbai-gtfs)": 1805,
+          "bus | Vasai-Virar | Mumbai region GTFS (croyla/mumbai-gtfs)": 696,
+          "metro | Agra | OpenStreetMap": 6,
+          "metro | Ahmedabad | OpenStreetMap": 53,
+          "metro | Bengaluru | OpenStreetMap": 88,
+          "metro | Bhopal | OpenStreetMap": 8,
+          "metro | Chennai | OpenStreetMap": 51,
+          "metro | Delhi | OpenStreetMap": 245,
+          "metro | Gurugram | OpenStreetMap": 10,
+          "metro | Hyderabad | OpenStreetMap": 57,
+          "metro | Indore | OpenStreetMap": 16,
+          "metro | Jaipur | OpenStreetMap": 11,
+          "metro | Kanpur | OpenStreetMap": 14,
+          "metro | Kochi | OpenStreetMap": 25,
+          "metro | Kolkata | OpenStreetMap": 55,
+          "metro | Lucknow | OpenStreetMap": 21,
+          "metro | Meerut | OpenStreetMap": 12,
+          "metro | Mumbai | OpenStreetMap": 76,
+          "metro | Nagpur | OpenStreetMap": 37,
+          "metro | Navi Mumbai | OpenStreetMap": 11,
+          "metro | Noida | OpenStreetMap": 21,
+          "metro | Patna | OpenStreetMap": 5,
+          "metro | Pune | OpenStreetMap": 44,
+          "rail | None | Indian Railways stations (bharatlas ir_stations: CRIS via PM GatiShakti and the IR GIS portal, Wikidata)": 9483,
+          "rrts | Delhi NCR | OpenStreetMap": 15,
+          "tram | Kolkata | Calcutta Transport GTFS (arkodeepg/calcutta-transport)": 12
+        }
+      }
+    },
+    {
+      "id": "ferry_stops",
+      "level": "ferry_stops",
+      "source": "OpenStreetMap and Calcutta Transport",
+      "rows": 875,
+      "parquet": {
+        "url": "https://data.bharatlas.com/transport/transit/Ferry_Stops.974a5db1.parquet",
+        "bytes": 50651
+      },
+      "geojson": {
+        "url": "https://data.bharatlas.com/transport/transit/Ferry_Stops.9de10b93.geojson",
+        "bytes": 369367
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/transport/transit/Ferry_Stops.ff3c13f1.kml",
+        "bytes": 605478
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/transport/transit/Ferry_Stops.ca3f2eb4.shp.zip",
+        "bytes": 52369
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors; Calcutta Transport GTFS (arkodeepg/calcutta-transport)",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-27",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and the sources named here and share changed versions of the data under ODbL. Kolkata: the ferry stops of the Calcutta Transport feed (Calcutta Transport GTFS (arkodeepg/calcutta-transport), ODbL-1.0, https://github.com/arkodeepg/calcutta-transport). Everywhere else OpenStreetMap: ferry terminals (amenity=ferry_terminal), ferry stop positions and the stops of ferry routes, leaving out anything mapped as disused or under construction. One row per place: points of one name within 300 m, or of any name within 50 m, are one (terminals first), and a point within 200 m of a feed stop is that stop. OpenStreetMap maps many river ghats and jetties as ferry terminals, so not every row has a scheduled service. state is the LGD state (lgd_states) the point falls in (empty for the few points on the coast or a river just outside that boundary). Every row names its source, source_licence and source_version (the feed's version or start date, or the OpenStreetMap extract date); stop_id is the feed's, osm_type and osm_id OpenStreetMap's. Names and positions are as published.",
+      "tags": [
+        "ferry",
+        "ferry terminals",
+        "jetties",
+        "water metro",
+        "Kochi Water Metro",
+        "Hooghly",
+        "transit",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: stops per source: the Kolkata feed's ferry stops and the OSM ferry terminals left after the one-row-per-place rule",
+        "audited_at": "2026-11-28",
+        "next_due": "2026-12-27",
+        "audit_result": {
+          "ferry | Kolkata | Calcutta Transport GTFS (arkodeepg/calcutta-transport)": 15,
+          "ferry | None | OpenStreetMap": 860
+        }
+      }
+    },
+    {
+      "id": "intercity_bus_stands",
+      "level": "intercity_bus_stands",
+      "source": "OpenStreetMap and KSRTC (croyla/ksrtc-gtfs)",
+      "rows": 5799,
+      "parquet": {
+        "url": "https://data.bharatlas.com/transport/transit/Intercity_Bus_Stands.e0b1d1b0.parquet",
+        "bytes": 334062
+      },
+      "geojson": {
+        "url": "https://data.bharatlas.com/transport/transit/Intercity_Bus_Stands.3696c3ae.geojson",
+        "bytes": 2610115
+      },
+      "kml": {
+        "url": "https://data.bharatlas.com/transport/transit/Intercity_Bus_Stands.acc4d925.kml",
+        "bytes": 4322928
+      },
+      "shapefile": {
+        "url": "https://data.bharatlas.com/transport/transit/Intercity_Bus_Stands.2768be37.shp.zip",
+        "bytes": 378527
+      },
+      "licence": "ODbL-1.0",
+      "attribution": {
+        "primary": {
+          "name": "\u00a9 OpenStreetMap contributors; KSRTC Karnataka intercity GTFS (croyla/ksrtc-gtfs)",
+          "url": "https://www.openstreetmap.org/copyright"
+        },
+        "publisher": {
+          "name": "bharatlas",
+          "url": "https://bharatlas.com"
+        }
+      },
+      "category": "transport",
+      "provenance": "curated",
+      "fetched_at": "2026-11-27",
+      "notes": "Published under the Open Database License (ODbL 1.0): you may copy, change and share it if you credit \u00a9 OpenStreetMap contributors and the sources named here and share changed versions of the data under ODbL. The stops of the KSRTC Karnataka intercity feed (KSRTC Karnataka intercity GTFS (croyla/ksrtc-gtfs), MIT-0, https://github.com/croyla/ksrtc-gtfs): bus stands and stops on its routes, some outside Karnataka (its timetable ran from August to September 2026; stops only). And every bus station in OpenStreetMap (amenity=bus_station), which also holds city bus stations and depots mapped as stations, leaving out anything mapped as disused or under construction. One row per place: points of one name within 300 m, or of any name within 50 m, are one, and an OpenStreetMap station within 200 m of a feed stop is that stop. state is the LGD state (lgd_states) the point falls in (empty for the few points on the coast or a river just outside that boundary). Every row names its source, source_licence and source_version (the feed's version or start date, or the OpenStreetMap extract date); stop_id is the feed's, osm_type and osm_id OpenStreetMap's. Names and positions are as published.",
+      "tags": [
+        "bus stands",
+        "bus stations",
+        "intercity bus",
+        "state transport",
+        "KSRTC",
+        "GTFS",
+        "transit",
+        "OpenStreetMap",
+        "transport"
+      ],
+      "source_check": {
+        "method": "http",
+        "url": "https://download.geofabrik.de/asia/india-latest.osm.pbf",
+        "fingerprint": null,
+        "checked_at": null,
+        "changed_at": null
+      },
+      "refresh": {
+        "class": "fast",
+        "check": "weekly",
+        "rebuild": "monthly",
+        "release": "monthly",
+        "audit": "row count within 25% of the previous version; schema diff (removed or renamed columns noted in CHANGES.md); licence and source unchanged; flat bbox and Hilbert sort; tiles decode; the class audit: stands per source: the KSRTC feed's stops and the OSM bus stations left after the one-row-per-place rule",
+        "audited_at": "2026-11-28",
+        "next_due": "2026-12-27",
+        "audit_result": {
+          "bus | None | KSRTC Karnataka intercity GTFS (croyla/ksrtc-gtfs)": 689,
+          "bus | None | OpenStreetMap": 5110
+        }
+      }
     }
   ],
   "state_extracts": [],
