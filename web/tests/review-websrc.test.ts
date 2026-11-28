@@ -265,7 +265,8 @@ describe('Turnstile site key at build', () => {
 
 describe('download links carry their format', () => {
   it('/layers links name the counted format, so live counts need no text hack', () => {
-    expect(src('layers.html')).toMatch(/<a href="[^"]+" download data-fmt="shapefile">shp<\/a>/);
+    // The rows load their links on open (src/layer-downloads.ts; tests/layers-lazy-downloads).
+    expect(code('src/layer-downloads.ts')).toContain('download data-fmt="${');
     expect(code('src/live-counts.ts')).not.toContain("=== 'shp'");
   });
 });

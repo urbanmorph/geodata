@@ -1,13 +1,13 @@
 // Build-time prerender: produce one large card per admin level.
 // Zero JS needed to read or navigate the catalog.
-import { readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { fetchLiveCounts, bakedCounts, countFor as layerCount, mostDownloaded } from './download-counts.mjs';
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, MAP_TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
-import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
+import { escapeHtml as esc, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { requestedByTagHtml, requestedFirst, requestedStripHtml } from '../../shared/requested-by.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
@@ -141,18 +141,12 @@ function formatTokens(layer) {
 }
 
 // A layer's downloads (format-hints.ts, the same list the map's Download menu
-// shows) with their counts. `fmt` is the counted format, also on the link as
-// data-fmt for live-counts.ts; `text` is the link text (Shapefile reads "shp").
-function downloadLinks(layer) {
-  return availableDownloads(layer).map((d) => ({
-    fmt: d.fmt,
-    text: d.fmt === 'shapefile' ? 'shp' : d.fmt,
-    url: d.url,
-    size: d.bytes,
-    count: layerCount(dlCounts, layer.id, d.fmt),
-  }));
-}
-const downloadAnchor = (d) => `<a href="${esc(d.url)}" download data-fmt="${esc(d.fmt)}">${esc(d.text)}</a>`;
+// shows) with their baked counts: one entry of /layer-dl/<row id>.json, which
+// src/layer-downloads.ts renders when the row opens. `fmt` is the counted format.
+const downloadLinks = (layer) =>
+  availableDownloads(layer).map(({ fmt, url, bytes }) => ({ fmt, url, bytes, count: layerCount(dlCounts, layer.id, fmt) }));
+// Each row's download file, by row id (its level), written next to layer-index.json.
+const rowDownloads = new Map();
 /** "1,234 villages": a layer's row count in its level's unit, or '' when unknown. Not escaped. */
 const rowsText = (layer, meta) => (layer.rows != null ? `${fmtInt(layer.rows)} ${meta.unit || 'features'}` : '');
 
@@ -177,18 +171,18 @@ function renderRow(level, layersForLevel, opts = {}) {
     ? viewMapLink(`/view/${primary.id}`, wholeFileBytes(primary), 'btn btn--line btn-primary', 'View map')
     : `<span class="btn-primary disabled" title="No map for this layer">no map</span>`;
 
-  const downloads = downloadLinks(primary);
-  const dlInline = downloads.length
-    ? `<span class="dl-inline">${downloads
-        .map(
-          (d) =>
-            `${downloadAnchor(d)}<span class="size">${fmtBytes(d.size)}</span>${d.count ? `<span class="count" title="${fmtInt(d.count)} downloads">${fmtCount(d.count)}</span>` : ''}`
-        )
-        .join('')}</span>`
-    : '';
+  // The links load when the row opens (about 15 KB gzipped off /layers); the
+  // page keeps a link to the map page, whose Download menu works without them.
+  const rowDl = Object.fromEntries(layersForLevel.map((l) => [l.id, downloadLinks(l)]));
+  const hasDownloads = rowDl[primary.id].length > 0;
+  if (Object.values(rowDl).some((d) => d.length)) {
+    if (!/^[a-z0-9_]+$/.test(level)) throw new Error(`row id "${level}" is not a plain file name for /layer-dl/`);
+    rowDownloads.set(level, rowDl);
+  }
 
   // Iterate the full layer list (primary stays in its natural slot) and tag
-  // the primary row inline so we don't rebuild the array.
+  // the primary row inline so we don't rebuild the array. Each layer's links
+  // fill its data-dl slot when the row opens.
   const altSection = hasOthers
     ? `<details class="alt">
         <summary>compare sources: ${layersForLevel.map((o) => esc(o.source)).join(' · ')}</summary>
@@ -196,14 +190,10 @@ function renderRow(level, layersForLevel, opts = {}) {
           ${layersForLevel
             .map((o) => {
               const isPrimary = o === primary;
-              const dl = downloadLinks(o);
-              const links = dl
-                .map(downloadAnchor)
-                .join('<span class="dot">·</span>');
               return `<div class="alt__row${isPrimary ? ' alt__row--primary' : ''}">
                 <span class="src">${esc(o.source)}${isPrimary ? ' <span class="tag">primary</span>' : ''}</span>
                 <span class="meta">${[esc(rowsText(o, meta)), esc(o.notes || '')].filter(Boolean).join(' · ')}</span>
-                <span class="links">${links || '<span class="muted">no downloads</span>'}</span>
+                <span class="links" data-dl="${esc(o.id)}"></span>
               </div>`;
             })
             .join('')}
@@ -295,7 +285,7 @@ function renderRow(level, layersForLevel, opts = {}) {
             ${sourceLine}
             ${primary.licence ? `<p class="row__lic-line">Licence: ${licenceBadgeHtml(primary.licence, nc)}</p>` : ''}
             ${updated ? `<p class="row__updated">Updated: <time datetime="${esc(updated)}">${esc(updated)}</time></p>` : ''}
-            ${dlInline ? `<p class="row__downloads">Download: ${dlInline}</p>` : ''}
+            ${hasDownloads ? `<p class="row__downloads"><a href="/view/${esc(primary.id)}">Downloads on the map page</a></p>` : ''}
             ${viewerHint}
             ${altSection}
           </div>
@@ -795,6 +785,11 @@ await writeFile(
   }))),
 );
 await writeFile(resolve(WEB, 'public', 'layer-index.json'), JSON.stringify(layerIndex));
+// Each row's downloads, fetched when the row opens; rebuilt whole so a retired row leaves no file.
+const LAYER_DL = resolve(WEB, 'public', 'layer-dl');
+await rm(LAYER_DL, { recursive: true, force: true });
+await mkdir(LAYER_DL);
+await Promise.all([...rowDownloads].map(([row, dl]) => writeFile(resolve(LAYER_DL, `${row}.json`), JSON.stringify(dl))));
 console.log(`prerendered /layers: ${sectionCats.length} themes, ${layerIndex.length} rows in the search index`);
 console.log(`prerendered home: ${sortedCats.length} categories, ${LEVEL_ORDER.filter((l) => byLevel[l]?.length).length} curated levels, ${community.length} community`);
 
