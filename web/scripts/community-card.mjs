@@ -53,8 +53,8 @@ export function renderCommunityActions(s, baked) {
   if (baked) {
     dl = `<span class="dl-inline">${a.downloads
       .map(
-        (d, i) =>
-          `${i > 0 ? '<span class="dot">·</span>' : ''}<a href="${esc(d.url)}"${d.fmt === 'pmtiles' ? '' : ' download'}>${esc(d.fmt)}</a><span class="size">${d.size != null ? fmtBytes(d.size) : ''}</span>`,
+        (d) =>
+          `<a href="${esc(d.url)}"${d.fmt === 'pmtiles' ? '' : ' download'}>${esc(d.fmt)}</a><span class="size">${d.size != null ? fmtBytes(d.size) : ''}</span>`,
       )
       .join('')}</span>`;
   } else {

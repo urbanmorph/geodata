@@ -151,6 +151,9 @@ describe('/layers weight', () => {
     expect(layers).not.toMatch(/<(section class="row|article class="comm-card)[^>]*data-category=/);
     expect(layers).not.toContain('data-overflow');
   });
+  it('draws the separators between download formats in CSS, not as markup in every row (about 600 B gzipped)', () => {
+    expect(layers).not.toMatch(/class="dl-inline">(?:(?!<\/span><\/p>).)*class="dot"/s);
+  });
   it('ships without source indentation (about 1 KB gzipped)', () => {
     expect(layers).not.toMatch(/\n[ \t]+/);
   });
