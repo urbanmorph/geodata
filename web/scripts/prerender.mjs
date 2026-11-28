@@ -9,6 +9,7 @@ import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, MAP_TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
 import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
+import { requestedByTagHtml } from '../../shared/requested-by.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
 import { brandMarkSvg, PUBLISHER_LD } from '../../shared/brand.mjs';
 import { STATIC_PAGES, releasePages, urlset, SITE_ORIGIN as ORIGIN } from '../../shared/sitemap.mjs';
@@ -206,6 +207,7 @@ function renderRow(level, layersForLevel, opts = {}) {
     : '';
 
   const nc = layerIsNonCommercial(primary);
+  const reqTag = requestedByTagHtml(primary); // "Requested by <name>", or '' (shared/requested-by.mjs)
 
   // Viewer-hint message adapts to what's already on the card:
   // - If geojson/kml/shp are baked whole-layer, the hint is just about state slicing.
@@ -279,7 +281,7 @@ function renderRow(level, layersForLevel, opts = {}) {
       <div class="row__head">
         <details class="row__details">
           <summary class="row__summary">
-            <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}${nc ? ` <span class="badge lic-badge lic-badge--nc">${NC_LABEL}</span>` : ''}</span>
+            <span class="row__title" title="${esc(meta.label)}">${esc(meta.label)}${nc ? ` <span class="badge lic-badge lic-badge--nc">${NC_LABEL}</span>` : ''}${reqTag ? ` ${reqTag}` : ''}</span>
             <span class="row__source" title="${esc(primary.attribution?.primary?.name || primary.source)}">${esc(primary.source)}</span>
             <span class="row__count">${countDisplay}</span>
           </summary>
@@ -1059,6 +1061,7 @@ await renderPage('docs', {
     ],
   },
 }, {
+  TURNSTILE_SITEKEY,
   DOCS_FAQ_HTML: docsFaqHtml,
   DOCS_LAYERS: String(docs.layers),
   DOCS_LOCATE_N: String(LOCATE_N),

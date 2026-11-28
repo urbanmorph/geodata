@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { rankHits, hitsHtml, moveActive, type Hit } from '../src/search-pop';
+import { requestLayerUrl } from '../../shared/requested-by.mjs';
 
 const hits: Hit[] = [
   { title: 'Districts (2024)', sub: '785 districts · LGD', href: '/view/lgd_districts' },
@@ -30,8 +31,11 @@ describe('hitsHtml', () => {
     expect(hitsHtml(hits.slice(0, 2), { rows: 2, layers: 6 }, 'x')).not.toContain('See all');
   });
 
-  it('says so when nothing matches', () => {
-    expect(hitsHtml([], { rows: 0, layers: 0 }, 'zzz')).toContain('No layer matches');
+  it('says so when nothing matches, and offers to request the layer with the search filled in', () => {
+    const html = hitsHtml([], { rows: 0, layers: 0 }, 'anganwadi pune');
+    expect(html).toContain('No layer matches');
+    expect(html).toContain('href="/docs?q=anganwadi%20pune#request"');
+    expect(html).toContain('Request this layer');
   });
 });
 
@@ -43,5 +47,12 @@ describe('moveActive', () => {
     expect(moveActive(-1, 'ArrowUp', 3)).toBe(2);
     expect(moveActive(1, 'Tab', 3)).toBe(1);
     expect(moveActive(-1, 'ArrowDown', 0)).toBe(-1);
+  });
+});
+
+describe('requestLayerUrl', () => {
+  it('opens the request form on /docs with the search filled in', () => {
+    expect(requestLayerUrl('a&b')).toBe('/docs?q=a%26b#request');
+    expect(requestLayerUrl('')).toBe('/docs#request');
   });
 });

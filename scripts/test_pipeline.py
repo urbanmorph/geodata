@@ -993,3 +993,23 @@ def test_judiciary_bake_fails_loudly_and_leaves_no_partial_file(tmp_path, monkey
     out = tmp_path / 'out'
     assert not list(out.glob('*.parquet')) and not list(out.glob('*.part*'))
     assert (out / 'high_courts.kml').exists()
+
+
+# ── a requested (paid) layer never uses non-commercial sources ───────────────
+
+def test_a_requested_layer_with_a_non_commercial_licence_is_refused(monkeypatch):
+    monkeypatch.setattr(pipeline, 'LICENCE_GATE', lambda _id: None)
+    monkeypatch.setattr(pipeline, 'licence_labelled', lambda e: e)
+    for bad in ({'licence': 'CC-BY-NC-4.0'}, {'licence': 'CC-BY-4.0', 'non_commercial': True}):
+        entry = {'id': 'x', 'level': 'x', 'requested_by': {'name': 'A'}, **bad}
+        with pytest.raises(pipeline.RequestedLayerNotOpen):
+            pipeline.upsert_layer({'layers': []}, entry, {'label': 'X'})
+
+
+def test_an_open_requested_layer_and_an_unrequested_nc_layer_are_both_registered(monkeypatch):
+    monkeypatch.setattr(pipeline, 'LICENCE_GATE', lambda _id: None)
+    monkeypatch.setattr(pipeline, 'licence_labelled', lambda e: e)
+    cat = pipeline.upsert_layer({'layers': []}, {'id': 'a', 'level': 'a', 'licence': 'CC0-1.0',
+                                                 'requested_by': {'name': 'A'}}, {'label': 'A'})
+    cat = pipeline.upsert_layer(cat, {'id': 'b', 'level': 'b', 'licence': 'CC-BY-NC-4.0'}, {'label': 'B'})
+    assert [layer['id'] for layer in cat['layers']] == ['a', 'b']

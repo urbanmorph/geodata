@@ -906,6 +906,22 @@ def _licence_gate(layer_id: str) -> None:
 LICENCE_GATE = _licence_gate
 
 
+class RequestedLayerNotOpen(ValueError):
+    """A requested layer is paid work: it may not carry a non-commercial licence or source."""
+
+
+def is_non_commercial(entry: dict) -> bool:
+    """shared/licences.mjs layerIsNonCommercial, for the pipeline."""
+    return entry.get('non_commercial') is True or bool(re.search(r'(^|-)NC(-|$)', str(entry.get('licence') or '')))
+
+
+def refuse_non_commercial_request(entry: dict) -> None:
+    """A layer someone requested (requested_by) is never non-commercial (owner rule, 2026-11-28)."""
+    if (entry.get('requested_by') or {}).get('name') and is_non_commercial(entry):
+        raise RequestedLayerNotOpen(f"{entry['id']}: requested by {entry['requested_by']['name']} but licensed "
+                                    f"{entry.get('licence')!r} (non-commercial); a requested layer must allow any use")
+
+
 def licence_labelled(entry: dict) -> dict:
     """The entry with the licence, non-commercial flag and credit its reviewed terms set (licence-terms.json)."""
     import licence_watch
@@ -927,6 +943,7 @@ def upsert_layer(catalog: dict, entry: dict, level_meta: dict, level: str | None
     from tile_keys import keep_all_rebaked
     LICENCE_GATE(entry['id'])
     entry = licence_labelled(entry)
+    refuse_non_commercial_request(entry)
     prev = prev_layer(catalog, entry['id'])
     catalog.setdefault('layers', [])
     entry = {**entry, 'fetched_at': prev.get('fetched_at') or entry.get('fetched_at') or now_iso()}

@@ -27,6 +27,7 @@
     <h2>What we store</h2>
     <ul class="pairs">
       <li><span class="k">Your submissions</span> <span>Community submissions you publish: the file, the metadata you typed, and the time. On Cloudflare R2 (file) and D1 (metadata). Linked to a one-way SHA-256 hash of your IP for rate-limit purposes only.</span></li>
+      <li><span class="k">Layer requests</span> <span>If you <a href="/docs#request">request a layer</a>: what you asked for, the email you gave (only to reply and arrange payment, never shown or shared), and the name you chose for the credit, if any (shown as “Requested by” once the layer is published). In D1, linked to the same one-way IP hash for rate limits. Ask us and we delete it.</span></li>
       <li><span class="k">In your browser</span> <span>localStorage holds the admin tokens for any submissions you made from this device, plus your basemap preference. No cookies, no fingerprinting. Nothing leaves your browser until you click <strong>Publish</strong>.</span></li>
       <li><span class="k">Server logs</span> <span>Cloudflare's edge logs HTTP requests for around 24 hours. We don't aggregate them, sell them, or look at them unless investigating abuse.</span></li>
     </ul>
@@ -35,7 +36,7 @@
     <section>
     <h2>What we don't do</h2>
     <ul class="pairs">
-      <li><span class="k">Accounts</span> <span>No accounts. No email collection. No name collection.</span></li>
+      <li><span class="k">Accounts</span> <span>No accounts. No email or name collection, except what you type into a layer request.</span></li>
       <li><span class="k">Tracking</span> <span>No behavioural, cross-site, or ad-tech analytics (no Google Analytics, no Hotjar, no Mixpanel, no fingerprinting libraries).</span></li>
       <li><span class="k">Ads and sale</span> <span>No advertising. No data sharing. No data sale.</span></li>
       <li><span class="k">Pixels</span> <span>No social-network embed pixels.</span></li>
@@ -46,7 +47,7 @@
     <h2>Third parties involved</h2>
     <ul class="pairs">
       <li><span class="k">Cloudflare</span> <span>Pages, R2, D1 and Turnstile host everything. Their <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener">privacy policy</a> covers their edge logs.</span></li>
-      <li><span class="k">Turnstile</span> <span>A CAPTCHA replacement, also Cloudflare, that runs on the publish form to deter automated abuse. No personal data is sent to it.</span></li>
+      <li><span class="k">Turnstile</span> <span>A CAPTCHA replacement, also Cloudflare, that runs on the publish and layer request forms to deter automated abuse. No personal data is sent to it.</span></li>
       <li><span class="k">Web Analytics</span> <span>Cloudflare Web Analytics counts aggregate page views and load performance so we can see what gets used. It is cookieless, sets nothing on your device, collects no personal data, and cannot follow you across sites.</span></li>
       <li><span class="k">Map tiles</span> <span>The maps you browse stream from R2 with no usage tracking by us.</span></li>
     </ul>

@@ -14,6 +14,7 @@ village in a council's area, with the council; listed villages with no polygon k
 
 Usage:
     python3 -u scripts/bake_scheduled_areas.py bake      # local files in data/scheduled_areas/out/
+    python3 -u scripts/bake_scheduled_areas.py upload    # every format to R2 (new keys; md5-skipped)
     python3 -u scripts/bake_scheduled_areas.py register  # patch catalog.json + manifest from the summary
 """
 from __future__ import annotations
@@ -191,6 +192,10 @@ TAGS = {'scheduled_areas_fifth': ['Scheduled Areas', 'Fifth Schedule', 'PESA', '
                                   'TTAADC', 'Khasi Hills', 'Garo Hills', 'Karbi Anglong', 'boundaries']}
 
 
+# Who asked for the layer (shown as "Requested by"; owner, 2026-11-28). A requested layer is never NC.
+REQUESTED_BY = {'scheduled_areas_fifth': {'name': 'Sandilya MV'}}
+
+
 def notes(layer_id: str, s: dict) -> str:
     unmapped = s['rows'] - s['mapped']
     if layer_id == 'scheduled_areas_fifth':
@@ -230,7 +235,14 @@ def catalog_entry(layer_id: str, s: dict, fetched_at: str, r2_public: str) -> di
             **pipeline.format_blocks(EXT, s['names'], s['sizes'], f'{r2_public}/{R2_PREFIX}'),
             'licence': LICENCE, 'attribution': {'primary': dict(ATTRIBUTION), 'publisher': None},
             'category': 'boundaries', 'provenance': 'curated', 'fetched_at': fetched_at,
-            'notes': notes(layer_id, s), 'tags': TAGS[layer_id]}
+            'notes': notes(layer_id, s), 'tags': TAGS[layer_id],
+            **({'requested_by': dict(REQUESTED_BY[layer_id])} if layer_id in REQUESTED_BY else {})}
+
+
+def upload() -> None:
+    """Every format of both layers to its content-versioned key under R2_PREFIX (md5-skipped)."""
+    for layer_id in LABEL:
+        pipeline.upload_layer(OUT, layer_id, EXT, R2_PREFIX)
 
 
 def register() -> None:
@@ -249,7 +261,7 @@ def register() -> None:
 
 
 if __name__ == '__main__':
-    steps = {'bake': bake, 'register': register}
+    steps = {'bake': bake, 'upload': upload, 'register': register}
     if len(sys.argv) != 2 or sys.argv[1] not in steps:
         sys.exit(__doc__)
     steps[sys.argv[1]]()

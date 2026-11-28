@@ -197,6 +197,8 @@ export const TOKENS = `
   .lic-badge { background: color-mix(in srgb, var(--brand-green) 18%, var(--bg-elevated)); text-decoration: none; }
   a.lic-badge:hover { text-decoration: underline; }
   .lic-badge--nc { background: color-mix(in srgb, var(--err) 16%, var(--bg-elevated)); }
+  /* "Requested by <name>" on a requested layer's row (shared/requested-by.mjs requestedByTagHtml). */
+  .req-badge { background: var(--accent-tint); border-color: var(--accent-fill); }
   /* Touch screens: the licence link and Install app keep their look, with a 44 px hit area. */
   @media (pointer: coarse) {
     a.lic-badge, .install-app { position: relative; }

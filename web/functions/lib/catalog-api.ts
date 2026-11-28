@@ -4,6 +4,7 @@ import { json } from './http';
 import { layerIsNonCommercial, NC_NOTICE } from '../../../shared/licences.mjs';
 import { realmOf } from '../../../shared/realms.mjs';
 import { usesServerFilter } from '../../../shared/large-load.mjs';
+import { requestedBy } from '../../../shared/requested-by.mjs';
 export interface CatalogLayer {
   id: string;
   level: string;
@@ -25,6 +26,8 @@ export interface CatalogLayer {
   fetched_at?: string | null;
   /** Its dated releases, newest first (added by web/scripts/public-catalog.mjs from the release index). */
   versions?: LayerVersion[];
+  /** Who requested the layer (shared/requested-by.mjs): credited as "Requested by". */
+  requested_by?: { name?: string; line?: string } | null;
 }
 
 /** One dated release of a layer: cite it by its code, SHA-256 or w3id address. */
@@ -86,6 +89,14 @@ export interface ApiLayer {
   non_commercial?: true;
   licence_notice?: string;
   versions?: LayerVersion[];
+  /** Set on a layer someone requested: credit them as "Requested by <name>". */
+  requested_by?: { name: string; line?: string };
+}
+
+/** The requester's credit for the API, or nothing: the line only when they gave one. */
+function requestedFields(layer: CatalogLayer): { requested_by?: { name: string; line?: string } } {
+  const r = requestedBy(layer);
+  return r ? { requested_by: { name: r.name, ...(r.line ? { line: r.line } : {}) } } : {};
 }
 
 export function filterLayers(layers: CatalogLayer[], filter: LayerFilter): CatalogLayer[] {
@@ -157,6 +168,7 @@ export function toApiLayer(layer: CatalogLayer, catalog: CatalogData, detail = f
     ...(layer.parquet?.url ? { schema_url: schemaPath(layer.id) } : {}),
     level_meta: catalog.level_meta?.[layer.id],
     ...ncFields(layer),
+    ...requestedFields(layer),
   };
   if (detail && catalog.filter_stats?.[layer.id]) {
     result.filter_stats = catalog.filter_stats[layer.id];

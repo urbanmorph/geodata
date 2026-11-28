@@ -3,6 +3,7 @@
 // main.ts owns the DOM. Each hit is one /layer-index.json entry: title, sub, link.
 import { escapeHtml as esc } from './util';
 import { matchLine } from './catalog-filter';
+import { requestLayerUrl } from '../../shared/requested-by.mjs';
 
 export type Hit = { title: string; sub: string; href: string };
 
@@ -38,7 +39,10 @@ export function matchSummaryHtml(n: number, query: string): string {
 
 /** Options for the listbox, and a link to the full filtered list when there are more. */
 export function hitsHtml(hits: Hit[], total: { rows: number; layers: number }, query: string): string {
-  if (!hits.length) return `<p class="search-pop__head">No layer matches "${esc(query)}"</p>`;
+  if (!hits.length) {
+    return `<p class="search-pop__head">No layer matches "${esc(query)}"</p>` +
+      `<a class="search-pop__all" href="${esc(requestLayerUrl(query))}">Request this layer</a>`;
+  }
   const items = hits
     .map((h, i) =>
       `<a class="search-hit" role="option" id="search-hit-${i}" aria-selected="false" href="${esc(h.href)}">` +

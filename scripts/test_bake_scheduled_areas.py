@@ -54,3 +54,10 @@ def test_the_catalog_entry_is_cc0_curated_and_its_notes_name_the_sources_without
         assert set(s.EXT) <= set(e)
     assert 'eGramSwaraj' in s.notes('scheduled_areas_fifth', summ)
     assert 'Paragraph 20' in s.notes('scheduled_areas_sixth', summ)
+
+
+def test_the_pesa_layer_names_its_requester_and_the_sixth_schedule_names_none():
+    summ = {'rows': 1, 'mapped': 1, 'sizes': {f: 1 for f in s.EXT}, 'names': {f: f'x.{f}' for f in s.EXT}}
+    fifth = s.catalog_entry('scheduled_areas_fifth', summ, '2026-11-28T00:00:00+00:00', 'https://r2')
+    sixth = s.catalog_entry('scheduled_areas_sixth', summ, '2026-11-28T00:00:00+00:00', 'https://r2')
+    assert fifth['requested_by'] == {'name': 'Sandilya MV'} and 'requested_by' not in sixth

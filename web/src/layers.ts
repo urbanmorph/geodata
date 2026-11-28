@@ -3,6 +3,7 @@
 // across every theme with the same matcher as the home search (catalog-filter),
 // over the same /layer-index.json (the rows carry no search text of their own);
 // "show all N" opens a long section; ?q= pre-fills the box.
+import { requestLayerUrl } from '../../shared/requested-by.mjs';
 import { fetchLayerIndex, filterCards, layersPerGroup, matchLine, type CardLike } from './catalog-filter';
 import { escapeHtml } from './util';
 import { refreshLiveCounts } from './live-counts';
@@ -74,7 +75,7 @@ if (input && grid) {
     if (query == null) return;
     empty.innerHTML = `No layers match "${escapeHtml(query)}". Try a place or theme, or ` +
       `<button type="button" class="link-btn" data-clear-search>clear the search</button>. ` +
-      `<a href="/preview">Contribute a layer</a>`;
+      `<a href="/preview">Contribute a layer</a> or <a href="${escapeHtml(requestLayerUrl(query))}">Request this layer</a>`;
     empty.querySelector('[data-clear-search]')?.addEventListener('click', () => {
       input.value = '';
       apply();
