@@ -141,6 +141,21 @@ describe('lean home page', () => {
   });
 });
 
+describe('/layers puts requested layers first', () => {
+  it('lists them in the page head, above the themes', () => {
+    const strip = layers.indexOf('id="requested"');
+    expect(strip).toBeGreaterThan(-1);
+    expect(strip).toBeLessThan(layers.indexOf('id="catalog-grid"'));
+    expect(layers.slice(strip, layers.indexOf('</section>', strip))).toContain('href="/view/scheduled_areas_fifth"><span class="req-strip__name">Scheduled Areas, Fifth Schedule (PESA)</span>');
+  });
+  it('opens its theme with the requested row, never folded under "Show all"', () => {
+    const row = layers.match(/<section class="row[^"]*" id="scheduled_areas_fifth"/)?.[0] ?? '';
+    expect(row).not.toContain('row--collapsed');
+    const body = layers.lastIndexOf('category-section__body', layers.indexOf('id="scheduled_areas_fifth"'));
+    expect(layers.indexOf('<section class="row', body)).toBe(layers.indexOf(row));
+  });
+});
+
 describe('/layers weight', () => {
   it('filters from /layer-index.json: rows carry no search haystacks or unused data-*', () => {
     expect(read('src/layers.ts')).toContain('fetchLayerIndex(');
@@ -153,6 +168,12 @@ describe('/layers weight', () => {
   });
   it('draws the separators between download formats in CSS, not as markup in every row (about 600 B gzipped)', () => {
     expect(layers).not.toMatch(/class="dl-inline">(?:(?!<\/span><\/p>).)*class="dot"/s);
+  });
+  it('spells out a title the two-line clamp could cut, and leaves short ones without a tooltip', () => {
+    const titles = [...layers.matchAll(/<span class="row__title"( title="[^"]*")?>([^<]*)/g)];
+    expect(titles.length).toBeGreaterThan(100);
+    for (const [, tip, text] of titles) if (text.trim().length > 30) expect(tip, text).toBeTruthy();
+    expect(titles.filter(([, tip]) => !tip).length).toBeGreaterThan(titles.length / 2);
   });
   it('ships without source indentation (about 1 KB gzipped)', () => {
     expect(layers).not.toMatch(/\n[ \t]+/);

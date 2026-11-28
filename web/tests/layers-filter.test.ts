@@ -66,6 +66,22 @@ describe('/layers filter', () => {
     expect(rows()).toEqual([true, true, true]);
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+
+  it('hides the requested layers at the top while a search is active', async () => {
+    document.body.insertAdjacentHTML('afterbegin', '<section id="requested"></section>');
+    history.replaceState(null, '', '/layers');
+    await import('../src/layers');
+    release();
+    const input = document.getElementById('catalog-search') as HTMLInputElement;
+    const strip = document.getElementById('requested')!;
+    input.value = 'forest';
+    input.dispatchEvent(new Event('input'));
+    await flush(); await flush();
+    expect(strip.hidden).toBe(true);
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+    expect(strip.hidden).toBe(false);
+  });
 });
 
 // While a query is active the theme counts say how many layers match (audit

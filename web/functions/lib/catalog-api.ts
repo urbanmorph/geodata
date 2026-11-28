@@ -1,4 +1,5 @@
 import { fetchAsset, loadCatalogVersioned, type AssetCtx } from './catalog-loader';
+import { SITE_ORIGIN } from '../../../shared/brand.mjs';
 import { answerKey, cached, CACHE_CONTROL, EDGE_TTL } from './edge-cache';
 import { json } from './http';
 import { layerIsNonCommercial, NC_NOTICE } from '../../../shared/licences.mjs';
@@ -27,7 +28,7 @@ export interface CatalogLayer {
   /** Its dated releases, newest first (added by web/scripts/public-catalog.mjs from the release index). */
   versions?: LayerVersion[];
   /** Who requested the layer (shared/requested-by.mjs): credited as "Requested by". */
-  requested_by?: { name?: string; line?: string } | null;
+  requested_by?: { name?: string; line?: string; url?: string; logo?: string } | null;
 }
 
 /** One dated release of a layer: cite it by its code, SHA-256 or w3id address. */
@@ -90,13 +91,19 @@ export interface ApiLayer {
   licence_notice?: string;
   versions?: LayerVersion[];
   /** Set on a layer someone requested: credit them as "Requested by <name>". */
-  requested_by?: { name: string; line?: string };
+  requested_by?: ApiRequestedBy;
 }
 
-/** The requester's credit for the API, or nothing: the line only when they gave one. */
-function requestedFields(layer: CatalogLayer): { requested_by?: { name: string; line?: string } } {
+/** The requester's credit: a line, link and logo (an absolute URL to our SVG) only when given. */
+type ApiRequestedBy = { name: string; line?: string; url?: string; logo?: string };
+
+function requestedFields(layer: CatalogLayer): { requested_by?: ApiRequestedBy } {
   const r = requestedBy(layer);
-  return r ? { requested_by: { name: r.name, ...(r.line ? { line: r.line } : {}) } } : {};
+  if (!r) return {};
+  return { requested_by: {
+    name: r.name, ...(r.line ? { line: r.line } : {}), ...(r.url ? { url: r.url } : {}),
+    ...(r.logo ? { logo: `${SITE_ORIGIN}${r.logo}` } : {}),
+  } };
 }
 
 export function filterLayers(layers: CatalogLayer[], filter: LayerFilter): CatalogLayer[] {
