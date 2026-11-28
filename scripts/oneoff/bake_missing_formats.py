@@ -203,7 +203,7 @@ def ogr_summary(ds: str) -> tuple[int, list[str]]:
 
 
 def shp_first_coord(zip_path: Path) -> tuple[float, float]:
-    out = run(['ogrinfo', '-ro', '-al', '-q', '-limit', '1', '-geom=YES', f'/vsizip/{zip_path}'],
+    out = run(['ogrinfo', '-ro', '-al', '-q', '-fid', '0', '-geom=YES', f'/vsizip/{zip_path}'],
               timeout=600, text=True).stdout
     m = re.search(r'\(+\s*' + NUM + r'\s+' + NUM, out)
     return float(m.group(1)), float(m.group(2))
