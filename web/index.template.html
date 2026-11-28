@@ -409,11 +409,14 @@
       .about-panel__facts strong { color: var(--fg); font-variant-numeric: tabular-nums; }
       .about-panel__lic { margin: 0 0 var(--sp-3); }
       /* A requested layer's credit (shared/requested-by.mjs): under the licence, a saffron edge. */
-      .about-panel__req { margin: 0 0 var(--sp-3-5); padding: var(--sp-2) var(--sp-3); border-left: var(--border-strong); border-left-color: var(--accent-fill); background: var(--accent-tint); }
+      /* A requested layer's credit: a saffron rule, no fill (a tint reads as mud on dark). The name stays whole. */
+      .about-panel__req { margin: 0 0 var(--sp-3-5); padding: var(--sp-0-5) 0 var(--sp-0-5) var(--sp-3); border-left: var(--border-strong); border-left-color: var(--accent-fill); }
       .about-panel__req p { margin: 0; font-size: var(--fs-sm); line-height: 1.5; }
-      .about-panel__req-who { font-weight: 600; }
+      .about-panel__req-who { color: var(--muted); }
+      .about-panel__req-name { color: var(--fg); font-weight: 600; white-space: nowrap; }
+      .about-panel__req-name a { color: inherit; }
       .about-panel__req-logo { display: block; height: var(--sp-6); width: auto; max-width: 50%; margin: var(--sp-1) 0 var(--sp-2); }
-      .about-panel__req-link a { display: inline-flex; align-items: center; min-height: 44px; color: var(--fg); font-weight: 600; }
+      .about-panel__req-link a { display: inline-flex; align-items: center; min-height: 44px; color: var(--fg); text-decoration: underline; text-underline-offset: 2px; }
       .about-panel__desc { margin: 0 0 var(--sp-3-5); font-size: var(--fs-base); line-height: 1.55; }
       .about-panel__h { margin: var(--sp-5) 0 var(--sp-2); font-size: var(--fs-md); font-weight: 850; color: var(--fg); }
       /* The same rows as the Download menu (about-layer.ts downloadListHtml). */

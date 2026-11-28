@@ -25,7 +25,7 @@ describe('requested-by credit', () => {
 
   it('says "Curated by bharatlas at the request of" on the About panel, with the line only when given', () => {
     const html = requestedByAboutHtml(pesa);
-    expect(html).toContain('Curated by bharatlas at the request of Sandilya MV');
+    expect(html).toContain('Curated by bharatlas at the request of <span class="about-panel__req-name">Sandilya MV</span>');
     expect(html).toContain('href="/docs#request"');
     expect(html).not.toContain('about-panel__req-line');
     expect(requestedByAboutHtml({ ...pesa, requested_by: { name: 'A', line: 'For gram sabhas' } }))
@@ -47,7 +47,7 @@ describe('an organisation credit: link and logo, both optional', () => {
 
   it('links the name as a paid link and shows the logo on the About panel', () => {
     const html = requestedByAboutHtml(altmo);
-    expect(html).toContain('at the request of <a href="https://www.altmo.app" target="_blank" rel="sponsored noopener">Altmo</a>');
+    expect(html).toContain('at the request of <span class="about-panel__req-name"><a href="https://www.altmo.app" target="_blank" rel="sponsored noopener">Altmo</a></span>');
     // the name is already in the text, so the logo is decorative and not a second link to the same place
     expect(html).toMatch(/<img class="about-panel__req-logo" src="\/requesters\/altmo.svg" alt="" [^>]*>/);
     expect(html.match(/href="https:\/\/www.altmo.app"/g)).toHaveLength(1);
@@ -55,10 +55,10 @@ describe('an organisation credit: link and logo, both optional', () => {
 
   it('shows the name alone when there is no link or logo, and a logo without a link', () => {
     expect(requestedByAboutHtml(pesa)).not.toContain('<img');
-    expect(requestedByAboutHtml(pesa)).toContain('at the request of Sandilya MV</p>');
+    expect(requestedByAboutHtml(pesa)).toContain('at the request of <span class="about-panel__req-name">Sandilya MV</span></p>');
     const logoOnly = requestedByAboutHtml({ id: 't', requested_by: { name: 'Altmo', logo: '/requesters/altmo.svg' } });
     expect(logoOnly).toContain('<img class="about-panel__req-logo"');
-    expect(logoOnly).toContain('at the request of Altmo</p>');
+    expect(logoOnly).toContain('at the request of <span class="about-panel__req-name">Altmo</span></p>');
   });
 
   it('keeps the list tag to text: no link or logo on every row', () => {
