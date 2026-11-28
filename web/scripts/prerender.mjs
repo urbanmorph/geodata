@@ -7,7 +7,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execSync, execFileSync } from 'node:child_process';
 import { TOKENS, MAP_TOKENS, renderNav, FOOTER } from './shared-chrome.mjs';
-import { escapeHtml as esc, fmtBytes, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
+import { escapeHtml as esc, fmtCount, fmtDate, fmtInt } from '../../shared/format.mjs';
 import { licenceBadgeHtml, layerIsNonCommercial, NC_LABEL } from '../../shared/licences.mjs';
 import { requestedByTagHtml, requestedFirst, requestedStripHtml } from '../../shared/requested-by.mjs';
 import { viewMapLink, wholeFileBytes, inlineMapLink } from '../../shared/large-load.mjs';
