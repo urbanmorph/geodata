@@ -168,3 +168,52 @@ def test_gis_artefact_columns_reads_only_column_names():
     cols = f.gis_artefact_columns()
     assert {'ogc_fid', 'shape_area', '__mlocate_', '__mlocate0', '__mlocate8'} <= cols
     assert all(' ' not in c for c in cols), cols  # no comment text read as a name
+
+
+def _points_geojson(tmp_path, n_cols: int = 1):
+    import json
+    props = {f'c{i}': 'x' for i in range(n_cols)}
+    fc = {'type': 'FeatureCollection', 'features': [
+        {'type': 'Feature', 'properties': props, 'geometry': {'type': 'Point', 'coordinates': [77.1, 12.1]}}]}
+    gj = tmp_path / 'P.geojson'
+    gj.write_text(json.dumps(fc))
+    return gj, list(props)
+
+
+def test_shapefile_string_fields_are_as_wide_as_their_values(tmp_path):
+    # OGR gives a GeoJSON string 80 characters; RESIZE=YES shrinks it to the
+    # widest value, which keeps a big layer's .dbf under the 2 GB limit.
+    import pipeline
+    gj, cols = _points_geojson(tmp_path)
+    out = tmp_path / 'P.shp.zip'
+    f.shapefile_zip_from_geojson(gj, out, f.short_field_names(cols))
+    info = pipeline.run(['ogrinfo', '-so', '-al', f'/vsizip/{out}/P.shp'], timeout=60, text=True).stdout
+    assert 'c0: String (1.0)' in info
+
+
+def test_shapefile_keeps_the_column_gdal_made_the_geojson_feature_id(tmp_path):
+    # GDAL writes a column named OGC_FID as each GeoJSON feature's "id", not a property.
+    import pipeline
+    pq, gj, out = tmp_path / 'P.parquet', tmp_path / 'P.geojson', tmp_path / 'P.shp.zip'
+    con = pipeline.make_con()
+    con.execute(f"COPY (SELECT 41 AS OGC_FID, 'x' AS c0, ST_Point(77.1, 12.1) AS geometry) TO '{pq}' (FORMAT PARQUET)")
+    con.execute(f"COPY (SELECT * FROM '{pq}') TO '{gj}' WITH (FORMAT GDAL, DRIVER 'GeoJSON')")
+    f.shapefile_zip_from_geojson(gj, out, f.short_field_names(['OGC_FID', 'c0']), fid_column='OGC_FID')
+    feature = pipeline.run(['ogrinfo', '-ro', '-al', '-q', f'/vsizip/{out}/P.shp'], timeout=60, text=True).stdout
+    assert 'OGC_FID (Integer) = 41' in feature and 'c0 (String) = x' in feature
+
+
+def test_shapefile_over_the_dbf_limit_is_refused_and_not_written(tmp_path):
+    import pytest
+    gj, cols = _points_geojson(tmp_path)
+    out = tmp_path / 'P.shp.zip'
+    with pytest.raises(f.ShapefileTooBig, match=r'P\.dbf'):
+        f.shapefile_zip_from_geojson(gj, out, f.short_field_names(cols), max_bytes=10)
+    assert not out.exists()
+
+
+def test_shapefile_with_more_fields_than_dbf_holds_is_refused(tmp_path):
+    import pytest
+    gj, cols = _points_geojson(tmp_path, n_cols=f.DBF_MAX_FIELDS + 1)
+    with pytest.raises(f.ShapefileTooBig, match='256 fields'):
+        f.shapefile_zip_from_geojson(gj, tmp_path / 'P.shp.zip', f.short_field_names(cols))

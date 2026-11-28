@@ -66,6 +66,20 @@ OGR_ENV = {**os.environ, 'OGR_GEOJSON_MAX_OBJ_SIZE': '0'}
 
 DBF_MAX_BYTES = 2 * 1024**3  # most GIS tools refuse a .dbf of 2 GB or more
 
+# The largest whole-layer download published per format. A bigger file is baked and checked but never
+# uploaded, so its catalog entry has no block for that format and the viewer's Filter & export serves it
+# for a state or district instead. KML 350 MB: keeps the admin-boundary KMLs people download most
+# (117-330 MB, D1 counts, Nov 2026) while dropping multi-GB KMLs that Google Earth and GDAL cannot open;
+# GeoJSON 1 GB: what QGIS and scripts handle in one file (Parquet is the download above that).
+# Applies to new bakes; files already published stay until their layer is rebaked (owner, 2026-11-27).
+FORMAT_MAX_BYTES = {'kml': 350 * 1000**2, 'geojson': 1000**3}
+
+
+def over_format_limit(fmt: str, nbytes: int) -> bool:
+    """True when a whole-layer download of this format and size is too big to publish."""
+    limit = FORMAT_MAX_BYTES.get(fmt)
+    return limit is not None and nbytes > limit
+
 
 # ── logging + retries ────────────────────────────────────────────────────────
 
@@ -991,7 +1005,7 @@ def layer_paths(out_dir: Path, basename: str, exts: dict[str, str]) -> dict[str,
 def format_blocks(formats: Iterable[str], names: dict[str, str], sizes: dict[str, int], base_url: str) -> dict:
     """{format: {url, bytes}} in the order of `formats`: a catalog entry's download
     blocks, each at <base_url>/<its content-versioned name>."""
-    return {fmt: {'url': f'{base_url}/{names[fmt]}', 'bytes': sizes[fmt]} for fmt in formats}
+    return {fmt: {'url': f'{base_url}/{names[fmt]}', 'bytes': sizes[fmt]} for fmt in formats if fmt in names}
 
 
 def manifest_files(names: dict[str, str], sizes: dict[str, int]) -> dict:
@@ -1003,7 +1017,12 @@ def manifest_files(names: dict[str, str], sizes: dict[str, int]) -> dict:
 def upload_versioned(s3, paths: dict[str, Path], prefix: str, put: Callable | None = None) -> dict[str, str]:
     """Upload each file to <prefix>/<its content-versioned name> (md5-skipped by
     `put`, r2_upload by default) and return the names: a changed file gets a new
-    key, an unchanged one keeps its key, so a re-run uploads nothing."""
+    key, an unchanged one keeps its key, so a re-run uploads nothing. A KML or GeoJSON over
+    FORMAT_MAX_BYTES is left out (logged): it gets no key and no catalog block."""
+    for fmt, path in list(paths.items()):
+        if over_format_limit(fmt, path.stat().st_size):
+            log(f'  {fmt} not published: {path.stat().st_size:,} B is over the {FORMAT_MAX_BYTES[fmt]:,} B limit')
+    paths = {f: p for f, p in paths.items() if not over_format_limit(f, p.stat().st_size)}
     names = versioned_names(paths)
     for fmt, path in paths.items():
         (put or r2_upload)(s3, path, f'{prefix}/{names[fmt]}')
