@@ -31,6 +31,20 @@ describe('live download total on the home line', () => {
   });
 });
 
+describe('per-format counts on /layers rows', () => {
+  it("patches a row's own links, not its compare-sources links (those are other layers)", async () => {
+    vi.resetModules();
+    const { patchDownloadCounts } = await import('../src/live-counts');
+    document.body.innerHTML =
+      '<section class="row" data-id="a"><p class="row__downloads"><span class="dl-inline"><a href="/x" download data-fmt="parquet">parquet</a><span class="size">1 KB</span></span></p>' +
+      '<details class="alt"><span class="links"><a href="/y" download data-fmt="parquet">parquet</a><span class="dot">·</span><a href="/z" download data-fmt="kml">kml</a></span></details></section>';
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ a: { parquet: 7, kml: 3 } }))));
+    await patchDownloadCounts(document.querySelector<HTMLElement>('.row')!);
+    expect(document.querySelector('.row__downloads .count')!.textContent).toBe('7');
+    expect(document.querySelector('.alt .count')).toBeNull();
+  });
+});
+
 describe('the search match line', () => {
   it('has its own slot; the idle line is hidden, never swapped out and restored', () => {
     expect(read('index.template.html')).toMatch(/<span id="search-meta-idle">[\s\S]*<\/span><span id="search-meta-match" hidden><\/span><\/p>/);

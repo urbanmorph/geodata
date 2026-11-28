@@ -4,7 +4,7 @@
 // is also the no-JS page; a ?q= arrival filters as soon as it lands.
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-vi.mock('../src/live-counts', () => ({ refreshLiveCounts: () => {} }));
+vi.mock('../src/live-counts', () => ({ refreshLiveCounts: () => {}, patchDownloadCounts: async () => {} }));
 vi.mock('../src/large-load', () => ({ markLargeViews: () => {} }));
 vi.mock('../src/search-pop', () => ({ focusOnSlash: () => {} }));
 
