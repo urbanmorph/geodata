@@ -302,9 +302,21 @@ def test_sizes_and_names_record_each_file_by_size_and_content(tmp_path):
                                                         'names': pipeline.versioned_names({'parquet': a})}
 
 
-def test_whole_layer_geojson_fails_rather_than_ship_changed_geometry(tmp_path, monkeypatch):
+def test_whole_layer_geojson_falls_back_to_gdal_full_precision_when_every_grid_changes_geometry(tmp_path, monkeypatch):
+    # PMGSY_Blocks (Nov 2026): 7, 15 and 12 decimals each changed geometries; GDAL's
+    # plain (pre-RFC 7946) writer keeps 15 significant digits and repairs nothing.
     import bake_whole_layer as bwl
     monkeypatch.setattr(bwl, 'GEOJSON_FALLBACK_PRECISIONS', (8, 7))     # every grid too coarse
+    pq = _wkt_parquet(tmp_path / 'fine.parquet', ['LINESTRING(77 12, 77.000000002 12.000000001)'])
+    out = tmp_path / 'fine.geojson'
+    bwl.write_geojson_whole(pipeline.make_con(), pq, out)
+    geom = json.loads(out.read_text())['features'][0]['geometry']
+    assert geom == {'type': 'LineString', 'coordinates': [[77.0, 12.0], [77.000000002, 12.000000001]]}
+
+
+def test_whole_layer_geojson_fails_rather_than_ship_changed_geometry(tmp_path, monkeypatch):
+    import bake_whole_layer as bwl
+    monkeypatch.setattr(bwl, 'geojson_changed_features', lambda *a: 1)  # every writer changes something
     pq = _wkt_parquet(tmp_path / 'fine.parquet', ['LINESTRING(77 12, 77.000000002 12.000000001)'])
     with pytest.raises(ValueError, match='every precision'):
         bwl.write_geojson_whole(pipeline.make_con(), pq, tmp_path / 'fine.geojson')
@@ -993,3 +1005,35 @@ def test_judiciary_bake_fails_loudly_and_leaves_no_partial_file(tmp_path, monkey
     out = tmp_path / 'out'
     assert not list(out.glob('*.parquet')) and not list(out.glob('*.part*'))
     assert (out / 'high_courts.kml').exists()
+
+
+# ── download size limits per format ──────────────────────────────────────────
+
+def _sized(tmp_path, name, nbytes):
+    p = tmp_path / name
+    with p.open('wb') as fh:
+        fh.truncate(nbytes)
+    return p
+
+
+def test_format_limits_are_350_mb_kml_and_1_gb_geojson():
+    assert pipeline.over_format_limit('kml', 350_000_001)
+    assert not pipeline.over_format_limit('kml', 350_000_000)
+    assert pipeline.over_format_limit('geojson', 1_000_000_001)
+    assert not pipeline.over_format_limit('geojson', 1_000_000_000)
+    # parquet, pmtiles and shapefile have no download limit here (shapefile's 2 GB is enforced at bake)
+    assert not pipeline.over_format_limit('parquet', 10**12)
+    assert not pipeline.over_format_limit('shapefile', 10**12)
+
+
+def test_upload_versioned_never_uploads_a_file_over_its_format_limit(tmp_path, monkeypatch):
+    monkeypatch.setitem(pipeline.FORMAT_MAX_BYTES, 'kml', 10)
+    small, big = _sized(tmp_path, 'a.geojson', 5), _sized(tmp_path, 'a.kml', 11)
+    keys = []
+    names = pipeline.upload_versioned('S3', {'geojson': small, 'kml': big}, 'e/x', put=lambda s3, p, k: keys.append(k))
+    assert list(names) == ['geojson'] and len(keys) == 1
+
+
+def test_format_blocks_leave_out_a_format_that_was_not_uploaded():
+    blocks = pipeline.format_blocks(['parquet', 'kml'], {'parquet': 'x.1.parquet'}, {'parquet': 3, 'kml': 9}, 'https://r2/e')
+    assert blocks == {'parquet': {'url': 'https://r2/e/x.1.parquet', 'bytes': 3}}
