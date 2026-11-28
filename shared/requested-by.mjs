@@ -45,7 +45,7 @@ export function requestedByAboutHtml(layer) {
   const who = r.url ? `<a href="${esc(r.url)}" target="_blank" rel="sponsored noopener">${esc(r.name)}</a>` : esc(r.name);
   return `<div class="about-panel__req">` +
     (r.logo ? `<img class="about-panel__req-logo" src="${esc(r.logo)}" alt="" height="24" loading="lazy">` : '') +
-    `<p class="about-panel__req-who">Curated by bharatlas at the request of ${who}</p>` +
+    `<p class="about-panel__req-who">Curated by bharatlas at the request of <span class="about-panel__req-name">${who}</span></p>` +
     (r.line ? `<p class="about-panel__req-line">${esc(r.line)}</p>` : '') +
     `<p class="about-panel__req-link"><a href="${REQUEST_URL}">Request a layer like this</a></p></div>`;
 }
